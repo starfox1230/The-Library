@@ -51,6 +51,15 @@
     transition: transform var(--transition-speed) ease, opacity var(--transition-speed) ease;
   }
 
+  /* NEW/MODIFIED: Hide outline when container is focused programmatically */
+  #container:focus {
+      outline: none; /* Fallback */
+  }
+  #container:focus-visible {
+     outline: none; /* Preferred modern approach */
+  }
+
+
   .fade-out {
       opacity: 0;
       transform: scale(0.98);
@@ -98,7 +107,7 @@
   }
 
   button:hover,
-  button:focus {
+  button:focus { /* Keep focus style same as hover for consistency here */
     background: var(--primary-color);
     color: var(--bg-color);
     box-shadow: 0 0 20px var(--glow-color);
@@ -113,11 +122,11 @@
 
   #answer {
     margin-top: 1.5rem;
-    min-height: 25px; /* Keep for answer text to prevent jump */
+    min-height: 25px;
     transition: opacity var(--transition-speed) ease, max-height var(--transition-speed) ease;
-    overflow: hidden; /* Keep for answer text transition */
+    overflow: hidden;
     opacity: 1;
-    max-height: 100px; /* Adjust if answers can be very long */
+    max-height: 100px;
     font-size: 1.2rem;
     font-weight: 400;
     color: #ffffff;
@@ -126,42 +135,34 @@
 
   #hint {
     margin-top: 1.5rem;
-    /* min-height removed */
     transition: opacity var(--transition-speed) ease, max-height var(--transition-speed) ease;
-    /* overflow: hidden; REMOVED - This allows the image to define the height */
     opacity: 1;
-    max-height: 1000px; /* Generous max-height for transition, ensures it can contain the image */
+    max-height: 1000px;
   }
-
 
   #answer.hidden,
   #hint.hidden {
       opacity: 0;
       max-height: 0;
       margin-top: 0;
-      /* Need to re-add overflow hidden *only* when hidden for max-height transition to work correctly */
-      overflow: hidden;
+      overflow: hidden; /* Re-add when hidden for transition */
   }
-
 
   #hint img {
     max-width: 100%;
-    height: auto; /* Maintain aspect ratio */
+    height: auto;
     display: block;
-    margin: 1rem auto 0; /* Keep top margin only when visible */
+    margin: 1rem auto 0;
     border-radius: var(--border-radius-sm);
     border: 1px solid rgba(0, 255, 156, 0.1);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    /* Prevent image from causing layout shift before loaded */
-    vertical-align: middle; /* Helps prevent extra space below */
+    vertical-align: middle;
   }
 
   #hint.hidden img {
-      margin-top: 0; /* Collapse margin when hint is hidden */
+      margin-top: 0;
   }
 
-
-  /* Responsive adjustments */
   @media (max-width: 600px) {
     h1 {
         font-size: 1.5rem;
@@ -181,10 +182,10 @@
         gap: 0.5rem;
     }
      #answer {
-        max-height: 150px; /* Allow more space on mobile */
+        max-height: 150px;
     }
     #hint {
-        max-height: 800px; /* Adjust if needed */
+        max-height: 800px;
     }
   }
 
@@ -192,26 +193,26 @@
 </head>
 <body>
 
-<div id="container">
+<!-- MODIFIED: Added tabindex="-1" -->
+<div id="container" tabindex="-1">
   <h1>Radionuclide Flashcards</h1>
   <div id="question">Loading...</div>
 
   <div class="controls">
     <button type="button" onclick="showAnswer()">Show Answer</button>
     <button type="button" onclick="toggleHint()">Show Hint</button>
-    <button type="button" onclick="nextQuestion()">Next Question</button>
+    <!-- MODIFIED: Pass event -->
+    <button type="button" onclick="nextQuestion(event)">Next Question</button>
   </div>
 
   <div id="answer" class="hidden"></div>
   <div id="hint" class="hidden">
-    <!-- Image path assumed relative to HTML, or adjust as needed -->
     <img id="hint-img" alt="Hint Image Structure">
   </div>
 </div>
 
 <script>
 const data = [
-  // ... (Keep the exact same data array)
   {name:"Chromium-51", file:"cr-51.png", production:"Nuclear reactor (neutron activation)", decay:"Electron capture (100%)", photons:"320 keV", halfLife:"27.8 days"},
   {name:"Cobalt-57", file:"co-57.png", production:"Cyclotron", decay:"Electron capture (100%)", photons:"122, 136 keV", halfLife:"271 days"},
   {name:"Fluorine-18", file:"f-18.png", production:"Cyclotron", decay:"Beta⁺ (97%), EC (3%)", photons:"511 keV (annihilation)", halfLife:"110 minutes"},
@@ -233,8 +234,8 @@ const data = [
 
 const questions = [];
 data.forEach(i => {
-  // Ensure image path is correct relative to the HTML file
-  const imagePath = `./${i.file}`; // CHANGE '/images/' if they are in a subfolder
+  // Ensure image path is correct - Assuming images are in the same folder as the HTML
+  const imagePath = `./${i.file}`;
   questions.push({ q: `What is the method of production of <strong>${i.name}</strong>?`, a: i.production, img: imagePath });
   questions.push({ q: `What is the mode of decay of <strong>${i.name}</strong>?`, a: i.decay, img: imagePath });
   questions.push({ q: `What are the principal photon energies (keV) of <strong>${i.name}</strong>?`, a: i.photons, img: imagePath });
@@ -254,18 +255,27 @@ function displayQuestion() {
     answerEl.textContent = "";
     answerEl.classList.add("hidden");
 
-    // Preload image slightly? Optional. Can sometimes help.
-    // hintImgEl.src = ""; // Clear previous src
     hintImgEl.src = current.img;
     hintEl.classList.add("hidden"); // Ensure hint starts hidden
 }
 
-function nextQuestion() {
+// MODIFIED: Accept event, blur button, then focus container in timeout
+function nextQuestion(event) {
+    // Method 1: Immediately blur the button that was clicked
+    if (event && event.target && typeof event.target.blur === 'function') {
+        event.target.blur();
+    }
+
     containerEl.classList.add('fade-out');
     setTimeout(() => {
         current = questions[Math.floor(Math.random() * questions.length)];
         displayQuestion();
-    }, 200);
+        // Method 2: Focus the main container AFTER the new content is ready
+        // and the fade-in starts. This directs focus to the updated area.
+        if (containerEl && typeof containerEl.focus === 'function') {
+           containerEl.focus();
+        }
+    }, 200); // Timeout duration should roughly match CSS transition
 }
 
 function showAnswer() {
@@ -274,25 +284,34 @@ function showAnswer() {
         answerEl.classList.remove("hidden");
     } else {
         answerEl.classList.add("hidden");
-        // Clear text *after* transition
-        setTimeout(() => { answerEl.textContent = ""; }, 300);
+        setTimeout(() => { answerEl.textContent = ""; }, 300); // Clear after transition
+    }
+     // Optional: Blur the "Show Answer" button after clicking
+    if (event && event.target && typeof event.target.blur === 'function') {
+         event.target.blur();
     }
 }
 
 function toggleHint() {
-    // Ensure the image source is set before showing
     if (hintEl.classList.contains("hidden")) {
-       hintImgEl.src = current.img; // Redundant if already set in displayQuestion, but safe
+       hintImgEl.src = current.img;
     }
     hintEl.classList.toggle("hidden");
+
+     // Optional: Blur the "Show Hint" button after clicking
+     if (event && event.target && typeof event.target.blur === 'function') {
+         event.target.blur();
+    }
 }
 
 window.onload = () => {
     containerEl.classList.add('fade-out'); // Start faded out
-    // Set initial state for answer and hint for clarity
     answerEl.classList.add("hidden");
     hintEl.classList.add("hidden");
-    setTimeout(nextQuestion, 100); // Load first question with fade-in
+    // Use a slightly longer timeout on load to ensure styles are applied
+    setTimeout(() => {
+        nextQuestion(); // Call without event on initial load
+    }, 150);
 };
 </script>
 
