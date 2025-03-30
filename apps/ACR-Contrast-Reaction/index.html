@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACR Contrast Reaction Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Include SortableJS Library -->
+    <script src="Sortable.min.js"></script>s
+    <style>
+        :root {
+            --bg-color: #1a1a1d; /* Very dark grey, almost black */
+            --panel-bg: #2c2f33;  /* Dark grey */
+            --text-color: #f0f0f0; /* Light grey/off-white */
+            --accent-color: #61dafb; /* React blue - good for glow */
+            --glow-color: rgba(97, 218, 251, 0.5); /* Semi-transparent accent */
+            --correct-color: #4CAF50; /* Green */
+            --correct-glow: rgba(76, 175, 80, 0.6);
+            --incorrect-color: #f44336; /* Red */
+            --incorrect-glow: rgba(244, 67, 54, 0.6);
+            --condition-color: #ff9800; /* Orange for condition checks */
+            --condition-glow: rgba(255, 152, 0, 0.6);
+            --button-bg: #4a4e54;
+            --button-hover-bg: #5f6368;
+            --disabled-opacity: 0.5;
+            --border-radius: 8px;
+            --box-shadow-glow: 0 0 15px var(--glow-color);
+            --text-shadow-glow: 0 0 8px var(--glow-color);
+            --dragging-bg: #3f4347; /* Background for the placeholder */
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .app-container {
+            background-color: var(--panel-bg);
+            padding: 25px 35px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
+            width: 95%;
+            max-width: 1200px;
+            border: 1px solid var(--accent-color);
+            box-shadow: var(--box-shadow-glow);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent-color);
+            text-shadow: var(--text-shadow-glow);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        h2 {
+            color: var(--text-color);
+            border-bottom: 1px solid var(--accent-color);
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .actions-panel, .scenario-panel {
+            flex: 1;
+            background-color: rgba(0, 0, 0, 0.1); /* Slightly darker inner panels */
+            padding: 20px;
+            border-radius: var(--border-radius);
+            min-height: 400px; /* Ensure panels have some height */
+            display: flex; /* Added for better height mgmt */
+            flex-direction: column; /* Added for better height mgmt */
+        }
+
+        .action-list, .selected-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 100px; /* Ensure list areas have some initial height */
+            padding-left: 0; /* Reset default list padding */
+            list-style: none; /* Remove default list bullets if using ul/ol */
+            margin: 0; /* Reset default list margin */
+        }
+        .action-list {
+             flex-grow: 1; /* Allow list to take available space */
+             overflow-y: auto; /* Add scroll if needed */
+             max-height: 500px; /* Limit max height */
+        }
+
+
+        .action-item, .selected-item {
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            padding: 10px 15px; /* Slightly reduced padding */
+            border-radius: 5px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            font-size: 0.9em; /* Slightly reduced font size */
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px; /* Ensure gap between items */
+        }
+         /* Remove margin from the last item in lists */
+         .action-item:last-child, .selected-item:last-child {
+            margin-bottom: 0;
+         }
+
+        .action-item.condition-check { /* Style for condition check actions */
+             border-left: 3px solid var(--condition-color);
+        }
+
+
+        .action-item:hover {
+            background-color: var(--button-hover-bg);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-item.disabled {
+            opacity: var(--disabled-opacity);
+            cursor: not-allowed;
+            background-color: #3a3d41; /* Darker disabled state */
+        }
+        .action-item.disabled:hover {
+             background-color: #3a3d41;
+             border-color: transparent;
+             transform: none;
+             box-shadow: none;
+        }
+
+        /* --- Selected Item Specific Styles --- */
+        .selected-item {
+            background-color: #3a3d41;
+            position: relative; /* For numbering */
+            padding-left: 40px; /* Make space for number */
+            min-height: 1.5em; /* Ensure consistent height */
+            line-height: 1.4;
+            word-break: break-word; /* Prevent long text overflow */
+            /* Indicate interactivity before submission */
+            cursor: grab;
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease; /* Add transitions */
+        }
+        /* Style change on hover to indicate clickability for removal */
+        .selected-item:not(.submitted):hover {
+             background-color: var(--button-hover-bg);
+             border: 1px solid var(--incorrect-color); /* Use red border on hover to hint at removal */
+             /* Offset padding slightly to account for border */
+             padding-top: 9px; padding-bottom: 9px;
+             padding-left: 39px; padding-right: 14px;
+        }
+
+        /* Class added after submission to disable interaction */
+        .selected-item.submitted {
+             cursor: default;
+        }
+        .selected-item.submitted:hover {
+             background-color: #3a3d41; /* Keep original background */
+             border-color: transparent;  /* Remove hover border */
+             padding: 10px 15px; /* Reset padding */
+             padding-left: 40px; /* Keep number space */
+        }
+
+        /* SortableJS Ghost Class Styling */
+        .sortable-ghost {
+            background-color: var(--dragging-bg) !important; /* Force background */
+            opacity: 0.7;
+            border: 1px dashed var(--accent-color);
+        }
+        /* SortableJS Drag Class Styling (optional) */
+        .sortable-drag {
+            opacity: 0.9;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+             cursor: grabbing; /* Change cursor while dragging */
+        }
+
+
+        .selected-item .sequence-number {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-radius: 50%;
+            width: 22px; /* Slightly smaller number */
+            height: 22px; /* Slightly smaller number */
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.85em;
+            box-shadow: 0 0 5px var(--glow-color);
+            /* Make number non-interactive for click removal */
+            pointer-events: none;
+        }
+
+        .selected-item.correct {
+            border-left: 5px solid var(--correct-color);
+            box-shadow: 0 0 10px var(--correct-glow);
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        .selected-item.correct.submitted:hover { /* Override hover for submitted correct */
+             background-color: rgba(76, 175, 80, 0.2);
+             border: 1px solid transparent; /* Remove red border */
+             border-left: 5px solid var(--correct-color); /* Keep left border */
+             padding: 10px 15px; /* Reset padding */
+             padding-left: 40px; /* Keep number space */
+        }
+        .selected-item.correct .sequence-number {
+             background-color: var(--correct-color);
+             box-shadow: 0 0 5px var(--correct-glow);
+        }
+
+         /* Style for correctly placed condition checks */
+         .selected-item.correct.condition-check-item {
+             border-left-color: var(--condition-color); /* Keep condition color border */
+         }
+         .selected-item.correct.condition-check-item .sequence-number {
+             background-color: var(--condition-color); /* Condition color number */
+              box-shadow: 0 0 5px var(--condition-glow);
+         }
+
+
+        .selected-item.incorrect {
+            border-left: 5px solid var(--incorrect-color);
+            box-shadow: 0 0 10px var(--incorrect-glow);
+             background-color: rgba(244, 67, 54, 0.2);
+        }
+         .selected-item.incorrect.submitted:hover { /* Override hover for submitted incorrect */
+             background-color: rgba(244, 67, 54, 0.2);
+             border: 1px solid transparent; /* Remove red border */
+             border-left: 5px solid var(--incorrect-color); /* Keep left border */
+             padding: 10px 15px; /* Reset padding */
+             padding-left: 40px; /* Keep number space */
+         }
+        .selected-item.incorrect .sequence-number {
+             background-color: var(--incorrect-color);
+             box-shadow: 0 0 5px var(--incorrect-glow);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--accent-color);
+            margin: 20px 0;
+            opacity: 0.5;
+        }
+
+        #scenario-description {
+            line-height: 1.6;
+            font-size: 1.0em; /* Adjusted size */
+            margin-bottom: 20px;
+            min-height: 50px; /* Ensure space for description */
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            padding: 12px 25px;
+            font-size: 1em;
+            font-weight: 400;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            min-width: 150px;
+        }
+
+        .control-button:hover:not(:disabled) {
+            background-color: var(--button-hover-bg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button.submit {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            font-weight: 600;
+        }
+        .control-button.submit:hover:not(:disabled) {
+            background-color: #82e9ff;
+             box-shadow: var(--box-shadow-glow);
+        }
+
+
+        .control-button.next {
+            background-color: var(--correct-color);
+             color: var(--text-color);
+        }
+        .control-button.next:hover:not(:disabled) {
+            background-color: #66bb6a;
+            box-shadow: 0 0 8px var(--correct-glow);
+        }
+
+        .control-button:disabled {
+            opacity: var(--disabled-opacity);
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 600;
+            min-height: 1.5em;
+        }
+
+        .feedback.correct-message {
+            color: var(--correct-color);
+            text-shadow: 0 0 5px var(--correct-glow);
+        }
+
+        .feedback.incorrect-message {
+             color: var(--incorrect-color);
+             text-shadow: 0 0 5px var(--incorrect-glow);
+        }
+
+        .credits {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8em;
+            opacity: 0.6;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content { flex-direction: column; }
+            .app-container { padding: 20px; }
+            h1 { font-size: 1.5em; }
+            .controls { flex-direction: column; gap: 10px; align-items: center; }
+            .control-button { width: 80%; max-width: 300px; }
+            .actions-panel, .scenario-panel { min-height: 300px; }
+            .action-list { max-height: 300px; }
+        }
+         @media (max-width: 480px) {
+              h1 { font-size: 1.3em; }
+              h2 { font-size: 1.1em; }
+             .app-container { padding: 15px; }
+              .control-button { padding: 10px 20px; font-size: 0.9em; }
+              .action-item, .selected-item { font-size: 0.85em; padding: 8px 12px; }
+              .selected-item { padding-left: 35px; }
+              .selected-item .sequence-number { width: 20px; height: 20px; font-size: 0.8em; }
+              .selected-item:not(.submitted):hover { /* Adjust hover padding for smaller screens */
+                   padding-top: 7px; padding-bottom: 7px;
+                   padding-left: 34px; padding-right: 11px;
+              }
+               .selected-item.submitted:hover,
+               .selected-item.correct.submitted:hover,
+               .selected-item.incorrect.submitted:hover { /* Reset padding on hover when submitted */
+                  padding: 8px 12px;
+                  padding-left: 35px;
+               }
+
+         }
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1>ACR Contrast Reaction Simulation</h1>
+        <div class="main-content">
+            <div class="actions-panel">
+                <h2>Available Actions (Select Relevant Steps)</h2>
+                <div id="available-actions" class="action-list">
+                    <!-- Action items will be loaded here by JS -->
+                </div>
+            </div>
+
+            <div class="scenario-panel">
+                <h2 id="scenario-title">Loading Scenario...</h2>
+                <p id="scenario-description">Please wait.</p>
+                <hr>
+                <h2>Your Selected Sequence (Click to Remove, Drag to Reorder)</h2>
+                <div id="selected-sequence" class="selected-list">
+                     <!-- Selected actions will appear here -->
+                </div>
+                 <div id="feedback-message" class="feedback"></div>
+            </div>
+        </div>
+        <div class="controls">
+            <button id="reset-btn" class="control-button" disabled>Reset Current Case</button>
+            <button id="submit-btn" class="control-button submit" disabled>Submit Sequence</button>
+            <button id="next-btn" class="control-button next" disabled>Next Case</button>
+        </div>
+         <p class="credits">Based on ACR Guidelines | Simulation by AI</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Element References ---
+            // Ensure elements exist before proceeding
+            const scenarioTitleEl = document.getElementById('scenario-title');
+            const scenarioDescriptionEl = document.getElementById('scenario-description');
+            const availableActionsEl = document.getElementById('available-actions');
+            const selectedSequenceEl = document.getElementById('selected-sequence');
+            const submitBtn = document.getElementById('submit-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const feedbackMessageEl = document.getElementById('feedback-message');
+
+            // Basic check if essential elements were found
+            if (!scenarioTitleEl || !availableActionsEl || !selectedSequenceEl || !submitBtn || !nextBtn || !resetBtn) {
+                console.error("ERROR: One or more essential HTML elements not found. Check IDs.");
+                alert("Critical error: UI elements missing. Cannot start simulation.");
+                return; // Stop script execution
+            }
+            console.log("DOM elements successfully referenced.");
+
+            // --- State Variables ---
+            let currentCaseIndex = 0;
+            let userSequence = []; // Array of action IDs in the selected order
+            let actionsDisabled = false;
+            let sortableInstance = null; // To hold the Sortable instance
+
+            // --- DATA ---
+            // Ensure data is defined correctly
+            const masterActionsList = [
+                { id: "preserve_iv_monitor", text: "Preserve IV access, monitor vitals Q 15, & call code if necessary" },
+                { id: "start_o2", text: "Start patient on 6-10L of O2 by face mask" },
+                { id: "elevate_legs", text: "Elevate patient legs > 60°" },
+                { id: "admin_ns_bolus", text: "Administer a bolus of 0.9% NS wide open" },
+                { id: "admin_benadryl", text: "Administer Diphenhydramine (Benadryl) 50 mg [PO, IV, or IM]" },
+                { id: "admin_atropine", text: "Administer Atropine 0.6-1.0 mg IV" },
+                { id: "admin_epi", text: "Administer Epinephrine 0.3mL 1:1000 IM / Auto-Injector OR 1mL 1:10000 IV (slow/fluids)" },
+                { id: "admin_albuterol", text: "Administer Albuterol inhaler, 2 puffs, repeat up to 3 times" },
+                { id: "check_refractory_brady", text: "Condition Check: Refractory Hypotension w/ Bradycardia?", isCondition: true },
+                { id: "check_refractory_broncho", text: "Condition Check: Refractory/Severe Bronchospasm?", isCondition: true },
+            ];
+
+             const cases = [
+                 { id: 1, title: "Case 1/5: Hives/Diffuse Erythema", description: "Patient presents with Hives or Diffuse Erythema WITHOUT signs of hypotension or hemodynamic instability.", correctSequence: ["preserve_iv_monitor", "admin_benadryl"] },
+                 { id: 2, title: "Case 2/5: Hypotension and Bradycardia", description: "Patient presents with Hypotension and Bradycardia.", correctSequence: ["preserve_iv_monitor", "start_o2", "elevate_legs", "admin_ns_bolus", "check_refractory_brady", "admin_atropine"] },
+                 { id: 3, title: "Case 3/5: Hypotension and Tachycardia", description: "Patient presents with Hypotension and Tachycardia (Consider Anaphylaxis).", correctSequence: ["preserve_iv_monitor", "start_o2", "elevate_legs", "admin_ns_bolus", "admin_epi"] },
+                 { id: 4, title: "Case 4/5: Laryngeal Edema (Inspiratory Stridor)", description: "Patient presents with Laryngeal Edema or Inspiratory Stridor.", correctSequence: ["preserve_iv_monitor", "start_o2", "admin_epi"] },
+                 { id: 5, title: "Case 5/5: Bronchospasm (Expiratory Wheeze)", description: "Patient presents with Bronchospasm or an Expiratory Wheeze.", correctSequence: ["preserve_iv_monitor", "start_o2", "admin_albuterol", "check_refractory_broncho", "admin_epi"] }
+            ];
+            console.log("Data (masterActionsList, cases) defined.");
+
+            // --- Core Functions ---
+
+            function shuffleArray(array) {
+                // Simple Fisher-Yates shuffle
+                let currentIndex = array.length, randomIndex;
+                while (currentIndex > 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [
+                        array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            }
+
+            function setupButtonListeners() {
+                 console.log("Setting up button listeners...");
+                 // Remove potentially old listeners before adding new ones
+                 submitBtn.removeEventListener('click', checkSequence);
+                 nextBtn.removeEventListener('click', handleNextClick);
+                 nextBtn.removeEventListener('click', displayCompletion); // Important for reset/restart logic
+                 resetBtn.removeEventListener('click', resetCurrentCase);
+                 resetBtn.removeEventListener('click', restartSimulation); // Important for reset/restart logic
+
+                 // Add current listeners
+                 submitBtn.addEventListener('click', checkSequence);
+                 // Default next button behavior (will be changed for last case/finish)
+                 nextBtn.addEventListener('click', handleNextClick);
+                 // Default reset button behavior (will be changed for completion screen)
+                 resetBtn.addEventListener('click', resetCurrentCase);
+                 console.log("Button listeners set up.");
+            }
+
+            function updateSequenceNumbers() {
+                const items = selectedSequenceEl.querySelectorAll('.selected-item');
+                items.forEach((item, index) => {
+                    const numberSpan = item.querySelector('.sequence-number');
+                    if (numberSpan) {
+                        numberSpan.textContent = index + 1;
+                    } else {
+                        console.warn("Could not find number span for item:", item);
+                    }
+                });
+                 // console.log("Sequence numbers updated.");
+            }
+
+            function updateUserSequenceFromDOM() {
+                 const items = selectedSequenceEl.querySelectorAll('.selected-item');
+                 userSequence = Array.from(items).map(item => item.dataset.id);
+                 // console.log("userSequence updated from DOM:", userSequence);
+             }
+
+            function handleSelectedItemClick(event) {
+                 if (actionsDisabled) {
+                     // console.log("Action disabled, cannot remove item.");
+                     return;
+                 }
+
+                 const selectedItem = event.target.closest('.selected-item');
+                 if (!selectedItem) return; // Click was not on an item or its child
+
+                 console.log("Removing selected item:", selectedItem.dataset.id);
+                 const actionIdToRemove = selectedItem.dataset.id;
+
+                 // 1. Remove from DOM
+                 selectedItem.remove();
+
+                 // 2. Update userSequence array from the current DOM state
+                 updateUserSequenceFromDOM();
+
+                 // 3. Renumber the visual sequence
+                 updateSequenceNumbers();
+
+                 // 4. Re-enable the corresponding action in the available list
+                 const availableActionItem = availableActionsEl.querySelector(`.action-item[data-id="${actionIdToRemove}"]`);
+                 if (availableActionItem) {
+                     availableActionItem.classList.remove('disabled');
+                     console.log("Re-enabled available action:", actionIdToRemove);
+                 } else {
+                     console.warn("Could not find corresponding available action to re-enable for:", actionIdToRemove);
+                 }
+
+                 // Disable submit button if the sequence is now empty
+                 submitBtn.disabled = userSequence.length === 0;
+            }
+
+             function initializeSelectedListInteraction() {
+                 console.log("Initializing selected list interactions (click removal, drag-and-drop)...");
+                 // Ensure Sortable library is loaded
+                 if (typeof Sortable === 'undefined') {
+                     console.error("SortableJS library is not loaded!");
+                     alert("Error: Drag-and-drop library failed to load. Please check your internet connection or the script tag.");
+                     return;
+                 }
+
+                 // --- Setup Click Listener for Removal ---
+                 // Remove previous listener (important for reset)
+                 selectedSequenceEl.removeEventListener('click', handleSelectedItemClick);
+                 // Add listener using event delegation
+                 selectedSequenceEl.addEventListener('click', handleSelectedItemClick);
+                 console.log("Click listener for removal added.");
+
+                 // --- Setup SortableJS ---
+                 // Destroy previous instance if it exists
+                  if (sortableInstance) {
+                      console.log("Destroying previous Sortable instance.");
+                      sortableInstance.destroy();
+                      sortableInstance = null;
+                  }
+
+                 // Create new Sortable instance
+                 try {
+                     sortableInstance = Sortable.create(selectedSequenceEl, {
+                         animation: 150,
+                         ghostClass: 'sortable-ghost',
+                         dragClass: 'sortable-drag',
+                         disabled: actionsDisabled, // Set initial state based on actionsDisabled
+                         onEnd: function (evt) {
+                             console.log("Sortable drag ended. Old index:", evt.oldIndex, "New index:", evt.newIndex);
+                             // Only update if the position actually changed
+                             if (evt.oldIndex !== evt.newIndex) {
+                                  updateUserSequenceFromDOM();
+                                  updateSequenceNumbers();
+                             }
+                         },
+                         onStart: function() {
+                            // Optional: Add class to body while dragging?
+                         },
+                         onChoose: function() {
+                            // Optional: Item is chosen
+                         }
+                     });
+                     console.log("SortableJS instance created successfully.");
+                 } catch (error) {
+                     console.error("Error creating SortableJS instance:", error);
+                     alert("Failed to initialize drag-and-drop functionality.");
+                 }
+             }
+
+
+            function loadCase(index) {
+                 console.log(`--- Loading Case ${index + 1} ---`);
+                if (index >= cases.length) {
+                    console.log("All cases completed, calling displayCompletion.");
+                    displayCompletion();
+                    return;
+                }
+
+                actionsDisabled = false; // Ensure actions are enabled for the new case
+                const currentCase = cases[index];
+                if (!currentCase) {
+                    console.error("CRITICAL ERROR: Case data not found for index", index);
+                    scenarioTitleEl.textContent = "Error";
+                    scenarioDescriptionEl.textContent = "Could not load case data. Please restart.";
+                    // Disable all controls
+                    submitBtn.disabled = true;
+                    nextBtn.disabled = true;
+                    resetBtn.disabled = true;
+                    return;
+                }
+
+                scenarioTitleEl.textContent = currentCase.title;
+                scenarioDescriptionEl.textContent = currentCase.description;
+                userSequence = []; // Clear sequence data
+                selectedSequenceEl.innerHTML = ''; // Clear visual selected list
+                feedbackMessageEl.textContent = '';
+                feedbackMessageEl.className = 'feedback'; // Reset feedback style
+
+                console.log("Displaying available actions for the new case...");
+                displayActions(shuffleArray([...masterActionsList])); // Display shuffled actions
+
+                // Reset and configure button states
+                submitBtn.disabled = true; // Disabled until an action is selected
+                nextBtn.disabled = true;   // Disabled until sequence submitted correctly
+                nextBtn.textContent = "Next Case"; // Default text
+                resetBtn.disabled = false; // Enable reset for the current case
+                resetBtn.textContent = "Reset Current Case"; // Default text
+                console.log("Button states reset.");
+
+                // Ensure interaction (click/drag) is enabled for the new case
+                initializeSelectedListInteraction(); // Re-init sortable and click listener
+                if (sortableInstance) {
+                    console.log("Ensuring SortableJS is enabled.");
+                    sortableInstance.option('disabled', false);
+                } else if (typeof Sortable !== 'undefined') {
+                    console.warn("Sortable instance was null, attempting re-initialization.");
+                     initializeSelectedListInteraction(); // Try again if library loaded but instance failed previously
+                }
+
+
+                // Ensure correct button event listeners are attached
+                setupButtonListeners();
+                 console.log(`--- Case ${index + 1} Loaded Successfully ---`);
+            }
+
+
+            function displayActions(actions) {
+                availableActionsEl.innerHTML = ''; // Clear previous actions
+                if (!actions || actions.length === 0) {
+                    console.error("No actions provided to displayActions function.");
+                    availableActionsEl.textContent = "Error: No actions loaded.";
+                    return;
+                }
+                console.log(`Displaying ${actions.length} available actions.`);
+
+                actions.forEach(action => {
+                    const actionDiv = document.createElement('div');
+                    actionDiv.classList.add('action-item');
+                     if (action.isCondition) {
+                         actionDiv.classList.add('condition-check');
+                     }
+                    actionDiv.textContent = action.text;
+                    actionDiv.dataset.id = action.id;
+                    actionDiv.dataset.text = action.text; // Store text for easy access later
+                    actionDiv.dataset.isCondition = action.isCondition || false;
+
+                    // Add click listener to each available action
+                    actionDiv.addEventListener('click', handleActionClick);
+
+                    availableActionsEl.appendChild(actionDiv);
+                });
+                 console.log("Finished displaying available actions.");
+            }
+
+            function handleActionClick(event) {
+                // Prevent adding if actions are globally disabled OR the specific item is already disabled (selected)
+                if (actionsDisabled || event.target.classList.contains('disabled')) {
+                     // console.log("Action click blocked (disabled state).");
+                    return;
+                }
+
+                const clickedAction = event.target; // The div element
+                const actionId = clickedAction.dataset.id;
+                const actionText = clickedAction.dataset.text;
+                const isCondition = clickedAction.dataset.isCondition === 'true';
+                console.log("Action selected:", actionId);
+
+                // 1. Update Data Model
+                userSequence.push(actionId);
+
+                // 2. Update UI
+                clickedAction.classList.add('disabled'); // Disable in available list
+
+                // Create the new item for the selected list
+                const selectedDiv = document.createElement('div');
+                selectedDiv.classList.add('selected-item');
+                selectedDiv.dataset.id = actionId; // Crucial for removal/reordering
+                 if (isCondition) {
+                    selectedDiv.classList.add('condition-check-item');
+                 }
+
+                // Create and append the sequence number span
+                const numberSpan = document.createElement('span');
+                numberSpan.classList.add('sequence-number');
+                // The actual number text is set by updateSequenceNumbers()
+
+                selectedDiv.appendChild(numberSpan);
+                selectedDiv.appendChild(document.createTextNode(" " + actionText)); // Add text content after number
+
+                selectedSequenceEl.appendChild(selectedDiv); // Add to the selected list DOM
+
+                 // 3. Update visual sequence numbers for all items
+                 updateSequenceNumbers();
+
+                 // 4. Enable submit button now that there's at least one item
+                 submitBtn.disabled = false;
+                 console.log("Item added to selected sequence. Submit enabled.");
+            }
+
+            function checkSequence() {
+                 console.log("--- Checking Sequence ---");
+                 if (userSequence.length === 0) {
+                     console.log("Submit clicked, but sequence is empty.");
+                     feedbackMessageEl.textContent = 'Please select at least one action.';
+                     feedbackMessageEl.className = 'feedback incorrect-message';
+                     return;
+                 }
+
+                actionsDisabled = true; // Disable adding/removing/reordering
+                submitBtn.disabled = true; // Disable submit after clicking
+                resetBtn.disabled = true; // Disable reset temporarily
+                 console.log("Actions disabled for checking.");
+
+                 // Disable SortableJS interactions
+                 if (sortableInstance) {
+                     console.log("Disabling SortableJS.");
+                     sortableInstance.option('disabled', true);
+                 }
+                 // Add 'submitted' class to prevent hover/cursor changes and indicate state
+                 selectedSequenceEl.querySelectorAll('.selected-item').forEach(item => {
+                     item.classList.add('submitted');
+                 });
+
+
+                const correctSequence = cases[currentCaseIndex].correctSequence;
+                let isFullyCorrect = true; // Assume correct initially
+                console.log("User Sequence:", userSequence);
+                console.log("Correct Sequence:", correctSequence);
+
+                const selectedItems = selectedSequenceEl.querySelectorAll('.selected-item'); // Get items in current DOM order
+
+                // --- Strict Check: Length and Order must match ---
+                if (userSequence.length !== correctSequence.length) {
+                    console.log("Length mismatch.");
+                    isFullyCorrect = false;
+                }
+
+                // Evaluate each item
+                selectedItems.forEach((item, index) => {
+                    const itemId = item.dataset.id;
+                    const isCorrectItemInPosition = index < correctSequence.length && itemId === correctSequence[index];
+
+                    if (isFullyCorrect && isCorrectItemInPosition) {
+                        // Only mark as correct if the sequence *might* be fully correct (length matches) and this item is right
+                        item.classList.add('correct');
+                        // console.log(`Item ${index + 1} (${itemId}) is CORRECT.`);
+                        const actionData = masterActionsList.find(a => a.id === itemId);
+                        if (actionData && actionData.isCondition) {
+                           item.classList.add('condition-check-item'); // Re-apply if needed
+                        }
+                    } else {
+                        // Mark as incorrect if length mismatch OR item is wrong/out of order
+                        item.classList.add('incorrect');
+                        // console.log(`Item ${index + 1} (${itemId}) is INCORRECT.`);
+                        isFullyCorrect = false; // Ensure overall correctness is false if any item fails
+                    }
+                    // Remove opposite class if present (e.g., from a previous incorrect check before reset)
+                    item.classList.remove(isCorrectItemInPosition && isFullyCorrect ? 'incorrect' : 'correct');
+                });
+
+
+                // --- Feedback and Button State Updates ---
+                if (isFullyCorrect) {
+                    console.log("Result: CORRECT Sequence");
+                    feedbackMessageEl.textContent = 'Correct Sequence!';
+                    feedbackMessageEl.className = 'feedback correct-message';
+                    nextBtn.disabled = false; // Enable Next/Finish
+                    resetBtn.disabled = true; // Keep reset disabled if correct
+                } else {
+                    console.log("Result: INCORRECT Sequence");
+                    feedbackMessageEl.textContent = 'Incorrect Sequence or Order. Please Reset and Try Again.';
+                    feedbackMessageEl.className = 'feedback incorrect-message';
+                    nextBtn.disabled = true;  // Keep Next disabled
+                    resetBtn.disabled = false; // RE-ENABLE Reset for incorrect attempts
+                }
+
+                // --- Special Handling for Next/Finish Button ---
+                if (currentCaseIndex >= cases.length - 1) { // Is this the last case?
+                    if (isFullyCorrect) {
+                        console.log("Last case and correct. Setting button to Finish.");
+                        nextBtn.textContent = "Finish";
+                        // Change listener from 'next' to 'finish'
+                        nextBtn.removeEventListener('click', handleNextClick);
+                        nextBtn.addEventListener('click', displayCompletion);
+                    } else {
+                        // Last case but incorrect, keep Next disabled
+                         nextBtn.disabled = true;
+                    }
+                } else { // Not the last case
+                    // Ensure listener is set to 'next' (might have been 'finish' previously if user went back)
+                    nextBtn.removeEventListener('click', displayCompletion);
+                    nextBtn.addEventListener('click', handleNextClick);
+                    nextBtn.disabled = !isFullyCorrect; // Enable only if correct
+                }
+
+                 // Visually disable remaining available actions (redundant due to actionsDisabled flag, but safe)
+                availableActionsEl.querySelectorAll('.action-item:not(.disabled)').forEach(item => {
+                    item.classList.add('disabled');
+                });
+                 console.log("--- Sequence Check Complete ---");
+            }
+
+            function resetCurrentCase() {
+                 console.log("--- Resetting Current Case ---");
+                 // Clear user sequence data
+                 userSequence = [];
+                 // Clear visual selected list
+                 selectedSequenceEl.innerHTML = '';
+                 // Clear feedback
+                 feedbackMessageEl.textContent = '';
+                 feedbackMessageEl.className = 'feedback';
+                 // Re-enable actions and interactions
+                 actionsDisabled = false;
+                 console.log("Actions re-enabled.");
+
+                 // Re-display available actions (reshuffle and remove 'disabled' states)
+                 console.log("Re-displaying available actions...");
+                 displayActions(shuffleArray([...masterActionsList]));
+
+                 // Reset button states
+                 submitBtn.disabled = true; // Disable submit until an item is selected
+                 nextBtn.disabled = true;
+                 resetBtn.disabled = false; // Keep reset enabled
+                  // Ensure Next button listener is back to default if it was 'Finish'
+                 nextBtn.removeEventListener('click', displayCompletion);
+                 nextBtn.addEventListener('click', handleNextClick);
+                 nextBtn.textContent = "Next Case";
+
+                 console.log("Button states reset for active case.");
+
+                 // Ensure sortable is enabled and ready
+                 initializeSelectedListInteraction(); // Re-init sortable & click listener
+                 if (sortableInstance) {
+                     console.log("Ensuring SortableJS is enabled after reset.");
+                     sortableInstance.option('disabled', false);
+                 }
+
+                 // Remove 'submitted' class from any potential leftover selected items (though list is cleared)
+                 selectedSequenceEl.querySelectorAll('.selected-item').forEach(item => {
+                     item.classList.remove('submitted', 'correct', 'incorrect');
+                 });
+                 console.log("--- Case Reset Complete ---");
+            }
+
+            function handleNextClick() {
+                 console.log("Next button clicked.");
+                 currentCaseIndex++;
+                 loadCase(currentCaseIndex);
+            }
+
+             function restartSimulation() {
+                 console.log("--- Restarting Simulation ---");
+                 currentCaseIndex = 0;
+                 // Re-setup default button listeners (removes 'Finish' and 'Restart' listeners)
+                 setupButtonListeners();
+                 loadCase(0); // Load the first case
+             }
+
+            function displayCompletion() {
+                 console.log("--- Displaying Completion Screen ---");
+                 actionsDisabled = true; // Disable interactions
+
+                 // Update text content
+                scenarioTitleEl.textContent = "Simulation Complete!";
+                scenarioDescriptionEl.textContent = "You have completed all the contrast reaction scenarios. Review the official ACR guidelines for definitive information and further study.";
+                availableActionsEl.innerHTML = '<p style="text-align:center; opacity: 0.7;">End of Simulation</p>';
+                selectedSequenceEl.innerHTML = ''; // Clear selected list
+                feedbackMessageEl.textContent = 'Well Done!';
+                feedbackMessageEl.className = 'feedback correct-message';
+
+                // Final button states
+                submitBtn.disabled = true;
+                nextBtn.disabled = true;
+                nextBtn.textContent = "Finish"; // Keep text
+
+                resetBtn.textContent = "Restart Simulation";
+                resetBtn.disabled = false;
+
+                // Update Reset button listener TO 'restartSimulation'
+                resetBtn.removeEventListener('click', resetCurrentCase);
+                resetBtn.addEventListener('click', restartSimulation);
+                console.log("Reset button listener changed to 'Restart'.");
+
+                 // Disable SortableJS definitively
+                 if (sortableInstance) {
+                     console.log("Disabling SortableJS on completion.");
+                     sortableInstance.option('disabled', true);
+                 }
+                 // Remove click listener for selected items
+                 selectedSequenceEl.removeEventListener('click', handleSelectedItemClick);
+                 console.log("Selected list interactions disabled.");
+                 console.log("--- Completion Screen Displayed ---");
+            }
+
+             // --- Initial Execution ---
+             console.log("Starting simulation setup...");
+             setupButtonListeners(); // Setup initial listeners
+             initializeSelectedListInteraction(); // Setup SortableJS and click listener
+             loadCase(currentCaseIndex); // Load the first case
+             console.log("Initial setup complete. Waiting for user interaction.");
+        });
+    </script>
+</body>
+</html>
