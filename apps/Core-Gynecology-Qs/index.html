@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GU System Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        /* CSS rules go here */
+        body {
+            background-color: #12121f; /* Dark blue/purple background */
+            color: #e0e0fc; /* Light lavender text */
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .quiz-container {
+            background-color: #1a1a2e; /* Slightly lighter dark blue */
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), /* Outer glow */
+                        0 5px 15px rgba(0, 0, 0, 0.3);   /* Standard shadow */
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            border: 1px solid #3a3a5e; /* Subtle border */
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif; /* Techy font */
+            color: #8a8aff; /* Brighter lavender/blue */
+            margin-bottom: 25px;
+            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
+        }
+
+        #question-counter {
+            font-size: 0.9em;
+            color: #aaaafc;
+            margin-bottom: 15px;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            color: #f0f0ff;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            min-height: 60px; /* Ensure space even for short questions */
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between buttons */
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background-color: #2a2a4e; /* Dark button background */
+            color: #d0d0fc;
+            border: 1px solid #4a4a7e; /* Button border */
+            padding: 12px 15px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            text-align: left;
+            width: 100%; /* Make buttons fill container */
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #3a3a6e;
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3); /* Glow on hover */
+        }
+
+        .option-button:active:not(:disabled) {
+            transform: translateY(0px);
+        }
+
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-button.correct {
+            background-color: #1f7a3f; /* Darker green */
+            border-color: #28a745;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6); /* Green glow */
+            opacity: 1;
+        }
+
+        .option-button.incorrect {
+            background-color: #9a2532; /* Darker red */
+            border-color: #dc3545;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6); /* Red glow */
+            opacity: 1;
+        }
+
+        /* Style for the correct answer when an incorrect one was chosen */
+        .option-button.reveal-correct {
+            background-color: #1f7a3f !important;
+            border-color: #28a745 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+
+
+        .explanation-container {
+            background-color: #202035; /* Slightly different dark shade */
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #c0c0fa;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .explanation-container strong {
+            color: #8a8aff; /* Highlight explanation keyword */
+        }
+
+        #next-button {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff); /* Gradient background */
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; /* Pill shape */
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+        }
+
+        #next-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+
+        #completion-message {
+            margin-top: 40px;
+        }
+        #completion-message h2 {
+             font-family: 'Orbitron', sans-serif;
+             color: #28a745; /* Green completion */
+             text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .quiz-container {
+                padding: 20px;
+                width: 95%;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            #question-text {
+                font-size: 1.1em;
+            }
+            .option-button {
+                font-size: 0.9em;
+                padding: 10px 12px;
+            }
+            #next-button {
+                padding: 10px 25px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Female Genitourinary System Quiz</h1>
+        <div id="question-counter"></div>
+        <div id="question-text">Loading question...</div>
+        <div id="answer-options" class="options-container">
+            <!-- Answer buttons will be loaded here by JavaScript -->
+        </div>
+        <div id="explanation" class="explanation-container" style="display: none;">
+            <!-- Explanation will be loaded here -->
+        </div>
+        <button id="next-button" style="display: none;">Next Question</button>
+        <div id="completion-message" style="display: none;">
+            <h2>Quiz Complete!</h2>
+            <p>You have finished all the questions.</p>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript code goes here
+        const quizData = [
+            // --- FEMALE URETHRA ---
+            {
+                question: "Compared to the male urethra, the female urethra is:",
+                options: [
+                    "Longer and divided into distinct segments.",
+                    "Shorter and lined entirely by transitional epithelium.",
+                    "Shorter and not divided into discrete segments.",
+                    "Similar in length but lined by stratified squamous epithelium proximally."
+                ],
+                correctAnswer: "Shorter and not divided into discrete segments.",
+                explanation: "The text states the female urethra is much shorter than the male urethra and, unlike the male urethra, is not divided into discrete segments."
+            },
+            {
+                question: "The proximal third of the female urethra is primarily lined by which type of epithelium?",
+                options: [
+                    "Stratified squamous epithelium",
+                    "Simple columnar epithelium",
+                    "Transitional epithelium",
+                    "Pseudostratified columnar epithelium"
+                ],
+                correctAnswer: "Transitional epithelium",
+                explanation: "The text specifies that the proximal third of the female urethra is lined by transitional epithelium, while the distal portion has stratified squamous epithelium."
+            },
+            {
+                question: "Urethral diverticula in females are thought to originate from chronic inflammation and dilation of which structures?",
+                options: [
+                    "Bartholin glands",
+                    "Urethral folds",
+                    "Paraurethral glands of Skene",
+                    "Vestibular bulbs"
+                ],
+                correctAnswer: "Paraurethral glands of Skene",
+                explanation: "The text indicates that diverticula are thought to arise from glandular dilation caused by inflammation and chronic infection of the paraurethral glands of Skene."
+            },
+             {
+                question: "On T2-weighted MRI, an uncomplicated urethral diverticulum typically appears as a:",
+                options: [
+                    "T2 hypointense structure due to fibrous tissue.",
+                    "Rounded, T2 hyperintense structure.",
+                    "Structure with intermediate T2 signal similar to muscle.",
+                    "Signal-void structure due to calcification."
+                ],
+                correctAnswer: "Rounded, T2 hyperintense structure.",
+                explanation: "The image caption describes a urethral diverticulum on midline sagittal T2-weighted MRI as a rounded, hyperintense structure (bright)."
+            },
+            {
+                question: "A characteristic morphology described for urethral diverticula as they wrap around the urethra is:",
+                options: [
+                    "Spherical or ovoid shape, compressing the urethra anteriorly.",
+                    "Bilobed shape extending superiorly and inferiorly.",
+                    "Linear tract extending along the urethral length.",
+                    "Saddlebag or U-shaped morphology, often arising posterolaterally."
+                ],
+                correctAnswer: "Saddlebag or U-shaped morphology, often arising posterolaterally.",
+                explanation: "The text mentions that urethral diverticula typically arise from the posterolateral urethra and wrap circumferentially with a classic saddlebag or U-shaped morphology."
+            },
+            {
+                question: "Due to urinary stasis, urethral diverticula are particularly prone to developing which complication?",
+                options: [
+                    "Adenocarcinoma",
+                    "Calculi (stones)",
+                    "Strictures",
+                    "Fistula formation"
+                ],
+                correctAnswer: "Calculi (stones)",
+                explanation: "The text explicitly states that urethral diverticula are prone to develop calculi due to urinary stasis."
+            },
+            // --- VAGINA: ANATOMY AND IMAGING ---
+            {
+                question: "The posterior fornix of the vagina is directly covered by the peritoneum of which structure?",
+                options: [
+                    "Vesicouterine pouch",
+                    "Space of Retzius",
+                    "Broad ligament",
+                    "Rectouterine pouch (Pouch of Douglas)"
+                ],
+                correctAnswer: "Rectouterine pouch (Pouch of Douglas)",
+                explanation: "The text states the posterior fornix is covered by the peritoneum of the rectouterine pouch (Pouch of Douglas)."
+            },
+            {
+                question: "The paraurethral glands of Skene in females are homologous to which structure in males?",
+                options: [
+                    "Bulbourethral (Cowper) glands",
+                    "Seminal vesicles",
+                    "Prostate gland",
+                    "Epididymis"
+                ],
+                correctAnswer: "Prostate gland",
+                explanation: "The text mentions that the paraurethral glands of Skene are homologous to the male prostate."
+            },
+            {
+                question: "The Bartholin glands are located near the vaginal opening and are analogous to which male structure?",
+                options: [
+                    "Prostate gland",
+                    "Bulbourethral (Cowper) glands",
+                    "Seminal vesicles",
+                    "Testes"
+                ],
+                correctAnswer: "Bulbourethral (Cowper) glands",
+                explanation: "The text specifies that the Bartholin glands are analogous to the bulbourethral (Cowper) glands in the male."
+            },
+            {
+                question: "Lymphatic drainage from the middle third of the vagina primarily goes to which lymph node groups?",
+                options: [
+                    "External iliac and superficial inguinal nodes",
+                    "Internal iliac and sacral nodes",
+                    "Superficial inguinal and perirectal nodes",
+                    "Para-aortic nodes only"
+                ],
+                correctAnswer: "Internal iliac and sacral nodes",
+                explanation: "The text divides lymphatic drainage into thirds, stating the middle third drains to the internal iliac and sacral nodes."
+            },
+             {
+                question: "Which imaging modality is considered the modality of choice for evaluating the distal urethra and distal vagina at the introitus?",
+                options: [
+                    "Transvaginal Ultrasound",
+                    "CT Scan",
+                    "MRI",
+                    "Hysterosalpingogram"
+                ],
+                correctAnswer: "MRI",
+                explanation: "The text identifies MRI imaging as the modality of choice for imaging the distal urethra and distal vagina at the introitus."
+            },
+            // --- BENIGN VAGINAL LESIONS ---
+            {
+                question: "Gartner duct cysts arise from embryonic remnants of the Wolffian duct and are typically found in which location relative to the vaginal wall?",
+                options: [
+                    "Posterolateral wall, below the pubic symphysis",
+                    "Anterior midline, below the pubic symphysis",
+                    "Anterolateral wall, above the level of pubic symphysis",
+                    "Within the cervix"
+                ],
+                correctAnswer: "Anterolateral wall, above the level of pubic symphysis",
+                explanation: "The text describes Gartner duct cysts as being found in the anterolateral vaginal wall, above the level of the pubic symphysis."
+            },
+            {
+                question: "Obstruction of the Bartholin duct, often due to prior infection or trauma, typically leads to a retention cyst located where?",
+                options: [
+                    "Near the urethral meatus, anteriorly",
+                    "Along the anterolateral superior vaginal wall",
+                    "Within the cervical stroma",
+                    "Posterolateral aspect of the inferior vagina, below the pubic symphysis"
+                ],
+                correctAnswer: "Posterolateral aspect of the inferior vagina, below the pubic symphysis",
+                explanation: "Bartholin gland cysts are described as being found in the inferior third of the vagina at the posterolateral vaginal wall, below the level of the pubic symphysis."
+            },
+             {
+                question: "Nabothian cysts are retention cysts specifically located within which structure?",
+                options: [
+                    "Labia majora",
+                    "Urethra",
+                    "Cervix",
+                    "Anterolateral vaginal wall"
+                ],
+                correctAnswer: "Cervix",
+                explanation: "The text states that Nabothian cysts are located at the cervix and are due to occlusion of cervical glands."
+            },
+            // --- FISTULAS INVOLVING THE VAGINA ---
+            {
+                question: "A vesicovaginal fistula, representing a connection between the bladder and vagina, most commonly occurs in the setting of:",
+                options: [
+                    "Crohn's disease or radiation therapy.",
+                    "Excision of a urethral diverticulum.",
+                    "Obstructed childbirth or urologic/pelvic surgery.",
+                    "Congenital anomalies."
+                ],
+                correctAnswer: "Obstructed childbirth or urologic/pelvic surgery.",
+                explanation: "The text states that vesicovaginal fistula occurs most commonly in the setting of obstructed childbirth or after urologic or pelvic surgery."
+            },
+            {
+                question: "Which imaging plane on MRI is generally considered the most reliable for visualizing fistulas involving the vagina?",
+                options: [
+                    "Axial plane",
+                    "Coronal plane",
+                    "Sagittal plane",
+                    "Oblique axial plane"
+                ],
+                correctAnswer: "Sagittal plane",
+                explanation: "The text mentions that on MRI imaging, the sagittal plane is the most reliable plane for visualization of fistulas."
+            },
+            // --- MALIGNANT VAGINAL DISEASE ---
+            {
+                question: "Squamous cell carcinoma (SCC) accounts for the majority (80-85%) of primary vaginal malignancies and is associated with which risk factor, similar to cervical SCC?",
+                options: [
+                    "Diethylstilbestrol (DES) exposure",
+                    "Chronic inflammation from pessary use",
+                    "Human Papillomavirus (HPV) infection",
+                    "Vaginal adenosis"
+                ],
+                correctAnswer: "Human Papillomavirus (HPV) infection",
+                explanation: "The text notes that SCC of the vagina is associated with HPV, similar to SCC of the cervix."
+            },
+             {
+                question: "Exposure to diethylstilbestrol (DES) in utero is associated with an increased risk of which rare type of vaginal cancer and often a specific uterine anomaly?",
+                options: [
+                    "Adenocarcinoma and bicornuate uterus",
+                    "Clear cell carcinoma and \"T-shaped\" uterus",
+                    "Vaginal melanoma and septate uterus",
+                    "Rhabdomyosarcoma and uterine didelphys"
+                ],
+                correctAnswer: "Clear cell carcinoma and \"T-shaped\" uterus",
+                explanation: "The text links previous DES exposure to clear cell carcinoma of the vagina and mentions these patients often have a \"T-shaped\" uterus."
+            },
+            {
+                question: "Rhabdomyosarcoma is the most common vaginal tumor in which patient population?",
+                options: [
+                    "Postmenopausal women",
+                    "Women aged 20-40",
+                    "Pediatric population (children)",
+                    "Women with prior pelvic radiation"
+                ],
+                correctAnswer: "Pediatric population (children)",
+                explanation: "The text identifies vaginal sarcoma presenting as rhabdomyosarcoma as the most common vaginal tumor in children."
+            },
+            {
+                question: "Metastasis to the lower third of the vagina, typically presenting posteriorly, is most likely to originate from which source?",
+                options: [
+                    "Upper genital tract (uterus, ovaries)",
+                    "Urinary tract (bladder, kidneys)",
+                    "GI tract (colon, rectum)",
+                    "Lung or breast cancer"
+                ],
+                correctAnswer: "GI tract (colon, rectum)",
+                explanation: "The text states that metastasis located in the lower 1/3 of the vagina (typically posterior) is usually from the GI tract."
+            },
+            // --- FEMALE PELVIS ---
+            {
+                question: "The linea terminalis serves as a bony landmark separating which two regions of the pelvis?",
+                options: [
+                    "The left and right hemipelvis",
+                    "The true (inferior) pelvis from the false (superior) pelvis",
+                    "The pelvic inlet from the pelvic outlet",
+                    "The anterior pelvis from the posterior pelvis"
+                ],
+                correctAnswer: "The true (inferior) pelvis from the false (superior) pelvis",
+                explanation: "The text defines the linea terminalis as the bony landmark separating the true (inferior) pelvis from the false (superior) pelvis."
+            },
+            {
+                question: "The space of Retzius is an extraperitoneal potential space located between which two structures?",
+                options: [
+                    "The bladder and the uterus",
+                    "The uterus and the rectum",
+                    "The pubic symphysis and the bladder",
+                    "The rectum and the sacrum"
+                ],
+                correctAnswer: "The pubic symphysis and the bladder",
+                explanation: "The text describes the space of Retzius as being located between the pubic symphysis and the bladder."
+            },
+             {
+                question: "The most dependent portion of the peritoneal cavity in a female, also known as the cul-de-sac, is the:",
+                options: [
+                    "Vesicouterine pouch",
+                    "Space of Retzius",
+                    "Paracolic gutters",
+                    "Rectouterine pouch (of Douglas)"
+                ],
+                correctAnswer: "Rectouterine pouch (of Douglas)",
+                explanation: "The text identifies the Rectouterine pouch (of Douglas), also known as the cul-de-sac, as the most dependent portion of the peritoneal cavity."
+            },
+            // --- IMAGING THE PELVIS ---
+            {
+                question: "Why is a full bladder typically required for transabdominal pelvic ultrasound?",
+                options: [
+                    "To compress bowel loops out of the way.",
+                    "To provide an acoustic window for visualizing deep pelvic structures.",
+                    "To elevate the uterus into a better imaging plane.",
+                    "To serve as a size reference for pelvic organs."
+                ],
+                correctAnswer: "To provide an acoustic window for visualizing deep pelvic structures.",
+                explanation: "The text explains that transabdominal imaging requires a full bladder to provide an acoustic window for visualization of deep pelvic structures."
+            },
+            {
+                question: "Compared to transabdominal ultrasound, transvaginal ultrasound generally provides:",
+                options: [
+                    "Lower resolution but better penetration.",
+                    "Better resolution due to closer proximity to internal organs.",
+                    "A wider field of view of the entire pelvis.",
+                    "Less discomfort for the patient."
+                ],
+                correctAnswer: "Better resolution due to closer proximity to internal organs.",
+                explanation: "The text states that transvaginal ultrasound provides better resolution due to closer proximity to the internal organs."
+            },
+            {
+                question: "While MRI provides excellent anatomic detail, CT of the female pelvis is sometimes used primarily for:",
+                options: [
+                    "Evaluating functional ovarian cysts.",
+                    "Detecting subtle endometrial thickening.",
+                    "Characterizing uterine anomalies.",
+                    "Staging pelvic tumors to assess for metastatic disease."
+                ],
+                correctAnswer: "Staging pelvic tumors to assess for metastatic disease.",
+                explanation: "The text notes that CT has low sensitivity for pelvic disorders but can be used in staging pelvic tumors to assess for metastatic disease."
+            },
+             // --- HYSTEROSALPINGOGRAM (HSG) ---
+            {
+                question: "Hysterosalpingography (HSG) is most commonly performed during the evaluation of which clinical condition?",
+                options: [
+                    "Pelvic inflammatory disease",
+                    "Endometrial cancer staging",
+                    "Infertility",
+                    "Uterine fibroid mapping"
+                ],
+                correctAnswer: "Infertility",
+                explanation: "The text states that HSG is commonly used during evaluation of infertility."
+            },
+            {
+                question: "During an HSG, visualization of contrast freely spilling into the peritoneum from the fallopian tubes indicates:",
+                options: [
+                    "Tubal occlusion likely due to spasm.",
+                    "Presence of pelvic adhesions.",
+                    "Patency of the fallopian tubes.",
+                    "An abnormal connection to the bowel."
+                ],
+                correctAnswer: "Patency of the fallopian tubes.",
+                explanation: "The text explains that contrast spilling freely into the peritoneum indicates patency of the fallopian tubes."
+            },
+            {
+                question: "On an HSG, if contrast spills into the peritoneum but remains localized or loculated, it is suggestive of:",
+                options: [
+                    "Normal anatomy.",
+                    "Tubal spasm requiring medication.",
+                    "Pelvic adhesions.",
+                    "Inadequate contrast injection volume."
+                ],
+                correctAnswer: "Pelvic adhesions.",
+                explanation: "Loculated peritoneal contrast seen on HSG is described as suggestive of pelvic adhesions."
+            },
+            // --- UTERUS ---
+             {
+                question: "The junction between the uterine body and the cervix is referred to as the:",
+                options: [ "Fundus", "Cornu", "Isthmus", "Endocervical canal" ],
+                correctAnswer: "Isthmus",
+                explanation: "The text defines the isthmus as the junction of the uterine body and cervix."
+            },
+            {
+                question: "On T2-weighted MRI, the junctional zone of the myometrium normally appears:",
+                options: [
+                    "Hyperintense (bright) due to high water content.",
+                    "Isointense to the outer myometrium.",
+                    "Hypointense (dark) due to compact smooth muscle.",
+                    "Heterogeneously hyperintense with cystic changes."
+                ],
+                correctAnswer: "Hypointense (dark) due to compact smooth muscle.",
+                explanation: "The text describes the normal junctional zone as T2 hypointense due to extremely compact smooth muscle."
+            },
+            {
+                question: "Thickening of the junctional zone, often measuring >12 mm on MRI, is a characteristic finding in which condition?",
+                options: [
+                    "Leiomyoma",
+                    "Endometrial polyp",
+                    "Adenomyosis",
+                    "Endometrial carcinoma invading the myometrium"
+                ],
+                correctAnswer: "Adenomyosis",
+                explanation: "The text states that thickening of the junctional zone is seen in adenomyosis, and defines a normal JZ as ≤12 mm."
+            },
+            // --- ENDOMETRIUM ---
+            {
+                question: "During which phase of the menstrual cycle does the endometrium typically exhibit a \"trilaminar\" appearance on ultrasound?",
+                options: [
+                    "Menstrual phase",
+                    "Early proliferative phase",
+                    "Late proliferative (peri-ovulatory) phase",
+                    "Secretory phase"
+                ],
+                correctAnswer: "Late proliferative (peri-ovulatory) phase",
+                explanation: "The table indicates that the classic trilaminar appearance occurs during the late proliferative phase (days 10-14)."
+            },
+            {
+                question: "What is the appropriate way to measure endometrial thickness on ultrasound when endometrial fluid is present?",
+                options: [
+                    "Measure the thickest single layer of endometrium only.",
+                    "Measure the fluid collection diameter and add it to the endometrial thickness.",
+                    "Measure the two opposing endometrial layers (excluding the fluid) and sum their thicknesses.",
+                    "Ignore the fluid and measure the overall anterior-posterior diameter of the cavity."
+                ],
+                correctAnswer: "Measure the two opposing endometrial layers (excluding the fluid) and sum their thicknesses.",
+                explanation: "The text specifies that if endometrial fluid is present, the flanking endometrium is measured and the two components are summed; fluid is not included."
+            },
+            // --- BENIGN ENDOMETRIAL PATHOLOGY ---
+            {
+                question: "Which imaging technique is most definitive for diagnosing an endometrial polyp, especially differentiating it from diffuse thickening?",
+                options: [
+                    "Transvaginal ultrasound with Doppler",
+                    "MRI of the pelvis",
+                    "Sonohysterogram (saline infusion sonography)",
+                    "CT scan with contrast"
+                ],
+                correctAnswer: "Sonohysterogram (saline infusion sonography)",
+                explanation: "The text states that a polyp is more definitively diagnosed by sonohysterogram, where saline instillation outlines the polyp."
+            },
+            {
+                question: "Endometrial hyperplasia is typically caused by:",
+                options: [
+                    "Chronic infection of the endometrium.",
+                    "Progesterone dominance.",
+                    "Unopposed estrogen stimulation.",
+                    "Vascular malformations."
+                ],
+                correctAnswer: "Unopposed estrogen stimulation.",
+                explanation: "The text attributes endometrial hyperplasia to unopposed estrogen stimulation and lists causes like obesity, PCOS, and tamoxifen."
+            },
+            {
+                question: "For a postmenopausal woman NOT on HRT and experiencing bleeding, what endometrial thickness (ET) threshold generally prompts further workup (biopsy/hysteroscopy) according to the provided guideline?",
+                options: [ "ET < 5 mm", "ET ≥ 5 mm", "ET ≥ 8 mm", "ET ≥ 11 mm" ],
+                correctAnswer: "ET ≥ 5 mm",
+                explanation: "The management algorithm shows that for postmenopausal bleeding, an ET ≥ 5 mm warrants further investigation (though noting the ACOG uses 4mm)."
+            },
+            {
+                question: "How does Tamoxifen use affect the management approach for postmenopausal endometrial thickness?",
+                options: [
+                    "It lowers the threshold for workup regardless of bleeding.",
+                    "It necessitates workup regardless of endometrial thickness if bleeding occurs.",
+                    "It generally requires workup for any measurable endometrial thickness due to increased cancer risk.",
+                    "It raises the thickness threshold for workup compared to non-users."
+                ],
+                correctAnswer: "It generally requires workup for any measurable endometrial thickness due to increased cancer risk.",
+                explanation: "The algorithm indicates that for patients on Tamoxifen, workup is needed, explicitly stating Tamoxifen increases the risk of endometrial cancer. The specific ET threshold isn't the primary driver for workup in Tamoxifen users compared to the medication effect itself."
+            },
+            // --- ENDOMETRIAL CANCER ---
+            {
+                question: "What is the most common presenting symptom for endometrial carcinoma, occurring in over 95% of cases?",
+                options: [ "Pelvic pain", "Postmenopausal bleeding", "Abdominal bloating", "Urinary frequency" ],
+                correctAnswer: "Postmenopausal bleeding",
+                explanation: "The text states that over 95% of endometrial carcinoma presents with postmenopausal bleeding."
+            },
+            {
+                question: "In staging endometrial carcinoma with MRI, the integrity of which uterine layer is crucial for determining the absence of myometrial invasion, particularly in premenopausal patients?",
+                options: [ "Endometrial stripe", "Outer myometrium", "Serosa", "Junctional zone" ],
+                correctAnswer: "Junctional zone",
+                explanation: "The text highlights that in a premenopausal patient, an intact junctional zone confirms no myometrial invasion."
+            },
+            {
+                question: "How does postcontrast MRI aid in the staging of endometrial carcinoma?",
+                options: [
+                    "It helps differentiate benign polyps from carcinoma.",
+                    "It increases the conspicuity of the tumor compared to the surrounding myometrium.",
+                    "It accurately detects lymph node involvement.",
+                    "It confirms the presence of associated adenomyosis."
+                ],
+                correctAnswer: "It increases the conspicuity of the tumor compared to the surrounding myometrium.",
+                explanation: "The text states postcontrast images demonstrate the tumor with the highest conspicuity, as endometrial cancer enhances less avidly than the surrounding myometrium."
+            },
+             // --- OTHER DISEASES OF THE ENDOMETRIUM/ENDOMETRIAL CAVITY ---
+            {
+                question: "Finding gas within the uterine cavity more than three weeks postpartum is suspicious for which condition?",
+                options: [
+                    "Retained products of conception",
+                    "Normal postpartum changes",
+                    "Endometritis",
+                    "Uterine perforation"
+                ],
+                correctAnswer: "Endometritis",
+                explanation: "The text mentions that gas in the uterus >3 weeks post delivery is suspicious for endometritis."
+            },
+            {
+                question: "Pyometra (pus in the uterus) is most commonly associated with which underlying condition?",
+                options: [
+                    "Pelvic inflammatory disease extending upwards.",
+                    "Outflow obstruction, often due to cervical malignancy.",
+                    "Complication of an intrauterine device.",
+                    "Spontaneous occurrence in postmenopausal women."
+                ],
+                correctAnswer: "Outflow obstruction, often due to cervical malignancy.",
+                explanation: "The text describes pyometra as usually due to outflow obstruction, often caused by cervical malignancy."
+            },
+             // --- ECTOPIC ENDOMETRIUM ---
+            {
+                question: "Adenomyosis refers specifically to ectopic endometrial tissue located within the:",
+                options: [ "Ovary", "Fallopian tube", "Myometrium", "Peritoneal cavity" ],
+                correctAnswer: "Myometrium",
+                explanation: "Adenomyosis is defined as ectopic endometrial tissue within the myometrium (endometriosis interna)."
+            },
+            {
+                question: "Which of the following is a key difference between the ectopic tissue in adenomyosis and endometriosis?",
+                options: [
+                    "Adenomyosis tissue is functional and responds to hormones, while endometriosis tissue is not.",
+                    "Adenomyosis tissue is nonfunctioning, while endometriosis tissue typically responds to cyclic hormones.",
+                    "Adenomyosis only occurs postpartum, while endometriosis occurs premenopausally.",
+                    "Adenomyosis involves glands only, while endometriosis involves stroma only."
+                ],
+                correctAnswer: "Adenomyosis tissue is nonfunctioning, while endometriosis tissue typically responds to cyclic hormones.",
+                explanation: "The text contrasts adenomyosis (nonfunctioning, does not respond to cyclic hormones) with endometriosis (ectopic tissue that is generally hormonally responsive)."
+            },
+            // --- BENIGN MYOMETRIAL PATHOLOGY ---
+            {
+                question: "What is the most common location for uterine fibroids (leiomyomas)?",
+                options: [ "Submucosal", "Subserosal", "Intramural", "Cervical" ],
+                correctAnswer: "Intramural",
+                explanation: "The text identifies the intramural location (within the myometrium) as the most common location for fibroids."
+            },
+             {
+                question: "Which type of fibroid degeneration often appears T1 hyperintense on MRI and is frequently associated with pregnancy or OCP use?",
+                options: [
+                    "Cystic degeneration",
+                    "Myxoid degeneration",
+                    "Hyaline degeneration",
+                    "Red (carneous) degeneration"
+                ],
+                correctAnswer: "Red (carneous) degeneration",
+                explanation: "The text describes red (carneous) degeneration as potentially appearing T1 hyperintense due to hemorrhagic infarction, often occurring during pregnancy or OCP use."
+            },
+            {
+                question: "Why might uterine artery embolization (UAE) be less effective or contraindicated for treating certain fibroids?",
+                options: [
+                    "UAE cannot treat calcified fibroids.",
+                    "Hemorrhagic or necrotic fibroids do not respond well to UAE.",
+                    "Submucosal fibroids are too vascular for UAE.",
+                    "UAE is only effective for fibroids smaller than 5 cm."
+                ],
+                correctAnswer: "Hemorrhagic or necrotic fibroids do not respond well to UAE.",
+                explanation: "The text notes that hemorrhagic or necrotic leiomyomas are not treated effectively by UAE, and surgical options would be preferred."
+            },
+             // --- MALIGNANT MYOMETRIAL PATHOLOGY ---
+            {
+                question: "Imaging differentiation between a degenerating benign leiomyoma and a rare leiomyosarcoma is often difficult. However, which clinical feature should raise suspicion for malignancy?",
+                options: [ "Presence of calcification", "T2 hypointensity", "Rapid growth", "Location near the cervix" ],
+                correctAnswer: "Rapid growth",
+                explanation: "Although imaging features overlap significantly, the text mentions that rapid growth of a \"funny looking fibroid\" should raise suspicion for leiomyosarcoma."
+            },
+            // --- CONGENITAL Uterine MALFORMATIONS ---
+            {
+                question: "Which Müllerian duct anomaly is characterized by a normal (convex) external fundal contour but an internal division of the uterine cavity by a septum?",
+                options: [ "Bicornuate uterus", "Uterine didelphys", "Septate uterus", "Arcuate uterus" ],
+                correctAnswer: "Septate uterus",
+                explanation: "The description of a septate uterus specifies failed resorption of the septum leading to two cavities, but with a convex external fundal contour."
+            },
+            {
+                question: "A uterine anomaly featuring a distinct external fundal cleft (>15 mm deep) and two uterine horns resulting from partial fusion failure is characteristic of a:",
+                options: [ "Septate uterus", "Arcuate uterus", "Unicornuate uterus", "Bicornuate uterus" ],
+                correctAnswer: "Bicornuate uterus",
+                explanation: "A bicornuate uterus is defined by partial fusion failure resulting in two fundi and a concave external fundal contour pinching inwards > 15 mm."
+            },
+            {
+                question: "Congenital uterine abnormalities are frequently associated with anomalies in which other organ system?",
+                options: [ "Cardiovascular system", "Gastrointestinal system", "Urinary tract", "Skeletal system" ],
+                correctAnswer: "Urinary tract",
+                explanation: "The text states that congenital uterine abnormalities are associated with urinary tract abnormalities like renal ectopia or agenesis."
+            },
+            // --- MISCELLANEOUS UTERINE DISEASE ---
+            {
+                question: "The appearance of an enlarged, heterogeneous, multicystic uterus on ultrasound in a non-pregnant patient with a negative β-hCG should raise suspicion for:",
+                options: [
+                    "Adenomyosis",
+                    "Degenerating leiomyoma",
+                    "Uterine arteriovenous malformation (AVM)",
+                    "Endometrial hyperplasia with cystic changes"
+                ],
+                correctAnswer: "Uterine arteriovenous malformation (AVM)",
+                explanation: "The text describes the US appearance of a uterine AVM as enlarged, heterogeneous, and multicystic, similar to gestational trophoblastic disease but with negative β-hCG."
+            },
+            // --- INTERVENTION/POST-SURGICAL CHANGE ---
+            {
+                question: "On ultrasound, a copper IUD typically appears as:",
+                options: [
+                    "A shadowing structure in the endometrial canal.",
+                    "A T-shaped structure with low echogenicity.",
+                    "A highly echogenic structure.",
+                    "Difficult to visualize without 3D reconstruction."
+                ],
+                correctAnswer: "A highly echogenic structure.",
+                explanation: "The text contrasts hormonal IUDs (shadowing) with copper IUDs, which are described as highly echogenic."
+            },
+             {
+                question: "A bladder-flap hematoma, a complication of Caesarean section, forms in which specific potential space?",
+                options: [
+                    "Space of Retzius (prevesical space)",
+                    "Vesicouterine space",
+                    "Rectouterine pouch (Pouch of Douglas)",
+                    "Paracolic gutter"
+                ],
+                correctAnswer: "Vesicouterine space",
+                explanation: "A bladder-flap hematoma is defined as forming in the vesicouterine space (between the posterior bladder and anterior uterus)."
+            },
+             // --- MRI OF THE CERVIX ---
+            {
+                question: "The inner cervical stroma appears very T2 hypointense on MRI, similar to the uterine junctional zone, but its low signal is primarily due to:",
+                options: [ "Compact smooth muscle", "Dense fibrous tissue", "High mucin content", "Calcifications" ],
+                correctAnswer: "Dense fibrous tissue",
+                explanation: "The text clarifies that unlike the uterine junctional zone (smooth muscle), the decreased T2 signal of the inner cervical stroma is due to compact fibrous tissue."
+            },
+            {
+                question: "In the FIGO staging of cervical cancer, tumor extension through the cervical stroma into the parametrium classifies the cancer as at least:",
+                options: [ "Stage IB", "Stage IIA", "Stage IIB", "Stage IIIA" ],
+                correctAnswer: "Stage IIB",
+                explanation: "The text states that if the tumor extends through the cervical stroma into the parametrium, the cancer is stage IIB."
+            },
+            {
+                question: "Adenoma malignum, a rare subtype of cervical adenocarcinoma, is associated with which genetic syndrome?",
+                options: [ "Lynch syndrome", "Li-Fraumeni syndrome", "Peutz-Jeghers syndrome", "BRCA mutations" ],
+                correctAnswer: "Peutz-Jeghers syndrome",
+                explanation: "The text mentions associations of adenoma malignum with Peutz-Jeghers syndrome."
+            },
+            // --- OVARIES AND ADNEXA ---
+            {
+                question: "The ovary receives a dual blood supply originating from which two major arteries?",
+                options: [
+                    "Internal iliac artery and External iliac artery",
+                    "Aorta and Internal iliac artery (via uterine artery branch)",
+                    "Aorta and Femoral artery",
+                    "Superior mesenteric artery and Renal artery"
+                ],
+                correctAnswer: "Aorta and Internal iliac artery (via uterine artery branch)",
+                explanation: "The text describes the dual blood supply: the ovarian artery directly from the aorta, and a branch of the uterine artery originating from the internal iliac artery."
+            },
+            {
+                question: "Which segment of the fallopian tube is the narrowest and passes through the uterine wall?",
+                options: [ "Ampulla", "Isthmus", "Infundibulum", "Interstitial (Intramural)" ],
+                correctAnswer: "Interstitial (Intramural)",
+                explanation: "The interstitial (intramural) segment is described as the narrowest segment, located within the uterine wall."
+            },
+            {
+                question: "Following ovulation, the ruptured follicle initially becomes the corpus hemorrhagicum and subsequently develops into the:",
+                options: [ "Corpus albicans", "Graafian follicle", "Corpus luteum", "Theca lutein cyst" ],
+                correctAnswer: "Corpus luteum",
+                explanation: "The text outlines the sequence: ovulation -> corpus hemorrhagicum -> corpus luteum."
+            },
+            // --- ADNEXAL TORSION ---
+            {
+                question: "Why might color Doppler flow still be detectable in a torsed ovary?",
+                options: [
+                    "Torsion only affects venous outflow, not arterial inflow.",
+                    "The ovary develops collateral circulation immediately.",
+                    "Torsion is often incomplete or intermittent, and the ovary has a dual blood supply.",
+                    "Doppler sensitivity is too low to detect complete absence of flow."
+                ],
+                correctAnswer: "Torsion is often incomplete or intermittent, and the ovary has a dual blood supply.",
+                explanation: "The text explains that flow may still be detectable due to the dual blood supply and the possibility of intermittent torsion and detorsion."
+            },
+            {
+                question: "Which specific ultrasound sign, although not often seen, is considered very specific for ovarian torsion?",
+                options: [
+                    "Ovarian enlargement > 4 cm",
+                    "Peripheral displacement of follicles",
+                    "Free fluid in the pelvis",
+                    "Twisting of the vascular pedicle (whirlpool sign)"
+                ],
+                correctAnswer: "Twisting of the vascular pedicle (whirlpool sign)",
+                explanation: "The text identifies the whirlpool sign (twisting of the vascular pedicle) as very specific for torsion, but not often seen."
+            },
+            // --- FUNCTIONAL OVARIAN CYSTS ---
+            {
+                question: "A simple ovarian cyst that results from failed ovulation and measures greater than 3 cm is classified as a:",
+                options: [ "Corpus luteal cyst", "Theca lutein cyst", "Follicular cyst", "Hemorrhagic cyst" ],
+                correctAnswer: "Follicular cyst",
+                explanation: "A follicular cyst is defined as resulting from failed ovulation of a dominant follicle that continues to grow beyond 3 cm."
+            },
+            {
+                question: "The ultrasound appearance of a hemorrhagic ovarian cyst often evolves over time. A characteristic appearance during clot dissolution is:",
+                options: [
+                    "Uniformly hyperechoic with posterior shadowing.",
+                    "Thin-walled simple cyst appearance.",
+                    "Complex appearance with web-like internal echoes.",
+                    "Multiple small cysts lining the periphery."
+                ],
+                correctAnswer: "Complex appearance with web-like internal echoes.",
+                explanation: "The text describes the dissolving clot in a hemorrhagic cyst producing characteristic web-like internal echoes."
+            },
+            {
+                question: "According to the 2019 SRU guidelines, what is the management recommendation for a simple ovarian cyst measuring 6 cm in a premenopausal woman with superior visualization and confidence?",
+                options: [
+                    "Immediate surgical evaluation.",
+                    "No follow-up needed.",
+                    "Follow-up ultrasound in 2-6 months.",
+                    "Follow-up ultrasound in 6-12 months."
+                ],
+                correctAnswer: "No follow-up needed.",
+                explanation: "The SRU guidelines state for premenopausal women, cysts >5 cm AND ≤7 cm with superior visualization/confidence need no follow-up."
+            },
+            {
+                question: "For a postmenopausal woman, a simple ovarian cyst measuring 4 cm requires which management according to the 2019 SRU guidelines, assuming standard visualization?",
+                options: [
+                    "No reporting or follow-up needed.",
+                    "Describe to document, but no follow-up needed.",
+                    "Follow-up ultrasound in 3-6 or 6-12 months.",
+                    "Surgical consultation."
+                ],
+                correctAnswer: "Follow-up ultrasound in 3-6 or 6-12 months.",
+                explanation: "The SRU guidelines indicate for postmenopausal women, cysts >3 cm require follow-up if visualization/confidence is standard or the cyst is >5 cm. A 4 cm cyst falls into this category requiring follow-up."
+            },
+            // --- ENDOMETRIOMA ---
+            {
+                question: "On MRI, both endometriomas and dermoid cysts can appear T1 hyperintense. How can they be differentiated using fat-suppressed sequences?",
+                options: [
+                    "Endometriomas suppress, dermoids do not.",
+                    "Dermoids suppress (due to fat), endometriomas do not.",
+                    "Both suppress equally.",
+                    "Neither suppresses significantly."
+                ],
+                correctAnswer: "Dermoids suppress (due to fat), endometriomas do not.",
+                explanation: "The text contrasts endometriomas and dermoids (teratomas), stating dermoids will show signal loss (suppress) on fat-suppressed images due to macroscopic fat, while endometriomas (containing blood products) will not."
+            },
+            {
+                question: "The characteristic MRI appearance of an endometrioma on T2-weighted images, often referred to as \"shading,\" describes:",
+                options: [
+                    "Uniformly high T2 signal intensity.",
+                    "A signal gradient with dependent low T2 signal intensity.",
+                    "Multiple thin, high T2 signal septations.",
+                    "A central T2 hyperintense scar."
+                ],
+                correctAnswer: "A signal gradient with dependent low T2 signal intensity.",
+                explanation: "The text mentions that endometriomas typically demonstrate a signal gradient (\"shading\") on T2-weighted images, often referring to dependent signal loss."
+            },
+             // --- OVARIAN NEOPLASMS ---
+            {
+                question: "Mature cystic teratomas (dermoid cysts) are classified under which major histologic type of primary ovarian neoplasm?",
+                options: [ "Epithelial neoplasm", "Sex cord-stromal tumor", "Germ cell tumor", "Metastatic tumor" ],
+                correctAnswer: "Germ cell tumor",
+                explanation: "The text lists mature cystic teratomas (dermoid) under the category of Germ cell tumors."
+            },
+            {
+                question: "Meigs syndrome is a specific clinical triad associated with which benign ovarian tumor?",
+                options: [ "Thecoma", "Serous cystadenoma", "Fibroma", "Brenner tumor" ],
+                correctAnswer: "Fibroma",
+                explanation: "Meigs syndrome is defined as the triad of benign ovarian fibroma, ascites, and right pleural effusion."
+            },
+            {
+                question: "The \"tip of the iceberg\" sign on ultrasound, associated with dermoid cysts, refers to:",
+                options: [
+                    "A small calcification seen at the cyst edge.",
+                    "Obscuration of deeper cyst contents by high-attenuation material (like fat/hair).",
+                    "Fluid-fluid level within the cyst.",
+                    "A floating ball of hair within the cyst fluid."
+                ],
+                correctAnswer: "Obscuration of deeper cyst contents by high-attenuation material (like fat/hair).",
+                explanation: "The text describes the \"tip of the iceberg\" sign as obscuration of deeper contents due to high-attenuation material within a dermoid cyst."
+            },
+            {
+                question: "Krukenberg tumors are metastatic ovarian cancers characterized by mucin-producing cells, typically originating from which primary site?",
+                options: [ "Breast", "Lung", "Gastric or Colonic adenocarcinoma", "Malignant melanoma" ],
+                correctAnswer: "Gastric or Colonic adenocarcinoma",
+                explanation: "A Krukenberg tumor is defined as an ovarian metastasis from a mucin-producing tumor, typically gastric or colonic adenocarcinoma."
+            },
+            {
+                question: "Which feature is LEAST suggestive of a malignant ovarian mass on ultrasound?",
+                options: [
+                    "Presence of papillary projections.",
+                    "A uniformly thin wall and simple fluid content.",
+                    "Thick or irregular walls or septae.",
+                    "Presence of ascites."
+                ],
+                correctAnswer: "A uniformly thin wall and simple fluid content.",
+                explanation: "The text lists features suggestive of malignancy including mural nodules, thick/irregular walls/septae, solid components, high flow, ascites, and papillary projections. A simple cyst with a thin wall is generally considered benign."
+            },
+            // --- MISCELLANEOUS OVARIAN SYNDROMES ---
+            {
+                question: "Ovarian hyperstimulation syndrome (OHSS) is thought to be primarily mediated by the dysregulation of which growth factor?",
+                options: [
+                    "Epidermal Growth Factor (EGF)",
+                    "Fibroblast Growth Factor (FGF)",
+                    "Vascular Endothelial Growth Factor (VEGF)",
+                    "Insulin-like Growth Factor (IGF)"
+                ],
+                correctAnswer: "Vascular Endothelial Growth Factor (VEGF)",
+                explanation: "OHSS is thought to be due to Vascular Endothelial Growth Factor (VEGF) dysregulation causing capillary leak."
+            },
+            {
+                question: "Which ultrasound finding is characteristic of polycystic ovarian syndrome (PCOS), besides increased ovarian volume?",
+                options: [
+                    "A single dominant follicle > 20 mm.",
+                    "Multiple (>12) small (<9 mm) follicles, often peripheral.",
+                    "Presence of a corpus luteum cyst.",
+                    "Decreased stromal vascularity on Doppler."
+                ],
+                correctAnswer: "Multiple (>12) small (<9 mm) follicles, often peripheral.",
+                explanation: "The ultrasound criteria for PCOS include >12 small follicles (none >9 mm), often arranged peripherally (string of pearls), and ovarian volume >10 mL. Increased stromal vascularity is also typical."
+            },
+            // --- ADNEXAL CYSTIC LESIONS ---
+            {
+                question: "How can a paraovarian cyst often be differentiated from a simple ovarian cyst on transvaginal ultrasound?",
+                options: [
+                    "Paraovarian cysts always have septations.",
+                    "Gentle pressure with the transducer may displace a paraovarian cyst separately from the ovary.",
+                    "Paraovarian cysts are always larger than ovarian cysts.",
+                    "Paraovarian cysts demonstrate internal Doppler flow."
+                ],
+                correctAnswer: "Gentle pressure with the transducer may displace a paraovarian cyst separately from the ovary.",
+                explanation: "The text mentions that transvaginal ultrasound can help confirm the extra-ovarian location of a paraovarian cyst via gentle pressure displacing it away from the ovary."
+            },
+             {
+                question: "Peritoneal inclusion cysts are typically found in patients with a history of:",
+                options: [
+                    "Pelvic inflammatory disease.",
+                    "Endometriosis.",
+                    "Prior surgery causing adhesions.",
+                    "Polycystic ovarian syndrome."
+                ],
+                correctAnswer: "Prior surgery causing adhesions.",
+                explanation: "Peritoneal inclusion cysts are described as being formed by adhesions, almost always related to prior surgery."
+            },
+            {
+                question: "A dilated, fluid-filled fallopian tube appearing as an anechoic, tubular structure with incomplete septations on ultrasound is termed a:",
+                options: [ "Hematosalpinx", "Pyosalpinx", "Hydrosalpinx", "Paraovarian cyst" ],
+                correctAnswer: "Hydrosalpinx",
+                explanation: "This description matches the definition provided for a hydrosalpinx."
+            }
+        ];
+
+
+        // --- DOM Element References ---
+        const questionCounterElement = document.getElementById('question-counter');
+        const questionTextElement = document.getElementById('question-text');
+        const answerOptionsElement = document.getElementById('answer-options');
+        const explanationElement = document.getElementById('explanation');
+        const nextButton = document.getElementById('next-button');
+        const completionMessageElement = document.getElementById('completion-message');
+        const quizContainer = document.querySelector('.quiz-container'); // To hide at the end
+
+
+        // --- State Variables ---
+        let currentQuestionIndex = 0;
+        let score = 0; // Optional: if you want to track score
+
+        // --- Functions ---
+
+        function loadQuestion() {
+            // Reset styles and visibility
+            explanationElement.style.display = 'none';
+            explanationElement.innerHTML = '';
+            nextButton.style.display = 'none';
+            answerOptionsElement.innerHTML = ''; // Clear previous options
+
+             // Make sure main elements are visible if restarting
+            questionCounterElement.style.display = 'block';
+            questionTextElement.style.display = 'block';
+            answerOptionsElement.style.display = 'flex'; // Use flex as defined in CSS
+            completionMessageElement.style.display = 'none';
+
+            // Check if quiz is finished
+            if (currentQuestionIndex >= quizData.length) {
+                showCompletion();
+                return;
+            }
+
+
+            // Get current question data
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // Update question text and counter
+            questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            questionTextElement.textContent = currentQuestion.question;
+
+            // Create and append answer buttons
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+                button.addEventListener('click', selectAnswer);
+                answerOptionsElement.appendChild(button);
+            });
+        }
+
+        function selectAnswer(event) {
+            const selectedButton = event.target;
+            const selectedAnswer = selectedButton.textContent;
+            const currentQuestion = quizData[currentQuestionIndex];
+            const correctAnswer = currentQuestion.correctAnswer;
+
+            // Disable all buttons for this question
+            const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
+            optionButtons.forEach(button => {
+                button.disabled = true;
+                // Remove hover effects by removing the class or directly setting styles if needed
+            });
+
+            // Check if the answer is correct
+            if (selectedAnswer === correctAnswer) {
+                selectedButton.classList.add('correct');
+                score++; // Optional score tracking
+            } else {
+                selectedButton.classList.add('incorrect');
+                // Highlight the correct answer as well
+                optionButtons.forEach(button => {
+                    if (button.textContent === correctAnswer) {
+                        button.classList.add('reveal-correct'); // Use a specific class to ensure override
+                    }
+                });
+            }
+
+            // Show explanation
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation}`;
+            explanationElement.style.display = 'block';
+
+            // Show the next button or completion message
+            if (currentQuestionIndex < quizData.length - 1) {
+                nextButton.style.display = 'block';
+            } else {
+                // Last question - show completion message after a short delay maybe
+                setTimeout(showCompletion, 500); // Delay slightly before showing completion
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion(); // This will handle loading or completion screen
+        }
+
+        function showCompletion() {
+            quizContainer.style.textAlign = 'center'; // Ensure center alignment
+            questionCounterElement.style.display = 'none';
+            questionTextElement.style.display = 'none';
+            answerOptionsElement.style.display = 'none';
+            explanationElement.style.display = 'none';
+            nextButton.style.display = 'none';
+            completionMessageElement.style.display = 'block';
+            // Optional: Display score
+            // completionMessageElement.innerHTML += `<p>Your final score: ${score} out of ${quizData.length}</p>`;
+        }
+
+
+        // --- Event Listeners ---
+        nextButton.addEventListener('click', nextQuestion);
+
+        // --- Initial Load ---
+        loadQuestion();
+    </script>
+
+</body>
+</html>
