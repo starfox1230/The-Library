@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glucose Glide - 2D Canvas Demo</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #222; cursor: crosshair; } /* Dark background */
+        canvas { display: block; background-color: #100520; } /* Extracellular color */
+        /* Keep overlay styles */
+        #info {
+            position: absolute; top: 10px; width: 100%; text-align: center; color: white;
+            font-family: sans-serif; font-size: 16px; z-index: 100; display: block;
+            background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;
+            max-width: 600px; left: 50%; transform: translateX(-50%);
+        }
+         #successMessage {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #4CAF50; font-size: 3em; font-weight: bold; text-shadow: 2px 2px 4px #000000;
+            z-index: 101; display: none; background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px; border-radius: 10px; text-align: center;
+         }
+         .object-label {
+            position: absolute; color: white; background-color: rgba(0, 0, 0, 0.6);
+            padding: 2px 5px; border-radius: 3px; font-family: sans-serif; font-size: 12px;
+            pointer-events: none; white-space: nowrap; z-index: 99;
+         }
+        body.interactive-cursor {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Canvas Element -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Overlay Elements -->
+    <div id="info">
+        Navigate Glucose (Yellow Circle). Find GLUT2 (Cyan Rectangle) on the membrane (Blue Line).<br>
+        You can only cross the membrane at GLUT2. CLICK to enter!
+    </div>
+     <div id="successMessage">Entered the Cell!</div>
+    <div id="glucoseLabel" class="object-label">Glucose</div>
+    <div id="glut2Label" class="object-label">GLUT2</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Game Objects & State ---
+        let playerGlucose = { x: 0, y: 0, radius: 10, color: '#ffff00', vx: 0, vy: 0 };
+        let glut2 = { x: 0, y: 0, width: 30, height: 15, color: '#00ffff', emissiveIntensity: 0.5, scale: 1.0 };
+        let obstacles = [];
+        let particles = [];
+
+        let mousePos = { x: 0, y: 0 };
+        let targetPos = { x: 0, y: 0 }; // Target position for glucose lerping
+
+        // --- Parameters ---
+        const membraneY = window.innerHeight * 0.6; // Y position of the membrane line
+        const intracellularColor = '#335588'; // Background color below membrane
+        const extracellularColor = '#100520'; // Background color above membrane
+        const proximityThreshold = 50; // Pixel distance for interaction
+        const lerpFactor = 0.08; // Smoothing factor for movement
+
+        let isEntering = false;
+        let entered = false;
+        let canInteractWithGlut2 = false;
+        let isCursorInteractive = false;
+
+        // --- Label Elements ---
+        const glucoseLabelElement = document.getElementById('glucoseLabel');
+        const glut2LabelElement = document.getElementById('glut2Label');
+
+        // --- Initialization ---
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Initial positions
+            targetPos.x = canvas.width / 2;
+            targetPos.y = membraneY / 2; // Start above membrane
+            playerGlucose.x = targetPos.x;
+            playerGlucose.y = targetPos.y;
+
+            glut2.x = canvas.width / 2 - glut2.width / 2; // Center GLUT2 horizontally
+            glut2.y = membraneY - glut2.height / 2; // Center GLUT2 vertically on the membrane line
+
+            // Create obstacles
+            obstacles = [];
+            for (let i = 0; i < 15; i++) {
+                let obsX = Math.random() * canvas.width;
+                let obsY = Math.random() * (membraneY - 50) + 20; // Above membrane, not too close
+                let obsRadius = Math.random() * 5 + 8; // Random size
+                // Avoid spawning too close to start or GLUT2
+                if (dist(obsX, obsY, playerGlucose.x, playerGlucose.y) > 50 && dist(obsX, obsY, glut2.x + glut2.width/2, membraneY) > 60) {
+                     obstacles.push({ x: obsX, y: obsY, radius: obsRadius, color: '#aaaaaa', vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5 });
+                }
+            }
+
+            // Create particles
+            particles = [];
+            for (let i = 0; i < 200; i++) { // Fewer particles needed in 2D
+                 particles.push({
+                     x: Math.random() * canvas.width,
+                     y: Math.random() * canvas.height,
+                     radius: Math.random() * 1 + 0.5,
+                     vy: (Math.random() - 0.4) * 0.3 // Slight upward drift bias?
+                 });
+            }
+
+            // Event listeners
+            window.addEventListener('resize', resizeCanvas, false);
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('mousedown', onMouseDown, false);
+            setTimeout(() => { document.getElementById('info').style.display = 'none'; }, 10000);
+
+            // Start the game loop
+            animate();
+        }
+
+        // --- Helper Functions ---
+        function dist(x1, y1, x2, y2) {
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function lerp(start, end, amount) {
+            return start + (end - start) * amount;
+        }
+
+        // --- Event Handlers ---
+        function resizeCanvas() {
+            // Adjust canvas size and potentially reposition elements if needed
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // membraneY = canvas.height * 0.6; // Adjust membrane position
+            // glut2.x = canvas.width / 2 - glut2.width / 2; // Recenter GLUT2
+            // Recalculate particle/obstacle positions or simply redraw
+            // For simplicity now, let's just keep old positions, might look odd on resize
+        }
+
+        function onMouseMove(event) {
+            if (isEntering || entered) return;
+            mousePos.x = event.clientX;
+            mousePos.y = event.clientY;
+        }
+
+        function onMouseDown(event) {
+            if (isEntering || entered) return;
+            if (canInteractWithGlut2) {
+                isEntering = true;
+                enterCell();
+                if (isCursorInteractive) {
+                    document.body.classList.remove('interactive-cursor');
+                    isCursorInteractive = false;
+                }
+            }
+        }
+
+        // --- Update & Draw ---
+        function update() {
+            if (entered || isEntering) return; // Stop player updates during/after entry
+
+            // Update target position towards mouse
+            targetPos.x = mousePos.x;
+            targetPos.y = mousePos.y;
+
+            // Smoothly move player towards target using lerp
+            playerGlucose.x = lerp(playerGlucose.x, targetPos.x, lerpFactor);
+            playerGlucose.y = lerp(playerGlucose.y, targetPos.y, lerpFactor);
+
+            // Membrane Collision
+            let distanceToGlut2 = dist(playerGlucose.x, playerGlucose.y, glut2.x + glut2.width / 2, membraneY);
+            if (playerGlucose.y + playerGlucose.radius > membraneY && distanceToGlut2 > proximityThreshold * 0.8) { // Check Y crossing, unless close to GLUT2
+                playerGlucose.y = membraneY - playerGlucose.radius; // Stop at membrane
+            }
+
+             // Obstacle Movement & Collision (simple bounce off edges & glucose push)
+             obstacles.forEach(obs => {
+                 obs.x += obs.vx;
+                 obs.y += obs.vy;
+                 // Bounce off canvas edges
+                 if (obs.x - obs.radius < 0 || obs.x + obs.radius > canvas.width) obs.vx *= -1;
+                 if (obs.y - obs.radius < 0 || obs.y + obs.radius > canvas.height) obs.vy *= -1; // Bounce off top/bottom too
+
+                 // Collision with playerGlucose (simple push back)
+                 let d = dist(playerGlucose.x, playerGlucose.y, obs.x, obs.y);
+                 let minDist = playerGlucose.radius + obs.radius;
+                 if (d < minDist) {
+                     // Calculate overlap and push both away
+                     let overlap = minDist - d;
+                     let angle = Math.atan2(playerGlucose.y - obs.y, playerGlucose.x - obs.x);
+                     let pushX = Math.cos(angle) * overlap * 0.5;
+                     let pushY = Math.sin(angle) * overlap * 0.5;
+                     playerGlucose.x += pushX;
+                     playerGlucose.y += pushY;
+                     obs.x -= pushX;
+                     obs.y -= pushY;
+                     // Optional: brief color change for feedback
+                     playerGlucose.flash = true;
+                 }
+             });
+
+            // Particle movement
+            particles.forEach(p => {
+                p.y += p.vy;
+                if (p.y < -p.radius) p.y = canvas.height + p.radius; // Wrap around Y
+                if (p.y > canvas.height + p.radius) p.y = -p.radius;
+            });
+
+            // GLUT2 Interaction Check
+            canInteractWithGlut2 = !isEntering && distanceToGlut2 < proximityThreshold;
+            if (canInteractWithGlut2) {
+                if (!isCursorInteractive) {
+                    document.body.classList.add('interactive-cursor');
+                    isCursorInteractive = true;
+                }
+                // Pulsing effect (adjust scale/alpha)
+                const pulse = Math.sin(Date.now() * 0.01) * 0.1 + 0.95; // Pulse scale 0.95 to 1.05
+                glut2.scale = pulse;
+                // Maybe pulse alpha too
+                glut2.alpha = Math.sin(Date.now() * 0.01) * 0.2 + 0.8; // 0.8 to 1.0
+            } else {
+                if (isCursorInteractive) {
+                    document.body.classList.remove('interactive-cursor');
+                    isCursorInteractive = false;
+                }
+                 glut2.scale = 1.0; // Reset scale
+                 glut2.alpha = 1.0; // Reset alpha
+            }
+        }
+
+        function draw() {
+            // Clear canvas and draw backgrounds
+            ctx.fillStyle = extracellularColor;
+            ctx.fillRect(0, 0, canvas.width, membraneY); // Top part
+            ctx.fillStyle = intracellularColor;
+            ctx.fillRect(0, membraneY, canvas.width, canvas.height - membraneY); // Bottom part
+
+            // Draw Membrane Line (excluding GLUT2 area)
+            ctx.strokeStyle = '#88aaff'; // Membrane color
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, membraneY);
+            ctx.lineTo(glut2.x - ctx.lineWidth, membraneY); // Line up to GLUT2 start
+            ctx.moveTo(glut2.x + glut2.width + ctx.lineWidth, membraneY); // Start after GLUT2 end
+            ctx.lineTo(canvas.width, membraneY);
+            ctx.stroke();
+
+
+            // Draw Particles
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Obstacles
+            obstacles.forEach(obs => {
+                ctx.fillStyle = obs.color;
+                ctx.beginPath();
+                ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw GLUT2 (apply pulsing scale/alpha)
+            ctx.save(); // Save context state
+            ctx.globalAlpha = glut2.alpha || 1.0; // Apply alpha if defined
+            // Translate to center for scaling, then draw, then restore
+            let glut2CenterX = glut2.x + glut2.width / 2;
+            let glut2CenterY = glut2.y + glut2.height / 2;
+            ctx.translate(glut2CenterX, glut2CenterY);
+            ctx.scale(glut2.scale, glut2.scale);
+            ctx.fillStyle = glut2.color;
+            ctx.fillRect(-glut2.width / 2, -glut2.height / 2, glut2.width, glut2.height); // Draw centered rect
+            // Draw a darker inner part to suggest opening
+            ctx.fillStyle = 'rgba(0, 100, 100, 0.7)';
+            ctx.fillRect(-glut2.width/4, -glut2.height/2, glut2.width/2, glut2.height);
+            ctx.restore(); // Restore context state (removes translate/scale/alpha)
+
+
+            // Draw Player Glucose
+            if (playerGlucose.flash) {
+                 ctx.fillStyle = '#ff8800'; // Orange flash color
+                 playerGlucose.flash = false; // Reset flash state immediately after drawing
+            } else {
+                ctx.fillStyle = playerGlucose.color;
+            }
+            ctx.beginPath();
+            ctx.arc(playerGlucose.x, playerGlucose.y, playerGlucose.radius, 0, Math.PI * 2);
+            ctx.fill();
+            // Add outline?
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+
+            // Update HTML Label Positions
+            updateLabelPosition(playerGlucose.x, playerGlucose.y, glucoseLabelElement);
+            updateLabelPosition(glut2.x + glut2.width/2, glut2.y + glut2.height/2, glut2LabelElement);
+        }
+
+        // HTML Label Positioning (update for 2D canvas coords)
+        function updateLabelPosition(canvasX, canvasY, labelElement) {
+            // Simple mapping: canvas coords are already screen coords
+             // Hide if too far off screen? (Optional)
+            if (canvasX < -50 || canvasX > canvas.width + 50 || canvasY < -50 || canvasY > canvas.height + 50) {
+                labelElement.style.display = 'none';
+                return;
+            }
+            labelElement.style.display = 'block';
+            labelElement.style.left = `${canvasX}px`;
+            labelElement.style.top = `${canvasY - 20}px`; // Offset above the object
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            if (entered) return; // Stop loop if fully entered
+
+            update(); // Update game state
+            draw();   // Draw everything
+
+            requestAnimationFrame(animate); // Request next frame
+        }
+
+        // --- Entry Animation ---
+        function enterCell() {
+            console.log("Click entry triggered!");
+            canInteractWithGlut2 = false; // Disable interaction
+            document.body.style.cursor = 'default'; // Reset cursor
+
+            const targetScale = 0.1;
+            // Target position: center of GLUT2, then slightly below membrane
+            const targetX = glut2.x + glut2.width / 2;
+            const targetYInitial = membraneY; // Move towards membrane center first
+             const targetYFinal = membraneY + playerGlucose.radius * 3; // End position below membrane
+            const duration = 1500; // Animation duration
+            const startTime = Date.now();
+
+            function entryAnim() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1); // 0 to 1
+
+                // Interpolate scale (shrink)
+                const currentRadius = lerp(playerGlucose.radius, playerGlucose.radius * targetScale, progress);
+                playerGlucose.radius = currentRadius;
+
+                // Interpolate position (move to GLUT2 center then slightly down)
+                 // Move towards center Y first, then move down in second half?
+                 let currentTargetY;
+                 if (progress < 0.6) { // Move towards membrane line
+                     currentTargetY = lerp(playerGlucose.y, targetYInitial, progress / 0.6);
+                 } else { // Move below membrane line
+                     currentTargetY = lerp(targetYInitial, targetYFinal, (progress - 0.6) / 0.4);
+                 }
+                playerGlucose.x = lerp(playerGlucose.x, targetX, progress * 0.2); // Slower X lerp maybe
+                 playerGlucose.y = currentTargetY;
+
+
+                draw(); // Redraw the scene during animation
+
+                if (progress < 1) {
+                    requestAnimationFrame(entryAnim); // Continue animation
+                } else {
+                    entered = true; // Set the final entered flag
+                    document.getElementById('successMessage').style.display = 'block';
+                    console.log("Entry animation complete.");
+                    // Hide labels
+                    glucoseLabelElement.style.display = 'none';
+                    glut2LabelElement.style.display = 'none';
+                    // The main animate loop will now stop.
+                }
+            }
+            entryAnim(); // Start the animation
+        }
+
+        // --- Start the application ---
+        init();
+
+    </script>
+</body>
+</html>
