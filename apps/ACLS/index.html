@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive ACLS Algorithm Trainer</title>
+    <style>
+        :root {
+            --bg-color: #1a1d24; /* Dark background */
+            --text-color: #e0e0e0; /* Light text */
+            --box-bg: #2c303a;    /* Slightly lighter box background */
+            --border-color: #4a4e5a; /* Border color */
+            --glow-color-hover: #68d3ff; /* Blueish glow on hover */
+            --glow-color-correct: #48ff7b; /* Green glow for correct flash */
+            --glow-color-active: #ffc848;  /* Yellow glow/border for current state */
+            --connector-color: #6a7080; /* Color for simple connectors */
+            /* --decision-bg: #4a2c3a;  Original */
+            --decision-bg: #603030; /* Reddish background for decision */
+            --decision-border: #804040; /* Slightly lighter border for base state */
+            --shock-color: #ff4d4d; /* Color for shock elements */
+            --epi-color: #ffab40; /* Color for epinephrine action */
+            --med-color: #82aaff; /* Color for other med actions */
+            --action-color: #3a4a2c; /* Color for general action boxes */
+            --arrow-color: #6a7080;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+
+        #status-message {
+            position: sticky;
+            top: 10px;
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            z-index: 1000;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            min-width: 300px;
+            max-width: 80%;
+            margin-bottom: 20px;
+        }
+         #reset-button {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            padding: 8px 15px;
+            background-color: var(--decision-bg); /* Use new decision bg */
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: background-color 0.2s;
+         }
+         #reset-button:hover {
+             background-color: var(--shock-color);
+         }
+
+        #algorithm-container {
+            position: relative;
+            width: 1000px;
+            height: 1100px;
+        }
+
+        .node {
+            position: absolute;
+            background-color: var(--box-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, border-width 0.2s ease; /* Added border-width */
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            min-width: 160px;
+            box-sizing: border-box;
+        }
+
+        .node:not(.disabled):hover {
+            transform: translateY(-2px) scale(1.02);
+             /* box-shadow: 0 0 15px 3px var(--glow-color-hover), 0 4px 8px rgba(0,0,0,0.4); */ /* Standard hover */
+        }
+         /* Hover for non-decision nodes */
+         .node:not(.decision):not(.disabled):hover {
+             box-shadow: 0 0 15px 3px var(--glow-color-hover), 0 4px 8px rgba(0,0,0,0.4);
+         }
+
+        /* Active state for non-decision nodes */
+        .node.active:not(.decision) {
+             border-color: var(--glow-color-active);
+             box-shadow: 0 0 15px 5px var(--glow-color-active), 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .node.disabled {
+             cursor: not-allowed;
+             opacity: 0.6;
+             pointer-events: none;
+         }
+
+        .node ul { list-style: none; padding: 0; margin: 5px 0 0 0; text-align: left; font-size: 0.9em; }
+        .node ul li::before { content: "• "; color: var(--glow-color-hover); padding-right: 4px; }
+
+        /* --- Decision Node Styling (Hexagon) --- */
+        .decision {
+            border: 1px solid var(--decision-border); /* Base border */
+            width: 200px; /* Wider */
+            height: 80px; /* Keep height reasonable */
+            padding: 0; /* Reset padding */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Wide Hexagon Shape */
+            clip-path: polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
+            border-radius: 0; /* Remove any inherited radius */
+            min-width: unset; /* Override min-width */
+            background-color: var(--decision-bg); /* Apply reddish background */
+        }
+        .decision span { max-width: 80%; font-size: 0.95em; } /* Adjust text container if needed */
+
+         /* Hover for decision nodes */
+         .node.decision:not(.disabled):hover {
+             transform: translateY(-2px) scale(1.02); /* Keep hover transform */
+             border-color: var(--glow-color-hover); /* Change border on hover */
+             box-shadow: 0 0 15px 3px var(--glow-color-hover); /* Try shadow on hover */
+         }
+
+        /* Active state for decisions - Primarily border */
+        .node.decision.active {
+             border-color: var(--glow-color-active);
+             border-width: 2px; /* Make border thicker to stand out */
+             /* Optionally try adding shadow back for active state */
+             box-shadow: 0 0 10px 2px var(--glow-color-active);
+        }
+
+        /* Correct Flash Animation */
+        @keyframes glow-correct-border { /* Primarily border focused */
+            0%, 100% { border-width: 1px; box-shadow: none; }
+            50% { border-width: 2px; }
+        }
+        @keyframes glow-correct-shadow { /* Includes shadow */
+             0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+             50% { box-shadow: 0 0 20px 5px var(--glow-color-correct), 0 2px 4px rgba(0,0,0,0.3); }
+        }
+
+        .node.correct-flash {
+            /* Apply border color change to all */
+            border-color: var(--glow-color-correct);
+            /* Apply border/shadow animations */
+             animation: glow-correct-border 0.8s ease;
+        }
+        /* Add shadow animation specifically to non-decision nodes during flash */
+        .node.correct-flash:not(.decision){
+            animation: glow-correct-border 0.8s ease, glow-correct-shadow 0.8s ease;
+        }
+         /* Ensure base border color is reapplied after animation */
+         .node.correct-flash { border-color: var(--glow-color-correct); /* Ensure color applies during anim */ }
+         .node { border-color: var(--border-color); } /* Base border color */
+         .node.decision { border-color: var(--decision-border); } /* Base decision border color */
+
+
+        .oval { border-radius: 50px; min-width: 120px; padding: 12px 20px; }
+        .action { padding: 8px 12px; min-width: auto; font-weight: bold; border-style: dashed; }
+        .shock { color: var(--shock-color); border-color: var(--shock-color); background-color: rgba(255, 77, 77, 0.1); }
+        .epinephrine { color: var(--epi-color); border-color: var(--epi-color); background-color: rgba(255, 171, 64, 0.1); }
+        .medication { color: var(--med-color); border-color: var(--med-color); background-color: rgba(130, 170, 255, 0.1); }
+
+        .connector { position: absolute; background-color: var(--connector-color); z-index: -1; }
+        .connector.vertical { width: 2px; }
+        .connector.horizontal { height: 2px; }
+        .arrow { position: absolute; width: 0; height: 0; border-style: solid; z-index: -1; }
+        .arrow.down { border-width: 8px 5px 0 5px; border-color: var(--arrow-color) transparent transparent transparent; }
+        .arrow.up { border-width: 0 5px 8px 5px; border-color: transparent transparent var(--arrow-color) transparent; }
+        .arrow.right { border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--arrow-color); }
+        .arrow.left { border-width: 5px 8px 5px 0; border-color: transparent var(--arrow-color) transparent transparent; }
+
+        /* --- Positioning (Adjusted for Hexagons) --- */
+        #step-1 { top: 0px; left: 415px; }
+        #decision-shockable-1 { top: 120px; left: 400px; } /* Centered 200px wide */
+        #step-2 { top: 125px; left: 50px; }
+        #action-shock-1 { top: 240px; left: 75px; }
+        #step-4 { top: 330px; left: 50px; }
+        #decision-shockable-2 { top: 450px; left: 25px; } /* Adjusted left */
+        #action-shock-2 { top: 570px; left: 75px; }
+        #step-6 { top: 660px; left: 50px; }
+        #decision-shockable-3 { top: 780px; left: 25px; } /* Adjusted left */
+        #action-shock-3 { top: 900px; left: 75px; }
+        #step-8 { top: 990px; left: 50px; }
+        #step-9 { top: 125px; left: 750px; }
+        #action-epi-1 { top: 240px; left: 775px; }
+        #step-10 { top: 330px; left: 740px; }
+        #decision-shockable-4 { top: 450px; left: 725px; } /* Adjusted left */
+        #step-11 { top: 570px; left: 740px; }
+        #decision-shockable-5 { top: 690px; left: 725px; } /* Adjusted left */
+        #step-12 { top: 900px; left: 380px; width: 240px; background-color: var(--box-bg); border: 1px solid var(--border-color); }
+
+        /* --- Connectors & Arrows (Adjusted for Hexagons) --- */
+        .connector.c-1-d1 { top: 70px; left: 500px; height: 50px; } .arrow.down.a-1-d1 { top: 120px; left: 496px; }
+        .connector.c-d1-s2h { top: 160px; left: 210px; width: 190px; } /* Start further left, adjust width */ .connector.c-d1-s2v { top: 160px; left: 210px; height: 5px; } .arrow.left.a-d1-s2 { top: 156px; left: 202px; }
+        .connector.c-d1-s9h { top: 160px; left: 600px; width: 150px; } /* Start further right, adjust width */ .connector.c-d1-s9v { top: 160px; left: 750px; height: 5px; } .arrow.right.a-d1-s9 { top: 156px; left: 742px; }
+        .connector.c-s2-as1 { top: 195px; left: 130px; height: 45px; } .arrow.down.a-s2-as1 { top: 240px; left: 126px; }
+        .connector.c-as1-s4 { top: 280px; left: 130px; height: 50px; } .arrow.down.a-as1-s4 { top: 330px; left: 126px; }
+        .connector.c-s4-d2 { top: 400px; left: 130px; height: 50px; } .arrow.down.a-s4-d2 { top: 450px; left: 126px; } /* Arrow points to top of D2 */
+        .connector.c-d2-as2 { top: 530px; left: 125px; height: 40px; } /* Start from bottom center of D2 */ .arrow.down.a-d2-as2 { top: 570px; left: 121px; }
+        .connector.c-as2-s6 { top: 610px; left: 130px; height: 50px; } .arrow.down.a-as2-s6 { top: 660px; left: 126px; }
+        .connector.c-s6-d3 { top: 730px; left: 130px; height: 50px; } .arrow.down.a-s6-d3 { top: 780px; left: 126px; } /* Arrow points to top of D3 */
+        .connector.c-d3-as3 { top: 860px; left: 125px; height: 40px; } /* Start from bottom center of D3 */ .arrow.down.a-d3-as3 { top: 900px; left: 121px; }
+        .connector.c-as3-s8 { top: 940px; left: 130px; height: 50px; } .arrow.down.a-as3-s8 { top: 990px; left: 126px; }
+        .connector.c-s8-s12h { top: 1050px; left: 210px; width: 170px; } .connector.c-s8-s12v { top: 935px; left: 380px; height: 115px; } .arrow.up.a-s8-s12 { top: 927px; left: 376px; }
+        .connector.c-s9-ae1 { top: 195px; left: 830px; height: 45px; } .arrow.down.a-s9-ae1 { top: 240px; left: 826px; }
+        .connector.c-ae1-s10 { top: 280px; left: 830px; height: 50px; } .arrow.down.a-ae1-s10 { top: 330px; left: 826px; }
+        .connector.c-s10-d4 { top: 400px; left: 820px; height: 50px; } .arrow.down.a-s10-d4 { top: 450px; left: 816px; } /* Arrow points to top of D4 */
+        .connector.c-d4-s11 { top: 530px; left: 825px; height: 40px; } /* Start from bottom center D4 */ .arrow.down.a-d4-s11 { top: 570px; left: 821px; }
+        .connector.c-s11-d5 { top: 640px; left: 820px; height: 50px; } .arrow.down.a-s11-d5 { top: 690px; left: 816px; } /* Arrow points to top of D5 */
+        .connector.c-d5-s12h { top: 730px; left: 620px; width: 105px; } /* Shorten H line from D5 right */ .connector.c-d5-s12v { top: 730px; left: 620px; height: 170px; } .connector.c-d5-s12h2 { top: 900px; left: 500px; width: 120px; } .arrow.right.a-d5-s12 { top: 896px; left: 612px; } /* Move arrow left */
+        /* Decision 2 (NO) -> Step 10 */
+        .connector.c-d2-s10h { top: 490px; left: 225px; width: 515px; } /* Start from right center D2 */ .connector.c-d2-s10v { top: 365px; left: 740px; height: 125px; } .arrow.up.a-d2-s10 { top: 357px; left: 736px; }
+        /* Decision 3 (NO) -> Step 10 */
+        .connector.c-d3-s10h { top: 820px; left: 225px; width: 515px; } /* Start from right center D3 */ .connector.c-d3-s10v { top: 365px; left: 740px; height: 455px; }
+        /* Decision 4 (YES) -> Action Shock 2 (Step 5) */
+        .connector.c-d4-as2h { top: 490px; left: 225px; width: 500px; } /* Start from left center D4 */ .connector.c-d4-as2v { top: 490px; left: 225px; height: 80px; } .connector.c-d4-as2h2 { top: 570px; left: 155px; width: 70px; } .arrow.left.a-d4-as2 { top: 566px; left: 147px; }
+        /* Decision 5 (YES) -> Action Shock 2 (Step 5) */
+        .connector.c-d5-as2h { top: 730px; left: 225px; width: 500px; } /* Start from left center D5 */ .connector.c-d5-as2v { top: 570px; left: 225px; height: 160px; }
+        /* Step 12 Loop -> Step 10 */
+        .connector.c-s12-s10h { top: 950px; left: 620px; width: 120px; } .connector.c-s12-s10v { top: 365px; left: 740px; height: 585px; }
+
+        /* Yes/No Labels (Adjusted for Hexagons) */
+        .label { position: absolute; font-size: 0.9em; color: var(--text-color); background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 3px; }
+        #label-yes-1 { top: 135px; left: 360px; } /* Dec 1 Yes - Left */
+        #label-no-1 { top: 135px; left: 605px; } /* Dec 1 No - Right */
+        #label-yes-2 { top: 545px; left: 75px; } /* Dec 2 Yes - Below */
+        #label-no-2 { top: 465px; left: 230px; } /* Dec 2 No - Right */
+        #label-yes-3 { top: 875px; left: 75px; } /* Dec 3 Yes - Below */
+        #label-no-3 { top: 795px; left: 230px; } /* Dec 3 No - Right */
+        #label-yes-4 { top: 465px; left: 690px; } /* Dec 4 Yes - Left */
+        #label-no-4 { top: 545px; left: 775px; } /* Dec 4 No - Below */
+        #label-yes-5 { top: 705px; left: 690px; } /* Dec 5 Yes - Left */
+        #label-no-5 { top: 780px; left: 600px; } /* Dec 5 No - Right */
+
+
+    </style>
+</head>
+<body>
+    <div id="status-message">Initializing...</div>
+    <button id="reset-button">Reset Scenario</button>
+
+    <div id="algorithm-container">
+        <!-- HTML structure remains the same -->
+        <div id="step-1" class="node">
+             1. Start CPR
+             <ul>
+                 <li>Give oxygen</li>
+                 <li>Attach monitor/defibrillator</li>
+             </ul>
+         </div>
+         <div id="decision-shockable-1" class="node decision"><span>Rhythm shockable?</span></div>
+         <span id="label-yes-1" class="label">Yes</span>
+         <span id="label-no-1" class="label">No</span>
+         <div id="step-2" class="node oval">2. VF/pVT</div>
+         <div id="action-shock-1" class="node action shock">3. Shock ⚡</div>
+         <div id="step-4" class="node">
+             4. CPR 2 min
+             <ul><li>IV/IO access</li></ul>
+         </div>
+         <div id="decision-shockable-2" class="node decision"><span>Rhythm shockable?</span></div>
+          <span id="label-yes-2" class="label">Yes</span>
+          <span id="label-no-2" class="label">No</span>
+         <div id="action-shock-2" class="node action shock">5. Shock ⚡</div>
+         <div id="step-6" class="node">
+             6. CPR 2 min
+             <ul><li>Epinephrine every 3-5 min</li><li>Consider advanced airway, capnography</li></ul>
+         </div>
+         <div id="decision-shockable-3" class="node decision"><span>Rhythm shockable?</span></div>
+          <span id="label-yes-3" class="label">Yes</span>
+          <span id="label-no-3" class="label">No</span>
+         <div id="action-shock-3" class="node action shock">7. Shock ⚡</div>
+         <div id="step-8" class="node">
+             8. CPR 2 min
+             <ul><li>Amiodarone or lidocaine</li><li>Treat reversible causes</li></ul>
+         </div>
+         <div id="step-9" class="node oval">9. Asystole/PEA</div>
+         <div id="action-epi-1" class="node action epinephrine">Epinephrine ASAP 💉</div>
+         <div id="step-10" class="node">
+             10. CPR 2 min
+             <ul><li>IV/IO access</li><li>Epinephrine every 3-5 min</li><li>Consider advanced airway, capnography</li></ul>
+         </div>
+         <div id="decision-shockable-4" class="node decision"><span>Rhythm shockable?</span></div>
+         <span id="label-yes-4" class="label">Yes</span>
+         <span id="label-no-4" class="label">No</span>
+         <div id="step-11" class="node">
+              11. CPR 2 min
+              <ul><li>Treat reversible causes</li></ul>
+         </div>
+          <div id="decision-shockable-5" class="node decision"><span>Rhythm shockable?</span></div>
+          <span id="label-yes-5" class="label">Yes</span>
+          <span id="label-no-5" class="label">No</span>
+         <div id="step-12" class="node">
+             12. Outcome Check
+              <ul><li>Check for ROSC</li><li>If no ROSC, continue cycle</li><li>If ROSC, Post-Cardiac Arrest Care</li><li>Consider appropriateness</li></ul>
+         </div>
+
+        <!-- Connectors and Arrows (Copied and slightly adjusted) -->
+        <div class="connector vertical c-1-d1"></div> <div class="arrow down a-1-d1"></div>
+        <div class="connector horizontal c-d1-s2h"></div> <div class="connector vertical c-d1-s2v"></div> <div class="arrow left a-d1-s2"></div>
+        <div class="connector horizontal c-d1-s9h"></div> <div class="connector vertical c-d1-s9v"></div> <div class="arrow right a-d1-s9"></div>
+        <div class="connector vertical c-s2-as1"></div> <div class="arrow down a-s2-as1"></div>
+        <div class="connector vertical c-as1-s4"></div> <div class="arrow down a-as1-s4"></div>
+        <div class="connector vertical c-s4-d2"></div> <div class="arrow down a-s4-d2"></div>
+        <div class="connector vertical c-d2-as2"></div> <div class="arrow down a-d2-as2"></div>
+        <div class="connector vertical c-as2-s6"></div> <div class="arrow down a-as2-s6"></div>
+        <div class="connector vertical c-s6-d3"></div> <div class="arrow down a-s6-d3"></div>
+        <div class="connector vertical c-d3-as3"></div> <div class="arrow down a-d3-as3"></div>
+        <div class="connector vertical c-as3-s8"></div> <div class="arrow down a-as3-s8"></div>
+        <div class="connector horizontal c-s8-s12h"></div> <div class="connector vertical c-s8-s12v"></div> <div class="arrow up a-s8-s12"></div>
+        <div class="connector vertical c-s9-ae1"></div> <div class="arrow down a-s9-ae1"></div>
+        <div class="connector vertical c-ae1-s10"></div> <div class="arrow down a-ae1-s10"></div>
+        <div class="connector vertical c-s10-d4"></div> <div class="arrow down a-s10-d4"></div>
+        <div class="connector vertical c-d4-s11"></div> <div class="arrow down a-d4-s11"></div>
+        <div class="connector vertical c-s11-d5"></div> <div class="arrow down a-s11-d5"></div>
+        <div class="connector horizontal c-d5-s12h"></div> <div class="connector vertical c-d5-s12v"></div> <div class="connector horizontal c-d5-s12h2"></div> <div class="arrow right a-d5-s12"></div>
+        <div class="connector horizontal c-d2-s10h"></div> <div class="connector vertical c-d2-s10v"></div> <div class="arrow up a-d2-s10"></div>
+        <div class="connector horizontal c-d3-s10h"></div> <div class="connector vertical c-d3-s10v"></div> <!-- Shared arrow -->
+        <div class="connector horizontal c-d4-as2h"></div> <div class="connector vertical c-d4-as2v"></div> <div class="connector horizontal c-d4-as2h2"></div> <div class="arrow left a-d4-as2"></div>
+        <div class="connector horizontal c-d5-as2h"></div> <div class="connector vertical c-d5-as2v"></div> <!-- Shared horizontal/arrow -->
+        <div class="connector horizontal c-s12-s10h"></div> <div class="connector vertical c-s12-s10v"></div> <!-- Shared arrow -->
+    </div>
+
+    <script>
+        // Javascript remains exactly the same as the previous version
+        const nodes = document.querySelectorAll('.node');
+        const statusMessage = document.getElementById('status-message');
+        const resetButton = document.getElementById('reset-button');
+        const container = document.getElementById('algorithm-container');
+
+        // --- Simulation State ---
+        let currentStateId = null; // Node ID representing the last completed action
+        let expectedNextId = null; // Node ID representing the *correct* next action the user must take
+        let simulationState = {}; // Holds dynamic scenario data
+
+        // --- Constants ---
+        const ROSC_CHANCE = 0.15; // 15% chance of ROSC per check at Step 12
+        const SHOCKABLE_PERSISTENCE_CHANCE = 0.6; // Chance VF/pVT stays shockable after shock/CPR
+        const NONSHOCKABLE_PERSISTENCE_CHANCE = 0.8; // Chance Asys/PEA stays non-shockable
+        const SHOCKABLE_RHYTHMS = ['Ventricular Fibrillation (VF)', 'Pulseless Ventricular Tachycardia (pVT)'];
+        const NONSHOCKABLE_RHYTHMS = ['Asystole', 'Pulseless Electrical Activity (PEA)'];
+
+        function getRandomElement(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function resetScenario() {
+            simulationState = {
+                currentRhythm: null, // 'vf', 'pvt', 'asystole', 'pea', or a descriptive string
+                isShockable: null, // boolean derived from currentRhythm
+                shockCount: 0,
+                hasROSC: false,
+                medsGiven: {
+                    epi: 0,
+                    amioLido: 0
+                },
+                lastCPRSource: null // Tracks which CPR block led to a decision
+            };
+            currentStateId = null; // Nothing completed yet
+            expectedNextId = 'step-1'; // First action user must take
+            updateStatus("Patient is unresponsive, pulseless, and apneic."); // Initial state
+            nodes.forEach(node => {
+                node.classList.remove('active', 'correct-flash', 'disabled');
+                node.style.cursor = 'pointer';
+                // Reset border width explicitly
+                node.style.borderWidth = '1px';
+                 // Reset base border color explicitly
+                 if (node.classList.contains('decision')) {
+                     node.style.borderColor = ''; // Allow CSS variable to take over
+                 } else {
+                     node.style.borderColor = ''; // Allow CSS variable to take over
+                 }
+            });
+        }
+
+        function updateStatus(message) {
+            statusMessage.textContent = message;
+        }
+
+        function highlightCurrentNode() {
+             nodes.forEach(node => {
+                node.classList.remove('active');
+                // Ensure border width reset if not active
+                 if (!node.classList.contains('decision') || !node.classList.contains('active')) {
+                   // node.style.borderWidth = '1px';
+                 }
+             });
+             if (currentStateId) {
+                 const currentNode = document.getElementById(currentStateId);
+                 if (currentNode) {
+                     currentNode.classList.add('active');
+                 }
+             }
+        }
+
+
+        function flashCorrect(element) {
+             element.classList.add('correct-flash');
+             // Make sure base border is reapplied after animation
+             setTimeout(() => {
+                element.classList.remove('correct-flash');
+                // Explicitly reset border properties after flash if needed
+                // element.style.borderWidth = '1px';
+                // if (element.classList.contains('decision')) {
+                //     element.style.borderColor = ''; // Use CSS var
+                // } else {
+                //     element.style.borderColor = ''; // Use CSS var
+                // }
+             }, 800);
+        }
+
+        // --- Decision Logic ---
+        function determineNextRhythm(isCurrentlyShockable, persistenceChance) {
+            let staysSame = Math.random() < persistenceChance;
+            let isNextShockable;
+
+            if (isCurrentlyShockable === null) { // Initial rhythm determination
+                 isNextShockable = Math.random() < 0.5; // 50/50 initial chance
+            } else {
+                isNextShockable = isCurrentlyShockable ? staysSame : !staysSame;
+            }
+
+            let specificRhythm;
+            if (isNextShockable) {
+                specificRhythm = getRandomElement(SHOCKABLE_RHYTHMS);
+            } else {
+                specificRhythm = getRandomElement(NONSHOCKABLE_RHYTHMS);
+            }
+            simulationState.currentRhythm = specificRhythm;
+            simulationState.isShockable = isNextShockable; // Update the boolean state too
+        }
+
+
+        function decideROSC() {
+            return Math.random() < ROSC_CHANCE;
+        }
+
+
+        function handleNodeClick(event) {
+            const clickedId = event.currentTarget.id;
+
+            if (clickedId !== expectedNextId) {
+                console.log(`Incorrect action. Expected step corresponding to ID ${expectedNextId}, but clicked ${clickedId}. Current state: ${currentStateId}`);
+                return; // Ignore wrong clicks
+            }
+
+            // --- Correct Click ---
+            const clickedNode = event.currentTarget;
+            flashCorrect(clickedNode);
+            currentStateId = clickedId;
+            highlightCurrentNode();
+
+            let statusUpdate = "";
+
+            switch (currentStateId) {
+                case 'step-1':
+                    expectedNextId = 'decision-shockable-1';
+                    statusUpdate = "CPR started. Oxygen applied. Monitor/defibrillator attached.";
+                    break;
+
+                case 'decision-shockable-1':
+                    determineNextRhythm(null, 0);
+                    statusUpdate = `Rhythm analysis complete. Monitor shows: ${simulationState.currentRhythm}.`;
+                    expectedNextId = simulationState.isShockable ? 'step-2' : 'step-9';
+                    break;
+
+                case 'step-2':
+                    expectedNextId = 'action-shock-1';
+                    statusUpdate = `Confirmed ${simulationState.currentRhythm}. Prepare for defibrillation.`;
+                    break;
+                case 'action-shock-1':
+                    simulationState.shockCount++;
+                    expectedNextId = 'step-4';
+                    statusUpdate = `Shock ${simulationState.shockCount} delivered. Immediately resume high-quality CPR.`;
+                    break;
+                case 'step-4':
+                    expectedNextId = 'decision-shockable-2';
+                    simulationState.lastCPRSource = 'step-4';
+                    statusUpdate = "Completed 2 minutes of CPR. Established IV/IO access. Pause CPR briefly for rhythm analysis.";
+                    break;
+                case 'decision-shockable-2':
+                    determineNextRhythm(simulationState.isShockable, SHOCKABLE_PERSISTENCE_CHANCE);
+                    statusUpdate = `Rhythm analysis complete. Monitor shows: ${simulationState.currentRhythm}.`;
+                    expectedNextId = simulationState.isShockable ? 'action-shock-2' : 'step-10';
+                    break;
+                 case 'action-shock-2':
+                     simulationState.shockCount++;
+                     expectedNextId = 'step-6';
+                     statusUpdate = `Shock ${simulationState.shockCount} delivered. Immediately resume high-quality CPR. Prepare Epinephrine.`;
+                     break;
+                 case 'step-6':
+                     simulationState.medsGiven.epi++;
+                     expectedNextId = 'decision-shockable-3';
+                     simulationState.lastCPRSource = 'step-6';
+                     statusUpdate = `Completed 2 minutes of CPR. Epinephrine dose ${simulationState.medsGiven.epi} administered. Consider advanced airway. Pause CPR briefly for rhythm analysis.`;
+                     break;
+                 case 'decision-shockable-3':
+                     determineNextRhythm(simulationState.isShockable, SHOCKABLE_PERSISTENCE_CHANCE);
+                     statusUpdate = `Rhythm analysis complete. Monitor shows: ${simulationState.currentRhythm}.`;
+                     expectedNextId = simulationState.isShockable ? 'action-shock-3' : 'step-10';
+                     break;
+                case 'action-shock-3':
+                     simulationState.shockCount++;
+                     expectedNextId = 'step-8';
+                     statusUpdate = `Shock ${simulationState.shockCount} delivered. Immediately resume high-quality CPR. Prepare Amiodarone or Lidocaine.`;
+                     break;
+                case 'step-8':
+                     simulationState.medsGiven.amioLido++;
+                     expectedNextId = 'step-12';
+                     simulationState.lastCPRSource = 'step-8';
+                     statusUpdate = `Completed 2 minutes of CPR. Amiodarone/Lidocaine administered. Treated reversible causes. Checking for ROSC.`;
+                     break;
+
+                 case 'step-9':
+                     expectedNextId = 'action-epi-1';
+                     statusUpdate = `Confirmed ${simulationState.currentRhythm}. Prepare Epinephrine.`;
+                     break;
+                 case 'action-epi-1':
+                     simulationState.medsGiven.epi++;
+                     expectedNextId = 'step-10';
+                     statusUpdate = `Epinephrine dose ${simulationState.medsGiven.epi} administered ASAP. Immediately start high-quality CPR. Establish IV/IO access if not already done.`;
+                     break;
+                 case 'step-10':
+                     if (simulationState.lastCPRSource !== 'step-10' && currentStateId !== 'action-epi-1') {
+                        simulationState.medsGiven.epi++;
+                     }
+                     expectedNextId = 'decision-shockable-4';
+                     simulationState.lastCPRSource = 'step-10';
+                     statusUpdate = `Completed 2 minutes of CPR. Epinephrine dose ${simulationState.medsGiven.epi} administered (if due). Consider advanced airway. Pause CPR briefly for rhythm analysis.`;
+                     break;
+                 case 'decision-shockable-4':
+                      determineNextRhythm(simulationState.isShockable, NONSHOCKABLE_PERSISTENCE_CHANCE);
+                      statusUpdate = `Rhythm analysis complete. Monitor shows: ${simulationState.currentRhythm}.`;
+                      expectedNextId = simulationState.isShockable ? 'action-shock-2' : 'step-11';
+                      break;
+                 case 'step-11':
+                     expectedNextId = 'decision-shockable-5';
+                     simulationState.lastCPRSource = 'step-11';
+                     statusUpdate = "Completed 2 minutes of CPR. Treated reversible causes. Pause CPR briefly for rhythm analysis.";
+                     break;
+                 case 'decision-shockable-5':
+                      determineNextRhythm(simulationState.isShockable, NONSHOCKABLE_PERSISTENCE_CHANCE);
+                      statusUpdate = `Rhythm analysis complete. Monitor shows: ${simulationState.currentRhythm}.`;
+                       expectedNextId = simulationState.isShockable ? 'action-shock-2' : 'step-12';
+                      break;
+
+                 case 'step-12':
+                     simulationState.hasROSC = decideROSC();
+                     if (simulationState.hasROSC) {
+                         expectedNextId = null;
+                         statusUpdate = "Pulse and respiration detected! ROSC achieved. Initiating Post-Cardiac Arrest Care.";
+                         nodes.forEach(node => node.classList.add('disabled'));
+                     } else {
+                         expectedNextId = 'step-10';
+                         statusUpdate = "No signs of ROSC. Resuming high-quality CPR and Epinephrine cycle.";
+                         simulationState.lastCPRSource = 'step-12';
+                     }
+                     break;
+
+                default:
+                    console.error("Unhandled state:", currentStateId);
+                    expectedNextId = null;
+                    statusUpdate = "Error: Unknown state encountered. Resetting.";
+                    nodes.forEach(node => node.classList.add('disabled'));
+            }
+
+            updateStatus(statusUpdate);
+        }
+
+        // --- Initialization ---
+        resetButton.addEventListener('click', resetScenario);
+        nodes.forEach(node => {
+            node.addEventListener('click', handleNodeClick);
+        });
+
+        resetScenario();
+
+    </script>
+</body>
+</html>
