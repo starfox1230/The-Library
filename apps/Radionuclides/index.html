@@ -34,7 +34,7 @@
     justify-content: center;
     min-height: 100vh;
     padding: 1rem;
-    overflow-x: hidden;
+    overflow-x: hidden; /* Prevent horizontal scroll on body */
   }
 
   #container {
@@ -121,7 +121,7 @@
   #answer {
     margin-top: 1.5rem;
     min-height: 25px;
-    transition: opacity var(--transition-speed) ease, max-height var(--transition-speed) ease;
+    transition: opacity var(--transition-speed) ease, max-height var(--transition-speed) ease, margin-top var(--transition-speed) ease; /* Added margin-top */
     overflow: hidden;
     opacity: 1;
     max-height: 100px; /* Adjust if needed */
@@ -150,29 +150,29 @@
       opacity: 0;
       max-height: 0;
       margin-top: 0;
-      overflow: hidden;
+      overflow: hidden; /* Crucial for smooth collapse */
   }
 
   .expandable-image {
     max-width: 100%;
     height: auto;
     display: block;
-    /* MODIFIED: Added margin-bottom for spacing between images */
-    margin: 1rem auto 0.5rem;
+    margin: 1rem auto 0.5rem; /* Top margin for spacing, bottom margin between images */
     border-radius: var(--border-radius-sm);
     border: 1px solid rgba(0, 255, 156, 0.1);
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    vertical-align: middle;
+    vertical-align: middle; /* Prevents extra space below */
   }
 
-  /* NEW: Remove bottom margin from the *last* image in the container */
+  /* Remove bottom margin from the *last* image in the container */
   .image-container .expandable-image:last-child {
       margin-bottom: 0;
   }
 
+  /* Ensure margins are zeroed when container is hidden */
   .image-container.hidden .expandable-image {
       margin-top: 0;
-      margin-bottom: 0; /* Ensure bottom margin is also zero when hidden */
+      margin-bottom: 0;
   }
 
 
@@ -219,15 +219,14 @@
 
   <div id="answer" class="hidden"></div>
 
+  <!-- Hint Container -->
   <div id="hint" class="hidden image-container">
     <img id="hint-img" alt="Hint Image Structure" class="expandable-image">
   </div>
 
-  <!-- MODIFIED: Full List container now holds TWO images -->
+  <!-- Full List Container (holds both JPEG and PNG) -->
   <div id="full-list-container" class="hidden image-container">
-      <!-- NEW: JPEG Image (appears first) -->
       <img id="full-list-img-jpeg" alt="Full List (JPEG)" class="expandable-image">
-      <!-- Existing PNG Image (appears second) -->
       <img id="full-list-img-png" alt="Full List of Radionuclides (PNG)" class="expandable-image">
   </div>
 
@@ -235,7 +234,6 @@
 
 <script>
 const data = [
-  // (Your data array remains unchanged)
   {name:"Chromium-51", file:"cr-51.png", production:"Nuclear reactor (neutron activation)", decay:"Electron capture (100%)", photons:"320 keV", halfLife:"27.8 days"},
   {name:"Cobalt-57", file:"co-57.png", production:"Cyclotron", decay:"Electron capture (100%)", photons:"122, 136 keV", halfLife:"271 days"},
   {name:"Fluorine-18", file:"f-18.png", production:"Cyclotron", decay:"Beta⁺ (97%), EC (3%)", photons:"511 keV (annihilation)", halfLife:"110 minutes"},
@@ -245,24 +243,25 @@ const data = [
   {name:"Iodine-123", file:"i-123.png", production:"Cyclotron", decay:"Electron capture (100%)", photons:"159 keV", halfLife:"13.2 hours"},
   {name:"Iodine-125", file:"i-125.png", production:"Nuclear reactor (neutron activation)", decay:"Electron capture (100%)", photons:"35–31 keV", halfLife:"60.2 days"},
   {name:"Iodine-131", file:"i-131.png", production:"Nuclear reactor (U‑235 fission)", decay:"Beta⁻ (100%)", photons:"284, 364, 637 keV", halfLife:"8 days"},
-  {name:"Krypton-81m", file:"kr-81.png", production:"Generator product", decay:"Isomeric transition (100%)", photons:"190 keV", halfLife:"13 seconds"},
+  {name:"Krypton-81m", file:"kr-81.png", production:"Generator product", decay:"Isomeric transition (100%)", photons:"190 keV", halfLife:"13 seconds"}, // Ensure filename matches data
   {name:"Molybdenum-99", file:"mo-99.png", production:"Nuclear reactor (U‑235 fission)", decay:"Beta⁻ (100%)", photons:"181, 740, 780 keV", halfLife:"67 hours"},
   {name:"Phosphorus-32", file:"p-32.png", production:"Nuclear reactor (neutron activation)", decay:"Beta⁻ (100%)", photons:"N/A", halfLife:"14.3 days"},
   {name:"Samarium-153", file:"sm-153.png", production:"Nuclear reactor (U‑235 fission)", decay:"Beta⁻ (100%)", photons:"103 keV", halfLife:"46 hours"},
   {name:"Strontium-89", file:"sr-89.png", production:"Nuclear reactor (U‑235 fission)", decay:"Beta⁻ (100%)", photons:"910 keV", halfLife:"50.5 days"},
-  {name:"Technetium-99m", file:"tc-99.png", production:"Generator product", decay:"Isomeric transition (100%)", photons:"140 keV", halfLife:"6.02 hours"},
+  {name:"Technetium-99m", file:"tc-99.png", production:"Generator product", decay:"Isomeric transition (100%)", photons:"140 keV", halfLife:"6.02 hours"}, // Ensure filename matches data
   {name:"Thallium-201", file:"tl-201.png", production:"Cyclotron", decay:"Electron capture (100%)", photons:"69–80, 167 keV", halfLife:"73.1 hours"},
   {name:"Xenon-133", file:"xe-133.png", production:"Nuclear reactor (U‑235 fission)", decay:"Beta⁻ (100%)", photons:"81 keV", halfLife:"5.3 days"}
 ];
 
-// --- IMPORTANT: Replace this with the actual path to your PNG image file ---
-const FULL_LIST_IMAGE_PATH_PNG = "./all_radionuclides.png"; // Example Path
-// --- The code will automatically look for a '.jpg' version in the same location ---
+// --- CORRECTED: Path to your PNG full list image (must match your filename) ---
+const FULL_LIST_IMAGE_PATH_PNG = "./all-radionuclides.png";
+// --- Code will automatically look for './all-radionuclides.jpg' in the same folder ---
 
 const questions = [];
 data.forEach(i => {
-  // Assuming hint images are in an 'images' subfolder relative to the HTML file
-  const imagePath = `./images/${i.file}`; // Example: './images/cr-51.png'
+  // --- CORRECTED: Assumes hint images (e.g., cr-51.png) are in the SAME folder as this HTML file ---
+  const imagePath = `./${i.file}`;
+  // --- End Correction ---
   questions.push({ q: `What is the method of production of <strong>${i.name}</strong>?`, a: i.production, img: imagePath });
   questions.push({ q: `What is the mode of decay of <strong>${i.name}</strong>?`, a: i.decay, img: imagePath });
   questions.push({ q: `What are the principal photon energies (keV) of <strong>${i.name}</strong>?`, a: i.photons, img: imagePath });
@@ -276,7 +275,6 @@ const hintEl = document.getElementById("hint");
 const hintImgEl = document.getElementById("hint-img");
 const containerEl = document.getElementById("container");
 const fullListContainerEl = document.getElementById("full-list-container");
-// NEW: Get references to BOTH full list image elements
 const fullListImgPngEl = document.getElementById("full-list-img-png");
 const fullListImgJpegEl = document.getElementById("full-list-img-jpeg");
 
@@ -287,8 +285,9 @@ function displayQuestion() {
     answerEl.textContent = "";
     answerEl.classList.add("hidden");
 
-    hintImgEl.src = current.img; // Set current hint image src
-    hintEl.classList.add("hidden");
+    // Set the correct hint image source for the current question
+    hintImgEl.src = current.img;
+    hintEl.classList.add("hidden"); // Hide hint container
 
     fullListContainerEl.classList.add("hidden"); // Hide full list container
 }
@@ -305,36 +304,40 @@ function nextQuestion(event) {
              const currentIndex = questions.findIndex(q => q.q === current?.q && q.img === current?.img);
              do {
                  nextIndex = Math.floor(Math.random() * questions.length);
-             } while (nextIndex === currentIndex);
+             } while (nextIndex === currentIndex && questions.length > 1); // Avoid infinite loop if only 1 question
         } else {
             nextIndex = 0;
         }
         current = questions[nextIndex];
 
-        displayQuestion(); // Hides hint & full list, shows new question
+        displayQuestion(); // Updates text, hides hint & full list
 
         if (containerEl && typeof containerEl.focus === 'function') {
            containerEl.focus();
         }
-    }, 200);
+    }, 200); // Match CSS transition duration
 }
 
 function showAnswer(event) {
-    if (answerEl.classList.contains("hidden")) {
+    // Toggle visibility by adding/removing 'hidden' class
+    answerEl.classList.toggle("hidden");
+
+    // If we are showing the answer, set the text content
+    if (!answerEl.classList.contains("hidden")) {
         answerEl.textContent = current.a;
-        answerEl.classList.remove("hidden");
-    } else {
-        answerEl.classList.add("hidden");
     }
+    // Text content persists but is hidden by CSS when class is added
+
     if (event && event.target && typeof event.target.blur === 'function') {
          event.target.blur();
     }
 }
 
 function toggleHint(event) {
-    if (hintEl.classList.contains("hidden")) {
-       hintImgEl.src = current.img; // Ensure src is set when showing
-    }
+    // Set src only if needed (when showing) - src is already set by displayQuestion
+    // if (hintEl.classList.contains("hidden")) {
+    //    hintImgEl.src = current.img;
+    // }
     hintEl.classList.toggle("hidden");
 
     if (event && event.target && typeof event.target.blur === 'function') {
@@ -342,24 +345,19 @@ function toggleHint(event) {
     }
 }
 
-// --- MODIFIED: Function now handles both JPEG and PNG ---
 function toggleFullList(event) {
     if (fullListContainerEl.classList.contains("hidden")) {
         // Derive JPEG path from PNG path (replace .png with .jpg, case-insensitive)
         const jpegPath = FULL_LIST_IMAGE_PATH_PNG.replace(/\.png$/i, ".jpg");
 
         // Set the src attributes for both images *before* making the container visible
-        // This starts the image download if they haven't been loaded yet.
-        // Check current src to avoid unnecessary reloading if already visible/loaded
+        // Check current src to avoid potential flicker if already loaded and visible somehow
         if (fullListImgPngEl.getAttribute('src') !== FULL_LIST_IMAGE_PATH_PNG) {
              fullListImgPngEl.src = FULL_LIST_IMAGE_PATH_PNG;
         }
-         if (fullListImgJpegEl.getAttribute('src') !== jpegPath) {
+        if (fullListImgJpegEl.getAttribute('src') !== jpegPath) {
              fullListImgJpegEl.src = jpegPath;
          }
-         // You could also just set them unconditionally when showing:
-         // fullListImgPngEl.src = FULL_LIST_IMAGE_PATH_PNG;
-         // fullListImgJpegEl.src = jpegPath;
     }
     // Toggle visibility of the container (which holds both images)
     fullListContainerEl.classList.toggle("hidden");
@@ -377,12 +375,18 @@ window.onload = () => {
     fullListContainerEl.classList.add("hidden"); // Ensure container starts hidden
 
     setTimeout(() => {
-        current = questions[Math.floor(Math.random() * questions.length)];
-        displayQuestion();
+        if (questions.length > 0) {
+            current = questions[Math.floor(Math.random() * questions.length)];
+            displayQuestion(); // Load initial question and hide images
+        } else {
+            questionEl.innerHTML = "Error: No questions loaded.";
+            // Disable buttons if needed
+        }
+
         if (containerEl && typeof containerEl.focus === 'function') {
            containerEl.focus();
         }
-    }, 150);
+    }, 150); // Allow initial styles to apply before fade-in
 };
 </script>
 
