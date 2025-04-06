@@ -236,7 +236,7 @@
     #outputArea p {
         display: block; /* Ensure paragraphs behave as blocks */
         width: 100%;   /* Prevent wrapping issues */
-        margin-bottom: 1em; /* INCREASED bottom margin for spacing */
+        margin-bottom: 1em; /* Standard bottom margin for spacing */
         line-height: 1.6;
     }
     /* Specific spacing for paragraph *before* a code container */
@@ -247,6 +247,25 @@
      #outputArea .code-container + p {
         margin-top: 1em; /* Add space above paragraph following code */
      }
+    /* --- NEW: Style for instruction text + copy button --- */
+    .instruction-with-copy {
+        display: flex;
+        align-items: center; /* Vertically center text and button */
+        justify-content: space-between; /* Push button to the right */
+        gap: 15px; /* Space between text and button */
+        margin-bottom: 1em; /* Standard bottom margin */
+    }
+    .instruction-with-copy p {
+        margin-bottom: 0; /* Remove default margin from p inside flex */
+        flex-grow: 1; /* Allow text to take up available space */
+        /* width: auto; Reset width if previously set to 100% */
+    }
+    .instruction-with-copy .copy-btn {
+        margin-left: 0; /* Remove margin-left: auto if it was there */
+        flex-shrink: 0; /* Prevent button from shrinking */
+    }
+    /* --- End NEW Style --- */
+
 
     #outputArea code { /* Inline code style */
         color: var(--text-light);
@@ -264,7 +283,7 @@
         background: var(--bg-light);
         padding: 12px;
         border-radius: 5px;
-        /* Removed margin-top/bottom here, handled by adjacent p tags now */
+        /* Removed margin-top/bottom here, handled by adjacent p tags or containers now */
         border: 1px solid var(--border-color);
         width: 100%; /* Ensure container takes full width */
     }
@@ -307,7 +326,7 @@
         font-size: 0.9em;
         transition: background-color 0.2s, color 0.2s;
         white-space: nowrap;
-        margin-left: auto; /* Push to the right */
+        margin-left: auto; /* Push to the right by default */
         flex-shrink: 0; /* Prevent button shrinking */
         align-self: flex-start;
     }
@@ -468,6 +487,8 @@
       /* Ensure paragraphs have space even on mobile */
       #outputArea p { margin-bottom: 0.8em; }
       #outputArea .code-container + p { margin-top: 0.8em; }
+      /* Ensure instruction-with-copy looks okay */
+      .instruction-with-copy { flex-wrap: wrap; /* Allow wrap on small screens */ }
     }
 
   </style>
@@ -531,22 +552,23 @@
                       <code id="filePathOutput"></code>
                       <button class="copy-btn" data-target="filePathOutput" title="Copy File Path">Copy</button>
                   </div>
-                   <p>2. Paste the HTML code you entered above into this new file and commit it.</p>
+                   <!-- START MODIFIED SECTION FOR STEP 2 -->
+                  <div class="instruction-with-copy">
+                      <p>2. Paste the HTML code you entered above into this new file and commit it.</p>
+                      <button class="copy-btn" data-target="appCode" title="Copy Inputted HTML">Copy Code</button>
+                  </div>
+                  <!-- END MODIFIED SECTION FOR STEP 2 -->
               </div>
 
               <div class="output-block">
                   <p>3. Edit your main <code>index.html</code> file on GitHub.</p>
-                  <!-- Step 4 text -->
-                  <p>4. Find the line <code>&lt;!-- ADD NEW APPS ABOVE THIS LINE --&gt;</code> within the <code>&lt;ul class="app-list"&gt;</code>.</p><br>
-                  <!-- Step 5 text - clearly above the code box -->
-                  <p>5. Paste the following code directly <strong>above</strong> that comment line:</p><br>
-                  <!-- Code box for step 5 -->
+                  <p>4. Find the line <code><!-- ADD NEW APPS ABOVE THIS LINE --></code> within the <code><ul class="app-list"></code>.</p>
+                  <p>5. Paste the following code directly <strong>above</strong> that comment line:</p>
                   <div class="code-container">
                       <pre><code id="listItemOutput"></code></pre>
                       <button class="copy-btn" data-target="listItemOutput" title="Copy List Item HTML">Copy</button>
                   </div>
-                  <!-- Step 6 text - clearly below the code box -->
-                   <br><p>6. Commit the changes to <code>index.html</code>.</p>
+                   <p>6. Commit the changes to <code>index.html</code>.</p>
               </div>
                <p class="final-note">After committing both files, refresh this page. Your new app should appear in the list!</p>
           </div>
@@ -621,7 +643,7 @@
     const outputArea = document.getElementById('outputArea');
     const filePathOutput = document.getElementById('filePathOutput');
     const listItemOutput = document.getElementById('listItemOutput');
-    const copyBtns = document.querySelectorAll('.copy-btn');
+    const copyBtns = document.querySelectorAll('.copy-btn'); // Select ALL copy buttons
 
     generateBtn.addEventListener('click', () => {
         const appName = appNameInput.value.trim();
@@ -644,25 +666,69 @@
       </li>`;
 
         filePathOutput.textContent = filePath;
-        listItemOutput.textContent = listItemHTML.trim();
+        listItemOutput.textContent = listItemHTML.trim(); // Use textContent for pre/code
+
+        // Make output visible *before* trying to scroll to it
         outputArea.style.display = 'block';
-        generatorDetails.open = true;
-        outputArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        generatorDetails.open = true; // Ensure details section is open
+
+        // Use requestAnimationFrame to ensure the element is visible before scrolling
+        requestAnimationFrame(() => {
+             outputArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
     });
 
+    // Updated copy logic for ALL copy buttons
     copyBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
             const targetElement = document.getElementById(targetId);
+
             if (targetElement) {
-                const textToCopy = targetElement.textContent;
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    const originalText = btn.textContent; btn.textContent = 'Copied!'; btn.style.backgroundColor = '#28a745'; btn.style.color = '#ffffff'; btn.disabled = true;
-                    setTimeout(() => { btn.textContent = originalText; btn.style.backgroundColor = ''; btn.style.color = ''; btn.disabled = false; }, 1500);
-                }).catch(err => {
-                    console.error('Failed to copy text: ', err); const originalText = btn.textContent; btn.textContent = 'Error'; btn.style.backgroundColor = '#dc3545'; btn.style.color = '#ffffff'; btn.disabled = true;
-                    setTimeout(() => { btn.textContent = originalText; btn.style.backgroundColor = ''; btn.style.color = ''; btn.disabled = false; }, 2000);
-                });
+                let textToCopy;
+
+                // --- MODIFIED: Check element type to get correct content ---
+                if (targetElement.nodeName === 'TEXTAREA' || targetElement.nodeName === 'INPUT') {
+                    textToCopy = targetElement.value; // Use .value for form elements
+                } else {
+                    textToCopy = targetElement.textContent; // Use .textContent for others (like code, pre)
+                }
+                // --- END MODIFICATION ---
+
+                // Only try to copy if there's actually text
+                if (textToCopy) {
+                     navigator.clipboard.writeText(textToCopy).then(() => {
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Copied!';
+                        btn.style.backgroundColor = '#28a745'; // Success green
+                        btn.style.color = '#ffffff';
+                        btn.disabled = true;
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.style.backgroundColor = ''; // Revert style
+                            btn.style.color = '';
+                            btn.disabled = false;
+                        }, 1500); // Revert after 1.5 seconds
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Error';
+                        btn.style.backgroundColor = '#dc3545'; // Error red
+                        btn.style.color = '#ffffff';
+                        btn.disabled = true;
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.style.backgroundColor = ''; // Revert style
+                            btn.style.color = '';
+                            btn.disabled = false;
+                        }, 2000); // Revert after 2 seconds
+                    });
+                } else {
+                    console.warn("Attempted to copy empty content from:", targetId);
+                    // Optionally provide feedback that there was nothing to copy
+                }
+            } else {
+                console.error("Copy target element not found:", targetId);
             }
         });
     });
