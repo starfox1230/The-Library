@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intramedullary Spinal Lesions Quiz</title> <!-- Changed Title -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        /* CSS rules (mostly unchanged) */
+        body {
+            background-color: #12121f;
+            color: #e0e0fc;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .quiz-container {
+            background-color: #1a1a2e;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4),
+                        0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            border: 1px solid #3a3a5e;
+            display: flex; /* Use flexbox for vertical layout */
+            flex-direction: column;
+            justify-content: space-between; /* Pushes nav buttons down */
+            min-height: 500px; /* Ensure minimum height */
+        }
+
+        .quiz-content {
+             flex-grow: 1; /* Allow content to take available space */
+             margin-bottom: 20px; /* Space above navigation buttons */
+        }
+
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #8a8aff;
+            margin-bottom: 25px;
+            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
+        }
+
+        #question-counter {
+            font-size: 0.9em;
+            color: #aaaafc;
+            margin-bottom: 15px;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            color: #f0f0ff;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background-color: #2a2a4e;
+            color: #d0d0fc;
+            border: 1px solid #4a4a7e;
+            padding: 12px 15px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #3a3a6e;
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
+        }
+
+        .option-button:active:not(:disabled) {
+            transform: translateY(0px);
+        }
+
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-button.correct {
+            background-color: #1f7a3f;
+            border-color: #28a745;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6);
+            opacity: 1;
+        }
+
+        .option-button.incorrect {
+            background-color: #9a2532;
+            border-color: #dc3545;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6);
+            opacity: 1;
+        }
+
+        .option-button.reveal-correct {
+            background-color: #1f7a3f !important;
+            border-color: #28a745 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+
+
+        .explanation-container {
+            background-color: #202035;
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #c0c0fa;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .explanation-container strong {
+            color: #8a8aff;
+        }
+
+        /* --- Navigation Button Styling --- */
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between; /* Space out Prev/Next */
+            align-items: center;
+            margin-top: 30px; /* Keep margin from content above */
+            width: 100%; /* Ensure full width */
+        }
+
+        .nav-button { /* Common style for Prev/Next */
+            background: linear-gradient(45deg, #4a4af5, #8a8aff);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; /* Pill shape */
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+            min-width: 120px; /* Give buttons minimum width */
+            text-align: center;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+
+        .nav-button:disabled {
+            background: #5a5a7e; /* Different background when disabled */
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+            transform: none;
+        }
+        /* --- End Navigation Button Styling --- */
+
+
+        #completion-message {
+            margin-top: 40px;
+             flex-grow: 1; /* Allow it to take space when visible */
+             display: flex;
+             flex-direction: column;
+             justify-content: center;
+             align-items: center;
+        }
+        #completion-message h2 {
+             font-family: 'Orbitron', sans-serif;
+             color: #28a745;
+             text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .quiz-container {
+                padding: 20px;
+                width: 95%;
+                min-height: 400px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            #question-text {
+                font-size: 1.1em;
+            }
+            .option-button {
+                font-size: 0.9em;
+                padding: 10px 12px;
+            }
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 1em;
+                min-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <!-- Content Area -->
+        <div class="quiz-content">
+            <h1>Intramedullary Spinal Lesions Quiz</h1> <!-- Changed Title -->
+            <div id="question-counter"></div>
+            <div id="question-text">Loading question...</div>
+            <div id="answer-options" class="options-container">
+                <!-- Answer buttons will be loaded here -->
+            </div>
+            <div id="explanation" class="explanation-container" style="display: none;">
+                <!-- Explanation will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Completion Message (Initially Hidden) -->
+         <div id="completion-message" style="display: none;">
+            <h2>Quiz Complete!</h2>
+            <p>You have finished all the questions.</p>
+        </div>
+
+        <!-- Navigation Buttons Area -->
+        <div class="navigation-buttons">
+            <button id="prev-button" class="nav-button">Previous</button>
+            <button id="next-button" class="nav-button">Next</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+             // --- Intramedullary Lesions Questions ---
+            {
+                question: "What is the defining characteristic of an intramedullary lesion?",
+                options: ["It compresses the spinal cord from the outside.", "It arises within the spinal cord parenchyma itself.", "It is located within the dura but outside the cord.", "It originates from the vertebral bodies."],
+                correctAnswer: "It arises within the spinal cord parenchyma itself.",
+                explanation: "The lecture focuses on intramedullary lesions, defined as those occurring *within* the spinal cord itself, causing expansion of the cord."
+            },
+            {
+                question: "What are the two most common primary intramedullary tumors mentioned?",
+                options: ["Meningioma and Schwannoma", "Astrocytoma and Ependymoma", "Hemangioblastoma and Metastasis", "Cavernous Malformation and Lipoma"],
+                correctAnswer: "Astrocytoma and Ependymoma",
+                explanation: "The lecture explicitly states that the most common intramedullary tumors are Ependymoma and Astrocytoma."
+            },
+            {
+                question: "In younger patients (children/teenagers), which intramedullary tumor is generally more common?",
+                options: ["Ependymoma", "Hemangioblastoma", "Astrocytoma", "Cavernous Malformation"],
+                correctAnswer: "Astrocytoma",
+                explanation: "The presentation notes that Astrocytoma is the most common cord tumor in children and teenagers."
+            },
+            {
+                question: "In adult patients, which intramedullary tumor is generally the most common?",
+                options: ["Astrocytoma", "Glioblastoma", "Hemangioblastoma", "Ependymoma"],
+                correctAnswer: "Ependymoma",
+                explanation: "Ependymoma is stated to be the most common cord tumor overall and particularly in adults (with Astrocytoma being second most common in adults)."
+            },
+            {
+                question: "Which imaging feature is more characteristic of an Astrocytoma compared to an Ependymoma?",
+                options: ["Homogeneous enhancement of a nodule", "Presence of a hemosiderin cap", "Heterogeneous, ill-defined, infiltrative enhancement", "Location exclusively in the conus medullaris"],
+                correctAnswer: "Heterogeneous, ill-defined, infiltrative enhancement",
+                explanation: "Astrocytomas are described as often being long, infiltrative lesions with ill-defined, irregular, or patchy enhancement (heterogeneous), as shown in Case 1."
+            },
+            {
+                question: "Which imaging feature is more characteristic of an Ependymoma compared to an Astrocytoma?",
+                options: ["Long segment involvement (>4 bodies)", "Homogeneous enhancement, often of a distinct nodule", "Primarily off-midline location", "Lack of associated cysts"],
+                correctAnswer: "Homogeneous enhancement, often of a distinct nodule",
+                explanation: "Ependymomas (like in Case 2) often show more well-defined, homogeneous enhancement, frequently within a distinct nodule. While cysts and hemorrhage can occur, the enhancement pattern is a key differentiator from the typical astrocytoma."
+            },
+            {
+                question: "The presence of a cystic lesion with an avidly enhancing mural nodule within the spinal cord is highly suggestive of which tumor?",
+                options: ["Astrocytoma", "Ependymoma", "Hemangioblastoma", "Cavernous Malformation"],
+                correctAnswer: "Hemangioblastoma",
+                explanation: "Case 3 demonstrates the classic appearance of a Hemangioblastoma: a vascular (enhancing) nodule associated with a cyst. This 'nodule with cyst' appearance is characteristic."
+            },
+            {
+                question: "Hemangioblastomas of the spinal cord and brain are strongly associated with which genetic syndrome?",
+                options: ["Neurofibromatosis Type 1 (NF1)", "Neurofibromatosis Type 2 (NF2)", "Tuberous Sclerosis Complex (TSC)", "Von Hippel-Lindau (VHL) disease"],
+                correctAnswer: "Von Hippel-Lindau (VHL) disease",
+                explanation: "The lecture explicitly mentions the association between Hemangioblastoma and Von Hippel-Lindau (VHL) syndrome, noting that about 1/3 of patients with spinal hemangioblastoma have VHL."
+            },
+            {
+                question: "What is the characteristic imaging finding of a spinal Cavernous Malformation on T2-weighted images?",
+                options: ["Uniformly T2 hyperintense signal", "Significant surrounding edema", "A complete low-signal intensity (hypointense) rim", "Avid, homogeneous enhancement"],
+                correctAnswer: "A complete low-signal intensity (hypointense) rim",
+                explanation: "Case 4 highlights the typical hemosiderin rim (T2 hypointense) surrounding a cavernous malformation, which contains blood products of varying ages internally. Minimal edema is also typical."
+            },
+             {
+                question: "Intramedullary Glioblastoma (GBM), a high-grade glioma, typically shows which enhancement pattern?",
+                options: ["Homogeneous enhancement without necrosis", "No enhancement", "Irregular, often peripheral enhancement with central necrosis", "Enhancement only within an associated cyst wall"],
+                correctAnswer: "Irregular, often peripheral enhancement with central necrosis",
+                explanation: "Similar to brain GBM, intramedullary GBMs are high-grade astrocytomas that often exhibit ill-defined margins, irregular/ragged enhancement, and central non-enhancing areas suggestive of necrosis."
+            },
+            {
+                question: "If an intramedullary GBM is suspected, what is the recommended next imaging step?",
+                options: ["CT scan of the spine", "PET scan", "Repeat MRI of the same spinal region in 3 months", "MRI of the entire neuroaxis (brain and full spine)"],
+                correctAnswer: "MRI of the entire neuroaxis (brain and full spine)",
+                explanation: "Due to the risk of leptomeningeal metastasis (spread through the CSF), the lecture advises imaging the entire neuroaxis (brain and the rest of the spine) when an intramedullary GBM is found."
+            },
+            {
+                question: "Which subtype of Ependymoma is typically found in the conus medullaris region?",
+                options: ["Cellular Ependymoma", "Anaplastic Ependymoma", "Myxopapillary Ependymoma", "Subependymoma"],
+                correctAnswer: "Myxopapillary Ependymoma",
+                explanation: "The lecture specifies that the Myxopapillary subtype of ependymoma characteristically occurs in the conus medullaris, while the cellular type can occur anywhere in the cord."
+            },
+             {
+                question: "What does the term 'hematomyelia' refer to?",
+                options: ["Inflammation of the spinal cord", "A syrinx cavity within the cord", "Bleeding within the spinal cord parenchyma", "Compression of the spinal cord"],
+                correctAnswer: "Bleeding within the spinal cord parenchyma",
+                explanation: "Hematomyelia is defined as hemorrhage (bleeding) within the substance of the spinal cord. The lecture provides a differential for this finding."
+            },
+            {
+                question: "Besides tumors, what is another important cause of hematomyelia mentioned in the differential?",
+                options: ["Demyelinating disease (e.g., MS)", "Spinal stenosis", "Vascular malformations (like AVM or Cavernoma)", "Disc herniation"],
+                correctAnswer: "Vascular malformations (like AVM or Cavernoma)",
+                explanation: "The differential diagnosis for hematomyelia includes vascular malformations (high flow like AVM/AVF or low flow like Cavernous Malformation), coagulation disorders, anticoagulation meds, trauma, and vascular tumors."
+            },
+             {
+                question: "According to the lecture, how should one approach diagnosing intramedullary lesions?",
+                options: ["Assume all are malignant until proven otherwise", "Primarily rely on patient age", "Think about it like brain parenchyma and consider similar pathologies", "Biopsy every lesion"],
+                correctAnswer: "Think about it like brain parenchyma and consider similar pathologies",
+                explanation: "The presenter suggests thinking of the spinal cord as an extension of the brain parenchyma, affected by similar types of pathologies, as a guiding principle for differential diagnosis."
+            }
+            // --- END OF QUESTIONS ---
+        ];
+
+
+        // --- DOM Element References ---
+        const questionCounterElement = document.getElementById('question-counter');
+        const questionTextElement = document.getElementById('question-text');
+        const answerOptionsElement = document.getElementById('answer-options');
+        const explanationElement = document.getElementById('explanation');
+        const prevButton = document.getElementById('prev-button'); // Added
+        const nextButton = document.getElementById('next-button'); // Now used for navigation
+        const completionMessageElement = document.getElementById('completion-message');
+        const quizContentElement = document.querySelector('.quiz-content'); // Added
+        const navigationButtonsElement = document.querySelector('.navigation-buttons'); // Added
+
+        // --- State Variables ---
+        let currentQuestionIndex = 0;
+        let score = 0; // Optional score tracking
+
+        // --- Functions ---
+
+        function loadQuestion() {
+            // Check if quiz is finished *before* trying to load
+             if (currentQuestionIndex >= quizData.length) {
+                showCompletion();
+                return;
+            }
+            // Ensure quiz content is visible and completion is hidden
+            quizContentElement.style.display = 'block';
+            navigationButtonsElement.style.display = 'flex'; // Make sure nav buttons are visible
+            completionMessageElement.style.display = 'none';
+
+
+            // Reset styles and visibility for the new question
+            explanationElement.style.display = 'none';
+            explanationElement.innerHTML = '';
+            answerOptionsElement.innerHTML = ''; // Clear previous options
+
+            // Get current question data
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // Update question text and counter
+            questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            questionTextElement.textContent = currentQuestion.question;
+
+            // Create and append answer buttons
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+                button.addEventListener('click', selectAnswer);
+                answerOptionsElement.appendChild(button);
+            });
+
+            // Update navigation button states
+            updateNavButtonStates();
+        }
+
+        function updateNavButtonStates() {
+            prevButton.disabled = (currentQuestionIndex === 0);
+            // Disable next button only if on the last question *index*
+             // Enable next button unless it's the last question
+             nextButton.disabled = false;
+             if (currentQuestionIndex === quizData.length - 1) {
+                nextButton.textContent = 'Finish'; // Change text on last question
+             } else {
+                 nextButton.textContent = 'Next';
+             }
+        }
+
+        function selectAnswer(event) {
+            const selectedButton = event.target;
+            const selectedAnswer = selectedButton.textContent;
+            const currentQuestion = quizData[currentQuestionIndex];
+            const correctAnswer = currentQuestion.correctAnswer;
+
+            // Disable all *option* buttons only
+            const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
+            let alreadyAnswered = false;
+            optionButtons.forEach(btn => {
+                if (btn.disabled) { // Check if any button is already disabled (means answered)
+                    alreadyAnswered = true;
+                }
+            });
+
+             // Only process the answer if it hasn't been answered yet for this load
+             if (alreadyAnswered) return;
+
+
+            optionButtons.forEach(button => {
+                button.disabled = true; // Disable options after selection
+            });
+
+            // Check if the answer is correct
+            if (selectedAnswer === correctAnswer) {
+                selectedButton.classList.add('correct');
+                score++; // Optional score tracking
+            } else {
+                selectedButton.classList.add('incorrect');
+                // Highlight the correct answer as well
+                optionButtons.forEach(button => {
+                    if (button.textContent === correctAnswer) {
+                        button.classList.add('reveal-correct');
+                    }
+                });
+            }
+
+            // Show explanation
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation}`;
+            explanationElement.style.display = 'block';
+
+            // Keep nav buttons enabled - user can navigate away after seeing explanation
+        }
+
+        function goToNextQuestion() {
+            // If it's the last question, show completion
+            if (currentQuestionIndex === quizData.length - 1) {
+                 showCompletion();
+            }
+            // Otherwise, go to the next question
+             else if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                loadQuestion();
+             }
+        }
+
+
+        function goToPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
+        }
+
+
+        function showCompletion() {
+            quizContentElement.style.display = 'none'; // Hide questions/options/explanation
+            navigationButtonsElement.style.display = 'none'; // Hide nav buttons
+            completionMessageElement.style.display = 'flex'; // Show completion message (use flex for centering)
+            // Optional: Display score
+            // completionMessageElement.innerHTML += `<p>Your final score: ${score} out of ${quizData.length}</p>`;
+        }
+
+
+        // --- Event Listeners ---
+        prevButton.addEventListener('click', goToPreviousQuestion);
+        nextButton.addEventListener('click', goToNextQuestion);
+
+
+        // --- Initial Load ---
+        loadQuestion(); // Load the first question
+    </script>
+
+</body>
+</html>
