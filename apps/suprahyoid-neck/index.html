@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suprahyoid Neck Imaging Quiz</title> {/* Changed Title */}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        /* CSS rules (mostly unchanged) */
+        body {
+            background-color: #12121f;
+            color: #e0e0fc;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .quiz-container {
+            background-color: #1a1a2e;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4),
+                        0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            border: 1px solid #3a3a5e;
+            display: flex; /* Use flexbox for vertical layout */
+            flex-direction: column;
+            justify-content: space-between; /* Pushes nav buttons down */
+            min-height: 500px; /* Ensure minimum height */
+        }
+
+        .quiz-content {
+             flex-grow: 1; /* Allow content to take available space */
+             margin-bottom: 20px; /* Space above navigation buttons */
+        }
+
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #8a8aff;
+            margin-bottom: 25px;
+            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
+        }
+
+        #question-counter {
+            font-size: 0.9em;
+            color: #aaaafc;
+            margin-bottom: 15px;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            color: #f0f0ff;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-button {
+            background-color: #2a2a4e;
+            color: #d0d0fc;
+            border: 1px solid #4a4a7e;
+            padding: 12px 15px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #3a3a6e;
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
+        }
+
+        .option-button:active:not(:disabled) {
+            transform: translateY(0px);
+        }
+
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-button.correct {
+            background-color: #1f7a3f;
+            border-color: #28a745;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6);
+            opacity: 1;
+        }
+
+        .option-button.incorrect {
+            background-color: #9a2532;
+            border-color: #dc3545;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6);
+            opacity: 1;
+        }
+
+        .option-button.reveal-correct {
+            background-color: #1f7a3f !important;
+            border-color: #28a745 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+
+
+        .explanation-container {
+            background-color: #202035;
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #c0c0fa;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .explanation-container strong {
+            color: #8a8aff;
+        }
+
+        /* --- Navigation Button Styling --- */
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between; /* Space out Prev/Next */
+            align-items: center;
+            margin-top: 30px; /* Keep margin from content above */
+            width: 100%; /* Ensure full width */
+        }
+
+        .nav-button { /* Common style for Prev/Next */
+            background: linear-gradient(45deg, #4a4af5, #8a8aff);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; /* Pill shape */
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+            min-width: 120px; /* Give buttons minimum width */
+            text-align: center;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+
+        .nav-button:disabled {
+            background: #5a5a7e; /* Different background when disabled */
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+            transform: none;
+        }
+        /* --- End Navigation Button Styling --- */
+
+
+        #completion-message {
+            margin-top: 40px;
+             flex-grow: 1; /* Allow it to take space when visible */
+             display: flex;
+             flex-direction: column;
+             justify-content: center;
+             align-items: center;
+        }
+        #completion-message h2 {
+             font-family: 'Orbitron', sans-serif;
+             color: #28a745;
+             text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .quiz-container {
+                padding: 20px;
+                width: 95%;
+                min-height: 400px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            #question-text {
+                font-size: 1.1em;
+            }
+            .option-button {
+                font-size: 0.9em;
+                padding: 10px 12px;
+            }
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 1em;
+                min-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <!-- Content Area -->
+        <div class="quiz-content">
+            <h1>Suprahyoid Neck Imaging Quiz</h1> {/* Changed Title */}
+            <div id="question-counter"></div>
+            <div id="question-text">Loading question...</div>
+            <div id="answer-options" class="options-container">
+                <!-- Answer buttons will be loaded here -->
+            </div>
+            <div id="explanation" class="explanation-container" style="display: none;">
+                <!-- Explanation will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Completion Message (Initially Hidden) -->
+         <div id="completion-message" style="display: none;">
+            <h2>Quiz Complete!</h2>
+            <p>You have finished all the questions.</p>
+        </div>
+
+        <!-- Navigation Buttons Area -->
+        <div class="navigation-buttons">
+            <button id="prev-button" class="nav-button">Previous</button>
+            <button id="next-button" class="nav-button">Next</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            // --- Suprahyoid Neck Questions ---
+            {
+                question: "What defines the inferior border of the suprahyoid neck?",
+                options: ["Mandible", "Hyoid bone", "Skull base", "Clavicle"],
+                correctAnswer: "Hyoid bone",
+                explanation: "The text explicitly states: 'The suprahyoid neck extends from the hyoid bone inferiorly to the skull base.'"
+            },
+            {
+                question: "Which of the following is NOT listed as a primary suprahyoid neck space discussed in the article?",
+                options: ["Parapharyngeal Space (PPS)", "Masticator Space (MS)", "Carotid Space (CS)", "Submandibular Space"],
+                correctAnswer: "Submandibular Space",
+                explanation: "The article focuses on PMS, PPS, MS, PS, and CS. While the PPS is continuous with the submandibular space, it's not one of the primary spaces emphasized for detailed pathology discussion in this text."
+            },
+            {
+                question: "What is the crucial first step in evaluating a suprahyoid neck mass on imaging, according to the text?",
+                options: ["Determining if it's cystic or solid", "Assessing enhancement characteristics", "Establishing the location and space of origin", "Checking for lymph node involvement"],
+                correctAnswer: "Establishing the location and space of origin",
+                explanation: "The text states: 'Establishing the location of a mass and identifying the space of origin are invaluable initial steps in developing a differential diagnosis.' and 'The ability to place a pathologic process within a specific suprahyoid neck space is the first step...'"
+            },
+            {
+                question: "Which fascial layer primarily delineates the compartments of the suprahyoid neck?",
+                options: ["Superficial cervical fascia", "Deep cervical fascia", "Buccopharyngeal fascia", "Prevertebral fascia"],
+                correctAnswer: "Deep cervical fascia",
+                explanation: "The text mentions: 'Utilization of the 3 layers of the deep cervical fascia to delineate multiple compartments of the suprahyoid and infrahyoid neck is the current paradigm...'"
+            },
+            {
+                question: "What is the contemporary understanding of the 'retrostyloid space' in the context of suprahyoid neck imaging?",
+                options: ["It is considered synonymous with the Parapharyngeal Space (PPS).", "It is primarily composed of fat and minor salivary glands.", "It is considered part of the Carotid Space (CS).", "It lies anterior to the styloid process."],
+                correctAnswer: "It is considered part of the Carotid Space (CS).",
+                explanation: "The text clarifies: 'For the purpose of an imaging differential diagnosis, it is convenient to consider the retrostyloid space as part of the carotid sheath or more contemporarily as the CS, because they are as one.'"
+            },
+            {
+                question: "What is the predominant component of the Parapharyngeal Space (PPS)?",
+                options: ["Muscle", "Lymph nodes", "Fat", "Major nerves"],
+                correctAnswer: "Fat",
+                explanation: "The 'Contents' section for the PPS lists 'Fat (the predominant component)'."
+            },
+            {
+                question: "Why is the Parapharyngeal Space (PPS) particularly important in localizing suprahyoid neck masses?",
+                options: ["It is the most common site for primary neck tumors.", "Its displacement pattern helps determine the origin of adjacent masses.", "It contains critical cranial nerves susceptible to compression.", "It is the main route for infectious spread."],
+                correctAnswer: "Its displacement pattern helps determine the origin of adjacent masses.",
+                explanation: "The text highlights: 'Displacement and distortion of the PPS secondary to mass effect from lesions arising along the PPS border is an informative finding.' and 'Surrounding mass lesions shift the PPS in specific directions, serving as a signature for the source of origin.'"
+            },
+            {
+                question: "A mass pushing the Parapharyngeal Space (PPS) fat anteriorly most likely originates from which space?",
+                options: ["Masticator Space (MS)", "Pharyngeal Mucosal Space (PMS)", "Carotid Space (CS)", "Parotid Space (PS)"],
+                correctAnswer: "Carotid Space (CS)",
+                explanation: "Based on the displacement patterns described: '...whereas a mass in the CS pushes it anteriorly.'"
+            },
+            {
+                question: "A mass displacing the Parapharyngeal Space (PPS) fat posteriorly most likely originates from which space?",
+                options: ["Masticator Space (MS)", "Pharyngeal Mucosal Space (PMS)", "Carotid Space (CS)", "Prevertebral Space"],
+                correctAnswer: "Masticator Space (MS)",
+                explanation: "Based on the displacement patterns described: '...a mass in the MS pushes the PPS posteriorly...'"
+            },
+            {
+                question: "A mass displacing the Parapharyngeal Space (PPS) fat laterally and anterolaterally most likely originates from which space?",
+                options: ["Masticator Space (MS)", "Pharyngeal Mucosal Space (PMS)", "Carotid Space (CS)", "Parotid Space (PS)"],
+                correctAnswer: "Pharyngeal Mucosal Space (PMS)",
+                explanation: "Based on the displacement patterns described: 'PMS deviates the PPS laterally and anterolaterally.'"
+            },
+             {
+                question: "What is the most common primary tumor arising *within* the Parapharyngeal Space (PPS)?",
+                options: ["Schwannoma", "Paraganglioma", "Benign Mixed Tumor (BMT) from ectopic rests", "Lymphoma"],
+                correctAnswer: "Benign Mixed Tumor (BMT) from ectopic rests",
+                explanation: "The text states: 'Primary PPS masses are rare, but if no clear contributor from the surrounding spaces is identified, the source is likely minor salivary gland ectopic rests. The most common tumor arising from these rests is a BMT.'"
+            },
+             {
+                question: "Which fascial layer encloses the Masticator Space (MS)?",
+                options: ["Middle layer of the deep cervical fascia", "Superficial layer of the deep cervical fascia (SLDCF)", "Prevertebral fascia", "Visceral fascia"],
+                correctAnswer: "Superficial layer of the deep cervical fascia (SLDCF)",
+                explanation: "The text specifies: 'The MS is delineated by the superficial layer of the deep cervical fascia (SLDCF). The SLDCF is made up of inner and outer layers, which encase the... muscles.'"
+            },
+            {
+                question: "Which cranial nerve branch is a key component of the Masticator Space (MS)?",
+                options: ["CN V1 (Ophthalmic)", "CN V2 (Maxillary)", "CN V3 (Mandibular)", "CN VII (Facial)"],
+                correctAnswer: "CN V3 (Mandibular)",
+                explanation: "The 'Contents' section for the MS lists 'Mandibular branch of the trigeminal nerve (cranial nerve [CN] V3)'."
+            },
+            {
+                question: "Through which skull base foramen does CN V3 enter the Masticator Space (MS)?",
+                options: ["Foramen Rotundum", "Foramen Spinosum", "Foramen Ovale", "Jugular Foramen"],
+                correctAnswer: "Foramen Ovale",
+                explanation: "The text states: 'The mandibular branch of the trigeminal nerve (cranial nerve [CN] V3) enters the MS through foramen ovale...'"
+            },
+            {
+                question: "Why is it crucial to image the entire course of CN V3 when evaluating Masticator Space pathology?",
+                options: ["To assess for vascular compression syndromes.", "To detect potential intracranial extension via perineural spread.", "To identify associated parotid gland involvement.", "To evaluate for spread into the orbit."],
+                correctAnswer: "To detect potential intracranial extension via perineural spread.",
+                explanation: "The text emphasizes: 'Benign masses and malignant lesions involving the MS have the potential to spread... including intracranial extension through foramen ovale, via perineural tumor spread along the course of this nerve... all cross-sectional imaging should include the entire course of V3...'"
+            },
+            {
+                question: "What is the most common etiology for inflammatory/infectious conditions within the Masticator Space (MS)?",
+                options: ["Sinusitis", "Parotitis", "Dental origin (odontogenic)", "Tonsillitis"],
+                correctAnswer: "Dental origin (odontogenic)",
+                explanation: "Under MS Pathology, the text states: 'Inflammatory/infectious conditions (most commonly of dental origin)' and 'odontogenic infections stemming from dental caries and tooth extractions are by far the most common entity...'"
+            },
+            {
+                question: "What imaging modality is often preferred for initial evaluation of suspected Masticator Space infection due to its ability to detect dental caries?",
+                options: ["MRI without contrast", "MRI with contrast", "CT", "Ultrasound"],
+                correctAnswer: "CT",
+                explanation: "The text notes: 'Because odontogenic infections... are by far the most common entity, CT is often the preferred imaging modality. Dental caries or recent dental manipulation may be evident.'"
+            },
+            {
+                question: "What is the significance of the pterygoid venous plexus in the Masticator Space on imaging?",
+                options: ["It is the primary site for MS sarcomas.", "It frequently thromboses during infection.", "Asymmetry can mimic a mass (pseudolesion).", "It is the main route for perineural spread."],
+                correctAnswer: "Asymmetry can mimic a mass (pseudolesion).",
+                explanation: "The text warns: 'The pterygoid venous plexus... commonly this plexus is asymmetric and can be mistaken for a mass. It is often described as a pseudolesion of the MS.'"
+            },
+            {
+                question: "Which type of vascular lesion in the MS increases in size with age and results from abnormal vessel morphogenesis?",
+                options: ["Hemangioma", "Vascular malformation", "Pseudoaneurysm", "Varix"],
+                correctAnswer: "Vascular malformation",
+                explanation: "The text differentiates: 'Hemangiomas are true neoplasms... Vascular malformations... increase in size with age. They are the result of abnormal vessel morphogenesis...'"
+            },
+            {
+                question: "Which specific muscle within the Masticator Space is most commonly involved by venous or lymphatic malformations?",
+                options: ["Medial pterygoid", "Lateral pterygoid", "Temporalis", "Masseter"],
+                correctAnswer: "Masseter",
+                explanation: "The text states: 'Venous and lymphatic malformations can be confined to a muscle, most often the masseter...'"
+            },
+            {
+                question: "What imaging finding is characteristic of high-flow vascular malformations in the Masticator Space?",
+                options: ["Uniform low T2 signal", "Calcifications", "Large flow voids on T1WI and T2WI", "Restricted diffusion"],
+                correctAnswer: "Large flow voids on T1WI and T2WI",
+                explanation: "For high-flow vascular malformations, the text describes: 'Large flow voids can be seen on T1-weighted image (T1WI) and T2-weighted image (T2WI)...'"
+            },
+            {
+                question: "What is the most prevalent Masticator Space (MS) primary neoplasm in a child?",
+                options: ["Leiomyosarcoma", "Malignant Fibrous Histiocytoma", "Rhabdomyosarcoma", "Osteogenic Sarcoma"],
+                correctAnswer: "Rhabdomyosarcoma",
+                explanation: "'...whereas rhabdomyosarcoma is the most prevalent MS neoplasm in a child.'"
+            },
+             {
+                question: "How do neurogenic tumors (like schwannomas) arising from CN V3 typically displace the pterygoid muscles?",
+                options: ["They displace both muscles anteriorly.", "They displace both muscles posteriorly.", "They splay the medial and lateral pterygoids apart.", "They typically invade rather than displace the muscles."],
+                correctAnswer: "They splay the medial and lateral pterygoids apart.",
+                explanation: "The text notes: 'These lesions classically splay the medial and lateral pterygoid muscles away from each other.'"
+            },
+             {
+                question: "What is the term for a CN V3 schwannoma that extends through the porous trigeminus, appearing in a characteristic shape?",
+                options: ["Figure 8", "Dumbbell", "Salt-and-pepper", "Target sign"],
+                correctAnswer: "Dumbbell",
+                explanation: "'Proximally, a trigeminal schwannoma may demonstrate a 'dumbbell' if it spans the porous trigeminus.'"
+            },
+            {
+                question: "What is the most common type of odontogenic cyst, often forming around the crown of an unerupted molar?",
+                options: ["Keratocystic Odontogenic Tumor (KOT)", "Dentigerous cyst", "Radicular cyst", "Lateral periodontal cyst"],
+                correctAnswer: "Dentigerous cyst",
+                explanation: "The text describes bony lesions including 'odontogenic cysts, such as dentigerous cysts or keratocystic odontogenic tumors (KOTs). Dentigerous cysts often form around the crown of an unerupted molar.'"
+            },
+             {
+                question: "Which odontogenic tumor often extends toward the mandibular ramus and can be locally aggressive?",
+                options: ["Ameloblastoma", "Dentigerous cyst", "Odontoma", "Cementoblastoma"],
+                correctAnswer: "Ameloblastoma",
+                explanation: "The text identifies: 'Ameloblastoma is a locally aggressive odontogenic tumor that can be associated with a dentigerous cyst or an impacted tooth...'"
+            },
+             {
+                question: "Which structure separates the deep and superficial lobes of the parotid gland?",
+                options: ["Retromandibular vein", "External carotid artery", "Plane of the facial nerve (CN VII)", "Parotid duct"],
+                correctAnswer: "Plane of the facial nerve (CN VII)",
+                explanation: "The text states: 'The parotid gland is traditionally divided into the deep and superficial lobes, separated by the plane of the facial nerve.'"
+            },
+            {
+                question: "What structure is often used as an imaging landmark to approximate the plane of the facial nerve within the parotid gland?",
+                options: ["Parotid duct", "Masseter muscle", "Retromandibular vein", "Styloid process"],
+                correctAnswer: "Retromandibular vein",
+                explanation: "'Identifying the facial nerve, however, is difficult on imaging, and the adjacent retromandibular vein is often used as a landmark on cross-sectional imaging.'"
+            },
+            {
+                question: "Why are lymph nodes considered a normal finding within the Parotid Space (PS)?",
+                options: ["Due to frequent inflammation", "Due to late embryologic encapsulation of the gland", "They drain the entire face", "They are remnants of the branchial arches"],
+                correctAnswer: "Due to late embryologic encapsulation of the gland",
+                explanation: "The text explains: 'The PS also includes numerous intraparotid lymph nodes, because the parotid is encapsulated later in development.'"
+            },
+            {
+                question: "What is the primary goal of imaging a discrete parotid lesion, according to the text?",
+                options: ["To provide a definitive histologic diagnosis", "To determine if it's benign or malignant based solely on imaging", "To aid in planning the next step (e.g., FNA, biopsy, resection)", "To accurately measure its volume for radiation planning"],
+                correctAnswer: "To aid in planning the next step (e.g., FNA, biopsy, resection)",
+                explanation: "'Often the purpose of parotid imaging is not necessarily to provide an exact diagnosis. ...it should aid in planning the next step. If a lesion is discrete, FNA or core biopsy may be appropriate...'"
+            },
+            {
+                question: "What clinical finding in a patient with a parotid mass strongly suggests malignancy?",
+                options: ["Pain", "Rapid growth", "Ipsilateral facial nerve (CN VII) palsy", "Hard consistency on palpation"],
+                correctAnswer: "Ipsilateral facial nerve (CN VII) palsy",
+                explanation: "'Benign neoplasms should not result in a facial nerve palsy. On the other hand, a patient with a significant ipsilateral CN VII paresis may harbor a malignant lesion.'"
+            },
+            {
+                question: "Which imaging modality is indicated if facial palsy is present with a parotid mass, specifically to evaluate for perineural spread?",
+                options: ["CT without contrast", "CT with contrast", "MR imaging", "Ultrasound"],
+                correctAnswer: "MR imaging",
+                explanation: "'If facial palsy is the clinical indication, MR imaging is indicated to evaluate potential perineural spread of tumor.'"
+            },
+            {
+                question: "What is the most common benign tumor of the parotid gland?",
+                options: ["Warthin tumor", "Oncocytoma", "Pleomorphic adenoma (BMT)", "Basal cell adenoma"],
+                correctAnswer: "Pleomorphic adenoma (BMT)",
+                explanation: "'Approximately 80% of parotid tumors are benign. The most common benign mass is a pleomorphic adenoma also known as a BMT.'"
+            },
+            {
+                question: "What is the classic MR imaging appearance of a pleomorphic adenoma (BMT)?",
+                options: ["Ill-defined, T2 hypointense, avidly enhancing", "Well-defined, T2 hyperintense, homogeneous enhancement", "Cystic with a mural nodule", "Multiple small, non-enhancing nodules"],
+                correctAnswer: "Well-defined, T2 hyperintense, homogeneous enhancement",
+                explanation: "'The classic MR imaging appearance is a well-defined mass with uniform hyperintense T2 signal and homogeneous enhancement.'"
+            },
+            {
+                question: "Which parotid tumor is typically well-defined, often cystic, and should be considered in the differential for multiple parotid lesions?",
+                options: ["Pleomorphic adenoma", "Adenoid cystic carcinoma", "Warthin tumor", "Mucoepidermoid carcinoma"],
+                correctAnswer: "Warthin tumor",
+                explanation: "'When multiple lesions are present, a differential diagnosis, including... Warthin tumor, should be considered. Warthin tumors are usually well-defined cystic masses, with varying enhancement...'"
+            },
+            {
+                question: "Which benign parotid tumor may appear isointense to parotid tissue on postcontrast T1WI with fat saturation, sometimes called a 'vanishing lesion'?",
+                options: ["Pleomorphic adenoma", "Warthin tumor", "Oncocytoma", "Lipoma"],
+                correctAnswer: "Oncocytoma",
+                explanation: "'...oncocytomas demonstrate well-demarcated contours on T1WI and appear isointense to parotid tissue of postcontrast T1WI with fat saturation, categorizing it as a vanishing lesion.'"
+            },
+            {
+                question: "What is the most common primary malignancy of the parotid gland?",
+                options: ["Adenoid cystic carcinoma (ACC)", "Mucoepidermoid carcinoma (MEC)", "Squamous cell carcinoma", "Lymphoma"],
+                correctAnswer: "Mucoepidermoid carcinoma (MEC)",
+                explanation: "'Malignant parotid lesions include mucoepidermoid carcinoma (MEC) and adenoid cystic carcinoma (ACC). MEC is the most common primary malignancy of the parotid...'"
+            },
+             {
+                question: "Which parotid malignancy characteristically contains areas of low T2 signal and may show enhancement similar to normal parotid tissue?",
+                options: ["Adenoid cystic carcinoma (ACC)", "Mucoepidermoid carcinoma (MEC)", "Acinic cell carcinoma", "Lymphoma"],
+                correctAnswer: "Mucoepidermoid carcinoma (MEC)",
+                explanation: "'The lesion [MEC] characteristically contains areas of low T2 signal and can often be inconspicuous on postcontrast imaging because it demonstrates similar enhancement to normal parotid tissue.'"
+            },
+            {
+                question: "Which parotid malignancy has the greatest propensity for perineural spread among head and neck cancers?",
+                options: ["Mucoepidermoid carcinoma (MEC)", "Adenoid cystic carcinoma (ACC)", "Squamous cell carcinoma", "Salivary duct carcinoma"],
+                correctAnswer: "Adenoid cystic carcinoma (ACC)",
+                explanation: "'ACC has the greatest propensity for perineural spread among the head and neck cancers...'"
+            },
+             {
+                question: "Which cranial nerves are contained within the Carotid Space (CS)?",
+                options: ["V, VII, VIII", "VII, IX, X", "IX, X, XI, and sympathetic chain", "X, XI, XII"],
+                correctAnswer: "IX, X, XI, and sympathetic chain",
+                explanation: "The 'Contents' section for the CS lists 'CNs IX, X, and XI and sympathetic chain'."
+            },
+            {
+                question: "What symptom might prompt a work-up specifically evaluating the Carotid Space (CS), particularly concerning CN X?",
+                options: ["Trismus", "Facial pain", "Hoarseness", "Hearing loss"],
+                correctAnswer: "Hoarseness",
+                explanation: "'CS lesions may come to a clinicians' attention during a work-up for hoarseness. Masses within the CS may arise from or compress CNs IX, X, and XII within the space, most commonly detected if CN X is involved.'"
+            },
+            {
+                question: "What imaging finding is characteristic of a glomus jugulare paraganglioma affecting the adjacent skull base?",
+                options: ["Smooth, expansile bone remodeling", "Permeative destructive osseous changes", "Hyperostosis", "No bone involvement"],
+                correctAnswer: "Permeative destructive osseous changes",
+                explanation: "'A glomus jugulare paraganglioma typically results in permeative destructive osseous changes...'"
+            },
+            {
+                question: "How does a schwannoma typically affect the margins of the Jugular Foramen (JF)?",
+                options: ["Permeative destruction", "Sclerotic reaction", "Smooth, expansile remodeling", "Causes bony sequestration"],
+                correctAnswer: "Smooth, expansile remodeling",
+                explanation: "'...whereas a schwannoma incites smooth, expansile remodeled margins of the JF.'"
+            },
+            {
+                question: "What is the typical location of a glomus carotid paraganglioma (carotid body tumor)?",
+                options: ["At the jugular foramen", "Within the parotid gland", "At the carotid bifurcation, splaying ICA and ECA", "Adjacent to the thyroid gland"],
+                correctAnswer: "At the carotid bifurcation, splaying ICA and ECA",
+                explanation: "'Glomus carotid paraganglioma is a slow-growing, painless vascular mass located at the carotid bifurcation, splaying the ICA and ECA.'"
+            },
+            {
+                question: "What is the characteristic 'salt-and-pepper' appearance on T2WI of larger paragangliomas attributed to?",
+                options: ["Cystic degeneration and calcification", "Necrosis and hemorrhage", "Foci of subacute hemorrhage ('salt') and flow voids ('pepper')", "Hemosiderin deposition and fat"],
+                correctAnswer: "Foci of subacute hemorrhage ('salt') and flow voids ('pepper')",
+                explanation: "'Larger lesions [paragangliomas] have a salt-and-pepper appearance on T2WIs, namely foci of subacute hemorrhage and punctuate vascular flow voids, respectively.'"
+            },
+            {
+                question: "How does a vagal schwannoma typically displace the ICA and IJV compared to a sympathetic chain schwannoma?",
+                options: ["Vagal displaces both anteriorly; Sympathetic displaces both posteriorly", "Vagal divides ICA/IJV; Sympathetic displaces both anteriorly", "Vagal displaces both posteriorly; Sympathetic divides ICA/IJV", "Both displace the vessels medially"],
+                correctAnswer: "Vagal divides ICA/IJV; Sympathetic displaces both anteriorly",
+                explanation: "'...a vagal schwannoma more likely divides the ICA and IJV whereas a sympathetic schwannoma displaces both structures anteriorly.'"
+            },
+             {
+                question: "Which feature helps distinguish a glomus vagale tumor from a vagus schwannoma?",
+                options: ["Glomus vagale is typically >2 cm from the skull base", "Glomus vagale contains flow voids and is within 2 cm of skull base", "Schwannoma enhances more avidly", "Schwannoma causes bone destruction"],
+                correctAnswer: "Glomus vagale contains flow voids and is within 2 cm of skull base",
+                explanation: "'...the glomus tumor is within 2 cm of the skull base and contains flow voids; these features are not characteristic of vagal schwannomas.'"
+            },
+            {
+                question: "What is the most common malignancy found in the Pharyngeal Mucosal Space (PMS)?",
+                options: ["Lymphoma", "Minor salivary gland carcinoma", "Squamous cell carcinoma (SCC)", "Rhabdomyosarcoma"],
+                correctAnswer: "Squamous cell carcinoma (SCC)",
+                explanation: "'Squamous cell carcinoma (SCC) is by far the most common malignancy of the pharyngeal mucosal space (PMS).'"
+            },
+            {
+                question: "What is the primary role of imaging in evaluating Pharyngeal Mucosal Space (PMS) SCC?",
+                options: ["To detect the primary surface lesion", "To characterize the deep extent, invasion, and nodal spread", "To differentiate SCC from lymphoma", "To guide biopsy needle placement"],
+                correctAnswer: "To characterize the deep extent, invasion, and nodal spread",
+                explanation: "'...the role of imaging in guiding treatment decisions in SCC is to characterize the extent of the mass deep to the mucosal surface, including the presence of invasion into the surrounding spaces and whether nodal spread is present.'"
+            },
+            {
+                question: "Which pharyngeal lymphatic structure is NOT part of the Pharyngeal Mucosal Space (PMS) contents?",
+                options: ["Adenoids", "Palatine tonsils", "Lingual tonsils", "Submandibular lymph nodes"],
+                correctAnswer: "Submandibular lymph nodes",
+                explanation: "The PMS contents include the 'Pharyngeal lymphatic ring (includes adenoids, palatine, and lingual tonsils)'. Submandibular nodes are typically outside the PMS proper."
+            },
+            {
+                question: "What characteristic imaging appearance on CT might suggest tonsillar inflammation rather than a discrete abscess?",
+                options: ["Rim enhancement", "Striated appearance of mixed attenuation", "Central low density with gas", "Marked T2 hyperintensity"],
+                correctAnswer: "Striated appearance of mixed attenuation",
+                explanation: "'Although tonsillar inflammation has a characteristic striated appearance of mixed attenuation on CT...'"
+            },
+            {
+                question: "What finding surrounding a fluid density collection in the tonsillar region confirms an abscess?",
+                options: ["Striated enhancement", "Rim enhancement", "Adjacent fat stranding", "Homogeneous low density"],
+                correctAnswer: "Rim enhancement",
+                explanation: "'...if rim enhancement is identified surrounding a fluid density collection, an abscess should be considered.'"
+            },
+            {
+                question: "What defines a peritonsillar abscess?",
+                options: ["An abscess confined within the tonsillar capsule", "Abscess extension beyond the tonsillar tissue", "Bilateral tonsillar abscesses", "An abscess associated with dental infection"],
+                correctAnswer: "Abscess extension beyond the tonsillar tissue",
+                explanation: "'Extension of abscess beyond the tonsillar tissue gives rise to a peritonsillar abscess.'"
+            },
+            {
+                question: "Which space contains the parotid gland and facial nerve?",
+                options: ["Masticator Space", "Parapharyngeal Space", "Carotid Space", "Parotid Space"],
+                correctAnswer: "Parotid Space",
+                explanation: "The Parotid Space (PS) is defined by containing the parotid gland and the facial nerve traversing it."
+            },
+            {
+                question: "Which space contains the muscles of mastication and the mandibular nerve (V3)?",
+                options: ["Masticator Space", "Parapharyngeal Space", "Carotid Space", "Parotid Space"],
+                correctAnswer: "Masticator Space",
+                explanation: "The Masticator Space (MS) contains the masseter, pterygoids, temporalis muscles, and CN V3."
+            },
+            {
+                question: "Which space contains the carotid artery, internal jugular vein, and cranial nerves IX, X, XI?",
+                options: ["Masticator Space", "Parapharyngeal Space", "Carotid Space", "Pharyngeal Mucosal Space"],
+                correctAnswer: "Carotid Space",
+                explanation: "The Carotid Space (CS) contains the major vessels (ICA, IJV) and CNs IX, X, XI, and the sympathetic chain."
+            },
+            {
+                question: "Which space primarily consists of fat and lies medial to the masticator and parotid spaces and lateral to the pharyngeal mucosal space?",
+                options: ["Masticator Space", "Parapharyngeal Space", "Carotid Space", "Retropharyngeal Space"],
+                correctAnswer: "Parapharyngeal Space",
+                explanation: "The Parapharyngeal Space (PPS) is the fat-filled space centrally located among the other suprahyoid spaces, acting as a key indicator of mass effect direction."
+            },
+             {
+                question: "Which space contains the pharyngeal mucosa, constrictor muscles, and lymphatic tissue like tonsils and adenoids?",
+                options: ["Parapharyngeal Space", "Carotid Space", "Pharyngeal Mucosal Space", "Masticator Space"],
+                correctAnswer: "Pharyngeal Mucosal Space",
+                explanation: "The Pharyngeal Mucosal Space (PMS) includes the mucosal lining, associated muscles, and the pharyngeal lymphatic ring."
+            },
+             {
+                question: "In nasopharyngeal carcinoma (NPC), what is a common route for early intracranial spread?",
+                options: ["Through the foramen ovale along V3", "Via the jugular foramen", "Through the foramen lacerum along the ICA", "Direct erosion through the clivus"],
+                correctAnswer: "Through the foramen lacerum along the ICA",
+                explanation: "The text mentions NPC's propensity for early intracranial spread 'largely because of its proximity to the foramen lacerum. Tumors can invade through the foramen's cartilaginous floor and travel along the ICA to invade the cavernous sinus.'"
+            }
+            // --- END OF QUESTIONS ---
+        ];
+
+
+        // --- DOM Element References ---
+        const questionCounterElement = document.getElementById('question-counter');
+        const questionTextElement = document.getElementById('question-text');
+        const answerOptionsElement = document.getElementById('answer-options');
+        const explanationElement = document.getElementById('explanation');
+        const prevButton = document.getElementById('prev-button'); // Added
+        const nextButton = document.getElementById('next-button'); // Now used for navigation
+        const completionMessageElement = document.getElementById('completion-message');
+        const quizContentElement = document.querySelector('.quiz-content'); // Added
+        const navigationButtonsElement = document.querySelector('.navigation-buttons'); // Added
+
+        // --- State Variables ---
+        let currentQuestionIndex = 0;
+        let score = 0; // Optional score tracking
+
+        // --- Functions ---
+
+        function loadQuestion() {
+            // Check if quiz is finished *before* trying to load
+             if (currentQuestionIndex >= quizData.length) {
+                showCompletion();
+                return;
+            }
+            // Ensure quiz content is visible and completion is hidden
+            quizContentElement.style.display = 'block';
+            navigationButtonsElement.style.display = 'flex'; // Make sure nav buttons are visible
+            completionMessageElement.style.display = 'none';
+
+
+            // Reset styles and visibility for the new question
+            explanationElement.style.display = 'none';
+            explanationElement.innerHTML = '';
+            answerOptionsElement.innerHTML = ''; // Clear previous options
+
+            // Get current question data
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // Update question text and counter
+            questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            questionTextElement.textContent = currentQuestion.question;
+
+            // Create and append answer buttons
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+                button.addEventListener('click', selectAnswer);
+                answerOptionsElement.appendChild(button);
+            });
+
+            // Update navigation button states
+            updateNavButtonStates();
+        }
+
+        function updateNavButtonStates() {
+            prevButton.disabled = (currentQuestionIndex === 0);
+            // Disable next button only if on the last question *index*
+            nextButton.disabled = (currentQuestionIndex === quizData.length - 1);
+        }
+
+        function selectAnswer(event) {
+            const selectedButton = event.target;
+            const selectedAnswer = selectedButton.textContent;
+            const currentQuestion = quizData[currentQuestionIndex];
+            const correctAnswer = currentQuestion.correctAnswer;
+
+            // Disable all *option* buttons only
+            const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
+            let alreadyAnswered = false;
+            optionButtons.forEach(btn => {
+                if (btn.disabled) { // Check if any button is already disabled (means answered)
+                    alreadyAnswered = true;
+                }
+            });
+
+             // Only process the answer if it hasn't been answered yet for this load
+             if (alreadyAnswered) return;
+
+
+            optionButtons.forEach(button => {
+                button.disabled = true; // Disable options after selection
+            });
+
+            // Check if the answer is correct
+            if (selectedAnswer === correctAnswer) {
+                selectedButton.classList.add('correct');
+                score++; // Optional score tracking
+            } else {
+                selectedButton.classList.add('incorrect');
+                // Highlight the correct answer as well
+                optionButtons.forEach(button => {
+                    if (button.textContent === correctAnswer) {
+                        button.classList.add('reveal-correct');
+                    }
+                });
+            }
+
+            // Show explanation
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation}`;
+            explanationElement.style.display = 'block';
+
+            // Keep nav buttons enabled - user can navigate away after seeing explanation
+        }
+
+        function goToNextQuestion() {
+            if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                loadQuestion();
+            }
+             // Handles completion check when loading the next question
+             else if (currentQuestionIndex === quizData.length - 1) {
+                 // If on the last question, clicking next shows completion
+                 showCompletion();
+             }
+        }
+
+        function goToPreviousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
+        }
+
+
+        function showCompletion() {
+            quizContentElement.style.display = 'none'; // Hide questions/options/explanation
+            navigationButtonsElement.style.display = 'none'; // Hide nav buttons
+            completionMessageElement.style.display = 'flex'; // Show completion message (use flex for centering)
+            // Optional: Display score
+             completionMessageElement.innerHTML = `<h2>Quiz Complete!</h2><p>You have finished all the questions. Your score: ${score} out of ${quizData.length}</p>`; // Added score display
+        }
+
+
+        // --- Event Listeners ---
+        prevButton.addEventListener('click', goToPreviousQuestion);
+        nextButton.addEventListener('click', goToNextQuestion);
+
+
+        // --- Initial Load ---
+        loadQuestion(); // Load the first question
+    </script>
+
+</body>
+</html>
