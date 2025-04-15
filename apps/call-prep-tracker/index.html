@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radiology Prep Tracker</title>
+    <style>
+        :root {
+            --bg-color: #101015;
+            --card-bg-color: #1a1a2e;
+            --text-color: #e0e0e0;
+            --primary-neon: #00ffff; /* Cyan (Chest CT / Daily Cases) */
+            --secondary-neon: #33aaff; /* Electric Blue (Body CT / Headings) */
+            --tertiary-neon: #39ff14; /* Neon Green (Ultrasound / Success) */
+            --accent-neon: #ffcc00; /* Neon Yellow/Gold (Lecture / Video) */
+            --decrement-neon: #ff4d4d; /* Red for Decrement buttons */
+            --progress-bg: #33334c;
+            --progress-fill-lecture: var(--accent-neon);
+            --progress-fill-body: var(--secondary-neon);
+            --progress-fill-chest: var(--primary-neon);
+            --progress-fill-us: var(--tertiary-neon);
+            --daily-progress-fill: var(--primary-neon);
+            --daily-lecture-fill: var(--accent-neon); /* Color for daily lecture bar */
+            --button-bg: transparent;
+            --input-glow-focus: 0 0 4px var(--primary-neon), 0 0 8px var(--primary-neon);
+            --card-glow: 0 0 12px rgba(0, 255, 255, 0.15);
+            /* Reduced glow intensity */
+            --text-glow-primary: 0 0 3px var(--primary-neon), 0 0 6px var(--primary-neon);
+            --text-glow-secondary: 0 0 3px var(--secondary-neon), 0 0 6px var(--secondary-neon);
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 20px; line-height: 1.6;
+        }
+        .container {
+            max-width: 700px; margin: 20px auto;
+            background: linear-gradient(145deg, var(--card-bg-color), #1f1f35);
+            padding: 30px; border-radius: 15px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: var(--card-glow), 0 5px 25px rgba(0,0,0,0.5);
+        }
+        h1 {
+            text-align: center; color: var(--primary-neon);
+            text-shadow: var(--text-glow-primary);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 15px; margin-bottom: 25px;
+        }
+         h2 {
+             text-align: center; color: var(--secondary-neon);
+             text-shadow: var(--text-glow-secondary);
+             border-bottom: 1px solid rgba(51, 170, 255, 0.3);
+             padding-bottom: 15px; margin-bottom: 25px; font-size: 1.5em;
+         }
+        .section {
+            margin-bottom: 35px; padding: 20px;
+            background-color: rgba(10, 10, 20, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .date-selector label {
+             display: block; margin-bottom: 10px; font-weight: bold;
+             color: var(--secondary-neon); text-align: center;
+             text-shadow: 0 0 2px var(--secondary-neon);
+        }
+        .date-selector input[type="date"] {
+            display: block; width: calc(100% - 24px); margin: 0 auto; padding: 10px;
+            background-color: var(--bg-color); border: 1px solid var(--secondary-neon);
+            color: var(--text-color); border-radius: 8px; font-size: 1.1rem;
+            text-align: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+             cursor: pointer; color-scheme: dark;
+        }
+        .date-selector input[type="date"]:focus {
+            outline: none; box-shadow: var(--input-glow-focus), inset 0 0 8px rgba(0, 255, 255, 0.3);
+        }
+        .daily-goals {
+            background-color: rgba(0,0,0,0.3); padding: 15px 20px; border-radius: 8px;
+            margin-bottom: 25px; border: 1px dashed var(--secondary-neon);
+            text-align: center; box-shadow: inset 0 0 10px rgba(51, 170, 255, 0.2);
+        }
+        .daily-goals p { margin: 8px 0; font-size: 1em; }
+        .daily-goals strong {
+            color: var(--primary-neon); text-shadow: 0 0 3px var(--primary-neon);
+            display: block; margin-bottom: 10px; font-size: 1.1em;
+        }
+        .daily-goals span { color: var(--tertiary-neon); font-weight: bold; }
+
+        /* --- Video Tracker Section --- */
+        .video-tracker {
+            padding: 20px;
+            background-color: rgba(255, 204, 0, 0.05); /* Subtle gold background */
+            border: 1px solid rgba(255, 204, 0, 0.3); /* Gold border */
+            border-radius: 8px;
+            margin-bottom: 30px; /* Keep margin for spacing below video */
+        }
+        .video-tracker h3 {
+            color: var(--accent-neon);
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-shadow: 0 0 3px var(--accent-neon);
+            text-align: center;
+        }
+        .video-library-link {
+             display: block;
+             text-align: center;
+             margin-bottom: 15px;
+             color: var(--accent-neon);
+             font-size: 0.9em;
+             text-decoration: none;
+             opacity: 0.8;
+             transition: opacity 0.2s ease;
+        }
+        .video-library-link:hover {
+             opacity: 1;
+             text-decoration: underline;
+        }
+        #nextVideoDisplay {
+            text-align: center;
+            margin-bottom: 15px;
+            min-height: 60px; /* Reserve space */
+        }
+        #nextVideoDisplay .title { font-size: 1.1em; color: var(--text-color); display: block; margin-bottom: 5px; }
+        #nextVideoDisplay .duration { font-size: 0.9em; color: #ccc; }
+        #nextVideoDisplay .completed-message { font-size: 1.1em; color: var(--tertiary-neon); font-weight: bold; }
+        .video-controls { display: flex; justify-content: center; gap: 15px; margin-top: 15px; }
+         /* Generic Video Button Style */
+         .video-controls button {
+             padding: 10px 20px; border-radius: 20px; font-size: 0.95em; font-weight: bold; cursor: pointer;
+             background: var(--button-bg); border: 1px solid; transition: all 0.2s ease;
+         }
+         .video-controls button:active { transform: scale(0.95); }
+         .video-controls button:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none !important; background-color: transparent !important; }
+         /* Specific Video Button Styles */
+         #watchNextVideoButton { border-color: var(--accent-neon); color: var(--accent-neon); box-shadow: 0 0 4px var(--accent-neon), 0 0 6px var(--accent-neon); }
+         #watchNextVideoButton:not(:disabled):hover { background-color: rgba(255, 204, 0, 0.1); box-shadow: 0 0 6px var(--accent-neon), 0 0 10px var(--accent-neon), 0 0 14px var(--accent-neon); }
+         #undoLastVideoButton { border-color: var(--decrement-neon); color: var(--decrement-neon); box-shadow: 0 0 4px var(--decrement-neon), 0 0 6px var(--decrement-neon); }
+         #undoLastVideoButton:not(:disabled):hover { background-color: rgba(255, 77, 77, 0.1); box-shadow: 0 0 6px var(--decrement-neon), 0 0 10px var(--decrement-neon), 0 0 14px var(--decrement-neon); }
+
+        /* --- Case Tracker Section --- */
+        .case-tracker-section { margin-bottom: 25px; }
+        .case-tracker-section details {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden; /* Prevents content spillover */
+        }
+        .case-tracker-section summary {
+            padding: 12px 18px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none; /* Remove focus outline */
+            transition: background-color 0.2s ease;
+            position: relative; /* For custom marker */
+            list-style: none; /* Remove default marker */
+            display: flex; /* Use flexbox for alignment */
+            justify-content: space-between; /* Space out title and marker */
+            align-items: center;
+        }
+        .case-tracker-section summary::-webkit-details-marker { display: none; } /* Hide Safari marker */
+        .case-tracker-section summary::after { /* Custom marker */
+             content: '+';
+             font-size: 1.5em;
+             line-height: 1;
+             color: var(--text-color);
+             opacity: 0.7;
+             transition: transform 0.2s ease;
+        }
+        .case-tracker-section details[open] summary::after {
+            transform: rotate(45deg);
+        }
+        .case-tracker-section details[open] summary {
+             background-color: rgba(255, 255, 255, 0.06);
+        }
+        .case-tracker-section .details-content {
+            padding: 10px 20px 20px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .case-link {
+             display: block;
+             margin-bottom: 15px;
+             font-size: 0.9em;
+             text-decoration: none;
+             opacity: 0.8;
+             transition: opacity 0.2s ease;
+             text-align: center;
+        }
+        .case-link:hover { opacity: 1; text-decoration: underline; }
+        /* Specific Link Colors */
+        .case-tracker-section[data-maintype="bodyCT"] summary { color: var(--secondary-neon); }
+        .case-tracker-section[data-maintype="bodyCT"] .case-link { color: var(--secondary-neon); }
+        .case-tracker-section[data-maintype="chestCT"] summary { color: var(--primary-neon); }
+        .case-tracker-section[data-maintype="chestCT"] .case-link { color: var(--primary-neon); }
+        .case-tracker-section[data-maintype="ultrasound"] summary { color: var(--tertiary-neon); }
+        .case-tracker-section[data-maintype="ultrasound"] .case-link { color: var(--tertiary-neon); }
+
+        .subcategory-tracker {
+             display: flex;
+             flex-direction: column;
+             align-items: center;
+             margin-bottom: 20px;
+             padding: 15px;
+             background-color: rgba(0, 0, 0, 0.15);
+             border-radius: 6px;
+             border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .subcategory-tracker .label { font-weight: bold; color: #ccc; margin-bottom: 10px; font-size: 0.95em; text-align: center; }
+        .subcategory-tracker .controls { display: flex; align-items: center; justify-content: center; width: 100%; margin-bottom: 10px; }
+        .subcategory-tracker button {
+            background: var(--button-bg); border: 1px solid; width: 35px; height: 35px; border-radius: 50%;
+            font-size: 1.4rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; box-shadow: ;
+            display: flex; align-items: center; justify-content: center; padding-bottom: 3px;
+        }
+        .subcategory-tracker button:active { transform: scale(0.95); }
+        /* Modified: Value display now shows the GLOBAL cumulative count */
+        .subcategory-tracker .value-display { font-size: 1.6em; font-weight: bold; color: var(--text-color); margin: 0 15px; min-width: 40px; text-align: center; }
+        /* Modified: Decrement button now acts as an "undo for today" */
+        .subcategory-tracker button.decrement-btn { border-color: var(--decrement-neon); color: var(--decrement-neon); box-shadow: 0 0 3px var(--decrement-neon), 0 0 5px var(--decrement-neon); }
+        .subcategory-tracker button.decrement-btn:hover { background-color: rgba(255, 77, 77, 0.1); box-shadow: 0 0 5px var(--decrement-neon), 0 0 8px var(--decrement-neon), 0 0 12px var(--decrement-neon); }
+        /* Specific Increment Button Colors based on main category */
+        .case-tracker-section[data-maintype="bodyCT"] .increment-btn { border-color: var(--secondary-neon); color: var(--secondary-neon); box-shadow: 0 0 3px var(--secondary-neon), 0 0 5px var(--secondary-neon); }
+        .case-tracker-section[data-maintype="bodyCT"] .increment-btn:hover { background-color: rgba(51, 170, 255, 0.1); box-shadow: 0 0 5px var(--secondary-neon), 0 0 8px var(--secondary-neon), 0 0 12px var(--secondary-neon); }
+        .case-tracker-section[data-maintype="chestCT"] .increment-btn { border-color: var(--primary-neon); color: var(--primary-neon); box-shadow: 0 0 3px var(--primary-neon), 0 0 5px var(--primary-neon); }
+        .case-tracker-section[data-maintype="chestCT"] .increment-btn:hover { background-color: rgba(0, 255, 255, 0.1); box-shadow: 0 0 5px var(--primary-neon), 0 0 8px var(--primary-neon), 0 0 12px var(--primary-neon); }
+        .case-tracker-section[data-maintype="ultrasound"] .increment-btn { border-color: var(--tertiary-neon); color: var(--tertiary-neon); box-shadow: 0 0 3px var(--tertiary-neon), 0 0 5px var(--tertiary-neon); }
+        .case-tracker-section[data-maintype="ultrasound"] .increment-btn:hover { background-color: rgba(57, 255, 20, 0.1); box-shadow: 0 0 5px var(--tertiary-neon), 0 0 8px var(--tertiary-neon), 0 0 12px var(--tertiary-neon); }
+
+        /* Progress Bars (General & Subcategory) */
+        .progress-bar-container {
+            background-color: var(--progress-bg); border-radius: 15px; overflow: hidden; height: 22px; /* Slightly smaller */
+            margin-bottom: 8px; position: relative; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+            width: 90%; /* Make subcategory bars slightly less wide */
+            margin-left: auto; margin-right: auto;
+        }
+        /* Modified: Subcategory bar also uses height 18px */
+        .subcategory-tracker .progress-bar-container { height: 18px; border-radius: 10px; }
+        .progress-bar {
+            height: 100%; width: 0%; border-radius: 15px; transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+            position: absolute; left: 0; top: 0; box-shadow: 0 0 5px rgba(255,255,255,0.15), inset 0 0 3px rgba(0,0,0,0.3);
+        }
+        /* Modified: Subcategory bar also uses border-radius 10px */
+        .subcategory-tracker .progress-bar { border-radius: 10px; }
+        .progress-label {
+            position: absolute; width: 100%; text-align: center; line-height: 22px; /* Match height */ color: var(--text-color);
+            font-size: 0.8em; font-weight: bold; z-index: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+         /* Modified: Subcategory label also uses line-height 18px */
+        .subcategory-tracker .progress-label { line-height: 18px; font-size: 0.75em; }
+
+        /* Specific Progress Bar Fills */
+        #dailyLectureProgress .progress-bar { background: linear-gradient(90deg, #ff8800, var(--daily-lecture-fill)); box-shadow: 0 0 5px var(--daily-lecture-fill); }
+        #dailyCaseProgress .progress-bar { background: linear-gradient(90deg, #00aaff, var(--daily-progress-fill)); box-shadow: 0 0 5px var(--daily-progress-fill); }
+        #overallLectureProgress .progress-bar { background: linear-gradient(90deg, #ffaa00, var(--progress-fill-lecture)); box-shadow: 0 0 5px var(--progress-fill-lecture); }
+        /* Overall Case Bars */
+        #overallBodyCtProgress .progress-bar { background: linear-gradient(90deg, #3388ff, var(--progress-fill-body)); box-shadow: 0 0 5px var(--progress-fill-body); }
+        #overallChestCtProgress .progress-bar { background: linear-gradient(90deg, #00ccff, var(--progress-fill-chest)); box-shadow: 0 0 5px var(--progress-fill-chest); }
+        #overallUsProgress .progress-bar { background: linear-gradient(90deg, #33cc33, var(--progress-fill-us)); box-shadow: 0 0 5px var(--progress-fill-us); }
+        /* Subcategory Case Bars */
+        .case-tracker-section[data-maintype="bodyCT"] .progress-bar { background: linear-gradient(90deg, #3388ff, var(--progress-fill-body)); }
+        .case-tracker-section[data-maintype="chestCT"] .progress-bar { background: linear-gradient(90deg, #00ccff, var(--progress-fill-chest)); }
+        .case-tracker-section[data-maintype="ultrasound"] .progress-bar { background: linear-gradient(90deg, #33cc33, var(--progress-fill-us)); }
+
+        .progress-title { font-size: 1em; margin-bottom: 8px; color: #bbb; text-align: center; font-weight: bold; }
+        /* Changed: Daily progress bars now need margin-top & margin-bottom */
+        .daily-progress-section { margin-top: 25px; margin-bottom: 25px; }
+
+        .save-status { text-align: center; margin-top: 15px; font-style: italic; color: var(--tertiary-neon); height: 1.2em; opacity: 0; transition: opacity 0.5s ease; }
+        .save-status.visible { opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Radiology Prep Tracker</h1>
+
+        <!-- Date Selection -->
+        <div class="section date-selector">
+            <label for="datePicker">Select Date for Tracking</label>
+            <input type="date" id="datePicker" name="trackingDate" min="2025-04-14" max="2025-05-30">
+        </div>
+
+         <!-- Daily Tracking Section -->
+         <div class="section daily-tracking">
+             <h2>Daily Log & Goals</h2>
+
+             <div class="daily-goals" id="dailyGoalsDisplay">
+                 <p>Loading goals...</p>
+             </div>
+
+             <!-- Daily Progress Bars (Positioned correctly) -->
+             <div class="daily-progress-section">
+                 <div class="progress-title">Daily Lecture Goal Progress</div>
+                 <div id="dailyLectureProgress" class="progress-bar-container">
+                     <div class="progress-label" id="dailyLectureProgressLabel">0 / 30 mins (0%)</div>
+                     <div class="progress-bar"></div>
+                 </div>
+
+                 <div class="progress-title">Daily Case Goal Progress</div>
+                 <div id="dailyCaseProgress" class="progress-bar-container">
+                     <div class="progress-label" id="dailyCaseProgressLabel">0 / 0 Cases (0%)</div>
+                     <div class="progress-bar"></div>
+                 </div>
+             </div>
+
+             <!-- Video Tracker -->
+              <div class="video-tracker">
+                 <h3>Lecture Video Progress</h3>
+                 <a href="https://mrionline.com/library/emergency/" target="_blank" class="video-library-link">Go to Lecture Library</a>
+                 <div id="nextVideoDisplay">
+                     <!-- Content generated by JS -->
+                 </div>
+                 <div class="video-controls">
+                     <button id="undoLastVideoButton">Undo Last Video</button>
+                     <button id="watchNextVideoButton">Watch Next Video</button>
+                 </div>
+             </div>
+
+            <!-- Case Trackers (Dropdowns) -->
+            <div class="case-trackers">
+                <!-- Body CT Section -->
+                <div class="case-tracker-section" data-maintype="bodyCT">
+                    <details>
+                        <summary>Body CT Cases</summary>
+                        <div class="details-content">
+                            <a href="https://www.casestacks.com/body/body-ct/" target="_blank" class="case-link">Do Body CT Cases</a>
+                            <!-- Body CT Subcategories dynamically generated by JS -->
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Chest CT Section -->
+                <div class="case-tracker-section" data-maintype="chestCT">
+                    <details>
+                        <summary>Chest CT Cases</summary>
+                        <div class="details-content">
+                            <a href="https://www.casestacks.com/chest/chest-ct/" target="_blank" class="case-link">Do Chest CT Cases</a>
+                            <!-- Chest CT Subcategories dynamically generated by JS -->
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Ultrasound Section -->
+                <div class="case-tracker-section" data-maintype="ultrasound">
+                    <details>
+                        <summary>Ultrasound Cases</summary>
+                        <div class="details-content">
+                            <a href="https://www.casestacks.com/body/ultrasound-course/" target="_blank" class="case-link">Do Ultrasound Cases</a>
+                            <!-- Ultrasound Subcategories dynamically generated by JS -->
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+             <div class="save-status" id="saveStatus"></div>
+         </div>
+
+         <!-- Overall Progress Section -->
+         <div class="section overall-progress">
+             <h2>Overall Progress</h2>
+
+             <!-- Overall Lecture Progress -->
+             <div class="progress-title">Total Lecture Video Time</div>
+             <div id="overallLectureProgress" class="progress-bar-container">
+                 <div class="progress-label" id="overallLectureProgressLabel">0 / X Hours (0%)</div>
+                 <div class="progress-bar"></div>
+             </div>
+
+             <!-- Overall Case Progress -->
+             <div class="progress-title">Total Body CT Cases</div>
+             <div id="overallBodyCtProgress" class="progress-bar-container">
+                 <div class="progress-label" id="overallBodyCtProgressLabel">0 / 141 Cases (0%)</div>
+                 <div class="progress-bar"></div>
+             </div>
+             <div class="progress-title">Total Chest CT Cases</div>
+             <div id="overallChestCtProgress" class="progress-bar-container">
+                 <div class="progress-label" id="overallChestCtProgressLabel">0 / 81 Cases (0%)</div>
+                 <div class="progress-bar"></div>
+             </div>
+             <div class="progress-title">Total Ultrasound Cases</div>
+             <div id="overallUsProgress" class="progress-bar-container">
+                 <div class="progress-label" id="overallUsProgressLabel">0 / 75 Cases (0%)</div>
+                 <div class="progress-bar"></div>
+             </div>
+         </div>
+
+    </div>
+
+    <script>
+        // Inline JavaScript Logic
+        (function() {
+            // --- DOM Elements ---
+            const datePicker = document.getElementById('datePicker');
+            const saveStatus = document.getElementById('saveStatus');
+            const dailyGoalsDisplay = document.getElementById('dailyGoalsDisplay');
+            const nextVideoDisplay = document.getElementById('nextVideoDisplay');
+            const watchNextVideoButton = document.getElementById('watchNextVideoButton');
+            const undoLastVideoButton = document.getElementById('undoLastVideoButton');
+            const overallLectureProgressLabel = document.getElementById('overallLectureProgressLabel');
+            const bodyCtDetailsContent = document.querySelector('.case-tracker-section[data-maintype="bodyCT"] .details-content');
+            const chestCtDetailsContent = document.querySelector('.case-tracker-section[data-maintype="chestCT"] .details-content');
+            const usDetailsContent = document.querySelector('.case-tracker-section[data-maintype="ultrasound"] .details-content');
+
+            // --- Configuration & Data ---
+            const startDate = new Date(Date.UTC(2025, 3, 14)); // April = 3
+            const endDate = new Date(Date.UTC(2025, 4, 30));   // May = 4
+            // ** MODIFIED storageKey to reflect new data structure **
+            const storageKey = 'radiologyTrackerData_V3';
+            const WEEKDAY_LECTURE_GOAL_MINUTES = 30;
+
+            // --- Case Subcategory Definitions ---
+            const caseSubcategories = {
+                bodyCT: [
+                    { key: 'trauma', label: 'Trauma', max: 10 },
+                    { key: 'upperAbdominal', label: 'Upper Abdominal Pain', max: 19 },
+                    { key: 'lowerAbdominal', label: 'Lower Abdominal Pain', max: 22 },
+                    { key: 'practice', label: 'Practice Cases', max: 90 }
+                ],
+                chestCT: [
+                    { key: 'traumatic', label: 'Traumatic', max: 10 },
+                    { key: 'nonTraumatic', label: 'Non-Traumatic', max: 30 },
+                    { key: 'practice', label: 'Practice Cases', max: 41 }
+                ],
+                ultrasound: [
+                    { key: 'classic', label: 'Classic Cases', max: 25 },
+                    { key: 'practice', label: 'Practice Cases', max: 50 }
+                ]
+            };
+
+            // Calculate overall targets based on subcategory sums
+            const overallCaseTargets = {
+                bodyCT: caseSubcategories.bodyCT.reduce((sum, cat) => sum + cat.max, 0), // 141
+                chestCT: caseSubcategories.chestCT.reduce((sum, cat) => sum + cat.max, 0), // 81
+                ultrasound: caseSubcategories.ultrasound.reduce((sum, cat) => sum + cat.max, 0) // 75
+            };
+
+            // ** NEW State Structure **
+            let appState = {
+                global: {
+                    nextVideoIndex: 0, // Index of the *next* video to watch
+                    cumulativeCaseCounts: {} // Stores overall total per subcategory, e.g., { bodyCT_trauma: 5, chestCT_nonTraumatic: 2 }
+                },
+                daily: {} // Holds data keyed by date YYYY-MM-DD
+                          // Example: daily['2025-04-15'] = {
+                          //    minutesWatchedToday: 15,
+                          //    casesAddedToday: { // Stores *increments* for the day
+                          //        bodyCT_trauma: 1,
+                          //        chestCT_practice: 2
+                          //    }
+                          // }
+            };
+
+            // --- Video Data (Same as before - truncated for brevity) ---
+            const videoList = [ { title: "Introduction", duration: 0.5, module: "Chest" }, { title: "Anatomy Review on Chest X-Ray and CT", duration: 14, module: "Chest" }, { title: "Introduction: Chest Pain", duration: 3, module: "Chest" }, { title: "Case 1 - Pneumothorax on Chest X-ray", duration: 2, module: "Chest" }, { title: "Case 2 - Pneumothorax without Tension", duration: 2, module: "Chest" }, { title: "Case 3 - Pneumothorax with Tension", duration: 1, module: "Chest" }, { title: "Case 4 - Pneumothorax on Chest CT", duration: 5, module: "Chest" }, { title: "Pneumothorax - Summary", duration: 2, module: "Chest" }, { title: "Case 5 - Pericardial Effusion", duration: 9, module: "Chest" }, { title: "Pericardial Effusion - Summary", duration: 3, module: "Chest" }, { title: "Introduction: Shortness of Breath", duration: 1, module: "Chest" }, { title: "Case 1 - Pulmonary Embolism - Approach to CT Pulmonary Angiography", duration: 7, module: "Chest" }, { title: "Case 2 - Pulmonary Embolism", duration: 5, module: "Chest" }, { title: "Pulmonary Embolism - Summary", duration: 3, module: "Chest" }, { title: "Case 3 - Pulmonary Edema", duration: 2, module: "Chest" }, { title: "Case 4 - Suspected Pulmonary Edema with CT for Differential", duration: 6, module: "Chest" }, { title: "Case 5 - Importance of Search Pattern in Cases with Multiple Findings", duration: 7, module: "Chest" }, { title: "Case 6 - History of Asthma", duration: 6, module: "Chest" }, { title: "Case 7 - Lymphoma", duration: 7, module: "Chest" }, { title: "Case 8 - Malignancy", duration: 5, module: "Chest" }, { title: "Introduction: Fever & Infection", duration: 1, module: "Chest" }, { title: "Case 1 - Lobar & Multifocal Pneumonia", duration: 7, module: "Chest" }, { title: "Pneumonia - Summary", duration: 2, module: "Chest" }, { title: "Case 2 - Tuberculosis", duration: 6, module: "Chest" }, { title: "Case 3 - COVID-19 Pneumonia", duration: 5, module: "Chest" }, { title: "COVID-19 - Summary", duration: 3, module: "Chest" }, { title: "Introduction: Trauma", duration: 1, module: "Chest" }, { title: "Case 1 - Blast Injury, Pulmonary Contusion & Pleural Effusion", duration: 6, module: "Chest" }, { title: "Case 2 - Clavicular Fracture", duration: 2, module: "Chest" }, { title: "Case 3 - Rib Fractures", duration: 9, module: "Chest" }, { title: "Rib Fracture Summary", duration: 3, module: "Chest" }, { title: "Introduction: Lines & Tubes", duration: 1, module: "Chest" }, { title: "Case 1 - Orogastric Tubes", duration: 13, module: "Chest" }, { title: "Introduction: Foreign Bodies", duration: 1, module: "Chest" }, { title: "Case 2 - Foreign Body", duration: 2, module: "Chest" }, { title: "Case 3 - Esophageal Foreign Body", duration: 3, module: "Chest" }, { title: "Case 4 - Esophageal Perforation", duration: 9, module: "Chest" }, { title: "Case 5 - Edge of Film - Myocardial Infarction Incidental", duration: 2, module: "Chest" }, { title: "Myocardial infarction - Summary", duration: 3, module: "Chest" }, { title: "Introduction to Emergency MSK Imaging", duration: 2, module: "MSK" }, { title: "Projection Radiography – Basic Principles", duration: 10, module: "MSK" }, { title: "Normal Variants", duration: 3, module: "MSK" }, { title: "Common Presentations: Fractures, Overt Trauma", duration: 9, module: "MSK" }, { title: "Common Presentations: Fractures, Chronic Repititious Trauma", duration: 9, module: "MSK" }, { title: "Common Presentations: Infections", duration: 9, module: "MSK" }, { title: "Common Presentations: Neoplasms and Tumor-like Conditions", duration: 8, module: "MSK" }, { title: "Introduction to Shoulder Radiography", duration: 10, module: "MSK" }, { title: "Case: Sternoclavicular Dislocation", duration: 2, module: "MSK" }, { title: "Sternoclavicular Dislocation Summary", duration: 4, module: "MSK" }, { title: "Case: Posterior Shoulder Dislocation", duration: 1, module: "MSK" }, { title: "Shoulder Dislocation Summary", duration: 9, module: "MSK" }, { title: "Case: Greater Tuberosity Fracture", duration: 2, module: "MSK" }, { title: "Avulsion Lesions Summary", duration: 2, module: "MSK" }, { title: "Proximal Humerus Fractures", duration: 6, module: "MSK" }, { title: "Case: Acromioclavicular Joint Separation", duration: 1, module: "MSK" }, { title: "Acromioclavicular Joint Separation Summary", duration: 5, module: "MSK" }, { title: "Case: Lung Apex Lesion", duration: 1, module: "MSK" }, { title: "Lung Apex Lesion Summary", duration: 1, module: "MSK" }, { title: "Introduction to Elbow Radiography", duration: 2, module: "MSK" }, { title: "Elbow Fractures", duration: 1, module: "MSK" }, { title: "Case: Coronoid Fracture", duration: 1, module: "MSK" }, { title: "Coronoid Fracture Summary", duration: 1, module: "MSK" }, { title: "Case: Capitellum Fracture", duration: 1, module: "MSK" }, { title: "Capitellum Fracture Summary", duration: 1, module: "MSK" }, { title: "Case: Radial Head Fracture", duration: 1, module: "MSK" }, { title: "Radial Head Fracture Summary", duration: 1, module: "MSK" }, { title: "Case: Monteggia Lesion", duration: 1, module: "MSK" }, { title: "Forearm Fracture Dislocations Summary", duration: 4, module: "MSK" }, { title: "Case: Olecranon Bursitis", duration: 1, module: "MSK" }, { title: "Olecranon Bursitis Summary", duration: 2, module: "MSK" }, { title: "Introduction to Wrist and Hand Radiography", duration: 2, module: "MSK" }, { title: "Case: Colle Fracture", duration: 1, module: "MSK" }, { title: "Case: Reverse Barton Fracture", duration: 1, module: "MSK" }, { title: "Distal Radius Fractures Summary", duration: 6, module: "MSK" }, { title: "Case: Scaphoid Waist Fracture", duration: 2, module: "MSK" }, { title: "Scaphoid Fractures Summary", duration: 3, module: "MSK" }, { title: "Case: Lunate Dislocation", duration: 1, module: "MSK" }, { title: "Case: Perilunate Dislocation", duration: 0.5, module: "MSK" }, { title: "Lunate and Perilunate Dislocations Summary", duration: 3, module: "MSK" }, { title: "Case: Hamate Hook Fractures", duration: 1, module: "MSK" }, { title: "Hamate Hook Fractures Summary", duration: 0.5, module: "MSK" }, { title: "Case: Triquetral Avulsion", duration: 1, module: "MSK" }, { title: "Triquetral Avulsion Summary", duration: 1, module: "MSK" }, { title: "Case: CMC Injury", duration: 1, module: "MSK" }, { title: "CMC Injuries Summary", duration: 2, module: "MSK" }, { title: "Case: Skier’s (Gamekeeper’s) Thumb", duration: 1, module: "MSK" }, { title: "Skier’s (Gamekeeper’s) Thumb Summary", duration: 1, module: "MSK" }, { title: "Case: Thumb Dislocation", duration: 1, module: "MSK" }, { title: "Thumb Lesions Summary", duration: 3, module: "MSK" }, { title: "Case: Mallet Finger", duration: 0.5, module: "MSK" }, { title: "Mallet Finger Summary", duration: 0.5, module: "MSK" }, { title: "Case: Volar Plate Injury", duration: 1, module: "MSK" }, { title: "Volar Plate Injury Summary", duration: 0.5, module: "MSK" }, { title: "Case: Nail Bed Injury (Distal Phalanx Tuft Fracture)", duration: 0.5, module: "MSK" }, { title: "Nail Bed Injuries", duration: 0.5, module: "MSK" }, { title: "Infections in the Wrist and Hand", duration: 2, module: "MSK" }, { title: "Wrist and Hand Summary", duration: 3, module: "MSK" }, { title: "Introduction on Pelvis/Hip Radiography", duration: 12, module: "MSK" }, { title: "Introduction to Pelvic Fractures", duration: 9, module: "MSK" }, { title: "Introduction to Pelvic Anatomy", duration: 4, module: "MSK" }, { title: "Introduction to Acetabular Fractures", duration: 3, module: "MSK" }, { title: "Introduction to Acetabular Fracture Types", duration: 10, module: "MSK" }, { title: "Cases: Acetabular Fracture Patterns", duration: 5, module: "MSK" }, { title: "Hip Dislocations", duration: 1, module: "MSK" }, { title: "Case: Subcapital Femoral Neck Fracture", duration: 2, module: "MSK" }, { title: "Hip Fractures/Dislocations Summary", duration: 3, module: "MSK" }, { title: "Case: Greater Trochanteric Fracture", duration: 2, module: "MSK" }, { title: "Hip Avulsion Fractures Summary", duration: 9, module: "MSK" }, { title: "Cases: Sacral Insufficiency Fractures", duration: 9, module: "MSK" }, { title: "Case: Stress Fracture/Reaction", duration: 2, module: "MSK" }, { title: "Stress Fracture Summary", duration: 1, module: "MSK" }, { title: "Osteochondral Fractures and Osteonecrosis", duration: 4, module: "MSK" }, { title: "Case: Calcific Tendinitis", duration: 2, module: "MSK" }, { title: "Calcific Tendinitis Summary", duration: 5, module: "MSK" }, { title: "Case: Bisphosphonate Fracture", duration: 3, module: "MSK" }, { title: "Case: Pelvic Lines", duration: 3, module: "MSK" }, { title: "Pelvic Lines Summary", duration: 4, module: "MSK" }, { title: "Introduction to Knee Radiography", duration: 9, module: "MSK" }, { title: "Knee Joint Effusions", duration: 3, module: "MSK" }, { title: "Case: Segond Fracture", duration: 2, module: "MSK" }, { title: "Segond Fracture Summary", duration: 3, module: "MSK" }, { title: "Case: Tibial Stress Fracture", duration: 3, module: "MSK" }, { title: "Tibial Stress Fracture Summary", duration: 3, module: "MSK" }, { title: "Case: Tibial Plateau Fracture", duration: 2, module: "MSK" }, { title: "Tibial Plateau Fractures Summary", duration: 4, module: "MSK" }, { title: "Cases: Subchondral Insufficiency Fractures", duration: 9, module: "MSK" }, { title: "Periosteal Reaction and Prepatellar Bursitis", duration: 3, module: "MSK" }, { title: "Case: Patellofemoral Dislocation", duration: 5, module: "MSK" }, { title: "Patellofemoral Dislocation Summary", duration: 5, module: "MSK" }, { title: "Case: Patellar Fracture", duration: 2, module: "MSK" }, { title: "Extensor Mechanism Disruption", duration: 4, module: "MSK" }, { title: "Knee Checklist", duration: 2, module: "MSK" }, { title: "Introduction to Foot and Ankle Radiography", duration: 4, module: "MSK" }, { title: "Case: Osteochondral Lesion", duration: 1, module: "MSK" }, { title: "Osteochondral Lesion Summary", duration: 1, module: "MSK" }, { title: "Case: High Ankle Sprain", duration: 1, module: "MSK" }, { title: "Common Causes of Heel Pain", duration: 2, module: "MSK" }, { title: "Case: Talus Lateral Process Fracture", duration: 1, module: "MSK" }, { title: "Lateral Process Fracture Summary", duration: 4, module: "MSK" }, { title: "Case: Distal Fibular Fracture", duration: 1, module: "MSK" }, { title: "Case: Jones Fracture", duration: 1, module: "MSK" }, { title: "5th Metatarsal Fractures Summary", duration: 2, module: "MSK" }, { title: "Case: Peroneal Retinaculum Avulsion", duration: 1, module: "MSK" }, { title: "Case: Extensor Digitorum Brevis Avulsion", duration: 0.5, module: "MSK" }, { title: "Case: Calcaneus Anterior Process Fracture", duration: 0.5, module: "MSK" }, { title: "Ankle Avulsions Summary", duration: 3, module: "MSK" }, { title: "Ankle Fractures Summary", duration: 8, module: "MSK" }, { title: "First Metatarsal Dislocation", duration: 0.5, module: "MSK" }, { title: "Case: Lisfranc Ligament Injury", duration: 1, module: "MSK" }, { title: "Lisfranc Ligament Injury Summary", duration: 8, module: "MSK" }, { title: "Bread-and-Butter Emergency Radiology with Dr. Anjali Agrawal", duration: 55, module: "ER Case Review" }, { title: "Introduction to Emergency Abdominal Imaging", duration: 1, module: "Body" }, { title: "Normal Anatomy and Basic Ultrasounds: Abdomen and Pelvis", duration: 7, module: "Body" }, { title: "Cholelithiasis", duration: 1, module: "Body" }, { title: "Case: Acute Cholecystitis on Ultrasound", duration: 1, module: "Body" }, { title: "Acute Cholecystitis on Ultrasound", duration: 2, module: "Body" }, { title: "Case: Acute Cholecystitis on CT", duration: 1, module: "Body" }, { title: "Acute Cholecystitis on CT", duration: 0.5, module: "Body" }, { title: "Case: Cholecystitis With Calcified Stones", duration: 2, module: "Body" }, { title: "Gallstones on CT", duration: 1, module: "Body" }, { title: "Case: Tensile Gallbladder Fundus Sign", duration: 1, module: "Body" }, { title: "Tensile Gallbladder Fundus Sign", duration: 1, module: "Body" }, { title: "Case: Gangrenous Cholecystitis", duration: 1, module: "Body" }, { title: "Gangrenous Cholecystitis", duration: 1, module: "Body" }, { title: "Case: Emphysematous Cholecystitis With Portal Venous Gas Air", duration: 1, module: "Body" }, { title: "Emphysematous Cholecystitis With Portal Venous Gas Air", duration: 3, module: "Body" }, { title: "Case: Emphysematous Cholecystitis With Perforation", duration: 4, module: "Body" }, { title: "Emphysematous Cholecystitis Summary", duration: 2, module: "Body" }, { title: "Case: Mirizzi Syndrome With Dilated Intrahepatic Bile Ducts", duration: 3, module: "Body" }, { title: "Mirizzi Syndrome", duration: 5, module: "Body" }, { title: "Case: Choledocholithiasis", duration: 4, module: "Body" }, { title: "Choledocholithiasis", duration: 3, module: "Body" }, { title: "Case: Acute Gallstone Pancreatitis", duration: 1, module: "Body" }, { title: "Causes of Pancreatitis", duration: 3, module: "Body" }, { title: "Cases: Pancreatitis Without/With Necrosis", duration: 2, module: "Body" }, { title: "Revised Atlanta Classification", duration: 5, module: "Body" }, { title: "Case: Pancreatitis With SMV and Splenic Vein Thrombosis", duration: 2, module: "Body" }, { title: "Pancreatitis Complication: SMV and Splenic Vein Thrombosis", duration: 2, module: "Body" }, { title: "Case: Pancreatitis With Pseudoaneurysm of Splenic Artery", duration: 1, module: "Body" }, { title: "Pancreatitis Complication: Splenic Artery Pseudoaneurysm", duration: 1, module: "Body" }, { title: "Case: Duodenal Ulcer With Perforation", duration: 1, module: "Body" }, { title: "Types of Perforated Ulcers", duration: 2, module: "Body" }, { title: "Case: Classic Appendicitis", duration: 2, module: "Body" }, { title: "Acute Appendicitis", duration: 4, module: "Body" }, { title: "Case: Perforated Appendicitis", duration: 2, module: "Body" }, { title: "Perforated Appendicitis", duration: 1, module: "Body" }, { title: "Case: Classic Diverticulitis", duration: 1, module: "Body" }, { title: "Diverticulitis", duration: 1, module: "Body" }, { title: "Case: Diverticulitis With Free Air", duration: 1, module: "Body" }, { title: "Case: Diverticulitis, Perforated with Abscess", duration: 1, module: "Body" }, { title: "Diverticulitis: Perforated With Abscess Post Drainage", duration: 1, module: "Body" }, { title: "Case: Diverticulitis With Colovesical Fistula", duration: 1, module: "Body" }, { title: "Diverticulitis With Colovesical Fistula", duration: 0.5, module: "Body" }, { title: "Case: Diverticulitis With IMV Thrombosis", duration: 1, module: "Body" }, { title: "Diverticulitis With IMV Thrombosis", duration: 1, module: "Body" }, { title: "Case: Epiploic Appendagitis", duration: 1, module: "Body" }, { title: "Epiploic Appendagitis and Omental Infarction", duration: 2, module: "Body" }, { title: "Case: Umbilical Hernia", duration: 2, module: "Body" }, { title: "Obstructing Umbilical Hernias", duration: 2, module: "Body" }, { title: "Groin Hernias: Introduction", duration: 2, module: "Body" }, { title: "Case: Indirect Inguinal Hernia", duration: 1, module: "Body" }, { title: "Inguinal Hernias", duration: 1, module: "Body" }, { title: "Case: Femoral Hernia", duration: 1, module: "Body" }, { title: "Case: Obturator Hernia", duration: 1, module: "Body" }, { title: "Groin Hernias: Summary", duration: 2, module: "Body" }, { title: "Case: Simple Bowel Obstruction", duration: 1, module: "Body" }, { title: "Case: High Grade Bowel Obstruction", duration: 1, module: "Body" }, { title: "Case: Gallstone Ileus", duration: 2, module: "Body" }, { title: "Gallstone Ileus and Cholecytocolic Fistula", duration: 2, module: "Body" }, { title: "Case: Closed Loop Small Bowel Obstruction", duration: 2, module: "Body" }, { title: "Closed Loop Small Bowel Obstruction", duration: 4, module: "Body" }, { title: "Case: Large Bowel Colonic Obstruction", duration: 1, module: "Body" }, { title: "Large Bowel Colonic Obstruction", duration: 1, module: "Body" }, { title: "Case: Perforated Colon From Colon Cancer", duration: 2, module: "Body" }, { title: "Perforated Colon", duration: 3, module: "Body" }, { title: "Case: SMA Embolism With Bowel Ischemia", duration: 2, module: "Body" }, { title: "SMA Embolism", duration: 3, module: "Body" }, { title: "Case: Mesenteric Vein Thrombosis", duration: 2, module: "Body" }, { title: "Mesenteric Vein Thrombosis", duration: 1, module: "Body" }, { title: "Case: Cecal Volvulus", duration: 1, module: "Body" }, { title: "Cecal Volvulus", duration: 3, module: "Body" }, { title: "Case: Sigmoid Volvulus", duration: 2, module: "Body" }, { title: "Sigmoid Volvulus", duration: 2, module: "Body" }, { title: "Retroperitoneum", duration: 3, module: "Body" }, { title: "Case: Ruptured Abdominal Aortic Aneurysm", duration: 1, module: "Body" }, { title: "Abdominal Aortic Aneurysm Rupture", duration: 3, module: "Body" }, { title: "Case: Bleeding Angiomyolipoma", duration: 2, module: "Body" }, { title: "Angiomyolipoma", duration: 1, module: "Body" }, { title: "Case: Psoas Hematoma", duration: 2, module: "Body" }, { title: "Retroperitoneal Bleeding", duration: 1, module: "Body" }, { title: "Case: Renal Stones", duration: 2, module: "Body" }, { title: "Enhancement Patterns of Kidneys", duration: 6, module: "Body" }, { title: "Case: Forniceal Rupture", duration: 3, module: "Body" }, { title: "Forniceal Rupture", duration: 1, module: "Body" }, { title: "Case: Pyelonephritis", duration: 2, module: "Body" }, { title: "Pyelonephritis", duration: 2, module: "Body" }, { title: "Case: Renal Infarcts", duration: 2, module: "Body" }, { title: "Renal Infarcts", duration: 8, module: "Body" } ];
+
+             // --- Calculate Total Video Time ---
+            const totalVideoMinutes = videoList.reduce((sum, video) => sum + video.duration, 0);
+            const totalVideoHours = totalVideoMinutes / 60;
+
+            // --- Helper Functions ---
+            function formatDate(date) { /* unchanged */
+                const year = date.getUTCFullYear();
+                const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+                const day = date.getUTCDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            function formatDisplayDate(dateString) { /* unchanged */
+                 const date = new Date(dateString + 'T00:00:00Z');
+                 return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+             }
+            function getDayNumber(dateString) { /* unchanged */
+                 const selectedDate = new Date(dateString + 'T00:00:00Z');
+                 if (isNaN(selectedDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) { return -1; }
+                 if (selectedDate.getTime() < startDate.getTime() || selectedDate.getTime() > endDate.getTime()) { return -1; }
+                 let weekdays = 0;
+                 let currentDate = new Date(startDate);
+                 while(currentDate.getTime() <= selectedDate.getTime()) {
+                      const dayOfWeek = currentDate.getUTCDay();
+                      if (dayOfWeek >= 1 && dayOfWeek <= 5) { weekdays++; }
+                      if (currentDate.getTime() === selectedDate.getTime()) { return (dayOfWeek >= 1 && dayOfWeek <= 5) ? weekdays : -1; }
+                      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                      if (weekdays > 100) { console.error("Loop safety break"); break; }
+                 }
+                 return -1;
+            }
+            function isWeekend(dateString) { /* unchanged */
+                const date = new Date(dateString + 'T00:00:00Z');
+                const dayOfWeek = date.getUTCDay();
+                return dayOfWeek === 0 || dayOfWeek === 6;
+            }
+            // ** NEW Helper: Create a unique key for each subcategory **
+            function getGlobalCaseKey(mainType, subcategoryKey) {
+                return `${mainType}_${subcategoryKey}`;
+            }
+
+            // --- State Management ---
+            function loadState() {
+                 const storedData = localStorage.getItem(storageKey);
+                 if (storedData) {
+                    try {
+                        const parsedData = JSON.parse(storedData);
+                        // Basic validation for V3 structure
+                        if (parsedData && typeof parsedData.global === 'object'
+                            && typeof parsedData.global.nextVideoIndex === 'number' // Check specifics
+                            && typeof parsedData.global.cumulativeCaseCounts === 'object'
+                            && typeof parsedData.daily === 'object') {
+                            appState = parsedData;
+                            // Ensure nested objects exist if loading potentially incomplete data
+                            if (!appState.global) appState.global = { nextVideoIndex: 0, cumulativeCaseCounts: {} };
+                            if (!appState.global.cumulativeCaseCounts) appState.global.cumulativeCaseCounts = {};
+                            if (!appState.daily) appState.daily = {};
+                        } else {
+                            console.warn("Stored data format invalid or old, resetting state.");
+                            resetState();
+                        }
+                     } catch (e) {
+                        console.error("Error parsing stored data, resetting state.", e);
+                        resetState();
+                    }
+                 } else {
+                     resetState();
+                 }
+                 // Ensure daily data object exists for the initially selected date
+                 const initialDate = datePicker.value;
+                 ensureDailyDataStructure(initialDate);
+             }
+
+             function resetState() { // Resets to V3 structure
+                appState = {
+                    global: {
+                        nextVideoIndex: 0,
+                        cumulativeCaseCounts: {}
+                    },
+                    daily: {}
+                 };
+             }
+
+             function saveState() { /* unchanged - saves the whole appState object */
+                 try {
+                    localStorage.setItem(storageKey, JSON.stringify(appState));
+                    saveStatus.textContent = `Progress saved!`;
+                    saveStatus.classList.add('visible');
+                    setTimeout(() => { saveStatus.classList.remove('visible'); }, 1500);
+                 } catch (e) {
+                    console.error("Error saving state:", e);
+                    saveStatus.textContent = `Error saving progress!`;
+                    saveStatus.classList.add('visible');
+                    saveStatus.style.color = 'var(--decrement-neon)';
+                     setTimeout(() => {
+                        saveStatus.classList.remove('visible');
+                        saveStatus.style.color = 'var(--tertiary-neon)';
+                    }, 3000);
+                 }
+             }
+
+             // ** NEW Helper: Ensures the daily data object has the needed structure **
+             function ensureDailyDataStructure(dateString) {
+                 if (!appState.daily[dateString]) {
+                     appState.daily[dateString] = {
+                         minutesWatchedToday: 0,
+                         casesAddedToday: {} // Initialize the cases added object
+                     };
+                 } else {
+                     // If the date exists, ensure the sub-objects exist too (for backward compatibility maybe)
+                     if (appState.daily[dateString].minutesWatchedToday === undefined) {
+                         appState.daily[dateString].minutesWatchedToday = 0;
+                     }
+                     if (!appState.daily[dateString].casesAddedToday) {
+                         appState.daily[dateString].casesAddedToday = {};
+                     }
+                 }
+             }
+
+
+             // --- Daily Goal Calculation (Cases Only) ---
+             function getDailyCaseGoals(dateString) { /* unchanged */
+                 const goals = { bodyCT: 0, chestCT: 0, ultrasound: 0 };
+                 const dayNum = getDayNumber(dateString);
+                 if (dayNum <= 0) { return goals; }
+                 if (dayNum <= 30) {
+                     const dayInPattern = (dayNum - 1) % 5;
+                     if (dayInPattern === 0 || dayInPattern === 2 || dayInPattern === 4) { goals.bodyCT = 4; goals.chestCT = 3; goals.ultrasound = 2; }
+                     else { goals.bodyCT = 4; goals.chestCT = 2; goals.ultrasound = 3; }
+                 } else {
+                     switch (dayNum) {
+                         case 31: goals.bodyCT = 4; goals.chestCT = 1; goals.ultrasound = 1; break;
+                         case 32: goals.bodyCT = 4; goals.chestCT = 1; goals.ultrasound = 1; break;
+                         case 33: goals.bodyCT = 4; goals.chestCT = 1; goals.ultrasound = 1; break;
+                         case 34: goals.bodyCT = 4; goals.chestCT = 2; goals.ultrasound = 0; break;
+                         case 35: goals.bodyCT = 4; goals.chestCT = 1; goals.ultrasound = 0; break;
+                     }
+                 }
+                 return goals;
+             }
+
+             // --- UI Update Functions ---
+             function updateProgressBar(containerIdOrElement, labelIdOrElement, completed, total, unit = "Cases", isSubcategory = false) { /* unchanged */
+                 const container = typeof containerIdOrElement === 'string' ? document.getElementById(containerIdOrElement) : containerIdOrElement;
+                 const label = typeof labelIdOrElement === 'string' ? document.getElementById(labelIdOrElement) : labelIdOrElement;
+                 if (!container || !label) { return; }
+                 const bar = container.querySelector('.progress-bar');
+                 if (!bar) { return; }
+                 const validTotal = Math.max(total, 0);
+                 const validCompleted = Math.max(completed, 0);
+                 const percentage = validTotal > 0 ? Math.min((validCompleted / validTotal) * 100, 100) : (validCompleted > 0 ? 100 : 0);
+                 bar.style.width = `${percentage}%`;
+                 const completedFormatted = unit === "Hours" ? validCompleted.toFixed(1) : Math.round(validCompleted).toLocaleString();
+                 const totalFormatted = unit === "Hours" ? validTotal.toFixed(1) : Math.round(validTotal).toLocaleString();
+                 if (isSubcategory && validTotal === 0) {
+                    label.textContent = `N/A`;
+                 } else {
+                    label.textContent = `${completedFormatted} / ${totalFormatted}${unit !== "Cases" ? ' ' + unit : ''} (${percentage.toFixed(0)}%)`;
+                 }
+             }
+
+             // ** MODIFIED: Reads directly from global state for cases **
+             function calculateOverallProgress() {
+                 // Calculate overall watched video time (unchanged)
+                 let watchedMinutes = 0;
+                 for (let i = 0; i < appState.global.nextVideoIndex; i++) {
+                     if (videoList[i] && typeof videoList[i].duration === 'number') {
+                        watchedMinutes += videoList[i].duration;
+                     }
+                 }
+                 const watchedHours = watchedMinutes / 60;
+
+                 // Calculate overall case counts DIRECTLY from global state
+                 const caseTotals = { bodyCT: 0, chestCT: 0, ultrasound: 0 };
+                 for (const globalKey in appState.global.cumulativeCaseCounts) {
+                     const count = appState.global.cumulativeCaseCounts[globalKey] || 0;
+                     if (globalKey.startsWith('bodyCT_')) {
+                         caseTotals.bodyCT += count;
+                     } else if (globalKey.startsWith('chestCT_')) {
+                         caseTotals.chestCT += count;
+                     } else if (globalKey.startsWith('ultrasound_')) {
+                         caseTotals.ultrasound += count;
+                     }
+                 }
+
+                 return { watchedHours, caseTotals };
+             }
+
+
+             function updateOverallProgressBars() { /* unchanged logic, just uses new data source via calculateOverallProgress */
+                 const progress = calculateOverallProgress();
+                 updateProgressBar('overallLectureProgress', 'overallLectureProgressLabel', progress.watchedHours, totalVideoHours, "Hours");
+                 updateProgressBar('overallBodyCtProgress', 'overallBodyCtProgressLabel', progress.caseTotals.bodyCT, overallCaseTargets.bodyCT);
+                 updateProgressBar('overallChestCtProgress', 'overallChestCtProgressLabel', progress.caseTotals.chestCT, overallCaseTargets.chestCT);
+                 updateProgressBar('overallUsProgress', 'overallUsProgressLabel', progress.caseTotals.ultrasound, overallCaseTargets.ultrasound);
+             }
+
+             function updateDailyLectureProgress(dateString, goalMinutes) { /* unchanged */
+                const dailyData = appState.daily[dateString] || { minutesWatchedToday: 0 };
+                const minutesWatched = dailyData.minutesWatchedToday || 0;
+                updateProgressBar('dailyLectureProgress', 'dailyLectureProgressLabel', minutesWatched, goalMinutes, "mins");
+             }
+
+            // ** MODIFIED: Updates subcategory displays from GLOBAL state, calculates daily cases from DAILY state **
+             function displayDataForDate(dateString) {
+                 ensureDailyDataStructure(dateString); // Make sure today's structure exists
+                 const caseGoals = getDailyCaseGoals(dateString);
+                 const dailyData = appState.daily[dateString]; // We know this exists now
+                 const displayDateStr = formatDisplayDate(dateString);
+                 const dayNum = getDayNumber(dateString);
+                 const isWeekdayForCases = dayNum > 0;
+                 const isWeekendDay = isWeekend(dateString);
+                 const currentDailyLectureGoal = isWeekendDay ? 0 : WEEKDAY_LECTURE_GOAL_MINUTES;
+
+                 // --- Display Daily Goals Text (Unchanged) ---
+                 let goalHtml = `<strong>Goals for ${displayDateStr}:</strong>`;
+                 const totalCasesGoal = caseGoals.bodyCT + caseGoals.chestCT + caseGoals.ultrasound;
+                 goalHtml += `<p>Lecture Time Goal: <span>${currentDailyLectureGoal}</span> mins</p>`;
+                 if (!isWeekdayForCases) {
+                      goalHtml += `<p>Cases: No specific case goals set.</p>`;
+                 } else {
+                    if (totalCasesGoal === 0) {
+                        goalHtml += `<p>Cases: No specific case goals today.</p>`;
+                    } else if (totalCasesGoal > 0) {
+                        goalHtml += `<p>Cases: <span>${caseGoals.bodyCT}</span> Body, <span>${caseGoals.chestCT}</span> Chest, <span>${caseGoals.ultrasound}</span> US (Total: <span>${totalCasesGoal}</span>)</p>`;
+                    }
+                 }
+                 dailyGoalsDisplay.innerHTML = goalHtml;
+
+                 // --- Populate Subcategory Displays using GLOBAL cumulative counts ---
+                 Object.keys(caseSubcategories).forEach(mainType => {
+                     caseSubcategories[mainType].forEach(sub => {
+                         const globalKey = getGlobalCaseKey(mainType, sub.key);
+                         const subcategoryElement = document.getElementById(`subcat-${mainType}-${sub.key}`);
+                         if (subcategoryElement) {
+                             const valueDisplay = subcategoryElement.querySelector('.value-display');
+                             const progressBarContainer = subcategoryElement.querySelector('.progress-bar-container');
+                             const progressLabel = subcategoryElement.querySelector('.progress-label');
+
+                             // Get CUMULATIVE value from GLOBAL state
+                             const cumulativeValue = appState.global.cumulativeCaseCounts[globalKey] || 0;
+                             valueDisplay.textContent = cumulativeValue; // Show global count
+                             updateProgressBar(progressBarContainer, progressLabel, cumulativeValue, sub.max, "Cases", true); // Bar reflects global progress
+                         }
+                     });
+                 });
+
+                 // --- Calculate Daily Cases Completed by summing DAILY increments ---
+                 let dailyCasesCompleted = 0;
+                 if (dailyData.casesAddedToday) {
+                     for (const key in dailyData.casesAddedToday) {
+                         dailyCasesCompleted += dailyData.casesAddedToday[key] || 0;
+                     }
+                 }
+
+                 // --- Update Daily Progress Bars ---
+                 updateDailyLectureProgress(dateString, currentDailyLectureGoal);
+                 updateProgressBar('dailyCaseProgress', 'dailyCaseProgressLabel', dailyCasesCompleted, totalCasesGoal); // Daily bar uses daily sum
+             }
+
+             // --- Video Tracking UI ---
+             function displayNextVideoInfo() { /* unchanged */
+                 const index = appState.global.nextVideoIndex;
+                 if (index < videoList.length) {
+                     const nextVideo = videoList[index];
+                     nextVideoDisplay.innerHTML = `
+                         <span class="title">${index + 1}. ${nextVideo.title} (${nextVideo.module})</span>
+                         <span class="duration">${nextVideo.duration} min</span>
+                     `;
+                     watchNextVideoButton.disabled = false;
+                 } else {
+                     nextVideoDisplay.innerHTML = `<span class="completed-message">All videos watched! 🎉</span>`;
+                     watchNextVideoButton.disabled = true;
+                 }
+                 undoLastVideoButton.disabled = (index === 0);
+             }
+
+             // --- Event Handlers ---
+             function handleWatchNext() { /* unchanged */
+                 if (appState.global.nextVideoIndex < videoList.length) {
+                     const watchedVideoIndex = appState.global.nextVideoIndex;
+                     const watchedVideo = videoList[watchedVideoIndex];
+                     const selectedDate = datePicker.value;
+                     ensureDailyDataStructure(selectedDate);
+                     appState.daily[selectedDate].minutesWatchedToday = (appState.daily[selectedDate].minutesWatchedToday || 0) + watchedVideo.duration;
+                     appState.global.nextVideoIndex++;
+                     saveState();
+                     displayNextVideoInfo();
+                     const goalForDate = isWeekend(selectedDate) ? 0 : WEEKDAY_LECTURE_GOAL_MINUTES;
+                     updateDailyLectureProgress(selectedDate, goalForDate);
+                     updateOverallProgressBars();
+                 }
+             }
+
+             function handleUndoLast() { /* unchanged */
+                 if (appState.global.nextVideoIndex > 0) {
+                     const undoneVideoIndex = appState.global.nextVideoIndex - 1;
+                     const undoneVideo = videoList[undoneVideoIndex];
+                     const selectedDate = datePicker.value;
+                     ensureDailyDataStructure(selectedDate);
+                     appState.daily[selectedDate].minutesWatchedToday = Math.max(0, (appState.daily[selectedDate].minutesWatchedToday || 0) - undoneVideo.duration);
+                     appState.global.nextVideoIndex--;
+                     saveState();
+                     displayNextVideoInfo();
+                     const goalForDate = isWeekend(selectedDate) ? 0 : WEEKDAY_LECTURE_GOAL_MINUTES;
+                     updateDailyLectureProgress(selectedDate, goalForDate);
+                     updateOverallProgressBars();
+                 }
+             }
+
+            // ** MODIFIED: Case Increment/Decrement updates BOTH global and daily delta **
+            function handleCaseChange(event) {
+                 const button = event.target;
+                 const subcategoryTracker = button.closest('.subcategory-tracker');
+                 if (!subcategoryTracker) return;
+
+                 const mainType = subcategoryTracker.dataset.type;
+                 const subcategoryKey = subcategoryTracker.dataset.subcategory;
+                 const globalKey = getGlobalCaseKey(mainType, subcategoryKey); // e.g., "bodyCT_trauma"
+
+                 const selectedDate = datePicker.value;
+                 if (!selectedDate) {
+                      alert("Please select a date first!");
+                      return;
+                 }
+                 ensureDailyDataStructure(selectedDate); // Ensure daily structure exists
+
+                 // Find the max value for this subcategory
+                 const subDef = caseSubcategories[mainType]?.find(s => s.key === subcategoryKey);
+                 const maxCases = subDef ? subDef.max : 0;
+
+                 // Get current GLOBAL count and TODAY'S added count
+                 let globalCount = appState.global.cumulativeCaseCounts[globalKey] || 0;
+                 let addedTodayCount = appState.daily[selectedDate].casesAddedToday[globalKey] || 0;
+
+                 if (button.classList.contains('increment-btn')) {
+                     // Only increment if global count is below max
+                     if (globalCount < maxCases) {
+                         appState.global.cumulativeCaseCounts[globalKey] = globalCount + 1;
+                         appState.daily[selectedDate].casesAddedToday[globalKey] = addedTodayCount + 1;
+                     } else {
+                         console.warn(`Max cases (${maxCases}) reached for ${globalKey}`);
+                         // Optionally provide user feedback here (e.g., visual cue or alert)
+                         return; // Do nothing if max is reached
+                     }
+                 } else if (button.classList.contains('decrement-btn')) {
+                     // Only decrement if cases were actually added *today* for this category
+                     if (addedTodayCount > 0) {
+                         // Also ensure global count doesn't go below zero (shouldn't happen if addedToday > 0, but safety check)
+                         appState.global.cumulativeCaseCounts[globalKey] = Math.max(0, globalCount - 1);
+                         appState.daily[selectedDate].casesAddedToday[globalKey] = addedTodayCount - 1;
+                     } else {
+                          console.warn(`Cannot undo: No ${globalKey} cases were added on ${selectedDate}`);
+                          // Optionally provide user feedback
+                          return; // Do nothing if no cases were added today to undo
+                     }
+                 }
+
+                 // Save state immediately after modification
+                 saveState();
+
+                 // Update ALL relevant UI elements
+                 // Need to re-render the display for the current date which handles
+                 // updating the specific subcategory (using global count now) AND
+                 // recalculating and updating the daily progress bar (using daily counts)
+                 displayDataForDate(selectedDate);
+
+                 // Also update the overall progress bars at the bottom
+                 updateOverallProgressBars();
+             }
+
+
+             // --- Initialization ---
+
+             // **MODIFIED: Attaches the new handleCaseChange handler**
+             function buildSubcategoryTrackers() {
+                Object.keys(caseSubcategories).forEach(mainType => {
+                    let targetContentElement;
+                    if (mainType === 'bodyCT') targetContentElement = bodyCtDetailsContent;
+                    else if (mainType === 'chestCT') targetContentElement = chestCtDetailsContent;
+                    else if (mainType === 'ultrasound') targetContentElement = usDetailsContent;
+                    else return;
+
+                    const link = targetContentElement.querySelector('.case-link');
+                    targetContentElement.innerHTML = '';
+                    if (link) targetContentElement.appendChild(link);
+
+                    caseSubcategories[mainType].forEach(sub => {
+                        const subId = `subcat-${mainType}-${sub.key}`;
+                        const trackerDiv = document.createElement('div');
+                        trackerDiv.className = 'subcategory-tracker';
+                        trackerDiv.id = subId;
+                        trackerDiv.dataset.type = mainType;
+                        trackerDiv.dataset.subcategory = sub.key;
+
+                        // Note: The initial '0' and '0 / max' values will be overwritten
+                        // by displayDataForDate using the loaded state.
+                        trackerDiv.innerHTML = `
+                            <span class="label">${sub.label}</span>
+                            <div class="controls">
+                                <button class="decrement-btn">-</button>
+                                <span class="value-display">0</span>
+                                <button class="increment-btn">+</button>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-label">0 / ${sub.max} (0%)</div>
+                                <div class="progress-bar"></div>
+                            </div>
+                        `;
+                        targetContentElement.appendChild(trackerDiv);
+
+                        // Add event listeners for the new buttons using the new handler
+                        trackerDiv.querySelector('.increment-btn').addEventListener('click', handleCaseChange);
+                        trackerDiv.querySelector('.decrement-btn').addEventListener('click', handleCaseChange);
+                    });
+                });
+             }
+
+             function initApp() {
+                 buildSubcategoryTrackers(); // Build HTML structure first
+                 loadState(); // Load existing state (V3 structure)
+
+                 const today = new Date();
+                 const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+                 let initialDateUTC = todayUTC;
+                 if (todayUTC.getTime() < startDate.getTime()) { initialDateUTC = new Date(startDate); }
+                 else if (todayUTC.getTime() > endDate.getTime()) { initialDateUTC = new Date(endDate); }
+                 const initialDateString = formatDate(initialDateUTC);
+                 datePicker.value = initialDateString;
+                 datePicker.min = formatDate(startDate);
+                 datePicker.max = formatDate(endDate);
+
+                 // Set initial overall labels (will be updated shortly)
+                 document.getElementById('overallLectureProgressLabel').textContent = `0 / ${totalVideoHours.toFixed(1)} Hours (0%)`;
+                 document.getElementById('overallBodyCtProgressLabel').textContent = `0 / ${overallCaseTargets.bodyCT} Cases (0%)`;
+                 document.getElementById('overallChestCtProgressLabel').textContent = `0 / ${overallCaseTargets.chestCT} Cases (0%)`;
+                 document.getElementById('overallUsProgressLabel').textContent = `0 / ${overallCaseTargets.ultrasound} Cases (0%)`;
+
+                 // Initial UI setup - Uses loaded state
+                 displayDataForDate(datePicker.value); // Populates subcats from global, daily bar from daily
+                 displayNextVideoInfo(); // Uses global video index
+                 updateOverallProgressBars(); // Uses global counts
+
+                 // Event Listeners
+                 datePicker.addEventListener('change', (e) => {
+                     const newDate = e.target.value;
+                     ensureDailyDataStructure(newDate); // Make sure structure exists before displaying
+                     displayDataForDate(newDate); // Update daily display for new date
+                     saveStatus.classList.remove('visible'); // Hide save status on date change
+                 });
+                 watchNextVideoButton.addEventListener('click', handleWatchNext);
+                 undoLastVideoButton.addEventListener('click', handleUndoLast);
+                 // Subcategory listeners added in buildSubcategoryTrackers
+             }
+
+            // Run the app
+            initApp();
+
+        })();
+    </script>
+
+</body>
+</html>
