@@ -10,21 +10,20 @@
   <script src="https://unpkg.com/tristate@1.2.1/jquery.tristate.js"></script>
 
   <!-- SortableJS for drag-and-drop -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script> 
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>  [oai_citation_attribution:0‡jsDelivr](https://cdn.jsdelivr.net/npm/sortablejs/?utm_source=chatgpt.com)
 
   <style>
-    /* === Reset & Layout === */
     * { box-sizing: border-box; margin:0; padding:0; }
     body {
       background:#121212; color:#e0e0e0; font-family:sans-serif;
       padding:1rem 1rem 5rem;
     }
-    #controls, #filter-controls {
+
+    /* Controls bar */
+    #controls {
       display:flex; flex-wrap:wrap; gap:.5rem;
       justify-content:center; margin-bottom:1rem;
     }
-    #filter-controls { border-top:1px solid #333; padding-top:1rem }
-
     button, .filter-btn {
       background:#1a1a2e; border:none; color:#e0e0e0;
       padding:.6rem 1.2rem; border-radius:6px; font-size:1rem;
@@ -36,16 +35,32 @@
     }
     button:active, .filter-btn:active { transform:scale(.95); }
 
-    /* Highlighted reorder button */
-    #toggleReorder.active {
+    /* Filter dropdown */
+    .filter-dropdown { position:relative; }
+    #filterBtn.active-filter {
+      background:#3366ff; color:#fff;
+    }
+    .filter-menu {
+      position:absolute; top:100%; left:0; background:#1a1a2e;
+      border:1px solid #333; list-style:none; margin:0; padding:0;
+      z-index:100; display:none; min-width:140px;
+    }
+    .filter-dropdown.open .filter-menu { display:block; }
+    .filter-menu li {
+      padding:.6rem 1rem; cursor:pointer;
+      white-space:nowrap;
+    }
+    .filter-menu li:hover { background:#29295a; }
+
+    /* Reorder button states */
+    #toggleReorder.editing {
       background:#ffcc00; color:#121212;
     }
-    #toggleReorder.active:hover {
-      box-shadow:0 4px 8px rgba(255,204,0,.4);
-      background:#ffcc00;
+    #toggleReorder.locked {
+      background:#33aa33; color:#fff;
     }
 
-    /* === Rows & Collapsibles === */
+    /* Rows & summaries */
     #rows { display:flex; flex-direction:column; gap:1rem; }
     details.row {
       border:1px solid #333; border-radius:6px;
@@ -54,34 +69,29 @@
     summary.row-summary {
       display:flex; flex-direction:column;
       padding:.8rem 1rem; cursor:pointer;
-      background:#1a1a2e; transition:background .2s;
+      transition:background .2s;
     }
     summary.row-summary::-webkit-details-marker { display:none; }
 
     .summary-top {
-      display:flex; align-items:center; width:100%;
+      display:flex; align-items:center;
     }
-    .summary-top .overview {
+    .overview {
       flex-grow:1; margin:0 .5rem; font-weight:500;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    .summary-top .summary-status-icons {
-      font-size:.9em; opacity:.8;
-    }
-    .summary-top .delete-btn {
+    .summary-status-icons { font-size:.9em; opacity:.8; }
+    .delete-btn {
       background:transparent; border:none; color:#ff4d4d;
       font-size:1.2rem; padding:0 .3rem; margin-left:auto;
-      flex-shrink:0; transition:transform .1s;
+      transition:transform .1s;
     }
-    .summary-top .delete-btn:hover { transform:scale(1.2); }
+    .delete-btn:hover { transform:scale(1.2); }
 
     .summary-bottom {
       margin-top:.25rem; font-size:.9rem; color:#ccc;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      width:100%;
     }
-
-    /* Hide second line when expanded */
     details.row[open] > summary .summary-bottom {
       display:none;
     }
@@ -106,6 +116,7 @@
       background:#777 !important;
     }
 
+    /* Row content */
     .row-content {
       background:#222240; padding:1rem;
       display:flex; flex-direction:column; gap:.75rem;
@@ -123,7 +134,7 @@
     }
     .checkboxes label {
       display:flex; align-items:center; gap:.35rem;
-      font-size:.9rem; padding:.3rem 0; cursor:pointer;
+      font-size:.9rem; cursor:pointer;
     }
     .checkboxes input[type="checkbox"] {
       width:1.1em; height:1.1em;
@@ -132,7 +143,7 @@
       font-size:.75rem; color:#aaa; text-align:right; margin-top:.5rem;
     }
 
-    /* Floating Add Button */
+    /* Add button */
     #addRow {
       position:fixed; bottom:1.5rem; right:1.5rem; z-index:1000;
       border-radius:50%; width:50px; height:50px; font-size:1.8rem;
@@ -144,21 +155,26 @@
     }
   </style>
 </head>
+
 <body>
   <div id="controls">
     <button id="toggleExpandCollapse">⮝ Expand All</button>
+
+    <div class="filter-dropdown">
+      <button id="filterBtn">Filter: Show All</button>
+      <ul id="filterMenu" class="filter-menu">
+        <li data-filter="all">Show All</li>
+        <li data-filter="round">Needs Round</li>
+        <li data-filter="consent">Needs Consent</li>
+        <li data-filter="note">Needs Note</li>
+        <li data-filter="order">Needs Order</li>
+      </ul>
+    </div>
+
     <button id="toggleReorder">🔀 Reorder</button>
     <button id="download">Download</button>
     <button id="uploadTrigger">Upload</button>
     <input type="file" id="fileInput" accept=".json" style="display:none">
-  </div>
-
-  <div id="filter-controls">
-    <button class="filter-btn" data-filter="all">Show All</button>
-    <button class="filter-btn" data-filter="round">Needs Round</button>
-    <button class="filter-btn" data-filter="consent">Needs Consent</button>
-    <button class="filter-btn" data-filter="note">Needs Note</button>
-    <button class="filter-btn" data-filter="order">Needs Order</button>
   </div>
 
   <div id="rows"></div>
@@ -166,19 +182,17 @@
 
   <script>
     const STORAGE_KEY = 'roundingData';
-    let originalItems = [];
-    let reorderMode   = false;
-    let lastCustomOrder = null;
-    let sortableInstance = null;
+    let originalItems = [], reorderState = 0; 
+    // 0=default,1=editing,2=locked
+    let customOrder = null, sortableInstance = null, currentFilter='all';
     let saveTimeout;
 
-    // Generate or retain unique ID
     function makeID() {
-      return crypto?.randomUUID?.() || ('id-'+Date.now()+'-'+Math.random().toString(36).slice(2));
+      return crypto?.randomUUID?.() || 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     }
 
     function saveAll() {
-      // Update originalItems data (preserves original array order)
+      // preserve data in originalItems order
       originalItems = originalItems.map(item => {
         const det = document.querySelector(`details.row[data-id="${item.id}"]`);
         if (!det) return item;
@@ -197,70 +211,65 @@
           labs:        q('[name="labs"]').value,
           contactName: q('[name="contactName"]').value,
           contactPhone:q('[name="contactPhone"]').value,
-          lastEdited: det.dataset.lastEdited,
+          lastEdited:  det.dataset.lastEdited,
           isOpen:     det.open
         };
       });
 
-      const saveObj = {
+      const out = {
         items: originalItems,
-        customOrder: lastCustomOrder,
-        reorderMode: reorderMode
+        customOrder,
+        reorderState
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveObj));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
     }
 
-    function debouncedSaveAll() {
+    function debouncedSave() {
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(saveAll, 500);
     }
 
     function updateSummary(det) {
       const q = sel => det.querySelector(sel);
-      // Line 1
-      const loc  = q('[name="location"]').value || 'No Loc';
-      const nm   = q('[name="name"]').value     || 'No Name';
-      const idNo = q('[name="mrn"]').value      || 'No MRN';
+      // Line 1
+      const loc  = q('[name="location"]').value||'No Loc';
+      const nm   = q('[name="name"]').value||'No Name';
+      const idNo = q('[name="mrn"]').value||'No MRN';
       det.querySelector('.overview').textContent = `${loc} | ${nm} | ${idNo}`;
 
-      // Determine if any explicit false
-      const fields = ['round','consent','note','order'];
-      const hasFalse = fields.some(name => {
-        const cb = q(`[name="${name}"]`);
+      // any explicit false?
+      const keys = ['round','consent','note','order'];
+      const hasFalse = keys.some(k=>{
+        const cb=q(`[name="${k}"]`);
         return cb.checked===false && cb.indeterminate===false;
       });
 
-      // Line 1 icon
-      let icons = '';
-      if (!hasFalse) {
-        icons = '✅';
-      } else {
-        if (q('[name="round"]').checked===false && q('[name="round"]').indeterminate===false)   icons += '🚶';
-        if (q('[name="consent"]').checked===false && q('[name="consent"]').indeterminate===false) icons += '✍️';
-        if (q('[name="note"]').checked===false && q('[name="note"]').indeterminate===false)     icons += '📝';
-        if (q('[name="order"]').checked===false && q('[name="order"]').indeterminate===false)   icons += '🛒';
+      // icon
+      let ico = '';
+      if (!hasFalse) ico='✅';
+      else {
+        if (q('[name="round"]').checked===false && q('[name="round"]').indeterminate===false) ico+='🚶';
+        if (q('[name="consent"]').checked===false && q('[name="consent"]').indeterminate===false) ico+='✍️';
+        if (q('[name="note"]').checked===false && q('[name="note"]').indeterminate===false) ico+='📝';
+        if (q('[name="order"]').checked===false && q('[name="order"]').indeterminate===false) ico+='🛒';
       }
-      det.querySelector('.summary-status-icons').textContent = icons;
+      det.querySelector('.summary-status-icons').textContent = ico;
 
-      // Line 2
-      const proc = q('[name="procedure"]').value || 'No Procedure';
-      const hist = q('[name="history"]').value || '';
+      // Line 2
+      const proc = q('[name="procedure"]').value||'No Procedure';
+      const hist = q('[name="history"]').value||'';
       det.querySelector('.summary-bottom').textContent = `${proc} – ${hist}`;
 
-      // Color-coding
+      // coloring
       det.classList.remove('status-incomplete-order','status-complete','status-complete-na');
       if (hasFalse) {
         det.classList.add('status-incomplete-order');
       } else {
-        const orderSt = q('[name="order"]');
-        if (orderSt.checked===true) {
-          det.classList.add('status-complete');
-        } else {
-          det.classList.add('status-complete-na');
-        }
+        if (q('[name="order"]').checked===true) det.classList.add('status-complete');
+        else det.classList.add('status-complete-na');
       }
 
-      // Timestamp
+      // timestamp
       const ts = new Date().toISOString();
       det.dataset.lastEdited = ts;
       det.querySelector('.last-edited').textContent =
@@ -269,14 +278,15 @@
 
     function createRow(data={}) {
       const det = document.createElement('details');
-      det.className = 'row';
-      det.dataset.id = data.id || makeID();
-      if (typeof data.isOpen==='boolean') det.open = data.isOpen;
-      det.dataset.lastEdited = data.lastEdited || new Date().toISOString();
+      det.className='row';
+      det.dataset.id = data.id||makeID();
+      if (data.isOpen) det.open = true;
+      det.dataset.lastEdited = data.lastEdited||new Date().toISOString();
 
+      // summary
       const summ = document.createElement('summary');
-      summ.className = 'row-summary';
-      summ.innerHTML = `
+      summ.className='row-summary';
+      summ.innerHTML=`
         <div class="summary-top">
           <span class="summary-status-icons"></span>
           <span class="overview"></span>
@@ -284,21 +294,20 @@
         </div>
         <div class="summary-bottom"></div>
       `;
-      summ.querySelector('.delete-btn').addEventListener('click', e => {
-        e.preventDefault(); e.stopPropagation();
-        if (confirm('Delete this row?')) {
-          det.remove();
-          debouncedSaveAll();
+      summ.querySelector('.delete-btn').addEventListener('click',e=>{
+        e.preventDefault();e.stopPropagation();
+        if(confirm('Delete this row?')){
+          det.remove(); debouncedSave();
         }
       });
       det.appendChild(summ);
 
+      // content
       const content = document.createElement('div');
-      content.className = 'row-content';
-      const tsDisplay = data.lastEdited
-        ? new Date(data.lastEdited).toLocaleString()
-        : 'Never';
-      content.innerHTML = `
+      content.className='row-content';
+      const tsDisp = data.lastEdited
+        ? new Date(data.lastEdited).toLocaleString():'Never';
+      content.innerHTML=`
         <div class="checkboxes">
           <label><input type="checkbox" name="round"> Round</label>
           <label><input type="checkbox" name="consent"> Consent</label>
@@ -313,206 +322,196 @@
         <textarea name="labs"    rows="3"        placeholder="Relevant Labs / Meds / Vitals">${data.labs||''}</textarea>
         <input type="text"    name="contactName" placeholder="Contact Name (e.g., Dr. Smith)" value="${data.contactName||''}">
         <input type="text"    name="contactPhone"placeholder="Phone / Pager"                value="${data.contactPhone||''}">
-        <div class="last-edited">Last edit: ${tsDisplay}</div>
+        <div class="last-edited">Last edit: ${tsDisp}</div>
       `;
       det.appendChild(content);
 
-      // initialize tri-state checkboxes
-      $(content).find('input[type="checkbox"]').each((_, cb) => {
+      // tri-state
+      $(content).find('input[type="checkbox"]').each((_,cb)=>{
         $(cb).tristate();
         cb.checked = data[cb.name]===true;
         cb.indeterminate = data[cb.name]===null;
-        cb.addEventListener('change', ()=> {
-          updateSummary(det);
-          debouncedSaveAll();
+        cb.addEventListener('change',()=>{
+          updateSummary(det); debouncedSave();
         });
       });
 
-      // text listeners
+      // text changes
       content.querySelectorAll('input[type="text"],textarea')
-        .forEach(el => el.addEventListener('input', ()=> {
-          updateSummary(det);
-          debouncedSaveAll();
+        .forEach(el=>el.addEventListener('input',()=>{
+          updateSummary(det); debouncedSave();
         }));
 
-      // preserve open/closed
-      det.addEventListener('toggle', ()=> {
-        if (document.readyState==='complete') debouncedSaveAll();
+      det.addEventListener('toggle',()=>{
+        if(document.readyState==='complete') debouncedSave();
       });
 
       updateSummary(det);
       document.getElementById('rows').appendChild(det);
     }
 
-    function enableSort() {
-      const el = document.getElementById('rows');
-      sortableInstance = Sortable.create(el, {
+    function enableSort(){
+      sortableInstance = Sortable.create(document.getElementById('rows'),{
         animation:150,
-        onEnd: () => {
-          lastCustomOrder = Array.from(el.children).map(d => d.dataset.id);
+        onEnd:()=>{
+          customOrder = Array.from(document.getElementById('rows').children)
+                            .map(d=>d.dataset.id);
           saveAll();
         }
       });
     }
-
-    function disableSort() {
-      if (sortableInstance) {
-        sortableInstance.destroy();
-        sortableInstance = null;
-      }
+    function disableSort(){
+      if(sortableInstance){ sortableInstance.destroy(); sortableInstance=null;}
     }
-
-    function reorderRows(ids) {
+    function applyOrder(){
       const container = document.getElementById('rows');
-      ids.forEach(id => {
-        const det = container.querySelector(`details.row[data-id="${id}"]`);
-        if (det) container.appendChild(det);
+      const ids = (reorderState===2 && customOrder) 
+        ? customOrder 
+        : originalItems.map(i=>i.id);
+      ids.forEach(id=>{
+        const d = container.querySelector(`details.row[data-id="${id}"]`);
+        if(d) container.appendChild(d);
       });
     }
 
-    function reorderRowsDefault() {
-      const container = document.getElementById('rows');
-      originalItems.forEach(item => {
-        const det = container.querySelector(`details.row[data-id="${item.id}"]`);
-        if (det) container.appendChild(det);
+    // expand/collapse
+    document.getElementById('toggleExpandCollapse').onclick=()=>{
+      const btn=this;
+      const anyClosed = Array.from(document.querySelectorAll('details.row'))
+        .some(d=>!d.open);
+      document.querySelectorAll('details.row')
+        .forEach(d=>d.open=anyClosed);
+      document.getElementById('toggleExpandCollapse').textContent=
+        anyClosed?'⮟ Collapse All':'⮝ Expand All';
+      saveAll();
+    };
+
+    // reorder button cycle
+    document.getElementById('toggleReorder').onclick=()=>{
+      const btn=document.getElementById('toggleReorder');
+      // cycle 0→1→2→0
+      reorderState = (reorderState+1)%3;
+      btn.classList.toggle('editing', reorderState===1);
+      btn.classList.toggle('locked',  reorderState===2);
+      if(reorderState===1) enableSort();
+      else disableSort();
+      applyOrder();
+      saveAll();
+    };
+
+    // filter dropdown
+    const filterBtn = document.getElementById('filterBtn');
+    const filterDropdown = filterBtn.parentElement;
+    filterBtn.onclick = e=>{
+      e.stopPropagation();
+      filterDropdown.classList.toggle('open');
+    };
+    document.addEventListener('click', e=>{
+      if(!filterDropdown.contains(e.target)){
+        filterDropdown.classList.remove('open');
+      }
+    });
+    document.querySelectorAll('#filterMenu li').forEach(li=>{
+      li.onclick = ()=>{
+        currentFilter = li.dataset.filter;
+        filterRows(currentFilter);
+        filterDropdown.classList.remove('open');
+        filterBtn.textContent = 'Filter: '+li.textContent;
+        filterBtn.classList.toggle('active-filter', currentFilter!=='all');
+      };
+    });
+
+    function filterRows(type){
+      document.querySelectorAll('details.row').forEach(det=>{
+        if(type==='all'){ det.style.display=''; return; }
+        const cb = det.querySelector(`[name="${type}"]`);
+        det.style.display=(cb && cb.checked===false && cb.indeterminate===false)
+                          ?'' : 'none';
       });
-    }
-
-    function toggleReorderButton() {
-      const btn = document.getElementById('toggleReorder');
-      btn.classList.toggle('active', reorderMode);
-    }
-
-    function loadData() {
-      let saved = localStorage.getItem(STORAGE_KEY);
-      let parsed;
-      try { parsed = JSON.parse(saved); }
-      catch { parsed = null; }
-
-      if (parsed && Array.isArray(parsed.items)) {
-        originalItems   = parsed.items;
-        lastCustomOrder = parsed.customOrder || null;
-        reorderMode     = !!parsed.reorderMode;
-      } else if (Array.isArray(parsed)) {
-        originalItems = parsed.map(item => ({ ...item, id: makeID() }));
-        lastCustomOrder = null;
-        reorderMode = false;
-      } else {
-        originalItems = [];
-        lastCustomOrder = null;
-        reorderMode = false;
-      }
-
-      document.getElementById('rows').innerHTML = '';
-      if (originalItems.length) {
-        originalItems.forEach(item => createRow(item));
-      } else {
-        createRow({});
-        originalItems = originalItems.length ? originalItems : [{ id: document.querySelector('details.row').dataset.id }];
-      }
-
-      if (reorderMode) {
-        enableSort();
-        if (lastCustomOrder) reorderRows(lastCustomOrder);
-      } else {
-        disableSort();
-      }
-      toggleReorderButton();
-      updateToggleButton();
-    }
-
-    function filterRows(type) {
-      document.querySelectorAll('details.row').forEach(det => {
-        if (type==='all') det.style.display = '';
-        else {
-          const cb = det.querySelector(`[name="${type}"]`);
-          det.style.display =
-            (cb && cb.checked===false && cb.indeterminate===false)
-              ? '' : 'none';
-        }
-      });
-      document.querySelectorAll('#filter-controls .filter-btn')
-        .forEach(btn => {
-          btn.style.fontWeight = btn.dataset.filter===type ? 'bold':'normal';
-        });
-      updateToggleButton();
-    }
-
-    function updateToggleButton() {
-      const btn = document.getElementById('toggleExpandCollapse');
+      saveAll();
+      // update expand button state
       const visible = Array.from(document.querySelectorAll('details.row'))
         .filter(d=>d.style.display==='');
-      btn.disabled = visible.length===0;
       const anyClosed = visible.some(d=>!d.open);
-      btn.textContent = anyClosed ? '⮝ Expand All':'⮟ Collapse All';
+      document.getElementById('toggleExpandCollapse').disabled = !visible.length;
+      document.getElementById('toggleExpandCollapse').textContent =
+        anyClosed?'⮝ Expand All':'⮟ Collapse All';
     }
 
-    // Event wiring
-    document.getElementById('addRow').onclick = () => {
-      const newItem = { id: makeID() };
-      originalItems.push(newItem);
-      createRow(newItem);
-      const det = document.querySelector(`details.row[data-id="${newItem.id}"]`);
-      det.open = true;
-      det.querySelector('[name="location"]').focus();
-      updateToggleButton();
+    // download/upload
+    document.getElementById('download').onclick=()=>{
       saveAll();
-    };
-    document.getElementById('toggleExpandCollapse').onclick = () => {
-      const btn = document.getElementById('toggleExpandCollapse');
-      const exp = btn.textContent.includes('Expand');
-      document.querySelectorAll('details.row')
-        .forEach(d=>d.open = exp);
-      btn.textContent = exp ? '⮟ Collapse All':'⮝ Expand All';
-      saveAll();
-    };
-    document.getElementById('toggleReorder').onclick = () => {
-      reorderMode = !reorderMode;
-      if (reorderMode) {
-        enableSort();
-        if (lastCustomOrder) reorderRows(lastCustomOrder);
-      } else {
-        disableSort();
-        reorderRowsDefault();
-      }
-      toggleReorderButton();
-      saveAll();
-    };
-    document.getElementById('download').onclick = () => {
-      saveAll();
-      const blob = new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],{type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `roundingData-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
+      const blob=new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],
+                          {type:'application/json'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=`roundingData-${new Date().toISOString()
+        .slice(0,16).replace(/[:T]/g,'-')}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
     };
-    document.getElementById('uploadTrigger').onclick = () =>
+    document.getElementById('uploadTrigger').onclick=()=>
       document.getElementById('fileInput').click();
-    document.getElementById('fileInput').onchange = e => {
-      const f = e.target.files[0];
-      if (!f) return;
-      const r = new FileReader();
-      r.onload = ev => {
-        try {
-          const parsed = JSON.parse(ev.target.result);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-          loadData();
-          filterRows('all');
-        } catch(err) {
-          alert('Upload error: ' + err.message);
-        } finally {
-          e.target.value = '';
-        }
+    document.getElementById('fileInput').onchange=e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=ev=>{
+        try{
+          const parsed=JSON.parse(ev.target.result);
+          localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed));
+          init();
+        }catch(err){
+          alert('Upload error: '+err.message);
+        }finally{ e.target.value=''; }
       };
       r.readAsText(f);
     };
-    document.querySelectorAll('#filter-controls .filter-btn')
-      .forEach(btn => btn.addEventListener('click', ()=>filterRows(btn.dataset.filter)));
 
-    // Initialize
-    loadData();
-    filterRows('all');
+    // add row
+    document.getElementById('addRow').onclick=()=>{
+      const newItem={ id:makeID() };
+      originalItems.push(newItem);
+      createRow(newItem);
+      const det=document.querySelector(`details.row[data-id="${newItem.id}"]`);
+      det.open=true; det.querySelector('[name="location"]').focus();
+      applyOrder(); debouncedSave();
+    };
+
+    function init(){
+      // load storage
+      let saved=localStorage.getItem(STORAGE_KEY), obj;
+      try{ obj=JSON.parse(saved); }
+      catch{ obj=null; }
+      if(obj && Array.isArray(obj.items)){
+        originalItems=obj.items;
+        customOrder=obj.customOrder||null;
+        reorderState=obj.reorderState||0;
+      } else {
+        originalItems=obj||[];
+        originalItems.forEach(i=>i.id=i.id||makeID());
+        customOrder=null; reorderState=0;
+      }
+      // render
+      document.getElementById('rows').innerHTML='';
+      if(originalItems.length){
+        originalItems.forEach(item=>createRow(item));
+      } else {
+        createRow({}); 
+        originalItems=[{ id:document.querySelector('details.row').dataset.id }];
+      }
+      // apply reorder state & order
+      document.getElementById('toggleReorder')
+        .classList.toggle('editing', reorderState===1);
+      document.getElementById('toggleReorder')
+        .classList.toggle('locked',  reorderState===2);
+      if(reorderState===1) enableSort();
+      else disableSort();
+      applyOrder();
+      // initial filter
+      filterRows(currentFilter);
+    }
+
+    init();
   </script>
 </body>
 </html>
