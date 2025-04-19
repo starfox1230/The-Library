@@ -35,9 +35,7 @@
 
     /* Filter dropdown */
     .filter-dropdown { position:relative; }
-    #filterBtn.active-filter {
-      background:#3366ff; color:#fff;
-    }
+    #filterBtn.active-filter { background:#3366ff; color:#fff; }
     .filter-menu {
       position:absolute; top:100%; left:0; background:#1a1a2e;
       border:1px solid #333; list-style:none; margin:0; padding:0;
@@ -50,12 +48,8 @@
     .filter-menu li:hover { background:#29295a; }
 
     /* Reorder button states */
-    #toggleReorder.editing {
-      background:#ffcc00; color:#121212;
-    }
-    #toggleReorder.locked {
-      background:#33aa33; color:#fff;
-    }
+    #toggleReorder.editing { background:#ffcc00; color:#121212; }
+    #toggleReorder.locked  { background:#33aa33; color:#fff; }
 
     /* Rows & summaries */
     #rows { display:flex; flex-direction:column; gap:1rem; }
@@ -93,9 +87,7 @@
       margin-top:.25rem; font-size:.9rem; color:#ccc;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    details.row[open] > summary .summary-bottom {
-      display:none;
-    }
+    details.row[open] > summary .summary-bottom { display:none; }
 
     /* Status colors */
     details.row.status-incomplete-order summary.row-summary {
@@ -127,7 +119,8 @@
       padding:.7rem; color:#e0e0e0; font-size:.9rem;
       transition:background .2s;
     }
-    .row-content input:focus, .row-content textarea:focus {
+    .row-content input:focus,
+    .row-content textarea:focus {
       background:#29295a; outline:none;
     }
 
@@ -140,18 +133,18 @@
       border-radius:4px; padding:.2rem .5rem; font-size:.85rem;
       cursor:pointer; transition:background .2s,transform .1s;
     }
-    .state-btn:hover, .alert-btn:hover {
-      transform:scale(1.1);
-    }
+    .state-btn:hover, .alert-btn:hover { transform:scale(1.1); }
+
     /* consent/note/order states */
-    .state-btn.state-needed    { background:transparent; color:#e0e0e0; text-decoration:none; }
-    .state-btn.state-na        { background:#555;     color:#888;   text-decoration:line-through; }
-    .state-btn.state-in-progress { background:gold;    color:#121212; text-decoration:none; }
-    .state-btn.state-done      { background:green;    color:#fff;   text-decoration:none; }
+    .state-btn.state-needed        { background:transparent; color:#e0e0e0; }
+    .state-btn.state-na            { background:#555;       color:#888;   text-decoration:line-through; }
+    .state-btn.state-in-progress   { background:gold;       color:#121212; }
+    .state-btn.state-done          { background:green;      color:#fff;   }
+
     /* round states (3) */
-    .state-btn.state-needed-round { background:transparent; color:#e0e0e0; }
-    .state-btn.state-done-round   { background:green;       color:#fff;   }
-    .state-btn.state-na-round     { background:#555;         color:#888;   }
+    .state-btn.state-needed-round  { background:transparent; color:#e0e0e0; }
+    .state-btn.state-done-round    { background:green;       color:#fff;   }
+    .state-btn.state-na-round      { background:#555;       color:#888;   }
 
     .alert-btn.alert-on {
       background:red; color:#fff;
@@ -267,10 +260,10 @@
       const mrn = q('[name="mrn"]').value||'No MRN';
       det.querySelector('.overview').textContent = `${loc} | ${nm} | ${mrn}`;
 
-      // Which needed?
+      // Which needed or in-progress?
       const needed = ['round','consent','note','order'].some(fld=>{
         const st = q(`.state-btn[data-field="${fld}"]`).dataset.state;
-        return st==='needed';
+        return st==='needed' || st==='in-progress';
       });
 
       // Build icons
@@ -287,7 +280,8 @@
                        : fld==='note'   ? '📝'
                        : '🛒';
           if (st==='needed') icons+=emoji;
-          else if (st==='in-progress') icons+=`<span class="in-progress">${emoji}</span>`;
+          else if (st==='in-progress')
+            icons+=`<span class="in-progress">${emoji}</span>`;
         });
       }
       det.querySelector('.summary-status-icons').innerHTML = icons;
@@ -459,9 +453,7 @@
       e.stopPropagation();
       dropdown.classList.toggle('open');
     };
-    document.addEventListener('click',e=>{
-      if(!dropdown.contains(e.target)) dropdown.classList.remove('open');
-    });
+    document.addEventListener('click',e=>{ if(!dropdown.contains(e.target)) dropdown.classList.remove('open'); });
     document.querySelectorAll('#filterMenu li').forEach(li=>{
       li.onclick=()=>{
         currentFilter=li.dataset.filter;
@@ -478,60 +470,51 @@
         if(type==='all'){
           det.style.display='';
         }
-        else if(type==='complete' || type==='incomplete'){
-          // compute if any needed
+        else if(type==='complete'||type==='incomplete'){
           const needed = ['round','consent','note','order'].some(fld=>{
-            return q(`.state-btn[data-field="${fld}"]`).dataset.state==='needed';
+            const st=q(`.state-btn[data-field="${fld}"]`).dataset.state;
+            return st==='needed'||st==='in-progress';
           });
           const show = (type==='complete') ? !needed : needed;
           det.style.display = show ? '' : 'none';
         }
         else {
-          // one of the field filters
           if(type==='round'){
-            det.style.display = q(`.state-btn[data-field="round"]`).dataset.state==='needed'
-                                ? '' : 'none';
+            det.style.display = q(`.state-btn[data-field="round"]`).dataset.state==='needed' ? '' : 'none';
           } else {
-            det.style.display = q(`.state-btn[data-field="${type}"]`).dataset.state==='needed'
-                                ? '' : 'none';
+            det.style.display = q(`.state-btn[data-field="${type}"]`).dataset.state==='needed' ? '' : 'none';
           }
         }
       });
       saveAll();
-      const visible=Array.from(document.querySelectorAll('details.row'))
-                         .filter(d=>d.style.display==='');
+      const visible=Array.from(document.querySelectorAll('details.row')).filter(d=>d.style.display==='');
       const anyClosed=visible.some(d=>!d.open);
       const btn=document.getElementById('toggleExpandCollapse');
       btn.disabled=!visible.length;
-      btn.textContent= anyClosed?'⮝ Expand All':'⮟ Collapse All';
+      btn.textContent = anyClosed?'⮝ Expand All':'⮟ Collapse All';
     }
 
     // DOWNLOAD/UPLOAD
     document.getElementById('download').onclick=()=>{
       saveAll();
-      const blob=new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],
-        {type:'application/json'});
+      const blob=new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],{type:'application/json'});
       const a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
-      a.download=`roundingData-${new Date().toISOString()
-        .slice(0,16).replace(/[:T]/g,'-')}.json`;
+      a.download=`roundingData-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
       a.click(); URL.revokeObjectURL(a.href);
     };
-    document.getElementById('uploadTrigger').onclick=()=>
-      document.getElementById('fileInput').click();
+    document.getElementById('uploadTrigger').onclick=()=>document.getElementById('fileInput').click();
     document.getElementById('fileInput').onchange=e=>{
-      const f=e.target.files[0]; if(!f) return;
+      const f=e.target.files[0]; if(!f)return;
       const r=new FileReader();
       r.onload=ev=>{
-        try {
+        try{
           const o=JSON.parse(ev.target.result);
           localStorage.setItem(STORAGE_KEY,JSON.stringify(o));
           init();
         }catch(err){
           alert('Upload error: '+err.message);
-        }finally{
-          e.target.value='';
-        }
+        }finally{ e.target.value=''; }
       };
       r.readAsText(f);
     };
@@ -552,21 +535,14 @@
       let saved=localStorage.getItem(STORAGE_KEY), obj;
       try{ obj=JSON.parse(saved); }catch{ obj=null; }
       if(obj && Array.isArray(obj.items)){
-        items        = obj.items;
-        customOrder  = obj.customOrder;
-        reorderState = obj.reorderState||0;
+        items=obj.items; customOrder=obj.customOrder; reorderState=obj.reorderState||0;
       } else {
-        items=obj||[];
-        items.forEach(i=>i.id=i.id||makeID());
+        items=obj||[]; items.forEach(i=>i.id=i.id||makeID());
         customOrder=null; reorderState=0;
       }
       document.getElementById('rows').innerHTML='';
-      if(items.length){
-        items.forEach(i=>createRow(i));
-      } else {
-        createRow({});
-        items=[{id:document.querySelector('details.row').dataset.id}];
-      }
+      if(items.length) items.forEach(i=>createRow(i));
+      else{ createRow({}); items=[{id:document.querySelector('details.row').dataset.id}]; }
 
       const btn=document.getElementById('toggleReorder');
       btn.classList.toggle('editing',reorderState===1);
