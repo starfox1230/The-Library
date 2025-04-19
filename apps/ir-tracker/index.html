@@ -8,15 +8,20 @@
   <!-- jQuery + tristate plugin -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://unpkg.com/tristate@1.2.1/jquery.tristate.js"></script>
-
   <!-- SortableJS for drag-and-drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
   <style>
-    * { box-sizing: border-box; margin:0; padding:0; }
+    * { box-sizing: border-box; margin:0; padding:0 }
     body {
       background:#121212; color:#e0e0e0; font-family:sans-serif;
       padding:1rem 1rem 5rem;
+    }
+
+    /* Remove that focus/glow on buttons */
+    button:focus, .filter-btn:focus {
+      outline: none;
+      box-shadow: none;
     }
 
     /* Controls bar */
@@ -33,7 +38,7 @@
       background:#29295a; box-shadow:0 4px 8px rgba(0,255,255,.2);
       transform:scale(1.05);
     }
-    button:active, .filter-btn:active { transform:scale(.95); }
+    button:active, .filter-btn:active { transform:scale(.95) }
 
     /* Filter dropdown */
     .filter-dropdown { position:relative; }
@@ -47,8 +52,7 @@
     }
     .filter-dropdown.open .filter-menu { display:block; }
     .filter-menu li {
-      padding:.6rem 1rem; cursor:pointer;
-      white-space:nowrap;
+      padding:.6rem 1rem; cursor:pointer; white-space:nowrap;
     }
     .filter-menu li:hover { background:#29295a; }
 
@@ -68,8 +72,7 @@
     }
     summary.row-summary {
       display:flex; flex-direction:column;
-      padding:.8rem 1rem; cursor:pointer;
-      transition:background .2s;
+      padding:.8rem 1rem; cursor:pointer; transition:background .2s;
     }
     summary.row-summary::-webkit-details-marker { display:none; }
 
@@ -155,7 +158,6 @@
     }
   </style>
 </head>
-
 <body>
   <div id="controls">
     <button id="toggleExpandCollapse">⮝ Expand All</button>
@@ -174,7 +176,7 @@
     <button id="toggleReorder">🔀 Reorder</button>
     <button id="download">Download</button>
     <button id="uploadTrigger">Upload</button>
-    <input type="file" id="fileInput" accept=".json" style="display:none">
+    <input type="file" id="fileInput" accept=".json" style="display:none;">
   </div>
 
   <div id="rows"></div>
@@ -182,109 +184,94 @@
 
   <script>
     const STORAGE_KEY = 'roundingData';
-    let originalItems = [], reorderState = 0; 
-    // 0=default,1=editing,2=locked
-    let customOrder = null, sortableInstance = null, currentFilter='all';
-    let saveTimeout;
+    let originalItems = [], reorderState = 0, customOrder = null, sortableInstance = null;
+    let currentFilter='all', saveTimeout;
 
     function makeID() {
       return crypto?.randomUUID?.() || 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     }
 
     function saveAll() {
-      // preserve data in originalItems order
-      originalItems = originalItems.map(item => {
-        const det = document.querySelector(`details.row[data-id="${item.id}"]`);
-        if (!det) return item;
-        const q = sel => det.querySelector(sel);
+      originalItems = originalItems.map(item=>{
+        const det=document.querySelector(`details.row[data-id="${item.id}"]`);
+        if(!det) return item;
+        const q=sel=>det.querySelector(sel);
         return {
           ...item,
-          round:    q('[name="round"]').indeterminate ? null : q('[name="round"]').checked,
-          consent:  q('[name="consent"]').indeterminate ? null : q('[name="consent"]').checked,
-          note:     q('[name="note"]').indeterminate    ? null : q('[name="note"]').checked,
-          order:    q('[name="order"]').indeterminate   ? null : q('[name="order"]').checked,
-          location:    q('[name="location"]').value,
-          name:        q('[name="name"]').value,
-          mrn:         q('[name="mrn"]').value,
-          procedure:   q('[name="procedure"]').value,
-          history:     q('[name="history"]').value,
-          labs:        q('[name="labs"]').value,
+          round: q('[name="round"]').indeterminate?null:q('[name="round"]').checked,
+          consent: q('[name="consent"]').indeterminate?null:q('[name="consent"]').checked,
+          note: q('[name="note"]').indeterminate?null:q('[name="note"]').checked,
+          order: q('[name="order"]').indeterminate?null:q('[name="order"]').checked,
+          location: q('[name="location"]').value,
+          name: q('[name="name"]').value,
+          mrn: q('[name="mrn"]').value,
+          procedure: q('[name="procedure"]').value,
+          history: q('[name="history"]').value,
+          labs: q('[name="labs"]').value,
           contactName: q('[name="contactName"]').value,
-          contactPhone:q('[name="contactPhone"]').value,
-          lastEdited:  det.dataset.lastEdited,
-          isOpen:     det.open
+          contactPhone: q('[name="contactPhone"]').value,
+          lastEdited: det.dataset.lastEdited,
+          isOpen: det.open
         };
       });
-
-      const out = {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
         items: originalItems,
         customOrder,
         reorderState
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+      }));
     }
-
-    function debouncedSave() {
+    function debouncedSave(){
       clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(saveAll, 500);
+      saveTimeout=setTimeout(saveAll,500);
     }
 
     function updateSummary(det) {
-      const q = sel => det.querySelector(sel);
-      // Line 1
-      const loc  = q('[name="location"]').value||'No Loc';
-      const nm   = q('[name="name"]').value||'No Name';
-      const idNo = q('[name="mrn"]').value||'No MRN';
-      det.querySelector('.overview').textContent = `${loc} | ${nm} | ${idNo}`;
+      const q=sel=>det.querySelector(sel);
+      const loc=q('[name="location"]').value||'No Loc';
+      const nm=q('[name="name"]').value||'No Name';
+      const idNo=q('[name="mrn"]').value||'No MRN';
+      det.querySelector('.overview').textContent=`${loc} | ${nm} | ${idNo}`;
 
-      // any explicit false?
-      const keys = ['round','consent','note','order'];
-      const hasFalse = keys.some(k=>{
+      const keys=['round','consent','note','order'];
+      const hasFalse=keys.some(k=>{
         const cb=q(`[name="${k}"]`);
-        return cb.checked===false && cb.indeterminate===false;
+        return cb.checked===false&&cb.indeterminate===false;
       });
 
-      // icon
-      let ico = '';
-      if (!hasFalse) ico='✅';
+      let ico='';
+      if(!hasFalse) ico='✅';
       else {
-        if (q('[name="round"]').checked===false && q('[name="round"]').indeterminate===false) ico+='🚶';
-        if (q('[name="consent"]').checked===false && q('[name="consent"]').indeterminate===false) ico+='✍️';
-        if (q('[name="note"]').checked===false && q('[name="note"]').indeterminate===false) ico+='📝';
-        if (q('[name="order"]').checked===false && q('[name="order"]').indeterminate===false) ico+='🛒';
+        if(q('[name="round"]').checked===false&&q('[name="round"]').indeterminate===false) ico+='🚶';
+        if(q('[name="consent"]').checked===false&&q('[name="consent"]').indeterminate===false) ico+='✍️';
+        if(q('[name="note"]').checked===false&&q('[name="note"]').indeterminate===false) ico+='📝';
+        if(q('[name="order"]').checked===false&&q('[name="order"]').indeterminate===false) ico+='🛒';
       }
-      det.querySelector('.summary-status-icons').textContent = ico;
+      det.querySelector('.summary-status-icons').textContent=ico;
 
-      // Line 2
-      const proc = q('[name="procedure"]').value||'No Procedure';
-      const hist = q('[name="history"]').value||'';
-      det.querySelector('.summary-bottom').textContent = `${proc} – ${hist}`;
+      const proc=q('[name="procedure"]').value||'No Procedure';
+      const hist=q('[name="history"]').value||'';
+      det.querySelector('.summary-bottom').textContent=`${proc} – ${hist}`;
 
-      // coloring
       det.classList.remove('status-incomplete-order','status-complete','status-complete-na');
-      if (hasFalse) {
-        det.classList.add('status-incomplete-order');
-      } else {
-        if (q('[name="order"]').checked===true) det.classList.add('status-complete');
+      if(hasFalse) det.classList.add('status-incomplete-order');
+      else {
+        if(q('[name="order"]').checked===true) det.classList.add('status-complete');
         else det.classList.add('status-complete-na');
       }
 
-      // timestamp
-      const ts = new Date().toISOString();
-      det.dataset.lastEdited = ts;
-      det.querySelector('.last-edited').textContent =
-        `Last edit: ${new Date(ts).toLocaleString()}`;
+      const ts=new Date().toISOString();
+      det.dataset.lastEdited=ts;
+      det.querySelector('.last-edited').textContent=`Last edit: ${new Date(ts).toLocaleString()}`;
     }
 
     function createRow(data={}) {
-      const det = document.createElement('details');
+      const det=document.createElement('details');
       det.className='row';
-      det.dataset.id = data.id||makeID();
-      if (data.isOpen) det.open = true;
-      det.dataset.lastEdited = data.lastEdited||new Date().toISOString();
+      det.dataset.id=data.id||makeID();
+      if(data.isOpen) det.open=true;
+      det.dataset.lastEdited=data.lastEdited||new Date().toISOString();
 
-      // summary
-      const summ = document.createElement('summary');
+      const summ=document.createElement('summary');
       summ.className='row-summary';
       summ.innerHTML=`
         <div class="summary-top">
@@ -295,17 +282,16 @@
         <div class="summary-bottom"></div>
       `;
       summ.querySelector('.delete-btn').addEventListener('click',e=>{
-        e.preventDefault();e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         if(confirm('Delete this row?')){
           det.remove(); debouncedSave();
         }
       });
       det.appendChild(summ);
 
-      // content
-      const content = document.createElement('div');
+      const content=document.createElement('div');
       content.className='row-content';
-      const tsDisp = data.lastEdited
+      const tsDisp=data.lastEdited
         ? new Date(data.lastEdited).toLocaleString():'Never';
       content.innerHTML=`
         <div class="checkboxes">
@@ -314,29 +300,27 @@
           <label><input type="checkbox" name="note"> Note</label>
           <label><input type="checkbox" name="order"> Order</label>
         </div>
-        <input type="text"    name="location"    placeholder="Location (e.g., Room 501)"      value="${data.location||''}">
-        <input type="text"    name="name"        placeholder="Patient Name"                    value="${data.name||''}">
-        <input type="text"    name="mrn"         placeholder="MRN"                             value="${data.mrn||''}">
-        <input type="text"    name="procedure"   placeholder="Procedure"                       value="${data.procedure||''}">
-        <textarea name="history" rows="3"        placeholder="History / Indication">${data.history||''}</textarea>
-        <textarea name="labs"    rows="3"        placeholder="Relevant Labs / Meds / Vitals">${data.labs||''}</textarea>
-        <input type="text"    name="contactName" placeholder="Contact Name (e.g., Dr. Smith)" value="${data.contactName||''}">
-        <input type="text"    name="contactPhone"placeholder="Phone / Pager"                value="${data.contactPhone||''}">
+        <input type="text" name="location" placeholder="Location (e.g., Room 501)" value="${data.location||''}">
+        <input type="text" name="name"     placeholder="Patient Name"                    value="${data.name||''}">
+        <input type="text" name="mrn"      placeholder="MRN"                             value="${data.mrn||''}">
+        <input type="text" name="procedure"placeholder="Procedure"                       value="${data.procedure||''}">
+        <textarea name="history" rows="3"  placeholder="History / Indication">${data.history||''}</textarea>
+        <textarea name="labs"    rows="3"  placeholder="Relevant Labs / Meds / Vitals">${data.labs||''}</textarea>
+        <input type="text" name="contactName" placeholder="Contact Name (e.g., Dr. Smith)" value="${data.contactName||''}">
+        <input type="text" name="contactPhone"placeholder="Phone / Pager"                value="${data.contactPhone||''}">
         <div class="last-edited">Last edit: ${tsDisp}</div>
       `;
       det.appendChild(content);
 
-      // tri-state
       $(content).find('input[type="checkbox"]').each((_,cb)=>{
         $(cb).tristate();
-        cb.checked = data[cb.name]===true;
-        cb.indeterminate = data[cb.name]===null;
+        cb.checked=data[cb.name]===true;
+        cb.indeterminate=data[cb.name]===null;
         cb.addEventListener('change',()=>{
           updateSummary(det); debouncedSave();
         });
       });
 
-      // text changes
       content.querySelectorAll('input[type="text"],textarea')
         .forEach(el=>el.addEventListener('input',()=>{
           updateSummary(det); debouncedSave();
@@ -351,33 +335,31 @@
     }
 
     function enableSort(){
-      sortableInstance = Sortable.create(document.getElementById('rows'),{
+      sortableInstance=Sortable.create(document.getElementById('rows'),{
         animation:150,
         onEnd:()=>{
-          customOrder = Array.from(document.getElementById('rows').children)
+          customOrder=Array.from(document.getElementById('rows').children)
                             .map(d=>d.dataset.id);
           saveAll();
         }
       });
     }
     function disableSort(){
-      if(sortableInstance){ sortableInstance.destroy(); sortableInstance=null;}
+      if(sortableInstance){ sortableInstance.destroy(); sortableInstance=null; }
     }
     function applyOrder(){
-      const container = document.getElementById('rows');
-      const ids = (reorderState===2 && customOrder) 
+      const container=document.getElementById('rows');
+      const ids=(reorderState>0 && customOrder) 
         ? customOrder 
         : originalItems.map(i=>i.id);
       ids.forEach(id=>{
-        const d = container.querySelector(`details.row[data-id="${id}"]`);
+        const d=container.querySelector(`details.row[data-id="${id}"]`);
         if(d) container.appendChild(d);
       });
     }
 
-    // expand/collapse
     document.getElementById('toggleExpandCollapse').onclick=()=>{
-      const btn=this;
-      const anyClosed = Array.from(document.querySelectorAll('details.row'))
+      const anyClosed=Array.from(document.querySelectorAll('details.row'))
         .some(d=>!d.open);
       document.querySelectorAll('details.row')
         .forEach(d=>d.open=anyClosed);
@@ -386,102 +368,91 @@
       saveAll();
     };
 
-    // reorder button cycle
     document.getElementById('toggleReorder').onclick=()=>{
-      const btn=document.getElementById('toggleReorder');
       // cycle 0→1→2→0
-      reorderState = (reorderState+1)%3;
+      reorderState=(reorderState+1)%3;
+      const btn=document.getElementById('toggleReorder');
       btn.classList.toggle('editing', reorderState===1);
       btn.classList.toggle('locked',  reorderState===2);
-      if(reorderState===1) enableSort();
-      else disableSort();
+      if(reorderState===1) enableSort(); else disableSort();
       applyOrder();
       saveAll();
     };
 
-    // filter dropdown
-    const filterBtn = document.getElementById('filterBtn');
-    const filterDropdown = filterBtn.parentElement;
-    filterBtn.onclick = e=>{
+    const filterBtn=document.getElementById('filterBtn');
+    const dropdown=filterBtn.parentElement;
+    filterBtn.onclick=e=>{
       e.stopPropagation();
-      filterDropdown.classList.toggle('open');
+      dropdown.classList.toggle('open');
     };
-    document.addEventListener('click', e=>{
-      if(!filterDropdown.contains(e.target)){
-        filterDropdown.classList.remove('open');
-      }
+    document.addEventListener('click',e=>{
+      if(!dropdown.contains(e.target)) dropdown.classList.remove('open');
     });
     document.querySelectorAll('#filterMenu li').forEach(li=>{
-      li.onclick = ()=>{
-        currentFilter = li.dataset.filter;
+      li.onclick=()=>{
+        currentFilter=li.dataset.filter;
         filterRows(currentFilter);
-        filterDropdown.classList.remove('open');
-        filterBtn.textContent = 'Filter: '+li.textContent;
-        filterBtn.classList.toggle('active-filter', currentFilter!=='all');
+        dropdown.classList.remove('open');
+        filterBtn.textContent='Filter: '+li.textContent;
+        filterBtn.classList.toggle('active-filter',currentFilter!=='all');
       };
     });
 
     function filterRows(type){
       document.querySelectorAll('details.row').forEach(det=>{
-        if(type==='all'){ det.style.display=''; return; }
-        const cb = det.querySelector(`[name="${type}"]`);
-        det.style.display=(cb && cb.checked===false && cb.indeterminate===false)
-                          ?'' : 'none';
+        if(type==='all') det.style.display=''; 
+        else {
+          const cb=det.querySelector(`[name="${type}"]`);
+          det.style.display=
+            (cb && cb.checked===false && cb.indeterminate===false)?'':'none';
+        }
       });
       saveAll();
-      // update expand button state
-      const visible = Array.from(document.querySelectorAll('details.row'))
+      const visible=Array.from(document.querySelectorAll('details.row'))
         .filter(d=>d.style.display==='');
-      const anyClosed = visible.some(d=>!d.open);
-      document.getElementById('toggleExpandCollapse').disabled = !visible.length;
-      document.getElementById('toggleExpandCollapse').textContent =
-        anyClosed?'⮝ Expand All':'⮟ Collapse All';
+      const anyClosed=visible.some(d=>!d.open);
+      const btn=document.getElementById('toggleExpandCollapse');
+      btn.disabled=!visible.length;
+      btn.textContent=anyClosed?'⮝ Expand All':'⮟ Collapse All';
     }
 
-    // download/upload
     document.getElementById('download').onclick=()=>{
       saveAll();
       const blob=new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],
                           {type:'application/json'});
       const a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
-      a.download=`roundingData-${new Date().toISOString()
-        .slice(0,16).replace(/[:T]/g,'-')}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      a.download=`roundingData-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
     };
-    document.getElementById('uploadTrigger').onclick=()=>
-      document.getElementById('fileInput').click();
+    document.getElementById('uploadTrigger').onclick=()=>document.getElementById('fileInput').click();
     document.getElementById('fileInput').onchange=e=>{
       const f=e.target.files[0]; if(!f) return;
       const r=new FileReader();
       r.onload=ev=>{
         try{
-          const parsed=JSON.parse(ev.target.result);
-          localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed));
+          const p=JSON.parse(ev.target.result);
+          localStorage.setItem(STORAGE_KEY,JSON.stringify(p));
           init();
-        }catch(err){
-          alert('Upload error: '+err.message);
-        }finally{ e.target.value=''; }
+        }catch(err){ alert('Upload error: '+err.message) }
+        finally{ e.target.value='' }
       };
       r.readAsText(f);
     };
 
-    // add row
     document.getElementById('addRow').onclick=()=>{
       const newItem={ id:makeID() };
       originalItems.push(newItem);
       createRow(newItem);
+      applyOrder();
       const det=document.querySelector(`details.row[data-id="${newItem.id}"]`);
       det.open=true; det.querySelector('[name="location"]').focus();
-      applyOrder(); debouncedSave();
+      debouncedSave();
     };
 
     function init(){
-      // load storage
       let saved=localStorage.getItem(STORAGE_KEY), obj;
-      try{ obj=JSON.parse(saved); }
-      catch{ obj=null; }
+      try{ obj=JSON.parse(saved) }catch{ obj=null }
       if(obj && Array.isArray(obj.items)){
         originalItems=obj.items;
         customOrder=obj.customOrder||null;
@@ -491,23 +462,18 @@
         originalItems.forEach(i=>i.id=i.id||makeID());
         customOrder=null; reorderState=0;
       }
-      // render
       document.getElementById('rows').innerHTML='';
       if(originalItems.length){
-        originalItems.forEach(item=>createRow(item));
+        originalItems.forEach(i=>createRow(i));
       } else {
-        createRow({}); 
-        originalItems=[{ id:document.querySelector('details.row').dataset.id }];
+        createRow({});
+        originalItems=[{id:document.querySelector('details.row').dataset.id}];
       }
-      // apply reorder state & order
-      document.getElementById('toggleReorder')
-        .classList.toggle('editing', reorderState===1);
-      document.getElementById('toggleReorder')
-        .classList.toggle('locked',  reorderState===2);
-      if(reorderState===1) enableSort();
-      else disableSort();
+      const btn=document.getElementById('toggleReorder');
+      btn.classList.toggle('editing',reorderState===1);
+      btn.classList.toggle('locked', reorderState===2);
+      if(reorderState===1) enableSort(); else disableSort();
       applyOrder();
-      // initial filter
       filterRows(currentFilter);
     }
 
