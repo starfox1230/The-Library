@@ -2,104 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Consult Rounding Sheet</title>
 
   <!-- jQuery + tristate plugin -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://unpkg.com/tristate@1.2.1/jquery.tristate.js"></script> <!--  -->
+  <script src="https://unpkg.com/tristate@1.2.1/jquery.tristate.js"></script>
+
+  <!-- SortableJS for drag-and-drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script> 
 
   <style>
     /* === Reset & Layout === */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #121212; color: #e0e0e0; font-family: sans-serif; padding: 1rem 1rem 5rem; }
-    #controls, #filter-controls { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
-    #filter-controls { margin-bottom: 1rem; border-top: 1px solid #333; padding-top: 1rem; }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      background:#121212; color:#e0e0e0; font-family:sans-serif;
+      padding:1rem 1rem 5rem;
+    }
+    #controls, #filter-controls {
+      display:flex; flex-wrap:wrap; gap:.5rem;
+      justify-content:center; margin-bottom:1rem;
+    }
+    #filter-controls { border-top:1px solid #333; padding-top:1rem }
+
     button, .filter-btn {
-      background: #1a1a2e; border: none; color: #e0e0e0;
-      padding: .6rem 1.2rem; border-radius: 6px; font-size: 1rem;
-      cursor: pointer; transition: transform .1s, background .2s, box-shadow .2s;
+      background:#1a1a2e; border:none; color:#e0e0e0;
+      padding:.6rem 1.2rem; border-radius:6px; font-size:1rem;
+      cursor:pointer; transition:transform .1s,background .2s,box-shadow .2s;
     }
     button:hover, .filter-btn:hover {
-      background: #29295a; box-shadow: 0 4px 8px rgba(0,255,255,.2); transform: scale(1.05);
+      background:#29295a; box-shadow:0 4px 8px rgba(0,255,255,.2);
+      transform:scale(1.05);
     }
-    button:active, .filter-btn:active { transform: scale(.95); }
+    button:active, .filter-btn:active { transform:scale(.95); }
+
+    /* Highlighted reorder button */
+    #toggleReorder.active {
+      background:#ffcc00; color:#121212;
+    }
+    #toggleReorder.active:hover {
+      box-shadow:0 4px 8px rgba(255,204,0,.4);
+      background:#ffcc00;
+    }
 
     /* === Rows & Collapsibles === */
-    #rows { display: flex; flex-direction: column; gap: 1rem; }
-    details.row { border: 1px solid #333; border-radius: 6px; overflow: hidden; transition: background-color .3s; }
+    #rows { display:flex; flex-direction:column; gap:1rem; }
+    details.row {
+      border:1px solid #333; border-radius:6px;
+      overflow:hidden; transition:background-color .3s;
+    }
     summary.row-summary {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: .8rem 1rem; background: #1a1a2e; list-style: none; cursor: pointer;
-      position: relative; transition: background .2s;
+      display:flex; flex-direction:column;
+      padding:.8rem 1rem; cursor:pointer;
+      background:#1a1a2e; transition:background .2s;
     }
-    summary.row-summary::-webkit-details-marker { display: none; }
-    summary.row-summary::after {
-      content: '▸'; font-size: 1.2rem; transition: transform .2s; margin-left: .5rem;
+    summary.row-summary::-webkit-details-marker { display:none; }
+
+    .summary-top {
+      display:flex; align-items:center; width:100%;
     }
-    details.row[open] summary.row-summary::after { transform: rotate(90deg); }
+    .summary-top .overview {
+      flex-grow:1; margin:0 .5rem; font-weight:500;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .summary-top .summary-status-icons {
+      font-size:.9em; opacity:.8;
+    }
+    .summary-top .delete-btn {
+      background:transparent; border:none; color:#ff4d4d;
+      font-size:1.2rem; padding:0 .3rem; margin-left:auto;
+      flex-shrink:0; transition:transform .1s;
+    }
+    .summary-top .delete-btn:hover { transform:scale(1.2); }
+
+    .summary-bottom {
+      margin-top:.25rem; font-size:.9rem; color:#ccc;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      width:100%;
+    }
+
+    /* Hide second line when expanded */
+    details.row[open] > summary .summary-bottom {
+      display:none;
+    }
 
     /* Status colors */
-    details.row.status-incomplete-order summary.row-summary { background: #5a1a1a; }
-    details.row[open].status-incomplete-order summary.row-summary { background: #7a2a2a; }
-
-    details.row.status-complete summary.row-summary { background: #1a5a1a; }
-    details.row[open].status-complete summary.row-summary { background: #2a7a2a; }
-
-    /* Gray when complete but order N/A */
-    details.row.status-complete-na summary.row-summary { background: #555 !important; }
-    details.row[open].status-complete-na summary.row-summary { background: #777 !important; }
-
-    .overview {
-      font-weight: 500; flex-grow: 1; margin-right: .5rem;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    details.row.status-incomplete-order summary.row-summary {
+      background:#5a1a1a;
     }
-    .summary-status-icons { font-size: .8em; margin-right: .5rem; opacity: .8; }
-    .delete-btn {
-      background: transparent; border: none; color: #ff4d4d;
-      font-size: 1.2rem; padding: 0 .3rem; margin-left: auto; flex-shrink: 0;
-      transition: transform .1s;
+    details.row[open].status-incomplete-order summary.row-summary {
+      background:#7a2a2a;
     }
-    .delete-btn:hover { transform: scale(1.2); }
+    details.row.status-complete summary.row-summary {
+      background:#1a5a1a;
+    }
+    details.row[open].status-complete summary.row-summary {
+      background:#2a7a2a;
+    }
+    details.row.status-complete-na summary.row-summary {
+      background:#555 !important;
+    }
+    details.row[open].status-complete-na summary.row-summary {
+      background:#777 !important;
+    }
 
     .row-content {
-      background: #222240; padding: 1rem;
-      display: flex; flex-direction: column; gap: .75rem;
+      background:#222240; padding:1rem;
+      display:flex; flex-direction:column; gap:.75rem;
     }
     .row-content input, .row-content textarea {
-      background: #121229; border: none; border-radius: 4px;
-      padding: .7rem; color: #e0e0e0; font-size: .9rem;
-      transition: background .2s;
+      background:#121229; border:none; border-radius:4px;
+      padding:.7rem; color:#e0e0e0; font-size:.9rem;
+      transition:background .2s;
     }
     .row-content input:focus, .row-content textarea:focus {
-      background: #29295a; outline: none;
+      background:#29295a; outline:none;
     }
-    .checkboxes { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+    .checkboxes {
+      display:flex; flex-wrap:wrap; gap:.5rem 1rem;
+    }
     .checkboxes label {
-      display: flex; align-items: center; gap: .35rem;
-      font-size: .9rem; padding: .3rem 0; cursor: pointer;
+      display:flex; align-items:center; gap:.35rem;
+      font-size:.9rem; padding:.3rem 0; cursor:pointer;
     }
-    .checkboxes input[type="checkbox"] { width: 1.1em; height: 1.1em; }
+    .checkboxes input[type="checkbox"] {
+      width:1.1em; height:1.1em;
+    }
     .last-edited {
-      font-size: .75rem; color: #aaa; text-align: right; margin-top: .5rem;
+      font-size:.75rem; color:#aaa; text-align:right; margin-top:.5rem;
     }
 
     /* Floating Add Button */
     #addRow {
-      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
-      border-radius: 50%; width: 50px; height: 50px; font-size: 1.8rem;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,.4);
+      position:fixed; bottom:1.5rem; right:1.5rem; z-index:1000;
+      border-radius:50%; width:50px; height:50px; font-size:1.8rem;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 12px rgba(0,0,0,.4);
     }
-    #addRow:hover { box-shadow: 0 6px 16px rgba(0,255,255,.3); }
+    #addRow:hover {
+      box-shadow:0 6px 16px rgba(0,255,255,.3);
+    }
   </style>
 </head>
 <body>
   <div id="controls">
     <button id="toggleExpandCollapse">⮝ Expand All</button>
+    <button id="toggleReorder">🔀 Reorder</button>
     <button id="download">Download</button>
     <button id="uploadTrigger">Upload</button>
-    <input type="file" id="fileInput" accept=".json" style="display: none;">
+    <input type="file" id="fileInput" accept=".json" style="display:none">
   </div>
 
   <div id="filter-controls">
@@ -115,18 +166,25 @@
 
   <script>
     const STORAGE_KEY = 'roundingData';
+    let originalItems = [];
+    let reorderMode   = false;
+    let lastCustomOrder = null;
+    let sortableInstance = null;
     let saveTimeout;
 
-    function debouncedSave() {
-      clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(saveData, 500);
+    // Generate or retain unique ID
+    function makeID() {
+      return crypto?.randomUUID?.() || ('id-'+Date.now()+'-'+Math.random().toString(36).slice(2));
     }
 
-    function saveData() {
-      const out = [];
-      document.querySelectorAll('details.row').forEach(det => {
+    function saveAll() {
+      // Update originalItems data (preserves original array order)
+      originalItems = originalItems.map(item => {
+        const det = document.querySelector(`details.row[data-id="${item.id}"]`);
+        if (!det) return item;
         const q = sel => det.querySelector(sel);
-        out.push({
+        return {
+          ...item,
           round:    q('[name="round"]').indeterminate ? null : q('[name="round"]').checked,
           consent:  q('[name="consent"]').indeterminate ? null : q('[name="consent"]').checked,
           note:     q('[name="note"]').indeterminate    ? null : q('[name="note"]').checked,
@@ -139,28 +197,40 @@
           labs:        q('[name="labs"]').value,
           contactName: q('[name="contactName"]').value,
           contactPhone:q('[name="contactPhone"]').value,
-          lastEdited:  det.dataset.lastEdited || new Date().toISOString(),
-          isOpen:      det.open
-        });
+          lastEdited: det.dataset.lastEdited,
+          isOpen:     det.open
+        };
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+
+      const saveObj = {
+        items: originalItems,
+        customOrder: lastCustomOrder,
+        reorderMode: reorderMode
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveObj));
+    }
+
+    function debouncedSaveAll() {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveAll, 500);
     }
 
     function updateSummary(det) {
       const q = sel => det.querySelector(sel);
+      // Line 1
       const loc  = q('[name="location"]').value || 'No Loc';
       const nm   = q('[name="name"]').value     || 'No Name';
       const idNo = q('[name="mrn"]').value      || 'No MRN';
       det.querySelector('.overview').textContent = `${loc} | ${nm} | ${idNo}`;
 
-      // find any explicit false (unchecked & not indeterminate)
-      const tasks = ['round','consent','note','order'];
-      const hasFalse = tasks.some(name => {
+      // Determine if any explicit false
+      const fields = ['round','consent','note','order'];
+      const hasFalse = fields.some(name => {
         const cb = q(`[name="${name}"]`);
-        return cb.checked === false && cb.indeterminate === false;
+        return cb.checked===false && cb.indeterminate===false;
       });
 
-      // icons only for explicit false
+      // Line 1 icon
       let icons = '';
       if (!hasFalse) {
         icons = '✅';
@@ -172,22 +242,25 @@
       }
       det.querySelector('.summary-status-icons').textContent = icons;
 
-      // remove all status classes
-      det.classList.remove('status-incomplete-order','status-complete','status-complete-na');
+      // Line 2
+      const proc = q('[name="procedure"]').value || 'No Procedure';
+      const hist = q('[name="history"]').value || '';
+      det.querySelector('.summary-bottom').textContent = `${proc} – ${hist}`;
 
+      // Color-coding
+      det.classList.remove('status-incomplete-order','status-complete','status-complete-na');
       if (hasFalse) {
         det.classList.add('status-incomplete-order');
       } else {
-        // all done → pick green vs gray based on order
         const orderSt = q('[name="order"]');
-        if (orderSt.checked === true) {
+        if (orderSt.checked===true) {
           det.classList.add('status-complete');
         } else {
           det.classList.add('status-complete-na');
         }
       }
 
-      // timestamp
+      // Timestamp
       const ts = new Date().toISOString();
       det.dataset.lastEdited = ts;
       det.querySelector('.last-edited').textContent =
@@ -197,20 +270,25 @@
     function createRow(data={}) {
       const det = document.createElement('details');
       det.className = 'row';
-      if (typeof data.isOpen === 'boolean') det.open = data.isOpen;
+      det.dataset.id = data.id || makeID();
+      if (typeof data.isOpen==='boolean') det.open = data.isOpen;
       det.dataset.lastEdited = data.lastEdited || new Date().toISOString();
 
       const summ = document.createElement('summary');
       summ.className = 'row-summary';
       summ.innerHTML = `
-        <span class="summary-status-icons"></span>
-        <span class="overview"></span>
-        <button class="delete-btn" aria-label="Delete row">×</button>
+        <div class="summary-top">
+          <span class="summary-status-icons"></span>
+          <span class="overview"></span>
+          <button class="delete-btn" aria-label="Delete row">×</button>
+        </div>
+        <div class="summary-bottom"></div>
       `;
       summ.querySelector('.delete-btn').addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
         if (confirm('Delete this row?')) {
-          det.remove(); saveData();
+          det.remove();
+          debouncedSaveAll();
         }
       });
       det.appendChild(summ);
@@ -233,48 +311,119 @@
         <input type="text"    name="procedure"   placeholder="Procedure"                       value="${data.procedure||''}">
         <textarea name="history" rows="3"        placeholder="History / Indication">${data.history||''}</textarea>
         <textarea name="labs"    rows="3"        placeholder="Relevant Labs / Meds / Vitals">${data.labs||''}</textarea>
-        <input type="text"    name="contactName" placeholder="Contact Name (Dr. Smith)"        value="${data.contactName||''}">
-        <input type="text"    name="contactPhone"placeholder="Phone / Pager"                 value="${data.contactPhone||''}">
+        <input type="text"    name="contactName" placeholder="Contact Name (e.g., Dr. Smith)" value="${data.contactName||''}">
+        <input type="text"    name="contactPhone"placeholder="Phone / Pager"                value="${data.contactPhone||''}">
         <div class="last-edited">Last edit: ${tsDisplay}</div>
       `;
       det.appendChild(content);
 
-      // tri‑state + event binding
-      $(content).find('input[type="checkbox"]').each((_,cb) => {
+      // initialize tri-state checkboxes
+      $(content).find('input[type="checkbox"]').each((_, cb) => {
         $(cb).tristate();
-        cb.checked     = data[cb.name] === true;
-        cb.indeterminate = data[cb.name] === null;
-        cb.addEventListener('change', () => {
-          updateSummary(det); debouncedSave();
+        cb.checked = data[cb.name]===true;
+        cb.indeterminate = data[cb.name]===null;
+        cb.addEventListener('change', ()=> {
+          updateSummary(det);
+          debouncedSaveAll();
         });
       });
 
-      // text fields
+      // text listeners
       content.querySelectorAll('input[type="text"],textarea')
-        .forEach(el=>el.addEventListener('input',()=>{
-          updateSummary(det); debouncedSave();
+        .forEach(el => el.addEventListener('input', ()=> {
+          updateSummary(det);
+          debouncedSaveAll();
         }));
 
-      det.addEventListener('toggle', ()=>{
-        if (document.readyState==='complete') saveData();
+      // preserve open/closed
+      det.addEventListener('toggle', ()=> {
+        if (document.readyState==='complete') debouncedSaveAll();
       });
 
       updateSummary(det);
       document.getElementById('rows').appendChild(det);
     }
 
+    function enableSort() {
+      const el = document.getElementById('rows');
+      sortableInstance = Sortable.create(el, {
+        animation:150,
+        onEnd: () => {
+          lastCustomOrder = Array.from(el.children).map(d => d.dataset.id);
+          saveAll();
+        }
+      });
+    }
+
+    function disableSort() {
+      if (sortableInstance) {
+        sortableInstance.destroy();
+        sortableInstance = null;
+      }
+    }
+
+    function reorderRows(ids) {
+      const container = document.getElementById('rows');
+      ids.forEach(id => {
+        const det = container.querySelector(`details.row[data-id="${id}"]`);
+        if (det) container.appendChild(det);
+      });
+    }
+
+    function reorderRowsDefault() {
+      const container = document.getElementById('rows');
+      originalItems.forEach(item => {
+        const det = container.querySelector(`details.row[data-id="${item.id}"]`);
+        if (det) container.appendChild(det);
+      });
+    }
+
+    function toggleReorderButton() {
+      const btn = document.getElementById('toggleReorder');
+      btn.classList.toggle('active', reorderMode);
+    }
+
     function loadData() {
-      let arr = [];
-      try { arr = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-      catch { arr = []; }
+      let saved = localStorage.getItem(STORAGE_KEY);
+      let parsed;
+      try { parsed = JSON.parse(saved); }
+      catch { parsed = null; }
+
+      if (parsed && Array.isArray(parsed.items)) {
+        originalItems   = parsed.items;
+        lastCustomOrder = parsed.customOrder || null;
+        reorderMode     = !!parsed.reorderMode;
+      } else if (Array.isArray(parsed)) {
+        originalItems = parsed.map(item => ({ ...item, id: makeID() }));
+        lastCustomOrder = null;
+        reorderMode = false;
+      } else {
+        originalItems = [];
+        lastCustomOrder = null;
+        reorderMode = false;
+      }
+
       document.getElementById('rows').innerHTML = '';
-      (arr.length ? arr : [{}]).forEach(item => createRow(item));
+      if (originalItems.length) {
+        originalItems.forEach(item => createRow(item));
+      } else {
+        createRow({});
+        originalItems = originalItems.length ? originalItems : [{ id: document.querySelector('details.row').dataset.id }];
+      }
+
+      if (reorderMode) {
+        enableSort();
+        if (lastCustomOrder) reorderRows(lastCustomOrder);
+      } else {
+        disableSort();
+      }
+      toggleReorderButton();
       updateToggleButton();
     }
 
     function filterRows(type) {
       document.querySelectorAll('details.row').forEach(det => {
-        if (type === 'all') det.style.display = '';
+        if (type==='all') det.style.display = '';
         else {
           const cb = det.querySelector(`[name="${type}"]`);
           det.style.display =
@@ -284,7 +433,7 @@
       });
       document.querySelectorAll('#filter-controls .filter-btn')
         .forEach(btn => {
-          btn.style.fontWeight = btn.dataset.filter===type ? 'bold' : 'normal';
+          btn.style.fontWeight = btn.dataset.filter===type ? 'bold':'normal';
         });
       updateToggleButton();
     }
@@ -295,53 +444,73 @@
         .filter(d=>d.style.display==='');
       btn.disabled = visible.length===0;
       const anyClosed = visible.some(d=>!d.open);
-      btn.textContent = anyClosed ? '⮝ Expand All' : '⮟ Collapse All';
+      btn.textContent = anyClosed ? '⮝ Expand All':'⮟ Collapse All';
     }
 
-    // controls wiring
+    // Event wiring
     document.getElementById('addRow').onclick = () => {
-      createRow();
-      const nr = document.getElementById('rows').lastChild;
-      nr.open = true;
-      nr.querySelector('[name="location"]').focus();
-      updateToggleButton(); saveData();
+      const newItem = { id: makeID() };
+      originalItems.push(newItem);
+      createRow(newItem);
+      const det = document.querySelector(`details.row[data-id="${newItem.id}"]`);
+      det.open = true;
+      det.querySelector('[name="location"]').focus();
+      updateToggleButton();
+      saveAll();
     };
     document.getElementById('toggleExpandCollapse').onclick = () => {
       const btn = document.getElementById('toggleExpandCollapse');
       const exp = btn.textContent.includes('Expand');
-      document.querySelectorAll('details.row').forEach(d=>d.open=exp);
-      btn.textContent = exp ? '⮟ Collapse All' : '⮝ Expand All';
-      saveData();
+      document.querySelectorAll('details.row')
+        .forEach(d=>d.open = exp);
+      btn.textContent = exp ? '⮟ Collapse All':'⮝ Expand All';
+      saveAll();
+    };
+    document.getElementById('toggleReorder').onclick = () => {
+      reorderMode = !reorderMode;
+      if (reorderMode) {
+        enableSort();
+        if (lastCustomOrder) reorderRows(lastCustomOrder);
+      } else {
+        disableSort();
+        reorderRowsDefault();
+      }
+      toggleReorderButton();
+      saveAll();
     };
     document.getElementById('download').onclick = () => {
-      saveData();
-      const blob = new Blob([localStorage.getItem(STORAGE_KEY)||'[]'],{type:'application/json'});
+      saveAll();
+      const blob = new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],{type:'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `roundingData-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
     };
-    document.getElementById('uploadTrigger').onclick = ()=>document.getElementById('fileInput').click();
-    document.getElementById('fileInput').onchange = e=>{
-      const f=e.target.files[0]; if(!f) return;
-      const r=new FileReader();
+    document.getElementById('uploadTrigger').onclick = () =>
+      document.getElementById('fileInput').click();
+    document.getElementById('fileInput').onchange = e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
       r.onload = ev => {
         try {
-          const arr = JSON.parse(ev.target.result);
-          if (!Array.isArray(arr)) throw new Error('Must be a JSON array');
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-          loadData(); filterRows('all');
+          const parsed = JSON.parse(ev.target.result);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          loadData();
+          filterRows('all');
         } catch(err) {
-          alert('Upload error: '+err.message);
-        } finally { e.target.value=''; }
+          alert('Upload error: ' + err.message);
+        } finally {
+          e.target.value = '';
+        }
       };
       r.readAsText(f);
     };
     document.querySelectorAll('#filter-controls .filter-btn')
-      .forEach(btn=>btn.addEventListener('click',()=>filterRows(btn.dataset.filter)));
+      .forEach(btn => btn.addEventListener('click', ()=>filterRows(btn.dataset.filter)));
 
-    // init
+    // Initialize
     loadData();
     filterRows('all');
   </script>
