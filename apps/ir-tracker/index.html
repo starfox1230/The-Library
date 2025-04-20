@@ -209,11 +209,13 @@
     let items = [], reorderState = 0, customOrder = null, sortable = null;
     let currentFilter='all', saveTimeout;
 
+    // Updated dateStates: first is "no date" (no emoji), then later (📅), today, tomorrow, pending
     const dateStates = [
-      {key:'none',     char:'📅', label:'later'},
-      {key:'today',    char:'☀️', label:'today'},
-      {key:'tomorrow', char:'🌙', label:'tomorrow'},
-      {key:'pending',  char:'❔', label:'tod/tom'}
+      { key:'no-date',  char:'',   label:'no date' },
+      { key:'later',    char:'📅', label:'later'  },
+      { key:'today',    char:'☀️', label:'today'  },
+      { key:'tomorrow', char:'🌙', label:'tomorrow' },
+      { key:'pending',  char:'❔', label:'tod/tom' }
     ];
 
     function makeID(){
@@ -320,7 +322,8 @@
       // line 2 with date emoji
       const ds = q('.date-btn').dataset.date;
       const dateState = dateStates.find(s=>s.key===ds) || dateStates[0];
-      const dateEmo = dateState.key!=='none' ? dateState.char + ' ' : '';
+      // show the emoji only if defined
+      const dateEmo = dateState.char ? dateState.char + ' ' : '';
       const proc=q('[name="procedure"]').value||'No Procedure';
       const hist=q('[name="history"]').value||'';
       q('.summary-bottom').textContent = dateEmo + `${proc} – ${hist}`;
@@ -414,7 +417,7 @@
 
       // date
       const db = content.querySelector('.date-btn');
-      const initState = data.dateState||'none';
+      const initState = data.dateState||'no-date';
       const ds = dateStates.find(s=>s.key===initState) || dateStates[0];
       db.dataset.date = ds.key;
       db.innerHTML = `${ds.char}<small>${ds.label}</small>`;
@@ -429,9 +432,7 @@
         });
       });
 
-      det.addEventListener('toggle', ()=>{
-        if(document.readyState==='complete') debouncedSave();
-      });
+      det.addEventListener('toggle', ()=>{ if(document.readyState==='complete') debouncedSave(); });
 
       updateSummary(det);
       document.getElementById('rows').appendChild(det);
@@ -560,8 +561,7 @@
       items.push(newItem);
       createRow(newItem);
       applyOrder(); updateHandles();
-      const d=document.querySelector(`details
-.row[data-id="${newItem.id}"]`);
+      const d=document.querySelector(`details.row[data-id="${newItem.id}"]`);
       d.open=true; d.querySelector('[name="location"]').focus();
       debouncedSave();
     };
