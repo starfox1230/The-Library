@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Invaders (Mobile + Controller Optimized)</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      background: #000;
+      display: flex; justify-content: center; align-items: center;
+    }
+    canvas {
+      /* fill width, auto height, max out at viewport height */
+      width: 100vw;
+      height: auto;
+      max-height: 100vh;
+      background: #000;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx    = canvas.getContext('2d');
+
+  // Internal “virtual” resolution (16:9)
+  const BASE_W = 960, BASE_H = 540;
+
+  // Stars background
+  const stars = Array.from({length:100}, () => ({
+    x: Math.random()*BASE_W,
+    y: Math.random()*BASE_H,
+    r: Math.random()*2 + 1
+  }));
+
+  // Player
+  const player = { w:40, h:20, x:BASE_W/2-20, y:BASE_H-40, speed:5 };
+
+  // Game state
+  let bullets = [], invaders = [], score = 0, level = 1;
+  let invSpeed=1, invDir=1, canShoot=true;
+  let gameState = 'start';  // 'start' / 'playing' / 'levelcleared' / 'gameover'
+
+  // Create invaders grid
+  function createInvaders(){
+    invaders = [];
+    const cols = 8, rows = 4, pad = 15, invW=40, invH=20;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        invaders.push({
+          x: 60 + c*(invW+pad),
+          y: 60 + r*(invH+pad),
+          w: invW, h: invH, alive:true
+        });
+      }
+    }
+    invSpeed = 1 + (level-1)*0.3;
+    invDir = 1;
+  }
+  createInvaders();
+
+  function resetPlayer(){
+    player.x = BASE_W/2 - player.w/2;
+    player.y = BASE_H - 40;
+  }
+
+  // Poll controller + keyboard
+  const keys = {};
+  window.addEventListener('keydown',  e=> keys[e.key] = true);
+  window.addEventListener('keyup',    e=> keys[e.key] = false);
+
+  function pollGamepad(){
+    const gp = navigator.getGamepads()[0];
+    if(!gp) return {};
+    return {
+      left: gp.buttons[14].pressed || (gp.axes[0] < -0.5),
+      right: gp.buttons[15].pressed || (gp.axes[0] >  0.5),
+      up: gp.buttons[12].pressed   || (gp.axes[1] < -0.5),
+      down: gp.buttons[13].pressed || (gp.axes[1] >  0.5),
+      fire: gp.buttons[3].pressed,     // Y
+      start: gp.buttons[9].pressed     // Start
+    };
+  }
+
+  function update(){
+    // handle start/restart/next
+    const gp = pollGamepad();
+    if(gameState!=='playing'){
+      if((gp.start || keys[' '] || keys['+'])){
+        if(gameState==='gameover' || gameState==='start') {
+          score=0; level=1; createInvaders();
+        }
+        if(gameState==='levelcleared'){
+          level++; createInvaders();
+        }
+        bullets=[]; resetPlayer();
+        gameState='playing';
+      }
+      return;
+    }
+
+    // movement
+    const mvL = gp.left  || keys['ArrowLeft'],
+          mvR = gp.right || keys['ArrowRight'],
+          mvU = gp.up    || keys['ArrowUp'],
+          mvD = gp.down  || keys['ArrowDown'];
+    if(mvL) player.x -= player.speed;
+    if(mvR) player.x += player.speed;
+    if(mvU) player.y -= player.speed;
+    if(mvD) player.y += player.speed;
+    // bounds (lower half of screen for player)
+    player.x = Math.max(0, Math.min(BASE_W-player.w, player.x));
+    player.y = Math.max(BASE_H*0.6, Math.min(BASE_H-player.h, player.y));
+
+    // shooting
+    if((gp.fire || keys[' ']) && canShoot){
+      bullets.push({ x:player.x+player.w/2-2, y:player.y, w:4, h:10, speed:7 });
+      canShoot = false;
+    }
+    if(!(gp.fire || keys[' '])) canShoot = true;
+
+    // update bullets
+    bullets = bullets.filter(b => {
+      b.y -= b.speed;
+      return b.y + b.h > 0;
+    });
+
+    // invader movement & edge bounce
+    let leftEdge=BASE_W, rightEdge=0;
+    invaders.forEach(inv=>{
+      if(!inv.alive) return;
+      leftEdge = Math.min(leftEdge, inv.x);
+      rightEdge= Math.max(rightEdge, inv.x+inv.w);
+    });
+    if(leftEdge<0 || rightEdge>BASE_W){
+      invDir *= -1;
+      invaders.forEach(inv=>{ if(inv.alive) inv.y += inv.h/2 });
+    }
+    invaders.forEach(inv=>{ if(inv.alive) inv.x += invSpeed*invDir });
+
+    // collisions
+    bullets.forEach((b,bi)=> {
+      invaders.forEach((inv,ii)=>{
+        if(!inv.alive) return;
+        if(b.x < inv.x+inv.w && b.x+b.w>inv.x &&
+           b.y < inv.y+inv.h && b.y+b.h>inv.y){
+          inv.alive=false;
+          bullets.splice(bi,1);
+          score += 10;
+        }
+      });
+    });
+
+    // level cleared?
+    if(invaders.every(i=>!i.alive)){
+      gameState='levelcleared';
+    }
+    // game over?
+    if(invaders.some(i=>i.alive && i.y + i.h > player.y)){
+      gameState='gameover';
+    }
+  }
+
+  function draw(){
+    // clear & stars
+    ctx.clearRect(0,0,BASE_W,BASE_H);
+    ctx.fillStyle='#222';
+    stars.forEach(s=>ctx.fillRect(s.x,s.y,s.r,s.r));
+
+    // player
+    ctx.fillStyle='#0ff';
+    ctx.fillRect(player.x,player.y,player.w,player.h);
+    if(!canShoot){
+      ctx.fillRect(player.x+player.w/2-2, player.y-5, 4,5);
+    }
+
+    // bullets
+    ctx.fillStyle='#fff';
+    bullets.forEach(b=>ctx.fillRect(b.x,b.y,b.w,b.h));
+
+    // invaders
+    invaders.forEach(inv=>{
+      if(!inv.alive) return;
+      ctx.fillStyle='#4f4'; ctx.fillRect(inv.x,inv.y,inv.w,inv.h);
+      ctx.strokeStyle='#000'; ctx.strokeRect(inv.x,inv.y,inv.w,inv.h);
+    });
+
+    // HUD
+    ctx.fillStyle='#0f0'; ctx.font='18px monospace';
+    ctx.fillText(`Score: ${score}`, 20, 24);
+    ctx.fillText(`Level: ${level}`, BASE_W - 100, 24);
+
+    // overlays
+    ctx.textAlign='center'; ctx.font='36px monospace';
+    if(gameState!=='playing'){
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle= gameState==='gameover' ? '#f00' : '#fff';
+      const msg = {
+        start:    'SPACE INVADERS\nPress START (or +/Space) to Play',
+        levelcleared: `LEVEL ${level} CLEARED!\nPress START to Continue`,
+        gameover: `GAME OVER\nFinal Score: ${score}\nPress START to Restart`
+      }[gameState];
+      msg.split('\n').forEach((line,i)=>
+        ctx.fillText(line, BASE_W/2, BASE_H/2 + i*50 - 25)
+      );
+    }
+  }
+
+  // main loop
+  (function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
