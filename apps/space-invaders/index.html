@@ -2,229 +2,197 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Space Invaders (Controller → F‑keys / Arrow‑Fire)</title>
+  <title>Epic Space Invaders (Phaser 3)</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <style>
-    html, body {
-      margin:0; padding:0;
-      width:100%; height:100%;
-      background:#000;
-      display:flex; align-items:center; justify-content:center;
-    }
-    canvas {
-      width:100vw; max-height:100vh;
-      background:#000; display:block;
-    }
+    body { margin:0; background:#000; }
+    #game { width:100vw; height:100vh; }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <div id="game"></div>
   <script>
-  const canvas = document.getElementById('gameCanvas');
-  const ctx    = canvas.getContext('2d');
-  const W=960, H=540;
-
-  // background stars
-  const stars = Array.from({length:100}, () => ({
-    x: Math.random()*W,
-    y: Math.random()*H,
-    r: Math.random()*2+1
-  }));
-
-  // player
-  const player = { w:40, h:20, x:W/2-20, y:H-40, speed:5 };
-
-  // state
-  let bullets = [], invaders = [], score=0, level=1;
-  let invSpeed=1, invDir=1, canShoot=true;
-  let gameState = 'start'; // 'start','playing','levelcleared','gameover'
-
-  function createInvaders(){
-    invaders = [];
-    const cols=8, rows=4, pad=15, invW=40, invH=20;
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        invaders.push({
-          x: 60 + c*(invW+pad),
-          y: 60 + r*(invH+pad),
-          w:invW, h:invH, alive:true
-        });
-      }
+  const CONFIG = {
+    type: Phaser.AUTO,
+    parent: 'game',
+    backgroundColor: '#000',
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: 960,
+      height: 540,
+    },
+    physics: {
+      default: 'arcade',
+      arcade: { debug: false }
+    },
+    scene: {
+      preload, create, update
     }
-    invSpeed = 1 + (level-1)*0.3;
-    invDir = 1;
-  }
-  createInvaders();
-  function resetPlayer(){
-    player.x = W/2 - player.w/2;
-    player.y = H - 40;
+  };
+
+  const game = new Phaser.Game(CONFIG);
+
+  let player, cursors, fireKey, startKey;
+  let bullets, invaders, scoreText, levelText;
+  let score = 0, level = 1, canShoot = true;
+  let gameState = 'start';
+
+  function preload() {
+    // nothing to load—textures will be generated
   }
 
-  // keys
-  const keys = {};
-  window.addEventListener('keydown', e => {
-    // prevent right-arrow default (scrolling)
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      keys['ArrowRight'] = true;
-    }
-    if (e.key === 'F8' || e.key === 'F11') {
-      keys[e.key] = true;
-    }
-    if (e.key === '+') keys['+'] = true;
-  });
-  window.addEventListener('keyup', e => {
-    if (e.key === 'ArrowRight') keys['ArrowRight'] = false;
-    if (e.key === 'F8' || e.key === 'F11') keys[e.key] = false;
-    if (e.key === '+') keys['+'] = false;
-  });
+  function create() {
+    const { width, height } = this.scale;
 
-  // gamepad state
-  function pollGamepad(){
-    const gp = navigator.getGamepads()[0];
-    if(!gp) return {};
-    return {
-      left: gp.buttons[14].pressed || (gp.axes[0] < -0.5),
-      right: gp.buttons[15].pressed || (gp.axes[0] >  0.5),
-      fire: gp.buttons[3].pressed,
-      start: gp.buttons[9].pressed
-    };
-  }
+    // generate simple textures
+    this.add.graphics()
+      .fillStyle(0x00ffff).fillRect(0,0,40,20)
+      .generateTexture('player',40,20).clear();
+    this.add.graphics()
+      .fillStyle(0x44ff44).fillRect(0,0,40,20)
+      .generateTexture('invader',40,20).clear();
 
-  function update(){
-    const gp = pollGamepad();
+    // stars background via tileSprite
+    this.add.tileSprite(0,0,width,height, null)
+      .setOrigin(0)
+      .setFillStyle(0)
+      .setPipeline('Light2D');
 
-    // handle start / restart / next level
-    if (gameState !== 'playing') {
-      if (gp.start || keys[' '] || keys['+']) {
-        if (gameState==='gameover' || gameState==='start') {
-          score=0; level=1; createInvaders();
-        }
-        if (gameState==='levelcleared') {
-          level++; createInvaders();
-        }
-        bullets=[]; resetPlayer();
-        gameState='playing';
-      }
-      return;
-    }
+    // player sprite + physics
+    player = this.physics.add.sprite(width/2, height-40, 'player')
+      .setCollideWorldBounds(true);
+    player.body.setSize(40,20);
 
-    // horizontal movement only
-    const mvL = gp.left  || keys['F8'];
-    const mvR = gp.right || keys['F11'];
-    if (mvL) player.x -= player.speed;
-    if (mvR) player.x += player.speed;
-    player.x = Math.max(0, Math.min(W-player.w, player.x));
+    // groups
+    bullets = this.physics.add.group();
+    invaders = this.physics.add.group();
+    spawnInvaders.call(this);
 
-    // firing (right-arrow or controller Y)
-    if ((gp.fire || keys['ArrowRight']) && canShoot) {
-      bullets.push({
-        x: player.x + player.w/2 - 2,
-        y: player.y,
-        w:4, h:10,
-        speed:7
-      });
-      canShoot = false;
-    }
-    if (!(gp.fire || keys['ArrowRight'])) {
-      canShoot = true;
-    }
+    // HUD
+    scoreText = this.add.text(10,10,'Score: 0',{ font:'18px monospace', fill:'#0f0' });
+    levelText = this.add.text(width-120,10,'Level: 1',{ font:'18px monospace', fill:'#0f0' });
 
-    // move bullets
-    bullets = bullets.filter(b => {
-      b.y -= b.speed;
-      return b.y + b.h > 0;
-    });
+    // keyboard
+    cursors = this.input.keyboard.createCursorKeys();
+    fireKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+    startKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-    // invader edge detection & bounce
-    let leftEdge=W, rightEdge=0;
-    invaders.forEach(inv => {
-      if (!inv.alive) return;
-      leftEdge  = Math.min(leftEdge, inv.x);
-      rightEdge = Math.max(rightEdge, inv.x + inv.w);
-    });
-    if (leftEdge < 0 || rightEdge > W) {
-      invDir *= -1;
-      invaders.forEach(inv => { if(inv.alive) inv.y += inv.h/2 });
-    }
-    // move invaders
-    invaders.forEach(inv => {
-      if (inv.alive) inv.x += invSpeed * invDir;
+    // gamepad
+    this.input.gamepad.once('connected', pad => {
+      console.log('Gamepad connected:', pad.id);
     });
 
     // collisions
-    bullets.forEach((b,bi) => {
-      invaders.forEach((inv,ii) => {
-        if (!inv.alive) return;
-        if (b.x < inv.x+inv.w && b.x+b.w>inv.x &&
-            b.y < inv.y+inv.h && b.y+b.h>inv.y) {
-          inv.alive = false;
-          bullets.splice(bi,1);
-          score += 10;
-        }
-      });
-    });
-
-    // check level cleared & game over
-    if (invaders.every(i=>!i.alive)) gameState='levelcleared';
-    if (invaders.some(i=>i.alive && i.y + i.h > player.y)) gameState='gameover';
-  }
-
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    // stars
-    ctx.fillStyle = '#222';
-    stars.forEach(s => ctx.fillRect(s.x,s.y,s.r,s.r));
-
-    // player
-    ctx.fillStyle = '#0ff';
-    ctx.fillRect(player.x,player.y,player.w,player.h);
-    if (!canShoot) {
-      ctx.fillRect(player.x+player.w/2-2, player.y-5, 4,5);
-    }
-
-    // bullets
-    ctx.fillStyle='#fff';
-    bullets.forEach(b=>ctx.fillRect(b.x,b.y,b.w,b.h));
-
-    // invaders
-    invaders.forEach(inv=>{
-      if (!inv.alive) return;
-      ctx.fillStyle='#4f4';
-      ctx.fillRect(inv.x,inv.y,inv.w,inv.h);
-      ctx.strokeStyle='#000';
-      ctx.strokeRect(inv.x,inv.y,inv.w,inv.h);
-    });
-
-    // HUD
-    ctx.fillStyle='#0f0'; ctx.font='18px monospace';
-    ctx.fillText(`Score: ${score}`, 20, 24);
-    ctx.fillText(`Level: ${level}`, W-100, 24);
-
-    // overlay screens
-    ctx.textAlign='center'; ctx.font='36px monospace';
-    if (gameState !== 'playing') {
-      ctx.fillStyle='rgba(0,0,0,0.6)';
-      ctx.fillRect(0,0,W,H);
-      let lines, color='#fff';
-      if (gameState==='start') {
-        lines = ['SPACE INVADERS','Press START or +/Space to Play'];
-      } else if (gameState==='levelcleared') {
-        color='#ff0';
-        lines = [`LEVEL ${level} CLEARED!`,'Press START to Continue'];
-      } else { // gameover
-        color='#f00';
-        lines = ['GAME OVER', `Final Score: ${score}`, 'Press START to Restart'];
+    this.physics.add.overlap(bullets, invaders, (b, inv) => {
+      inv.disableBody(true,true);
+      b.destroy();
+      score += 10; scoreText.setText('Score: '+score);
+      if (invaders.countActive()===0) {
+        gameState = 'levelcleared';
       }
-      ctx.fillStyle = color;
-      lines.forEach((l,i)=>ctx.fillText(l, W/2, H/2 + (i-1)*(50)));
-    }
+    });
+
+    this.physics.world.on('worldbounds', body => {
+      if (body.gameObject === player) {
+        // nothing
+      }
+    });
+
+    // disable auto-restart of bullet offscreen
+    this.physics.world.on('worldbounds', (body) => {
+      if (body.gameObject.texture.key === 'bullet') body.gameObject.destroy();
+    });
   }
 
-  (function loop(){
-    update();
-    draw();
-    requestAnimationFrame(loop);
-  })();
+  function spawnInvaders() {
+    invaders.clear(true,true);
+    for (let row=0; row<4; row++) {
+      for (let col=0; col<8; col++) {
+        let x = 60 + col*55;
+        let y = 60 + row*35;
+        invaders.create(x,y,'invader').setOrigin(0).setImmovable(true);
+      }
+    }
+    // invader motion tween
+    this.tweens.timeline({
+      targets: invaders.getChildren(),
+      loop: -1,
+      ease: 'Linear',
+      tweens: [
+        { x: '+=200', duration: 2000 - (level-1)*200 },
+        { y: '+=10', duration: 200 },
+        { x: '-=200', duration: 2000 - (level-1)*200 },
+        { y: '+=10', duration: 200 }
+      ]
+    });
+  }
+
+  function update() {
+    const pad = this.input.gamepad.getPad(0);
+
+    // handle start / restart / next level
+    if (gameState!=='playing') {
+      if ((pad && pad.buttons[9].pressed) || Phaser.Input.Keyboard.JustDown(startKey)) {
+        if (gameState==='gameover' || gameState==='start') {
+          score = 0; level = 1;
+        }
+        if (gameState==='levelcleared') {
+          level++;
+        }
+        scoreText.setText('Score: '+score);
+        levelText.setText('Level: '+level);
+        spawnInvaders.call(this);
+        player.setPosition(this.scale.width/2, this.scale.height-40);
+        bullets.clear(true,true);
+        gameState='playing';
+      }
+      // draw overlay text
+      drawOverlay.call(this);
+      return;
+    }
+
+    // movement (left/right only)
+    const left  = (pad && (pad.axes[0]<-0.5 || pad.buttons[14].pressed)) || cursors.left.isDown;
+    const right = (pad && (pad.axes[0]>0.5  || pad.buttons[15].pressed)) || cursors.right.isDown;
+    if (left)  player.x -= 200 * this.game.loop.delta/1000;
+    if (right) player.x += 200 * this.game.loop.delta/1000;
+
+    // fire
+    const firing = (pad && pad.buttons[3].pressed) || fireKey.isDown;
+    if (firing && canShoot) {
+      let b = bullets.create(player.x, player.y-10, null)
+        .setDisplaySize(4,10)
+        .setTint(0xffffff);
+      b.body.setVelocityY(-400);
+      canShoot=false;
+    }
+    if (!firing) canShoot=true;
+
+    // check game over: invader too low
+    invaders.getChildren().forEach(inv => {
+      if (inv.active && inv.y + inv.height > player.y) {
+        gameState = 'gameover';
+      }
+    });
+
+    levelText.setText('Level: '+level);
+  }
+
+  function drawOverlay() {
+    const { width, height } = this.scale;
+    const lines = {
+      start: ['SPACE INVADERS','Press START or SPACE to Play'],
+      levelcleared: [`LEVEL ${level} CLEARED!`,'Press START to Continue'],
+      gameover: ['GAME OVER', `Score: ${score}`, 'Press START to Restart']
+    }[gameState];
+    this.add.rectangle(width/2,height/2,600,300,0x000000,0.6).setDepth(10);
+    lines.forEach((l,i)=>{
+      this.add.text(width/2, height/2 + i*50 - 50, l, {
+        font:'36px monospace', fill: gameState==='gameover'? '#f00':'#fff'
+      }).setOrigin(0.5).setDepth(11);
+    });
+  }
   </script>
 </body>
 </html>
