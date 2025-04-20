@@ -5,93 +5,142 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Number Quiz for Kids</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
     :root {
-      --bg: #FFF0F5;               /* lavender blush */
-      --primary: #DDA0DD;          /* plum */
-      --accent: #B0E0E6;           /* powder blue */
-      --btn-bg: #F8E1F4;           /* light pastel pink */
-      --btn-hover: #E6C3E6;        /* slightly darker */
-      --correct: #C8E6C9;          /* light green */
-      --wrong: #FFCDD2;            /* light red */
-      --text: #333;
-      --radius: 8px;
-      font-family: 'Poppins', sans-serif;
+      --bg-start: #FDEBFF;
+      --bg-end:   #BFE5FF;
+      --card-bg:  rgba(255, 255, 255, 0.8);
+      --primary:  #A569BD;    /* rich purple */
+      --accent:   #FFB6C1;    /* light pink */
+      --btn-bg:   #FFFFFF;
+      --btn-hover:#F0E6FF;
+      --shadow:   rgba(0,0,0,0.1);
+      --radius:   12px;
+      --text:     #333333;
+      --correct:  #28A745;
+      --wrong:    #DC3545;
     }
+
+    * { box-sizing: border-box; margin:0; padding:0; }
+
     body {
-      margin: 0; padding: 1rem;
-      background: var(--bg);
-      color: var(--text);
-      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
     }
+
+    .container {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px var(--shadow);
+      padding: 1.5rem;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+
     h1 {
-      margin-bottom: 0.5rem;
       color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
     }
-    #controls {
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
       margin-bottom: 1rem;
     }
-    select {
+
+    select, #startBtn {
       font-size: 1rem;
-      padding: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border: none;
       border-radius: var(--radius);
-      border: 2px solid var(--primary);
-      background: white;
-      color: var(--text);
+      box-shadow: 0 4px 12px var(--shadow);
+      cursor: pointer;
+      background: var(--btn-bg);
+      transition: transform 0.1s, box-shadow 0.2s;
     }
+
+    select:focus, #startBtn:focus {
+      outline: 2px solid var(--primary);
+    }
+
+    select:hover, #startBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px var(--shadow);
+    }
+
     #quiz {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
       gap: 0.5rem;
-      width: 100%;
-      max-width: 400px;
+      margin-bottom: 1rem;
     }
+
     .btn {
+      position: relative;
       background: var(--btn-bg);
-      border: 2px solid var(--primary);
       border-radius: var(--radius);
-      padding: 0.75rem;
-      font-size: 1rem;
+      padding: 0.75rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+      border: 2px solid var(--accent);
+      box-shadow: 0 4px 12px var(--shadow);
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
     }
-    .btn:hover {
+
+    .btn:hover:not(.correct):not(.wrong) {
       background: var(--btn-hover);
       transform: translateY(-2px);
+      box-shadow: 0 6px 18px var(--shadow);
     }
+
     .btn.correct {
-      background: var(--correct) !important;
-      border-color: green !important;
+      background: var(--correct);
+      border-color: var(--correct);
+      color: white;
     }
     .btn.wrong {
-      background: var(--wrong) !important;
-      border-color: red !important;
+      background: var(--wrong);
+      border-color: var(--wrong);
+      color: white;
     }
+
     #message {
-      margin-top: 1rem;
-      font-size: 1.2rem;
-      min-height: 1.5em;
+      font-size: 1.1rem;
+      min-height: 1.4em;
+      color: var(--text);
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
 
-  <h1>Number Quiz</h1>
+  <div class="container">
+    <h1>Number Quiz</h1>
+    <div class="controls">
+      <select id="rangeSelect">
+        <option value="1-10">1 – 10</option>
+        <option value="10-20">10 – 20</option>
+      </select>
+      <button id="startBtn">Start</button>
+    </div>
 
-  <div id="controls">
-    <label for="rangeSelect">Choose range:</label>
-    <select id="rangeSelect">
-      <option value="1-10">1 – 10</option>
-      <option value="10-20">10 – 20</option>
-    </select>
-    <button id="startBtn" class="btn">Start Quiz</button>
+    <div id="quiz"></div>
+    <div id="message"></div>
   </div>
 
-  <div id="quiz"></div>
-
-  <div id="message"></div>
-
   <script>
-    // map numbers to their spoken words
+    // for speech we still need words:
     const words = {
       1:'one',2:'two',3:'three',4:'four',5:'five',
       6:'six',7:'seven',8:'eight',9:'nine',10:'ten',
@@ -104,58 +153,51 @@
     const quizDiv     = document.getElementById('quiz');
     const msgDiv      = document.getElementById('message');
 
-    let currentRange = [1,10];
-    let targetNumber;
+    let currentRange = [1,10], targetNumber;
 
     startBtn.addEventListener('click', () => {
-      const val = rangeSelect.value.split('-').map(Number);
-      currentRange = val;
+      const [min, max] = rangeSelect.value.split('-').map(Number);
+      currentRange = [min, max];
       nextQuestion();
     });
 
     function nextQuestion() {
       msgDiv.textContent = '';
-      // pick a random number in range
       const [min, max] = currentRange;
-      targetNumber = Math.floor(Math.random()*(max - min + 1)) + min;
+      targetNumber = Math.floor(Math.random()*(max-min+1)) + min;
       speak(words[targetNumber]);
       renderButtons(min, max);
     }
 
     function renderButtons(min, max) {
       quizDiv.innerHTML = '';
-      // generate an array of numbers in the range
-      const nums = [];
-      for (let i = min; i <= max; i++) nums.push(i);
-      // shuffle for randomness
-      nums.sort(() => Math.random()-0.5);
-      // create buttons
+      const nums = Array.from({length: max-min+1}, (_,i)=>i+min)
+                        .sort(() => Math.random()-0.5);
       nums.forEach(n => {
         const btn = document.createElement('button');
-        btn.textContent = words[n];
-        btn.className = 'btn';
-        btn.onclick = () => handleAnswer(btn, n);
+        btn.textContent = n;              // show digits
+        btn.className   = 'btn';
+        btn.onclick     = () => handleAnswer(btn,n);
         quizDiv.appendChild(btn);
       });
     }
 
-    function handleAnswer(button, chosen) {
-      // disable all buttons
-      Array.from(quizDiv.children).forEach(b => b.disabled = true);
-      if (chosen === targetNumber) {
-        button.classList.add('correct');
-        msgDiv.textContent = 'Correct!';
-        speak('Correct!');
+    function handleAnswer(btn, val) {
+      // lock buttons
+      Array.from(quizDiv.children).forEach(b=>b.disabled=true);
+      if (val === targetNumber) {
+        btn.classList.add('correct');
+        msgDiv.textContent = '🎉 Correct!';
+        speak('Correct');
         setTimeout(nextQuestion, 1000);
       } else {
-        button.classList.add('wrong');
-        msgDiv.textContent = 'Try again.';
-        speak('Try again.');
-        // allow another try
+        btn.classList.add('wrong');
+        msgDiv.textContent = '❌ Try again.';
+        speak('Try again');
         setTimeout(() => {
-          button.classList.remove('wrong');
+          btn.classList.remove('wrong');
           msgDiv.textContent = '';
-          Array.from(quizDiv.children).forEach(b => b.disabled = false);
+          Array.from(quizDiv.children).forEach(b=>b.disabled=false);
         }, 800);
       }
     }
@@ -163,9 +205,9 @@
     function speak(text) {
       if (!window.speechSynthesis) return;
       const u = new SpeechSynthesisUtterance(text);
-      // you can pick a preferred voice here if you want:
-      // const voices = speechSynthesis.getVoices();
-      // u.voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+      // pick a nice voice if you want:
+      // const v = speechSynthesis.getVoices().find(v=>v.lang.startsWith('en'));
+      // if (v) u.voice = v;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     }
