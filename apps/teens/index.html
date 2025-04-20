@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Number Quiz for Kids</title>
+  <title>Number Quiz (No Sticky Highlights)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
@@ -11,8 +11,8 @@
       --bg-start: #FDEBFF;
       --bg-end:   #BFE5FF;
       --card-bg:  rgba(255, 255, 255, 0.8);
-      --primary:  #A569BD;    /* rich purple */
-      --accent:   #FFB6C1;    /* light pink */
+      --primary:  #A569BD;
+      --accent:   #FFB6C1;
       --btn-bg:   #FFFFFF;
       --btn-hover:#F0E6FF;
       --shadow:   rgba(0,0,0,0.1);
@@ -23,6 +23,14 @@
     }
 
     * { box-sizing: border-box; margin:0; padding:0; }
+
+    /* Disable mobile tap‑highlight and remove focus outline */
+    button, a {
+      -webkit-tap-highlight-color: transparent;    /* disable blue flash */  
+    }
+    button:focus {
+      outline: none !important;                    /* remove default focus */  
+    }
 
     body {
       min-height: 100vh;
@@ -67,11 +75,6 @@
       background: var(--btn-bg);
       transition: transform 0.1s, box-shadow 0.2s;
     }
-
-    select:focus, #startBtn:focus {
-      outline: 2px solid var(--primary);
-    }
-
     select:hover, #startBtn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 18px var(--shadow);
@@ -85,7 +88,6 @@
     }
 
     .btn {
-      position: relative;
       background: var(--btn-bg);
       border-radius: var(--radius);
       padding: 0.75rem 0;
@@ -97,13 +99,11 @@
       cursor: pointer;
       transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
     }
-
     .btn:hover:not(.correct):not(.wrong) {
       background: var(--btn-hover);
       transform: translateY(-2px);
       box-shadow: 0 6px 18px var(--shadow);
     }
-
     .btn.correct {
       background: var(--correct);
       border-color: var(--correct);
@@ -140,7 +140,6 @@
   </div>
 
   <script>
-    // for speech we still need words:
     const words = {
       1:'one',2:'two',3:'three',4:'four',5:'five',
       6:'six',7:'seven',8:'eight',9:'nine',10:'ten',
@@ -155,6 +154,15 @@
 
     let currentRange = [1,10], targetNumber;
 
+    // Prevent focus on mousedown & blur on click for all buttons
+    function setupButtonHandlers() {
+      document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mousedown', e => e.preventDefault());  // no focus on touch  [oai_citation_attribution:0‡Reddit](https://www.reddit.com/r/webdev/comments/b1cwdf/finally_a_css_only_solution_to_hover_on/?utm_source=chatgpt.com)
+        btn.addEventListener('click', () => btn.blur());            // immediate blur on click  [oai_citation_attribution:1‡Stack Overflow](https://stackoverflow.com/questions/2568951/how-do-i-blur-everything-by-focusing-on-the-document?utm_source=chatgpt.com)
+      });
+    }
+    setupButtonHandlers();
+
     startBtn.addEventListener('click', () => {
       const [min, max] = rangeSelect.value.split('-').map(Number);
       currentRange = [min, max];
@@ -162,6 +170,11 @@
     });
 
     function nextQuestion() {
+      // remove focus from any element before rendering  [oai_citation_attribution:2‡Stack Overflow](https://stackoverflow.com/questions/2568951/how-do-i-blur-everything-by-focusing-on-the-document?utm_source=chatgpt.com)
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+
       msgDiv.textContent = '';
       const [min, max] = currentRange;
       targetNumber = Math.floor(Math.random()*(max-min+1)) + min;
@@ -175,16 +188,16 @@
                         .sort(() => Math.random()-0.5);
       nums.forEach(n => {
         const btn = document.createElement('button');
-        btn.textContent = n;              // show digits
+        btn.textContent = n;
         btn.className   = 'btn';
-        btn.onclick     = () => handleAnswer(btn,n);
+        btn.onclick     = () => handleAnswer(btn, n);
         quizDiv.appendChild(btn);
       });
+      setupButtonHandlers();  // re‑apply handlers for new buttons
     }
 
     function handleAnswer(btn, val) {
-      // lock buttons
-      Array.from(quizDiv.children).forEach(b=>b.disabled=true);
+      Array.from(quizDiv.children).forEach(b => b.disabled = true);
       if (val === targetNumber) {
         btn.classList.add('correct');
         msgDiv.textContent = '🎉 Correct!';
@@ -197,7 +210,7 @@
         setTimeout(() => {
           btn.classList.remove('wrong');
           msgDiv.textContent = '';
-          Array.from(quizDiv.children).forEach(b=>b.disabled=false);
+          Array.from(quizDiv.children).forEach(b => b.disabled = false);
         }, 800);
       }
     }
@@ -205,9 +218,6 @@
     function speak(text) {
       if (!window.speechSynthesis) return;
       const u = new SpeechSynthesisUtterance(text);
-      // pick a nice voice if you want:
-      // const v = speechSynthesis.getVoices().find(v=>v.lang.startsWith('en'));
-      // if (v) u.voice = v;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     }
