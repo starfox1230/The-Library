@@ -232,33 +232,43 @@
     }
 
     function saveAll(){
+      // 1) Remove any items whose row has been deleted from the DOM
+      items = items.filter(item =>
+        document.querySelector(`details.row[data-id="${item.id}"]`)
+      );
+
+      // 2) Serialize only the remaining rows
       items = items.map(item=>{
         const det = document.querySelector(`details.row[data-id="${item.id}"]`);
-        if(!det) return item;
-        const q = sel=>det.querySelector(sel);
+        const q   = sel=>det.querySelector(sel);
         return {
-          id:item.id,
-          roundState:q('.state-btn[data-field="round"]').dataset.state,
-          consentState:q('.state-btn[data-field="consent"]').dataset.state,
-          noteState:q('.state-btn[data-field="note"]').dataset.state,
-          orderState:q('.state-btn[data-field="order"]').dataset.state,
-          alert:q('.alert-btn').dataset.alert==='true',
-          dateState:q('.date-btn').dataset.date,
-          pending:q('[name="pending"]').value,
-          contactName:q('[name="contactName"]').value,
-          contactPhone:q('[name="contactPhone"]').value,
-          location:q('[name="location"]').value,
-          name:q('[name="name"]').value,
-          mrn:q('[name="mrn"]').value,
-          procedure:q('[name="procedure"]').value,
-          history:q('[name="history"]').value,
-          labs:q('[name="labs"]').value,
-          lastEdited:det.dataset.lastEdited,
-          isOpen:det.open
+          id:               item.id,
+          roundState:       q('.state-btn[data-field="round"]').dataset.state,
+          consentState:     q('.state-btn[data-field="consent"]').dataset.state,
+          noteState:        q('.state-btn[data-field="note"]').dataset.state,
+          orderState:       q('.state-btn[data-field="order"]').dataset.state,
+          alert:            q('.alert-btn').dataset.alert==='true',
+          dateState:        q('.date-btn').dataset.date,
+          pending:          q('[name="pending"]').value,
+          contactName:      q('[name="contactName"]').value,
+          contactPhone:     q('[name="contactPhone"]').value,
+          location:         q('[name="location"]').value,
+          name:             q('[name="name"]').value,
+          mrn:              q('[name="mrn"]').value,
+          procedure:        q('[name="procedure"]').value,
+          history:          q('[name="history"]').value,
+          labs:             q('[name="labs"]').value,
+          lastEdited:       det.dataset.lastEdited,
+          isOpen:           det.open
         };
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({items, customOrder, reorderState}));
+
+      // 3) Persist back to localStorage
+      localStorage.setItem(STORAGE_KEY,
+        JSON.stringify({items, customOrder, reorderState})
+      );
     }
+
     function debouncedSave(){
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(saveAll,500);
@@ -267,9 +277,7 @@
     function cycle(btn){
       const fld = btn.dataset.field;
       const states = fld==='round'
-        // rounding still: needed → done (green) → na (gray)
         ? ['needed','done','na']
-        // for consent/note/order: needed → in-progress (yellow) → done (green) → na (gray)
         : ['needed','in-progress','done','na'];
       let idx = states.indexOf(btn.dataset.state);
       idx = (idx+1)%states.length;
@@ -430,28 +438,22 @@
         cycleDate(db); updateSummary(det); debouncedSave();
       });
 
-      // text inputs & textareas
+      // inputs & auto‑resize textareas
       content.querySelectorAll('input,textarea').forEach(el=>{
         el.addEventListener('input', ()=>{
           updateSummary(det); debouncedSave();
         });
       });
-
-      
-      // auto‑resize only when non‑empty, otherwise use default rows height
       content.querySelectorAll('textarea').forEach(el => {
         function autoResize() {
           if (!el.value) {
-            // no text → clear any inline height so 'rows' takes over
             el.style.height = '';
           } else {
-            // has text → grow to fit
             el.style.height = 'auto';
             el.style.height = el.scrollHeight + 'px';
           }
         }
         el.addEventListener('input', autoResize);
-        // initialize once
         autoResize();
       });
 
@@ -540,7 +542,6 @@
           det.style.display = (ds === type || ds === 'pending') ? '' : 'none';
         }
         else {
-          // for round/consent/note/order: show if needed OR in-progress
           const st = q(`.state-btn[data-field="${type}"]`).dataset.state;
           det.style.display = (st==='needed'||st==='in-progress')?'':'none';
         }
