@@ -113,7 +113,7 @@
       background:#777 !important;
     }
 
-    /* Content */
+    /* Content panel */
     .row-content {
       background:#222240; padding:1rem;
       display:flex; flex-direction:column; gap:.75rem;
@@ -134,13 +134,16 @@
     }
     .state-btn, .alert-btn, .date-btn {
       background:transparent; border:1px solid #555;
-      border-radius:4px; padding:.2rem .5rem; font-size:.85rem;
+      border-radius:4px; padding:.2rem .5rem; font-size:1rem;
       cursor:pointer; transition:background .2s,transform .1s;
       display:flex; flex-direction:column; align-items:center;
     }
     .state-btn:hover, .alert-btn:hover, .date-btn:hover {
       transform:scale(1.1);
     }
+    /* tiny labels */
+    .state-btn small,
+    .alert-btn small,
     .date-btn small {
       font-size:0.6em; line-height:1;
     }
@@ -156,13 +159,13 @@
     .state-btn.state-done-round    { background:green;       color:#fff;   }
     .state-btn.state-na-round      { background:#555;       color:#888;   }
 
-    .alert-btn.alert-on            { background:red; color:#fff; }
+    .alert-btn.alert-on { background:red; color:#fff; }
 
     .last-edited {
       font-size:.75rem; color:#aaa; text-align:right; margin-top:.5rem;
     }
 
-    /* Add button */
+    /* Add row button */
     #addRow {
       position:fixed; bottom:1.5rem; right:1.5rem; z-index:1000;
       border-radius:50%; width:50px; height:50px; font-size:1.8rem;
@@ -206,13 +209,11 @@
     let items = [], reorderState = 0, customOrder = null, sortable = null;
     let currentFilter='all', saveTimeout;
 
-    // date states
     const dateStates = [
-      {key:'none',     char:'Date', label:''},
-      {key:'today',    char:'☀️',   label:'today'},
-      {key:'tomorrow', char:'🌙',   label:'tomorrow'},
-      {key:'pending',  char:'❓',   label:'pending'},
-      {key:'later',    char:'📅',   label:'later'}
+      {key:'none',     char:'📅', label:'later'},
+      {key:'today',    char:'☀️', label:'today'},
+      {key:'tomorrow', char:'🌙', label:'tomorrow'},
+      {key:'pending',  char:'❓', label:'pending'}
     ];
 
     function makeID(){
@@ -220,7 +221,7 @@
     }
 
     function saveAll(){
-      items = items.map(item=>{ 
+      items = items.map(item=>{
         const det = document.querySelector(`details.row[data-id="${item.id}"]`);
         if(!det) return item;
         const q = sel=>det.querySelector(sel);
@@ -260,10 +261,9 @@
       let idx = states.indexOf(btn.dataset.state);
       idx = (idx+1)%states.length;
       btn.dataset.state = states[idx];
-      const cls = fld==='round'
+      btn.className = 'state-btn ' + (fld==='round'
         ? 'state-'+states[idx]+'-round'
-        : 'state-'+states[idx];
-      btn.className = 'state-btn '+cls;
+        : 'state-'+states[idx]);
     }
 
     function cycleDate(btn){
@@ -271,7 +271,7 @@
       idx = (idx+1)%dateStates.length;
       const st = dateStates[idx];
       btn.dataset.date = st.key;
-      btn.innerHTML = st.char + (st.label?`<small>${st.label}</small>`:'');
+      btn.innerHTML = `${st.char}<small>${st.label}</small>`;
     }
 
     function updateHandles(){
@@ -288,10 +288,10 @@
 
     function updateSummary(det){
       const q = sel=>det.querySelector(sel);
-      // line1
-      const loc = q('[name="location"]').value||'No Loc';
-      const nm  = q('[name="name"]').value||'No Name';
-      const mrn = q('[name="mrn"]').value||'No MRN';
+      // line 1
+      const loc=q('[name="location"]').value||'No Loc';
+      const nm=q('[name="name"]').value||'No Name';
+      const mrn=q('[name="mrn"]').value||'No MRN';
       q('.overview').textContent = `${loc} | ${nm} | ${mrn}`;
 
       // incomplete?
@@ -299,42 +299,44 @@
         const st=q(`.state-btn[data-field="${fld}"]`).dataset.state;
         return st==='needed'||st==='in-progress';
       });
-      // icons
+
       let icons = '';
       if(!needed && q('.alert-btn').dataset.alert==='false'){
-        icons = '✅';
+        icons='✅';
       } else {
         if(q('.alert-btn').dataset.alert==='true') icons='❗ ';
         ['round','consent','note','order'].forEach(fld=>{
           const st=q(`.state-btn[data-field="${fld}"]`).dataset.state;
           const e = fld==='round' ? '🚶'
                     : fld==='consent'? '✍️'
-                    : fld==='note'   ? '📝'
+                    : fld==='note'? '📝'
                     : '🛒';
-          if(st==='needed') icons+=e;
-          else if(st==='in-progress') icons+=`<span class="in-progress">${e}</span>`;
+          if(st==='needed') icons += e;
+          else if(st==='in-progress') icons += `<span class="in-progress">${e}</span>`;
         });
       }
       q('.summary-status-icons').innerHTML = icons;
 
-      // line2 with date emoji
-      const state = dateStates.find(s=>s.key===q('.date-btn').dataset.date);
-      const dateEmo = state && state.key!=='none' ? state.char+' ' : '';
-      const proc = q('[name="procedure"]').value||'No Procedure';
-      const hist = q('[name="history"]').value||'';
+      // line 2 with date emoji
+      const ds = q('.date-btn').dataset.date;
+      const dateState = dateStates.find(s=>s.key===ds) || dateStates[0];
+      const dateEmo = dateState.key!=='none' ? dateState.char + ' ' : '';
+      const proc=q('[name="procedure"]').value||'No Procedure';
+      const hist=q('[name="history"]').value||'';
       q('.summary-bottom').textContent = dateEmo + `${proc} – ${hist}`;
 
-      // color
+      // color coding
       det.classList.remove('status-incomplete-order','status-complete','status-complete-na');
-      if(needed) det.classList.add('status-incomplete-order');
-      else {
-        const os = q('.state-btn[data-field="order"]').dataset.state;
+      if(needed){
+        det.classList.add('status-incomplete-order');
+      } else {
+        const os=q('.state-btn[data-field="order"]').dataset.state;
         det.classList.add(os==='done'?'status-complete':'status-complete-na');
       }
 
       // timestamp
       const ts=new Date().toISOString();
-      det.dataset.lastEdited=ts;
+      det.dataset.lastEdited = ts;
       q('.last-edited').textContent = `Last edit: ${new Date(ts).toLocaleString()}`;
     }
 
@@ -343,7 +345,7 @@
       det.className='row';
       det.dataset.id = data.id||makeID();
       if(data.isOpen) det.open=true;
-      det.dataset.lastEdited=data.lastEdited||new Date().toISOString();
+      det.dataset.lastEdited = data.lastEdited||new Date().toISOString();
 
       const summ=document.createElement('summary');
       summ.className='row-summary';
@@ -355,47 +357,46 @@
         </div>
         <div class="summary-bottom"></div>
       `;
-      summ.querySelector('.delete-btn')
-        .addEventListener('click', e=>{
-          e.preventDefault(); e.stopPropagation();
-          if(reorderState===0 && confirm('Delete this row?')){
-            det.remove(); debouncedSave();
-          }
-        });
+      summ.querySelector('.delete-btn').addEventListener('click', e=>{
+        e.preventDefault(); e.stopPropagation();
+        if(reorderState===0 && confirm('Delete this row?')){
+          det.remove(); debouncedSave();
+        }
+      });
       det.appendChild(summ);
 
-      const content=document.createElement('div');
+      const content = document.createElement('div');
       content.className='row-content';
-      const tsDisp=data.lastEdited?new Date(data.lastEdited).toLocaleString():'Never';
+      const tsDisp = data.lastEdited? new Date(data.lastEdited).toLocaleString() : 'Never';
       content.innerHTML=`
         <div class="field-buttons">
-          <button class="state-btn" data-field="round">Round</button>
-          <button class="state-btn" data-field="consent">Consent</button>
-          <button class="state-btn" data-field="note">Note</button>
-          <button class="state-btn" data-field="order">Order</button>
-          <button class="alert-btn">❗</button>
-          <button class="date-btn">Date</button>
+          <button class="state-btn" data-field="round">🚶<small>round</small></button>
+          <button class="state-btn" data-field="consent">✍️<small>consent</small></button>
+          <button class="state-btn" data-field="note">📝<small>note</small></button>
+          <button class="state-btn" data-field="order">🛒<small>order</small></button>
+          <button class="alert-btn">❗<small>pending</small></button>
+          <button class="date-btn">📅<small>later</small></button>
         </div>
-        <input type="text" name="location"    placeholder="Location"       value="${data.location||''}">
-        <input type="text" name="name"        placeholder="Patient Name"   value="${data.name||''}">
-        <input type="text" name="mrn"         placeholder="MRN"            value="${data.mrn||''}">
-        <input type="text" name="procedure"   placeholder="Procedure"      value="${data.procedure||''}">
+        <input type="text" name="location"    placeholder="Location"    value="${data.location||''}">
+        <input type="text" name="name"        placeholder="Patient Name"value="${data.name||''}">
+        <input type="text" name="mrn"         placeholder="MRN"         value="${data.mrn||''}">
+        <input type="text" name="procedure"   placeholder="Procedure"   value="${data.procedure||''}">
         <textarea name="history" rows="3"     placeholder="History…">${data.history||''}</textarea>
-        <textarea name="labs"    rows="3"     placeholder="Labs / Vitals…">${data.labs||''}</textarea>
+        <textarea name="labs"    rows="3"     placeholder="Labs/Vitals…">${data.labs||''}</textarea>
         <textarea name="pending" rows="2"     placeholder="Pending…">${data.pending||''}</textarea>
-        <input type="text" name="contactName" placeholder="Contact Name"   value="${data.contactName||''}">
-        <input type="text" name="contactPhone"placeholder="Phone / Pager" value="${data.contactPhone||''}">
+        <input type="text" name="contactName" placeholder="Contact Name"  value="${data.contactName||''}">
+        <input type="text" name="contactPhone"placeholder="Phone/Pager"  value="${data.contactPhone||''}">
         <div class="last-edited">Last edit: ${tsDisp}</div>
       `;
       det.appendChild(content);
 
       // state buttons
       content.querySelectorAll('.state-btn').forEach(btn=>{
-        const fld=btn.dataset.field;
-        const key = fld==='round'?'roundState':fld+'State';
+        const fld = btn.dataset.field;
+        const key = fld==='round' ? 'roundState' : fld+'State';
         const st = data[key]||'needed';
         btn.dataset.state = st;
-        btn.classList.add(fld==='round'?'state-'+st+'-round':'state-'+st);
+        btn.classList.add(fld==='round'?`state-${st}-round`:`state-${st}`);
         btn.addEventListener('click', ()=>{
           cycle(btn); updateSummary(det); debouncedSave();
         });
@@ -413,15 +414,15 @@
 
       // date
       const db = content.querySelector('.date-btn');
-      const initial = data.dateState||'none';
-      const state = dateStates.find(s=>s.key===initial);
-      db.dataset.date = state.key;
-      db.innerHTML = state.char + (state.label?`<small>${state.label}</small>`:'');
+      const initState = data.dateState||'none';
+      const ds = dateStates.find(s=>s.key===initState) || dateStates[0];
+      db.dataset.date = ds.key;
+      db.innerHTML = `${ds.char}<small>${ds.label}</small>`;
       db.addEventListener('click', ()=>{
         cycleDate(db); updateSummary(det); debouncedSave();
       });
 
-      // text fields
+      // inputs
       content.querySelectorAll('input,textarea').forEach(el=>{
         el.addEventListener('input', ()=>{
           updateSummary(det); debouncedSave();
@@ -454,12 +455,12 @@
       const ids = (reorderState>0 && customOrder) ? customOrder : items.map(i=>i.id);
       const ctr = document.getElementById('rows');
       ids.forEach(id=>{
-        const d=ctr.querySelector(`details.row[data-id="${id}"]`);
+        const d = ctr.querySelector(`details.row[data-id="${id}"]`);
         if(d) ctr.appendChild(d);
       });
     }
 
-    // Expand/collapse
+    // Expand/Collapse
     document.getElementById('toggleExpandCollapse').onclick = ()=>{
       const all = Array.from(document.querySelectorAll('details.row'));
       const anyClosed = all.some(d=>!d.open);
@@ -495,12 +496,11 @@
         filterBtn.classList.toggle('active-filter', currentFilter!=='all');
       };
     });
-
     function filterRows(type){
       document.querySelectorAll('details.row').forEach(det=>{
         const q=sel=>det.querySelector(sel);
         if(type==='all'){
-          det.style.display = '';
+          det.style.display='';
         }
         else if(type==='complete'||type==='incomplete'){
           const needed = ['round','consent','note','order'].some(fld=>{
@@ -508,14 +508,14 @@
             return st==='needed'||st==='in-progress';
           });
           const show = type==='complete' ? !needed : needed;
-          det.style.display = show ? '' : 'none';
+          det.style.display = show?'':'none';
         }
         else if(type==='today'||type==='tomorrow'){
-          det.style.display = q('.date-btn').dataset.date===type ? '' : 'none';
+          det.style.display = q('.date-btn').dataset.date===type?'':'none';
         }
         else {
           const st = q(`.state-btn[data-field="${type}"]`).dataset.state;
-          det.style.display = st==='needed' ? '' : 'none';
+          det.style.display = st==='needed'?'':'none';
         }
       });
       saveAll();
@@ -538,16 +538,16 @@
     };
     document.getElementById('uploadTrigger').onclick = ()=>document.getElementById('fileInput').click();
     document.getElementById('fileInput').onchange = e=>{
-      const f=e.target.files[0]; if(!f) return;
+      const f=e.target.files[0]; if(!f)return;
       const r=new FileReader();
       r.onload = ev=>{
         try{
           const o=JSON.parse(ev.target.result);
           localStorage.setItem(STORAGE_KEY,JSON.stringify(o));
           init();
-        } catch(err){
+        }catch(err){
           alert('Upload error: '+err.message);
-        } finally {
+        }finally{
           e.target.value='';
         }
       };
@@ -560,7 +560,8 @@
       items.push(newItem);
       createRow(newItem);
       applyOrder(); updateHandles();
-      const d = document.querySelector(`details.row[data-id="${newItem.id}"]`);
+      const d=document.querySelector(`details
+.row[data-id="${newItem.id}"]`);
       d.open=true; d.querySelector('[name="location"]').focus();
       debouncedSave();
     };
@@ -568,7 +569,7 @@
     // Init
     function init(){
       let saved=localStorage.getItem(STORAGE_KEY), obj;
-      try{ obj=JSON.parse(saved);}catch{obj=null;}
+      try{obj=JSON.parse(saved);}catch{obj=null;}
       if(obj && Array.isArray(obj.items)){
         items=obj.items; customOrder=obj.customOrder; reorderState=obj.reorderState||0;
       } else {
