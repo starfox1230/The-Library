@@ -69,8 +69,18 @@
     }
 
     select:focus, #startBtn:focus {
-      outline: 2px solid var(--primary);
+      outline: 2px solid var(--primary); /* Standard focus outline */
     }
+    /* Remove default focus outline for number buttons if blur() isn't enough */
+    .btn:focus {
+        outline: none;
+    }
+    /* Optional: Add a subtle focus style if needed for accessibility */
+    .btn:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+
 
     select:hover, #startBtn:hover {
       transform: translateY(-2px);
@@ -183,21 +193,36 @@
     }
 
     function handleAnswer(btn, val) {
+      // --- FIX: Remove focus from the button immediately after click ---
+      btn.blur();
+      // --------------------------------------------------------------
+
       // lock buttons
       Array.from(quizDiv.children).forEach(b=>b.disabled=true);
+
       if (val === targetNumber) {
         btn.classList.add('correct');
         msgDiv.textContent = '🎉 Correct!';
         speak('Correct');
+        // Go to next question after 1 second delay
         setTimeout(nextQuestion, 1000);
       } else {
         btn.classList.add('wrong');
         msgDiv.textContent = '❌ Try again.';
         speak('Try again');
+        // Briefly show wrong answer, then allow retry after 800ms
         setTimeout(() => {
-          btn.classList.remove('wrong');
+          // Check if the button still exists before modifying
+          if (btn.parentNode === quizDiv) {
+              btn.classList.remove('wrong');
+          }
           msgDiv.textContent = '';
-          Array.from(quizDiv.children).forEach(b=>b.disabled=false);
+          // Re-enable buttons only if they still exist
+          Array.from(quizDiv.children).forEach(b=> {
+              if (b.parentNode === quizDiv) {
+                  b.disabled=false;
+              }
+          });
         }, 800);
       }
     }
@@ -208,9 +233,13 @@
       // pick a nice voice if you want:
       // const v = speechSynthesis.getVoices().find(v=>v.lang.startsWith('en'));
       // if (v) u.voice = v;
-      speechSynthesis.cancel();
+      speechSynthesis.cancel(); // Cancel any previous speech
       speechSynthesis.speak(u);
     }
+
+    // Optional: Initialize the quiz on load
+    // nextQuestion(); // Or keep it triggered only by the Start button
+
   </script>
 
 </body>
