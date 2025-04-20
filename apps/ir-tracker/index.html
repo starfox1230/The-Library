@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- disable auto‑tel links on iOS -->
+  <meta name="format-detection" content="telephone=no">
   <title>Consult Rounding Sheet</title>
 
   <!-- SortableJS for drag-and-drop -->
@@ -14,10 +16,8 @@
       background:#121212; color:#e0e0e0; font-family:sans-serif;
       padding:1rem 1rem 5rem;
     }
-    /* Remove focus glow */
     button:focus { outline:none; box-shadow:none; }
 
-    /* Controls bar */
     #controls {
       display:flex; flex-wrap:wrap; gap:.5rem;
       justify-content:center; margin-bottom:1rem;
@@ -33,13 +33,12 @@
     }
     button:active, .filter-btn:active { transform:scale(.95) }
 
-    /* Filter dropdown */
     .filter-dropdown { position:relative; }
     #filterBtn.active-filter { background:#3366ff; color:#fff; }
     .filter-menu {
       position:absolute; top:100%; left:0; background:#1a1a2e;
       border:1px solid #333; list-style:none; margin:0; padding:0;
-      z-index:100; display:none; min-width:160px;
+      z-index:100; display:none; min-width:180px;
     }
     .filter-dropdown.open .filter-menu { display:block; }
     .filter-menu li {
@@ -47,11 +46,9 @@
     }
     .filter-menu li:hover { background:#29295a; }
 
-    /* Reorder button states */
     #toggleReorder.editing { background:#ffcc00; color:#121212; }
     #toggleReorder.locked  { background:#33aa33; color:#fff; }
 
-    /* Rows & summaries */
     #rows { display:flex; flex-direction:column; gap:1rem; }
     details.row {
       border:1px solid #333; border-radius:6px;
@@ -89,7 +86,6 @@
     }
     details.row[open] > summary .summary-bottom { display:none; }
 
-    /* Status colors */
     details.row.status-incomplete-order summary.row-summary {
       background:#5a1a1a;
     }
@@ -108,8 +104,12 @@
     details.row[open].status-complete-na summary.row-summary {
       background:#777 !important;
     }
-
-    /* Row content */
+    /* make the top‑bar text non‑selectable/non‑clickable */
+    .summary-top .overview,
+    .summary-top .summary-status-icons {
+      -webkit-user-select: none;
+      user-select: none;
+    }
     .row-content {
       background:#222240; padding:1rem;
       display:flex; flex-direction:column; gap:.75rem;
@@ -124,37 +124,32 @@
       background:#29295a; outline:none;
     }
 
-    /* tiny state & alert buttons */
     .field-buttons {
       display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
     }
-    .state-btn, .alert-btn {
+    .state-btn, .alert-btn, .date-btn {
       background:transparent; border:1px solid #555;
       border-radius:4px; padding:.2rem .5rem; font-size:.85rem;
       cursor:pointer; transition:background .2s,transform .1s;
     }
-    .state-btn:hover, .alert-btn:hover { transform:scale(1.1); }
+    .state-btn:hover, .alert-btn:hover, .date-btn:hover { transform:scale(1.1); }
 
-    /* consent/note/order states */
     .state-btn.state-needed        { background:transparent; color:#e0e0e0; }
     .state-btn.state-na            { background:#555;       color:#888;   text-decoration:line-through; }
     .state-btn.state-in-progress   { background:gold;       color:#121212; }
     .state-btn.state-done          { background:green;      color:#fff;   }
 
-    /* round states (3) */
     .state-btn.state-needed-round  { background:transparent; color:#e0e0e0; }
     .state-btn.state-done-round    { background:green;       color:#fff;   }
     .state-btn.state-na-round      { background:#555;       color:#888;   }
 
-    .alert-btn.alert-on {
-      background:red; color:#fff;
-    }
+    .alert-btn.alert-on            { background:red; color:#fff; }
+    .date-btn                      { }
 
     .last-edited {
       font-size:.75rem; color:#aaa; text-align:right; margin-top:.5rem;
     }
 
-    /* Add button */
     #addRow {
       position:fixed; bottom:1.5rem; right:1.5rem; z-index:1000;
       border-radius:50%; width:50px; height:50px; font-size:1.8rem;
@@ -181,6 +176,8 @@
         <li data-filter="order">Needs Order</li>
         <li data-filter="complete">Show All Complete</li>
         <li data-filter="incomplete">Show All Incomplete</li>
+        <li data-filter="today">Show Today</li>
+        <li data-filter="tomorrow">Show Tomorrow</li>
       </ul>
     </div>
 
@@ -215,6 +212,7 @@
           noteState:    q('.state-btn[data-field="note"]').dataset.state,
           orderState:   q('.state-btn[data-field="order"]').dataset.state,
           alert:        q('.alert-btn').dataset.alert === 'true',
+          dateState:    q('.date-btn').dataset.date,
           pending:      q('[name="pending"]').value,
           contactName:  q('[name="contactName"]').value,
           contactPhone: q('[name="contactPhone"]').value,
@@ -237,7 +235,6 @@
       saveTimeout = setTimeout(saveAll,500);
     }
 
-    // Cycle a state-btn through its states
     function cycle(btn) {
       const fld = btn.dataset.field;
       let states = fld==='round'
@@ -252,21 +249,38 @@
       btn.className = 'state-btn '+clsBase;
     }
 
+    function cycleDate(btn) {
+      const seq = ['none','today','tomorrow'];
+      let idx = seq.indexOf(btn.dataset.date);
+      idx = (idx+1)%seq.length;
+      btn.dataset.date = seq[idx];
+      btn.textContent = idx===1 ? 'Today' : idx===2 ? 'Tomorrow' : 'Date';
+    }
+
+    function updateHandles() {
+      document.querySelectorAll('.delete-btn').forEach(btn=>{
+        if (reorderState===1) {
+          btn.classList.add('drag-handle');
+          btn.textContent = '☰';
+        } else {
+          btn.classList.remove('drag-handle');
+          btn.textContent = '×';
+        }
+      });
+    }
+
     function updateSummary(det) {
       const q = sel => det.querySelector(sel);
-      // Line 1
       const loc = q('[name="location"]').value||'No Loc';
       const nm  = q('[name="name"]').value||'No Name';
       const mrn = q('[name="mrn"]').value||'No MRN';
       det.querySelector('.overview').textContent = `${loc} | ${nm} | ${mrn}`;
 
-      // Which needed or in-progress?
       const needed = ['round','consent','note','order'].some(fld=>{
         const st = q(`.state-btn[data-field="${fld}"]`).dataset.state;
         return st==='needed' || st==='in-progress';
       });
 
-      // Build icons
       let icons='';
       const hasAlert = q('.alert-btn').dataset.alert==='true';
       if (!needed && !hasAlert) {
@@ -286,12 +300,10 @@
       }
       det.querySelector('.summary-status-icons').innerHTML = icons;
 
-      // Line 2
       const proc = q('[name="procedure"]').value||'No Procedure';
       const hist = q('[name="history"]').value||'';
       det.querySelector('.summary-bottom').textContent = `${proc} – ${hist}`;
 
-      // Color coding
       det.classList.remove('status-incomplete-order','status-complete','status-complete-na');
       if (needed) {
         det.classList.add('status-incomplete-order');
@@ -300,7 +312,6 @@
         det.classList.add(os==='done'?'status-complete':'status-complete-na');
       }
 
-      // Timestamp
       const ts=new Date().toISOString();
       det.dataset.lastEdited=ts;
       det.querySelector('.last-edited').textContent=
@@ -314,7 +325,6 @@
       if (data.isOpen) det.open=true;
       det.dataset.lastEdited=data.lastEdited||new Date().toISOString();
 
-      // Summary
       const summ=document.createElement('summary');
       summ.className='row-summary';
       summ.innerHTML=`
@@ -328,13 +338,12 @@
       summ.querySelector('.delete-btn')
         .addEventListener('click',e=>{
           e.preventDefault(); e.stopPropagation();
-          if(confirm('Delete this row?')){
+          if (reorderState===0 && confirm('Delete this row?')) {
             det.remove(); debouncedSave();
           }
         });
       det.appendChild(summ);
 
-      // Content
       const content=document.createElement('div');
       content.className='row-content';
       const tsDisp=data.lastEdited?new Date(data.lastEdited).toLocaleString():'Never';
@@ -345,6 +354,7 @@
           <button type="button" class="state-btn" data-field="note">Note</button>
           <button type="button" class="state-btn" data-field="order">Order</button>
           <button type="button" class="alert-btn">❗</button>
+          <button type="button" class="date-btn">Date</button>
         </div>
         <input type="text"    name="location"    placeholder="Location (e.g., Room 501)"     value="${data.location||''}">
         <input type="text"    name="name"        placeholder="Patient Name"                   value="${data.name||''}">
@@ -359,15 +369,13 @@
       `;
       det.appendChild(content);
 
-      // Initialize state-buttons
       content.querySelectorAll('.state-btn').forEach(btn=>{
         const fld=btn.dataset.field;
         let st='needed';
         if (fld==='round')   st=data.roundState||'needed';
         else                 st=data[fld+'State']||'needed';
         btn.dataset.state=st;
-        if(fld==='round') btn.classList.add('state-'+st+'-round');
-        else              btn.classList.add('state-'+st);
+        btn.classList.add(fld==='round'?'state-'+st+'-round':'state-'+st);
         btn.addEventListener('click',()=>{
           cycle(btn);
           updateSummary(det);
@@ -375,7 +383,6 @@
         });
       });
 
-      // alert button
       const ab=content.querySelector('.alert-btn');
       ab.dataset.alert=data.alert?'true':'false';
       if(data.alert) ab.classList.add('alert-on');
@@ -386,7 +393,17 @@
         debouncedSave();
       });
 
-      // text inputs
+      const db=content.querySelector('.date-btn');
+      db.dataset.date=data.dateState||'none';
+      db.textContent = db.dataset.date==='today'   ? 'Today'
+                     : db.dataset.date==='tomorrow'? 'Tomorrow'
+                     : 'Date';
+      db.addEventListener('click',()=>{
+        cycleDate(db);
+        updateSummary(det);
+        debouncedSave();
+      });
+
       content.querySelectorAll('input[type="text"],textarea')
         .forEach(el=>el.addEventListener('input',()=>{
           updateSummary(det);
@@ -401,10 +418,10 @@
       document.getElementById('rows').appendChild(det);
     }
 
-    // SORTABLE
     function enableSort(){
       sortable = Sortable.create(document.getElementById('rows'), {
         animation:150,
+        handle: '.drag-handle',
         onEnd:()=>{
           customOrder=Array.from(document.getElementById('rows').children)
                            .map(d=>d.dataset.id);
@@ -426,7 +443,6 @@
       });
     }
 
-    // EXPAND/COLLAPSE
     document.getElementById('toggleExpandCollapse').onclick=()=>{
       const all=Array.from(document.querySelectorAll('details.row'));
       const anyClosed=all.some(d=>!d.open);
@@ -436,24 +452,26 @@
       saveAll();
     };
 
-    // REORDER CYCLE
     document.getElementById('toggleReorder').onclick=()=>{
       reorderState=(reorderState+1)%3;
       const btn=document.getElementById('toggleReorder');
       btn.classList.toggle('editing',reorderState===1);
-      btn.classList.toggle('locked',reorderState===2);
+      btn.classList.toggle('locked', reorderState===2);
       if(reorderState===1) enableSort(); else disableSort();
-      applyOrder(); saveAll();
+      applyOrder();
+      updateHandles();
+      saveAll();
     };
 
-    // FILTER
     const filterBtn=document.getElementById('filterBtn'),
-          dropdown = filterBtn.parentElement;
+          dropdown=document.querySelector('.filter-dropdown');
     filterBtn.onclick=e=>{
       e.stopPropagation();
       dropdown.classList.toggle('open');
     };
-    document.addEventListener('click',e=>{ if(!dropdown.contains(e.target)) dropdown.classList.remove('open'); });
+    document.addEventListener('click',e=>{
+      if(!dropdown.contains(e.target)) dropdown.classList.remove('open');
+    });
     document.querySelectorAll('#filterMenu li').forEach(li=>{
       li.onclick=()=>{
         currentFilter=li.dataset.filter;
@@ -478,23 +496,23 @@
           const show = (type==='complete') ? !needed : needed;
           det.style.display = show ? '' : 'none';
         }
+        else if(type==='today'||type==='tomorrow'){
+          det.style.display = q('.date-btn').dataset.date===type ? '' : 'none';
+        }
         else {
-          if(type==='round'){
-            det.style.display = q(`.state-btn[data-field="round"]`).dataset.state==='needed' ? '' : 'none';
-          } else {
-            det.style.display = q(`.state-btn[data-field="${type}"]`).dataset.state==='needed' ? '' : 'none';
-          }
+          const st=q(`.state-btn[data-field="${type}"]`).dataset.state;
+          det.style.display = st==='needed' ? '' : 'none';
         }
       });
       saveAll();
-      const visible=Array.from(document.querySelectorAll('details.row')).filter(d=>d.style.display==='');
+      const visible=Array.from(document.querySelectorAll('details.row'))
+                         .filter(d=>d.style.display==='');
       const anyClosed=visible.some(d=>!d.open);
       const btn=document.getElementById('toggleExpandCollapse');
       btn.disabled=!visible.length;
-      btn.textContent = anyClosed?'⮝ Expand All':'⮟ Collapse All';
+      btn.textContent= anyClosed?'⮝ Expand All':'⮟ Collapse All';
     }
 
-    // DOWNLOAD/UPLOAD
     document.getElementById('download').onclick=()=>{
       saveAll();
       const blob=new Blob([localStorage.getItem(STORAGE_KEY)||'{}'],{type:'application/json'});
@@ -519,18 +537,17 @@
       r.readAsText(f);
     };
 
-    // ADD ROW
     document.getElementById('addRow').onclick=()=>{
       const newItem={id:makeID()};
       items.push(newItem);
       createRow(newItem);
       applyOrder();
+      updateHandles();
       const d=document.querySelector(`details.row[data-id="${newItem.id}"]`);
       d.open=true; d.querySelector('[name="location"]').focus();
       debouncedSave();
     };
 
-    // INIT
     function init(){
       let saved=localStorage.getItem(STORAGE_KEY), obj;
       try{ obj=JSON.parse(saved); }catch{ obj=null; }
@@ -549,6 +566,7 @@
       btn.classList.toggle('locked', reorderState===2);
       if(reorderState===1) enableSort(); else disableSort();
       applyOrder();
+      updateHandles();
       filterRows(currentFilter);
     }
 
