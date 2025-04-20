@@ -3,14 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Number Quiz (No Sticky Highlights)</title>
+  <title>Number Quiz (Fixed)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+    /* === Global touch resets === */
+    *, *::before, *::after {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
 
     :root {
       --bg-start: #FDEBFF;
       --bg-end:   #BFE5FF;
-      --card-bg:  rgba(255, 255, 255, 0.8);
+      --card-bg:  rgba(255,255,255,0.8);
       --primary:  #A569BD;
       --accent:   #FFB6C1;
       --btn-bg:   #FFFFFF;
@@ -23,103 +31,86 @@
     }
 
     * { box-sizing: border-box; margin:0; padding:0; }
-
-    /* Disable mobile tap‑highlight and remove focus outline */
-    button, a {
-      -webkit-tap-highlight-color: transparent;    /* disable blue flash */  
-    }
-    button:focus {
-      outline: none !important;                    /* remove default focus */  
-    }
-
     body {
       min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
     }
-
     .container {
+      width: 100%; max-width: 380px;
       background: var(--card-bg);
       border-radius: var(--radius);
       box-shadow: 0 8px 24px var(--shadow);
-      padding: 1.5rem;
-      max-width: 380px;
-      width: 100%;
-      text-align: center;
+      text-align: center; padding: 1.5rem;
     }
-
     h1 {
-      color: var(--primary);
-      font-weight: 600;
-      margin-bottom: 0.75rem;
+      color: var(--primary); font-weight: 600; margin-bottom: 0.75rem;
     }
-
     .controls {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
+      display: flex; gap: 0.5rem; justify-content: center;
       margin-bottom: 1rem;
     }
-
-    select, #startBtn {
-      font-size: 1rem;
-      padding: 0.5rem 0.75rem;
-      border: none;
+    select, .start-btn {
+      padding: 0.5rem 0.75rem; border:none;
       border-radius: var(--radius);
       box-shadow: 0 4px 12px var(--shadow);
-      cursor: pointer;
-      background: var(--btn-bg);
+      background: var(--btn-bg); cursor: pointer;
       transition: transform 0.1s, box-shadow 0.2s;
     }
-    select:hover, #startBtn:hover {
+    select:hover, .start-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 18px var(--shadow);
     }
-
+    /* Remove native appearance */
+    .btn, select, .start-btn {
+      -webkit-appearance: none !important;
+      appearance: none !important;
+    }
+    /* Choice grid */
     #quiz {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-      gap: 0.5rem;
-      margin-bottom: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(60px,1fr));
+      gap: 0.5rem; margin-bottom: 1rem;
     }
-
+    /* Use divs as buttons */
     .btn {
-      background: var(--btn-bg);
-      border-radius: var(--radius);
       padding: 0.75rem 0;
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--primary);
       border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 1.25rem; font-weight: 600;
+      color: var(--primary);
+      background: var(--btn-bg);
       box-shadow: 0 4px 12px var(--shadow);
       cursor: pointer;
       transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      user-select: none;
     }
     .btn:hover:not(.correct):not(.wrong) {
       background: var(--btn-hover);
       transform: translateY(-2px);
       box-shadow: 0 6px 18px var(--shadow);
     }
+    .btn:active {
+      background-color: var(--btn-bg) !important;
+    }
+    /* Feedback states */
     .btn.correct {
       background: var(--correct);
       border-color: var(--correct);
-      color: white;
+      color: #fff;
     }
     .btn.wrong {
       background: var(--wrong);
       border-color: var(--wrong);
-      color: white;
+      color: #fff;
     }
-
     #message {
-      font-size: 1.1rem;
       min-height: 1.4em;
-      color: var(--text);
+      font-size: 1.1rem;
       font-weight: 500;
+      color: var(--text);
     }
   </style>
 </head>
@@ -132,7 +123,7 @@
         <option value="1-10">1 – 10</option>
         <option value="10-20">10 – 20</option>
       </select>
-      <button id="startBtn">Start</button>
+      <div class="start-btn">Start</div>
     </div>
 
     <div id="quiz"></div>
@@ -148,70 +139,14 @@
     };
 
     const rangeSelect = document.getElementById('rangeSelect');
-    const startBtn    = document.getElementById('startBtn');
+    const startBtn    = document.querySelector('.start-btn');
     const quizDiv     = document.getElementById('quiz');
     const msgDiv      = document.getElementById('message');
-
     let currentRange = [1,10], targetNumber;
 
-    // Prevent focus on mousedown & blur on click for all buttons
-    function setupButtonHandlers() {
-      document.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('mousedown', e => e.preventDefault());  // no focus on touch  [oai_citation_attribution:0‡Reddit](https://www.reddit.com/r/webdev/comments/b1cwdf/finally_a_css_only_solution_to_hover_on/?utm_source=chatgpt.com)
-        btn.addEventListener('click', () => btn.blur());            // immediate blur on click  [oai_citation_attribution:1‡Stack Overflow](https://stackoverflow.com/questions/2568951/how-do-i-blur-everything-by-focusing-on-the-document?utm_source=chatgpt.com)
-      });
-    }
-    setupButtonHandlers();
-
-    startBtn.addEventListener('click', () => {
-      const [min, max] = rangeSelect.value.split('-').map(Number);
-      currentRange = [min, max];
-      nextQuestion();
-    });
-
-    function nextQuestion() {
-      // remove focus from any element before rendering  [oai_citation_attribution:2‡Stack Overflow](https://stackoverflow.com/questions/2568951/how-do-i-blur-everything-by-focusing-on-the-document?utm_source=chatgpt.com)
+    function blurActive() {
       if (document.activeElement && document.activeElement.blur) {
         document.activeElement.blur();
-      }
-
-      msgDiv.textContent = '';
-      const [min, max] = currentRange;
-      targetNumber = Math.floor(Math.random()*(max-min+1)) + min;
-      speak(words[targetNumber]);
-      renderButtons(min, max);
-    }
-
-    function renderButtons(min, max) {
-      quizDiv.innerHTML = '';
-      const nums = Array.from({length: max-min+1}, (_,i)=>i+min)
-                        .sort(() => Math.random()-0.5);
-      nums.forEach(n => {
-        const btn = document.createElement('button');
-        btn.textContent = n;
-        btn.className   = 'btn';
-        btn.onclick     = () => handleAnswer(btn, n);
-        quizDiv.appendChild(btn);
-      });
-      setupButtonHandlers();  // re‑apply handlers for new buttons
-    }
-
-    function handleAnswer(btn, val) {
-      Array.from(quizDiv.children).forEach(b => b.disabled = true);
-      if (val === targetNumber) {
-        btn.classList.add('correct');
-        msgDiv.textContent = '🎉 Correct!';
-        speak('Correct');
-        setTimeout(nextQuestion, 1000);
-      } else {
-        btn.classList.add('wrong');
-        msgDiv.textContent = '❌ Try again.';
-        speak('Try again');
-        setTimeout(() => {
-          btn.classList.remove('wrong');
-          msgDiv.textContent = '';
-          Array.from(quizDiv.children).forEach(b => b.disabled = false);
-        }, 800);
       }
     }
 
@@ -220,6 +155,61 @@
       const u = new SpeechSynthesisUtterance(text);
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
+    }
+
+    function setupHandlers() {
+      document.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('mousedown', e => e.preventDefault());  // no focus on touch  [oai_citation_attribution:11‡Stack Overflow](https://stackoverflow.com/questions/17233804/how-to-prevent-sticky-hover-effects-for-buttons-on-touch-devices?utm_source=chatgpt.com)
+        btn.addEventListener('click', () => btn.blur());            // immediate blur on click  [oai_citation_attribution:12‡Stack Overflow](https://stackoverflow.com/questions/74203410/button-stays-on-focused-or-active-state-after-clicked-in-phone-thus-creating-pr?utm_source=chatgpt.com)
+      });
+    }
+
+    startBtn.addEventListener('click', () => {
+      const [min,max] = rangeSelect.value.split('-').map(Number);
+      currentRange = [min,max];
+      nextQuestion();
+    });
+
+    function nextQuestion() {
+      blurActive();      // clear any lingering focus  [oai_citation_attribution:13‡Stack Overflow](https://stackoverflow.com/questions/7738219/how-to-keep-active-css-style-after-clicking-an-element/7738394?utm_source=chatgpt.com)
+      msgDiv.textContent = '';
+      const [min,max] = currentRange;
+      targetNumber = Math.floor(Math.random()*(max-min+1))+min;
+      speak(words[targetNumber]);
+      renderButtons(min,max);
+    }
+
+    function renderButtons(min,max) {
+      quizDiv.innerHTML = '';
+      const nums = Array.from({length:max-min+1},(_,i)=>i+min)
+                        .sort(()=>Math.random()-0.5);
+      nums.forEach(n => {
+        const btn = document.createElement('div');
+        btn.textContent  = n;
+        btn.className    = 'btn';
+        btn.onclick      = () => handleAnswer(btn,n);
+        quizDiv.appendChild(btn);
+      });
+      setupHandlers();
+    }
+
+    function handleAnswer(btn,val) {
+      Array.from(quizDiv.children).forEach(b=>b.disabled=true);
+      if (val===targetNumber) {
+        btn.classList.add('correct');
+        msgDiv.textContent = '🎉 Correct!';
+        speak('Correct');
+        setTimeout(nextQuestion, 1000);
+      } else {
+        btn.classList.add('wrong');
+        msgDiv.textContent = '❌ Try again.';
+        speak('Try again');
+        setTimeout(()=>{
+          btn.classList.remove('wrong');
+          msgDiv.textContent = '';
+          Array.from(quizDiv.children).forEach(b=>b.disabled=false);
+        },800);
+      }
     }
   </script>
 
