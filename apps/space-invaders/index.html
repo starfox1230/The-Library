@@ -2,475 +2,229 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- *** ADD THIS: Essential for mobile display *** -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Epic Space Invaders (Phaser 3)</title>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+  <title>Space Invaders (Controller → F‑keys / Arrow‑Fire)</title>
   <style>
-    /* Ensure body and html take full height and remove scrollbars */
     html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background: #000; /* Set body background too */
-      overflow: hidden; /* Prevent scrollbars */
-    }
-    /* Let Phaser handle the canvas size via scaling */
-    #game {
-       /* width/height styles here can interfere with Phaser's scaling,
-          Phaser's scale manager will handle the canvas dimensions.
-          Let's remove them or ensure they don't conflict. */
+      margin:0; padding:0;
+      width:100%; height:100%;
+      background:#000;
+      display:flex; align-items:center; justify-content:center;
     }
     canvas {
-        display: block; /* Prevent potential extra space below canvas */
+      width:100vw; max-height:100vh;
+      background:#000; display:block;
     }
   </style>
 </head>
 <body>
-  <!-- This div is the parent container Phaser will inject the canvas into -->
-  <div id="game"></div>
-
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
   <script>
-  const CONFIG = {
-    type: Phaser.AUTO, // AUTO tries WebGL first, then Canvas
-    parent: 'game',    // ID of the div to contain the game canvas
-    backgroundColor: '#000', // Black background color
-    scale: {
-      mode: Phaser.Scale.FIT, // Scale to fit within the parent container
-      autoCenter: Phaser.Scale.CENTER_BOTH, // Center horizontally and vertically
-      width: 960,  // Your game's design resolution width
-      height: 540, // Your game's design resolution height
-    },
-    physics: {
-      default: 'arcade',
-      arcade: {
-        // debug: true // Temporarily enable physics debugging if needed
-        debug: false
-      }
-    },
-    scene: {
-      preload,
-      create,
-      update
-    }
-  };
+  const canvas = document.getElementById('gameCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W=960, H=540;
 
-  // --- Game Variables ---
-  let player, cursors, fireKey, startKey, touchControls = {};
-  let bullets, invaders, scoreText, levelText, overlayGroup;
-  let score = 0, level = 1, canShoot = true;
-  let gameState = 'start'; // 'start', 'playing', 'levelcleared', 'gameover'
-  let invaderBaseSpeed = 2000; // Base duration for horizontal movement
-  let invaderLevelSpeedIncrease = 200; // How much faster per level
-  let invaderTween; // Reference to the invader movement tween
+  // background stars
+  const stars = Array.from({length:100}, () => ({
+    x: Math.random()*W,
+    y: Math.random()*H,
+    r: Math.random()*2+1
+  }));
 
-  // --- Phaser Scene Functions ---
+  // player
+  const player = { w:40, h:20, x:W/2-20, y:H-40, speed:5 };
 
-  function preload() {
-    // Textures will be generated in create, so nothing to preload here.
-    // If you had images/sounds, you'd load them here:
-    // this.load.image('key', 'path/to/image.png');
-  }
+  // state
+  let bullets = [], invaders = [], score=0, level=1;
+  let invSpeed=1, invDir=1, canShoot=true;
+  let gameState = 'start'; // 'start','playing','levelcleared','gameover'
 
-  function create() {
-    const { width, height } = this.scale;
-
-    // Generate simple textures dynamically
-    // Player (cyan rectangle)
-    let playerGraphics = this.add.graphics();
-    playerGraphics.fillStyle(0x00ffff); // Cyan
-    playerGraphics.fillRect(0, 0, 40, 20);
-    playerGraphics.generateTexture('player', 40, 20);
-    playerGraphics.destroy(); // Clean up the graphics object
-
-    // Invader (green rectangle)
-    let invaderGraphics = this.add.graphics();
-    invaderGraphics.fillStyle(0x44ff44); // Green
-    invaderGraphics.fillRect(0, 0, 40, 20);
-    invaderGraphics.generateTexture('invader', 40, 20);
-    invaderGraphics.destroy();
-
-    // Bullet (white rectangle - will be generated on fire)
-    let bulletGraphics = this.add.graphics();
-    bulletGraphics.fillStyle(0xffffff); // White
-    bulletGraphics.fillRect(0, 0, 4, 10);
-    bulletGraphics.generateTexture('bullet', 4, 10);
-    bulletGraphics.destroy();
-
-
-    // *** REMOVED problematic TileSprite line ***
-    // The black background is handled by CONFIG.backgroundColor
-
-    // Player sprite + physics
-    player = this.physics.add.sprite(width / 2, height - 40, 'player');
-    player.setCollideWorldBounds(true); // Keep player on screen
-    // Optional: Adjust physics body size if needed (matches texture size here)
-    // player.body.setSize(40, 20);
-
-    // Groups for bullets and invaders
-    bullets = this.physics.add.group({
-      defaultKey: 'bullet', // Use the generated bullet texture
-      maxSize: 20 // Optional: Limit concurrent bullets
-    });
-    invaders = this.physics.add.group();
-
-    // Create overlay text elements group (better than recreating in update)
-    overlayGroup = this.add.group();
-    createOverlayElements.call(this); // Create them initially, hide them
-
-    // HUD Text
-    scoreText = this.add.text(10, 10, 'Score: 0', { font: '18px monospace', fill: '#0f0' });
-    levelText = this.add.text(width - 120, 10, 'Level: 1', { font: '18px monospace', fill: '#0f0' });
-
-    // Input Setup
-    cursors = this.input.keyboard.createCursorKeys();
-    // Use SPACE for fire on keyboard, ENTER/SPACE for start
-    fireKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    startKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER); // Or keep SPACE if preferred
-
-    setupTouchControls.call(this); // Setup touch input zones
-
-    // Gamepad setup (remains the same)
-    this.input.gamepad.once('connected', pad => {
-      console.log('Gamepad connected:', pad.id);
-    });
-
-    // Collision Detection
-    // Bullet hits Invader
-    this.physics.add.overlap(bullets, invaders, bulletHitInvader, null, this);
-
-    // Invader hits Player (using overlap check in update is also common)
-    this.physics.add.overlap(player, invaders, playerHitInvader, null, this);
-
-    // Bullets hitting world bounds (top)
-    this.physics.world.on('worldbounds', (body, up, down, left, right) => {
-        // Check if it's a bullet hitting the top boundary
-        if (body.gameObject.texture?.key === 'bullet' && up) {
-            body.gameObject.destroy(); // Use destroy() or killAndHide() + reuse
-        }
-    });
-
-    // Start in the 'start' state
-    setGameState('start');
-  }
-
-  function update(time, delta) {
-    // Always check for start/restart input regardless of state
-    handleStartInput.call(this);
-
-    if (gameState === 'playing') {
-      handlePlayerMovement.call(this, delta);
-      handlePlayerFiring.call(this);
-      checkGameOverConditions.call(this);
-      checkLevelClearCondition.call(this);
-    }
-  }
-
-  // --- Helper Functions ---
-
-  function setGameState(newState) {
-      gameState = newState;
-      if (gameState === 'playing') {
-          hideOverlay();
-          // Ensure player is active if restarting
-          player.setActive(true).setVisible(true);
-          player.enableBody(true, player.x, player.y, true, true);
-          // Restart invader movement if paused or stopped
-          if (invaderTween && !invaderTween.isPlaying()) {
-              invaderTween.resume(); // Or restart based on logic
-          }
-      } else {
-          showOverlay.call(this);
-          // Stop player movement when not playing
-          player?.setVelocityX(0);
-           // Pause invader movement tween when not playing
-          if (invaderTween && invaderTween.isPlaying()) {
-              invaderTween.pause();
-          }
-      }
-  }
-
-  function handleStartInput() {
-    const pad = this.input.gamepad.getPad(0);
-    const startPressed = (pad && pad.buttons[9]?.pressed) || Phaser.Input.Keyboard.JustDown(startKey) || Phaser.Input.Keyboard.JustDown(fireKey) || touchControls.start; // Use fireKey too? Allow touch start
-
-    if (startPressed && (gameState === 'start' || gameState === 'gameover' || gameState === 'levelcleared')) {
-      if (gameState === 'start' || gameState === 'gameover') {
-        score = 0;
-        level = 1;
-        resetPlayer.call(this);
-      } else if (gameState === 'levelcleared') {
-        level++;
-        resetPlayer.call(this); // Reset position for new level
-      }
-      scoreText.setText('Score: ' + score);
-      levelText.setText('Level: ' + level);
-      spawnInvaders.call(this); // Spawn/respawn invaders
-      bullets.clear(true, true); // Clear existing bullets
-      setGameState('playing');
-    }
-    // Reset touch start flag
-    touchControls.start = false;
-  }
-
-  function resetPlayer() {
-      const { width, height } = this.scale;
-      player.setPosition(width / 2, height - 40);
-      player.setActive(true).setVisible(true);
-      if(player.body) {
-          player.enableBody(true, player.x, player.y, true, true);
-      } else {
-           // This case shouldn't happen if player physics was added correctly
-           console.error("Player body missing during reset!");
-      }
-  }
-
-
-  function handlePlayerMovement(delta) {
-    const pad = this.input.gamepad.getPad(0);
-    const speed = 300; // Pixels per second
-
-    // Input Checks
-    const moveLeft = (pad && (pad.axes[0] < -0.5 || pad.buttons[14]?.pressed)) || cursors.left.isDown || touchControls.left;
-    const moveRight = (pad && (pad.axes[0] > 0.5 || pad.buttons[15]?.pressed)) || cursors.right.isDown || touchControls.right;
-
-    if (moveLeft) {
-      player.setVelocityX(-speed);
-    } else if (moveRight) {
-      player.setVelocityX(speed);
-    } else {
-      player.setVelocityX(0); // Stop moving if no input
-    }
-  }
-
-  function handlePlayerFiring() {
-    const pad = this.input.gamepad.getPad(0);
-    // Check if fire button is down (keyboard, gamepad, or touch)
-    const isFiring = (pad && pad.buttons[0]?.pressed) // Gamepad 'A' button usually
-                       || fireKey.isDown
-                       || touchControls.fire;
-
-    if (isFiring && canShoot) {
-      let bullet = bullets.get(player.x, player.y - 20); // Use get() for potential reuse
-
-      if (bullet) {
-        bullet.setActive(true).setVisible(true);
-        // Ensure it has a body before setting velocity
-        bullet.enableBody(true, player.x, player.y - 20, true, true);
-        bullet.setVelocityY(-400); // Speed of the bullet
-        canShoot = false;
-
-        // Simple cooldown timer using Phaser's timer event
-        this.time.delayedCall(250, () => { // 250ms cooldown
-          canShoot = true;
+  function createInvaders(){
+    invaders = [];
+    const cols=8, rows=4, pad=15, invW=40, invH=20;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        invaders.push({
+          x: 60 + c*(invW+pad),
+          y: 60 + r*(invH+pad),
+          w:invW, h:invH, alive:true
         });
       }
     }
-
-    // Reset touch fire flag if not held
-    if (!isFiring) {
-      touchControls.fire = false; // Reset touch fire state if button released
-    }
+    invSpeed = 1 + (level-1)*0.3;
+    invDir = 1;
+  }
+  createInvaders();
+  function resetPlayer(){
+    player.x = W/2 - player.w/2;
+    player.y = H - 40;
   }
 
-
-  function spawnInvaders() {
-    // Clear existing invaders and stop previous tween
-    invaders.clear(true, true);
-    if (invaderTween) {
-      invaderTween.stop();
-      invaderTween = null;
+  // keys
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    // prevent right-arrow default (scrolling)
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      keys['ArrowRight'] = true;
     }
+    if (e.key === 'F8' || e.key === 'F11') {
+      keys[e.key] = true;
+    }
+    if (e.key === '+') keys['+'] = true;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'ArrowRight') keys['ArrowRight'] = false;
+    if (e.key === 'F8' || e.key === 'F11') keys[e.key] = false;
+    if (e.key === '+') keys['+'] = false;
+  });
 
-    const numRows = 4;
-    const numCols = 8;
-    const spacingX = 55;
-    const spacingY = 35;
-    const startX = (this.scale.width - (numCols - 1) * spacingX) / 2; // Center horizontally
-    const startY = 60;
+  // gamepad state
+  function pollGamepad(){
+    const gp = navigator.getGamepads()[0];
+    if(!gp) return {};
+    return {
+      left: gp.buttons[14].pressed || (gp.axes[0] < -0.5),
+      right: gp.buttons[15].pressed || (gp.axes[0] >  0.5),
+      fire: gp.buttons[3].pressed,
+      start: gp.buttons[9].pressed
+    };
+  }
 
-    for (let row = 0; row < numRows; row++) {
-      for (let col = 0; col < numCols; col++) {
-        let x = startX + col * spacingX;
-        let y = startY + row * spacingY;
-        let invader = invaders.create(x, y, 'invader');
-        invader.setOrigin(0.5); // Center origin often easier for tweens
-        invader.setImmovable(true); // Important for overlaps
+  function update(){
+    const gp = pollGamepad();
+
+    // handle start / restart / next level
+    if (gameState !== 'playing') {
+      if (gp.start || keys[' '] || keys['+']) {
+        if (gameState==='gameover' || gameState==='start') {
+          score=0; level=1; createInvaders();
+        }
+        if (gameState==='levelcleared') {
+          level++; createInvaders();
+        }
+        bullets=[]; resetPlayer();
+        gameState='playing';
       }
+      return;
     }
 
-    // Invader motion tween - Adjust logic for better control
-    const moveAmount = 100; // How far side-to-side
-    const moveDuration = Math.max(500, invaderBaseSpeed - (level - 1) * invaderLevelSpeedIncrease); // Ensure duration doesn't go below 500ms
-    const dropAmount = 15;
-    const dropDuration = 200;
+    // horizontal movement only
+    const mvL = gp.left  || keys['F8'];
+    const mvR = gp.right || keys['F11'];
+    if (mvL) player.x -= player.speed;
+    if (mvR) player.x += player.speed;
+    player.x = Math.max(0, Math.min(W-player.w, player.x));
 
-    // Create a timeline for repeatable movement
-    invaderTween = this.tweens.timeline({
-        targets: invaders.getChildren(),
-        loop: -1, // Loop forever
-        loopDelay: 100, // Small delay between loops
-        tweens: [
-            { // Move Right
-                x: `+=${moveAmount}`,
-                duration: moveDuration,
-                ease: 'Linear'
-            },
-            { // Move Down
-                y: `+=${dropAmount}`,
-                duration: dropDuration,
-                ease: 'Linear'
-            },
-            { // Move Left
-                x: `-=${moveAmount}`,
-                duration: moveDuration,
-                ease: 'Linear'
-            },
-            { // Move Down
-                y: `+=${dropAmount}`,
-                duration: dropDuration,
-                ease: 'Linear'
-            }
-        ]
+    // firing (right-arrow or controller Y)
+    if ((gp.fire || keys['ArrowRight']) && canShoot) {
+      bullets.push({
+        x: player.x + player.w/2 - 2,
+        y: player.y,
+        w:4, h:10,
+        speed:7
+      });
+      canShoot = false;
+    }
+    if (!(gp.fire || keys['ArrowRight'])) {
+      canShoot = true;
+    }
+
+    // move bullets
+    bullets = bullets.filter(b => {
+      b.y -= b.speed;
+      return b.y + b.h > 0;
     });
+
+    // invader edge detection & bounce
+    let leftEdge=W, rightEdge=0;
+    invaders.forEach(inv => {
+      if (!inv.alive) return;
+      leftEdge  = Math.min(leftEdge, inv.x);
+      rightEdge = Math.max(rightEdge, inv.x + inv.w);
+    });
+    if (leftEdge < 0 || rightEdge > W) {
+      invDir *= -1;
+      invaders.forEach(inv => { if(inv.alive) inv.y += inv.h/2 });
+    }
+    // move invaders
+    invaders.forEach(inv => {
+      if (inv.alive) inv.x += invSpeed * invDir;
+    });
+
+    // collisions
+    bullets.forEach((b,bi) => {
+      invaders.forEach((inv,ii) => {
+        if (!inv.alive) return;
+        if (b.x < inv.x+inv.w && b.x+b.w>inv.x &&
+            b.y < inv.y+inv.h && b.y+b.h>inv.y) {
+          inv.alive = false;
+          bullets.splice(bi,1);
+          score += 10;
+        }
+      });
+    });
+
+    // check level cleared & game over
+    if (invaders.every(i=>!i.alive)) gameState='levelcleared';
+    if (invaders.some(i=>i.alive && i.y + i.h > player.y)) gameState='gameover';
   }
 
-  function bulletHitInvader(bullet, invader) {
-    // Make sure both objects are active before processing
-    if (bullet.active && invader.active) {
-      invader.disableBody(true, true); // Disable physics and hide
-      bullet.destroy(); // Destroy the bullet
-      score += 10;
-      scoreText.setText('Score: ' + score);
-      // Optional: Add explosion effect/sound here
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // stars
+    ctx.fillStyle = '#222';
+    stars.forEach(s => ctx.fillRect(s.x,s.y,s.r,s.r));
+
+    // player
+    ctx.fillStyle = '#0ff';
+    ctx.fillRect(player.x,player.y,player.w,player.h);
+    if (!canShoot) {
+      ctx.fillRect(player.x+player.w/2-2, player.y-5, 4,5);
+    }
+
+    // bullets
+    ctx.fillStyle='#fff';
+    bullets.forEach(b=>ctx.fillRect(b.x,b.y,b.w,b.h));
+
+    // invaders
+    invaders.forEach(inv=>{
+      if (!inv.alive) return;
+      ctx.fillStyle='#4f4';
+      ctx.fillRect(inv.x,inv.y,inv.w,inv.h);
+      ctx.strokeStyle='#000';
+      ctx.strokeRect(inv.x,inv.y,inv.w,inv.h);
+    });
+
+    // HUD
+    ctx.fillStyle='#0f0'; ctx.font='18px monospace';
+    ctx.fillText(`Score: ${score}`, 20, 24);
+    ctx.fillText(`Level: ${level}`, W-100, 24);
+
+    // overlay screens
+    ctx.textAlign='center'; ctx.font='36px monospace';
+    if (gameState !== 'playing') {
+      ctx.fillStyle='rgba(0,0,0,0.6)';
+      ctx.fillRect(0,0,W,H);
+      let lines, color='#fff';
+      if (gameState==='start') {
+        lines = ['SPACE INVADERS','Press START or +/Space to Play'];
+      } else if (gameState==='levelcleared') {
+        color='#ff0';
+        lines = [`LEVEL ${level} CLEARED!`,'Press START to Continue'];
+      } else { // gameover
+        color='#f00';
+        lines = ['GAME OVER', `Final Score: ${score}`, 'Press START to Restart'];
+      }
+      ctx.fillStyle = color;
+      lines.forEach((l,i)=>ctx.fillText(l, W/2, H/2 + (i-1)*(50)));
     }
   }
 
-   function playerHitInvader(player, invader) {
-     // Check if the invader hitting the player is active
-     if (invader.active) {
-        // Game Over logic
-        setGameState('gameover');
-        // Optional: Add player explosion effect/sound
-        player.disableBody(true, true); // Hide player
-        // Stop invader movement immediately
-        if (invaderTween) invaderTween.pause();
-     }
-   }
-
-   function checkGameOverConditions() {
-       // Game over if an active invader reaches the player's vertical level or lower
-       invaders.getChildren().forEach(inv => {
-           if (inv.active && inv.y + inv.height / 2 > player.y - player.height / 2) {
-               setGameState('gameover');
-               player.disableBody(true, true); // Hide player immediately
-               if (invaderTween) invaderTween.pause(); // Stop invaders
-           }
-       });
-   }
-
-   function checkLevelClearCondition() {
-       // If no invaders are left active, level is cleared
-       if (invaders.countActive(true) === 0) {
-           setGameState('levelcleared');
-       }
-   }
-
-  // --- Overlay Text ---
-  function createOverlayElements() {
-      const { width, height } = this.scale;
-      // Create elements once, store them in the group
-      const bg = this.add.rectangle(width / 2, height / 2, width * 0.8, height * 0.6, 0x000000, 0.7).setOrigin(0.5);
-      const line1 = this.add.text(width / 2, height / 2 - 60, '', { font: '40px monospace', fill: '#fff', align: 'center' }).setOrigin(0.5);
-      const line2 = this.add.text(width / 2, height / 2, '', { font: '24px monospace', fill: '#fff', align: 'center' }).setOrigin(0.5);
-      const line3 = this.add.text(width / 2, height / 2 + 60, '', { font: '24px monospace', fill: '#fff', align: 'center' }).setOrigin(0.5);
-
-      overlayGroup.addMultiple([bg, line1, line2, line3]);
-      overlayGroup.setDepth(10); // Ensure overlay is on top
-      overlayGroup.setVisible(false); // Start hidden
-  }
-
-  function showOverlay() {
-      const { width, height } = this.scale;
-      const [bg, line1, line2, line3] = overlayGroup.getChildren(); // Get elements
-
-      let text1 = '', text2 = '', text3 = '', color = '#fff';
-
-      switch (gameState) {
-          case 'start':
-              text1 = 'SPACE INVADERS';
-              text2 = 'Press START or SPACE';
-              text3 = 'Use Arrows/Touch Left/Right to Move';
-              break;
-          case 'levelcleared':
-              text1 = `LEVEL ${level} CLEARED!`;
-              text2 = `Score: ${score}`;
-              text3 = 'Press START for Next Level';
-              break;
-          case 'gameover':
-              text1 = 'GAME OVER';
-              text2 = `Final Score: ${score}`;
-              text3 = 'Press START to Restart';
-              color = '#f00'; // Red for game over
-              break;
-      }
-
-      line1.setText(text1).setColor(color);
-      line2.setText(text2).setColor(color);
-      line3.setText(text3).setColor(color);
-
-      overlayGroup.setVisible(true);
-  }
-
-  function hideOverlay() {
-      overlayGroup.setVisible(false);
-  }
-
-  // --- Touch Controls ---
-  function setupTouchControls() {
-      const { width, height } = this.scale;
-      // Define touch zones (adjust sizes as needed)
-      const leftZone = this.add.zone(0, 0, width * 0.4, height).setOrigin(0).setInteractive();
-      const rightZone = this.add.zone(width * 0.6, 0, width * 0.4, height).setOrigin(0).setInteractive();
-      const fireZone = this.add.zone(width * 0.4, 0, width * 0.2, height * 0.8).setOrigin(0).setInteractive(); // Center top-ish area for fire
-      const startZone = this.add.zone(width * 0.4, height * 0.8, width * 0.2, height * 0.2).setOrigin(0).setInteractive(); // Center bottom area for start/pause
-
-      // Reset flags initially
-      touchControls = { left: false, right: false, fire: false, start: false };
-
-      // Left Zone Listeners
-      leftZone.on('pointerdown', () => { touchControls.left = true; });
-      leftZone.on('pointerup', () => { touchControls.left = false; });
-      leftZone.on('pointerout', () => { touchControls.left = false; }); // Stop if finger leaves zone
-
-      // Right Zone Listeners
-      rightZone.on('pointerdown', () => { touchControls.right = true; });
-      rightZone.on('pointerup', () => { touchControls.right = false; });
-      rightZone.on('pointerout', () => { touchControls.right = false; });
-
-      // Fire Zone Listeners (Treat as button press)
-      fireZone.on('pointerdown', () => { touchControls.fire = true; });
-      // No pointerup needed here if handled in update checking `isFiring`
-
-      // Start Zone Listeners (Treat as button press)
-      startZone.on('pointerdown', () => { touchControls.start = true; });
-       // No pointerup needed here if handled in `handleStartInput`
-
-      // Optional: Visual debugging for zones
-      // const graphics = this.add.graphics();
-      // graphics.lineStyle(2, 0x00ff00, 0.5);
-      // graphics.strokeRectShape(leftZone);
-      // graphics.strokeRectShape(rightZone);
-      // graphics.lineStyle(2, 0xff0000, 0.5);
-      // graphics.strokeRectShape(fireZone);
-      // graphics.lineStyle(2, 0x0000ff, 0.5);
-      // graphics.strokeRectShape(startZone);
-  }
-
-
-  // --- Initialize Phaser ---
-  const game = new Phaser.Game(CONFIG);
-
+  (function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  })();
   </script>
 </body>
 </html>
