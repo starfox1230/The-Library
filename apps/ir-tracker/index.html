@@ -232,38 +232,36 @@
     }
 
     function saveAll(){
-      // 1) Remove any items whose row has been deleted from the DOM
+      // 1) remove deleted rows
       items = items.filter(item =>
         document.querySelector(`details.row[data-id="${item.id}"]`)
       );
-
-      // 2) Serialize only the remaining rows
+      // 2) serialize remaining
       items = items.map(item=>{
         const det = document.querySelector(`details.row[data-id="${item.id}"]`);
-        const q   = sel=>det.querySelector(sel);
+        const q = sel=>det.querySelector(sel);
         return {
-          id:               item.id,
-          roundState:       q('.state-btn[data-field="round"]').dataset.state,
-          consentState:     q('.state-btn[data-field="consent"]').dataset.state,
-          noteState:        q('.state-btn[data-field="note"]').dataset.state,
-          orderState:       q('.state-btn[data-field="order"]').dataset.state,
-          alert:            q('.alert-btn').dataset.alert==='true',
-          dateState:        q('.date-btn').dataset.date,
-          pending:          q('[name="pending"]').value,
-          contactName:      q('[name="contactName"]').value,
-          contactPhone:     q('[name="contactPhone"]').value,
-          location:         q('[name="location"]').value,
-          name:             q('[name="name"]').value,
-          mrn:              q('[name="mrn"]').value,
-          procedure:        q('[name="procedure"]').value,
-          history:          q('[name="history"]').value,
-          labs:             q('[name="labs"]').value,
-          lastEdited:       det.dataset.lastEdited,
-          isOpen:           det.open
+          id: item.id,
+          roundState:   q('.state-btn[data-field="round"]').dataset.state,
+          consentState: q('.state-btn[data-field="consent"]').dataset.state,
+          noteState:    q('.state-btn[data-field="note"]').dataset.state,
+          orderState:   q('.state-btn[data-field="order"]').dataset.state,
+          alert:        q('.alert-btn').dataset.alert==='true',
+          dateState:    q('.date-btn').dataset.date,
+          pending:      q('[name="pending"]').value,
+          contactName:  q('[name="contactName"]').value,
+          contactPhone: q('[name="contactPhone"]').value,
+          location:     q('[name="location"]').value,
+          name:         q('[name="name"]').value,
+          mrn:          q('[name="mrn"]').value,
+          procedure:    q('[name="procedure"]').value,
+          history:      q('[name="history"]').value,
+          labs:         q('[name="labs"]').value,
+          lastEdited:   det.dataset.lastEdited,
+          isOpen:       det.open
         };
       });
-
-      // 3) Persist back to localStorage
+      // 3) persist
       localStorage.setItem(STORAGE_KEY,
         JSON.stringify({items, customOrder, reorderState})
       );
@@ -363,6 +361,7 @@
       if(data.isOpen) det.open=true;
       det.dataset.lastEdited = data.lastEdited||new Date().toISOString();
 
+      // summary
       const summ=document.createElement('summary');
       summ.className='row-summary';
       summ.innerHTML=`
@@ -381,6 +380,7 @@
       });
       det.appendChild(summ);
 
+      // content
       const content = document.createElement('div');
       content.className='row-content';
       const tsDisp = data.lastEdited? new Date(data.lastEdited).toLocaleString() : 'Never';
@@ -438,12 +438,14 @@
         cycleDate(db); updateSummary(det); debouncedSave();
       });
 
-      // inputs & auto‑resize textareas
+      // input listeners
       content.querySelectorAll('input,textarea').forEach(el=>{
         el.addEventListener('input', ()=>{
           updateSummary(det); debouncedSave();
         });
       });
+
+      // auto‑resize handlers (initial and on input)
       content.querySelectorAll('textarea').forEach(el => {
         function autoResize() {
           if (!el.value) {
@@ -454,13 +456,25 @@
           }
         }
         el.addEventListener('input', autoResize);
+        // run once now (will run again after append)
         autoResize();
       });
 
       det.addEventListener('toggle', ()=>{ if(document.readyState==='complete') debouncedSave(); });
 
       updateSummary(det);
-      document.getElementById('rows').appendChild(det);
+
+      // append and then ensure proper height on load
+      const container = document.getElementById('rows');
+      container.appendChild(det);
+      det.querySelectorAll('textarea').forEach(el => {
+        if (!el.value) {
+          el.style.height = '';
+        } else {
+          el.style.height = 'auto';
+          el.style.height = el.scrollHeight + 'px';
+        }
+      });
     }
 
     function enableSort(){
