@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Number Quiz (No Sticky Highlight)</title>
+  <title>Number Quiz (Audio & No‑Sticky Highlight)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
-    /* 1. Global touch resets */
+    /* === Global touch resets === */
     *, *::before, *::after {
       -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
-      touch-action: manipulation;             /* disable double-tap zoom */  
+      touch-action: manipulation;
     }
 
     :root {
@@ -31,51 +31,51 @@
     }
 
     body {
-      margin:0; padding:1rem;
-      min-height:100vh;
-      display:flex; align-items:center; justify-content:center;
-      font-family:'Poppins',sans-serif;
-      background:linear-gradient(135deg,var(--bg-start),var(--bg-end));
+      margin: 0; padding: 1rem;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
     }
-    /* Make body focusable for JS blur hack */
-    body[tabindex] { outline:none; }
+    /* make body focusable for blur hack */
+    body[tabindex] { outline: none; }
 
     .container {
-      width:100%; max-width:380px;
-      background:var(--card-bg);
-      border-radius:var(--radius);
-      box-shadow:0 8px 24px var(--shadow);
-      text-align:center; padding:1.5rem;
+      width: 100%; max-width: 380px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px var(--shadow);
+      text-align: center; padding: 1.5rem;
     }
-
     h1 {
-      color:var(--primary); font-weight:600; margin-bottom:.75rem;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
     }
-
     .controls {
-      display:flex; gap:.5rem; justify-content:center;
-      margin-bottom:1rem;
+      display: flex; gap: 0.5rem; justify-content: center;
+      margin-bottom: 1rem;
     }
     select, .start-btn {
-      padding:.5rem .75rem;
-      border:none; border-radius:var(--radius);
-      box-shadow:0 4px 12px var(--shadow);
-      background:var(--btn-bg); cursor:pointer;
-      transition:transform .1s, box-shadow .2s;
-      -webkit-appearance:none; appearance:none;
+      padding: 0.5rem 0.75rem;
+      border: none; border-radius: var(--radius);
+      box-shadow: 0 4px 12px var(--shadow);
+      background: var(--btn-bg); cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      -webkit-appearance: none; appearance: none;
     }
     select:hover, .start-btn:hover {
-      transform:translateY(-2px);
-      box-shadow:0 6px 18px var(--shadow);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px var(--shadow);
     }
 
     #quiz {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(60px,1fr));
-      gap:.5rem; margin-bottom:1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(60px,1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
     }
-
-    /* 2. Only apply hover/active on true-hover devices */
+    /* only apply hover/active on non-touch devices */
     @media (hover: hover) and (pointer: fine) {
       .btn:hover {
         background: #F0E6FF;
@@ -83,26 +83,25 @@
         box-shadow: 0 6px 18px var(--shadow);
       }
       .btn:active {
-        opacity: .7;
+        opacity: 0.7;
       }
     }
-
     .btn {
-      padding:.75rem 0;
-      border:2px solid var(--accent);
-      border-radius:var(--radius);
-      font-size:1.25rem; font-weight:600;
-      color:var(--primary);
-      background:var(--btn-bg);
-      box-shadow:0 4px 12px var(--shadow);
-      cursor:pointer;
-      user-select:none;
-      display:flex; align-items:center; justify-content:center;
+      padding: 0.75rem 0;
+      border: 2px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 1.25rem; font-weight: 600;
+      color: var(--primary);
+      background: var(--btn-bg);
+      box-shadow: 0 4px 12px var(--shadow);
+      cursor: pointer;
+      user-select: none;
+      display: flex; align-items: center; justify-content: center;
     }
 
     #message {
-      min-height:1.4em;
-      font-size:1.1rem; font-weight:500; color:var(--text);
+      min-height: 1.4em;
+      font-size: 1.1rem; font-weight: 500; color: var(--text);
     }
   </style>
 </head>
@@ -122,6 +121,7 @@
   </div>
 
   <script>
+    // map digits to words for TTS
     const words = {
       1:'one',2:'two',3:'three',4:'four',5:'five',
       6:'six',7:'seven',8:'eight',9:'nine',10:'ten',
@@ -135,75 +135,88 @@
     const msgDiv      = document.getElementById('message');
     let currentRange = [1,10], targetNumber;
 
+    // move focus to body to clear any stuck highlight
     function clearFocus() {
-      // move focus to body to clear any sticky highlight  [oai_citation_attribution:14‡Stack Overflow](https://stackoverflow.com/questions/10642953/mobile-safari-links-retains-focus-after-touch?utm_source=chatgpt.com)
       document.body.focus();
     }
 
-    function speak(text) {
-      if (!window.speechSynthesis) return;
-      const u = new SpeechSynthesisUtterance(text);
-      speechSynthesis.cancel();
-      speechSynthesis.speak(u);
-    }
-
+    // create click handlers to clear focus on touchstart
     function setupHandlers() {
-      // blur any auto‑focusable element on touchstart to avoid sticky active  [oai_citation_attribution:15‡Stack Overflow](https://stackoverflow.com/questions/3885018/active-pseudo-class-doesnt-work-in-mobile-safari/8877902?utm_source=chatgpt.com)
       document.querySelectorAll('.btn').forEach(btn => {
         btn.addEventListener('touchstart', clearFocus, {passive:true});
       });
     }
 
+    // Start button: prime audio then speak the first number
     startBtn.addEventListener('click', () => {
+      clearFocus();
       const [min,max] = rangeSelect.value.split('-').map(Number);
       currentRange = [min,max];
-      nextQuestion();
+
+      // pick and render first question
+      targetNumber = Math.floor(Math.random()*(max-min+1))+min;
+      renderButtons(min, max);
+
+      // **Audio fix**: empty utterance during this tap unlocks mobile TTS  [oai_citation_attribution:1‡Stack Overflow](https://stackoverflow.com/questions/61658740/speechsynthesis-not-working-on-mobile-safari-even-though-its-supported)
+      speechSynthesis.cancel();
+      speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+      speechSynthesis.speak(new SpeechSynthesisUtterance(words[targetNumber]));
     });
 
-    function nextQuestion() {
-      clearFocus();
-      msgDiv.textContent = '';
-      const [min,max] = currentRange;
-      targetNumber = Math.floor(Math.random()*(max-min+1))+min;
-      speak(words[targetNumber]);
-      renderButtons(min,max);
-    }
-
-    function renderButtons(min,max) {
+    function renderButtons(min, max) {
       quizDiv.innerHTML = '';
-      const nums = Array.from({length:max-min+1},(_,i)=>i+min)
-                        .sort(()=>Math.random()-0.5);
+      const nums = Array.from({length: max-min+1}, (_,i)=>i+min)
+                        .sort(() => Math.random() - 0.5);
       nums.forEach(n => {
         const btn = document.createElement('div');
-        btn.textContent  = n;
-        btn.className    = 'btn';
-        btn.onclick      = () => handleAnswer(btn,n);
+        btn.textContent = n;
+        btn.className   = 'btn';
+        btn.onclick     = () => handleAnswer(btn, n);
         quizDiv.appendChild(btn);
       });
       setupHandlers();
     }
 
-    function handleAnswer(btn,val) {
-      Array.from(quizDiv.children).forEach(b=>b.disabled=true);
+    function handleAnswer(btn, val) {
+      clearFocus();
+      Array.from(quizDiv.children).forEach(b => b.disabled = true);
+
       if (val === targetNumber) {
-        // Inline styling—no pseudo‑classes—so it disappears with the element  [oai_citation_attribution:16‡GitHub](https://github.com/jspsych/jsPsych/issues/977?utm_source=chatgpt.com)
-        btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--correct').trim();
-        btn.style.borderColor     = getComputedStyle(document.documentElement).getPropertyValue('--correct').trim();
+        // mark correct
+        btn.style.backgroundColor = getComputedStyle(document.documentElement)
+                                        .getPropertyValue('--correct').trim();
+        btn.style.borderColor     = getComputedStyle(document.documentElement)
+                                        .getPropertyValue('--correct').trim();
         btn.style.color           = '#fff';
         msgDiv.textContent = '🎉 Correct!';
-        speak('Correct');
-        setTimeout(nextQuestion, 1000);
+
+        // pick and render next question
+        const [min, max] = currentRange;
+        const nextNum    = Math.floor(Math.random()*(max-min+1))+min;
+        targetNumber     = nextNum;
+        renderButtons(min, max);
+        clearFocus();
+
+        // speak feedback + next number — all inside this tap event
+        speechSynthesis.cancel();
+        speechSynthesis.speak(new SpeechSynthesisUtterance('Correct'));
+        speechSynthesis.speak(new SpeechSynthesisUtterance(words[nextNum]));
+
       } else {
-        btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--wrong').trim();
-        btn.style.borderColor     = getComputedStyle(document.documentElement).getPropertyValue('--wrong').trim();
+        // wrong answer
+        btn.style.backgroundColor = getComputedStyle(document.documentElement)
+                                        .getPropertyValue('--wrong').trim();
+        btn.style.borderColor     = getComputedStyle(document.documentElement)
+                                        .getPropertyValue('--wrong').trim();
         btn.style.color           = '#fff';
         msgDiv.textContent = '❌ Try again.';
-        speak('Try again');
-        setTimeout(()=>{
-          btn.removeAttribute('style');
-          msgDiv.textContent = '';
-          Array.from(quizDiv.children).forEach(b=>b.disabled=false);
-        },800);
+
+        // speak feedback
+        speechSynthesis.cancel();
+        speechSynthesis.speak(new SpeechSynthesisUtterance('Try again'));
+
+        // clear the wrong highlight after a brief moment
+        setTimeout(() => btn.removeAttribute('style'), 400);
       }
     }
   </script>
