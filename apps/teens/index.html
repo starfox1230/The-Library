@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Number Quiz (Audio & No‑Sticky Highlight)</title>
+  <title>Number Quiz (Fun Version)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
@@ -14,12 +14,13 @@
       user-select: none;
       -webkit-touch-callout: none;
       touch-action: manipulation;
+      box-sizing: border-box;
     }
 
     :root {
       --bg-start: #FDEBFF;
       --bg-end:   #BFE5FF;
-      --card-bg:  rgba(255,255,255,0.8);
+      --card-bg:  rgba(255,255,255,0.9);
       --primary:  #A569BD;
       --accent:   #FFB6C1;
       --btn-bg:   #FFFFFF;
@@ -31,38 +32,62 @@
     }
 
     body {
-      margin: 0; padding: 1rem;
+      margin: 0;
+      padding: 1rem;
       min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
     }
-    /* make body focusable for blur hack */
     body[tabindex] { outline: none; }
 
+    canvas#confetti-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
     .container {
-      width: 100%; max-width: 380px;
+      width: 100%;
+      max-width: 380px;
       background: var(--card-bg);
       border-radius: var(--radius);
       box-shadow: 0 8px 24px var(--shadow);
-      text-align: center; padding: 1.5rem;
+      text-align: center;
+      padding: 1.5rem;
     }
     h1 {
       color: var(--primary);
       font-weight: 600;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    #scoreContainer {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+      color: var(--primary);
     }
     .controls {
-      display: flex; gap: 0.5rem; justify-content: center;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
       margin-bottom: 1rem;
     }
     select, .start-btn {
       padding: 0.5rem 0.75rem;
-      border: none; border-radius: var(--radius);
+      border: none;
+      border-radius: var(--radius);
       box-shadow: 0 4px 12px var(--shadow);
-      background: var(--btn-bg); cursor: pointer;
+      background: var(--btn-bg);
+      cursor: pointer;
       transition: transform 0.1s, box-shadow 0.2s;
-      -webkit-appearance: none; appearance: none;
+      -webkit-appearance: none;
+      appearance: none;
+      font-weight: 500;
     }
     select:hover, .start-btn:hover {
       transform: translateY(-2px);
@@ -75,52 +100,68 @@
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
-    @media (hover: hover) and (pointer: fine) {
-      .btn:hover {
-        background: #F0E6FF;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px var(--shadow);
-      }
-      .btn:active {
-        opacity: 0.7;
-      }
-    }
     .btn {
       padding: 0.75rem 0;
       border: 2px solid var(--accent);
       border-radius: var(--radius);
-      font-size: 1.25rem; font-weight: 600;
+      font-size: 1.25rem;
+      font-weight: 600;
       color: var(--primary);
       background: var(--btn-bg);
       box-shadow: 0 4px 12px var(--shadow);
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       user-select: none;
-      display: flex; align-items: center; justify-content: center;
+      position: relative;
     }
-
     #message {
       min-height: 1.4em;
-      font-size: 1.1rem; font-weight: 500; color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-top: 0.5rem;
     }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    .shake { animation: shake 0.3s; }
+    .bounce { animation: bounce 0.3s; }
   </style>
 </head>
 <body tabindex="-1">
 
+  <canvas id="confetti-canvas"></canvas>
+
   <div class="container">
     <h1>Number Quiz</h1>
+    <div id="scoreContainer">Score: <span id="score">0</span></div>
+
     <div class="controls">
       <select id="rangeSelect">
         <option value="1-10">1 – 10</option>
-        <option value="10-20">10 – 20</option>
+        <option value="11-20">11 – 20</option>
+        <option value="1-20">1 – 20</option>
       </select>
       <div class="start-btn">Start</div>
     </div>
+
     <div id="quiz"></div>
     <div id="message"></div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
   <script>
-    // map digits to words for TTS
     const words = {
       1:'one',2:'two',3:'three',4:'four',5:'five',
       6:'six',7:'seven',8:'eight',9:'nine',10:'ten',
@@ -128,34 +169,52 @@
       16:'sixteen',17:'seventeen',18:'eighteen',19:'nineteen',20:'twenty'
     };
 
+    const positiveMessages = [
+      '🎉 Well done!', '🙌 Awesome!', '⭐ Great job!', '👍 You rocked it!'
+    ];
+    const wrongMessages = [
+      '❌ Oops!', '💡 Try again!', '🤔 Not quite!', '🔄 Give it another go!'
+    ];
+
     const rangeSelect = document.getElementById('rangeSelect');
     const startBtn    = document.querySelector('.start-btn');
     const quizDiv     = document.getElementById('quiz');
     const msgDiv      = document.getElementById('message');
-    let currentRange = [1,10], targetNumber;
+    const scoreSpan   = document.getElementById('score');
 
-    // clear any stuck highlight
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const myConfetti = confetti.create(confettiCanvas, {
+      resize: true,
+      useWorker: true
+    });
+
+    let currentRange = [1,10], targetNumber, score = 0;
+
     function clearFocus() {
       document.body.focus();
     }
-
-    // ensure touch taps blur buttons
     function setupHandlers() {
       document.querySelectorAll('.btn').forEach(btn => {
         btn.addEventListener('touchstart', clearFocus, {passive:true});
       });
     }
 
-    // Start button: clear focus, set range, render first
+    function speakMessage(msg) {
+      const text = msg.split(' ').slice(1).join(' ');
+      speechSynthesis.cancel();
+      speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
+
     startBtn.addEventListener('click', () => {
       clearFocus();
       const [min,max] = rangeSelect.value.split('-').map(Number);
       currentRange = [min,max];
+      score = 0;
+      scoreSpan.textContent = score;
+      msgDiv.textContent = '';
       targetNumber = Math.floor(Math.random()*(max-min+1))+min;
       renderButtons(min, max);
-      // unlock mobile TTS
       speechSynthesis.cancel();
-      speechSynthesis.speak(new SpeechSynthesisUtterance(''));
       speechSynthesis.speak(new SpeechSynthesisUtterance(words[targetNumber]));
     });
 
@@ -175,52 +234,49 @@
 
     function handleAnswer(btn, val) {
       clearFocus();
-      // disable all buttons via CSS
-      Array.from(quizDiv.children).forEach(b => {
-        b.style.pointerEvents = 'none';
-      });
 
       if (val === targetNumber) {
-        // correct styling
         const green = getComputedStyle(document.documentElement)
                         .getPropertyValue('--correct').trim();
         btn.style.backgroundColor = green;
         btn.style.borderColor     = green;
         btn.style.color           = '#fff';
-        msgDiv.textContent = '🎉 Correct!';
 
-        // speak feedback
-        speechSynthesis.cancel();
-        speechSynthesis.speak(new SpeechSynthesisUtterance('Correct'));
+        score++;
+        scoreSpan.textContent = score;
+        const msg = positiveMessages[Math.floor(Math.random()*positiveMessages.length)];
+        msgDiv.textContent = msg;
+        speakMessage(msg);
+        myConfetti({ particleCount: 100, spread: 60 });
+        btn.classList.add('bounce');
+        Array.from(quizDiv.children).forEach(b => b.style.pointerEvents = 'none');
+        btn.addEventListener('animationend', () => btn.classList.remove('bounce'), {once:true});
 
-        // hold green 800ms, then next question
         setTimeout(() => {
           const [min, max] = currentRange;
           targetNumber = Math.floor(Math.random() * (max - min + 1)) + min;
           renderButtons(min, max);
           speechSynthesis.cancel();
           speechSynthesis.speak(new SpeechSynthesisUtterance(words[targetNumber]));
+          msgDiv.textContent = '';
         }, 800);
 
       } else {
-        // wrong styling
         const red = getComputedStyle(document.documentElement)
-                      .getPropertyValue('--wrong').trim();
+                       .getPropertyValue('--wrong').trim();
         btn.style.backgroundColor = red;
         btn.style.borderColor     = red;
         btn.style.color           = '#fff';
-        msgDiv.textContent = '❌ Try again.';
 
-        speechSynthesis.cancel();
-        speechSynthesis.speak(new SpeechSynthesisUtterance('Try again'));
-
-        // clear wrong and re-enable after 400ms
-        setTimeout(() => {
-          btn.removeAttribute('style');
-          Array.from(quizDiv.children).forEach(b => {
-            b.style.pointerEvents = '';
-          });
-        }, 400);
+        const msg = wrongMessages[Math.floor(Math.random()*wrongMessages.length)];
+        msgDiv.textContent = msg;
+        speakMessage(msg);
+        btn.classList.add('shake');
+        btn.style.pointerEvents = 'none';
+        btn.addEventListener('animationend', () => {
+          btn.classList.remove('shake');
+          btn.style.pointerEvents = '';
+        }, {once:true});
       }
     }
   </script>
