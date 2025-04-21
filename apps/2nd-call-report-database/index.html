@@ -2,34 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Phrase Library w/ Case & Section Toggles + Split/Merge</title>
+  <title>Phrase Library with Split/Merge per Case</title>
   <style>
-    body { font-family: sans-serif; margin:1rem; background:#fafafa; }
-    h1 { margin-bottom:.5rem; }
-    #controls { margin-bottom:1rem; }
-    textarea { width:100%; font-family:monospace; }
-    .case { margin-bottom:1.5rem; border:1px solid #ccc; padding:.5rem; border-radius:4px; background:white; }
-    .case > details > summary { font-size:1.1rem; font-weight:600; margin:0; cursor:pointer; }
-    .section { margin: .75rem 0 0 1rem; }
-    .section > details > summary { font-size:1rem; font-weight:500; cursor:pointer; }
-    .block { position:relative; padding:.2rem 0; margin-left:1.5rem; }
+    body { font-family: sans-serif; margin: 1rem; background: #fafafa; }
+    h1 { margin-bottom: .5rem; }
+    #controls { margin-bottom: 1rem; }
+    textarea { width: 100%; height: 150px; font-family: monospace; }
+    details summary { font-weight: 600; cursor: pointer; }
+    ul { margin: .5rem 0 1rem 1.2rem; list-style-type: disc; }
+    li { position: relative; padding-right: 2em; }
     .split-handle, .merge-handle {
-      position:absolute; top:0; font-size:1rem; background:white;
-      border:1px solid #ccc; border-radius:3px; padding:0 4px; line-height:1;
-      cursor:pointer; visibility:hidden;
+      position: absolute; top: 0; font-size: 0.9rem; background: white;
+      border: 1px solid #ccc; border-radius: 3px; padding: 0 4px; cursor: pointer;
+      visibility: hidden;
     }
-    .split-handle { left:-1.2em; color:green; }
-    .merge-handle { left:50%; transform:translateX(-50%); color:blue; margin:.2rem 0; }
-    .block:hover .split-handle { visibility:visible; }
-    .merge-handle:hover { background:#eef; }
-    button,input { margin-right:.5rem; padding:.3rem .6rem; }
+    .split-handle { right: 0.5em; color: green; }
+    .merge-handle { right: 2em; color: blue; }
+    li:hover .split-handle, li:hover .merge-handle { visibility: visible; }
+    button, input { margin-right: .5rem; padding: .3rem .6rem; }
   </style>
 </head>
 <body>
   <h1>Phrase Library</h1>
   <div id="controls">
-    <label>P‍aste all cases here:</label><br>
-    <textarea id="blob" rows="5" placeholder="Case 1 Attending Report: … Case 2 Attending Report: …"></textarea><br>
+    <label for="blob">Paste Cases Here:</label><br>
+    <textarea id="blob" placeholder="Case 1 Attending Report: … Case 2 Attending Report: …"></textarea><br>
     <button id="btn-parse">Parse Cases</button>
     <input type="file" id="json-upload" accept=".json">
     <button id="btn-download">Download JSON</button>
@@ -37,198 +34,165 @@
   <div id="ui"></div>
 
   <script>
-  // 1) Your expected section headers
-  const SECS = [
-    "LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
-    "LYMPH NODES","CHEST WALL",
-    "LIVER","BILIARY TRACT","GALLBLADDER","PANCREAS","SPLEEN","ADRENALS","KIDNEYS",
-    "STOMACH / SMALL BOWEL","COLON / APPENDIX","PERITONEUM / MESENTERY","RETROPERITONEUM",
-    "VESSELS","URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION"
-  ];
+    // 1) Sections
+    const SECTIONS = [
+      "LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
+      "LYMPH NODES","CHEST WALL",
+      "LIVER","BILIARY TRACT","GALLBLADDER","PANCREAS","SPLEEN","ADRENALS","KIDNEYS",
+      "STOMACH / SMALL BOWEL","COLON / APPENDIX","PERITONEUM / MESENTERY","RETROPERITONEUM",
+      "VESSELS","URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION"
+    ];
 
-  // 2) Data: array of { caseName: "Case N", sections: { sec: [blockStr,…], … } }
-  let library = [];
-
-  function resetLibrary(){
-    library = [];
-  }
-
-  // 3) Parse full text into library[]
-  function parseBlob(text){
-    resetLibrary();
-    // split cases by "Case N"
-    const re = /Case\s*(\d+)[\s\S]*?(?=Case\s*\d+|$)/g;
-    let m;
-    while((m = re.exec(text))){
-      const chunk = m[0];
-      const num   = m[1];
-      const secObj = parseCaseBlock(chunk);
-      library.push({ caseName: `Case ${num}`, sections: secObj });
+    // 2) Data: section → array of blocks (one per case, in parse order)
+    let library = {};
+    function resetLibrary() {
+      library = {};
+      SECTIONS.forEach(sec => library[sec] = []);
     }
-    saveAndRender();
-  }
 
-  function parseCaseBlock(chunk){
-    // for each section, extract its lines into one combined block
-    const out = {};
-    SECS.forEach(s=> out[s]=[]);
-    let current = null;
-    chunk.split(/\r?\n/).forEach(line=>{
-      let h = line.match(/^([A-Z0-9 \/]+):\s*(.*)/);
-      if(h){
-        let sec = h[1].trim(), rest = h[2].trim();
-        if(SECS.includes(sec)){
-          current = sec;
-          if(rest){
-            out[sec].push(rest + (rest.endsWith('.')?'':'.'));
-          }
-        } else current = null;
-      } else if(current && line.trim()){
-        let txt = line.trim();
-        out[current].push(txt + (txt.endsWith('.')?'':' .'));
-      }
-    });
-    // now combine each section's array into a single string block
-    const combined = {};
-    Object.entries(out).forEach(([sec, arr])=>{
-      if(arr.length){
-        combined[sec] = [ arr.join(' ') ];
-      }
-    });
-    return combined;
-  }
-
-  // 4) Render UI
-  function renderUI(){
-    const ui = document.getElementById('ui');
-    ui.innerHTML = '';
-    library.forEach((c, ci)=>{
-      const cd = document.createElement('div');
-      cd.className = 'case';
-      const cdet = document.createElement('details');
-      const csum = document.createElement('summary');
-      csum.textContent = c.caseName;
-      cdet.appendChild(csum);
-
-      Object.entries(c.sections).forEach(([sec, blocks])=>{
-        const sdiv = document.createElement('div');
-        sdiv.className = 'section';
-        const sdet = document.createElement('details');
-        const ssum = document.createElement('summary');
-        ssum.textContent = `${sec} (${blocks.length})`;
-        sdet.appendChild(ssum);
-
-        blocks.forEach((blk, bi)=>{
-          const p = document.createElement('p');
-          p.className = 'block';
-          p.dataset.ci = ci;
-          p.dataset.sec = sec;
-          p.dataset.bi = bi;
-          p.innerHTML = injectSplitHandles(blk);
-          sdet.appendChild(p);
-          // merge handle
-          if(bi < blocks.length - 1){
-            const m = document.createElement('div');
-            m.className = 'merge-handle';
-            m.textContent = '⇆';
-            m.dataset.ci = ci;
-            m.dataset.sec = sec;
-            m.dataset.bi = bi;
-            sdet.appendChild(m);
+    // 3) Parse the pasted blob into per-case combined blocks
+    function parseBlob(text) {
+      resetLibrary();
+      // split into each "Case N …" chunk
+      const caseBlocks = text.match(/Case\s*\d+[\s\S]*?(?=Case\s*\d+|$)/g) || [];
+      caseBlocks.forEach(block => {
+        // accumulate lines per section
+        const secText = {};
+        SECTIONS.forEach(sec => secText[sec] = "");
+        let current = null;
+        block.split(/\r?\n/).forEach(line => {
+          const m = line.match(/^([A-Z0-9 \-\/]+):\s*(.*)/);
+          if (m) {
+            const sec = m[1].trim(), rest = m[2].trim();
+            if (SECTIONS.includes(sec)) {
+              current = sec;
+              if (rest) secText[sec] += rest + (rest.endsWith('.') ? ' ' : '. ');
+            } else {
+              current = null;
+            }
+          } else if (current && line.trim()) {
+            const txt = line.trim();
+            secText[current] += txt + (txt.endsWith('.') ? ' ' : '. ');
           }
         });
-
-        sdiv.appendChild(sdet);
-        cdet.appendChild(sdiv);
+        // push combined block if non-empty
+        SECTIONS.forEach(sec => {
+          const txt = secText[sec].trim();
+          if (txt) {
+            const final = txt.endsWith('.') ? txt : txt + '.';
+            library[sec].push(final);
+          }
+        });
       });
-
-      cd.appendChild(cdet);
-      ui.appendChild(cd);
-    });
-  }
-
-  // inject ➕ between sentences
-  function injectSplitHandles(text){
-    // split on ". " including the period
-    const sents = text.match(/[^.]+\.?/g).map(s=>s.trim()).filter(s=>s);
-    return sents.map((s,i)=>
-      `<span>${s}</span>` +
-      (i < sents.length-1
-        ? `<span class="split-handle" data-si="${i}">➕</span>`
-        : '')
-    ).join(' ');
-  }
-
-  // 5) Split & Merge handlers
-  document.body.addEventListener('click', e=>{
-    if(e.target.classList.contains('split-handle')){
-      const p = e.target.closest('.block');
-      const ci = +p.dataset.ci;
-      const sec = p.dataset.sec;
-      const bi = +p.dataset.bi;
-      const si = +e.target.dataset.si;
-      doSplit(ci, sec, bi, si);
-    }
-    if(e.target.classList.contains('merge-handle')){
-      const ci = +e.target.dataset.ci;
-      const sec = e.target.dataset.sec;
-      const bi = +e.target.dataset.bi;
-      doMerge(ci, sec, bi);
-    }
-  });
-
-  function doSplit(ci, sec, bi, si){
-    const buckets = library[ci].sections[sec];
-    const blk     = buckets[bi];
-    const sents   = blk.match(/[^.]+\.?/g).map(s=>s.trim()).filter(s=>s);
-    const left    = sents.slice(0,si+1).join(' ');
-    const right   = sents.slice(si+1).join(' ');
-    buckets.splice(bi,1, left, right);
-    saveAndRender();
-  }
-
-  function doMerge(ci, sec, bi){
-    const buckets = library[ci].sections[sec];
-    const merged = buckets[bi] + ' ' + buckets[bi+1];
-    buckets.splice(bi,2, merged);
-    saveAndRender();
-  }
-
-  // 6) Persistence & Controls
-  function saveAndRender(){
-    localStorage.setItem('phraseLib', JSON.stringify(library));
-    renderUI();
-  }
-
-  document.getElementById('btn-parse').addEventListener('click', ()=>{
-    const txt = document.getElementById('blob').value;
-    if(!txt.trim()) return alert('Paste your cases first');
-    parseBlob(txt);
-  });
-
-  document.getElementById('btn-download').addEventListener('click', ()=>{
-    const data = localStorage.getItem('phraseLib') || '[]';
-    const blob = new Blob([data], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'phraseLibrary.json';
-    a.click();
-  });
-
-  document.getElementById('json-upload').addEventListener('change', e=>{
-    e.target.files[0].text().then(txt=>{
-      library = JSON.parse(txt);
       saveAndRender();
-    });
-  });
+    }
 
-  // 7) Initialization
-  (()=>{
-    const saved = localStorage.getItem('phraseLib');
-    if(saved) library = JSON.parse(saved);
-    else resetLibrary();
-    renderUI();
-  })();
+    // 4) Render UI: one details/ul per section, li per block, with split & merge handles
+    function renderUI() {
+      const container = document.getElementById('ui');
+      container.innerHTML = '';
+      SECTIONS.forEach(sec => {
+        const blocks = library[sec];
+        if (!blocks.length) return;
+        const det = document.createElement('details');
+        const sum = document.createElement('summary');
+        sum.textContent = `${sec} (${blocks.length})`;
+        det.appendChild(sum);
+        const ul = document.createElement('ul');
+        blocks.forEach((blk, i) => {
+          // bullet item
+          const li = document.createElement('li');
+          li.textContent = blk;
+          li.dataset.sec = sec;
+          li.dataset.idx = i;
+          // split handle
+          const split = document.createElement('span');
+          split.textContent = '➕';
+          split.className = 'split-handle';
+          split.dataset.sec = sec;
+          split.dataset.idx = i;
+          split.title = 'Split here';
+          li.appendChild(split);
+          ul.appendChild(li);
+          // merge handle (between this and next)
+          if (i < blocks.length - 1) {
+            const mi = document.createElement('li');
+            mi.style.listStyleType = 'none';
+            const merge = document.createElement('span');
+            merge.textContent = '⇆';
+            merge.className = 'merge-handle';
+            merge.dataset.sec = sec;
+            merge.dataset.idx = i;
+            merge.title = 'Merge with next';
+            mi.appendChild(merge);
+            ul.appendChild(mi);
+          }
+        });
+        det.appendChild(ul);
+        container.appendChild(det);
+      });
+    }
+
+    // 5) Split & Merge logic
+    document.body.addEventListener('click', e => {
+      if (e.target.classList.contains('split-handle')) {
+        const sec = e.target.dataset.sec,
+              idx = +e.target.dataset.idx;
+        const text = library[sec][idx];
+        // split at nearest ". " before click position
+        // for simplicity, prompt user for sentence number
+        const sents = text.match(/[^.]+\.?/g).map(s => s.trim()).filter(s => s);
+        const choice = prompt(
+          `Split "${sec}" block into two at which sentence? 0–${sents.length-2}`,
+          '0'
+        );
+        const si = parseInt(choice);
+        if (!isNaN(si) && si >= 0 && si < sents.length-1) {
+          const left = sents.slice(0,si+1).join(' ');
+          const right= sents.slice(si+1).join(' ');
+          library[sec].splice(idx,1, left, right);
+          saveAndRender();
+        }
+      }
+      if (e.target.classList.contains('merge-handle')) {
+        const sec = e.target.dataset.sec,
+              idx = +e.target.dataset.idx;
+        const a = library[sec][idx],
+              b = library[sec][idx+1];
+        library[sec].splice(idx,2, a+' '+b);
+        saveAndRender();
+      }
+    });
+
+    // 6) Save & load
+    function saveAndRender() {
+      localStorage.setItem('phraseLib', JSON.stringify(library));
+      renderUI();
+    }
+    document.getElementById('btn-parse')
+      .addEventListener('click', () => parseBlob(document.getElementById('blob').value));
+    document.getElementById('btn-download')
+      .addEventListener('click', () => {
+        const data = JSON.stringify(library, null, 2);
+        const blob = new Blob([data], {type:'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'phraseLibrary.json';
+        a.click();
+      });
+    document.getElementById('json-upload')
+      .addEventListener('change', e => e.target.files[0].text().then(txt => {
+        library = JSON.parse(txt);
+        saveAndRender();
+      }));
+
+    // 7) Init
+    (()=>{
+      const saved = localStorage.getItem('phraseLib');
+      if (saved) library = JSON.parse(saved);
+      else resetLibrary();
+      renderUI();
+    })();
   </script>
 </body>
 </html>
