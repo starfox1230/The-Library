@@ -75,7 +75,6 @@
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
-    /* only apply hover/active on non-touch devices */
     @media (hover: hover) and (pointer: fine) {
       .btn:hover {
         background: #F0E6FF;
@@ -135,29 +134,26 @@
     const msgDiv      = document.getElementById('message');
     let currentRange = [1,10], targetNumber;
 
-    // move focus to body to clear any stuck highlight
+    // clear any stuck highlight
     function clearFocus() {
       document.body.focus();
     }
 
-    // create click handlers to clear focus on touchstart
+    // ensure touch taps blur buttons
     function setupHandlers() {
       document.querySelectorAll('.btn').forEach(btn => {
         btn.addEventListener('touchstart', clearFocus, {passive:true});
       });
     }
 
-    // Start button: prime audio then speak the first number
+    // Start button: clear focus, set range, render first
     startBtn.addEventListener('click', () => {
       clearFocus();
       const [min,max] = rangeSelect.value.split('-').map(Number);
       currentRange = [min,max];
-
-      // pick and render first question
       targetNumber = Math.floor(Math.random()*(max-min+1))+min;
       renderButtons(min, max);
-
-      // **Audio fix**: empty utterance during this tap unlocks mobile TTS  [oai_citation_attribution:1‡Stack Overflow](https://stackoverflow.com/questions/61658740/speechsynthesis-not-working-on-mobile-safari-even-though-its-supported)
+      // unlock mobile TTS
       speechSynthesis.cancel();
       speechSynthesis.speak(new SpeechSynthesisUtterance(''));
       speechSynthesis.speak(new SpeechSynthesisUtterance(words[targetNumber]));
@@ -179,44 +175,52 @@
 
     function handleAnswer(btn, val) {
       clearFocus();
-      Array.from(quizDiv.children).forEach(b => b.disabled = true);
+      // disable all buttons via CSS
+      Array.from(quizDiv.children).forEach(b => {
+        b.style.pointerEvents = 'none';
+      });
 
       if (val === targetNumber) {
-        // mark correct
-        btn.style.backgroundColor = getComputedStyle(document.documentElement)
-                                        .getPropertyValue('--correct').trim();
-        btn.style.borderColor     = getComputedStyle(document.documentElement)
-                                        .getPropertyValue('--correct').trim();
+        // correct styling
+        const green = getComputedStyle(document.documentElement)
+                        .getPropertyValue('--correct').trim();
+        btn.style.backgroundColor = green;
+        btn.style.borderColor     = green;
         btn.style.color           = '#fff';
         msgDiv.textContent = '🎉 Correct!';
 
-        // pick and render next question
-        const [min, max] = currentRange;
-        const nextNum    = Math.floor(Math.random()*(max-min+1))+min;
-        targetNumber     = nextNum;
-        renderButtons(min, max);
-        clearFocus();
-
-        // speak feedback + next number — all inside this tap event
+        // speak feedback
         speechSynthesis.cancel();
         speechSynthesis.speak(new SpeechSynthesisUtterance('Correct'));
-        speechSynthesis.speak(new SpeechSynthesisUtterance(words[nextNum]));
+
+        // hold green 800ms, then next question
+        setTimeout(() => {
+          const [min, max] = currentRange;
+          targetNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+          renderButtons(min, max);
+          speechSynthesis.cancel();
+          speechSynthesis.speak(new SpeechSynthesisUtterance(words[targetNumber]));
+        }, 800);
 
       } else {
-        // wrong answer
-        btn.style.backgroundColor = getComputedStyle(document.documentElement)
-                                        .getPropertyValue('--wrong').trim();
-        btn.style.borderColor     = getComputedStyle(document.documentElement)
-                                        .getPropertyValue('--wrong').trim();
+        // wrong styling
+        const red = getComputedStyle(document.documentElement)
+                      .getPropertyValue('--wrong').trim();
+        btn.style.backgroundColor = red;
+        btn.style.borderColor     = red;
         btn.style.color           = '#fff';
         msgDiv.textContent = '❌ Try again.';
 
-        // speak feedback
         speechSynthesis.cancel();
         speechSynthesis.speak(new SpeechSynthesisUtterance('Try again'));
 
-        // clear the wrong highlight after a brief moment
-        setTimeout(() => btn.removeAttribute('style'), 400);
+        // clear wrong and re-enable after 400ms
+        setTimeout(() => {
+          btn.removeAttribute('style');
+          Array.from(quizDiv.children).forEach(b => {
+            b.style.pointerEvents = '';
+          });
+        }, 400);
       }
     }
   </script>
