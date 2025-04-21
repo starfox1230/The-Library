@@ -11,8 +11,8 @@
     details { margin-top: 0.5rem; border-top: 1px solid #eee; padding-top: 0.5rem; }
     details summary { font-weight: 600; cursor: pointer; }
     ul { margin: .5rem 0 1rem 1.2rem; list-style-type: disc; padding-left: 1.5em; }
-    li { position: relative; margin-bottom: 0.1em; line-height: 1.4; padding-right: 1.5em; /* Make space for handle */ } /* Smaller margin */
-    li.highlight-group { background-color: #e0f0ff; } /* Highlight style */
+    li { position: relative; margin-bottom: 0.1em; line-height: 1.4; padding-right: 1.5em; }
+    li.highlight-group { background-color: #e0f0ff; }
     .merge-handle {
       position: absolute;
       right: 0;
@@ -28,9 +28,7 @@
       visibility: hidden;
       color: blue;
     }
-    /* Show handle on the item *before* the potential merge */
     li:hover .merge-handle { visibility: visible; }
-    /* Hide handle on the very last item in a list */
     ul > li:last-child .merge-handle { display: none; }
 
     button, input[type="file"] { margin-right: .5rem; padding: .3rem .6rem; margin-top: .5rem; }
@@ -45,16 +43,25 @@
     <textarea id="blob" placeholder="Case 1 Attending Report: ... Case 2 Attending Report: ..."></textarea><br>
     <button id="btn-parse">Parse Cases & Split Sentences</button>
     <label for="json-upload" class="button-like">Upload JSON</label>
-    <input type="file" id="json-upload" accept=".json" >
+    <input type="file" id="json-upload" accept=".json">
     <button id="btn-download">Download JSON</button>
     <hr style="margin: 0.75rem 0; border: none; border-top: 1px dashed #ccc;">
     <button id="btn-reset-cache">Clear Saved Library</button>
   </div>
+
+  <!--  FILTER INPUT ADDED HERE  -->
+  <input
+    type="text"
+    id="txt-filter"
+    placeholder="Filter sentences…"
+    style="width:100%; margin-bottom:1rem;"
+  >
+
   <div id="ui"></div>
 
   <script>
   // 1a) Canonical Section headers
-  const SECTIONS = [ /* ... Keep your SECTIONS list ... */
+  const SECTIONS = [
     "LOWER NECK", "LUNGS / AIRWAYS / PLEURA", "HEART / VESSELS", "MEDIASTINUM / ESOPHAGUS", "DIAPHRAGM",
     "LYMPH NODES", "CHEST WALL", "LIVER", "BILIARY TRACT", "GALLBLADDER", "PANCREAS", "SPLEEN", "ADRENALS",
     "KIDNEYS", "STOMACH / SMALL BOWEL", "COLON / APPENDIX", "PERITONEUM / MESENTERY", "RETROPERITONEUM",
@@ -62,7 +69,7 @@
   ];
 
   // 1b) Mapping for Variations
-  const SECTION_MAP = { /* ... Keep your SECTION_MAP ... */
+  const SECTION_MAP = {
     "LOWER NECK": "LOWER NECK",
     "LUNGS / AIRWAYS / PLEURA": "LUNGS / AIRWAYS / PLEURA",
     "LUNG BASES / PLEURA": "LUNGS / AIRWAYS / PLEURA",
@@ -73,7 +80,7 @@
     "LYMPH NODES": "LYMPH NODES",
     "CHEST WALL": "CHEST WALL",
     "LIVER": "LIVER",
-    "LIVER/BILIARY TRACT": "LIVER", // Map combined to primary if desired
+    "LIVER/BILIARY TRACT": "LIVER",
     "BILIARY TRACT": "BILIARY TRACT",
     "GALLBLADDER": "GALLBLADDER",
     "PANCREAS": "PANCREAS",
@@ -84,7 +91,7 @@
     "COLON / APPENDIX": "COLON / APPENDIX",
     "COLON": "COLON / APPENDIX",
     "PERITONEUM / MESENTERY": "PERITONEUM / MESENTERY",
-    "PERITONEUM": "PERITONEUM / MESENTERY", // Map variation
+    "PERITONEUM": "PERITONEUM / MESENTERY",
     "RETROPERITONEUM": "RETROPERITONEUM",
     "VESSELS": "VESSELS",
     "OTHER VESSELS": "VESSELS",
@@ -106,272 +113,261 @@
     "BODY WALL": "BODY WALL",
     "MUSCULOSKELETAL": "MUSCULOSKELETAL",
     "CONCLUSION": "CONCLUSION",
-    // Intermediate headers to explicitly ignore
-    "ABDOMEN AND PELVIS": null,
-    "ABDOMEN": null,
-    "PELVIS": null,
-    "LOWER CHEST": null,
-    "LOWER ABDOMEN": null,
-    "UPPER ABDOMEN": null,
-    "VASCULATURE": null,
-    "FINDINGS": null,
-    "STRUCTURED REPORT": null,
-    "OTHER": null,
-    "PERIANAL TISSUES": null,
+    // Ignore these
+    "ABDOMEN AND PELVIS": null, "ABDOMEN": null, "PELVIS": null,
+    "LOWER CHEST": null, "LOWER ABDOMEN": null, "UPPER ABDOMEN": null,
+    "VASCULATURE": null, "FINDINGS": null, "STRUCTURED REPORT": null,
+    "OTHER": null, "PERIANAL TISSUES": null,
     "PERIRECTAL / PERIANAL REGION": null,
-    "IMAGE QUALITY": null,
-    "OVERALL DIAGNOSTIC QUALITY": null,
-    "LIVER LESIONS": "LIVER", // Map this to LIVER
-    "LIVER VASCULATURE AND COLLATERALS": null,
-    "LIVER RELATED FINDINGS": null,
-    "OTHER FINDINGS": null,
-    "BOWEL": null,
+    "IMAGE QUALITY": null, "OVERALL DIAGNOSTIC QUALITY": null,
+    "LIVER LESIONS": "LIVER", "LIVER VASCULATURE AND COLLATERALS": null,
+    "LIVER RELATED FINDINGS": null, "OTHER FINDINGS": null, "BOWEL": null
   };
 
-  // 2) Data - Nested Array Structure: library[section] = [ block1_sentences[], block2_sentences[] ]
-  const LOCAL_STORAGE_KEY = 'phraseLibSentenceMode'; // Use a different key
+  // 2) Data - Nested Array Structure
+  const LOCAL_STORAGE_KEY = 'phraseLibSentenceMode';
   let library = {};
   function resetLibrary() {
     library = {};
-    SECTIONS.forEach(s => library[s] = []); // Initialize sections with empty array for blocks
+    SECTIONS.forEach(s => library[s] = []);
   }
 
-  // Regex for splitting sentences (handles decimals better)
+  // Sentence split regex
   const sentenceSplitRegex = /\S.+?[.!?](?=\s+[A-ZÀ-ÖØ-Þ]|$)|\S.+/g;
 
-  // 3) Parse blob - Creates nested sentence arrays & Deduplicates Blocks
+  // 3) Parse blob
   function parseBlob(text) {
-    if (!text || text.trim() === "") { alert("Cannot parse empty text."); return; }
+    if (!text.trim()) { alert("Cannot parse empty text."); return; }
     resetLibrary();
-    // Use Set to track unique *blocks* (represented by stringified sentence array) per section
-    let uniqueBlocksInSection = {};
+    const uniqueBlocksInSection = {};
     SECTIONS.forEach(s => uniqueBlocksInSection[s] = new Set());
 
     const caseChunks = text.split(/(?=^Case\s*\d+)/m).filter(Boolean);
+    caseChunks.forEach(chunk => {
+      const m = chunk.match(/Attending Report:\s*([\s\S]*?)(?=Resident Report:|Case\s*\d+|$)/i);
+      if (!m?.[1]?.trim()) return;
+      const attendingBlock = m[1].trim();
 
-    caseChunks.forEach((chunk) => {
-        const m = chunk.match(/Attending Report:\s*([\s\S]*?)(?=Resident Report:|Case\s*\d+|$)/i);
-        if (!m || !m[1] || m[1].trim().length === 0) return;
-        const attendingBlock = m[1].trim();
+      const tempSectionTexts = {};
+      SECTIONS.forEach(s => tempSectionTexts[s] = "");
+      let currentCanonicalSectionKey = null;
 
-        const tempSectionTexts = {}; // Temp store for *full text* per section *per case*
-        SECTIONS.forEach(s => tempSectionTexts[s] = "");
-        let currentCanonicalSectionKey = null;
-        const lines = attendingBlock.split(/\r?\n/);
-
-        lines.forEach((line) => { // Collect full text for each section first
-            const trimmedLine = line.trim();
-            if (!trimmedLine) return;
-            const headerMatch = trimmedLine.match(/^([A-Z0-9 \-\/]+):\s*(.*)/);
-            if (headerMatch) {
-                const potentialHeader = headerMatch[1].trim().toUpperCase();
-                const restOfLine = headerMatch[2].trim();
-                if (SECTION_MAP.hasOwnProperty(potentialHeader)) {
-                    const mappedSection = SECTION_MAP[potentialHeader];
-                    if (mappedSection !== null) {
-                        currentCanonicalSectionKey = mappedSection;
-                        if (restOfLine) tempSectionTexts[currentCanonicalSectionKey] += restOfLine + (restOfLine.endsWith('.') ? ' ' : '. ');
-                    } else { currentCanonicalSectionKey = null; }
-                } else { currentCanonicalSectionKey = null; }
-            } else if (currentCanonicalSectionKey) {
-                const textToAppend = trimmedLine;
-                tempSectionTexts[currentCanonicalSectionKey] += textToAppend + (textToAppend.endsWith('.') ? ' ' : '. ');
+      attendingBlock.split(/\r?\n/).forEach(line => {
+        const t = line.trim();
+        if (!t) return;
+        const headerMatch = t.match(/^([A-Z0-9 \-\/]+):\s*(.*)/);
+        if (headerMatch) {
+          const hdr = headerMatch[1].toUpperCase();
+          const rest = headerMatch[2].trim();
+          if (hdr in SECTION_MAP) {
+            const mapped = SECTION_MAP[hdr];
+            currentCanonicalSectionKey = mapped;
+            if (mapped && rest) {
+              tempSectionTexts[mapped] += rest + (rest.endsWith('.') ? ' ' : '. ');
             }
-        });
+          } else {
+            currentCanonicalSectionKey = null;
+          }
+        } else if (currentCanonicalSectionKey) {
+          tempSectionTexts[currentCanonicalSectionKey] += t + (t.endsWith('.') ? ' ' : '. ');
+        }
+      });
 
-        // Now, process the collected full text for each section: split & add block if unique
-        SECTIONS.forEach(sec => {
-            let fullSectionText = tempSectionTexts[sec]?.replace(/\s+/g, ' ').replace(/ \./g, '.').trim() || "";
-            if (fullSectionText && !fullSectionText.endsWith('.')) fullSectionText += '.';
+      SECTIONS.forEach(sec => {
+        let txt = (tempSectionTexts[sec] || "").replace(/\s+/g, ' ').replace(/ \./g, '.').trim();
+        if (txt && !txt.endsWith('.')) txt += '.';
+        if (!txt) return;
+        const sentences = txt.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [];
+        if (!sentences.length) return;
+        const key = JSON.stringify(sentences);
+        if (!uniqueBlocksInSection[sec].has(key)) {
+          uniqueBlocksInSection[sec].add(key);
+          library[sec].push(sentences);
+        }
+      });
+    });
 
-            if (fullSectionText) {
-                // Split the *entire collected block* into sentences
-                const sentencesInBlock = fullSectionText.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [];
-
-                if (sentencesInBlock.length > 0) {
-                    // Check for duplicate *block* using stringified array
-                    const blockString = JSON.stringify(sentencesInBlock);
-                    if (!uniqueBlocksInSection[sec].has(blockString)) {
-                        library[sec].push(sentencesInBlock); // Add the array of sentences as a new block
-                        uniqueBlocksInSection[sec].add(blockString);
-                    }
-                }
-            }
-        });
-    }); // End forEach caseChunk
-
-    const totalBlocks = Object.values(library).reduce((sum, arr) => sum + arr.length, 0);
-    console.log(`[INFO] Total unique original blocks extracted: ${totalBlocks}`);
-    if (totalBlocks === 0) { alert("Parsing finished, but no text blocks were extracted."); }
-    saveState(); // Save the new structure
+    saveState();
     renderAllSections();
   }
 
-  // 4) Render UI - Handles nested arrays
+  // 4) Render
   function renderAllSections() {
-    const ui = document.getElementById('ui'); ui.innerHTML = ''; let hasContent = false;
-    SECTIONS.forEach(sec => { if (renderSection(sec, ui)) { hasContent = true; } });
-    if (!hasContent && ui.innerHTML === '') { ui.innerHTML = '<p style="color: grey; text-align: center; margin-top: 2rem;">Library is empty.</p>'; }
-  }
-
-  // 4b) Render Single Section - Renders individual sentences with grouping data
-  function renderSection(sec, container) {
-      const blocks = library[sec] || []; // blocks is now array of arrays: [[s1,s2],[s3,s4,s5]]
-      let det = container.querySelector(`details[data-section="${sec}"]`);
-
-      // Calculate total sentence count for summary
-      const totalSentences = blocks.reduce((count, block) => count + block.length, 0);
-
-      if (totalSentences === 0) { // Check if section is truly empty
-          if (det) det.remove();
-          return false;
-      }
-
-      let ul;
-      if (!det) {
-          det = document.createElement('details'); det.dataset.section = sec;
-          const sum = document.createElement('summary'); det.appendChild(sum);
-          ul = document.createElement('ul'); det.appendChild(ul);
-          // Insertion logic based on SECTIONS order
-          const currentSecIndex = SECTIONS.indexOf(sec); let insertBeforeElement = null;
-          for (let i = currentSecIndex + 1; i < SECTIONS.length; i++) { const nextSec = SECTIONS[i]; const nextDet = container.querySelector(`details[data-section="${nextSec}"]`); if (nextDet) { insertBeforeElement = nextDet; break; } }
-          if (insertBeforeElement) container.insertBefore(det, insertBeforeElement); else container.appendChild(det);
-      } else {
-          ul = det.querySelector('ul'); ul.innerHTML = '';
-      }
-      // Update summary with sentence count
-      det.querySelector('summary').textContent = `${sec} (${totalSentences} sentences / ${blocks.length} original blocks)`;
-
-      // Render each sentence as an LI, adding block/sentence indices
-      blocks.forEach((sentenceArray, blockIndex) => {
-          sentenceArray.forEach((sentenceText, sentenceIndexInBlock) => {
-              const li = document.createElement('li');
-              li.dataset.sec = sec;
-              li.dataset.blockIdx = blockIndex;
-              li.dataset.sentIdx = sentenceIndexInBlock;
-              li.textContent = sentenceText; // Use textContent for safety
-
-              // Add merge handle to each LI (CSS hides it for the last one)
-              li.innerHTML += `<span class="merge-handle" title="Merge with next">⇆</span>`;
-
-              ul.appendChild(li);
-          });
-      });
-      return true;
-  }
-
-  // 5a) Highlighting Logic
-  const uiContainer = document.getElementById('ui');
-  uiContainer.addEventListener('mouseover', (e) => {
-      const li = e.target.closest('li');
-      if (!li || !li.dataset.sec) return; // Only act if hovering over a list item with data
-
-      const sec = li.dataset.sec;
-      const blockIdx = li.dataset.blockIdx;
-
-      // Find all LIs belonging to the same original block
-      const siblings = uiContainer.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${blockIdx}"]`);
-      siblings.forEach(siblingLi => siblingLi.classList.add('highlight-group'));
-  });
-
-  uiContainer.addEventListener('mouseout', (e) => {
-      const li = e.target.closest('li');
-      if (!li || !li.dataset.sec) return;
-
-      const sec = li.dataset.sec;
-      const blockIdx = li.dataset.blockIdx;
-
-      // Remove highlight from all LIs of that group
-      const siblings = uiContainer.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${blockIdx}"]`);
-      siblings.forEach(siblingLi => siblingLi.classList.remove('highlight-group'));
-  });
-
-  // 5b) Merge Logic - Merges adjacent LIs
-  uiContainer.addEventListener('click', (e) => {
-      const mergeHandle = e.target.closest('.merge-handle');
-      if (!mergeHandle) return; // Exit if not clicking a merge handle
-
-      const li1 = mergeHandle.closest('li'); // The LI containing the handle (item BEFORE merge)
-      const li2 = li1?.nextElementSibling; // The LI immediately after
-
-      if (!li1 || !li2 || !li1.dataset.sec || !li2.dataset.sec) {
-          console.error("Merge Error: Couldn't find adjacent LIs with data.");
-          return;
-      }
-
-      // Ensure they are in the same section (should always be true based on rendering)
-      if (li1.dataset.sec !== li2.dataset.sec) {
-           console.error("Merge Error: Trying to merge across sections.");
-           return;
-      }
-
-      const sec = li1.dataset.sec;
-      const blockIdx1 = +li1.dataset.blockIdx;
-      const sentIdx1 = +li1.dataset.sentIdx;
-      const blockIdx2 = +li2.dataset.blockIdx;
-      const sentIdx2 = +li2.dataset.sentIdx;
-
-      // Check if data indices are valid
-      if (isNaN(blockIdx1) || isNaN(sentIdx1) || isNaN(blockIdx2) || isNaN(sentIdx2) ||
-          !library[sec]?.[blockIdx1]?.[sentIdx1] || !library[sec]?.[blockIdx2]?.[sentIdx2]) {
-             console.error("Merge Error: Invalid data indices from LIs.", {sec, blockIdx1, sentIdx1, blockIdx2, sentIdx2});
-             return;
-      }
-
-      // Combine the text
-      const text1 = library[sec][blockIdx1][sentIdx1];
-      const text2 = library[sec][blockIdx2][sentIdx2];
-      const mergedText = (text1 + " " + text2).replace(/\s+/g, ' ').trim(); // Basic merge
-
-      // Update the data structure: Modify first sentence, remove second
-      library[sec][blockIdx1][sentIdx1] = mergedText;
-
-      // Remove the second sentence's data - careful with indices!
-      library[sec][blockIdx2].splice(sentIdx2, 1);
-
-      // Clean up: If block2 became empty after removing the sentence, remove the block itself
-      if (library[sec][blockIdx2].length === 0) {
-          library[sec].splice(blockIdx2, 1);
-          // Note: This removal shifts block indices for subsequent blocks in the same section!
-          // Re-rendering the whole section handles this automatically.
-      }
-
-      saveState(); // Save the modified structure
-      renderSection(sec, uiContainer); // Re-render the affected section
-  });
-
-
-  // 6) Persistence - Saves nested structure, NO deduplication here
-  function saveState() {
-    try {
-      // Save the potentially modified nested structure directly
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(library));
-    } catch (e) {
-        console.error("Error saving state:", e);
-        alert("Could not save library changes.");
+    const ui = document.getElementById('ui');
+    ui.innerHTML = '';
+    let has = false;
+    SECTIONS.forEach(sec => { if (renderSection(sec, ui)) has = true; });
+    if (!has) {
+      ui.innerHTML = '<p style="color: grey; text-align: center; margin-top: 2rem;">Library is empty.</p>';
     }
   }
-  function loadState() {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY); library = {}; SECTIONS.forEach(s => library[s] = []);
-    if (saved) { try { const loaded = JSON.parse(saved); SECTIONS.forEach(s => { library[s] = loaded[s] || []; }); } catch(e) { console.error("Load Error:", e); resetLibrary(); } }
+
+  function renderSection(sec, container) {
+    const blocks = library[sec] || [];
+    const totalSentences = blocks.reduce((c, b) => c + b.length, 0);
+    let det = container.querySelector(`details[data-section="${sec}"]`);
+    if (totalSentences === 0) {
+      det?.remove();
+      return false;
+    }
+
+    let ul;
+    if (!det) {
+      det = document.createElement('details');
+      det.dataset.section = sec;
+      const sum = document.createElement('summary');
+      det.appendChild(sum);
+      ul = document.createElement('ul');
+      det.appendChild(ul);
+
+      // Insert in correct order
+      const idx = SECTIONS.indexOf(sec);
+      let before = null;
+      for (let i = idx + 1; i < SECTIONS.length; i++) {
+        const nxt = container.querySelector(`details[data-section="${SECTIONS[i]}"]`);
+        if (nxt) { before = nxt; break; }
+      }
+      if (before) container.insertBefore(det, before);
+      else container.appendChild(det);
+    } else {
+      ul = det.querySelector('ul');
+      ul.innerHTML = '';
+    }
+
+    det.querySelector('summary').textContent = `${sec} (${totalSentences} sentences / ${blocks.length} original blocks)`;
+
+    blocks.forEach((block, bIdx) => {
+      block.forEach((sentence, sIdx) => {
+        const li = document.createElement('li');
+        li.dataset.sec = sec;
+        li.dataset.blockIdx = bIdx;
+        li.dataset.sentIdx = sIdx;
+        li.textContent = sentence;
+        li.innerHTML += `<span class="merge-handle" title="Merge with next">⇆</span>`;
+        ul.appendChild(li);
+      });
+    });
+
+    return true;
   }
 
-  // --- Event Listeners ---
-  document.getElementById('btn-parse').onclick = () => parseBlob(document.getElementById('blob').value);
-  document.getElementById('btn-download').onclick = () => {
-    if (Object.values(library).every(a=>a.length===0)) { alert("Library is empty."); return; }
-    const dataStr = JSON.stringify(library, null, 2); const blob = new Blob([dataStr], {type:'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `phraseLibSentenceMode-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
-  };
-  document.getElementById('json-upload').addEventListener('change', e => { // Load needs to expect nested arrays
-    const file = e.target.files[0]; if (!file) return;
-    file.text().then(txt => { try { const loaded = JSON.parse(txt); if(typeof loaded !== 'object' || loaded === null) throw new Error('Invalid format'); library = {}; SECTIONS.forEach(s => { library[s] = loaded[s] || []; }); /* Basic validation might be needed here */ saveState(); renderAllSections(); alert('Loaded!'); } catch (err) { alert(`Load error: ${err.message}`); } finally { e.target.value = null; }
-    }).catch(err => { alert(`Read error: ${err.message}`); e.target.value = null; });
+  // 5a) Highlight
+  const uiContainer = document.getElementById('ui');
+  uiContainer.addEventListener('mouseover', e => {
+    const li = e.target.closest('li');
+    if (!li?.dataset.sec) return;
+    const sec = li.dataset.sec;
+    const b = li.dataset.blockIdx;
+    uiContainer.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${b}"]`)
+      .forEach(x => x.classList.add('highlight-group'));
   });
- document.getElementById('btn-reset-cache').onclick = () => { if (confirm("Clear saved library?")) { try { localStorage.removeItem(LOCAL_STORAGE_KEY); resetLibrary(); renderAllSections(); alert("Cleared."); } catch (e) { alert("Clear error."); } } };
+  uiContainer.addEventListener('mouseout', e => {
+    const li = e.target.closest('li');
+    if (!li?.dataset.sec) return;
+    const sec = li.dataset.sec;
+    const b = li.dataset.blockIdx;
+    uiContainer.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${b}"]`)
+      .forEach(x => x.classList.remove('highlight-group'));
+  });
 
-  // 7) Initialize
-  (()=>{ loadState(); renderAllSections(); })();
+  // 5b) Merge
+  uiContainer.addEventListener('click', e => {
+    const handle = e.target.closest('.merge-handle');
+    if (!handle) return;
+    const li1 = handle.closest('li');
+    const li2 = li1.nextElementSibling;
+    if (!li1 || !li2 || li1.dataset.sec !== li2.dataset.sec) return;
+    const sec = li1.dataset.sec;
+    const b1 = +li1.dataset.blockIdx, s1 = +li1.dataset.sentIdx;
+    const b2 = +li2.dataset.blockIdx, s2 = +li2.dataset.sentIdx;
+    const t1 = library[sec][b1][s1];
+    const t2 = library[sec][b2][s2];
+    library[sec][b1][s1] = (t1 + ' ' + t2).replace(/\s+/g, ' ').trim();
+    library[sec][b2].splice(s2, 1);
+    if (library[sec][b2].length === 0) library[sec].splice(b2, 1);
+    saveState();
+    renderSection(sec, uiContainer);
+  });
+
+  // 6) Persistence
+  function saveState() {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(library));
+  }
+  function loadState() {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    resetLibrary();
+    if (saved) {
+      try {
+        const obj = JSON.parse(saved);
+        SECTIONS.forEach(s => { library[s] = obj[s] || []; });
+      } catch {}
+    }
+  }
+
+  // 7) Event Listeners
+  document.getElementById('btn-parse').onclick = () =>
+    parseBlob(document.getElementById('blob').value);
+
+  document.getElementById('btn-download').onclick = () => {
+    const empty = Object.values(library).every(a => a.length === 0);
+    if (empty) { alert("Library is empty."); return; }
+    const str = JSON.stringify(library, null, 2);
+    const blob = new Blob([str], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `phraseLibSentenceMode-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  document.getElementById('json-upload').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    f.text().then(txt => {
+      try {
+        const obj = JSON.parse(txt);
+        resetLibrary();
+        SECTIONS.forEach(s => { library[s] = obj[s] || []; });
+        saveState();
+        renderAllSections();
+        alert('Loaded!');
+      } catch (err) {
+        alert(`Load error: ${err.message}`);
+      } finally {
+        e.target.value = '';
+      }
+    });
+  });
+
+  document.getElementById('btn-reset-cache').onclick = () => {
+    if (!confirm("Clear saved library?")) return;
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    resetLibrary();
+    renderAllSections();
+    alert("Cleared.");
+  };
+
+  // 8) Live search filter
+  const filterInput = document.getElementById('txt-filter');
+  filterInput.addEventListener('input', () => {
+    const term = filterInput.value.trim().toLowerCase();
+    document.querySelectorAll('details').forEach(det => {
+      let any = false;
+      det.querySelectorAll('li').forEach(li => {
+        const ok = !term || li.textContent.toLowerCase().includes(term);
+        li.style.display = ok ? '' : 'none';
+        if (ok) any = true;
+      });
+      det.style.display = any ? '' : 'none';
+      det.open = any;
+    });
+  });
+
+  // 9) Initialize
+  (()=>{
+    loadState();
+    renderAllSections();
+  })();
   </script>
 </body>
 </html>
