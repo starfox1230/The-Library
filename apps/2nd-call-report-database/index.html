@@ -4,149 +4,166 @@
   <meta charset="utf-8">
   <title>Phrase Library</title>
   <style>
-    body { font-family:sans-serif; margin:1rem; background:#fafafa; }
-    h1 { margin-bottom:.5rem; }
-    #controls { margin-bottom:1rem; }
-    textarea { width:100%; height:150px; font-family:monospace; }
-    details summary { font-weight:600; cursor:pointer; }
-    ul { margin:.5rem 0 1rem 1.2rem; }
-    button, input { margin-right:.5rem; padding:.3rem .6rem; }
+    body { font-family: sans-serif; margin: 1rem; background: #fafafa; }
+    h1 { margin-bottom: .5rem; }
+    #controls { margin-bottom: 1rem; }
+    textarea { width: 100%; height: 150px; font-family: monospace; }
+    details summary { font-weight: 600; cursor: pointer; }
+    ul { margin: .5rem 0 1rem 1.2rem; }
+    button, input { margin-right: .5rem; padding: .3rem .6rem; }
   </style>
 </head>
 <body>
   <h1>Phrase Library</h1>
   <div id="controls">
-    <!-- Paste your whole “Case 1…Case 2…” blob here -->
     <label for="blob">Paste Cases Here:</label><br>
-    <textarea id="blob" placeholder="Case 1 Attending Report: … Resident Report: … Case 2 Attending Report: …"></textarea><br>
+    <textarea id="blob" placeholder="Case 1 Attending Report: … Resident Report: … Case 2 Attending Report: …"></textarea><br>
     <button id="btn-parse">Parse Cases</button>
-    <!-- Load or Download your JSON library -->
     <input type="file" id="json-upload" accept=".json">
     <button id="btn-download">Download Library</button>
   </div>
   <div id="ui"></div>
 
   <script>
-  // === 1) DEFINE YOUR STANDARD SECTIONS ===
-  const EXPECTED = [
-    "LUNG BASES / PLEURA","DISTAL ESOPHAGUS","HEART / VESSELS","LIVER",
-    "BILIARY TRACT","GALLBLADDER","PANCREAS","SPLEEN","ADRENALS","KIDNEYS",
-    "LYMPH NODES","STOMACH / SMALL BOWEL","COLON / APPENDIX",
-    "PERITONEUM / MESENTERY","RETROPERITONEUM","VESSELS",
-    "URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL",
-    "CONCLUSION"
-  ];
+    // === 1) DEFINE YOUR STANDARD SECTIONS ===
+    const EXPECTED = [
+      // Chest subcategories
+      "LOWER NECK",
+      "LUNGS / AIRWAYS / PLEURA",
+      "HEART / VESSELS",
+      "MEDIASTINUM / ESOPHAGUS",
+      "DIAPHRAGM",
+      "LYMPH NODES",
+      "CHEST WALL",
+      // Abdomen/Pelvis subcategories
+      "LIVER",
+      "BILIARY TRACT",
+      "GALLBLADDER",
+      "PANCREAS",
+      "SPLEEN",
+      "ADRENALS",
+      "KIDNEYS",
+      "STOMACH / SMALL BOWEL",
+      "COLON / APPENDIX",
+      "PERITONEUM / MESENTERY",
+      "RETROPERITONEUM",
+      "VESSELS",
+      "URINARY BLADDER",
+      "REPRODUCTIVE ORGANS",
+      "BODY WALL",
+      "MUSCULOSKELETAL",
+      // Conclusion
+      "CONCLUSION"
+    ];
 
-  // library: section → Set of sentences
-  let library = {};
-  function resetLibrary(){
-    library = {};
-    EXPECTED.forEach(s=> library[s]= new Set());
-  }
-
-  // === 2) PARSE THE BLOB ===
-  function parseBlob(text){
-    resetLibrary();
-    // regex to grab each Attending Report block
-    const re = /Attending Report:(.+?)(?=(Case\s*\d+\s+Attending Report:|$))/gis;
-    let m;
-    while((m = re.exec(text))){
-      const block = m[1];
-      parseBlock(block);
+    // library: section → Set of sentences
+    let library = {};
+    function resetLibrary(){
+      library = {};
+      EXPECTED.forEach(s => library[s] = new Set());
     }
-    renderUI();
-  }
 
-  function parseBlock(txt){
-    let current = null;
-    txt.split(/\r?\n/).forEach(line=>{
-      let h = line.match(/^([A-Z0-9 \-/]+):\s*(.*)/);
-      if(h){
-        let sec = h[1].trim(),
-            rest = h[2].trim();
-        if(EXPECTED.includes(sec)){
-          current = sec;
-          if(rest) addSentences(current, rest);
-        } else {
-          current = null;  // unknown header
-        }
-      } else if(current && line.trim()){
-        addSentences(current, line.trim());
+    // === 2) PARSE THE BLOB INTO ATTENDING REPORT SECTIONS ===
+    function parseBlob(text){
+      resetLibrary();
+      // regex to capture each "Attending Report:" block
+      const re = /Attending Report:(.+?)(?=(Case\s*\d+|$))/gis;
+      let match;
+      while((match = re.exec(text))){
+        parseBlock(match[1]);
       }
-    });
-  }
+      renderUI();
+    }
 
-  function addSentences(section, txt){
-    txt.split(/\.\s+/).forEach(s=>{
-      s = s.trim();
-      if(!s) return;
-      if(!s.endsWith('.')) s+='.';
-      library[section].add(s);
-    });
-  }
-
-  // === 3) RENDER ===
-  function renderUI(){
-    const ui = document.getElementById("ui");
-    ui.innerHTML = "";
-    EXPECTED.forEach(sec=>{
-      const arr = Array.from(library[sec]);
-      if(!arr.length) return;
-      const d = document.createElement("details");
-      const sum = document.createElement("summary");
-      sum.textContent = `${sec} (${arr.length})`;
-      d.appendChild(sum);
-      const ul = document.createElement("ul");
-      arr.forEach(sent=>{
-        const li = document.createElement("li");
-        li.textContent = sent;
-        ul.appendChild(li);
+    function parseBlock(block){
+      let current = null;
+      block.split(/\r?\n/).forEach(line => {
+        const h = line.match(/^([A-Z0-9 \-/]+):\s*(.*)/);
+        if(h){
+          const sec = h[1].trim(), rest = h[2].trim();
+          if(EXPECTED.includes(sec)){
+            current = sec;
+            if(rest) addSentences(current, rest);
+          } else {
+            current = null; // skip unknown headers
+          }
+        } else if(current && line.trim()){
+          addSentences(current, line.trim());
+        }
       });
-      d.appendChild(ul);
-      ui.appendChild(d);
-    });
-  }
+    }
 
-  // === 4) DOWNLOAD JSON ===
-  document.getElementById("btn-download")
-    .addEventListener("click", ()=>{
+    function addSentences(section, txt){
+      txt.split(/\.\s+/).forEach(s => {
+        s = s.trim();
+        if(!s) return;
+        if(!s.endsWith('.')) s += '.';
+        library[section].add(s);
+      });
+    }
+
+    // === 3) RENDER THE DROPDOWNS ===
+    function renderUI(){
+      const container = document.getElementById("ui");
+      container.innerHTML = '';
+      EXPECTED.forEach(sec => {
+        const arr = Array.from(library[sec]);
+        if(!arr.length) return;
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = `${sec} (${arr.length})`;
+        details.appendChild(summary);
+        const ul = document.createElement("ul");
+        arr.forEach(sent => {
+          const li = document.createElement("li");
+          li.textContent = sent;
+          ul.appendChild(li);
+        });
+        details.appendChild(ul);
+        container.appendChild(details);
+      });
+    }
+
+    // === 4) DOWNLOAD AS JSON ===
+    document.getElementById("btn-download").addEventListener("click", () => {
       const out = {};
-      Object.entries(library).forEach(([k, set])=>{
-        if(set.size) out[k]=Array.from(set);
+      Object.entries(library).forEach(([sec, set]) => {
+        if(set.size) out[sec] = Array.from(set);
       });
-      const blob = new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+      const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
       const a = document.createElement("a");
-      a.href=URL.createObjectURL(blob);
-      a.download="phraseLibrary.json";
+      a.href = URL.createObjectURL(blob);
+      a.download = "phraseLibrary.json";
       a.click();
     });
 
-  // === 5) UPLOAD JSON ===
-  document.getElementById("json-upload")
-    .addEventListener("change", e=>{
-      const f = e.target.files[0];
-      if(!f) return;
-      f.text().then(txt=>{
+    // === 5) UPLOAD EXISTING JSON LIBRARY ===
+    document.getElementById("json-upload").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if(!file) return;
+      file.text().then(txt => {
         const obj = JSON.parse(txt);
         resetLibrary();
-        Object.entries(obj).forEach(([sec,arr])=>{
-          if(!library[sec]) library[sec]=new Set();
-          arr.forEach(s=>library[sec].add(s));
+        Object.entries(obj).forEach(([sec, arr]) => {
+          if(!library[sec]) library[sec] = new Set();
+          arr.forEach(s => library[sec].add(s));
         });
         renderUI();
       });
     });
 
-  // === 6) HOOK UP PARSE BUTTON ===
-  document.getElementById("btn-parse")
-    .addEventListener("click", ()=>{
+    // === 6) PARSE BUTTON ===
+    document.getElementById("btn-parse").addEventListener("click", () => {
       const blob = document.getElementById("blob").value;
-      if(!blob.trim()){ alert("Paste your Cases text first."); return; }
+      if(!blob.trim()){
+        alert("Please paste your cases text first.");
+        return;
+      }
       parseBlob(blob);
     });
 
-  // init
-  resetLibrary();
+    // initialize
+    resetLibrary();
   </script>
 </body>
 </html>
