@@ -2,168 +2,194 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Phrase Library</title>
+  <title>Phrase Library w/ Split & Merge</title>
   <style>
-    body { font-family: sans-serif; margin: 1rem; background: #fafafa; }
-    h1 { margin-bottom: .5rem; }
-    #controls { margin-bottom: 1rem; }
-    textarea { width: 100%; height: 150px; font-family: monospace; }
-    details summary { font-weight: 600; cursor: pointer; }
-    ul { margin: .5rem 0 1rem 1.2rem; }
-    button, input { margin-right: .5rem; padding: .3rem .6rem; }
+    body { font-family:sans-serif; margin:1rem; background:#fafafa }
+    h1 { margin-bottom:.5rem }
+    #controls { margin-bottom:1rem }
+    textarea { width:100%; font-family:monospace }
+    .section { margin-bottom:1.5rem }
+    .section h2 { margin:0.5rem 0 }
+    .block { position:relative; padding:0.2rem 0; }
+    .split-handle, .merge-handle {
+      position:absolute; top:0; font-size:1rem;
+      background:white; border:1px solid #ccc; border-radius:3px;
+      padding:0 4px; line-height:1; cursor:pointer;
+      visibility:hidden;
+    }
+    .split-handle { color:green; }
+    .merge-handle { color:blue; }
+    .block:hover .split-handle { visibility:visible }
+    .merge-handle { left:50%; transform:translateX(-50%); }
   </style>
 </head>
 <body>
   <h1>Phrase Library</h1>
   <div id="controls">
-    <label for="blob">Paste Cases Here:</label><br>
-    <textarea id="blob" placeholder="Case 1 Attending Report: … Resident Report: … Case 2 Attending Report: …"></textarea><br>
-    <button id="btn-parse">Parse Cases</button>
+    <label>Paste Cases Here:</label><br>
+    <textarea id="blob" rows="6" placeholder="Case 1 Attending Report: …"></textarea><br>
+    <button id="btn-parse">Parse</button>
     <input type="file" id="json-upload" accept=".json">
-    <button id="btn-download">Download Library</button>
+    <button id="btn-download">Download JSON</button>
   </div>
   <div id="ui"></div>
 
   <script>
-    // === 1) DEFINE YOUR STANDARD SECTIONS ===
-    const EXPECTED = [
-      // Chest subcategories
-      "LOWER NECK",
-      "LUNGS / AIRWAYS / PLEURA",
-      "HEART / VESSELS",
-      "MEDIASTINUM / ESOPHAGUS",
-      "DIAPHRAGM",
-      "LYMPH NODES",
-      "CHEST WALL",
-      // Abdomen/Pelvis subcategories
-      "LIVER",
-      "BILIARY TRACT",
-      "GALLBLADDER",
-      "PANCREAS",
-      "SPLEEN",
-      "ADRENALS",
-      "KIDNEYS",
-      "STOMACH / SMALL BOWEL",
-      "COLON / APPENDIX",
-      "PERITONEUM / MESENTERY",
-      "RETROPERITONEUM",
-      "VESSELS",
-      "URINARY BLADDER",
-      "REPRODUCTIVE ORGANS",
-      "BODY WALL",
-      "MUSCULOSKELETAL",
-      // Conclusion
-      "CONCLUSION"
-    ];
+  // 1) SECTIONS
+  const SECTIONS = [
+    "LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
+    "LYMPH NODES","CHEST WALL",
+    "LIVER","KIDNEYS","PANCREAS","SPLEEN","ADRENALS","COLON / APPENDIX",
+    "BODY WALL","MUSCULOSKELETAL","CONCLUSION"
+  ];
 
-    // library: section → Set of sentences
-    let library = {};
-    function resetLibrary(){
-      library = {};
-      EXPECTED.forEach(s => library[s] = new Set());
-    }
+  // 2) DATA MODEL: section → [ blockString, blockString, … ]
+  let library = {};
 
-    // === 2) PARSE THE BLOB INTO ATTENDING REPORT SECTIONS ===
-    function parseBlob(text){
-      resetLibrary();
-      // regex to capture each "Attending Report:" block
-      const re = /Attending Report:(.+?)(?=(Case\s*\d+|$))/gis;
-      let match;
-      while((match = re.exec(text))){
-        parseBlock(match[1]);
-      }
-      renderUI();
-    }
+  function reset() {
+    library = {};
+    SECTIONS.forEach(s => library[s] = []);
+  }
 
-    function parseBlock(block){
-      let current = null;
-      block.split(/\r?\n/).forEach(line => {
-        const h = line.match(/^([A-Z0-9 \-/]+):\s*(.*)/);
-        if(h){
-          const sec = h[1].trim(), rest = h[2].trim();
-          if(EXPECTED.includes(sec)){
-            current = sec;
-            if(rest) addSentences(current, rest);
-          } else {
-            current = null; // skip unknown headers
-          }
-        } else if(current && line.trim()){
-          addSentences(current, line.trim());
+  // 3) PARSING: build one big text block per section
+  function parseBlob(text) {
+    reset();
+    const re = /Attending Report:(.+?)(?=(Case\s*\d+|$))/gis;
+    let m;
+    while((m = re.exec(text))) {
+      const block = m[1];
+      // for each expected section, grab its chunk of lines
+      SECTIONS.forEach(sec => {
+        const rx = new RegExp(sec + ':(.*?)((?=[A-Z0-9 \-/]+:)|$)', 'is');
+        const gm = block.match(rx);
+        if(gm) {
+          const txt = gm[1].trim().replace(/\r?\n/g,' ');
+          if(txt) library[sec] = [ txt.endsWith('.') ? txt : txt+'.' ];
         }
       });
     }
+    saveAndRender();
+  }
 
-    function addSentences(section, txt){
-      txt.split(/\.\s+/).forEach(s => {
-        s = s.trim();
-        if(!s) return;
-        if(!s.endsWith('.')) s += '.';
-        library[section].add(s);
+  // 4) RENDER UI
+  function renderUI() {
+    const ui = document.getElementById('ui');
+    ui.innerHTML = '';
+    SECTIONS.forEach(sec => {
+      if(library[sec].length === 0) return;
+      const container = document.createElement('div');
+      container.className = 'section';
+      container.innerHTML = `<h2>${sec}</h2>`;
+      library[sec].forEach((block, bi) => {
+        const p = document.createElement('p');
+        p.className = 'block';
+        p.dataset.sec = sec;
+        p.dataset.bi = bi;
+        // Split into sentences to inject split-handles
+        const sents = block.split(/(\.\s+)/).reduce((acc,v,i,arr)=>{
+          if(/\.\s+/.test(v)) acc[acc.length-1] += v;
+          else acc.push(v);
+          return acc;
+        }, []);
+        p.innerHTML = sents.map((s,i)=>{
+          const html = `<span>${s}</span>` +
+            (i < sents.length-1
+              ? `<span class="split-handle" data-si="${i}">➕</span>`
+              : '');
+          return html;
+        }).join('');
+        container.appendChild(p);
+
+        // If there’s another block after, insert merge handle
+        if(bi < library[sec].length -1) {
+          const mBtn = document.createElement('div');
+          mBtn.className = 'merge-handle';
+          mBtn.textContent = '⇆';
+          mBtn.dataset.sec = sec;
+          mBtn.dataset.bi = bi;
+          container.appendChild(mBtn);
+        }
       });
+      ui.appendChild(container);
+    });
+  }
+
+  // 5) EVENT LISTENING: split & merge
+  document.body.addEventListener('click', e => {
+    if(e.target.classList.contains('split-handle')) {
+      const sec = e.target.closest('.block').dataset.sec;
+      const bi  = +e.target.closest('.block').dataset.bi;
+      const si  = +e.target.dataset.si;
+      doSplit(sec, bi, si);
     }
-
-    // === 3) RENDER THE DROPDOWNS ===
-    function renderUI(){
-      const container = document.getElementById("ui");
-      container.innerHTML = '';
-      EXPECTED.forEach(sec => {
-        const arr = Array.from(library[sec]);
-        if(!arr.length) return;
-        const details = document.createElement("details");
-        const summary = document.createElement("summary");
-        summary.textContent = `${sec} (${arr.length})`;
-        details.appendChild(summary);
-        const ul = document.createElement("ul");
-        arr.forEach(sent => {
-          const li = document.createElement("li");
-          li.textContent = sent;
-          ul.appendChild(li);
-        });
-        details.appendChild(ul);
-        container.appendChild(details);
-      });
+    if(e.target.classList.contains('merge-handle')) {
+      const sec = e.target.dataset.sec;
+      const bi  = +e.target.dataset.bi;
+      doMerge(sec, bi);
     }
+  });
 
-    // === 4) DOWNLOAD AS JSON ===
-    document.getElementById("btn-download").addEventListener("click", () => {
-      const out = {};
-      Object.entries(library).forEach(([sec, set]) => {
-        if(set.size) out[sec] = Array.from(set);
-      });
-      const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-      const a = document.createElement("a");
+  function doSplit(sec, bi, si) {
+    const block = library[sec][bi];
+    // split into sentence array:
+    const arr = block.split(/(\.\s+)/).reduce((acc,v,i,arr)=>{
+      if(/\.\s+/.test(v)) acc[acc.length-1] += v;
+      else acc.push(v);
+      return acc;
+    }, []);
+    // build two new blocks
+    const left  = arr.slice(0, si+1).join('').trim();
+    const right = arr.slice(si+1).join('').trim();
+    library[sec].splice(bi,1,
+      left.endsWith('.')?left:left+'.',
+      right.endsWith('.')?right:right+'.'
+    );
+    saveAndRender();
+  }
+
+  function doMerge(sec, bi) {
+    const a = library[sec][bi], b = library[sec][bi+1];
+    const merged = (a+' '+b).trim();
+    library[sec].splice(bi,2, merged.endsWith('.')?merged:merged+'.');
+    saveAndRender();
+  }
+
+  // 6) SAVE to localStorage & re-render
+  function saveAndRender() {
+    localStorage.setItem('phraseLib', JSON.stringify(library));
+    renderUI();
+  }
+
+  // 7) HOOK UP CONTROLS
+  document.getElementById('btn-parse')
+    .addEventListener('click', () => parseBlob(
+      document.getElementById('blob').value
+    ));
+
+  document.getElementById('btn-download')
+    .addEventListener('click', () => {
+      const blob = new Blob([localStorage.getItem('phraseLib')], {type:'application/json'});
+      const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = "phraseLibrary.json";
+      a.download = 'phraseLibrary.json';
       a.click();
     });
 
-    // === 5) UPLOAD EXISTING JSON LIBRARY ===
-    document.getElementById("json-upload").addEventListener("change", e => {
-      const file = e.target.files[0];
-      if(!file) return;
-      file.text().then(txt => {
-        const obj = JSON.parse(txt);
-        resetLibrary();
-        Object.entries(obj).forEach(([sec, arr]) => {
-          if(!library[sec]) library[sec] = new Set();
-          arr.forEach(s => library[sec].add(s));
-        });
-        renderUI();
-      });
-    });
+  document.getElementById('json-upload')
+    .addEventListener('change', e => e.target.files[0].text()
+      .then(txt => {
+        library = JSON.parse(txt);
+        saveAndRender();
+      })
+    );
 
-    // === 6) PARSE BUTTON ===
-    document.getElementById("btn-parse").addEventListener("click", () => {
-      const blob = document.getElementById("blob").value;
-      if(!blob.trim()){
-        alert("Please paste your cases text first.");
-        return;
-      }
-      parseBlob(blob);
-    });
-
-    // initialize
-    resetLibrary();
+  // 8) INIT
+  (() => {
+    const saved = localStorage.getItem('phraseLib');
+    if(saved) library = JSON.parse(saved);
+    else reset();
+    renderUI();
+  })();
   </script>
 </body>
 </html>
