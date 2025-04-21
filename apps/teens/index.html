@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Number Quiz (Fixed)</title>
+  <title>Number Quiz (No Sticky Highlight)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
-    /* === Global touch resets === */
+    /* 1. Global touch resets */
     *, *::before, *::after {
       -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
+      touch-action: manipulation;             /* disable double-tap zoom */  
     }
 
     :root {
@@ -22,7 +23,6 @@
       --primary:  #A569BD;
       --accent:   #FFB6C1;
       --btn-bg:   #FFFFFF;
-      --btn-hover:#F0E6FF;
       --shadow:   rgba(0,0,0,0.1);
       --radius:   12px;
       --text:     #333333;
@@ -30,91 +30,83 @@
       --wrong:    #DC3545;
     }
 
-    * { box-sizing: border-box; margin:0; padding:0; }
     body {
-      min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      padding: 1rem;
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      margin:0; padding:1rem;
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Poppins',sans-serif;
+      background:linear-gradient(135deg,var(--bg-start),var(--bg-end));
     }
+    /* Make body focusable for JS blur hack */
+    body[tabindex] { outline:none; }
+
     .container {
-      width: 100%; max-width: 380px;
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: 0 8px 24px var(--shadow);
-      text-align: center; padding: 1.5rem;
+      width:100%; max-width:380px;
+      background:var(--card-bg);
+      border-radius:var(--radius);
+      box-shadow:0 8px 24px var(--shadow);
+      text-align:center; padding:1.5rem;
     }
+
     h1 {
-      color: var(--primary); font-weight: 600; margin-bottom: 0.75rem;
+      color:var(--primary); font-weight:600; margin-bottom:.75rem;
     }
+
     .controls {
-      display: flex; gap: 0.5rem; justify-content: center;
-      margin-bottom: 1rem;
+      display:flex; gap:.5rem; justify-content:center;
+      margin-bottom:1rem;
     }
     select, .start-btn {
-      padding: 0.5rem 0.75rem; border:none;
-      border-radius: var(--radius);
-      box-shadow: 0 4px 12px var(--shadow);
-      background: var(--btn-bg); cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.2s;
+      padding:.5rem .75rem;
+      border:none; border-radius:var(--radius);
+      box-shadow:0 4px 12px var(--shadow);
+      background:var(--btn-bg); cursor:pointer;
+      transition:transform .1s, box-shadow .2s;
+      -webkit-appearance:none; appearance:none;
     }
     select:hover, .start-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px var(--shadow);
+      transform:translateY(-2px);
+      box-shadow:0 6px 18px var(--shadow);
     }
-    /* Remove native appearance */
-    .btn, select, .start-btn {
-      -webkit-appearance: none !important;
-      appearance: none !important;
-    }
-    /* Choice grid */
+
     #quiz {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(60px,1fr));
-      gap: 0.5rem; margin-bottom: 1rem;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(60px,1fr));
+      gap:.5rem; margin-bottom:1rem;
     }
-    /* Use divs as buttons */
+
+    /* 2. Only apply hover/active on true-hover devices */
+    @media (hover: hover) and (pointer: fine) {
+      .btn:hover {
+        background: #F0E6FF;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px var(--shadow);
+      }
+      .btn:active {
+        opacity: .7;
+      }
+    }
+
     .btn {
-      padding: 0.75rem 0;
-      border: 2px solid var(--accent);
-      border-radius: var(--radius);
-      font-size: 1.25rem; font-weight: 600;
-      color: var(--primary);
-      background: var(--btn-bg);
-      box-shadow: 0 4px 12px var(--shadow);
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-      user-select: none;
+      padding:.75rem 0;
+      border:2px solid var(--accent);
+      border-radius:var(--radius);
+      font-size:1.25rem; font-weight:600;
+      color:var(--primary);
+      background:var(--btn-bg);
+      box-shadow:0 4px 12px var(--shadow);
+      cursor:pointer;
+      user-select:none;
+      display:flex; align-items:center; justify-content:center;
     }
-    .btn:hover:not(.correct):not(.wrong) {
-      background: var(--btn-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px var(--shadow);
-    }
-    .btn:active {
-      background-color: var(--btn-bg) !important;
-    }
-    /* Feedback states */
-    .btn.correct {
-      background: var(--correct);
-      border-color: var(--correct);
-      color: #fff;
-    }
-    .btn.wrong {
-      background: var(--wrong);
-      border-color: var(--wrong);
-      color: #fff;
-    }
+
     #message {
-      min-height: 1.4em;
-      font-size: 1.1rem;
-      font-weight: 500;
-      color: var(--text);
+      min-height:1.4em;
+      font-size:1.1rem; font-weight:500; color:var(--text);
     }
   </style>
 </head>
-<body>
+<body tabindex="-1">
 
   <div class="container">
     <h1>Number Quiz</h1>
@@ -125,7 +117,6 @@
       </select>
       <div class="start-btn">Start</div>
     </div>
-
     <div id="quiz"></div>
     <div id="message"></div>
   </div>
@@ -144,10 +135,9 @@
     const msgDiv      = document.getElementById('message');
     let currentRange = [1,10], targetNumber;
 
-    function blurActive() {
-      if (document.activeElement && document.activeElement.blur) {
-        document.activeElement.blur();
-      }
+    function clearFocus() {
+      // move focus to body to clear any sticky highlight  [oai_citation_attribution:14‡Stack Overflow](https://stackoverflow.com/questions/10642953/mobile-safari-links-retains-focus-after-touch?utm_source=chatgpt.com)
+      document.body.focus();
     }
 
     function speak(text) {
@@ -158,9 +148,9 @@
     }
 
     function setupHandlers() {
+      // blur any auto‑focusable element on touchstart to avoid sticky active  [oai_citation_attribution:15‡Stack Overflow](https://stackoverflow.com/questions/3885018/active-pseudo-class-doesnt-work-in-mobile-safari/8877902?utm_source=chatgpt.com)
       document.querySelectorAll('.btn').forEach(btn => {
-        btn.addEventListener('mousedown', e => e.preventDefault());  // no focus on touch  [oai_citation_attribution:11‡Stack Overflow](https://stackoverflow.com/questions/17233804/how-to-prevent-sticky-hover-effects-for-buttons-on-touch-devices?utm_source=chatgpt.com)
-        btn.addEventListener('click', () => btn.blur());            // immediate blur on click  [oai_citation_attribution:12‡Stack Overflow](https://stackoverflow.com/questions/74203410/button-stays-on-focused-or-active-state-after-clicked-in-phone-thus-creating-pr?utm_source=chatgpt.com)
+        btn.addEventListener('touchstart', clearFocus, {passive:true});
       });
     }
 
@@ -171,7 +161,7 @@
     });
 
     function nextQuestion() {
-      blurActive();      // clear any lingering focus  [oai_citation_attribution:13‡Stack Overflow](https://stackoverflow.com/questions/7738219/how-to-keep-active-css-style-after-clicking-an-element/7738394?utm_source=chatgpt.com)
+      clearFocus();
       msgDiv.textContent = '';
       const [min,max] = currentRange;
       targetNumber = Math.floor(Math.random()*(max-min+1))+min;
@@ -195,17 +185,22 @@
 
     function handleAnswer(btn,val) {
       Array.from(quizDiv.children).forEach(b=>b.disabled=true);
-      if (val===targetNumber) {
-        btn.classList.add('correct');
+      if (val === targetNumber) {
+        // Inline styling—no pseudo‑classes—so it disappears with the element  [oai_citation_attribution:16‡GitHub](https://github.com/jspsych/jsPsych/issues/977?utm_source=chatgpt.com)
+        btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--correct').trim();
+        btn.style.borderColor     = getComputedStyle(document.documentElement).getPropertyValue('--correct').trim();
+        btn.style.color           = '#fff';
         msgDiv.textContent = '🎉 Correct!';
         speak('Correct');
         setTimeout(nextQuestion, 1000);
       } else {
-        btn.classList.add('wrong');
+        btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--wrong').trim();
+        btn.style.borderColor     = getComputedStyle(document.documentElement).getPropertyValue('--wrong').trim();
+        btn.style.color           = '#fff';
         msgDiv.textContent = '❌ Try again.';
         speak('Try again');
         setTimeout(()=>{
-          btn.classList.remove('wrong');
+          btn.removeAttribute('style');
           msgDiv.textContent = '';
           Array.from(quizDiv.children).forEach(b=>b.disabled=false);
         },800);
