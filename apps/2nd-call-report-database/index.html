@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Phrase Library w/ In‑bullet Split & Merge</title>
+  <title>Phrase Library - Sentence Mode</title>
   <style>
     body { font-family: sans-serif; margin: 1rem; background: #fafafa; }
     h1 { margin-bottom: .5rem; }
@@ -11,23 +11,39 @@
     details { margin-top: 0.5rem; border-top: 1px solid #eee; padding-top: 0.5rem; }
     details summary { font-weight: 600; cursor: pointer; }
     ul { margin: .5rem 0 1rem 1.2rem; list-style-type: disc; padding-left: 1.5em; }
-    li { position: relative; margin-bottom: 0.3em; line-height: 1.4;}
-    li .sentence-span { /* Style for sentence text if needed */ }
-    .split-handle, .merge-handle { display: inline-block; font-size: .9rem; background: white; border: 1px solid #ccc; border-radius: 3px; padding: 0 4px; line-height: 1; cursor: pointer; visibility: hidden; margin: 0 0.2em; vertical-align: middle; }
-    .split-handle { color: green; }
-    .merge-handle { color: blue; }
-    li:hover .split-handle, li:hover .merge-handle { visibility: visible; }
+    li { position: relative; margin-bottom: 0.1em; line-height: 1.4; padding-right: 1.5em; /* Make space for handle */ } /* Smaller margin */
+    li.highlight-group { background-color: #e0f0ff; } /* Highlight style */
+    .merge-handle {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: .9rem;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      padding: 0 4px;
+      line-height: 1;
+      cursor: pointer;
+      visibility: hidden;
+      color: blue;
+    }
+    /* Show handle on the item *before* the potential merge */
+    li:hover .merge-handle { visibility: visible; }
+    /* Hide handle on the very last item in a list */
+    ul > li:last-child .merge-handle { display: none; }
+
     button, input[type="file"] { margin-right: .5rem; padding: .3rem .6rem; margin-top: .5rem; }
     input[type="file"] { border: 1px solid #ccc; border-radius: 3px; }
     #btn-reset-cache { background-color: #fdd; border-color: #d88; color: #800;}
   </style>
 </head>
 <body>
-  <h1>Phrase Library</h1>
+  <h1>Phrase Library - Sentence Mode</h1>
   <div id="controls">
     <label for="blob">Paste all cases here:</label><br>
     <textarea id="blob" placeholder="Case 1 Attending Report: ... Case 2 Attending Report: ..."></textarea><br>
-    <button id="btn-parse">Parse Cases</button>
+    <button id="btn-parse">Parse Cases & Split Sentences</button>
     <label for="json-upload" class="button-like">Upload JSON</label>
     <input type="file" id="json-upload" accept=".json" >
     <button id="btn-download">Download JSON</button>
@@ -38,15 +54,15 @@
 
   <script>
   // 1a) Canonical Section headers
-  const SECTIONS = [
+  const SECTIONS = [ /* ... Keep your SECTIONS list ... */
     "LOWER NECK", "LUNGS / AIRWAYS / PLEURA", "HEART / VESSELS", "MEDIASTINUM / ESOPHAGUS", "DIAPHRAGM",
     "LYMPH NODES", "CHEST WALL", "LIVER", "BILIARY TRACT", "GALLBLADDER", "PANCREAS", "SPLEEN", "ADRENALS",
     "KIDNEYS", "STOMACH / SMALL BOWEL", "COLON / APPENDIX", "PERITONEUM / MESENTERY", "RETROPERITONEUM",
     "VESSELS", "URINARY BLADDER", "REPRODUCTIVE ORGANS", "BODY WALL", "MUSCULOSKELETAL", "CONCLUSION"
   ];
 
-  // 1b) Mapping for Variations Found in Text -> Canonical Section Name
-  const SECTION_MAP = {
+  // 1b) Mapping for Variations
+  const SECTION_MAP = { /* ... Keep your SECTION_MAP ... */
     "LOWER NECK": "LOWER NECK",
     "LUNGS / AIRWAYS / PLEURA": "LUNGS / AIRWAYS / PLEURA",
     "LUNG BASES / PLEURA": "LUNGS / AIRWAYS / PLEURA",
@@ -57,7 +73,7 @@
     "LYMPH NODES": "LYMPH NODES",
     "CHEST WALL": "CHEST WALL",
     "LIVER": "LIVER",
-    "LIVER/BILIARY TRACT": "LIVER",
+    "LIVER/BILIARY TRACT": "LIVER", // Map combined to primary if desired
     "BILIARY TRACT": "BILIARY TRACT",
     "GALLBLADDER": "GALLBLADDER",
     "PANCREAS": "PANCREAS",
@@ -68,7 +84,7 @@
     "COLON / APPENDIX": "COLON / APPENDIX",
     "COLON": "COLON / APPENDIX",
     "PERITONEUM / MESENTERY": "PERITONEUM / MESENTERY",
-    "PERITONEUM": "PERITONEUM / MESENTERY",
+    "PERITONEUM": "PERITONEUM / MESENTERY", // Map variation
     "RETROPERITONEUM": "RETROPERITONEUM",
     "VESSELS": "VESSELS",
     "OTHER VESSELS": "VESSELS",
@@ -91,7 +107,7 @@
     "MUSCULOSKELETAL": "MUSCULOSKELETAL",
     "CONCLUSION": "CONCLUSION",
     // Intermediate headers to explicitly ignore
-    "ABDOMEN AND PELVIS": null, // *** THIS ENTRY PREVENTS CAPTURE ***
+    "ABDOMEN AND PELVIS": null,
     "ABDOMEN": null,
     "PELVIS": null,
     "LOWER CHEST": null,
@@ -105,39 +121,45 @@
     "PERIRECTAL / PERIANAL REGION": null,
     "IMAGE QUALITY": null,
     "OVERALL DIAGNOSTIC QUALITY": null,
-    "LIVER LESIONS": "LIVER",
+    "LIVER LESIONS": "LIVER", // Map this to LIVER
     "LIVER VASCULATURE AND COLLATERALS": null,
     "LIVER RELATED FINDINGS": null,
     "OTHER FINDINGS": null,
     "BOWEL": null,
   };
 
-  // 2) Data
-  const LOCAL_STORAGE_KEY = 'phraseLib';
+  // 2) Data - Nested Array Structure: library[section] = [ block1_sentences[], block2_sentences[] ]
+  const LOCAL_STORAGE_KEY = 'phraseLibSentenceMode'; // Use a different key
   let library = {};
   function resetLibrary() {
     library = {};
-    SECTIONS.forEach(s => library[s] = []);
+    SECTIONS.forEach(s => library[s] = []); // Initialize sections with empty array for blocks
   }
 
-  // 3) Parse blob
+  // Regex for splitting sentences (handles decimals better)
+  const sentenceSplitRegex = /\S.+?[.!?](?=\s+[A-ZÀ-ÖØ-Þ]|$)|\S.+/g;
+
+  // 3) Parse blob - Creates nested sentence arrays & Deduplicates Blocks
   function parseBlob(text) {
     if (!text || text.trim() === "") { alert("Cannot parse empty text."); return; }
     resetLibrary();
-    let uniquePhrasesInSection = {};
-    SECTIONS.forEach(s => uniquePhrasesInSection[s] = new Set());
+    // Use Set to track unique *blocks* (represented by stringified sentence array) per section
+    let uniqueBlocksInSection = {};
+    SECTIONS.forEach(s => uniqueBlocksInSection[s] = new Set());
+
     const caseChunks = text.split(/(?=^Case\s*\d+)/m).filter(Boolean);
 
     caseChunks.forEach((chunk) => {
         const m = chunk.match(/Attending Report:\s*([\s\S]*?)(?=Resident Report:|Case\s*\d+|$)/i);
         if (!m || !m[1] || m[1].trim().length === 0) return;
         const attendingBlock = m[1].trim();
-        const tempSectionTexts = {};
+
+        const tempSectionTexts = {}; // Temp store for *full text* per section *per case*
         SECTIONS.forEach(s => tempSectionTexts[s] = "");
         let currentCanonicalSectionKey = null;
         const lines = attendingBlock.split(/\r?\n/);
 
-        lines.forEach((line) => {
+        lines.forEach((line) => { // Collect full text for each section first
             const trimmedLine = line.trim();
             if (!trimmedLine) return;
             const headerMatch = trimmedLine.match(/^([A-Z0-9 \-\/]+):\s*(.*)/);
@@ -146,122 +168,188 @@
                 const restOfLine = headerMatch[2].trim();
                 if (SECTION_MAP.hasOwnProperty(potentialHeader)) {
                     const mappedSection = SECTION_MAP[potentialHeader];
-                    if (mappedSection !== null) { // Check if not explicitly ignored
+                    if (mappedSection !== null) {
                         currentCanonicalSectionKey = mappedSection;
-                        if (restOfLine) {
-                            tempSectionTexts[currentCanonicalSectionKey] += restOfLine + (restOfLine.endsWith('.') ? ' ' : '. ');
-                        }
-                    } else { currentCanonicalSectionKey = null; } // Ignore header mapped to null
-                } else { currentCanonicalSectionKey = null; } // Ignore unknown header
-            } else if (currentCanonicalSectionKey) { // Only append if under a valid section
+                        if (restOfLine) tempSectionTexts[currentCanonicalSectionKey] += restOfLine + (restOfLine.endsWith('.') ? ' ' : '. ');
+                    } else { currentCanonicalSectionKey = null; }
+                } else { currentCanonicalSectionKey = null; }
+            } else if (currentCanonicalSectionKey) {
                 const textToAppend = trimmedLine;
                 tempSectionTexts[currentCanonicalSectionKey] += textToAppend + (textToAppend.endsWith('.') ? ' ' : '. ');
             }
         });
 
+        // Now, process the collected full text for each section: split & add block if unique
         SECTIONS.forEach(sec => {
-            let collectedText = tempSectionTexts[sec]?.replace(/\s+/g, ' ').replace(/ \./g, '.').trim() || "";
-            if (collectedText && !collectedText.endsWith('.')) collectedText += '.';
-            if (collectedText) {
-                if (!uniquePhrasesInSection[sec].has(collectedText)) {
-                    library[sec].push(collectedText);
-                    uniquePhrasesInSection[sec].add(collectedText);
+            let fullSectionText = tempSectionTexts[sec]?.replace(/\s+/g, ' ').replace(/ \./g, '.').trim() || "";
+            if (fullSectionText && !fullSectionText.endsWith('.')) fullSectionText += '.';
+
+            if (fullSectionText) {
+                // Split the *entire collected block* into sentences
+                const sentencesInBlock = fullSectionText.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [];
+
+                if (sentencesInBlock.length > 0) {
+                    // Check for duplicate *block* using stringified array
+                    const blockString = JSON.stringify(sentencesInBlock);
+                    if (!uniqueBlocksInSection[sec].has(blockString)) {
+                        library[sec].push(sentencesInBlock); // Add the array of sentences as a new block
+                        uniqueBlocksInSection[sec].add(blockString);
+                    }
                 }
             }
         });
-    });
+    }); // End forEach caseChunk
 
-    const totalPhrases = Object.values(library).reduce((sum, arr) => sum + arr.length, 0);
-    console.log(`[INFO] Total unique phrases extracted: ${totalPhrases}`);
-    if (totalPhrases === 0) { alert("Parsing finished, but no phrases were extracted."); }
-    saveState();
+    const totalBlocks = Object.values(library).reduce((sum, arr) => sum + arr.length, 0);
+    console.log(`[INFO] Total unique original blocks extracted: ${totalBlocks}`);
+    if (totalBlocks === 0) { alert("Parsing finished, but no text blocks were extracted."); }
+    saveState(); // Save the new structure
     renderAllSections();
   }
 
-  // --- SENTENCE REGEX Updated Here ---
-  const sentenceSplitRegex = /\S.+?[.!?](?=\s+[A-ZÀ-ÖØ-Þ]|$)|\S.+/g;
-  // Explanation:
-  // \S.+?[.!?]       -> Match chars ending in punctuation (non-greedy)
-  // (?=\s+[A-ZÀ-ÖØ-Þ]|$) -> Only if followed by (space + Capital OR end of string)
-  // |\S.+            -> OR match any remaining non-whitespace chars (captures last "sentence" if no standard ending)
-  // g                 -> Global match
-
-  // 4) Render UI
+  // 4) Render UI - Handles nested arrays
   function renderAllSections() {
     const ui = document.getElementById('ui'); ui.innerHTML = ''; let hasContent = false;
     SECTIONS.forEach(sec => { if (renderSection(sec, ui)) { hasContent = true; } });
     if (!hasContent && ui.innerHTML === '') { ui.innerHTML = '<p style="color: grey; text-align: center; margin-top: 2rem;">Library is empty.</p>'; }
   }
 
-  // 4b) Render Single Section - USES NEW SENTENCE REGEX
+  // 4b) Render Single Section - Renders individual sentences with grouping data
   function renderSection(sec, container) {
-      const blocks = library[sec] || [];
+      const blocks = library[sec] || []; // blocks is now array of arrays: [[s1,s2],[s3,s4,s5]]
       let det = container.querySelector(`details[data-section="${sec}"]`);
-      if (blocks.length === 0) { if (det) det.remove(); return false; }
+
+      // Calculate total sentence count for summary
+      const totalSentences = blocks.reduce((count, block) => count + block.length, 0);
+
+      if (totalSentences === 0) { // Check if section is truly empty
+          if (det) det.remove();
+          return false;
+      }
+
       let ul;
       if (!det) {
           det = document.createElement('details'); det.dataset.section = sec;
           const sum = document.createElement('summary'); det.appendChild(sum);
           ul = document.createElement('ul'); det.appendChild(ul);
+          // Insertion logic based on SECTIONS order
           const currentSecIndex = SECTIONS.indexOf(sec); let insertBeforeElement = null;
           for (let i = currentSecIndex + 1; i < SECTIONS.length; i++) { const nextSec = SECTIONS[i]; const nextDet = container.querySelector(`details[data-section="${nextSec}"]`); if (nextDet) { insertBeforeElement = nextDet; break; } }
           if (insertBeforeElement) container.insertBefore(det, insertBeforeElement); else container.appendChild(det);
-      } else { ul = det.querySelector('ul'); ul.innerHTML = ''; }
-      det.querySelector('summary').textContent = `${sec} (${blocks.length})`;
-      blocks.forEach((blk, i) => {
-        const li = document.createElement('li'); li.dataset.sec = sec; li.dataset.idx = i;
-        // *** USE UPDATED REGEX HERE ***
-        const sents = blk.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [blk];
-        let currentHtml = '';
-        sents.forEach((s, si) => {
-          currentHtml += `<span class="sentence-span">${s}</span>`;
-          if (si < sents.length - 1) currentHtml += `<span class="split-handle" title="Split" data-sec="${sec}" data-idx="${i}" data-sent-idx="${si}">➕</span>`;
-        });
-        if (i < blocks.length - 1) currentHtml += `<span class="merge-handle" title="Merge" data-sec="${sec}" data-idx="${i}">⇆</span>`;
-        li.innerHTML = currentHtml;
-        ul.appendChild(li);
+      } else {
+          ul = det.querySelector('ul'); ul.innerHTML = '';
+      }
+      // Update summary with sentence count
+      det.querySelector('summary').textContent = `${sec} (${totalSentences} sentences / ${blocks.length} original blocks)`;
+
+      // Render each sentence as an LI, adding block/sentence indices
+      blocks.forEach((sentenceArray, blockIndex) => {
+          sentenceArray.forEach((sentenceText, sentenceIndexInBlock) => {
+              const li = document.createElement('li');
+              li.dataset.sec = sec;
+              li.dataset.blockIdx = blockIndex;
+              li.dataset.sentIdx = sentenceIndexInBlock;
+              li.textContent = sentenceText; // Use textContent for safety
+
+              // Add merge handle to each LI (CSS hides it for the last one)
+              li.innerHTML += `<span class="merge-handle" title="Merge with next">⇆</span>`;
+
+              ul.appendChild(li);
+          });
       });
       return true;
   }
 
-  // 5) Split & Merge Logic - USES NEW SENTENCE REGEX
-  document.body.addEventListener('click', e => {
-    const splitHandle = e.target.closest('.split-handle');
-    const mergeHandle = e.target.closest('.merge-handle');
-    if (splitHandle) {
-      const sec = splitHandle.dataset.sec; const idx = +splitHandle.dataset.idx; const si = +splitHandle.dataset.sentIdx;
-      if (!library[sec]?.[idx]) { console.error("Split Error"); return; }
-      const blockToSplit = library[sec][idx];
-      // *** USE UPDATED REGEX HERE ***
-      const sents = blockToSplit.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [blockToSplit];
-      if (si >= 0 && si < sents.length - 1) {
-        const left = sents.slice(0, si + 1).join(' ').trim(); const right = sents.slice(si + 1).join(' ').trim();
-        library[sec].splice(idx, 1, left, right);
-        saveState(); // Save triggers deduplication
-        renderSection(sec, document.getElementById('ui'));
-      } else { console.error("Invalid split index", si, sents.length); }
-    } else if (mergeHandle) {
-      const li = mergeHandle.closest('li'); if (!li) return;
-      const sec = li.dataset.sec; const idx = +li.dataset.idx;
-      if (!library[sec] || idx + 1 >= library[sec].length) { console.error("Merge Error"); return; }
-      const merged = (library[sec][idx] + ' ' + library[sec][idx+1]).replace(/\s+/g, ' ').trim();
-      library[sec].splice(idx, 2, merged);
-      saveState(); // Save triggers deduplication
-      renderSection(sec, document.getElementById('ui'));
-    }
+  // 5a) Highlighting Logic
+  const uiContainer = document.getElementById('ui');
+  uiContainer.addEventListener('mouseover', (e) => {
+      const li = e.target.closest('li');
+      if (!li || !li.dataset.sec) return; // Only act if hovering over a list item with data
+
+      const sec = li.dataset.sec;
+      const blockIdx = li.dataset.blockIdx;
+
+      // Find all LIs belonging to the same original block
+      const siblings = uiContainer.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${blockIdx}"]`);
+      siblings.forEach(siblingLi => siblingLi.classList.add('highlight-group'));
   });
 
-  // 6) Persistence (Deduplicates before saving)
+  uiContainer.addEventListener('mouseout', (e) => {
+      const li = e.target.closest('li');
+      if (!li || !li.dataset.sec) return;
+
+      const sec = li.dataset.sec;
+      const blockIdx = li.dataset.blockIdx;
+
+      // Remove highlight from all LIs of that group
+      const siblings = uiContainer.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${blockIdx}"]`);
+      siblings.forEach(siblingLi => siblingLi.classList.remove('highlight-group'));
+  });
+
+  // 5b) Merge Logic - Merges adjacent LIs
+  uiContainer.addEventListener('click', (e) => {
+      const mergeHandle = e.target.closest('.merge-handle');
+      if (!mergeHandle) return; // Exit if not clicking a merge handle
+
+      const li1 = mergeHandle.closest('li'); // The LI containing the handle (item BEFORE merge)
+      const li2 = li1?.nextElementSibling; // The LI immediately after
+
+      if (!li1 || !li2 || !li1.dataset.sec || !li2.dataset.sec) {
+          console.error("Merge Error: Couldn't find adjacent LIs with data.");
+          return;
+      }
+
+      // Ensure they are in the same section (should always be true based on rendering)
+      if (li1.dataset.sec !== li2.dataset.sec) {
+           console.error("Merge Error: Trying to merge across sections.");
+           return;
+      }
+
+      const sec = li1.dataset.sec;
+      const blockIdx1 = +li1.dataset.blockIdx;
+      const sentIdx1 = +li1.dataset.sentIdx;
+      const blockIdx2 = +li2.dataset.blockIdx;
+      const sentIdx2 = +li2.dataset.sentIdx;
+
+      // Check if data indices are valid
+      if (isNaN(blockIdx1) || isNaN(sentIdx1) || isNaN(blockIdx2) || isNaN(sentIdx2) ||
+          !library[sec]?.[blockIdx1]?.[sentIdx1] || !library[sec]?.[blockIdx2]?.[sentIdx2]) {
+             console.error("Merge Error: Invalid data indices from LIs.", {sec, blockIdx1, sentIdx1, blockIdx2, sentIdx2});
+             return;
+      }
+
+      // Combine the text
+      const text1 = library[sec][blockIdx1][sentIdx1];
+      const text2 = library[sec][blockIdx2][sentIdx2];
+      const mergedText = (text1 + " " + text2).replace(/\s+/g, ' ').trim(); // Basic merge
+
+      // Update the data structure: Modify first sentence, remove second
+      library[sec][blockIdx1][sentIdx1] = mergedText;
+
+      // Remove the second sentence's data - careful with indices!
+      library[sec][blockIdx2].splice(sentIdx2, 1);
+
+      // Clean up: If block2 became empty after removing the sentence, remove the block itself
+      if (library[sec][blockIdx2].length === 0) {
+          library[sec].splice(blockIdx2, 1);
+          // Note: This removal shifts block indices for subsequent blocks in the same section!
+          // Re-rendering the whole section handles this automatically.
+      }
+
+      saveState(); // Save the modified structure
+      renderSection(sec, uiContainer); // Re-render the affected section
+  });
+
+
+  // 6) Persistence - Saves nested structure, NO deduplication here
   function saveState() {
     try {
-      const deduplicatedLibrary = {};
-      SECTIONS.forEach(sec => {
-        deduplicatedLibrary[sec] = [...new Set(library[sec] || [])];
-      });
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(deduplicatedLibrary));
-      // OPTIONAL: Immediately sync in-memory library
-      // library = deduplicatedLibrary;
-    } catch (e) { console.error("Error saving state:", e); alert("Could not save library changes."); }
+      // Save the potentially modified nested structure directly
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(library));
+    } catch (e) {
+        console.error("Error saving state:", e);
+        alert("Could not save library changes.");
+    }
   }
   function loadState() {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY); library = {}; SECTIONS.forEach(s => library[s] = []);
@@ -272,13 +360,12 @@
   document.getElementById('btn-parse').onclick = () => parseBlob(document.getElementById('blob').value);
   document.getElementById('btn-download').onclick = () => {
     if (Object.values(library).every(a=>a.length===0)) { alert("Library is empty."); return; }
-    const currentDataToDownload = {}; SECTIONS.forEach(sec => { currentDataToDownload[sec] = [...new Set(library[sec] || [])]; });
-    const dataStr = JSON.stringify(currentDataToDownload, null, 2); const blob = new Blob([dataStr], {type:'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `phraseLib-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
+    const dataStr = JSON.stringify(library, null, 2); const blob = new Blob([dataStr], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `phraseLibSentenceMode-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
   };
-  document.getElementById('json-upload').addEventListener('change', e => {
+  document.getElementById('json-upload').addEventListener('change', e => { // Load needs to expect nested arrays
     const file = e.target.files[0]; if (!file) return;
-    file.text().then(txt => { try { const loaded = JSON.parse(txt); if(typeof loaded !== 'object' || loaded === null) throw new Error('Invalid format'); library = {}; SECTIONS.forEach(s => { library[s] = [...new Set(loaded[s] || [])]; }); saveState(); renderAllSections(); alert('Loaded!'); } catch (err) { alert(`Load error: ${err.message}`); } finally { e.target.value = null; }
+    file.text().then(txt => { try { const loaded = JSON.parse(txt); if(typeof loaded !== 'object' || loaded === null) throw new Error('Invalid format'); library = {}; SECTIONS.forEach(s => { library[s] = loaded[s] || []; }); /* Basic validation might be needed here */ saveState(); renderAllSections(); alert('Loaded!'); } catch (err) { alert(`Load error: ${err.message}`); } finally { e.target.value = null; }
     }).catch(err => { alert(`Read error: ${err.message}`); e.target.value = null; });
   });
  document.getElementById('btn-reset-cache').onclick = () => { if (confirm("Clear saved library?")) { try { localStorage.removeItem(LOCAL_STORAGE_KEY); resetLibrary(); renderAllSections(); alert("Cleared."); } catch (e) { alert("Clear error."); } } };
