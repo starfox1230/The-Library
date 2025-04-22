@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Phrase Library - Sentence Mode (Unique & Merge/Unmerge)</title>
+  <title>Phrase Library - Sentence Mode (Blocks & Merge/Unmerge)</title>
   <style>
     body { font-family: sans-serif; margin: 1rem; background: #fafafa; }
     h1 { margin-bottom: .5rem; }
@@ -10,10 +10,11 @@
     textarea { width: 100%; height: 150px; font-family: monospace; box-sizing: border-box; }
     details { margin-top: 0.5rem; border-top: 1px solid #eee; padding-top: 0.5rem; }
     details summary { font-weight: 600; cursor: pointer; }
-    ul { margin: .5rem 0 1rem 1.2rem; list-style-type: decimal; padding-left: 1.5em; } /* Changed list style */
-    li { position: relative; margin-bottom: 0.1em; line-height: 1.4; padding-right: 3.5em; } /* Increased padding for two buttons */
-    /* Removed highlight-group */
-    .btn-action {
+    ul { margin: .5rem 0 1rem 1.2rem; list-style-type: disc; padding-left: 1.5em; } /* Reverted list style */
+    li { position: relative; margin-bottom: 0.1em; line-height: 1.4; padding-right: 3.5em; } /* Keep padding for buttons */
+    li.highlight-group { background-color: #e0f0ff; } /* Added back highlight style */
+
+    .btn-action { /* Renamed from .merge-handle/.unmerge-handle for consistency */
       position: absolute;
       right: 0;
       top: 50%;
@@ -26,29 +27,27 @@
       line-height: 1;
       cursor: pointer;
       visibility: hidden;
-      margin-left: 2px; /* Space between buttons */
+      margin-left: 2px;
     }
-    .merge-handle { right: 1.8em; color: blue; } /* Position merge button */
-    .unmerge-handle { right: 0; color: orange; } /* Position unmerge button */
+    .merge-handle { right: 1.8em; color: blue; }
+    .unmerge-handle { right: 0; color: orange; }
 
     li:hover .btn-action { visibility: visible; }
-    ul > li:last-child .merge-handle { display: none; } /* Hide merge on last item */
-    /* Optionally hide unmerge if sentence doesn't look splittable (can be complex) */
-    /* li:not(:has(> .splittable-marker)) .unmerge-handle { display: none; } */
+    ul > li:last-child .merge-handle { display: none; } /* Hide merge on the absolute last item in the list */
 
     button, input[type="file"] { margin-right: .5rem; padding: .3rem .6rem; margin-top: .5rem; }
     input[type="file"] { border: 1px solid #ccc; border-radius: 3px; }
     #btn-reset-cache { background-color: #fdd; border-color: #d88; color: #800;}
     label.button-like { display: inline-block; padding: .3rem .6rem; border: 1px solid #ccc; border-radius: 3px; background-color: #eee; cursor: pointer; }
-    #json-upload { display: none; } /* Hide the actual file input */
+    #json-upload { display: none; }
   </style>
 </head>
 <body>
-  <h1>Phrase Library - Sentence Mode (Unique & Merge/Unmerge)</h1>
+  <h1>Phrase Library - Sentence Mode (Blocks & Merge/Unmerge)</h1>
   <div id="controls">
     <label for="blob">Paste all cases here:</label><br>
     <textarea id="blob" placeholder="Case 1 Attending Report: ... Case 2 Attending Report: ..."></textarea><br>
-    <button id="btn-parse">Parse Cases & Store Unique Sentences</button>
+    <button id="btn-parse">Parse Cases & Store Unique Blocks</button> <!-- Changed button text -->
     <label for="json-upload" class="button-like">Upload JSON</label>
     <input type="file" id="json-upload" accept=".json">
     <button id="btn-download">Download JSON</button>
@@ -66,7 +65,7 @@
   <div id="ui"></div>
 
   <script>
-  // 1a) Canonical Section headers
+  // 1a) Canonical Section headers (Unchanged)
   const SECTIONS = [
     "LOWER NECK", "LUNGS / AIRWAYS / PLEURA", "HEART / VESSELS", "MEDIASTINUM / ESOPHAGUS", "DIAPHRAGM",
     "LYMPH NODES", "CHEST WALL", "LIVER", "BILIARY TRACT", "GALLBLADDER", "PANCREAS", "SPLEEN", "ADRENALS",
@@ -74,7 +73,7 @@
     "VESSELS", "URINARY BLADDER", "REPRODUCTIVE ORGANS", "BODY WALL", "MUSCULOSKELETAL", "CONCLUSION"
   ];
 
-  // 1b) Mapping for Variations
+  // 1b) Mapping for Variations (Unchanged)
   const SECTION_MAP = {
     "LOWER NECK": "LOWER NECK",
     "LUNGS / AIRWAYS / PLEURA": "LUNGS / AIRWAYS / PLEURA",
@@ -86,7 +85,7 @@
     "LYMPH NODES": "LYMPH NODES",
     "CHEST WALL": "CHEST WALL",
     "LIVER": "LIVER",
-    "LIVER/BILIARY TRACT": "LIVER", // Map combined to primary for now
+    "LIVER/BILIARY TRACT": "LIVER",
     "BILIARY TRACT": "BILIARY TRACT",
     "GALLBLADDER": "GALLBLADDER",
     "PANCREAS": "PANCREAS",
@@ -119,7 +118,6 @@
     "BODY WALL": "BODY WALL",
     "MUSCULOSKELETAL": "MUSCULOSKELETAL",
     "CONCLUSION": "CONCLUSION",
-    // Ignore these
     "ABDOMEN AND PELVIS": null, "ABDOMEN": null, "PELVIS": null,
     "LOWER CHEST": null, "LOWER ABDOMEN": null, "UPPER ABDOMEN": null,
     "VASCULATURE": null, "FINDINGS": null, "STRUCTURED REPORT": null,
@@ -130,38 +128,46 @@
     "LIVER RELATED FINDINGS": null, "OTHER FINDINGS": null, "BOWEL": null
   };
 
-  // 2) Data - Flat Array Structure per Section
-  const LOCAL_STORAGE_KEY = 'phraseLibSentenceMode_v2_unique'; // New key for new structure
+  // 2) Data - Nested Array Structure (Blocks of Sentences)
+  const LOCAL_STORAGE_KEY = 'phraseLibSentenceMode_v3_blocks'; // New key for block structure
   let library = {};
   function resetLibrary() {
     library = {};
-    SECTIONS.forEach(s => library[s] = []); // Initialize with empty arrays
+    SECTIONS.forEach(s => library[s] = []); // Initialize with empty arrays (for blocks)
   }
 
-  // Sentence split regex - Improved slightly for potential internal splits
+  // Sentence split regex (Unchanged)
   const sentenceSplitRegex = /\S.+?[.!?](?=\s+[A-ZÀ-ÖØ-Þ0-9]|$)|S.+?[.!?]$|\S.+/g;
-  // Regex to check if a sentence likely contains more than one sentence structure (for unmerge button)
   const potentialMultiSentenceRegex = /.+?[.!?]\s+[A-ZÀ-ÖØ-Þ0-9]/;
 
-  // 3) Parse blob - Modified for unique sentences
+
+  // 3) Parse blob - Modified for unique blocks
   function parseBlob(text) {
     if (!text.trim()) { alert("Cannot parse empty text."); return; }
-    resetLibrary(); // Start fresh but keep existing library data until overwritten
-    const currentLibrary = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
-    const uniqueSentencesInSection = {};
-    SECTIONS.forEach(s => uniqueSentencesInSection[s] = new Set(currentLibrary[s] || [])); // Initialize with existing unique sentences
 
+    // Load existing library to add to it and check for duplicates
+    loadState(); // Load existing blocks into `library`
+
+    const uniqueBlockKeysInSection = {};
+    SECTIONS.forEach(sec => {
+      // Create a set of existing block keys (JSON stringified) for quick lookup
+      uniqueBlockKeysInSection[sec] = new Set((library[sec] || []).map(block => JSON.stringify(block)));
+    });
+
+    let newBlocksAddedCount = 0;
     const caseChunks = text.split(/(?=^Case\s*\d+)/m).filter(Boolean);
+
     caseChunks.forEach(chunk => {
       const m = chunk.match(/Attending Report:\s*([\s\S]*?)(?=Resident Report:|Case\s*\d+|$)/i);
       if (!m?.[1]?.trim()) return;
       const attendingBlock = m[1].trim();
 
-      const tempSectionTexts = {};
+      const tempSectionTexts = {}; // Collect text per section *for this case*
       SECTIONS.forEach(s => tempSectionTexts[s] = "");
       let currentCanonicalSectionKey = null;
 
-      attendingBlock.split(/\r?\n/).forEach(line => {
+      // --- (Parsing logic within a case chunk - mostly unchanged) ---
+       attendingBlock.split(/\r?\n/).forEach(line => {
         const t = line.trim();
         if (!t) return;
         const headerMatch = t.match(/^([A-Z0-9 \-\/]+):\s*(.*)/);
@@ -172,57 +178,51 @@
             const mapped = SECTION_MAP[hdr];
             currentCanonicalSectionKey = mapped;
             if (mapped && rest) {
-                // Add space cautiously, handle existing punctuation
                  let prefix = tempSectionTexts[mapped].length > 0 && !tempSectionTexts[mapped].endsWith(' ') ? ' ' : '';
-                 // Ensure previous sentence ends correctly before adding new text
                  if (tempSectionTexts[mapped].length > 0 && !/[.!?]$/.test(tempSectionTexts[mapped].trim())) {
                     prefix = '. ' + prefix;
                  }
                  tempSectionTexts[mapped] += prefix + rest;
             }
           } else {
-            currentCanonicalSectionKey = null; // Reset if header isn't mapped
+            currentCanonicalSectionKey = null;
           }
         } else if (currentCanonicalSectionKey) {
-            // Add space cautiously, handle existing punctuation
             let prefix = tempSectionTexts[currentCanonicalSectionKey].length > 0 && !tempSectionTexts[currentCanonicalSectionKey].endsWith(' ') ? ' ' : '';
-            // Ensure previous sentence ends correctly before adding new text
             if (tempSectionTexts[currentCanonicalSectionKey].length > 0 && !/[.!?]$/.test(tempSectionTexts[currentCanonicalSectionKey].trim())) {
                prefix = '. ' + prefix;
             }
-          tempSectionTexts[currentCanonicalSectionKey] += prefix + t;
+            tempSectionTexts[currentCanonicalSectionKey] += prefix + t;
         }
       });
+      // --- (End Parsing logic within a case chunk) ---
 
-      // Process collected text for each section
+      // Process collected text into blocks and check uniqueness
       SECTIONS.forEach(sec => {
           let txt = (tempSectionTexts[sec] || "").replace(/\s+/g, ' ').replace(/ \./g, '.').trim();
-          if (txt && !txt.endsWith('.') && !txt.endsWith('?') && !txt.endsWith('!')) txt += '.'; // Ensure text ends with punctuation if not empty
+          if (txt && !txt.endsWith('.') && !txt.endsWith('?') && !txt.endsWith('!')) txt += '.';
           if (!txt) return;
 
           const sentences = txt.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [];
-          sentences.forEach(sentence => {
-              if (sentence) { // Ensure we don't add empty strings
-                uniqueSentencesInSection[sec].add(sentence);
-              }
-          });
+          if (sentences.length === 0) return; // Don't add empty blocks
+
+          // Check if this exact block (sentences in this order) already exists
+          const blockKey = JSON.stringify(sentences);
+          if (!uniqueBlockKeysInSection[sec].has(blockKey)) {
+              library[sec].push(sentences); // Add the new unique block (as an array of sentences)
+              uniqueBlockKeysInSection[sec].add(blockKey); // Mark this block key as seen
+              newBlocksAddedCount++;
+          }
       });
     });
 
-    // Update the main library object with unique sentences
-    SECTIONS.forEach(sec => {
-        library[sec] = Array.from(uniqueSentencesInSection[sec]);
-        library[sec].sort(); // Optional: Sort sentences alphabetically
-    });
-
-
     saveState();
     renderAllSections();
-    document.getElementById('blob').value = ''; // Clear textarea after parsing
-    alert(`Parsed ${caseChunks.length} case blocks. Library updated with unique sentences.`);
+    document.getElementById('blob').value = ''; // Clear textarea
+    alert(`Parsed ${caseChunks.length} case blocks. Added ${newBlocksAddedCount} new unique blocks to the library.`);
   }
 
-  // 4) Render - Updated for flat structure
+  // 4) Render - Adapted for block structure and highlighting
   function renderAllSections() {
     const ui = document.getElementById('ui');
     ui.innerHTML = '';
@@ -235,17 +235,17 @@
     if (!hasContent) {
       ui.innerHTML = '<p style="color: grey; text-align: center; margin-top: 2rem;">Library is empty. Paste cases or upload JSON.</p>';
     }
-     // Re-apply filter after rendering
-     applyFilter();
+    applyFilter(); // Re-apply filter after rendering
   }
 
-  function renderSection(sec, container) {
-    const sentences = library[sec] || [];
+ function renderSection(sec, container) {
+    const blocks = library[sec] || [];
     let det = container.querySelector(`details[data-section="${sec}"]`);
+    const totalSentences = blocks.reduce((count, block) => count + block.length, 0);
 
-    if (sentences.length === 0) {
+    if (totalSentences === 0) {
       det?.remove();
-      return false; // No content for this section
+      return false; // No content
     }
 
     let ul;
@@ -259,107 +259,165 @@
       ul = document.createElement('ul');
       det.appendChild(ul);
 
-      // Insert in correct order
-      const sectionIndex = SECTIONS.indexOf(sec);
-      let inserted = false;
-      for (let i = sectionIndex + 1; i < SECTIONS.length; i++) {
-          const nextSectionKey = SECTIONS[i];
-          const nextSectionElement = container.querySelector(`details[data-section="${nextSectionKey}"]`);
-          if (nextSectionElement) {
-              container.insertBefore(det, nextSectionElement);
-              inserted = true;
-              break;
-          }
-      }
-      if (!inserted) {
-          container.appendChild(det);
-      }
+      // Insert in correct order (same logic as before)
+       const sectionIndex = SECTIONS.indexOf(sec);
+       let inserted = false;
+       for (let i = sectionIndex + 1; i < SECTIONS.length; i++) {
+           const nextSectionKey = SECTIONS[i];
+           const nextSectionElement = container.querySelector(`details[data-section="${nextSectionKey}"]`);
+           if (nextSectionElement) {
+               container.insertBefore(det, nextSectionElement);
+               inserted = true;
+               break;
+           }
+       }
+       if (!inserted) {
+           container.appendChild(det);
+       }
+
     } else {
       ul = det.querySelector('ul');
-      ul.innerHTML = ''; // Clear previous content
+      ul.innerHTML = ''; // Clear previous list items
     }
 
-    det.querySelector('summary').textContent = `${sec} (${sentences.length} unique sentences)`;
+    // Update summary
+    det.querySelector('summary').textContent = `${sec} (${totalSentences} sentences / ${blocks.length} unique blocks)`;
 
-    sentences.forEach((sentence, sIdx) => {
-      const li = document.createElement('li');
-      li.dataset.sec = sec;
-      li.dataset.sentIdx = sIdx;
-      li.textContent = sentence;
+    // Render list items, adding block and sentence indices
+    blocks.forEach((block, bIdx) => {
+      block.forEach((sentence, sIdx) => {
+        const li = document.createElement('li');
+        li.dataset.sec = sec;
+        li.dataset.blockIdx = bIdx; // Identify the block
+        li.dataset.sentIdx = sIdx; // Identify the sentence within the block
+        li.textContent = sentence;
 
-      // Add Merge Button (except for last item)
-      if (sIdx < sentences.length - 1) {
-           li.innerHTML += ` <span class="btn-action merge-handle" title="Merge with next">⇆</span>`;
-      }
-       // Add Unmerge Button (conditionally or always)
-        const canPotentiallyUnmerge = potentialMultiSentenceRegex.test(sentence);
-        // Always add unmerge button for simplicity, action handler will check if split possible
+        // Add Merge Button (logic relies on absolute next sibling, handled by CSS :last-child)
+        li.innerHTML += ` <span class="btn-action merge-handle" title="Merge with next">⇆</span>`;
+
+        // Add Unmerge Button
         li.innerHTML += ` <span class="btn-action unmerge-handle" title="Split this sentence">⨷</span>`;
-       // Add invisible marker if potentially splittable (useful for optional CSS hiding)
-        // if (canPotentiallyUnmerge) {
-        //   li.innerHTML += `<span class="splittable-marker" style="display:none;"></span>`;
-        // }
 
-      ul.appendChild(li);
+        ul.appendChild(li);
+      });
     });
 
-     // Preserve open/closed state if element existed before
-    // if (!isNew) {
-    //     // This simple approach re-opens on any re-render. A more complex state tracking is needed
-    //     // det.open = true; // Or track state externally
-    // }
+     // Hide merge button on the very last li of the ul
+     if (ul.lastElementChild) {
+         const lastMergeHandle = ul.lastElementChild.querySelector('.merge-handle');
+         if(lastMergeHandle) lastMergeHandle.style.display = 'none';
+     }
+
 
     return true; // Section has content
   }
 
-  // 5) Actions (Merge/Unmerge)
+  // 5a) Highlight - Added back
   const uiContainer = document.getElementById('ui');
+  uiContainer.addEventListener('mouseover', e => {
+    const li = e.target.closest('li');
+    // Check for necessary data attributes before proceeding
+    if (!li || !li.dataset.sec || li.dataset.blockIdx === undefined) return;
+    const sec = li.dataset.sec;
+    const bIdx = li.dataset.blockIdx;
+    // Find the parent UL
+    const ul = li.closest('ul');
+    if (!ul) return;
+    // Query within the UL for siblings from the same block
+    ul.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${bIdx}"]`)
+      .forEach(item => item.classList.add('highlight-group'));
+  });
+  uiContainer.addEventListener('mouseout', e => {
+    const li = e.target.closest('li');
+     // Check for necessary data attributes before proceeding
+    if (!li || !li.dataset.sec || li.dataset.blockIdx === undefined) return;
+    const sec = li.dataset.sec;
+    const bIdx = li.dataset.blockIdx;
+     // Find the parent UL
+     const ul = li.closest('ul');
+     if (!ul) return;
+    // Query within the UL to remove class
+    ul.querySelectorAll(`li[data-sec="${sec}"][data-block-idx="${bIdx}"]`)
+      .forEach(item => item.classList.remove('highlight-group'));
+  });
 
+
+  // 5b) Actions (Merge/Unmerge) - Adapted for block structure
   uiContainer.addEventListener('click', e => {
     const target = e.target;
 
-    // Handle Merge
+    // --- Handle Merge ---
     if (target.classList.contains('merge-handle')) {
       const li1 = target.closest('li');
-      const li2 = li1.nextElementSibling; // Merge always happens with the next sibling
-      if (!li1 || !li2 || !li1.dataset.sec || li1.dataset.sec !== li2.dataset.sec) return;
+      const li2 = li1.nextElementSibling; // Merge with the immediately following sentence visually
 
-      const sec = li1.dataset.sec;
-      const s1 = +li1.dataset.sentIdx; // Index of the first sentence
-      const s2 = +li2.dataset.sentIdx; // Index of the second sentence (should be s1 + 1)
-
-      if (s2 !== s1 + 1) { // Sanity check
-        console.error("Merge indices are not sequential:", s1, s2);
-        return;
+      // Ensure both li exist and belong to the same section
+      if (!li1 || !li2 || !li1.dataset.sec || !li2.dataset.sec || li1.dataset.sec !== li2.dataset.sec) {
+          console.warn("Merge target invalid or cross-section.", li1, li2);
+          return;
       }
 
-      const t1 = library[sec][s1];
-      const t2 = library[sec][s2];
+      const sec = li1.dataset.sec;
+      // Get indices from data attributes
+      const b1 = +li1.dataset.blockIdx;
+      const s1 = +li1.dataset.sentIdx;
+      const b2 = +li2.dataset.blockIdx;
+      const s2 = +li2.dataset.sentIdx;
+
+      // Get text from the library using indices
+      if (!library[sec] || !library[sec][b1] || !library[sec][b2]) {
+          console.error("Library data missing for merge indices:", sec, b1, s1, b2, s2);
+          return;
+      }
+      const t1 = library[sec][b1][s1];
+      const t2 = library[sec][b2][s2];
+
+      if (t1 === undefined || t2 === undefined) {
+         console.error("Sentence text undefined for merge indices:", sec, b1, s1, b2, s2);
+         return;
+      }
+
       const merged = (t1 + ' ' + t2).replace(/\s+/g, ' ').trim();
 
-      // Update library: replace first sentence, remove second
-      library[sec][s1] = merged;
-      library[sec].splice(s2, 1);
+      // --- Update Library ---
+      // 1. Replace the text of the first sentence
+      library[sec][b1][s1] = merged;
+
+      // 2. Remove the second sentence from its block
+      library[sec][b2].splice(s2, 1);
+
+      // 3. If the second sentence's block is now empty, remove the block
+      if (library[sec][b2].length === 0) {
+        library[sec].splice(b2, 1);
+        // Note: Removing a block changes the block indices (bIdx) of subsequent blocks.
+        // Re-rendering the entire section handles this automatically.
+      }
 
       saveState();
-      renderSection(sec, uiContainer); // Re-render only the affected section
+      renderSection(sec, uiContainer); // Re-render the affected section
     }
 
-    // Handle Unmerge (Re-split)
+    // --- Handle Unmerge ---
     else if (target.classList.contains('unmerge-handle')) {
       const li = target.closest('li');
-      if (!li || !li.dataset.sec) return;
+      if (!li || !li.dataset.sec || li.dataset.blockIdx === undefined || li.dataset.sentIdx === undefined) return;
 
       const sec = li.dataset.sec;
+      const bIdx = +li.dataset.blockIdx;
       const sIdx = +li.dataset.sentIdx;
-      const text = library[sec][sIdx];
 
-      // Attempt to split the sentence using the regex
+      if (!library[sec] || !library[sec][bIdx] || library[sec][bIdx][sIdx] === undefined) {
+          console.error("Library data missing for unmerge indices:", sec, bIdx, sIdx);
+          return;
+      }
+      const text = library[sec][bIdx][sIdx];
+
+      // Attempt to split the sentence
       const parts = text.match(sentenceSplitRegex)?.map(s => s.trim()).filter(Boolean) || [];
 
       if (parts.length > 1) {
-        // Replace the original sentence with the split parts
-        library[sec].splice(sIdx, 1, ...parts);
+        // Replace the original sentence with the split parts *within the same block*
+        library[sec][bIdx].splice(sIdx, 1, ...parts);
         saveState();
         renderSection(sec, uiContainer); // Re-render the section
       } else {
@@ -368,67 +426,83 @@
     }
   });
 
-  // 6) Persistence
+
+  // 6) Persistence - Adapted for nested array structure
   function saveState() {
     try {
-        // Clean up empty arrays before saving
-        const libraryToSave = {};
-        SECTIONS.forEach(sec => {
-            if (library[sec] && library[sec].length > 0) {
-                libraryToSave[sec] = library[sec];
-            }
-        });
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(libraryToSave));
+      const libraryToSave = {};
+      SECTIONS.forEach(sec => {
+        // Only save sections that have blocks, and blocks that have sentences
+        if (library[sec] && library[sec].length > 0) {
+          const validBlocks = library[sec].filter(block => Array.isArray(block) && block.length > 0);
+          if (validBlocks.length > 0) {
+              libraryToSave[sec] = validBlocks;
+          }
+        }
+      });
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(libraryToSave));
     } catch (e) {
-        console.error("Error saving state to localStorage:", e);
-        alert("Error saving state. LocalStorage might be full or unavailable.");
+      console.error("Error saving state to localStorage:", e);
+      alert("Error saving state. LocalStorage might be full or unavailable.");
     }
   }
 
   function loadState() {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    resetLibrary(); // Ensures all sections exist in the library object
+    resetLibrary(); // Start with empty sections
     if (saved) {
       try {
         const loadedLibrary = JSON.parse(saved);
-        // Ensure only known sections are loaded and they contain arrays
         SECTIONS.forEach(sec => {
+          // Validate: Ensure the loaded data is an array of arrays (of strings)
           if (loadedLibrary[sec] && Array.isArray(loadedLibrary[sec])) {
-            library[sec] = loadedLibrary[sec];
+             library[sec] = loadedLibrary[sec].filter(block =>
+                Array.isArray(block) && block.every(sentence => typeof sentence === 'string')
+             );
           }
         });
       } catch (e) {
-          console.error("Error loading state from localStorage:", e);
-          localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
+        console.error("Error loading state from localStorage:", e);
+        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
       }
     }
   }
 
-  // 7) Event Listeners
+  // 7) Event Listeners (Download/Upload adapted for block structure)
   document.getElementById('btn-parse').onclick = () =>
     parseBlob(document.getElementById('blob').value);
 
   document.getElementById('btn-download').onclick = () => {
-    const sectionsWithContent = Object.keys(library).filter(sec => library[sec] && library[sec].length > 0);
-    if (sectionsWithContent.length === 0) {
-       alert("Library is empty. Nothing to download.");
-       return;
-    }
-    // Create a clean object with only non-empty sections for download
-    const libraryToDownload = {};
-    sectionsWithContent.forEach(sec => libraryToDownload[sec] = library[sec]);
+     const sectionsWithContent = Object.keys(library).filter(sec => library[sec] && library[sec].length > 0 && library[sec].some(block => block.length > 0));
+     if (sectionsWithContent.length === 0) {
+        alert("Library is empty. Nothing to download.");
+        return;
+     }
+     const libraryToDownload = {};
+      sectionsWithContent.forEach(sec => {
+          // Filter out any potentially empty blocks just before download
+          const validBlocks = library[sec].filter(block => Array.isArray(block) && block.length > 0);
+          if (validBlocks.length > 0) {
+              libraryToDownload[sec] = validBlocks;
+          }
+      });
 
-    const str = JSON.stringify(libraryToDownload, null, 2);
-    const blob = new Blob([str], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    const date = new Date();
-    const timestamp = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
-    a.download = `phraseLibSentenceMode_${timestamp}.json`;
-    document.body.appendChild(a); // Required for Firefox
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+      if (Object.keys(libraryToDownload).length === 0) {
+           alert("Library contains empty blocks only. Nothing to download.");
+           return;
+      }
+
+     const str = JSON.stringify(libraryToDownload, null, 2);
+     const blob = new Blob([str], { type: 'application/json' });
+     const a = document.createElement('a');
+     a.href = URL.createObjectURL(blob);
+     const date = new Date();
+     const timestamp = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
+     a.download = `phraseLibBlocks_${timestamp}.json`; // Updated filename hint
+     document.body.appendChild(a);
+     a.click();
+     document.body.removeChild(a);
+     URL.revokeObjectURL(a.href);
   };
 
   document.getElementById('json-upload').addEventListener('change', e => {
@@ -438,14 +512,17 @@
     reader.onload = (event) => {
         try {
             const loadedLibrary = JSON.parse(event.target.result);
-            // Validate and merge/replace logic (simple replace for now)
-            resetLibrary(); // Clear current library before loading
-             SECTIONS.forEach(sec => {
+            resetLibrary(); // Clear current library
+            SECTIONS.forEach(sec => {
+               // Validate structure: array of arrays of strings
                if (loadedLibrary[sec] && Array.isArray(loadedLibrary[sec])) {
-                 // Basic validation: ensure items are strings
-                 library[sec] = loadedLibrary[sec].filter(item => typeof item === 'string' && item.trim().length > 0);
+                  library[sec] = loadedLibrary[sec].filter(block =>
+                      Array.isArray(block) &&
+                      block.length > 0 && // Ensure block is not empty
+                      block.every(sentence => typeof sentence === 'string' && sentence.trim().length > 0) // Ensure sentences are non-empty strings
+                  );
                }
-             });
+            });
             saveState();
             renderAllSections();
             alert('Library loaded successfully from JSON!');
@@ -453,13 +530,13 @@
             alert(`Error loading or parsing JSON file: ${err.message}`);
             console.error("JSON Load Error:", err);
         } finally {
-            e.target.value = ''; // Reset file input
+            e.target.value = '';
         }
     };
     reader.onerror = (event) => {
         alert("Error reading file.");
         console.error("File Reader Error:", event);
-        e.target.value = ''; // Reset file input
+        e.target.value = '';
     };
     reader.readAsText(f);
   });
@@ -473,19 +550,17 @@
     }
   };
 
-  // 8) Live search filter
+  // 8) Live search filter (Unchanged conceptually, works with new structure)
   const filterInput = document.getElementById('txt-filter');
   filterInput.addEventListener('input', applyFilter);
 
-  function applyFilter() {
+ function applyFilter() {
       const term = filterInput.value.trim().toLowerCase();
       let anyVisibleSections = false;
       document.querySelectorAll('#ui details').forEach(det => {
           let sectionHasVisibleItems = false;
           det.querySelectorAll('li').forEach(li => {
               const sentenceText = li.textContent.toLowerCase();
-              // Remove button text from comparison if necessary, though usually not needed
-              // const sentenceOnlyText = li.firstChild.textContent.toLowerCase();
               const isVisible = !term || sentenceText.includes(term);
               li.style.display = isVisible ? '' : 'none';
               if (isVisible) {
@@ -494,14 +569,13 @@
           });
 
           det.style.display = sectionHasVisibleItems ? '' : 'none';
-          // Optionally open sections with matches, close others
           if (sectionHasVisibleItems && term) {
               det.open = true;
           } else if (!sectionHasVisibleItems && term) {
-             det.open = false; // Close if no matches in this section
+             det.open = false;
           } else if (!term) {
-             // Decide behaviour when filter is cleared (e.g., close all or keep state)
-             // det.open = false; // Close all when filter is empty
+             // Optional: close all when filter is cleared
+             // det.open = false;
           }
 
           if (sectionHasVisibleItems) {
@@ -509,7 +583,6 @@
           }
       });
 
-       // Optional: Show a message if filter returns no results
        const noResultsMessage = document.getElementById('no-filter-results');
        if (!anyVisibleSections && term && !noResultsMessage) {
            const p = document.createElement('p');
@@ -518,13 +591,10 @@
            p.style.textAlign = 'center';
            p.style.color = 'grey';
            uiContainer.appendChild(p);
-       } else if (anyVisibleSections && noResultsMessage) {
+       } else if ((anyVisibleSections || !term) && noResultsMessage) { // Remove if results found or filter cleared
            noResultsMessage.remove();
-       } else if (!term && noResultsMessage) {
-            noResultsMessage.remove(); // Remove message when filter is cleared
        }
   }
-
 
   // 9) Initialize
   (()=>{
