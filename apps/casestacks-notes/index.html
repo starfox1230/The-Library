@@ -7,47 +7,40 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-/* ==== NIGHT‑MODE AESTHETIC ==== */
 :root{
-  --bg:#0a0a0f;
-  --panel:#14141d;
-  --card:#1e1e29;
-  --text:#e8e8ff;
-  --accent:#00ff9c;
-  --muted:#7f7fa3;
+  --bg:#0a0a0f;      --panel:#14141d;   --card:#1e1e29;
+  --text:#e8e8ff;    --accent:#00ff9c;  --muted:#7f7fa3;
   --radius:8px;
   font-family:'Poppins',sans-serif;
 }
 *{box-sizing:border-box}
 body{margin:0;padding:1.2rem;background:var(--bg);color:var(--text)}
 h1{font-weight:600;margin:0 0 .6rem;font-size:1.4rem;color:var(--accent)}
-a{color:var(--accent)}
-/* Controls */
 #controls{background:var(--panel);padding:1rem;border-radius:var(--radius);margin-bottom:1rem}
 #controls button{margin:.25rem .4rem .25rem 0;padding:.35rem .8rem;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;color:var(--text);background:var(--card)}
 #controls button:hover{background:var(--accent);color:#000}
 textarea{width:100%;height:140px;background:var(--card);border:1px solid var(--muted);border-radius:var(--radius);color:var(--text);padding:.6rem;font-family:monospace;margin-top:.4rem}
 input[type="text"]{width:100%;padding:.5rem;border-radius:var(--radius);border:1px solid var(--muted);background:var(--card);color:var(--text);margin-bottom:.8rem}
-/* Sections */
+
+/* section blocks */
 details{background:var(--panel);border-radius:var(--radius);margin:.4rem 0;padding:.2rem .6rem}
 details summary{cursor:pointer;font-weight:600;color:var(--accent);list-style:none;padding:.4rem 0}
 details summary::-webkit-details-marker{display:none}
+
+/* list styling */
 ul{margin:0 0 .6rem 1.2rem;padding:0;list-style-type:disc}
 li{margin:.15rem 0;line-height:1.4}
-.finding-label{
-  font-weight:600;
-  list-style-type:none;          /* remove bullet */
-  margin-left:-1.2rem;
-}
+.finding-label{font-weight:600;list-style-type:none;margin-left:-1.2rem}
 .finding-label::marker{content:''}
-.report-sentence{
-  font-style:italic;
-}
+.report-sentence{font-style:italic}
 .report-sentence::before{content:"“";}
 .report-sentence::after{content:"”";}
 .pearl{font-style:italic;color:var(--muted)}
 .tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em}
-.hidden{display:none}
+.block-spacer{height:.8rem;list-style:none}
+
+/* editing state */
+.editing{border:1px dashed var(--accent);padding:.1rem .3rem;border-radius:4px;background:rgba(0,255,156,0.05)}
 </style>
 </head>
 <body>
@@ -56,11 +49,8 @@ li{margin:.15rem 0;line-height:1.4}
 
 <div id="controls">
   <label for="jsonInput"><strong>Paste JSON for new finding(s)</strong> → <em>hit Add</em></label>
-  <textarea id="jsonInput" placeholder='{"section":"LIVER", … }  OR  [ {...},{...} ]'></textarea>
-  <br>
+  <textarea id="jsonInput" placeholder='{"section":"LIVER",…}  OR  [ {...},{...} ]'></textarea><br>
   <button id="btnAdd">Add</button>
-
-  <!-- full‑library actions -->
   <button id="btnUploadReset">Reset & Upload JSON</button>
   <button id="btnUploadCombine">Upload & Combine JSON</button>
   <button id="btnDownload">Download JSON</button>
@@ -68,185 +58,162 @@ li{margin:.15rem 0;line-height:1.4}
 </div>
 
 <input type="text" id="filterBox" placeholder="Filter by any text, tag, or label…">
-
 <div id="ui"></div>
 
 <script>
-/* ===== Data schema & storage ===== */
-const SECTIONS=[
-"LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
+/* ===== constants / storage ===== */
+const SECTIONS=[ "LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
 "LYMPH NODES","CHEST WALL","LIVER","BILIARY TRACT","GALLBLADDER","PANCREAS","SPLEEN","ADRENALS",
 "KIDNEYS","STOMACH / SMALL BOWEL","COLON / APPENDIX","PERITONEUM / MESENTERY","RETROPERITONEUM",
 "VESSELS","URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION"];
 const STORAGE_KEY="ctFindings_v1";
 let library={};
 
-/* ===== Utilities ===== */
 function resetLibrary(){library={};SECTIONS.forEach(s=>library[s]=[]);}
-function load(){try{library=JSON.parse(localStorage.getItem(STORAGE_KEY))||{};}catch{resetLibrary()}}
+function load(){try{library=JSON.parse(localStorage.getItem(STORAGE_KEY))||{};}catch{resetLibrary();}}
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(library));}
 function normalizeSection(sec){return SECTIONS.includes(sec)?sec:null;}
-function uniqueKey(obj){return JSON.stringify(obj);} // quick dedup
+const keyOf=obj=>JSON.stringify(obj);
 
-/* ===== Rendering ===== */
+/* ===== rendering ===== */
 const ui=document.getElementById("ui");
-let globalBlockCounter=0;
+let gCounter=0;
 function renderAll(){
-  ui.innerHTML="";
-  globalBlockCounter=0;
+  ui.innerHTML=""; gCounter=0;
   SECTIONS.forEach(sec=>{
-    const items=library[sec]||[];
-    if(items.length===0)return;
-    const det=document.createElement("details");
-    det.dataset.section=sec;
-    const sum=document.createElement("summary");
-    sum.textContent=`${sec}  (${items.length})`;
-    det.appendChild(sum);
+    const blocks=library[sec]||[]; if(!blocks.length) return;
+    const det=document.createElement("details"); det.dataset.section=sec;
+    det.innerHTML=`<summary>${sec} (${blocks.length})</summary>`;
     const ul=document.createElement("ul");
-    items.forEach(item=>{
-      const blockId="b"+(++globalBlockCounter);
-      /* label row */
-      const liLabel=document.createElement("li");
-      liLabel.className="finding-label";
-      liLabel.dataset.blockId=blockId;
-      liLabel.dataset.search=(item.label+" "+(item.sentences||[]).join(" ")+" "+(item.pearls||[]).join(" ")+" "+(item.tags||[]).join(" ")).toLowerCase();
-      liLabel.innerHTML=item.label || "<i>[no label]</i>";
-      if(item.tags) item.tags.forEach(t=>{
-        const span=document.createElement("span");
-        span.className="tag-chip";span.textContent=t;liLabel.appendChild(span);
-      });
-      ul.appendChild(liLabel);
-
-      /* sentence rows */
-      (item.sentences||[]).forEach(txt=>{
+    blocks.forEach((blk,bIdx)=>{
+      const bId="b"+(++gCounter);
+      // label
+      const lab=document.createElement("li");
+      lab.className="finding-label"; lab.dataset.blockId=bId; lab.dataset.type="label";
+      lab.dataset.bIdx=bIdx; lab.textContent=blk.label||"[no label]";
+      lab.dataset.search=(blk.label+" "+(blk.sentences||[]).join(" ")+(blk.pearls||[]).join(" ")+(blk.tags||[]).join(" ")).toLowerCase();
+      blk.tags?.forEach(t=>{const s=document.createElement("span");s.className="tag-chip";s.textContent=t;lab.appendChild(s);});
+      ul.appendChild(lab);
+      // sentences
+      (blk.sentences||[]).forEach((txt,sIdx)=>{
         const li=document.createElement("li");
-        li.className="report-sentence";
-        li.dataset.blockId=blockId;
-        li.textContent=txt;
+        li.className="report-sentence";li.textContent=txt;
+        li.dataset.blockId=bId; li.dataset.type="sentence"; li.dataset.bIdx=bIdx; li.dataset.sIdx=sIdx;
         ul.appendChild(li);
       });
-
-      /* pearls */
-      if(item.pearls?.length){
-        const li=document.createElement("li");
-        li.className="pearl";
-        li.dataset.blockId=blockId;
-        li.innerHTML="💡 "+item.pearls.join("<br>💡 ");
-        ul.appendChild(li);
+      // pearls
+      if(blk.pearls?.length){
+        blk.pearls.forEach((pTxt,pIdx)=>{
+          const li=document.createElement("li");
+          li.className="pearl"; li.textContent="💡 "+pTxt;
+          li.dataset.blockId=bId; li.dataset.type="pearl"; li.dataset.bIdx=bIdx; li.dataset.pIdx=pIdx;
+          ul.appendChild(li);
+        });
       }
+      // spacer between blocks
+      const sp=document.createElement("li"); sp.className="block-spacer";
+      ul.appendChild(sp);
     });
-    det.appendChild(ul);
-    ui.appendChild(det);
+    det.appendChild(ul); ui.appendChild(det);
   });
   applyFilter();
 }
 
-/* ===== Filter ===== */
-const filterBox=document.getElementById("filterBox");
-filterBox.addEventListener("input",applyFilter);
+/* ===== live filter ===== */
+const fBox=document.getElementById("filterBox");
+fBox.addEventListener("input",applyFilter);
 function applyFilter(){
-  const term=filterBox.value.trim().toLowerCase();
-  let anyVisible=false;
+  const term=fBox.value.trim().toLowerCase();
+  let any=false;
   ui.querySelectorAll("details").forEach(det=>{
-    let sectionVisible=false;
-
-    /* operate per block */
-    det.querySelectorAll(".finding-label").forEach(labelLi=>{
-      const matchText=labelLi.dataset.search||"";
-      const show=!term||matchText.includes(term);
-      const blockId=labelLi.dataset.blockId;
-      det.querySelectorAll(`[data-block-id="${blockId}"]`).forEach(el=>{
-        el.style.display=show?"":"none";
-      });
-      if(show)sectionVisible=true;
+    let secVis=false;
+    det.querySelectorAll(".finding-label").forEach(lab=>{
+      const vis=!term||lab.dataset.search.includes(term);
+      det.querySelectorAll(`[data-block-id="${lab.dataset.blockId}"]`).forEach(el=>el.style.display=vis?"":"none");
+      if(vis) secVis=true;
     });
-
-    /* section collapse / expand */
-    det.style.display=sectionVisible?"":"none";
-    if(term){
-      det.open=sectionVisible;          // expand visible sections while filtering
-    }else{
-      det.open=false;                   // collapse everything when filter cleared
-    }
-    if(sectionVisible)anyVisible=true;
+    det.style.display=secVis?"":"none";
+    det.open=term?secVis:false;
+    if(secVis) any=true;
   });
-  if(!anyVisible&&term){
-    if(!document.getElementById("nores")){
-      const p=document.createElement("p");p.id="nores";p.style.textAlign="center";
-      p.textContent="No matches.";ui.appendChild(p);
-    }
-  }else{
-    document.getElementById("nores")?.remove();
+  document.getElementById("nores")?.remove();
+  if(term&&!any){
+    const p=document.createElement("p");p.id="nores";p.style.textAlign="center";p.textContent="No matches.";
+    ui.appendChild(p);
   }
 }
 
-/* ===== Add pasted JSON ===== */
+/* ===== inline editing ===== */
+ui.addEventListener("dblclick",e=>{
+  const li=e.target.closest("li"); if(!li||li.classList.contains("block-spacer")) return;
+  if(li.isContentEditable) return;
+  li.contentEditable=true; li.classList.add("editing"); li.focus();
+});
+ui.addEventListener("blur",e=>{
+  const li=e.target.closest("li");
+  if(!li||!li.isContentEditable) return;
+  li.contentEditable=false; li.classList.remove("editing");
+  const sec=li.closest("details").dataset.section;
+  const b=+li.dataset.bIdx, blk=library[sec][b];
+  if(li.dataset.type==="label"){ blk.label=li.textContent.trim(); }
+  else if(li.dataset.type==="sentence"){
+    const lines=li.textContent.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    blk.sentences.splice(+li.dataset.sIdx,1,...lines);
+  }
+  else if(li.dataset.type==="pearl"){
+    const lines=li.textContent.replace(/^💡\s*/,'').split(/\n+/).map(s=>s.replace(/^💡\s*/,'').trim()).filter(Boolean);
+    blk.pearls.splice(+li.dataset.pIdx,1,...lines);
+  }
+  save(); renderAll();
+},true);
+
+/* ===== add / upload / download logic unchanged ===== */
 document.getElementById("btnAdd").onclick=()=>{
-  const txt=document.getElementById("jsonInput").value.trim();
-  if(!txt)return alert("Nothing to add.");
+  const raw=document.getElementById("jsonInput").value.trim(); if(!raw) return alert("Nothing to add.");
   try{
-    const parsed=JSON.parse(txt);
-    const arr=Array.isArray(parsed)?parsed:[parsed];
-    let added=0, dupe=0;
-    arr.forEach(obj=>{
-      const sec=normalizeSection(obj.section);
-      if(!sec)return;
-      if(!library[sec])library[sec]=[];
-      const key=uniqueKey(obj);
-      const exists=library[sec].some(b=>uniqueKey(b)===key);
-      if(exists){dupe++;return;}
-      library[sec].push(obj);added++;
+    const arr=Array.isArray(JSON.parse(raw))?JSON.parse(raw):[JSON.parse(raw)];
+    let added=0,dupe=0;
+    arr.forEach(o=>{
+      const sec=normalizeSection(o.section); if(!sec) return;
+      if(!library[sec]) library[sec]=[];
+      const key=keyOf(o);
+      if(library[sec].some(b=>keyOf(b)===key)) dupe++; else {library[sec].push(o); added++;}
     });
-    save();renderAll();
-    document.getElementById("jsonInput").value="";
-    alert(`Added ${added} new item(s)${dupe?`, skipped ${dupe} duplicate(s)`:''}.`);
-  }catch(e){alert("JSON parse error: "+e.message);}
+    save(); renderAll(); document.getElementById("jsonInput").value="";
+    alert(`Added ${added}, skipped ${dupe} duplicates.`);
+  }catch(err){alert("JSON error: "+err.message);}
 };
 
-/* ===== Upload / download ===== */
-const fileInput=document.getElementById("fileInput");
-document.getElementById("btnDownload").onclick=function(){
-  const str=JSON.stringify(library,null,2);
-  const blob=new Blob([str],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  const dt=new Date();const ts=dt.toISOString().slice(0,10);
-  a.download=`ctFindings_${ts}.json`;
-  document.body.appendChild(a);a.click();a.remove();
-};
-function handleUpload(mode,jsonData){
-  if(mode==="reset")resetLibrary();
-  let added=0;
-  SECTIONS.forEach(sec=>{
-    if(jsonData[sec])jsonData[sec].forEach(obj=>{
-      if(!library[sec])library[sec]=[];
-      const key=uniqueKey(obj);
-      if(library[sec].some(b=>uniqueKey(b)===key))return;
-      library[sec].push(obj);added++;
-    });
-  });
-  save();renderAll();
-  alert(`${mode==="reset"?"Reset &":"Combined &"} added ${added} new item(s).`);
-}
+const fInput=document.getElementById("fileInput");
 ["btnUploadReset","btnUploadCombine"].forEach(id=>{
-  document.getElementById(id).onclick=()=>{
-    fileInput.click();fileInput.dataset.mode=id==="btnUploadReset"?"reset":"combine";
-  };
+  document.getElementById(id).onclick=()=>{fInput.dataset.mode=id.includes("Reset")?"reset":"combine"; fInput.click();};
 });
-fileInput.onchange=e=>{
-  const file=e.target.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=evt=>{
+fInput.onchange=e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const rdr=new FileReader(); rdr.onload=ev=>{
     try{
-      handleUpload(fileInput.dataset.mode,JSON.parse(evt.target.result));
+      if(fInput.dataset.mode==="reset") resetLibrary();
+      const data=JSON.parse(ev.target.result); let add=0;
+      SECTIONS.forEach(sec=>{
+        data[sec]?.forEach(o=>{
+          if(!library[sec]) library[sec]=[];
+          if(library[sec].some(b=>keyOf(b)===keyOf(o))) return;
+          library[sec].push(o); add++;
+        });
+      });
+      save(); renderAll(); alert(`Imported ${add} new item(s).`);
     }catch(err){alert("Bad JSON: "+err.message);}
   };
-  reader.readAsText(file);
-  e.target.value="";
+  rdr.readAsText(file); e.target.value="";
+};
+document.getElementById("btnDownload").onclick=()=>{
+  const blob=new Blob([JSON.stringify(library,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`ctFindings_${new Date().toISOString().slice(0,10)}.json`; a.click(); a.remove();
 };
 
-/* ===== Boot ===== */
-resetLibrary();load();renderAll();
+/* ===== boot ===== */
+resetLibrary(); load(); renderAll();
 </script>
 </body>
 </html>
