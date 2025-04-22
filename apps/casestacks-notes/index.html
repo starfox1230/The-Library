@@ -31,27 +31,20 @@ details summary{cursor:pointer;font-weight:600;color:var(--accent);list-style:no
 details summary::-webkit-details-marker{display:none}
 
 ul{margin:0 0 .6rem 1.2rem;padding:0;list-style-type:disc}
-li{margin:.15rem 0;line-height:1.4; outline: none; /* Remove browser default focus outline */}
+li{margin:.15rem 0;line-height:1.4; outline: none;}
 .finding-label{font-weight:600;list-style-type:none;margin-left:-1.2rem}
 .finding-label::marker{content:''}
-/* Use outline for editing state to avoid layout shift */
+/* Use outline for editing state */
 li.editing {
   outline: 1px dashed var(--accent);
   outline-offset: 1px;
   background:rgba(0,255,156,0.05);
 }
-/* Ensure tags within an editing label are NOT visually marked as editable */
-li.editing .tag-chip {
-    outline: none;
-    background: var(--card); /* Keep original background */
-    cursor: default; /* Indicate not interactive */
-}
 .report-sentence{font-style:italic}
 .report-sentence::before{content:"“";}
 .report-sentence::after{content:"”";}
 .pearl{font-style:italic;color:var(--muted)}
-.pearl::before{content:"💡 ";} /* Keep space consistent */
-.tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em; vertical-align: baseline;}
+.pearl::before{content:"💡 ";}
 .block-spacer{height:.8rem;list-style:none}
 
 
@@ -64,10 +57,8 @@ li.editing .tag-chip {
   color:var(--text);background:var(--card);
 }
 #editPanel button:hover{background:var(--accent);color:#000}
-/* Style delete button distinctly */
 #editPanel #btnDelete { background: var(--muted); }
 #editPanel #btnDelete:hover { background: var(--danger); color: var(--text); }
-
 
 .hidden{display:none!important}
 #nores { padding: 1rem; text-align: center; color: var(--muted); }
@@ -79,7 +70,8 @@ li.editing .tag-chip {
 
 <div id="controls">
   <label for="jsonInput"><strong>Paste JSON for new finding(s)</strong> → <em>hit Add</em></label>
-  <textarea id="jsonInput" placeholder='{"section":"LIVER", "label":"Example Finding", "sentences":["Sentence 1."], "pearls": [], "tags": ["example"]}  OR  [ {...},{...} ]'></textarea><br>
+  {/* --- REMOVED TAGS FROM PLACEHOLDER --- */}
+  <textarea id="jsonInput" placeholder='{"section":"LIVER", "label":"Example Finding", "sentences":["Sentence 1."], "pearls": []}  OR  [ {...},{...} ]'></textarea><br>
   <button id="btnAdd">Add</button>
   <button id="btnUploadReset">Reset & Upload JSON</button>
   <button id="btnUploadCombine">Upload & Combine JSON</button>
@@ -87,14 +79,14 @@ li.editing .tag-chip {
   <input type="file" id="fileInput" accept=".json" class="hidden">
 </div>
 
-<input type="text" id="filterBox" placeholder="Filter by any text, tag, or label…">
+<input type="text" id="filterBox" placeholder="Filter by any text or label…"> {/* --- REMOVED TAG FROM PLACEHOLDER --- */}
 <div id="ui"></div>
 
 <!-- floating panel -->
 <div id="editPanel" class="hidden">
   <button id="btnNewSentence">+ Sentence</button>
   <button id="btnNewPearl">+ Pearl</button>
-  <button id="btnDelete">Delete</button> <!-- Added Delete Button -->
+  <button id="btnDelete">Delete</button>
 </div>
 
 <script>
@@ -117,7 +109,8 @@ let openSections=new Set();
 
 /* ===== rendering ===== */
 const ui=document.getElementById("ui");
-let gCounter=0; // Used to generate unique-within-render block IDs
+let gCounter=0;
+// ***** MODIFIED renderAll *****
 function renderAll(){
   openSections=new Set([...document.querySelectorAll('#ui details[data-section]')].filter(d=>d.open).map(d=>d.dataset.section));
 
@@ -149,28 +142,15 @@ function renderAll(){
       const lbl=document.createElement("li");
       lbl.className="finding-label"; lbl.dataset.blockId=blockId; lbl.dataset.type="label";
       lbl.dataset.section=sec; lbl.dataset.bIdx=bIdx;
-      // Set only the text part first
-      lbl.appendChild(document.createTextNode(blk.label||"[no label]"));
-      // Then append tags
+      lbl.textContent = blk.label||"[no label]"; // Directly set text content
+
+      // --- REMOVED TAG RENDERING LOGIC ---
+
+      // Build search data (label + sentences + pearls)
       let searchParts = [blk.label || ""];
-      if (Array.isArray(blk.tags)) {
-        blk.tags.forEach(t=>{
-            if(t){
-                const s=document.createElement("span");
-                s.className="tag-chip";
-                s.textContent=t;
-                // Add space before tag for separation if label text exists
-                if (lbl.textContent.trim() !== '[no label]') {
-                   lbl.appendChild(document.createTextNode(" ")); // Add space
-                }
-                lbl.appendChild(s);
-                searchParts.push(t); // Add tag to search data
-            }
-        });
-      }
-      // Add other parts to search data
       if (Array.isArray(blk.sentences)) searchParts = searchParts.concat(blk.sentences);
       if (Array.isArray(blk.pearls)) searchParts = searchParts.concat(blk.pearls);
+      // --- REMOVED TAGS FROM SEARCH DATA ---
       lbl.dataset.search = searchParts.join(" ").toLowerCase();
 
       ul.appendChild(lbl);
@@ -208,7 +188,7 @@ function renderAll(){
           }
         });
       }
-      if (lbl || blk.sentences?.length || blk.pearls?.length) {
+      if (lbl.textContent !== '[no label]' || blk.sentences?.length || blk.pearls?.length) { // Check if block has any content
          ul.appendChild(Object.assign(document.createElement("li"),{className:"block-spacer"}));
       }
     });
@@ -237,6 +217,7 @@ function applyFilter(allowToggle){
     let sectionVisible=false;
     det.querySelectorAll(".finding-label").forEach(lbl=>{
       const blockId = lbl.dataset.blockId;
+      // --- SEARCH DATA NO LONGER INCLUDES TAGS ---
       const isMatch = !term || lbl.dataset.search.includes(term);
       det.querySelectorAll(`[data-block-id="${blockId}"]`).forEach(el => {
         const isSpacer = el.classList.contains('block-spacer');
@@ -279,14 +260,7 @@ function makeEditable(li, shouldFocus = true) {
     li.contentEditable = true;
     li.classList.add("editing");
 
-    // --- Label Edit Fix ---
-    if (li.dataset.type === 'label') {
-        // Make sure tag spans within the label are NOT editable
-        li.querySelectorAll('.tag-chip').forEach(span => {
-            span.contentEditable = false;
-        });
-    }
-    // --- End Label Edit Fix ---
+    // --- REMOVED TAG-SPECIFIC HANDLING FOR LABELS ---
 
     if (shouldFocus) {
         li.focus();
@@ -294,15 +268,8 @@ function makeEditable(li, shouldFocus = true) {
             const range = document.createRange();
             const sel = window.getSelection();
             range.selectNodeContents(li);
-            // Collapse range correctly, handling potential tags
-             if (li.dataset.type === 'label') {
-                 // For labels, collapse before the first tag chip if possible
-                 const firstTag = li.querySelector('.tag-chip');
-                 if (firstTag) {
-                     range.setEndBefore(firstTag);
-                 }
-             }
-            range.collapse(false); // Collapse to end (of text for label)
+            // --- SIMPLIFIED CURSOR POSITIONING (NO TAGS TO AVOID) ---
+            range.collapse(false); // Collapse to end
             sel.removeAllRanges();
             sel.addRange(range);
         } catch (e) { console.warn("Could not set cursor position:", e); }
@@ -343,32 +310,20 @@ function saveChanges(li) {
 
     const blk = library[sec][bIdx];
     let changed = false;
-    let currentText;
+    let currentText = li.textContent.trim(); // Use textContent directly now
 
     try {
         if(li.dataset.type==="label") {
-            // --- Label Save Fix ---
-            // Extract text ONLY from direct text node children
-            currentText = "";
-            li.childNodes.forEach(node => {
-                // Only include text nodes, ignore tag spans etc.
-                if (node.nodeType === Node.TEXT_NODE) {
-                    currentText += node.textContent;
-                }
-            });
-            currentText = currentText.trim(); // Trim whitespace
-            // --- End Label Save Fix ---
+            // --- SIMPLIFIED LABEL SAVING ---
             if (blk.label !== currentText) { blk.label = currentText; changed = true; }
         } else if(li.dataset.type==="sentence") {
             const sIdx = parseInt(li.dataset.sIdx, 10);
             if (blk.sentences?.[sIdx] !== undefined) {
-                currentText = li.textContent.trim();
                 if (blk.sentences[sIdx] !== currentText) { blk.sentences[sIdx] = currentText; changed = true; }
             }
         } else if(li.dataset.type==="pearl") {
             const pIdx = parseInt(li.dataset.pIdx, 10);
             if (blk.pearls?.[pIdx] !== undefined) {
-                currentText = li.textContent.trim();
                 if (blk.pearls[pIdx] !== currentText) { blk.pearls[pIdx] = currentText; changed = true; }
             }
         }
@@ -381,11 +336,10 @@ function finalizeEdit(li) {
     if (li && li.isContentEditable) {
         li.contentEditable = false;
         li.classList.remove("editing");
-         // No need to explicitly revert tag chip editability here
     }
 }
 
-// --- Event Listeners ---
+// --- Event Listeners (No changes needed here for tag removal) ---
 ui.addEventListener("dblclick",e=>{
   const li=e.target.closest("li[data-type]");
   if(!li || li.classList.contains("block-spacer")) return;
@@ -404,7 +358,6 @@ ui.addEventListener("keydown",e=>{
         finalizeEdit(activeLi);
     } else if (e.key === "Escape") {
         e.preventDefault();
-        // Optional: Add revert logic here by storing original text on focus
         finalizeEdit(activeLi);
         hideEditPanel();
     }
@@ -414,17 +367,11 @@ ui.addEventListener("keydown",e=>{
 ui.addEventListener("focusout", e => {
     const li = e.target.closest("li[data-type]");
     if (!li || !li.isContentEditable || !activeLi || li !== activeLi) return;
-
     const isFocusMovingToPanel = editPanel.contains(e.relatedTarget);
-
     if (isFocusMovingToPanel) {
-        saveChanges(li);
-        finalizeEdit(li);
-        clearTimeout(blurTimeout);
+        saveChanges(li); finalizeEdit(li); clearTimeout(blurTimeout);
     } else {
-        saveChanges(li);
-        finalizeEdit(li);
-        clearTimeout(blurTimeout);
+        saveChanges(li); finalizeEdit(li); clearTimeout(blurTimeout);
         blurTimeout = setTimeout(() => {
              if (!editPanel.contains(document.activeElement) && document.activeElement !== activeLi) {
                  hideEditPanel();
@@ -435,123 +382,53 @@ ui.addEventListener("focusout", e => {
 
 document.addEventListener('click', (e) => {
     if (activeLi && !activeLi.contains(e.target) && !editPanel.contains(e.target)) {
-        if (activeLi.isContentEditable) {
-            saveChanges(activeLi);
-            finalizeEdit(activeLi);
-        }
+        if (activeLi.isContentEditable) { saveChanges(activeLi); finalizeEdit(activeLi); }
         hideEditPanel();
     }
 });
 
+// --- addItem / deleteItem (No changes needed here for tag removal) ---
 function addItem(kind){
   if(!activeLi) { alert("Please double-click on an item within the block where you want to add."); return; }
   const contextLi = activeLi;
   if (contextLi.isContentEditable) { saveChanges(contextLi); finalizeEdit(contextLi); }
-
   const sec = contextLi.closest("details")?.dataset.section;
   const bIdx = parseInt(contextLi.dataset.bIdx, 10);
   if (!sec || isNaN(bIdx) || !library[sec]?.[bIdx]) { console.error(`Invalid context: ${sec}, ${bIdx}`); hideEditPanel(); return; }
-
   const blk = library[sec][bIdx];
   let newItemIndex = -1;
-
-  if(kind==="sentence"){
-    blk.sentences= Array.isArray(blk.sentences) ? blk.sentences : [];
-    blk.sentences.push("New sentence…");
-    newItemIndex = blk.sentences.length - 1;
-  } else { // Pearl
-    blk.pearls = Array.isArray(blk.pearls) ? blk.pearls : [];
-    blk.pearls.push("New pearl…");
-    newItemIndex = blk.pearls.length - 1;
-  }
-
-  save();
-  openSections.add(sec);
+  if(kind==="sentence"){ blk.sentences= Array.isArray(blk.sentences) ? blk.sentences : []; blk.sentences.push("New sentence…"); newItemIndex = blk.sentences.length - 1; }
+  else { blk.pearls = Array.isArray(blk.pearls) ? blk.pearls : []; blk.pearls.push("New pearl…"); newItemIndex = blk.pearls.length - 1; }
+  save(); openSections.add(sec);
   const newElementInfo = { section: sec, bIdx: bIdx, type: kind, index: newItemIndex };
   renderAll();
-
-  const newLi = ui.querySelector(
-      `details[data-section="${newElementInfo.section}"] li` +
-      `[data-b-idx="${newElementInfo.bIdx}"]` +
-      `[data-type="${newElementInfo.type}"]` +
-      `[data-${kind === 'sentence' ? 's' : 'p'}idx="${newElementInfo.index}"]`
-  );
-
+  const newLi = ui.querySelector( `details[data-section="${newElementInfo.section}"] li[data-b-idx="${newElementInfo.bIdx}"][data-type="${newElementInfo.type}"][data-${kind === 'sentence' ? 's' : 'p'}idx="${newElementInfo.index}"]` );
   if(newLi){ clearTimeout(blurTimeout); makeEditable(newLi); }
   else { console.error("Could not find the newly added li element after render."); hideEditPanel(); }
 }
-
-// ***** NEW deleteItem function *****
 function deleteItem() {
     if (!activeLi) { console.warn("Delete called but no activeLi"); return; }
-
-    const liToDelete = activeLi; // Keep reference
-    const sec = liToDelete.dataset.section;
-    const type = liToDelete.dataset.type;
-    const bIdx = parseInt(liToDelete.dataset.bIdx, 10);
-
-    // Basic validation
-    if (!sec || isNaN(bIdx) || !library[sec]?.[bIdx]) {
-        console.error("Cannot delete: Invalid context or data mismatch.", liToDelete.dataset);
-        hideEditPanel(); // Hide panel as state is broken
-        return;
-    }
-
-    let confirmMessage = "Are you sure you want to delete this item?";
-    if (type === 'label') confirmMessage = "Are you sure you want to delete this entire finding block?";
-    else if (type === 'sentence') confirmMessage = "Are you sure you want to delete this sentence?";
-    else if (type === 'pearl') confirmMessage = "Are you sure you want to delete this pearl?";
-
-    if (!window.confirm(confirmMessage)) {
-        return; // User cancelled
-    }
-
-    console.log(`Deleting ${type} at ${sec}[${bIdx}]...`);
-    let deleted = false;
-
+    const liToDelete = activeLi; const sec = liToDelete.dataset.section; const type = liToDelete.dataset.type; const bIdx = parseInt(liToDelete.dataset.bIdx, 10);
+    if (!sec || isNaN(bIdx) || !library[sec]?.[bIdx]) { console.error("Cannot delete: Invalid context or data mismatch.", liToDelete.dataset); hideEditPanel(); return; }
+    let confirmMessage = `Are you sure you want to delete this ${type}?`; if (type === 'label') confirmMessage = "Are you sure you want to delete this entire finding block?";
+    if (!window.confirm(confirmMessage)) { return; }
+    console.log(`Deleting ${type} at ${sec}[${bIdx}]...`); let deleted = false;
     try {
-        if (type === 'label') {
-            library[sec].splice(bIdx, 1); // Remove the whole block object
-            deleted = true;
-        } else if (type === 'sentence') {
-            const sIdx = parseInt(liToDelete.dataset.sIdx, 10);
-            if (!isNaN(sIdx) && library[sec][bIdx].sentences?.[sIdx] !== undefined) {
-                library[sec][bIdx].sentences.splice(sIdx, 1);
-                deleted = true;
-            }
-        } else if (type === 'pearl') {
-            const pIdx = parseInt(liToDelete.dataset.pIdx, 10);
-             if (!isNaN(pIdx) && library[sec][bIdx].pearls?.[pIdx] !== undefined) {
-                library[sec][bIdx].pearls.splice(pIdx, 1);
-                deleted = true;
-            }
-        }
-
-        if (deleted) {
-            console.log("Item deleted from data.");
-            save();
-            hideEditPanel(); // Hide panel first
-            renderAll();    // Then re-render
-        } else {
-            console.warn("Deletion failed - item index not found?", liToDelete.dataset);
-            alert("Deletion failed. Could not find the item index in the data.");
-            hideEditPanel(); // Hide panel anyway
-        }
-    } catch (error) {
-        console.error("Error during deletion:", error);
-        alert("An error occurred during deletion.");
-        hideEditPanel();
-    }
+        if (type === 'label') { library[sec].splice(bIdx, 1); deleted = true; }
+        else if (type === 'sentence') { const sIdx = parseInt(liToDelete.dataset.sIdx, 10); if (!isNaN(sIdx) && library[sec][bIdx].sentences?.splice(sIdx, 1)) { deleted = true; } }
+        else if (type === 'pearl') { const pIdx = parseInt(liToDelete.dataset.pIdx, 10); if (!isNaN(pIdx) && library[sec][bIdx].pearls?.splice(pIdx, 1)) { deleted = true; } }
+        if (deleted) { save(); hideEditPanel(); renderAll(); }
+        else { console.warn("Deletion failed - item index not found?", liToDelete.dataset); alert("Deletion failed."); hideEditPanel(); }
+    } catch (error) { console.error("Error during deletion:", error); alert("An error occurred during deletion."); hideEditPanel(); }
 }
-
 
 // Attach button handlers
 document.getElementById("btnNewSentence").onclick=()=>addItem("sentence");
 document.getElementById("btnNewPearl").onclick=()=>addItem("pearl");
-document.getElementById("btnDelete").onclick=deleteItem; // Attach delete handler
+document.getElementById("btnDelete").onclick=deleteItem;
 
 
-/* ===== add / upload / download (Keep functions from previous correct version) ===== */
+// ***** MODIFIED add / upload / download *****
 document.getElementById("btnAdd").onclick=()=>{
   const raw=document.getElementById("jsonInput").value.trim(); if(!raw) return alert("Nothing to add.");
   try{
@@ -562,17 +439,25 @@ document.getElementById("btnAdd").onclick=()=>{
       if (typeof o !== 'object' || o === null || !o.section) { invalid++; console.warn("Skipping invalid item (no section):", o); return; }
       const sec=normalizeSection(o.section);
       if(!sec) { invalid++; console.warn(`Skipping item with invalid section "${o.section}":`, o); return; }
+      // --- REMOVED TAGS FROM VALIDATION ---
       if (!o.label && !(o.sentences?.length) && !(o.pearls?.length)) { invalid++; console.warn(`Skipping item with no content in section ${sec}:`, o); return; }
 
       if(!library[sec]) library[sec]=[];
-      const itemKey = keyOf(o);
-      if(library[sec].some(b=>keyOf(b)===itemKey)) { dupe++; }
-      else { library[sec].push(o); added++; openSections.add(sec); }
+      // --- REMOVED TAGS FROM OBJECT FOR DUPE CHECK ---
+      const objectWithoutTags = {...o}; delete objectWithoutTags.tags;
+      const itemKey = keyOf(objectWithoutTags); // Check key without tags
+
+      if(library[sec].some(b => keyOf({...b, tags: undefined}) === itemKey)) { // Compare existing without tags too
+          dupe++;
+      } else {
+        delete o.tags; // Ensure no tags property is added
+        library[sec].push(o);
+        added++;
+        openSections.add(sec);
+      }
     });
     if (added > 0 || invalid > 0 || dupe > 0) {
-        save();
-        renderAll();
-        document.getElementById("jsonInput").value="";
+        save(); renderAll(); document.getElementById("jsonInput").value="";
         alert(`Added: ${added}, Skipped Duplicates: ${dupe}, Skipped Invalid/Empty: ${invalid}.`);
     } else { alert("No valid, non-duplicate items found to add."); }
   }catch(err){alert("JSON parse error: "+err.message);}
@@ -594,11 +479,18 @@ fInput.onchange=e=>{
          if (!currentSection) { skipped += Array.isArray(data[fileSec]) ? data[fileSec].length : 0; continue; }
          if (Array.isArray(data[fileSec])) {
             data[fileSec].forEach(o=>{
+              // --- REMOVED TAGS FROM VALIDATION ---
               if (typeof o !== 'object' || o === null || (!o.label && !(o.sentences?.length) && !(o.pearls?.length))) { skipped++; return; }
               if(!library[currentSection]) library[currentSection]=[];
-              const itemKey = keyOf(o);
-              if(library[currentSection].some(b=>keyOf(b)===itemKey)) { if (fInput.dataset.mode !== "reset") skipped++; }
-              else { library[currentSection].push(o); add++; }
+              // --- REMOVED TAGS FROM OBJECT FOR DUPE CHECK ---
+              const objectWithoutTags = {...o}; delete objectWithoutTags.tags;
+              const itemKey = keyOf(objectWithoutTags);
+
+              if(library[currentSection].some(b => keyOf({...b, tags: undefined}) === itemKey)) { if (fInput.dataset.mode !== "reset") skipped++; }
+              else {
+                 delete o.tags; // Ensure no tags property is added
+                 library[currentSection].push(o); add++;
+              }
             });
          } else { console.warn(`Data for section "${fileSec}" in file is not an array, skipping.`); skipped++; }
       }
@@ -614,7 +506,16 @@ fInput.onchange=e=>{
 };
 document.getElementById("btnDownload").onclick=()=>{
   const libraryToDownload = {};
-  SECTIONS.forEach(sec => { if (library[sec]?.length > 0) { libraryToDownload[sec] = library[sec]; } });
+  SECTIONS.forEach(sec => {
+      if (library[sec]?.length > 0) {
+          // --- REMOVE TAGS BEFORE DOWNLOAD ---
+          libraryToDownload[sec] = library[sec].map(item => {
+              const itemWithoutTags = {...item};
+              delete itemWithoutTags.tags;
+              return itemWithoutTags;
+          });
+      }
+  });
   if (Object.keys(libraryToDownload).length === 0) { alert("Library is empty. Nothing to download."); return; }
   const blob=new Blob([JSON.stringify(libraryToDownload,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
