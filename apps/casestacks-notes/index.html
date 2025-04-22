@@ -16,18 +16,18 @@
 *{box-sizing:border-box}
 body{margin:0;padding:1.2rem;background:var(--bg);color:var(--text)}
 h1{font-weight:600;margin:0 0 .6rem;font-size:1.4rem;color:var(--accent)}
+
 #controls{background:var(--panel);padding:1rem;border-radius:var(--radius);margin-bottom:1rem}
 #controls button{margin:.25rem .4rem .25rem 0;padding:.35rem .8rem;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;color:var(--text);background:var(--card)}
 #controls button:hover{background:var(--accent);color:#000}
+
 textarea{width:100%;height:140px;background:var(--card);border:1px solid var(--muted);border-radius:var(--radius);color:var(--text);padding:.6rem;font-family:monospace;margin-top:.4rem}
 input[type="text"]{width:100%;padding:.5rem;border-radius:var(--radius);border:1px solid var(--muted);background:var(--card);color:var(--text);margin-bottom:.8rem}
 
-/* section blocks */
 details{background:var(--panel);border-radius:var(--radius);margin:.4rem 0;padding:.2rem .6rem}
 details summary{cursor:pointer;font-weight:600;color:var(--accent);list-style:none;padding:.4rem 0}
 details summary::-webkit-details-marker{display:none}
 
-/* list styling */
 ul{margin:0 0 .6rem 1.2rem;padding:0;list-style-type:disc}
 li{margin:.15rem 0;line-height:1.4}
 .finding-label{font-weight:600;list-style-type:none;margin-left:-1.2rem}
@@ -38,9 +38,19 @@ li{margin:.15rem 0;line-height:1.4}
 .pearl{font-style:italic;color:var(--muted)}
 .tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em}
 .block-spacer{height:.8rem;list-style:none}
-
-/* editing state */
 .editing{border:1px dashed var(--accent);padding:.1rem .3rem;border-radius:4px;background:rgba(0,255,156,0.05)}
+
+#editPanel{
+  position:absolute;display:none;gap:.4rem;
+  background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:.3rem .5rem;z-index:1000;
+}
+#editPanel button{
+  padding:.2rem .5rem;font-size:.75rem;border:none;border-radius:4px;cursor:pointer;font-weight:600;
+  color:var(--text);background:var(--card);
+}
+#editPanel button:hover{background:var(--accent);color:#000}
+
+.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -60,20 +70,26 @@ li{margin:.15rem 0;line-height:1.4}
 <input type="text" id="filterBox" placeholder="Filter by any text, tag, or label…">
 <div id="ui"></div>
 
+<!-- small floating panel that appears while editing -->
+<div id="editPanel" class="hidden">
+  <button id="btnNewSentence">+ Sentence</button>
+  <button id="btnNewPearl">+ Pearl</button>
+</div>
+
 <script>
 /* ===== constants / storage ===== */
 const SECTIONS=[ "LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
 "LYMPH NODES","CHEST WALL","LIVER","BILIARY TRACT","GALLBLADDER","PANCREAS","SPLEEN","ADRENALS",
 "KIDNEYS","STOMACH / SMALL BOWEL","COLON / APPENDIX","PERITONEUM / MESENTERY","RETROPERITONEUM",
-"VESSELS","URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION"];
+"VESSELS","URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION" ];
 const STORAGE_KEY="ctFindings_v1";
 let library={};
 
+const keyOf=o=>JSON.stringify(o);
 function resetLibrary(){library={};SECTIONS.forEach(s=>library[s]=[]);}
 function load(){try{library=JSON.parse(localStorage.getItem(STORAGE_KEY))||{};}catch{resetLibrary();}}
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(library));}
-function normalizeSection(sec){return SECTIONS.includes(sec)?sec:null;}
-const keyOf=obj=>JSON.stringify(obj);
+const normalizeSection=s=>SECTIONS.includes(s)?s:null;
 
 /* ===== rendering ===== */
 const ui=document.getElementById("ui");
@@ -86,33 +102,26 @@ function renderAll(){
     det.innerHTML=`<summary>${sec} (${blocks.length})</summary>`;
     const ul=document.createElement("ul");
     blocks.forEach((blk,bIdx)=>{
-      const bId="b"+(++gCounter);
-      // label
-      const lab=document.createElement("li");
-      lab.className="finding-label"; lab.dataset.blockId=bId; lab.dataset.type="label";
-      lab.dataset.bIdx=bIdx; lab.textContent=blk.label||"[no label]";
-      lab.dataset.search=(blk.label+" "+(blk.sentences||[]).join(" ")+(blk.pearls||[]).join(" ")+(blk.tags||[]).join(" ")).toLowerCase();
-      blk.tags?.forEach(t=>{const s=document.createElement("span");s.className="tag-chip";s.textContent=t;lab.appendChild(s);});
-      ul.appendChild(lab);
-      // sentences
+      const id="b"+(++gCounter);
+      const lbl=document.createElement("li");
+      lbl.className="finding-label"; lbl.dataset.blockId=id; lbl.dataset.type="label";
+      lbl.dataset.bIdx=bIdx; lbl.textContent=blk.label||"[no label]";
+      lbl.dataset.search=(blk.label+" "+(blk.sentences||[]).join(" ")+(blk.pearls||[]).join(" ")+(blk.tags||[]).join(" ")).toLowerCase();
+      blk.tags?.forEach(t=>{const s=document.createElement("span");s.className="tag-chip";s.textContent=t;lbl.appendChild(s);});
+      ul.appendChild(lbl);
       (blk.sentences||[]).forEach((txt,sIdx)=>{
         const li=document.createElement("li");
-        li.className="report-sentence";li.textContent=txt;
-        li.dataset.blockId=bId; li.dataset.type="sentence"; li.dataset.bIdx=bIdx; li.dataset.sIdx=sIdx;
+        li.className="report-sentence"; li.textContent=txt;
+        li.dataset.blockId=id; li.dataset.type="sentence"; li.dataset.bIdx=bIdx; li.dataset.sIdx=sIdx;
         ul.appendChild(li);
       });
-      // pearls
-      if(blk.pearls?.length){
-        blk.pearls.forEach((pTxt,pIdx)=>{
-          const li=document.createElement("li");
-          li.className="pearl"; li.textContent="💡 "+pTxt;
-          li.dataset.blockId=bId; li.dataset.type="pearl"; li.dataset.bIdx=bIdx; li.dataset.pIdx=pIdx;
-          ul.appendChild(li);
-        });
-      }
-      // spacer between blocks
-      const sp=document.createElement("li"); sp.className="block-spacer";
-      ul.appendChild(sp);
+      blk.pearls?.forEach((pTxt,pIdx)=>{
+        const li=document.createElement("li");
+        li.className="pearl"; li.textContent="💡 "+pTxt;
+        li.dataset.blockId=id; li.dataset.type="pearl"; li.dataset.bIdx=bIdx; li.dataset.pIdx=pIdx;
+        ul.appendChild(li);
+      });
+      ul.appendChild(Object.assign(document.createElement("li"),{className:"block-spacer"}));
     });
     det.appendChild(ul); ui.appendChild(det);
   });
@@ -126,48 +135,82 @@ function applyFilter(){
   const term=fBox.value.trim().toLowerCase();
   let any=false;
   ui.querySelectorAll("details").forEach(det=>{
-    let secVis=false;
-    det.querySelectorAll(".finding-label").forEach(lab=>{
-      const vis=!term||lab.dataset.search.includes(term);
-      det.querySelectorAll(`[data-block-id="${lab.dataset.blockId}"]`).forEach(el=>el.style.display=vis?"":"none");
-      if(vis) secVis=true;
+    let sectionVisible=false;
+    det.querySelectorAll(".finding-label").forEach(lbl=>{
+      const vis=!term||lbl.dataset.search.includes(term);
+      det.querySelectorAll(`[data-block-id="${lbl.dataset.blockId}"]`).forEach(el=>el.style.display=vis?"":"none");
+      if(vis)sectionVisible=true;
     });
-    det.style.display=secVis?"":"none";
-    det.open=term?secVis:false;
-    if(secVis) any=true;
+    det.style.display=sectionVisible?"":"none";
+    det.open=term?sectionVisible:false;
+    if(sectionVisible)any=true;
   });
   document.getElementById("nores")?.remove();
   if(term&&!any){
-    const p=document.createElement("p");p.id="nores";p.style.textAlign="center";p.textContent="No matches.";
-    ui.appendChild(p);
+    const p=document.createElement("p");p.id="nores";p.style.textAlign="center";p.textContent="No matches.";ui.appendChild(p);
   }
 }
 
-/* ===== inline editing ===== */
+/* ===== inline editing + add‑buttons ===== */
+const editPanel=document.getElementById("editPanel");
+let activeLi=null;
 ui.addEventListener("dblclick",e=>{
   const li=e.target.closest("li"); if(!li||li.classList.contains("block-spacer")) return;
   if(li.isContentEditable) return;
-  li.contentEditable=true; li.classList.add("editing"); li.focus();
+  li.contentEditable=true; li.classList.add("editing"); li.focus(); activeLi=li;
+  // position floating panel just below the line
+  const rect=li.getBoundingClientRect();
+  editPanel.style.top=(window.scrollY+rect.bottom+4)+"px";
+  editPanel.style.left=(rect.left)+"px";
+  editPanel.style.display="flex";
+});
+ui.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&activeLi?.isContentEditable){
+    e.preventDefault(); activeLi.blur(); // triggers onblur handler
+  }
 });
 ui.addEventListener("blur",e=>{
-  const li=e.target.closest("li");
-  if(!li||!li.isContentEditable) return;
+  const li=e.target.closest("li"); if(!li||!li.isContentEditable) return;
   li.contentEditable=false; li.classList.remove("editing");
+  editPanel.style.display="none"; activeLi=null;
   const sec=li.closest("details").dataset.section;
-  const b=+li.dataset.bIdx, blk=library[sec][b];
-  if(li.dataset.type==="label"){ blk.label=li.textContent.trim(); }
+  const blk=library[sec][+li.dataset.bIdx];
+  if(li.dataset.type==="label") blk.label=li.textContent.trim();
   else if(li.dataset.type==="sentence"){
     const lines=li.textContent.split(/\n+/).map(s=>s.trim()).filter(Boolean);
     blk.sentences.splice(+li.dataset.sIdx,1,...lines);
-  }
-  else if(li.dataset.type==="pearl"){
+  }else if(li.dataset.type==="pearl"){
     const lines=li.textContent.replace(/^💡\s*/,'').split(/\n+/).map(s=>s.replace(/^💡\s*/,'').trim()).filter(Boolean);
     blk.pearls.splice(+li.dataset.pIdx,1,...lines);
   }
   save(); renderAll();
 },true);
 
-/* ===== add / upload / download logic unchanged ===== */
+function addItem(kind){
+  if(!activeLi) return;
+  const sec=activeLi.closest("details").dataset.section;
+  const bIdx=+activeLi.dataset.bIdx;
+  const blk=library[sec][bIdx];
+  if(kind==="sentence"){
+    blk.sentences=blk.sentences||[];
+    blk.sentences.push("New sentence…");
+  }else{
+    blk.pearls=blk.pearls||[];
+    blk.pearls.push("New pearl…");
+  }
+  save(); renderAll();
+  // jump into editing the new line
+  setTimeout(()=>{
+    const det=ui.querySelector(`details[data-section="${sec}"]`);
+    const all=det.querySelectorAll(`[data-b-idx="${bIdx}"][data-type="${kind}"]`);
+    const newLi=all[all.length-1];
+    newLi.dispatchEvent(new MouseEvent("dblclick",{bubbles:true}));
+  });
+}
+document.getElementById("btnNewSentence").onclick=()=>addItem("sentence");
+document.getElementById("btnNewPearl").onclick=()=>addItem("pearl");
+
+/* ===== add / upload / download (unchanged) ===== */
 document.getElementById("btnAdd").onclick=()=>{
   const raw=document.getElementById("jsonInput").value.trim(); if(!raw) return alert("Nothing to add.");
   try{
@@ -176,8 +219,7 @@ document.getElementById("btnAdd").onclick=()=>{
     arr.forEach(o=>{
       const sec=normalizeSection(o.section); if(!sec) return;
       if(!library[sec]) library[sec]=[];
-      const key=keyOf(o);
-      if(library[sec].some(b=>keyOf(b)===key)) dupe++; else {library[sec].push(o); added++;}
+      if(library[sec].some(b=>keyOf(b)===keyOf(o))) dupe++; else {library[sec].push(o); added++;}
     });
     save(); renderAll(); document.getElementById("jsonInput").value="";
     alert(`Added ${added}, skipped ${dupe} duplicates.`);
