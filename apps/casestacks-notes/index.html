@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CT Findings Library // Night Mode</title>
+<title>CT Findings Library // Night Mode</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -10,6 +10,7 @@
 :root{
   --bg:#0a0a0f;      --panel:#14141d;   --card:#1e1e29;
   --text:#e8e8ff;    --accent:#00ff9c;  --muted:#7f7fa3;
+  --danger:#ff4d4d;
   --radius:8px;
   font-family:'Poppins',sans-serif;
 }
@@ -18,6 +19,7 @@ body{margin:0;padding:1.2rem;background:var(--bg);color:var(--text)}
 h1{font-weight:600;margin:0 0 .6rem;font-size:1.4rem;color:var(--accent)}
 
 #controls{background:var(--panel);padding:1rem;border-radius:var(--radius);margin-bottom:1rem}
+#controls label { display: block; margin-bottom: 0.3rem; }
 #controls button{margin:.25rem .4rem .25rem 0;padding:.35rem .8rem;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;color:var(--text);background:var(--card)}
 #controls button:hover{background:var(--accent);color:#000}
 
@@ -29,16 +31,29 @@ details summary{cursor:pointer;font-weight:600;color:var(--accent);list-style:no
 details summary::-webkit-details-marker{display:none}
 
 ul{margin:0 0 .6rem 1.2rem;padding:0;list-style-type:disc}
-li{margin:.15rem 0;line-height:1.4}
+li{margin:.15rem 0;line-height:1.4; outline: none; /* Remove browser default focus outline */}
 .finding-label{font-weight:600;list-style-type:none;margin-left:-1.2rem}
 .finding-label::marker{content:''}
+/* Use outline for editing state to avoid layout shift */
+li.editing {
+  outline: 1px dashed var(--accent);
+  outline-offset: 1px;
+  background:rgba(0,255,156,0.05);
+}
+/* Ensure tags within an editing label are NOT visually marked as editable */
+li.editing .tag-chip {
+    outline: none;
+    background: var(--card); /* Keep original background */
+    cursor: default; /* Indicate not interactive */
+}
 .report-sentence{font-style:italic}
 .report-sentence::before{content:"“";}
 .report-sentence::after{content:"”";}
 .pearl{font-style:italic;color:var(--muted)}
-.tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em}
+.pearl::before{content:"💡 ";} /* Keep space consistent */
+.tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em; vertical-align: baseline;}
 .block-spacer{height:.8rem;list-style:none}
-.editing{border:1px dashed var(--accent);padding:.1rem .3rem;border-radius:4px;background:rgba(0,255,156,0.05)}
+
 
 #editPanel{
   position:absolute;display:none;gap:.4rem;
@@ -49,8 +64,13 @@ li{margin:.15rem 0;line-height:1.4}
   color:var(--text);background:var(--card);
 }
 #editPanel button:hover{background:var(--accent);color:#000}
+/* Style delete button distinctly */
+#editPanel #btnDelete { background: var(--muted); }
+#editPanel #btnDelete:hover { background: var(--danger); color: var(--text); }
+
 
 .hidden{display:none!important}
+#nores { padding: 1rem; text-align: center; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -58,22 +78,23 @@ li{margin:.15rem 0;line-height:1.4}
 <h1>CT Findings Library</h1>
 
 <div id="controls">
-  <label for="jsonInput"><strong>Paste JSON for new finding(s)</strong> → <em>hit Add</em></label>
-  <textarea id="jsonInput" placeholder='{"section":"LIVER",…}  OR  [ {...},{...} ]'></textarea><br>
+  <label for="jsonInput"><strong>Paste JSON for new finding(s)</strong> → <em>hit Add</em></label>
+  <textarea id="jsonInput" placeholder='{"section":"LIVER", "label":"Example Finding", "sentences":["Sentence 1."], "pearls": [], "tags": ["example"]}  OR  [ {...},{...} ]'></textarea><br>
   <button id="btnAdd">Add</button>
-  <button id="btnUploadReset">Reset & Upload JSON</button>
-  <button id="btnUploadCombine">Upload & Combine JSON</button>
-  <button id="btnDownload">Download JSON</button>
+  <button id="btnUploadReset">Reset & Upload JSON</button>
+  <button id="btnUploadCombine">Upload & Combine JSON</button>
+  <button id="btnDownload">Download JSON</button>
   <input type="file" id="fileInput" accept=".json" class="hidden">
 </div>
 
 <input type="text" id="filterBox" placeholder="Filter by any text, tag, or label…">
 <div id="ui"></div>
 
-<!-- small floating panel that appears while editing -->
+<!-- floating panel -->
 <div id="editPanel" class="hidden">
-  <button id="btnNewSentence">+ Sentence</button>
-  <button id="btnNewPearl">+ Pearl</button>
+  <button id="btnNewSentence">+ Sentence</button>
+  <button id="btnNewPearl">+ Pearl</button>
+  <button id="btnDelete">Delete</button> <!-- Added Delete Button -->
 </div>
 
 <script>
@@ -87,143 +108,474 @@ let library={};
 
 const keyOf=o=>JSON.stringify(o);
 function resetLibrary(){library={};SECTIONS.forEach(s=>library[s]=[]);}
-function load(){try{library=JSON.parse(localStorage.getItem(STORAGE_KEY))||{};}catch{resetLibrary();}}
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(library));}
-const normalizeSection=s=>SECTIONS.includes(s)?s:null;
+function load(){try{const stored=localStorage.getItem(STORAGE_KEY);if(stored){library=JSON.parse(stored)||{};}else{resetLibrary();}}catch(e){console.error("Failed to parse localStorage:",e);resetLibrary();}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(library));}catch(e){console.error("Failed to save to localStorage:",e); alert("Error saving data. Storage might be full.")}}
+const normalizeSection=s=>(s && SECTIONS.includes(s.toUpperCase()))?s.toUpperCase():null;
+
+/* track which details are open between renders */
+let openSections=new Set();
 
 /* ===== rendering ===== */
 const ui=document.getElementById("ui");
-let gCounter=0;
+let gCounter=0; // Used to generate unique-within-render block IDs
 function renderAll(){
+  openSections=new Set([...document.querySelectorAll('#ui details[data-section]')].filter(d=>d.open).map(d=>d.dataset.section));
+
+  const activeElementInfoBeforeRender = activeLi ? {
+      section: activeLi.dataset.section,
+      bIdx: activeLi.dataset.bIdx,
+      type: activeLi.dataset.type,
+      sIdx: activeLi.dataset.sIdx,
+      pIdx: activeLi.dataset.pIdx,
+      isEditing: activeLi.isContentEditable
+  } : null;
+  let elementToFocusAfterRender = null;
+  let makeEditableAfterRender = false;
+
   ui.innerHTML=""; gCounter=0;
   SECTIONS.forEach(sec=>{
     const blocks=library[sec]||[]; if(!blocks.length) return;
     const det=document.createElement("details"); det.dataset.section=sec;
+    const isOpen=openSections.has(sec);
+    if(isOpen) det.open=true;
     det.innerHTML=`<summary>${sec} (${blocks.length})</summary>`;
     const ul=document.createElement("ul");
     blocks.forEach((blk,bIdx)=>{
-      const id="b"+(++gCounter);
+      if (typeof blk !== 'object' || blk === null) { console.warn(`Skipping invalid block at index ${bIdx} in section ${sec}`); return; }
+
+      const blockId="b"+(++gCounter);
+
+      // --- Label ---
       const lbl=document.createElement("li");
-      lbl.className="finding-label"; lbl.dataset.blockId=id; lbl.dataset.type="label";
-      lbl.dataset.bIdx=bIdx; lbl.textContent=blk.label||"[no label]";
-      lbl.dataset.search=(blk.label+" "+(blk.sentences||[]).join(" ")+(blk.pearls||[]).join(" ")+(blk.tags||[]).join(" ")).toLowerCase();
-      blk.tags?.forEach(t=>{const s=document.createElement("span");s.className="tag-chip";s.textContent=t;lbl.appendChild(s);});
+      lbl.className="finding-label"; lbl.dataset.blockId=blockId; lbl.dataset.type="label";
+      lbl.dataset.section=sec; lbl.dataset.bIdx=bIdx;
+      // Set only the text part first
+      lbl.appendChild(document.createTextNode(blk.label||"[no label]"));
+      // Then append tags
+      let searchParts = [blk.label || ""];
+      if (Array.isArray(blk.tags)) {
+        blk.tags.forEach(t=>{
+            if(t){
+                const s=document.createElement("span");
+                s.className="tag-chip";
+                s.textContent=t;
+                // Add space before tag for separation if label text exists
+                if (lbl.textContent.trim() !== '[no label]') {
+                   lbl.appendChild(document.createTextNode(" ")); // Add space
+                }
+                lbl.appendChild(s);
+                searchParts.push(t); // Add tag to search data
+            }
+        });
+      }
+      // Add other parts to search data
+      if (Array.isArray(blk.sentences)) searchParts = searchParts.concat(blk.sentences);
+      if (Array.isArray(blk.pearls)) searchParts = searchParts.concat(blk.pearls);
+      lbl.dataset.search = searchParts.join(" ").toLowerCase();
+
       ul.appendChild(lbl);
-      (blk.sentences||[]).forEach((txt,sIdx)=>{
-        const li=document.createElement("li");
-        li.className="report-sentence"; li.textContent=txt;
-        li.dataset.blockId=id; li.dataset.type="sentence"; li.dataset.bIdx=bIdx; li.dataset.sIdx=sIdx;
-        ul.appendChild(li);
-      });
-      blk.pearls?.forEach((pTxt,pIdx)=>{
-        const li=document.createElement("li");
-        li.className="pearl"; li.textContent="💡 "+pTxt;
-        li.dataset.blockId=id; li.dataset.type="pearl"; li.dataset.bIdx=bIdx; li.dataset.pIdx=pIdx;
-        ul.appendChild(li);
-      });
-      ul.appendChild(Object.assign(document.createElement("li"),{className:"block-spacer"}));
+      if (activeElementInfoBeforeRender?.section === sec && activeElementInfoBeforeRender.bIdx == bIdx && activeElementInfoBeforeRender.type === 'label') {
+        elementToFocusAfterRender = lbl;
+        makeEditableAfterRender = activeElementInfoBeforeRender.isEditing;
+      }
+
+      // --- Sentences ---
+      if(Array.isArray(blk.sentences)) {
+        blk.sentences.forEach((txt,sIdx)=>{
+          const li=document.createElement("li");
+          li.className="report-sentence"; li.textContent=txt || "[empty sentence]";
+          li.dataset.blockId=blockId; li.dataset.type="sentence";
+          li.dataset.section=sec; li.dataset.bIdx=bIdx; li.dataset.sIdx=sIdx;
+          ul.appendChild(li);
+          if (activeElementInfoBeforeRender?.section === sec && activeElementInfoBeforeRender.bIdx == bIdx && activeElementInfoBeforeRender.type === 'sentence' && activeElementInfoBeforeRender.sIdx == sIdx) {
+              elementToFocusAfterRender = li;
+              makeEditableAfterRender = activeElementInfoBeforeRender.isEditing;
+          }
+        });
+      }
+
+      // --- Pearls ---
+      if(Array.isArray(blk.pearls)) {
+        blk.pearls.forEach((pTxt,pIdx)=>{
+          const li=document.createElement("li");
+          li.className="pearl"; li.textContent=pTxt || "[empty pearl]";
+          li.dataset.blockId=blockId; li.dataset.type="pearl";
+          li.dataset.section=sec; li.dataset.bIdx=bIdx; li.dataset.pIdx=pIdx;
+          ul.appendChild(li);
+           if (activeElementInfoBeforeRender?.section === sec && activeElementInfoBeforeRender.bIdx == bIdx && activeElementInfoBeforeRender.type === 'pearl' && activeElementInfoBeforeRender.pIdx == pIdx) {
+              elementToFocusAfterRender = li;
+              makeEditableAfterRender = activeElementInfoBeforeRender.isEditing;
+          }
+        });
+      }
+      if (lbl || blk.sentences?.length || blk.pearls?.length) {
+         ul.appendChild(Object.assign(document.createElement("li"),{className:"block-spacer"}));
+      }
     });
-    det.appendChild(ul); ui.appendChild(det);
+    if (ul.hasChildNodes()) {
+        det.appendChild(ul);
+        ui.appendChild(det);
+    }
   });
-  applyFilter();
+  applyFilter(false);
+
+  // Restore focus/edit state
+  if (elementToFocusAfterRender && makeEditableAfterRender && activeLi !== elementToFocusAfterRender) {
+     makeEditable(elementToFocusAfterRender, true);
+  }
 }
+
 
 /* ===== live filter ===== */
 const fBox=document.getElementById("filterBox");
-fBox.addEventListener("input",applyFilter);
-function applyFilter(){
+fBox.addEventListener("input",()=>applyFilter(true));
+
+function applyFilter(allowToggle){
   const term=fBox.value.trim().toLowerCase();
-  let any=false;
-  ui.querySelectorAll("details").forEach(det=>{
+  let anyMatches=false;
+  ui.querySelectorAll("details[data-section]").forEach(det=>{
     let sectionVisible=false;
     det.querySelectorAll(".finding-label").forEach(lbl=>{
-      const vis=!term||lbl.dataset.search.includes(term);
-      det.querySelectorAll(`[data-block-id="${lbl.dataset.blockId}"]`).forEach(el=>el.style.display=vis?"":"none");
-      if(vis)sectionVisible=true;
+      const blockId = lbl.dataset.blockId;
+      const isMatch = !term || lbl.dataset.search.includes(term);
+      det.querySelectorAll(`[data-block-id="${blockId}"]`).forEach(el => {
+        const isSpacer = el.classList.contains('block-spacer');
+        const isItem = el.dataset.type;
+        if (isItem || isSpacer) { el.style.display = isMatch ? "" : "none"; }
+      });
+      if(isMatch) sectionVisible=true;
     });
-    det.style.display=sectionVisible?"":"none";
-    det.open=term?sectionVisible:false;
-    if(sectionVisible)any=true;
+
+    det.style.display = sectionVisible ? "" : "none";
+
+    if(allowToggle){
+      if(term){ det.open = sectionVisible; }
+      else { det.open = openSections.has(det.dataset.section); }
+    }
+    if(sectionVisible) anyMatches=true;
   });
-  document.getElementById("nores")?.remove();
-  if(term&&!any){
-    const p=document.createElement("p");p.id="nores";p.style.textAlign="center";p.textContent="No matches.";ui.appendChild(p);
+
+  let noRes = document.getElementById("nores");
+  if(term && !anyMatches){
+    if (!noRes) {
+        noRes = document.createElement("p"); noRes.id = "nores";
+        noRes.innerHTML = "No matches found."; ui.appendChild(noRes);
+    }
+    noRes.style.display = '';
+  } else {
+    if (noRes) noRes.style.display = 'none';
   }
 }
 
 /* ===== inline editing + add‑buttons ===== */
 const editPanel=document.getElementById("editPanel");
 let activeLi=null;
-ui.addEventListener("dblclick",e=>{
-  const li=e.target.closest("li"); if(!li||li.classList.contains("block-spacer")) return;
-  if(li.isContentEditable) return;
-  li.contentEditable=true; li.classList.add("editing"); li.focus(); activeLi=li;
-  // position floating panel just below the line
+let blurTimeout = null;
+
+// ***** MODIFIED makeEditable *****
+function makeEditable(li, shouldFocus = true) {
+    if (!li || li.isContentEditable) return;
+
+    li.contentEditable = true;
+    li.classList.add("editing");
+
+    // --- Label Edit Fix ---
+    if (li.dataset.type === 'label') {
+        // Make sure tag spans within the label are NOT editable
+        li.querySelectorAll('.tag-chip').forEach(span => {
+            span.contentEditable = false;
+        });
+    }
+    // --- End Label Edit Fix ---
+
+    if (shouldFocus) {
+        li.focus();
+        try { // Set cursor to end
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(li);
+            // Collapse range correctly, handling potential tags
+             if (li.dataset.type === 'label') {
+                 // For labels, collapse before the first tag chip if possible
+                 const firstTag = li.querySelector('.tag-chip');
+                 if (firstTag) {
+                     range.setEndBefore(firstTag);
+                 }
+             }
+            range.collapse(false); // Collapse to end (of text for label)
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } catch (e) { console.warn("Could not set cursor position:", e); }
+    }
+    activeLi = li;
+    positionPanel(li);
+    editPanel.classList.remove("hidden");
+    editPanel.style.display = "flex";
+    clearTimeout(blurTimeout);
+}
+
+function positionPanel(li){
+  if (!li) { hideEditPanel(); return; }
   const rect=li.getBoundingClientRect();
-  editPanel.style.top=(window.scrollY+rect.bottom+4)+"px";
-  editPanel.style.left=(rect.left)+"px";
+  editPanel.style.top = `${window.scrollY + rect.bottom + 4}px`;
+  editPanel.style.left = `${rect.left}px`;
+  editPanel.classList.remove("hidden");
   editPanel.style.display="flex";
+}
+
+function hideEditPanel() {
+    editPanel.style.display="none";
+    editPanel.classList.add("hidden");
+    if (activeLi && activeLi.isContentEditable) {
+        saveChanges(activeLi);
+        finalizeEdit(activeLi);
+    }
+    activeLi = null;
+}
+
+// ***** MODIFIED saveChanges *****
+function saveChanges(li) {
+    if (!li || !li.isContentEditable || !li.dataset.section) { return false; }
+
+    const sec = li.dataset.section;
+    const bIdx = parseInt(li.dataset.bIdx, 10);
+    if (!library[sec]?.[bIdx]) { console.error(`Data mismatch: Cannot find library entry for section "${sec}", index ${bIdx}`); return false; }
+
+    const blk = library[sec][bIdx];
+    let changed = false;
+    let currentText;
+
+    try {
+        if(li.dataset.type==="label") {
+            // --- Label Save Fix ---
+            // Extract text ONLY from direct text node children
+            currentText = "";
+            li.childNodes.forEach(node => {
+                // Only include text nodes, ignore tag spans etc.
+                if (node.nodeType === Node.TEXT_NODE) {
+                    currentText += node.textContent;
+                }
+            });
+            currentText = currentText.trim(); // Trim whitespace
+            // --- End Label Save Fix ---
+            if (blk.label !== currentText) { blk.label = currentText; changed = true; }
+        } else if(li.dataset.type==="sentence") {
+            const sIdx = parseInt(li.dataset.sIdx, 10);
+            if (blk.sentences?.[sIdx] !== undefined) {
+                currentText = li.textContent.trim();
+                if (blk.sentences[sIdx] !== currentText) { blk.sentences[sIdx] = currentText; changed = true; }
+            }
+        } else if(li.dataset.type==="pearl") {
+            const pIdx = parseInt(li.dataset.pIdx, 10);
+            if (blk.pearls?.[pIdx] !== undefined) {
+                currentText = li.textContent.trim();
+                if (blk.pearls[pIdx] !== currentText) { blk.pearls[pIdx] = currentText; changed = true; }
+            }
+        }
+        if (changed) { console.log("Saving changes..."); save(); return true; }
+    } catch (error) { console.error("Error saving changes:", error, li); return false; }
+    return false;
+}
+
+function finalizeEdit(li) {
+    if (li && li.isContentEditable) {
+        li.contentEditable = false;
+        li.classList.remove("editing");
+         // No need to explicitly revert tag chip editability here
+    }
+}
+
+// --- Event Listeners ---
+ui.addEventListener("dblclick",e=>{
+  const li=e.target.closest("li[data-type]");
+  if(!li || li.classList.contains("block-spacer")) return;
+  if (activeLi && activeLi !== li && activeLi.isContentEditable) {
+      saveChanges(activeLi);
+      finalizeEdit(activeLi);
+  }
+  makeEditable(li);
 });
+
 ui.addEventListener("keydown",e=>{
-  if(e.key==="Enter"&&activeLi?.isContentEditable){
-    e.preventDefault(); activeLi.blur(); // triggers onblur handler
+  if(activeLi?.isContentEditable){
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        saveChanges(activeLi);
+        finalizeEdit(activeLi);
+    } else if (e.key === "Escape") {
+        e.preventDefault();
+        // Optional: Add revert logic here by storing original text on focus
+        finalizeEdit(activeLi);
+        hideEditPanel();
+    }
   }
 });
-ui.addEventListener("blur",e=>{
-  const li=e.target.closest("li"); if(!li||!li.isContentEditable) return;
-  li.contentEditable=false; li.classList.remove("editing");
-  editPanel.style.display="none"; activeLi=null;
-  const sec=li.closest("details").dataset.section;
-  const blk=library[sec][+li.dataset.bIdx];
-  if(li.dataset.type==="label") blk.label=li.textContent.trim();
-  else if(li.dataset.type==="sentence"){
-    const lines=li.textContent.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-    blk.sentences.splice(+li.dataset.sIdx,1,...lines);
-  }else if(li.dataset.type==="pearl"){
-    const lines=li.textContent.replace(/^💡\s*/,'').split(/\n+/).map(s=>s.replace(/^💡\s*/,'').trim()).filter(Boolean);
-    blk.pearls.splice(+li.dataset.pIdx,1,...lines);
-  }
-  save(); renderAll();
-},true);
+
+ui.addEventListener("focusout", e => {
+    const li = e.target.closest("li[data-type]");
+    if (!li || !li.isContentEditable || !activeLi || li !== activeLi) return;
+
+    const isFocusMovingToPanel = editPanel.contains(e.relatedTarget);
+
+    if (isFocusMovingToPanel) {
+        saveChanges(li);
+        finalizeEdit(li);
+        clearTimeout(blurTimeout);
+    } else {
+        saveChanges(li);
+        finalizeEdit(li);
+        clearTimeout(blurTimeout);
+        blurTimeout = setTimeout(() => {
+             if (!editPanel.contains(document.activeElement) && document.activeElement !== activeLi) {
+                 hideEditPanel();
+             }
+        }, 150);
+    }
+}, true);
+
+document.addEventListener('click', (e) => {
+    if (activeLi && !activeLi.contains(e.target) && !editPanel.contains(e.target)) {
+        if (activeLi.isContentEditable) {
+            saveChanges(activeLi);
+            finalizeEdit(activeLi);
+        }
+        hideEditPanel();
+    }
+});
 
 function addItem(kind){
-  if(!activeLi) return;
-  const sec=activeLi.closest("details").dataset.section;
-  const bIdx=+activeLi.dataset.bIdx;
-  const blk=library[sec][bIdx];
+  if(!activeLi) { alert("Please double-click on an item within the block where you want to add."); return; }
+  const contextLi = activeLi;
+  if (contextLi.isContentEditable) { saveChanges(contextLi); finalizeEdit(contextLi); }
+
+  const sec = contextLi.closest("details")?.dataset.section;
+  const bIdx = parseInt(contextLi.dataset.bIdx, 10);
+  if (!sec || isNaN(bIdx) || !library[sec]?.[bIdx]) { console.error(`Invalid context: ${sec}, ${bIdx}`); hideEditPanel(); return; }
+
+  const blk = library[sec][bIdx];
+  let newItemIndex = -1;
+
   if(kind==="sentence"){
-    blk.sentences=blk.sentences||[];
+    blk.sentences= Array.isArray(blk.sentences) ? blk.sentences : [];
     blk.sentences.push("New sentence…");
-  }else{
-    blk.pearls=blk.pearls||[];
+    newItemIndex = blk.sentences.length - 1;
+  } else { // Pearl
+    blk.pearls = Array.isArray(blk.pearls) ? blk.pearls : [];
     blk.pearls.push("New pearl…");
+    newItemIndex = blk.pearls.length - 1;
   }
-  save(); renderAll();
-  // jump into editing the new line
-  setTimeout(()=>{
-    const det=ui.querySelector(`details[data-section="${sec}"]`);
-    const all=det.querySelectorAll(`[data-b-idx="${bIdx}"][data-type="${kind}"]`);
-    const newLi=all[all.length-1];
-    newLi.dispatchEvent(new MouseEvent("dblclick",{bubbles:true}));
-  });
+
+  save();
+  openSections.add(sec);
+  const newElementInfo = { section: sec, bIdx: bIdx, type: kind, index: newItemIndex };
+  renderAll();
+
+  const newLi = ui.querySelector(
+      `details[data-section="${newElementInfo.section}"] li` +
+      `[data-b-idx="${newElementInfo.bIdx}"]` +
+      `[data-type="${newElementInfo.type}"]` +
+      `[data-${kind === 'sentence' ? 's' : 'p'}idx="${newElementInfo.index}"]`
+  );
+
+  if(newLi){ clearTimeout(blurTimeout); makeEditable(newLi); }
+  else { console.error("Could not find the newly added li element after render."); hideEditPanel(); }
 }
+
+// ***** NEW deleteItem function *****
+function deleteItem() {
+    if (!activeLi) { console.warn("Delete called but no activeLi"); return; }
+
+    const liToDelete = activeLi; // Keep reference
+    const sec = liToDelete.dataset.section;
+    const type = liToDelete.dataset.type;
+    const bIdx = parseInt(liToDelete.dataset.bIdx, 10);
+
+    // Basic validation
+    if (!sec || isNaN(bIdx) || !library[sec]?.[bIdx]) {
+        console.error("Cannot delete: Invalid context or data mismatch.", liToDelete.dataset);
+        hideEditPanel(); // Hide panel as state is broken
+        return;
+    }
+
+    let confirmMessage = "Are you sure you want to delete this item?";
+    if (type === 'label') confirmMessage = "Are you sure you want to delete this entire finding block?";
+    else if (type === 'sentence') confirmMessage = "Are you sure you want to delete this sentence?";
+    else if (type === 'pearl') confirmMessage = "Are you sure you want to delete this pearl?";
+
+    if (!window.confirm(confirmMessage)) {
+        return; // User cancelled
+    }
+
+    console.log(`Deleting ${type} at ${sec}[${bIdx}]...`);
+    let deleted = false;
+
+    try {
+        if (type === 'label') {
+            library[sec].splice(bIdx, 1); // Remove the whole block object
+            deleted = true;
+        } else if (type === 'sentence') {
+            const sIdx = parseInt(liToDelete.dataset.sIdx, 10);
+            if (!isNaN(sIdx) && library[sec][bIdx].sentences?.[sIdx] !== undefined) {
+                library[sec][bIdx].sentences.splice(sIdx, 1);
+                deleted = true;
+            }
+        } else if (type === 'pearl') {
+            const pIdx = parseInt(liToDelete.dataset.pIdx, 10);
+             if (!isNaN(pIdx) && library[sec][bIdx].pearls?.[pIdx] !== undefined) {
+                library[sec][bIdx].pearls.splice(pIdx, 1);
+                deleted = true;
+            }
+        }
+
+        if (deleted) {
+            console.log("Item deleted from data.");
+            save();
+            hideEditPanel(); // Hide panel first
+            renderAll();    // Then re-render
+        } else {
+            console.warn("Deletion failed - item index not found?", liToDelete.dataset);
+            alert("Deletion failed. Could not find the item index in the data.");
+            hideEditPanel(); // Hide panel anyway
+        }
+    } catch (error) {
+        console.error("Error during deletion:", error);
+        alert("An error occurred during deletion.");
+        hideEditPanel();
+    }
+}
+
+
+// Attach button handlers
 document.getElementById("btnNewSentence").onclick=()=>addItem("sentence");
 document.getElementById("btnNewPearl").onclick=()=>addItem("pearl");
+document.getElementById("btnDelete").onclick=deleteItem; // Attach delete handler
 
-/* ===== add / upload / download (unchanged) ===== */
+
+/* ===== add / upload / download (Keep functions from previous correct version) ===== */
 document.getElementById("btnAdd").onclick=()=>{
   const raw=document.getElementById("jsonInput").value.trim(); if(!raw) return alert("Nothing to add.");
   try{
-    const arr=Array.isArray(JSON.parse(raw))?JSON.parse(raw):[JSON.parse(raw)];
-    let added=0,dupe=0;
+    const inputData = JSON.parse(raw);
+    const arr = Array.isArray(inputData) ? inputData : [inputData];
+    let added=0,dupe=0,invalid=0;
     arr.forEach(o=>{
-      const sec=normalizeSection(o.section); if(!sec) return;
+      if (typeof o !== 'object' || o === null || !o.section) { invalid++; console.warn("Skipping invalid item (no section):", o); return; }
+      const sec=normalizeSection(o.section);
+      if(!sec) { invalid++; console.warn(`Skipping item with invalid section "${o.section}":`, o); return; }
+      if (!o.label && !(o.sentences?.length) && !(o.pearls?.length)) { invalid++; console.warn(`Skipping item with no content in section ${sec}:`, o); return; }
+
       if(!library[sec]) library[sec]=[];
-      if(library[sec].some(b=>keyOf(b)===keyOf(o))) dupe++; else {library[sec].push(o); added++;}
+      const itemKey = keyOf(o);
+      if(library[sec].some(b=>keyOf(b)===itemKey)) { dupe++; }
+      else { library[sec].push(o); added++; openSections.add(sec); }
     });
-    save(); renderAll(); document.getElementById("jsonInput").value="";
-    alert(`Added ${added}, skipped ${dupe} duplicates.`);
-  }catch(err){alert("JSON error: "+err.message);}
+    if (added > 0 || invalid > 0 || dupe > 0) {
+        save();
+        renderAll();
+        document.getElementById("jsonInput").value="";
+        alert(`Added: ${added}, Skipped Duplicates: ${dupe}, Skipped Invalid/Empty: ${invalid}.`);
+    } else { alert("No valid, non-duplicate items found to add."); }
+  }catch(err){alert("JSON parse error: "+err.message);}
 };
 
 const fInput=document.getElementById("fileInput");
@@ -234,28 +586,47 @@ fInput.onchange=e=>{
   const file=e.target.files[0]; if(!file) return;
   const rdr=new FileReader(); rdr.onload=ev=>{
     try{
-      if(fInput.dataset.mode==="reset") resetLibrary();
-      const data=JSON.parse(ev.target.result); let add=0;
-      SECTIONS.forEach(sec=>{
-        data[sec]?.forEach(o=>{
-          if(!library[sec]) library[sec]=[];
-          if(library[sec].some(b=>keyOf(b)===keyOf(o))) return;
-          library[sec].push(o); add++;
-        });
-      });
-      save(); renderAll(); alert(`Imported ${add} new item(s).`);
-    }catch(err){alert("Bad JSON: "+err.message);}
+      const data=JSON.parse(ev.target.result);
+      if(fInput.dataset.mode==="reset") { resetLibrary(); openSections.clear(); }
+      let add=0, skipped=0;
+      for (const fileSec in data) {
+         const currentSection = normalizeSection(fileSec);
+         if (!currentSection) { skipped += Array.isArray(data[fileSec]) ? data[fileSec].length : 0; continue; }
+         if (Array.isArray(data[fileSec])) {
+            data[fileSec].forEach(o=>{
+              if (typeof o !== 'object' || o === null || (!o.label && !(o.sentences?.length) && !(o.pearls?.length))) { skipped++; return; }
+              if(!library[currentSection]) library[currentSection]=[];
+              const itemKey = keyOf(o);
+              if(library[currentSection].some(b=>keyOf(b)===itemKey)) { if (fInput.dataset.mode !== "reset") skipped++; }
+              else { library[currentSection].push(o); add++; }
+            });
+         } else { console.warn(`Data for section "${fileSec}" in file is not an array, skipping.`); skipped++; }
+      }
+      if (fInput.dataset.mode === "reset") { SECTIONS.forEach(sec => { if (!library[sec]) library[sec] = []; }); }
+      if (add > 0 || skipped > 0 || fInput.dataset.mode==="reset") {
+          save(); renderAll();
+          alert(`Import finished. Added: ${add} item(s). Skipped duplicates/invalid/empty: ${skipped}.`);
+      } else { alert("No new valid items found in the uploaded file to add/combine."); }
+    }catch(err){alert("Error processing JSON file: "+err.message);}
   };
+  rdr.onerror = (err) => { alert("Error reading file: " + err); };
   rdr.readAsText(file); e.target.value="";
 };
 document.getElementById("btnDownload").onclick=()=>{
-  const blob=new Blob([JSON.stringify(library,null,2)],{type:"application/json"});
+  const libraryToDownload = {};
+  SECTIONS.forEach(sec => { if (library[sec]?.length > 0) { libraryToDownload[sec] = library[sec]; } });
+  if (Object.keys(libraryToDownload).length === 0) { alert("Library is empty. Nothing to download."); return; }
+  const blob=new Blob([JSON.stringify(libraryToDownload,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download=`ctFindings_${new Date().toISOString().slice(0,10)}.json`; a.click(); a.remove();
+  a.download=`ctFindings_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
 };
 
 /* ===== boot ===== */
-resetLibrary(); load(); renderAll();
+resetLibrary();
+load();
+renderAll();
+
 </script>
 </body>
 </html>
