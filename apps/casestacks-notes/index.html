@@ -7,51 +7,46 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
+/* ==== NIGHT‑MODE AESTHETIC ==== */
 :root{
-  --bg:#0a0a0f; --panel:#14141d; --card:#1e1e29;
-  --text:#e8e8ff; --accent:#00ff9c; --muted:#7f7fa3;
-  --radius:8px; font-family:'Poppins',sans-serif;
+  --bg:#0a0a0f;
+  --panel:#14141d;
+  --card:#1e1e29;
+  --text:#e8e8ff;
+  --accent:#00ff9c;
+  --muted:#7f7fa3;
+  --radius:8px;
+  font-family:'Poppins',sans-serif;
 }
-body{margin:0;padding:1rem;background:var(--bg);color:var(--text)}
-h1{margin:0 0 .6rem;color:var(--accent)}
-
+*{box-sizing:border-box}
+body{margin:0;padding:1.2rem;background:var(--bg);color:var(--text)}
+h1{font-weight:600;margin:0 0 .6rem;font-size:1.4rem;color:var(--accent)}
+a{color:var(--accent)}
+/* Controls */
 #controls{background:var(--panel);padding:1rem;border-radius:var(--radius);margin-bottom:1rem}
-#controls textarea, #controls input[type="text"]{
-  width:100%;background:var(--card);border:1px solid var(--muted);
-  border-radius:var(--radius);color:var(--text);padding:.6rem;
-  font-family:monospace;margin-top:.4rem;
-}
-#controls button{
-  margin:.3rem .4rem 0 0;padding:.4rem .8rem;border:none;
-  border-radius:var(--radius);cursor:pointer;font-weight:600;
-  background:var(--card);color:var(--text);
-}
+#controls button{margin:.25rem .4rem .25rem 0;padding:.35rem .8rem;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;color:var(--text);background:var(--card)}
 #controls button:hover{background:var(--accent);color:#000}
-
-details{background:var(--panel);border-radius:var(--radius);margin:.4rem 0;padding:.3rem .6rem}
-details summary{list-style:none;cursor:pointer;font-weight:600;color:var(--accent)}
+textarea{width:100%;height:140px;background:var(--card);border:1px solid var(--muted);border-radius:var(--radius);color:var(--text);padding:.6rem;font-family:monospace;margin-top:.4rem}
+input[type="text"]{width:100%;padding:.5rem;border-radius:var(--radius);border:1px solid var(--muted);background:var(--card);color:var(--text);margin-bottom:.8rem}
+/* Sections */
+details{background:var(--panel);border-radius:var(--radius);margin:.4rem 0;padding:.2rem .6rem}
+details summary{cursor:pointer;font-weight:600;color:var(--accent);list-style:none;padding:.4rem 0}
 details summary::-webkit-details-marker{display:none}
-
-ul{margin:0 0 .6rem 1.2rem;padding:0;list-style:none}
-li{margin:.2rem 0;line-height:1.4;}
-
-/* Label (no bullet) */
-li.finding-label{
-  list-style:none;
+ul{margin:0 0 .6rem 1.2rem;padding:0;list-style-type:disc}
+li{margin:.15rem 0;line-height:1.4}
+.finding-label{
   font-weight:600;
-  margin-left:0;
-  padding-left:0;
+  list-style-type:none;          /* remove bullet */
+  margin-left:-1.2rem;
 }
-/* Sentence bullets + italics + quotes */
-li.sentence{
-  list-style:disc;
-  margin-left:1.2rem;
+.finding-label::marker{content:''}
+.report-sentence{
+  font-style:italic;
 }
-li.sentence em::before{content:'“'}
-li.sentence em::after{content:'”'}
-li.pearls{margin-left:1.2rem;font-style:italic;color:var(--muted)}
-.tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;
-  background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em}
+.report-sentence::before{content:"“";}
+.report-sentence::after{content:"”";}
+.pearl{font-style:italic;color:var(--muted)}
+.tag-chip{display:inline-block;padding:0 .4em;border-radius:4px;background:var(--card);color:var(--accent);font-size:.75rem;margin-left:.4em}
 .hidden{display:none}
 </style>
 </head>
@@ -60,192 +55,198 @@ li.pearls{margin-left:1.2rem;font-style:italic;color:var(--muted)}
 <h1>CT Findings Library</h1>
 
 <div id="controls">
-  <label for="jsonInput"><strong>Paste JSON for new finding(s)</strong></label>
-  <textarea id="jsonInput" placeholder='{"section":"LIVER", …} or [ {...} ]'></textarea>
+  <label for="jsonInput"><strong>Paste JSON for new finding(s)</strong> → <em>hit Add</em></label>
+  <textarea id="jsonInput" placeholder='{"section":"LIVER", … }  OR  [ {...},{...} ]'></textarea>
+  <br>
   <button id="btnAdd">Add</button>
+
+  <!-- full‑library actions -->
   <button id="btnUploadReset">Reset & Upload JSON</button>
   <button id="btnUploadCombine">Upload & Combine JSON</button>
   <button id="btnDownload">Download JSON</button>
   <input type="file" id="fileInput" accept=".json" class="hidden">
-  <input type="text" id="filterBox" placeholder="Filter by any text, label, or tag…" style="margin-top:.8rem">
 </div>
+
+<input type="text" id="filterBox" placeholder="Filter by any text, tag, or label…">
 
 <div id="ui"></div>
 
 <script>
+/* ===== Data schema & storage ===== */
 const SECTIONS=[
-  "LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS",
-  "DIAPHRAGM","LYMPH NODES","CHEST WALL","LIVER","BILIARY TRACT","GALLBLADDER",
-  "PANCREAS","SPLEEN","ADRENALS","KIDNEYS","STOMACH / SMALL BOWEL","COLON / APPENDIX",
-  "PERITONEUM / MESENTERY","RETROPERITONEUM","VESSELS","URINARY BLADDER",
-  "REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION"
-];
-const STORAGE_KEY="ctFindings_v2";
+"LOWER NECK","LUNGS / AIRWAYS / PLEURA","HEART / VESSELS","MEDIASTINUM / ESOPHAGUS","DIAPHRAGM",
+"LYMPH NODES","CHEST WALL","LIVER","BILIARY TRACT","GALLBLADDER","PANCREAS","SPLEEN","ADRENALS",
+"KIDNEYS","STOMACH / SMALL BOWEL","COLON / APPENDIX","PERITONEUM / MESENTERY","RETROPERITONEUM",
+"VESSELS","URINARY BLADDER","REPRODUCTIVE ORGANS","BODY WALL","MUSCULOSKELETAL","CONCLUSION"];
+const STORAGE_KEY="ctFindings_v1";
 let library={};
 
-// Init/reset/load/save
-function resetLibrary(){
-  library={};
-  SECTIONS.forEach(s=>library[s]=[]);
-}
-function load(){
-  try{const s=localStorage.getItem(STORAGE_KEY);
-    library=s?JSON.parse(s):{};}catch{resetLibrary();}
-  SECTIONS.forEach(s=>{ if(!library[s]) library[s]=[] });
-}
+/* ===== Utilities ===== */
+function resetLibrary(){library={};SECTIONS.forEach(s=>library[s]=[]);}
+function load(){try{library=JSON.parse(localStorage.getItem(STORAGE_KEY))||{};}catch{resetLibrary()}}
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(library));}
+function normalizeSection(sec){return SECTIONS.includes(sec)?sec:null;}
+function uniqueKey(obj){return JSON.stringify(obj);} // quick dedup
 
-function normalizeSection(s){
-  return SECTIONS.includes(s)?s:null;
-}
-
-// Render
+/* ===== Rendering ===== */
 const ui=document.getElementById("ui");
+let globalBlockCounter=0;
 function renderAll(){
   ui.innerHTML="";
+  globalBlockCounter=0;
   SECTIONS.forEach(sec=>{
-    const items=library[sec];
-    if(!items?.length) return;
+    const items=library[sec]||[];
+    if(items.length===0)return;
     const det=document.createElement("details");
     det.dataset.section=sec;
     const sum=document.createElement("summary");
-    sum.textContent=`${sec} (${items.length})`;
+    sum.textContent=`${sec}  (${items.length})`;
     det.appendChild(sum);
     const ul=document.createElement("ul");
-
     items.forEach(item=>{
-      // label
+      const blockId="b"+(++globalBlockCounter);
+      /* label row */
       const liLabel=document.createElement("li");
       liLabel.className="finding-label";
-      liLabel.textContent=item.label||"[no label]";
-      (item.tags||[]).forEach(t=>{
+      liLabel.dataset.blockId=blockId;
+      liLabel.dataset.search=(item.label+" "+(item.sentences||[]).join(" ")+" "+(item.pearls||[]).join(" ")+" "+(item.tags||[]).join(" ")).toLowerCase();
+      liLabel.innerHTML=item.label || "<i>[no label]</i>";
+      if(item.tags) item.tags.forEach(t=>{
         const span=document.createElement("span");
-        span.className="tag-chip"; span.textContent=t;
-        liLabel.appendChild(span);
+        span.className="tag-chip";span.textContent=t;liLabel.appendChild(span);
       });
       ul.appendChild(liLabel);
 
-      // sentences
+      /* sentence rows */
       (item.sentences||[]).forEach(txt=>{
         const li=document.createElement("li");
-        li.className="sentence";
-        const em=document.createElement("em");
-        em.textContent=txt;
-        li.appendChild(em);
+        li.className="report-sentence";
+        li.dataset.blockId=blockId;
+        li.textContent=txt;
         ul.appendChild(li);
       });
 
-      // pearls
+      /* pearls */
       if(item.pearls?.length){
         const li=document.createElement("li");
-        li.className="pearls";
-        li.innerHTML = item.pearls.map(p=>"💡 "+p).join("<br>");
+        li.className="pearl";
+        li.dataset.blockId=blockId;
+        li.innerHTML="💡 "+item.pearls.join("<br>💡 ");
         ul.appendChild(li);
       }
     });
-
     det.appendChild(ul);
     ui.appendChild(det);
   });
   applyFilter();
 }
 
-// Filtering by block
+/* ===== Filter ===== */
+const filterBox=document.getElementById("filterBox");
+filterBox.addEventListener("input",applyFilter);
 function applyFilter(){
-  const term=document.getElementById("filterBox").value.trim().toLowerCase();
+  const term=filterBox.value.trim().toLowerCase();
+  let anyVisible=false;
   ui.querySelectorAll("details").forEach(det=>{
-    const lis=[...det.querySelectorAll("li")];
-    if(!term){
-      lis.forEach(li=>li.classList.remove("hidden"));
-      det.open=false;
-      det.style.display="";
-    } else {
-      // find blocks: group by label index
-      const blocks=[];
-      let currentBlock=-1;
-      lis.forEach(li=>{
-        if(li.classList.contains("finding-label")) currentBlock++;
-        if(!blocks[currentBlock]) blocks[currentBlock]=[];
-        blocks[currentBlock].push(li);
+    let sectionVisible=false;
+
+    /* operate per block */
+    det.querySelectorAll(".finding-label").forEach(labelLi=>{
+      const matchText=labelLi.dataset.search||"";
+      const show=!term||matchText.includes(term);
+      const blockId=labelLi.dataset.blockId;
+      det.querySelectorAll(`[data-block-id="${blockId}"]`).forEach(el=>{
+        el.style.display=show?"":"none";
       });
-      // check each block
-      let sectionHas=false;
-      blocks.forEach(block=>{
-        const matches = block.some(li=>li.textContent.toLowerCase().includes(term));
-        block.forEach(li=> li.classList.toggle("hidden",!matches) );
-        if(matches) sectionHas=true;
-      });
-      det.style.display= sectionHas?"":"none";
-      det.open = sectionHas;
+      if(show)sectionVisible=true;
+    });
+
+    /* section collapse / expand */
+    det.style.display=sectionVisible?"":"none";
+    if(term){
+      det.open=sectionVisible;          // expand visible sections while filtering
+    }else{
+      det.open=false;                   // collapse everything when filter cleared
     }
+    if(sectionVisible)anyVisible=true;
   });
+  if(!anyVisible&&term){
+    if(!document.getElementById("nores")){
+      const p=document.createElement("p");p.id="nores";p.style.textAlign="center";
+      p.textContent="No matches.";ui.appendChild(p);
+    }
+  }else{
+    document.getElementById("nores")?.remove();
+  }
 }
 
-// Add pasted JSON
+/* ===== Add pasted JSON ===== */
 document.getElementById("btnAdd").onclick=()=>{
   const txt=document.getElementById("jsonInput").value.trim();
-  if(!txt) return alert("Nothing to add.");
-  let parsed;
-  try{parsed=JSON.parse(txt);}catch(e){return alert("JSON error: "+e.message);}
-  const arr=Array.isArray(parsed)?parsed:[parsed];
-  let added=0,skipped=0;
-  arr.forEach(obj=>{
-    const sec=normalizeSection(obj.section);
-    if(!sec) return;
-    const key=JSON.stringify(obj);
-    if(library[sec].some(b=>JSON.stringify(b)===key)){ skipped++; return; }
-    library[sec].push(obj); added++;
-  });
-  save(); renderAll();
-  document.getElementById("jsonInput").value="";
-  alert(`Added ${added} new, skipped ${skipped} duplicates.`);
+  if(!txt)return alert("Nothing to add.");
+  try{
+    const parsed=JSON.parse(txt);
+    const arr=Array.isArray(parsed)?parsed:[parsed];
+    let added=0, dupe=0;
+    arr.forEach(obj=>{
+      const sec=normalizeSection(obj.section);
+      if(!sec)return;
+      if(!library[sec])library[sec]=[];
+      const key=uniqueKey(obj);
+      const exists=library[sec].some(b=>uniqueKey(b)===key);
+      if(exists){dupe++;return;}
+      library[sec].push(obj);added++;
+    });
+    save();renderAll();
+    document.getElementById("jsonInput").value="";
+    alert(`Added ${added} new item(s)${dupe?`, skipped ${dupe} duplicate(s)`:''}.`);
+  }catch(e){alert("JSON parse error: "+e.message);}
 };
 
-// Download
-document.getElementById("btnDownload").onclick=()=>{
-  const blob=new Blob([JSON.stringify(library,null,2)],{type:"application/json"});
+/* ===== Upload / download ===== */
+const fileInput=document.getElementById("fileInput");
+document.getElementById("btnDownload").onclick=function(){
+  const str=JSON.stringify(library,null,2);
+  const blob=new Blob([str],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`ctFindings_${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
+  const dt=new Date();const ts=dt.toISOString().slice(0,10);
+  a.download=`ctFindings_${ts}.json`;
+  document.body.appendChild(a);a.click();a.remove();
 };
-
-// Upload Reset/Combine
-const fileInput=document.getElementById("fileInput");
-document.getElementById("btnUploadReset").onclick=()=>{
-  fileInput.dataset.mode="reset"; fileInput.click();
-};
-document.getElementById("btnUploadCombine").onclick=()=>{
-  fileInput.dataset.mode="combine"; fileInput.click();
-};
+function handleUpload(mode,jsonData){
+  if(mode==="reset")resetLibrary();
+  let added=0;
+  SECTIONS.forEach(sec=>{
+    if(jsonData[sec])jsonData[sec].forEach(obj=>{
+      if(!library[sec])library[sec]=[];
+      const key=uniqueKey(obj);
+      if(library[sec].some(b=>uniqueKey(b)===key))return;
+      library[sec].push(obj);added++;
+    });
+  });
+  save();renderAll();
+  alert(`${mode==="reset"?"Reset &":"Combined &"} added ${added} new item(s).`);
+}
+["btnUploadReset","btnUploadCombine"].forEach(id=>{
+  document.getElementById(id).onclick=()=>{
+    fileInput.click();fileInput.dataset.mode=id==="btnUploadReset"?"reset":"combine";
+  };
+});
 fileInput.onchange=e=>{
-  const file=e.target.files[0];
-  if(!file) return;
+  const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=evt=>{
-    let data;
-    try{data=JSON.parse(evt.target.result);}catch(err){return alert("Bad JSON: "+err);}
-    if(fileInput.dataset.mode==="reset"){
-      resetLibrary();
-    }
-    let added=0;
-    SECTIONS.forEach(sec=>{
-      if(!data[sec]) return;
-      data[sec].forEach(obj=>{
-        const key=JSON.stringify(obj);
-        if(library[sec].some(b=>JSON.stringify(b)===key)) return;
-        library[sec].push(obj); added++;
-      });
-    });
-    save(); renderAll();
-    alert(`${fileInput.dataset.mode==="reset"?"Reset &":"Combined &"} added ${added} items.`);
+    try{
+      handleUpload(fileInput.dataset.mode,JSON.parse(evt.target.result));
+    }catch(err){alert("Bad JSON: "+err.message);}
   };
   reader.readAsText(file);
   e.target.value="";
 };
 
-// Init
-resetLibrary(); load(); renderAll();
+/* ===== Boot ===== */
+resetLibrary();load();renderAll();
 </script>
 </body>
 </html>
