@@ -16,25 +16,31 @@
       --spacing: 16px;
       --font: 16px;
     }
-    html, body {
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
       margin: 0; padding: 0;
       background: var(--bg);
       color: var(--text);
       font: var(--font)/1.5 system-ui, sans-serif;
-      height: 100%;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .container {
       display: flex;
       flex-direction: column;
       padding: var(--spacing);
       max-width: 600px;
-      margin: 0 auto;
+      width: 100%;
       height: 100%;
-      box-sizing: border-box;
     }
     h1 {
       margin-bottom: var(--spacing);
       font-size: 1.5rem;
+      text-align: center;
     }
     .form-group {
       display: flex;
@@ -43,7 +49,8 @@
       margin-bottom: var(--spacing);
     }
     .form-group > div {
-      flex: 1 1 120px;
+      flex: 1 1 45%;
+      min-width: 120px;
     }
     label {
       display: block;
@@ -92,15 +99,14 @@
       line-height: 1.4;
     }
     @media (min-width:600px) {
-      .form-group {
-        flex-wrap: nowrap;
-      }
+      .form-group { flex-wrap: nowrap; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Standard-Works Scripture Copier</h1>
+
     <div class="form-group">
       <div>
         <label for="volume">Volume</label>
@@ -111,6 +117,7 @@
         <select id="book"></select>
       </div>
     </div>
+
     <div class="form-group">
       <div>
         <label for="start-chapter">Start Chapter</label>
@@ -121,10 +128,12 @@
         <select id="end-chapter"></select>
       </div>
     </div>
+
     <div class="actions">
       <button id="fetch-btn">Fetch Scripture</button>
       <button id="copy-btn">Copy to Clipboard</button>
     </div>
+
     <textarea id="scripture-text" readonly placeholder="Your scripture will appear here…"></textarea>
   </div>
 
@@ -251,7 +260,7 @@
       "newtestament"
     ];
 
-    // map book→volume
+    // Map book → volume
     const bookToVol = {};
     volumeOrder.forEach(volId => {
       structure[volId].books.forEach(b => {
@@ -259,7 +268,7 @@
       });
     });
 
-    // element refs
+    // Element refs
     const volSel   = document.getElementById('volume');
     const bookSel  = document.getElementById('book');
     const startSel = document.getElementById('start-chapter');
@@ -268,13 +277,13 @@
     const copyBtn  = document.getElementById('copy-btn');
     const outTA    = document.getElementById('scripture-text');
 
-    // populate volumes
+    // Populate Volume selector
     volumeOrder.forEach(volId => {
       volSel.add(new Option(structure[volId].display, volId));
     });
     volSel.value = 'doctrineandcovenants';
 
-    // when volume changes → books
+    // When Volume changes → populate Book
     volSel.addEventListener('change', () => {
       bookSel.innerHTML = '';
       structure[volSel.value].books.forEach(b => {
@@ -283,31 +292,58 @@
       bookSel.dispatchEvent(new Event('change'));
     });
 
-    // when book changes → chapters
+    // When Book changes → populate Chapters
     bookSel.addEventListener('change', populateChapters);
+
+    // When Start Chapter changes → update End Chapter options
+    startSel.addEventListener('change', updateEndOptions);
+
+    // Initial trigger
     volSel.dispatchEvent(new Event('change'));
 
     async function populateChapters() {
       startSel.innerHTML = '';
       endSel.innerHTML   = '';
       try {
-        const js  = await (await fetch(`data/${volSel.value}/${bookSel.value}.json`)).json();
-        const max = js.chapters.length;
+        // Load JSON
+        const volId  = volSel.value;
+        const bookId = bookSel.value;
+        const js     = await (await fetch(`data/${volId}/${bookId}.json`)).json();
+        const max    = js.chapters.length;
+
+        // Store max on the start selector
+        startSel.dataset.max = max;
+
+        // Build Start options
         for (let i = 1; i <= max; i++) {
           startSel.add(new Option(i, i));
-          endSel.add(new Option(i, i));
         }
-        endSel.insertBefore(new Option('(optional)', ''), endSel.firstChild);
         startSel.value = 1;
-        endSel.value   = '';
+
+        // Build End options from 1…max, then trim
+        updateEndOptions();
       } catch {
+        // Fallback if JSON missing
         startSel.add(new Option(1,1));
-        endSel.add(new Option('(optional)',''));
+        endSel.add(new Option('(optional)', ''));
         endSel.add(new Option(1,1));
       }
     }
 
-    // Fetch button
+    function updateEndOptions() {
+      const max   = parseInt(startSel.dataset.max, 10) || 1;
+      const start = parseInt(startSel.value, 10) || 1;
+      endSel.innerHTML = '';
+      // Optional blank
+      endSel.add(new Option('(optional)', ''));
+      // Only chapters ≥ start
+      for (let i = start; i <= max; i++) {
+        endSel.add(new Option(i, i));
+      }
+      endSel.value = '';
+    }
+
+    // Fetch Scripture
     fetchBtn.addEventListener('click', async () => {
       const start = parseInt(startSel.value, 10) || 1;
       let   end   = parseInt(endSel.value,   10);
@@ -315,10 +351,12 @@
 
       outTA.value = 'Loading…';
       try {
-        const js = await (await fetch(`data/${volSel.value}/${bookSel.value}.json`)).json();
+        const volId  = volSel.value;
+        const bookId = bookSel.value;
+        const js     = await (await fetch(`data/${volId}/${bookId}.json`)).json();
         let txt = '';
         js.chapters.slice(start-1, end).forEach(ch => {
-          txt += `\n\n${ js.title || structure[volSel.value].display } Chapter ${ch.number}\n\n`;
+          txt += `\n\n${ js.title || structure[volId].display } Chapter ${ch.number}\n\n`;
           ch.verses.forEach((v,i) => txt += `${i+1}. ${v.text}\n`);
         });
         outTA.value = txt.trim();
@@ -327,10 +365,10 @@
       }
     });
 
-    // Copy button
+    // Copy to Clipboard
     copyBtn.addEventListener('click', () => {
       if (!outTA.value) {
-        alert('Nothing to copy – please fetch first!');
+        alert('Nothing to copy—please fetch first!');
         return;
       }
       outTA.select();
