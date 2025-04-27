@@ -30,8 +30,45 @@
       padding: var(--spacing);
       max-width: 600px; width: 100%; height: 100%;
     }
-    h1 {
+    /* NAV DROPDOWN */
+    .nav {
       margin-bottom: var(--spacing);
+      position: relative;
+    }
+    .dropdown-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      z-index: 10;
+      min-width: 160px;
+    }
+    .dropdown-menu a {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .dropdown-menu a:hover {
+      background: var(--input-border);
+    }
+    /* END NAV */
+    h1 {
+      margin: 0 0 var(--spacing) 0;
       font-size: 1.5rem;
       text-align: center;
     }
@@ -86,6 +123,14 @@
 </head>
 <body>
   <div class="container">
+    <div class="nav">
+      <button id="dropdown-btn" class="dropdown-btn">Scripture Copier ▾</button>
+      <div id="dropdown-menu" class="dropdown-menu">
+        <a href="index.html">Scripture Copier</a>
+        <a href="cfm.html">ComeFollowMe</a>
+      </div>
+    </div>
+
     <h1>Scripture Copier</h1>
 
     <div class="form-group">
@@ -120,41 +165,49 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
+    /* Dropdown toggle */
+    const ddBtn = document.getElementById('dropdown-btn');
+    const ddMenu = document.getElementById('dropdown-menu');
+    ddBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => { ddMenu.style.display = 'none'; });
+
+    /* Scripture logic */
     const structure = {
       doctrineandcovenants: {
         display: "Doctrine & Covenants",
-        books: [
-          { id:"doctrineandcovenants", display:"Doctrine & Covenants" }
-        ]
+        books: [ { id:"doctrineandcovenants", display:"Doctrine & Covenants" } ]
       },
       bookofmormon: {
         display: "Book of Mormon",
         books: [
           { id:"1nephi", display:"1 Nephi" },
           { id:"2nephi", display:"2 Nephi" },
-          { id:"jacob", display:"Jacob" },
-          { id:"enos", display:"Enos" },
-          { id:"jarom", display:"Jarom" },
-          { id:"omni", display:"Omni" },
+          { id:"jacob",  display:"Jacob"   },
+          { id:"enos",   display:"Enos"    },
+          { id:"jarom",  display:"Jarom"   },
+          { id:"omni",   display:"Omni"    },
           { id:"wordsofmormon", display:"Words of Mormon" },
-          { id:"mosiah", display:"Mosiah" },
-          { id:"alma", display:"Alma" },
-          { id:"helaman", display:"Helaman" },
+          { id:"mosiah", display:"Mosiah"  },
+          { id:"alma",   display:"Alma"    },
+          { id:"helaman",display:"Helaman" },
           { id:"3nephi", display:"3 Nephi" },
           { id:"4nephi", display:"4 Nephi" },
-          { id:"mormon", display:"Mormon" },
-          { id:"ether", display:"Ether" },
-          { id:"moroni", display:"Moroni" }
+          { id:"mormon", display:"Mormon"  },
+          { id:"ether",  display:"Ether"   },
+          { id:"moroni", display:"Moroni"  }
         ]
       },
       pearlofgreatprice: {
         display: "Pearl of Great Price",
         books: [
-          { id:"moses", display:"Moses" },
-          { id:"abraham", display:"Abraham" },
-          { id:"josephsmithhistory", display:"Joseph Smith – History" },
-          { id:"josephsmithmatthew", display:"Joseph Smith – Matthew" },
-          { id:"articlesoffaith", display:"Articles of Faith" }
+          { id:"moses",               display:"Moses"                },
+          { id:"abraham",             display:"Abraham"              },
+          { id:"josephsmithhistory",  display:"Joseph Smith – History"},
+          { id:"josephsmithmatthew",  display:"Joseph Smith – Matthew"},
+          { id:"articlesoffaith",     display:"Articles of Faith"     }
         ]
       },
       oldtestament: {
@@ -252,49 +305,30 @@
     const copyBtn  = document.getElementById('copy-btn');
     const outTA    = document.getElementById('scripture-text');
 
-    // map book→volume
+    // populate volumes, books, chapters, as before
     const bookToVol = {};
-    volumeOrder.forEach(v => {
-      structure[v].books.forEach(b => bookToVol[b.id] = v);
-    });
+    volumeOrder.forEach(v => structure[v].books.forEach(b => bookToVol[b.id] = v));
 
-    // populate volumes
-    volumeOrder.forEach(v => {
-      volSel.add(new Option(structure[v].display, v));
-    });
+    volumeOrder.forEach(v => volSel.add(new Option(structure[v].display, v)));
     volSel.value = 'doctrineandcovenants';
 
-    // volume → books
     volSel.addEventListener('change', () => {
       bookSel.innerHTML = '';
-      structure[volSel.value].books.forEach(b => {
-        bookSel.add(new Option(b.display, b.id));
-      });
+      structure[volSel.value].books.forEach(b => bookSel.add(new Option(b.display, b.id)));
       bookSel.dispatchEvent(new Event('change'));
     });
 
-    // book → chapters
     bookSel.addEventListener('change', populateChapters);
-
-    // start → update end options
     startSel.addEventListener('change', updateEndOptions);
-
-    // initial
     volSel.dispatchEvent(new Event('change'));
 
     async function populateChapters() {
-      startSel.innerHTML = '';
-      endSel.innerHTML   = '';
-      copyBtn.disabled   = true;
-      outTA.value        = '';
+      startSel.innerHTML = ''; endSel.innerHTML = ''; copyBtn.disabled = true; outTA.value = '';
       try {
-        const vol = volSel.value, bk = bookSel.value;
-        const js  = await (await fetch(`data/${vol}/${bk}.json`)).json();
+        const js = await (await fetch(`data/${volSel.value}/${bookSel.value}.json`)).json();
         const max = js.chapters.length;
         startSel.dataset.max = max;
-        for (let i = 1; i <= max; i++) {
-          startSel.add(new Option(i, i));
-        }
+        for (let i=1;i<=max;i++) startSel.add(new Option(i,i));
         startSel.value = 1;
         updateEndOptions();
       } catch {
@@ -303,31 +337,26 @@
         endSel.add(new Option(1,1));
       }
     }
-
     function updateEndOptions() {
-      const max   = parseInt(startSel.dataset.max, 10) || 1;
-      const start = parseInt(startSel.value, 10) || 1;
+      const max = parseInt(startSel.dataset.max,10)||1;
+      const start = parseInt(startSel.value,10)||1;
       endSel.innerHTML = '';
-      endSel.add(new Option('(optional)', ''));
-      for (let i = start; i <= max; i++) {
-        endSel.add(new Option(i, i));
-      }
+      endSel.add(new Option('(optional)',''));
+      for (let i=start;i<=max;i++) endSel.add(new Option(i,i));
       endSel.value = '';
     }
 
-    // fetch
     fetchBtn.addEventListener('click', async () => {
-      const start = parseInt(startSel.value, 10) || 1;
-      let   end   = parseInt(endSel.value, 10);
-      if (isNaN(end) || end < start) end = start;
+      const start = parseInt(startSel.value,10)||1;
+      let end = parseInt(endSel.value,10);
+      if (isNaN(end)||end<start) end = start;
       outTA.value = 'Loading…';
       try {
-        const vol = volSel.value, bk = bookSel.value;
-        const js  = await (await fetch(`data/${vol}/${bk}.json`)).json();
+        const js = await (await fetch(`data/${volSel.value}/${bookSel.value}.json`)).json();
         let txt = '';
-        js.chapters.slice(start-1, end).forEach(ch => {
-          txt += `\n\n${js.title || structure[vol].display} Chapter ${ch.number}\n\n`;
-          ch.verses.forEach((v,i) => txt += `${i+1}. ${v.text}\n`);
+        js.chapters.slice(start-1,end).forEach(ch => {
+          txt += `\n\n${js.title||structure[volSel.value].display} Chapter ${ch.number}\n\n`;
+          ch.verses.forEach((v,i)=>txt+=`${i+1}. ${v.text}\n`);
         });
         outTA.value = txt.trim();
         copyBtn.disabled = false;
@@ -336,8 +365,7 @@
       }
     });
 
-    // copy
-    copyBtn.addEventListener('click', () => {
+    copyBtn.addEventListener('click', ()=>{
       if (!outTA.value) return;
       outTA.select();
       document.execCommand('copy');
