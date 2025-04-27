@@ -1,238 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standard-Works Scripture Copier</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        label, select, input {
-            margin-right: 10px;
-        }
-        #scripture-text {
-            width: 100%;
-            height: 300px;
-            margin-top: 20px;
-            padding: 10px;
-            font-size: 14px;
-        }
-        button {
-            padding: 10px;
-            font-size: 16px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Standard-Works Scripture Copier</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    label, select, input {
+      margin-right: 10px;
+    }
+    #scripture-text {
+      width: 100%;
+      height: 300px;
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Standard-Works Scripture Copier</h1>
+  <h1>Standard-Works Scripture Copier</h1>
 
-    <label for="book">Select Book:</label>
-    <select id="book"></select>
+  <label for="volume">Select Volume:</label>
+  <select id="volume"></select>
 
-    <label for="start-chapter">Start Chapter:</label>
-    <input type="number" id="start-chapter" value="1" min="1">
+  <label for="book">Select Book:</label>
+  <select id="book"></select>
 
-    <label for="end-chapter">End Chapter (optional):</label>
-    <input type="number" id="end-chapter" min="1">
+  <label for="start-chapter">Start Chapter:</label>
+  <select id="start-chapter"></select>
 
-    <button id="fetch-scripture-btn">Fetch Scripture</button>
-    <button id="copy-btn">Copy to Clipboard</button>
+  <label for="end-chapter">End Chapter:</label>
+  <select id="end-chapter"></select>
 
-    <textarea id="scripture-text" readonly placeholder="Scripture will appear here…"></textarea>
+  <label id="label-end-custom" for="end-chapter-custom" style="display:none; margin-right:10px;">
+    Custom End Chapter:
+  </label>
+  <input
+    type="number"
+    id="end-chapter-custom"
+    placeholder="e.g. 5"
+    style="width:4em; display:none;"
+    min="1"
+  >
 
-    <script>
-    // ───────────────────────────────────────────────────────────
-    // 1) Define your volumes and books exactly as they live
-    //    in /data/<volumeId>/<bookId>.json
-    // ───────────────────────────────────────────────────────────
+  <button id="fetch-copy-btn">Fetch &amp; Copy</button>
+
+  <textarea id="scripture-text" readonly placeholder="Scripture will appear here…"></textarea>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // ────────────────────────────────────────────────────────
+    // 1) Define your volumes/books in the exact folder/order:
+    // ────────────────────────────────────────────────────────
     const structure = {
-      "oldtestament": {
-        display: "Old Testament",
-        books: [
-          { id:"genesis",       display:"Genesis" },
-          { id:"exodus",        display:"Exodus" },
-          { id:"leviticus",     display:"Leviticus" },
-          { id:"numbers",       display:"Numbers" },
-          { id:"deuteronomy",   display:"Deuteronomy" },
-          { id:"joshua",        display:"Joshua" },
-          { id:"judges",        display:"Judges" },
-          { id:"ruth",          display:"Ruth" },
-          { id:"1samuel",       display:"1 Samuel" },
-          { id:"2samuel",       display:"2 Samuel" },
-          { id:"1kings",        display:"1 Kings" },
-          { id:"2kings",        display:"2 Kings" },
-          { id:"1chronicles",   display:"1 Chronicles" },
-          { id:"2chronicles",   display:"2 Chronicles" },
-          { id:"ezra",          display:"Ezra" },
-          { id:"nehemiah",      display:"Nehemiah" },
-          { id:"esther",        display:"Esther" },
-          { id:"job",           display:"Job" },
-          { id:"psalms",        display:"Psalms" },
-          { id:"proverbs",      display:"Proverbs" },
-          { id:"ecclesiastes",  display:"Ecclesiastes" },
-          { id:"songofsolomon", display:"Song of Solomon" },
-          { id:"isaiah",        display:"Isaiah" },
-          { id:"jeremiah",      display:"Jeremiah" },
-          { id:"lamentations",  display:"Lamentations" },
-          { id:"ezekiel",       display:"Ezekiel" },
-          { id:"daniel",        display:"Daniel" },
-          { id:"hosea",         display:"Hosea" },
-          { id:"joel",          display:"Joel" },
-          { id:"amos",          display:"Amos" },
-          { id:"obadiah",       display:"Obadiah" },
-          { id:"jonah",         display:"Jonah" },
-          { id:"micah",         display:"Micah" },
-          { id:"nahum",         display:"Nahum" },
-          { id:"habakkuk",      display:"Habakkuk" },
-          { id:"zephaniah",     display:"Zephaniah" },
-          { id:"haggai",        display:"Haggai" },
-          { id:"zechariah",     display:"Zechariah" },
-          { id:"malachi",       display:"Malachi" }
-        ]
-      },
-      "newtestament": {
-        display: "New Testament",
-        books: [
-          { id:"matthew",           display:"Matthew" },
-          { id:"mark",              display:"Mark" },
-          { id:"luke",              display:"Luke" },
-          { id:"john",              display:"John" },
-          { id:"acts",              display:"Acts" },
-          { id:"romans",            display:"Romans" },
-          { id:"1corinthians",      display:"1 Corinthians" },
-          { id:"2corinthians",      display:"2 Corinthians" },
-          { id:"galatians",         display:"Galatians" },
-          { id:"ephesians",         display:"Ephesians" },
-          { id:"philippians",       display:"Philippians" },
-          { id:"colossians",        display:"Colossians" },
-          { id:"1thessalonians",    display:"1 Thessalonians" },
-          { id:"2thessalonians",    display:"2 Thessalonians" },
-          { id:"1timothy",          display:"1 Timothy" },
-          { id:"2timothy",          display:"2 Timothy" },
-          { id:"titus",             display:"Titus" },
-          { id:"philemon",          display:"Philemon" },
-          { id:"hebrews",           display:"Hebrews" },
-          { id:"james",             display:"James" },
-          { id:"1peter",            display:"1 Peter" },
-          { id:"2peter",            display:"2 Peter" },
-          { id:"1john",             display:"1 John" },
-          { id:"2john",             display:"2 John" },
-          { id:"3john",             display:"3 John" },
-          { id:"jude",              display:"Jude" },
-          { id:"revelation",        display:"Revelation" }
-        ]
-      },
-      "bookofmormon": {
-        display: "Book of Mormon",
-        books: [
-          { id:"1nephi",            display:"1 Nephi" },
-          { id:"2nephi",            display:"2 Nephi" },
-          { id:"jacob",             display:"Jacob" },
-          { id:"enos",              display:"Enos" },
-          { id:"jarom",             display:"Jarom" },
-          { id:"omni",              display:"Omni" },
-          { id:"wordsofmormon",     display:"Words of Mormon" },
-          { id:"mosiah",            display:"Mosiah" },
-          { id:"alma",              display:"Alma" },
-          { id:"helaman",           display:"Helaman" },
-          { id:"3nephi",            display:"3 Nephi" },
-          { id:"4nephi",            display:"4 Nephi" },
-          { id:"mormon",            display:"Mormon" },
-          { id:"ether",             display:"Ether" },
-          { id:"moroni",            display:"Moroni" }
-        ]
-      },
-      "doctrineandcovenants": {
+      doctrineandcovenants: {
         display: "Doctrine & Covenants",
         books: [
           { id:"doctrineandcovenants", display:"Doctrine & Covenants" }
         ]
       },
-      "pearlofgreatprice": {
+      bookofmormon: {
+        display: "Book of Mormon",
+        books: [
+          { id:"1nephi",         display:"1 Nephi" },
+          { id:"2nephi",         display:"2 Nephi" },
+          { id:"jacob",          display:"Jacob" },
+          { id:"enos",           display:"Enos" },
+          { id:"jarom",          display:"Jarom" },
+          { id:"omni",           display:"Omni" },
+          { id:"wordsofmormon",  display:"Words of Mormon" },
+          { id:"mosiah",         display:"Mosiah" },
+          { id:"alma",           display:"Alma" },
+          { id:"helaman",        display:"Helaman" },
+          { id:"3nephi",         display:"3 Nephi" },
+          { id:"4nephi",         display:"4 Nephi" },
+          { id:"mormon",         display:"Mormon" },
+          { id:"ether",          display:"Ether" },
+          { id:"moroni",         display:"Moroni" }
+        ]
+      },
+      pearlofgreatprice: {
         display: "Pearl of Great Price",
         books: [
-          { id:"moses",                 display:"Moses"                  },
-          { id:"abraham",               display:"Abraham"                },
-          { id:"josephsmithhistory",    display:"Joseph Smith—History"   },
-          { id:"josephsmithmatthew",    display:"Joseph Smith—Matthew"   },
-          { id:"articlesoffaith",       display:"Articles of Faith"      }
+          { id:"moses",                display:"Moses"                },
+          { id:"abraham",              display:"Abraham"              },
+          { id:"josephsmithhistory",   display:"Joseph Smith – History" },
+          { id:"josephsmithmatthew",   display:"Joseph Smith – Matthew" },
+          { id:"articlesoffaith",      display:"Articles of Faith"     }
+        ]
+      },
+      oldtestament: {
+        display: "Old Testament",
+        books: [
+          { id:"genesis",       display:"Genesis"         },
+          { id:"exodus",        display:"Exodus"          },
+          { id:"leviticus",     display:"Leviticus"       },
+          { id:"numbers",       display:"Numbers"         },
+          { id:"deuteronomy",   display:"Deuteronomy"     },
+          { id:"joshua",        display:"Joshua"          },
+          { id:"judges",        display:"Judges"          },
+          { id:"ruth",          display:"Ruth"            },
+          { id:"1samuel",       display:"1 Samuel"        },
+          { id:"2samuel",       display:"2 Samuel"        },
+          { id:"1kings",        display:"1 Kings"         },
+          { id:"2kings",        display:"2 Kings"         },
+          { id:"1chronicles",   display:"1 Chronicles"    },
+          { id:"2chronicles",   display:"2 Chronicles"    },
+          { id:"ezra",          display:"Ezra"            },
+          { id:"nehemiah",      display:"Nehemiah"        },
+          { id:"esther",        display:"Esther"          },
+          { id:"job",           display:"Job"             },
+          { id:"psalms",        display:"Psalms"          },
+          { id:"proverbs",      display:"Proverbs"        },
+          { id:"ecclesiastes",  display:"Ecclesiastes"    },
+          { id:"songofsolomon", display:"Song of Solomon" },
+          { id:"isaiah",        display:"Isaiah"          },
+          { id:"jeremiah",      display:"Jeremiah"        },
+          { id:"lamentations",  display:"Lamentations"    },
+          { id:"ezekiel",       display:"Ezekiel"         },
+          { id:"daniel",        display:"Daniel"          },
+          { id:"hosea",         display:"Hosea"           },
+          { id:"joel",          display:"Joel"            },
+          { id:"amos",          display:"Amos"            },
+          { id:"obadiah",       display:"Obadiah"         },
+          { id:"jonah",         display:"Jonah"           },
+          { id:"micah",         display:"Micah"           },
+          { id:"nahum",         display:"Nahum"           },
+          { id:"habakkuk",      display:"Habakkuk"        },
+          { id:"zephaniah",     display:"Zephaniah"       },
+          { id:"haggai",        display:"Haggai"          },
+          { id:"zechariah",     display:"Zechariah"       },
+          { id:"malachi",       display:"Malachi"         }
+        ]
+      },
+      newtestament: {
+        display: "New Testament",
+        books: [
+          { id:"matthew",       display:"Matthew"           },
+          { id:"mark",          display:"Mark"              },
+          { id:"luke",          display:"Luke"              },
+          { id:"john",          display:"John"              },
+          { id:"acts",          display:"Acts"              },
+          { id:"romans",        display:"Romans"            },
+          { id:"1corinthians",  display:"1 Corinthians"     },
+          { id:"2corinthians",  display:"2 Corinthians"     },
+          { id:"galatians",     display:"Galatians"         },
+          { id:"ephesians",     display:"Ephesians"         },
+          { id:"philippians",   display:"Philippians"       },
+          { id:"colossians",    display:"Colossians"        },
+          { id:"1thessalonians",display:"1 Thessalonians"   },
+          { id:"2thessalonians",display:"2 Thessalonians"   },
+          { id:"1timothy",      display:"1 Timothy"         },
+          { id:"2timothy",      display:"2 Timothy"         },
+          { id:"titus",         display:"Titus"             },
+          { id:"philemon",      display:"Philemon"          },
+          { id:"hebrews",       display:"Hebrews"           },
+          { id:"james",         display:"James"             },
+          { id:"1peter",        display:"1 Peter"           },
+          { id:"2peter",        display:"2 Peter"           },
+          { id:"1john",         display:"1 John"            },
+          { id:"2john",         display:"2 John"            },
+          { id:"3john",         display:"3 John"            },
+          { id:"jude",          display:"Jude"              },
+          { id:"revelation",    display:"Revelation"        }
         ]
       }
     };
 
-    // Build a quick lookup to know which folder a book lives in:
-    const bookToVol = {};
-    Object.entries(structure).forEach(([volId,vol]) => {
-      vol.books.forEach(b => bookToVol[b.id] = volId);
+    // volume order as you requested
+    const volumeOrder = [
+      "doctrineandcovenants",
+      "bookofmormon",
+      "pearlofgreatprice",
+      "oldtestament",
+      "newtestament"
+    ];
+
+    // grab elements
+    const volSel    = document.getElementById('volume');
+    const bookSel   = document.getElementById('book');
+    const startSel  = document.getElementById('start-chapter');
+    const endSel    = document.getElementById('end-chapter');
+    const endCustom = document.getElementById('end-chapter-custom');
+    const endLabel  = document.getElementById('label-end-custom');
+    const goBtn     = document.getElementById('fetch-copy-btn');
+    const outTA     = document.getElementById('scripture-text');
+
+    // build volume dropdown
+    volumeOrder.forEach(volId => {
+      const opt = new Option(structure[volId].display, volId);
+      volSel.add(opt);
+    });
+    volSel.value = "doctrineandcovenants"; // default
+    populateBooks();
+
+    // when volume changes
+    volSel.addEventListener('change', populateBooks);
+
+    // when book changes
+    bookSel.addEventListener('change', populateChapters);
+
+    // if “Custom” selected
+    endSel.addEventListener('change', () => {
+      if (endSel.value === 'custom') {
+        endCustom.style.display = '';
+        endLabel.style.display  = '';
+      } else {
+        endCustom.style.display = 'none';
+        endLabel.style.display  = 'none';
+      }
     });
 
-    // Populate the single <select id="book"> with <optgroup>s
-    const bookSel = document.getElementById('book');
-    Object.values(structure).forEach(vol => {
-      const group = document.createElement('optgroup');
-      group.label = vol.display;
-      vol.books.forEach(b => {
-        const opt = new Option(b.display, b.id);
-        group.appendChild(opt);
+    // Fetch & Copy
+    goBtn.addEventListener('click', async () => {
+      const volId  = volSel.value;
+      const bookId = bookSel.value;
+      const start  = parseInt(startSel.value, 10);
+      let   end    = start;
+
+      if (endSel.value === 'custom') {
+        const c = parseInt(endCustom.value, 10);
+        if (!isNaN(c) && c >= start) end = c;
+      } else {
+        end = parseInt(endSel.value, 10);
+      }
+
+      outTA.value = 'Loading…';
+      try {
+        const res  = await fetch(`data/${volId}/${bookId}.json`);
+        const js   = await res.json();
+        let text   = '';
+        js.chapters.slice(start-1, end).forEach(ch => {
+          text += `\n\n${js.title || structure[volId].display} Chapter ${ch.number}\n\n`;
+          ch.verses.forEach((v,i) => text += `${i+1}. ${v.text}\n`);
+        });
+        outTA.value = text.trim();
+        outTA.select();
+        document.execCommand('copy');
+        alert('Fetched and copied to clipboard!');
+      } catch (err) {
+        outTA.value = `Error: ${err.message}`;
+      }
+    });
+
+    // Helpers
+    async function populateBooks() {
+      const volId = volSel.value;
+      bookSel.innerHTML = '';
+      structure[volId].books.forEach(b => {
+        bookSel.add(new Option(b.display, b.id));
       });
-      bookSel.appendChild(group);
-    });
-
-    // When the user picks a book, pre-load its chapter count
-    function updateChapterBounds() {
-      const bookId = bookSel.value;
-      const volId  = bookToVol[bookId];
-      fetch(`data/${volId}/${bookId}.json`)
-        .then(r => r.json())
-        .then(js => {
-          const max = js.chapters.length;
-          const start = document.getElementById('start-chapter');
-          const end   = document.getElementById('end-chapter');
-          start.max = end.max = max;
-          if (+start.value > max) start.value = max;
-          if (+end.value   > max) end.value   = max;
-        });
+      populateChapters();
     }
-    bookSel.addEventListener('change', updateChapterBounds);
-    updateChapterBounds();  // initial
 
-    // Fetch & render the selected range
-    document.getElementById('fetch-scripture-btn').addEventListener('click', () => {
+    async function populateChapters() {
+      const volId  = volSel.value;
       const bookId = bookSel.value;
-      const volId  = bookToVol[bookId];
-      const start  = parseInt(document.getElementById('start-chapter').value, 10) || 1;
-      const rawEnd = document.getElementById('end-chapter').value;
-      const end    = rawEnd ? parseInt(rawEnd,10) : start;
+      startSel.innerHTML = '';
+      endSel.innerHTML   = '';
+      endCustom.style.display = 'none';
+      endLabel.style.display  = 'none';
 
-      document.getElementById('scripture-text').value = 'Loading…';
-      fetch(`data/${volId}/${bookId}.json`)
-        .then(r => r.json())
-        .then(js => {
-          let txt = '';
-          js.chapters.slice(start-1, end).forEach(ch => {
-            txt += `\n\n${js.title || structure[volId].display} Chapter ${ch.number}\n\n`;
-            ch.verses.forEach((v,i) => {
-              txt += `${i+1}. ${v.text}\n`;
-            });
-          });
-          document.getElementById('scripture-text').value = txt.trim();
-        })
-        .catch(err => {
-          document.getElementById('scripture-text').value = `Error: ${err.message}`;
-        });
-    });
+      try {
+        const res  = await fetch(`data/${volId}/${bookId}.json`);
+        const js   = await res.json();
+        const max  = js.chapters.length;
 
-    // Copy to clipboard
-    document.getElementById('copy-btn').addEventListener('click', () => {
-      const ta = document.getElementById('scripture-text');
-      ta.select();
-      document.execCommand('copy');
-      alert('Text copied to clipboard!');
-    });
-    </script>
+        for (let i = 1; i <= max; i++) {
+          startSel.add(new Option(i, i));
+          endSel.add(new Option(i, i));
+        }
+        endSel.add(new Option('Custom', 'custom'));
+
+        startSel.value = 1;
+        endSel.value   = max;
+      } catch {
+        // fallback if something’s missing
+        startSel.add(new Option(1,1));
+        endSel.add(new Option(1,1));
+        endSel.add(new Option('Custom','custom'));
+      }
+    }
+
+  });
+  </script>
 
 </body>
 </html>
