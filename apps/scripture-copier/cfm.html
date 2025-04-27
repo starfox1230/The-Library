@@ -6,99 +6,69 @@
   <title>ComeFollowMe</title>
   <style>
     :root {
-      --bg: #121212;
-      --card-bg: #1e1e1e;
-      --text: #e0e0e0;
-      --accent: #bb86fc;
-      --input-bg: #272727;
-      --input-border: #333;
-      --radius: 8px;
-      --spacing: 16px;
-      --font: 16px;
+      --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0;
+      --accent: #bb86fc; --input-bg: #272727; --input-border: #333;
+      --radius: 8px; --spacing: 16px; --font: 16px;
     }
     *, *::before, *::after { box-sizing: border-box }
     body {
       margin: 0; padding: 0;
-      background: var(--bg);
-      color: var(--text);
+      background: var(--bg); color: var(--text);
       font: var(--font)/1.5 system-ui, sans-serif;
       min-height: 100vh;
       display: flex; justify-content: center; align-items: flex-start;
       padding-top: var(--spacing);
     }
     .container {
-      width: 100%;
-      max-width: 600px;
-      background: var(--card-bg);
-      border-radius: var(--radius);
+      width: 100%; max-width: 600px;
+      background: var(--card-bg); border-radius: var(--radius);
       padding: var(--spacing);
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     }
-    /* Nav dropdown */
-    .nav {
-      position: relative;
-      text-align: center;
-      margin-bottom: var(--spacing);
-    }
+    .nav { position: relative; text-align: center; margin-bottom: var(--spacing); }
     .dropdown-btn {
-      background: var(--accent);
-      color: var(--bg);
-      border: none;
-      padding: 8px 12px;
-      font-size: 1rem;
-      border-radius: var(--radius);
+      background: var(--accent); color: var(--bg);
+      border: none; padding: 8px 12px;
+      font-size: 1rem; border-radius: var(--radius);
       cursor: pointer;
     }
     .dropdown-menu {
-      display: none;
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 50%; transform: translateX(-50%);
-      background: var(--card-bg);
-      border: 1px solid var(--input-border);
+      display: none; position: absolute;
+      top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+      background: var(--card-bg); border: 1px solid var(--input-border);
       border-radius: var(--radius);
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      min-width: 180px;
-      z-index: 10;
+      min-width: 180px; z-index: 10;
     }
     .dropdown-menu a {
-      display: block;
-      padding: 10px 14px;
-      color: var(--text);
-      text-decoration: none;
+      display: block; padding: 10px 14px;
+      color: var(--text); text-decoration: none;
       font-size: 0.95rem;
     }
-    .dropdown-menu a:hover {
-      background: var(--input-border);
-    }
-    /* Titles */
+    .dropdown-menu a:hover { background: var(--input-border); }
     h1 { margin: 0 0 var(--spacing); text-align: center; }
     h2 { margin: var(--spacing) 0 8px; font-size: 1.1rem; }
-    /* Week blocks */
     .week-block { margin-bottom: var(--spacing); }
-    .week-block ul {
-      list-style: none; padding: 0; margin: 0;
-    }
+    .week-block ul { list-style: none; padding: 0; margin: 0; }
     .week-block li {
       padding: 6px 8px; border-bottom: 1px solid var(--input-border);
       font-size: 0.95rem;
     }
-    /* Actions */
-    .actions { text-align: center; margin-bottom: var(--spacing); }
+    .actions { text-align: center; margin: var(--spacing) 0; }
     .actions button {
-      padding: 12px 20px; font-size: 1rem; font-weight: 500;
-      color: var(--bg); background: var(--accent);
-      border: none; border-radius: var(--radius);
-      cursor: pointer;
+      padding: 12px 20px; font-size: 1rem;
+      font-weight: 500; color: var(--bg);
+      background: var(--accent); border: none;
+      border-radius: var(--radius); cursor: pointer;
     }
     .actions button:disabled {
       opacity: 0.4; cursor: not-allowed;
     }
-    /* Verses textarea */
     #verses-text {
       width: 100%; height: 150px; padding: var(--spacing);
       background: var(--input-bg); color: var(--text);
-      border: 1px solid var(--input-border); border-radius: var(--radius);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
       resize: none; font-size: 0.9rem; line-height: 1.4;
     }
   </style>
@@ -112,11 +82,8 @@
         <a href="index.html">Scripture Copier</a>
       </div>
     </div>
-
     <h1>ComeFollowMe</h1>
-
     <div id="schedule-container"></div>
-
     <div class="actions">
       <button id="copy-today-btn" disabled>Copy Today's Verses</button>
     </div>
@@ -124,128 +91,129 @@
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // --- Nav dropdown ---
-    const ddBtn = document.getElementById('dropdown-btn');
-    const ddMenu = document.getElementById('dropdown-menu');
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Dropdown logic
+    const ddBtn = document.getElementById('dropdown-btn'),
+          ddMenu = document.getElementById('dropdown-menu');
     ddBtn.addEventListener('click', e => {
       e.stopPropagation();
-      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+      ddMenu.style.display = ddMenu.style.display==='block'?'none':'block';
     });
-    document.addEventListener('click', () => ddMenu.style.display = 'none');
-
-    // --- Define only the three weeks we want to show/test ---
-    const schedule = [
-      // Previous: April 7 – 13, 2025 (D&C 30–36)
-      { start:'2025-04-07', end:'2025-04-13',
-        volume:'doctrineandcovenants', book:'doctrineandcovenants',
-        chapStart:30, chapEnd:36 },
-      // Current: April 21 – 27, 2025 (D&C 37–40)
-      { start:'2025-04-21', end:'2025-04-27',
-        volume:'doctrineandcovenants', book:'doctrineandcovenants',
-        chapStart:37, chapEnd:40 },
-      // Next: April 28 – May 4, 2025 (D&C 41–44)
-      { start:'2025-04-28', end:'2025-05-04',
-        volume:'doctrineandcovenants', book:'doctrineandcovenants',
-        chapStart:41, chapEnd:44 }
-    ];
+    document.addEventListener('click',()=>ddMenu.style.display='none');
 
     // Helpers
-    function parseDate(s) {
+    const parseDate = s => {
       const [y,m,d] = s.split('-').map(Number);
       return new Date(y,m-1,d);
-    }
+    };
     const names = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
-    // Find which index is current week
     const today = new Date(); today.setHours(0,0,0,0);
+
+    // Load full schedule
+    const schedule = await fetch('cfm-schedule-2025.json')
+      .then(r=>r.json());
+
+    // Find index of current week
     const idxCurrent = schedule.findIndex(e => {
-      const s = parseDate(e.start), x = parseDate(e.end);
-      return today >= s && today <= x;
+      const s = parseDate(e.start),
+            x = parseDate(e.end);
+      return today>=s && today<=x;
     });
 
     const container = document.getElementById('schedule-container');
-    let currentVerses = [], currentAssignments = [];
+    let currentVerses=[], currentAssign=[];
 
     // Render each week
-    schedule.forEach((entry, i) => {
+    schedule.forEach((entry,i) => {
       const block = document.createElement('div');
       block.className = 'week-block';
-      const typeLabel = i < idxCurrent
-        ? 'Previous Week' : i === idxCurrent
-        ? 'Current Week' : 'Next Week';
-      const header = document.createElement('h2');
-      header.textContent = `${typeLabel}: ${entry.start} – ${entry.end}`;
-      block.appendChild(header);
+      const label = i<idxCurrent?'Previous Week'
+                   :i===idxCurrent?'Current Week':'Next Week';
+      const h2 = document.createElement('h2');
+      h2.textContent = `${label}: ${entry.start} – ${entry.end}`;
+      block.appendChild(h2);
 
-      // fetch JSON and build assignments
+      // Fetch scripture JSON
       fetch(`data/${entry.volume}/${entry.book}.json`)
-        .then(r => r.json())
-        .then(js => {
-          // grab all verses text across chapters
-          const versesList = [];
-          for (let c = entry.chapStart; c <= entry.chapEnd; c++) {
-            const ch = js.chapters.find(ch=>ch.number===c);
-            if (ch) ch.verses.forEach(v=>versesList.push(v.text));
+        .then(r=>r.json())
+        .then(js=>{
+          // Collect every verse
+          let verses = [];
+          // primary book chapters
+          for(let c=entry.chapStart; c<=entry.chapEnd; c++){
+            const ch = js.chapters.find(chap=>chap.number===c);
+            if(ch) verses.push(...ch.verses.map(v=>v.text));
           }
-          // split into 7 roughly equal chunks
-          const total = versesList.length;
-          const perDay = Math.floor(total/7);
-          const extra = total % 7;
-          const assignments = [];
-          let idx = 0;
-          for (let d=0; d<7; d++) {
-            const count = perDay + (d < extra ? 1:0);
-            assignments.push({ start:idx, end:idx+count-1 });
-            idx += count;
-          }
-          // render list
-          const ul = document.createElement('ul');
-          const weekStart = parseDate(entry.start);
-          assignments.forEach((a,d) => {
-            const li = document.createElement('li');
-            const date = new Date(weekStart);
-            date.setDate(date.getDate()+d);
-            const mm = String(date.getMonth()+1).padStart(2,'0');
-            const dd = String(date.getDate()).padStart(2,'0');
-            li.textContent =
-              `${names[d]} (${mm}-${dd}): verses ` +
-              `${a.start+1}` +
-              (a.end>a.start ? `–${a.end+1}` : '');
-            ul.appendChild(li);
-          });
-          block.appendChild(ul);
-
-          // if this is current week, keep for copy button
-          if (i === idxCurrent) {
-            currentVerses = versesList;
-            currentAssignments = assignments;
-            // enable copy button
-            document.getElementById('copy-today-btn').disabled = false;
+          // extra book (if any)
+          if(entry.extraBook){
+            fetch(`data/${entry.volume}/${entry.extraBook}.json`)
+              .then(r2=>r2.json())
+              .then(js2=>{
+                for(let c=entry.extraStart; c<=entry.extraEnd; c++){
+                  const ch2 = js2.chapters.find(chap=>chap.number===c);
+                  if(ch2) verses.push(...ch2.verses.map(v=>v.text));
+                }
+                buildList(verses, entry, block, i);
+              });
+          } else {
+            buildList(verses, entry, block, i);
           }
         })
-        .catch(err => {
-          const msg = document.createElement('p');
-          msg.textContent = `Error loading ${typeLabel}`;
-          block.appendChild(msg);
+        .catch(err=>{
+          const p = document.createElement('p');
+          p.textContent = `Error loading ${label}`;
+          block.appendChild(p);
         });
 
       container.appendChild(block);
     });
 
-    // Copy today’s verses (only works once current week is loaded)
-    document.getElementById('copy-today-btn').addEventListener('click', () => {
-      if (!currentAssignments.length) return;
-      // find which day index
-      const today = new Date(); today.setHours(0,0,0,0);
-      const start0 = parseDate(schedule[idxCurrent].start);
-      const dayIdx = Math.floor((today - start0)/(1000*60*60*24));
-      const a = currentAssignments[dayIdx];
-      const slice = currentVerses.slice(a.start, a.end+1);
-      const text  = slice.map((t,i)=>`${i+1}. ${t}`).join('\n');
-      const ta = document.getElementById('verses-text');
-      ta.value = text;
-      ta.select();
+    function buildList(verses, entry, block, idx){
+      // divide into 7
+      const total = verses.length;
+      const per = Math.floor(total/7),
+            extra = total%7;
+      let assignments = [], start=0;
+      for(let d=0; d<7; d++){
+        const cnt = per + (d<extra?1:0);
+        assignments.push({start, end:start+cnt-1});
+        start += cnt;
+      }
+      // render days
+      const ul = document.createElement('ul'),
+            weekStart = parseDate(entry.start);
+      assignments.forEach((a,d)=>{
+        const li = document.createElement('li'),
+              date = new Date(weekStart);
+        date.setDate(date.getDate()+d);
+        const mm = String(date.getMonth()+1).padStart(2,'0'),
+              dd = String(date.getDate()).padStart(2,'0');
+        li.textContent = `${names[d]} (${mm}-${dd}): verses `
+                         + `${a.start+1}` 
+                         + (a.end>a.start?`–${a.end+1}`:'');
+        ul.appendChild(li);
+      });
+      block.appendChild(ul);
+
+      // save current week for copy button
+      if(idx===idxCurrent){
+        currentVerses = verses;
+        currentAssign= assignments;
+        document.getElementById('copy-today-btn').disabled=false;
+      }
+    }
+
+    // Copy Today's Verses
+    document.getElementById('copy-today-btn')
+      .addEventListener('click',()=>{
+      if(!currentAssign.length) return;
+      const start0 = parseDate(schedule[idxCurrent].start),
+            dayIdx = Math.floor((today-start0)/(1000*60*60*24)),
+            a = currentAssign[dayIdx],
+            slice = currentVerses.slice(a.start, a.end+1),
+            text = slice.map((t,i)=>`${i+1}. ${t}`).join('\n'),
+            ta = document.getElementById('verses-text');
+      ta.value = text; ta.select();
       document.execCommand('copy');
       alert("Today's verses copied!");
     });
