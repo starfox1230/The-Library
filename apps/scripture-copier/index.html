@@ -22,6 +22,8 @@
     button {
       padding: 10px;
       font-size: 16px;
+      margin-top: 10px;
+      margin-right: 5px;
     }
   </style>
 </head>
@@ -41,13 +43,15 @@
   <label for="end-chapter">End Chapter (optional):</label>
   <select id="end-chapter"></select>
 
-  <button id="fetch-copy-btn">Fetch &amp; Copy</button>
+  <br>
+
+  <button id="fetch-btn">Fetch Scripture</button>
+  <button id="copy-btn">Copy to Clipboard</button>
 
   <textarea id="scripture-text" readonly placeholder="Scripture will appear here…"></textarea>
 
   <script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    // 1) Your volumes & books exactly as they live under /data/
+  document.addEventListener('DOMContentLoaded', () => {
     const structure = {
       doctrineandcovenants: {
         display: "Doctrine & Covenants",
@@ -163,7 +167,6 @@
       }
     };
 
-    // 2) The exact volume order and default
     const volumeOrder = [
       "doctrineandcovenants",
       "bookofmormon",
@@ -172,119 +175,95 @@
       "newtestament"
     ];
 
-    // build a quick book→volume map
+    // map book → volume
     const bookToVol = {};
     volumeOrder.forEach(volId => {
-      structure[volId].books.forEach(b => {
-        bookToVol[b.id] = volId;
-      });
+      structure[volId].books.forEach(b => bookToVol[b.id] = volId);
     });
 
-    // 3) Element refs
-    const volSel    = document.getElementById('volume');
-    const bookSel   = document.getElementById('book');
-    const startSel  = document.getElementById('start-chapter');
-    const endSel    = document.getElementById('end-chapter');
-    const goBtn     = document.getElementById('fetch-copy-btn');
-    const outTA     = document.getElementById('scripture-text');
+    // refs
+    const volSel  = document.getElementById('volume');
+    const bookSel = document.getElementById('book');
+    const startSel= document.getElementById('start-chapter');
+    const endSel  = document.getElementById('end-chapter');
+    const fetchBtn= document.getElementById('fetch-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const outTA   = document.getElementById('scripture-text');
 
-    // 4) Populate volumes
+    // populate volumes
     volumeOrder.forEach(volId => {
       volSel.add(new Option(structure[volId].display, volId));
     });
     volSel.value = 'doctrineandcovenants';
 
-    // 5) When volume changes → repopulate books
+    // when volume → populate books
     volSel.addEventListener('change', () => {
       bookSel.innerHTML = '';
-      const vol = structure[volSel.value];
-      vol.books.forEach(b => {
+      structure[volSel.value].books.forEach(b => {
         bookSel.add(new Option(b.display, b.id));
       });
-      // trigger chapters population
       bookSel.dispatchEvent(new Event('change'));
     });
 
-    // 6) When book changes → repopulate chapters
+    // when book → populate chapters
     bookSel.addEventListener('change', populateChapters);
 
-    // trigger initial setup
+    // initial
     volSel.dispatchEvent(new Event('change'));
 
-    // helper: populate start/end selectors
     async function populateChapters() {
       startSel.innerHTML = '';
       endSel.innerHTML   = '';
       try {
         const volId  = volSel.value;
         const bookId = bookSel.value;
-        const res    = await fetch(`data/${volId}/${bookId}.json`);
-        const js     = await res.json();
+        const js     = await (await fetch(`data/${volId}/${bookId}.json`)).json();
         const max    = js.chapters.length;
-
         for (let i = 1; i <= max; i++) {
           startSel.add(new Option(i, i));
           endSel.add(new Option(i, i));
         }
-        // make the first end option blank = “optional”
         endSel.insertBefore(new Option('(optional)', ''), endSel.firstChild);
-
         startSel.value = 1;
         endSel.value   = '';
       } catch {
-        // fallback
         startSel.add(new Option(1,1));
         endSel.add(new Option('(optional)',''));
         endSel.add(new Option(1,1));
       }
     }
 
-    // 7) Fetch → render → copy
-    goBtn.addEventListener('click', async () => {
+    // Fetch only
+    fetchBtn.addEventListener('click', async () => {
       const volId  = volSel.value;
       const bookId = bookSel.value;
       const start  = parseInt(startSel.value, 10) || 1;
-      let   end    = parseInt(endSel.value, 10);
+      let end      = parseInt(endSel.value, 10);
       if (isNaN(end) || end < start) end = start;
 
       outTA.value = 'Loading…';
-
       try {
-        // fetch and render
-        const res = await fetch(`data/${volId}/${bookId}.json`);
-        const js  = await res.json();
-        let txt   = '';
+        const js = await (await fetch(`data/${volId}/${bookId}.json`)).json();
+        let txt = '';
         js.chapters.slice(start-1, end).forEach(ch => {
           txt += `\n\n${ js.title || structure[volId].display } Chapter ${ch.number}\n\n`;
-          ch.verses.forEach((v,i) => {
-            txt += `${i+1}. ${v.text}\n`;
-          });
+          ch.verses.forEach((v,i) => txt += `${i+1}. ${v.text}\n`);
         });
-        txt = txt.trim();
-        outTA.value = txt;
-
-        // copy to clipboard
-        if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(txt);
-        } else {
-          const hidden = document.createElement('textarea');
-          hidden.value = txt;
-          hidden.setAttribute('readonly','');
-          hidden.style.position = 'absolute';
-          hidden.style.left     = '-9999px';
-          document.body.appendChild(hidden);
-          hidden.select();
-          document.execCommand('copy');
-          document.body.removeChild(hidden);
-        }
-
-        console.log('Fetched and copied to clipboard');
+        outTA.value = txt.trim();
       } catch (err) {
         outTA.value = `Error: ${err.message}`;
-        console.error(err);
       }
     });
 
+    // Copy only
+    copyBtn.addEventListener('click', () => {
+      const text = outTA.value;
+      if (!text) return alert('Nothing to copy—fetch first!');
+      // execCommand fallback
+      outTA.select();
+      document.execCommand('copy');
+      alert('Copied to clipboard!');
+    });
   });
   </script>
 
