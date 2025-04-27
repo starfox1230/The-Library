@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Standard-Works Scripture Copier</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; margin:20px; }
+    select, input, button { margin:5px; font-size:1rem; }
+    #scripture { width:100%; height:300px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <h1>Scripture Copier (Offline)</h1>
+
+  <!-- Volume & Book selectors -->
+  <label for="vol">Volume:</label>
+  <select id="vol"></select>
+
+  <label for="book">Book:</label>
+  <select id="book"></select>
+
+  <!-- Chapter range -->
+  <label for="start">Start Chap:</label>
+  <input type="number" id="start" min="1" value="1" style="width:4em">
+
+  <label for="end">End Chap:</label>
+  <input type="number" id="end" min="1" value="1" style="width:4em">
+
+  <button id="load">Fetch Text</button>
+  <button id="copy">Copy to Clipboard</button>
+
+  <textarea id="scripture" readonly placeholder="Scripture will appear here…"></textarea>
+
+  <script>
+  // ───────────────────────────────────────────────────────────
+  // 1) EDIT THIS BLOCK to reflect your data folder layout.
+  //    You already have:
+  //      data/
+  //        <volumeId>/
+  //          <bookId>.json
+  //
+  //  Replace the ids and display names as needed.
+  // ───────────────────────────────────────────────────────────
+  const structure = {
+    "old-testament": {
+      display: "Old Testament",
+      books: [
+        { id:"genesis",  display:"Genesis"  },
+        { id:"exodus",   display:"Exodus"   },
+        { id:"leviticus",display:"Leviticus"},
+        /* … all the way through … */
+        { id:"malachi",  display:"Malachi"  }
+      ]
+    },
+    "new-testament": {
+      display: "New Testament",
+      books: [
+        { id:"matthew",  display:"Matthew"   },
+        { id:"mark",     display:"Mark"      },
+        /* … through Revelation … */
+        { id:"revelation",display:"Revelation" }
+      ]
+    },
+    "bookofmormon": {
+      display: "Book of Mormon",
+      books: [
+        { id:"1nephi", display:"1 Nephi" },
+        { id:"2nephi", display:"2 Nephi" },
+        { id:"jacob",  display:"Jacob"   },
+        { id:"enos",   display:"Enos"    },
+        { id:"jarom",  display:"Jarom"   },
+        { id:"omni",   display:"Omni"    },
+        { id:"wordsofmormon", display:"Words of Mormon" },
+        { id:"mosiah", display:"Mosiah"  },
+        { id:"alma",   display:"Alma"    },
+        { id:"helaman",display:"Helaman" },
+        { id:"3nephi", display:"3 Nephi" },
+        { id:"4nephi", display:"4 Nephi" },
+        { id:"mormon", display:"Mormon"  },
+        { id:"ether",  display:"Ether"   },
+        { id:"moroni", display:"Moroni"  }
+      ]
+    },
+    "doctrineandcovenants": {
+      display: "Doctrine & Covenants",
+      books: [
+        { id:"doctrineandcovenants", display:"Doctrine & Covenants" }
+      ]
+    },
+    "pearlofgreatprice": {
+      display: "Pearl of Great Price",
+      books: [
+        { id:"moses",    display:"Moses"     },
+        { id:"abraham",  display:"Abraham"   },
+        { id:"js-h",     display:"JS–History"},
+        { id:"js-testimony", display:"JS–Testimony" },
+        { id:"articles", display:"Articles of Faith" }
+      ]
+    }
+  };
+  // ───────────────────────────────────────────────────────────
+
+  const volSel  = document.getElementById('vol');
+  const bookSel = document.getElementById('book');
+  const startIn = document.getElementById('start');
+  const endIn   = document.getElementById('end');
+  const loadBtn = document.getElementById('load');
+  const copyBtn = document.getElementById('copy');
+  const outTA   = document.getElementById('scripture');
+
+  // Populate Volume dropdown
+  function initVolumes() {
+    Object.entries(structure).forEach(([volId, vol]) => {
+      const opt = new Option(vol.display, volId);
+      volSel.add(opt);
+    });
+    onVolumeChange();
+  }
+
+  // When volume changes, repopulate Book dropdown
+  function onVolumeChange() {
+    const vol = structure[volSel.value];
+    bookSel.innerHTML = '';
+    vol.books.forEach(b => {
+      const opt = new Option(b.display, b.id);
+      bookSel.add(opt);
+    });
+    onBookChange();
+  }
+
+  // When book changes, fetch that JSON locally to get chapter count
+  async function onBookChange() {
+    const volId  = volSel.value;
+    const bookId = bookSel.value;
+    try {
+      const resp = await fetch(`data/${volId}/${bookId}.json`);
+      const json = await resp.json();
+      const chapCount = Array.isArray(json.chapters)
+                      ? json.chapters.length
+                      : json.chapterDelineation
+                        ? json.chapterDelineation.length
+                        : 0;
+      startIn.max = endIn.max = chapCount;
+      endIn.value = chapCount;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // When “Fetch Text” clicked, load all requested chapters & render
+  async function loadScripture() {
+    const volId  = volSel.value;
+    const bookId = bookSel.value;
+    const start  = parseInt(startIn.value, 10);
+    const end    = parseInt(endIn.value,   10);
+    outTA.value = 'Loading…';
+    try {
+      // load the book JSON once
+      const resp = await fetch(`data/${volId}/${bookId}.json`);
+      const book = await resp.json();
+
+      // collect the requested chapters
+      let text = '';
+      const slice = book.chapters.slice(start-1, end);
+      slice.forEach(ch => {
+        text += `\n\n${book.title || structure[volId].display} Chapter ${ch.number}\n\n`;
+        ch.verses.forEach((v,i) => {
+          text += `${i+1}. ${v.text}\n`;
+        });
+      });
+      outTA.value = text.trim();
+    } catch (e) {
+      outTA.value = 'Error loading chapters: ' + e.message;
+    }
+  }
+
+  // Copy to clipboard
+  function copyScripture() {
+    outTA.select();
+    document.execCommand('copy');
+    alert('Copied to clipboard!');
+  }
+
+  // Wire up events
+  volSel  .addEventListener('change',  onVolumeChange);
+  bookSel .addEventListener('change',  onBookChange);
+  loadBtn .addEventListener('click',   loadScripture);
+  copyBtn .addEventListener('click',   copyScripture);
+
+  // Kick things off
+  initVolumes();
+  </script>
+</body>
+</html>
