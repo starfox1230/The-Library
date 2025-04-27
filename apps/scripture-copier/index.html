@@ -5,59 +5,135 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Standard-Works Scripture Copier</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --input-bg: #272727;
+      --input-border: #333;
+      --radius: 8px;
+      --spacing: 16px;
+      --font: 16px;
     }
-    label, select, input {
-      margin-right: 10px;
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: var(--font)/1.5 system-ui, sans-serif;
+      height: 100%;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      padding: var(--spacing);
+      max-width: 600px;
+      margin: 0 auto;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    h1 {
+      margin-bottom: var(--spacing);
+      font-size: 1.5rem;
+    }
+    .form-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing);
+      margin-bottom: var(--spacing);
+    }
+    .form-group > div {
+      flex: 1 1 120px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: var(--spacing);
+    }
+    .actions button {
+      flex: 1;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--bg);
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .actions button:active {
+      opacity: 0.8;
     }
     #scripture-text {
+      flex: 1;
       width: 100%;
-      height: 300px;
-      margin-top: 20px;
-      padding: 10px;
-      font-size: 14px;
+      padding: var(--spacing);
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      resize: none;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.4;
     }
-    button {
-      padding: 10px;
-      font-size: 16px;
-      margin-top: 10px;
-      margin-right: 5px;
+    @media (min-width:600px) {
+      .form-group {
+        flex-wrap: nowrap;
+      }
     }
   </style>
 </head>
 <body>
-
-  <h1>Standard-Works Scripture Copier</h1>
-
-  <label for="volume">Select Volume:</label>
-  <select id="volume"></select>
-
-  <label for="book">Select Book:</label>
-  <select id="book"></select>
-
-  <label for="start-chapter">Start Chapter:</label>
-  <select id="start-chapter"></select>
-
-  <label for="end-chapter">End Chapter (optional):</label>
-  <select id="end-chapter"></select>
-
-  <br>
-
-  <button id="fetch-btn">Fetch Scripture</button>
-  <button id="copy-btn">Copy to Clipboard</button>
-
-  <textarea id="scripture-text" readonly placeholder="Scripture will appear here…"></textarea>
+  <div class="container">
+    <h1>Standard-Works Scripture Copier</h1>
+    <div class="form-group">
+      <div>
+        <label for="volume">Volume</label>
+        <select id="volume"></select>
+      </div>
+      <div>
+        <label for="book">Book</label>
+        <select id="book"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <div>
+        <label for="start-chapter">Start Chapter</label>
+        <select id="start-chapter"></select>
+      </div>
+      <div>
+        <label for="end-chapter">End Chapter (optional)</label>
+        <select id="end-chapter"></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="fetch-btn">Fetch Scripture</button>
+      <button id="copy-btn">Copy to Clipboard</button>
+    </div>
+    <textarea id="scripture-text" readonly placeholder="Your scripture will appear here…"></textarea>
+  </div>
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const structure = {
       doctrineandcovenants: {
         display: "Doctrine & Covenants",
-        books: [
-          { id:"doctrineandcovenants", display:"Doctrine & Covenants" }
-        ]
+        books: [{ id:"doctrineandcovenants", display:"Doctrine & Covenants" }]
       },
       bookofmormon: {
         display: "Book of Mormon",
@@ -175,20 +251,22 @@
       "newtestament"
     ];
 
-    // map book → volume
+    // map book→volume
     const bookToVol = {};
     volumeOrder.forEach(volId => {
-      structure[volId].books.forEach(b => bookToVol[b.id] = volId);
+      structure[volId].books.forEach(b => {
+        bookToVol[b.id] = volId;
+      });
     });
 
-    // refs
-    const volSel  = document.getElementById('volume');
-    const bookSel = document.getElementById('book');
-    const startSel= document.getElementById('start-chapter');
-    const endSel  = document.getElementById('end-chapter');
-    const fetchBtn= document.getElementById('fetch-btn');
-    const copyBtn = document.getElementById('copy-btn');
-    const outTA   = document.getElementById('scripture-text');
+    // element refs
+    const volSel   = document.getElementById('volume');
+    const bookSel  = document.getElementById('book');
+    const startSel = document.getElementById('start-chapter');
+    const endSel   = document.getElementById('end-chapter');
+    const fetchBtn = document.getElementById('fetch-btn');
+    const copyBtn  = document.getElementById('copy-btn');
+    const outTA    = document.getElementById('scripture-text');
 
     // populate volumes
     volumeOrder.forEach(volId => {
@@ -196,7 +274,7 @@
     });
     volSel.value = 'doctrineandcovenants';
 
-    // when volume → populate books
+    // when volume changes → books
     volSel.addEventListener('change', () => {
       bookSel.innerHTML = '';
       structure[volSel.value].books.forEach(b => {
@@ -205,20 +283,16 @@
       bookSel.dispatchEvent(new Event('change'));
     });
 
-    // when book → populate chapters
+    // when book changes → chapters
     bookSel.addEventListener('change', populateChapters);
-
-    // initial
     volSel.dispatchEvent(new Event('change'));
 
     async function populateChapters() {
       startSel.innerHTML = '';
       endSel.innerHTML   = '';
       try {
-        const volId  = volSel.value;
-        const bookId = bookSel.value;
-        const js     = await (await fetch(`data/${volId}/${bookId}.json`)).json();
-        const max    = js.chapters.length;
+        const js  = await (await fetch(`data/${volSel.value}/${bookSel.value}.json`)).json();
+        const max = js.chapters.length;
         for (let i = 1; i <= max; i++) {
           startSel.add(new Option(i, i));
           endSel.add(new Option(i, i));
@@ -233,20 +307,18 @@
       }
     }
 
-    // Fetch only
+    // Fetch button
     fetchBtn.addEventListener('click', async () => {
-      const volId  = volSel.value;
-      const bookId = bookSel.value;
-      const start  = parseInt(startSel.value, 10) || 1;
-      let end      = parseInt(endSel.value, 10);
+      const start = parseInt(startSel.value, 10) || 1;
+      let   end   = parseInt(endSel.value,   10);
       if (isNaN(end) || end < start) end = start;
 
       outTA.value = 'Loading…';
       try {
-        const js = await (await fetch(`data/${volId}/${bookId}.json`)).json();
+        const js = await (await fetch(`data/${volSel.value}/${bookSel.value}.json`)).json();
         let txt = '';
         js.chapters.slice(start-1, end).forEach(ch => {
-          txt += `\n\n${ js.title || structure[volId].display } Chapter ${ch.number}\n\n`;
+          txt += `\n\n${ js.title || structure[volSel.value].display } Chapter ${ch.number}\n\n`;
           ch.verses.forEach((v,i) => txt += `${i+1}. ${v.text}\n`);
         });
         outTA.value = txt.trim();
@@ -255,17 +327,17 @@
       }
     });
 
-    // Copy only
+    // Copy button
     copyBtn.addEventListener('click', () => {
-      const text = outTA.value;
-      if (!text) return alert('Nothing to copy—fetch first!');
-      // execCommand fallback
+      if (!outTA.value) {
+        alert('Nothing to copy – please fetch first!');
+        return;
+      }
       outTA.select();
       document.execCommand('copy');
       alert('Copied to clipboard!');
     });
   });
   </script>
-
 </body>
 </html>
