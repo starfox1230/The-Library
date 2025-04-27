@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ComeFollowMe</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --input-bg: #272727;
+      --input-border: #333;
+      --radius: 8px;
+      --spacing: 16px;
+      --font: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box }
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: var(--font)/1.5 system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex; justify-content: center; align-items: flex-start;
+      padding-top: var(--spacing);
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: var(--spacing);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    /* Nav dropdown */
+    .nav {
+      position: relative;
+      text-align: center;
+      margin-bottom: var(--spacing);
+    }
+    .dropdown-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 50%; transform: translateX(-50%);
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      min-width: 180px;
+      z-index: 10;
+    }
+    .dropdown-menu a {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .dropdown-menu a:hover {
+      background: var(--input-border);
+    }
+    /* Page title */
+    h1 {
+      margin: 0 0 var(--spacing) 0;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    /* Schedule header */
+    #schedule-header {
+      text-align: center;
+      margin-bottom: var(--spacing);
+      font-weight: 500;
+    }
+    /* Assignment list */
+    #assignments {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 var(--spacing) 0;
+    }
+    #assignments li {
+      padding: 8px;
+      border-bottom: 1px solid var(--input-border);
+      font-size: 0.95rem;
+    }
+    /* Actions */
+    .actions {
+      text-align: center;
+      margin-bottom: var(--spacing);
+    }
+    .actions button {
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--bg);
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .actions button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    /* Verses textarea */
+    #verses-text {
+      width: 100%;
+      height: 150px;
+      padding: var(--spacing);
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      resize: none;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Nav -->
+    <div class="nav">
+      <button id="dropdown-btn" class="dropdown-btn">ComeFollowMe ▾</button>
+      <div id="dropdown-menu" class="dropdown-menu">
+        <a href="cfm.html">ComeFollowMe</a>
+        <a href="index.html">Scripture Copier</a>
+      </div>
+    </div>
+
+    <h1>ComeFollowMe</h1>
+
+    <div id="schedule-header">Loading schedule…</div>
+    <ul id="assignments"></ul>
+
+    <div class="actions">
+      <button id="copy-today-btn" disabled>Copy Today's Verses</button>
+    </div>
+
+    <textarea id="verses-text" readonly placeholder="Today's verses will appear here…"></textarea>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Nav dropdown toggle
+    const ddBtn = document.getElementById('dropdown-btn');
+    const ddMenu = document.getElementById('dropdown-menu');
+    ddBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => ddMenu.style.display = 'none');
+
+    // Your CFM schedule (for now, only D&C 1: Jan 6–12, 2025)
+    const schedule = [
+      {
+        start: '2025-01-06',
+        end:   '2025-01-12',
+        volume: 'doctrineandcovenants',
+        book:   'doctrineandcovenants',
+        chapStart: 1,
+        chapEnd:   1
+      }
+    ];
+
+    // Utility to parse YYYY-MM-DD to local-midnight Date
+    function parseDate(d) {
+      const [y,m,day] = d.split('-').map(Number);
+      return new Date(y, m-1, day);
+    }
+
+    // Find today's entry
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const entry = schedule.find(e => {
+      const s = parseDate(e.start), 
+            x = parseDate(e.end);
+      return today >= s && today <= x;
+    });
+
+    const headerEl = document.getElementById('schedule-header');
+    const listEl   = document.getElementById('assignments');
+    const copyBtn  = document.getElementById('copy-today-btn');
+    const versesTA = document.getElementById('verses-text');
+
+    if (!entry) {
+      headerEl.textContent = 'No Come, Follow Me study scheduled for this week.';
+      return;
+    }
+
+    // Show week header
+    headerEl.textContent = 
+      `This week (${entry.start} – ${entry.end}): ` +
+      `D&C ${entry.chapStart}${ entry.chapEnd>entry.chapStart ? '–'+entry.chapEnd : '' }`;
+
+    // Load the JSON for that book
+    fetch(`data/${entry.volume}/${entry.book}.json`)
+      .then(r => r.json())
+      .then(js => {
+        // Gather all verses across chapters
+        const versesList = [];
+        for (let c = entry.chapStart; c <= entry.chapEnd; c++) {
+          const ch = js.chapters.find(chap=>chap.number===c);
+          if (ch && Array.isArray(ch.verses)) {
+            ch.verses.forEach(v => versesList.push(v.text));
+          }
+        }
+        const total = versesList.length;
+        const days  = 7;
+        const perDay = Math.floor(total/days);
+        const extra  = total % days;
+        // Build assignments
+        const assignments = [];
+        let idx = 0;
+        for (let d=0; d<days; d++) {
+          const count = perDay + (d < extra ? 1 : 0);
+          assignments.push({ start: idx, end: idx+count-1 });
+          idx += count;
+        }
+        // Day names
+        const names = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        // Week start
+        const weekStart = parseDate(entry.start);
+        // Render list
+        listEl.innerHTML = '';
+        assignments.forEach((a,i) => {
+          const li = document.createElement('li');
+          const date = new Date(weekStart);
+          date.setDate(date.getDate() + i);
+          const mm = String(date.getMonth()+1).padStart(2,'0');
+          const dd = String(date.getDate()).padStart(2,'0');
+          li.textContent = `${names[i]} (${mm}-${dd}): Verses ${a.start+1}` +
+                           (a.end > a.start ? `–${a.end+1}` : '');
+          listEl.appendChild(li);
+        });
+        // Identify today's chunk
+        const dayIdx = Math.floor( (today - weekStart)/(1000*60*60*24) );
+        if (dayIdx >=0 && dayIdx < 7) {
+          copyBtn.disabled = false;
+          copyBtn.addEventListener('click', () => {
+            const a = assignments[dayIdx];
+            const slice = versesList.slice(a.start, a.end+1);
+            const text  = slice.map((t,i)=>`${i+1}. ${t}`).join('\n');
+            versesTA.value = text;
+            // copy
+            versesTA.select();
+            document.execCommand('copy');
+            alert("Today's verses copied!");
+          });
+        }
+      })
+      .catch(err => {
+        headerEl.textContent = `Error loading schedule: ${err.message}`;
+      });
+  });
+  </script>
+</body>
+</html>
