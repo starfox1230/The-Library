@@ -90,8 +90,8 @@
       font-size: 0.9rem;
       line-height: 1.4;
       white-space: pre-wrap;
-      overflow: hidden;      /* no internal scrollbar */
-      height: auto;          /* let JS expand it */
+      overflow: hidden;
+      height: auto;
     }
     @media (min-width:600px) {
       .actions { justify-content: space-between; }
@@ -105,6 +105,9 @@
       <div id="dropdown-menu" class="dropdown-menu">
         <a href="cfm.html">Come Follow Me</a>
         <a href="index.html">Scripture Copier</a>
+        <a href="https://yt2anki.onrender.com/" target="_blank">Anki/Quiz Generator</a>
+        <a href="https://starfox1230.github.io/TTS/" target="_blank">Text-to-Speech</a>
+        <a href="https://starfox1230.github.io/memorize/" target="_blank">Memorize</a>
       </div>
     </div>
 
@@ -126,14 +129,14 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    // TITLE DROPDOWN
+    // TITLE-DROPDOWN
     const ddTitle = document.getElementById('dropdown-btn'),
           ddMenu  = document.getElementById('dropdown-menu');
     ddTitle.addEventListener('click', e => {
       e.stopPropagation();
-      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+      ddMenu.style.display = ddMenu.style.display==='block'?'none':'block';
     });
-    document.addEventListener('click', ()=> ddMenu.style.display='none');
+    document.addEventListener('click',()=>ddMenu.style.display='none');
 
     // UTILS
     const parseDate = s => {
@@ -141,8 +144,8 @@
       return new Date(y,m-1,d);
     };
     const fmtDate = d => {
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
+      const mm=String(d.getMonth()+1).padStart(2,'0'),
+            dd=String(d.getDate()).padStart(2,'0');
       return `${mm}/${dd}/${d.getFullYear()}`;
     };
     const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -150,20 +153,18 @@
     // STATE
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2025.json').then(r=>r.json());
-    let cw = schedule.findIndex(wk => {
+    let cw = schedule.findIndex(wk=>{
       const s=parseDate(wk.start), e=parseDate(wk.end);
       return today>=s && today<=e;
     });
-    if (cw < 0) {
-      document.getElementById('week-info').textContent = 'No Come Follow Me this week.';
+    if(cw<0){
+      document.getElementById('week-info').textContent='No Come Follow Me this week.';
       return;
     }
-    let dayIdx = Math.floor((today - parseDate(schedule[cw].start))
-                     /(1000*60*60*24));
-    dayIdx = Math.max(0, Math.min(6, dayIdx));
+    let dayIdx = Math.floor((today-parseDate(schedule[cw].start))/(1000*60*60*24));
+    dayIdx = Math.max(0,Math.min(6,dayIdx));
 
-    let displayMode = 'verses'; 
-    const cache = {};
+    let displayMode='verses', cache={};
 
     // ELEMENTS
     const weekInfo = document.getElementById('week-info'),
@@ -174,48 +175,47 @@
           copyBtn  = document.getElementById('copy-btn'),
           contentTA= document.getElementById('content-text');
 
-    // LOAD & CACHE WEEK
-    async function loadWeek(i) {
-      if (cache[i]) return cache[i];
+    // LOAD & CACHE
+    async function loadWeek(i){
+      if(cache[i]) return cache[i];
       const wk = schedule[i];
       const main = await fetch(`data/${wk.volume}/${wk.book}.json`).then(r=>r.json());
-      let flat = [];
-      for (let c=wk.chapStart; c<=wk.chapEnd; c++) {
-        const ch = main.chapters.find(x=>x.number===c);
-        if (ch) ch.verses.forEach((v,j)=>flat.push({
-          section:c, verse:j+1, text:v.text
+      let flat=[];
+      for(let c=wk.chapStart;c<=wk.chapEnd;c++){
+        const ch=main.chapters.find(x=>x.number===c);
+        if(ch) ch.verses.forEach((v,j)=>flat.push({
+          section:c,verse:j+1,text:v.text
         }));
       }
-      if (wk.extraBook) {
+      if(wk.extraBook){
         const extra = await fetch(`data/${wk.volume}/${wk.extraBook}.json`).then(r=>r.json());
-        for (let c=wk.extraStart; c<=wk.extraEnd; c++) {
-          const ch = extra.chapters.find(x=>x.number===c);
-          if (ch) ch.verses.forEach((v,j)=>flat.push({
-            section:c, verse:j+1, text:v.text
+        for(let c=wk.extraStart;c<=wk.extraEnd;c++){
+          const ch=extra.chapters.find(x=>x.number===c);
+          if(ch) ch.verses.forEach((v,j)=>flat.push({
+            section:c,verse:j+1,text:v.text
           }));
         }
       }
-      const total = flat.length, per = Math.floor(total/7), ext = total%7;
-      const assigns = []; let pos=0;
-      for (let d=0; d<7; d++){
-        const cnt = per + (d<ext ? 1 : 0);
-        assigns.push(flat.slice(pos, pos+cnt));
-        pos += cnt;
+      const total=flat.length, per=Math.floor(total/7), ext=total%7;
+      const assigns=[]; let pos=0;
+      for(let d=0;d<7;d++){
+        const cnt=per+(d<ext?1:0);
+        assigns.push(flat.slice(pos,pos+cnt));
+        pos+=cnt;
       }
-      return cache[i] = { wk, flat, assigns };
+      return cache[i]={wk,flat,assigns};
     }
 
     // AUTO-RESIZE
-    function autoResize() {
-      contentTA.style.height = 'auto';
-      contentTA.style.height = contentTA.scrollHeight + 'px';
+    function autoResize(){
+      contentTA.style.height='auto';
+      contentTA.style.height=contentTA.scrollHeight+'px';
     }
 
-    // RENDER DAY
-    async function renderDay() {
-      const { wk, assigns } = await loadWeek(cw);
-      // week header
-      weekInfo.textContent =
+    // RENDER
+    async function renderDay(){
+      const {wk,assigns}=await loadWeek(cw);
+      weekInfo.textContent=
         `Week we're in: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}\n`+
         `Sections: D&C ${wk.chapStart}`+
         (wk.chapEnd>wk.chapStart?`–${wk.chapEnd}`:'')+
@@ -224,72 +224,65 @@
             `${wk.extraStart}`+
             (wk.extraEnd>wk.extraStart?`–${wk.extraEnd}`:'')
           : '');
-      // today info
-      const dt = new Date(parseDate(wk.start));
+      const dt=new Date(parseDate(wk.start));
       dt.setDate(dt.getDate()+dayIdx);
-      dayInfo.textContent = `Today's date: ${fmtDate(dt)}`;
+      dayInfo.textContent=`Today's date: ${fmtDate(dt)}`;
+      prevBtn.disabled=(cw===0&&dayIdx===0);
+      nextBtn.disabled=(cw===schedule.length-1&&dayIdx===6);
+      toggleBtn.disabled=false; copyBtn.disabled=false;
+      toggleBtn.textContent=displayMode==='verses'?'Show Sections':'Show Verses';
+      copyBtn.textContent='Copy';
 
-      prevBtn.disabled = (cw===0 && dayIdx===0);
-      nextBtn.disabled = (cw===schedule.length-1 && dayIdx===6);
-
-      toggleBtn.disabled = false;
-      copyBtn.disabled   = false;
-      toggleBtn.textContent = displayMode==='verses' ? 'Show Sections' : 'Show Verses';
-      copyBtn.textContent   = 'Copy';
-
-      // build content
-      const arr = assigns[dayIdx];
-      if (displayMode==='verses') {
-        const ranges = [];
+      const arr=assigns[dayIdx];
+      if(displayMode==='verses'){
+        const ranges=[];
         arr.forEach((it,i)=>{
-          if (i===0 || it.section!==arr[i-1].section)
+          if(i===0||it.section!==arr[i-1].section)
             ranges.push({sec:it.section,start:it.verse,end:it.verse});
           else
-            ranges[ranges.length-1].end = it.verse;
+            ranges[ranges.length-1].end=it.verse;
         });
-        const hdr = ranges.map(r=>
-          `D&C ${r.sec}:${r.start}` +
-          (r.end>r.start?`–${r.end}`:'')
-        ).join(', ');
-        const body = arr.map(it=>`${it.verse}. ${it.text}`).join('\n');
-        contentTA.value = hdr + '\n\n' + body;
+        const hdr=ranges.map(r=>`D&C ${r.sec}:${r.start}`+
+          (r.end>r.start?`–${r.end}`:'')).join(', ');
+        const body=arr.map(it=>`${it.verse}. ${it.text}`).join('\n');
+        contentTA.value=hdr+'\n\n'+body;
       } else {
-        const secs = [...new Set(arr.map(it=>it.section))];
-        let out = '';
-        for (const sec of secs) {
-          const verseList = (await loadWeek(cw)).flat
+        const secs=[...new Set(arr.map(it=>it.section))];
+        let out='';
+        for(const sec of secs){
+          const verseList=(await loadWeek(cw)).flat
             .filter(x=>x.section===sec);
-          out += `D&C ${sec}\n\n` +
-            verseList.map(v=>`${v.verse}. ${v.text}`).join('\n') +
+          out+=`D&C ${sec}\n\n`+
+            verseList.map(v=>`${v.verse}. ${v.text}`).join('\n')+
             '\n\n';
         }
-        contentTA.value = out.trim();
+        contentTA.value=out.trim();
       }
       autoResize();
     }
 
     // HANDLERS
-    prevBtn.addEventListener('click', ()=>{
-      if (dayIdx>0) dayIdx--;
-      else if (cw>0) { cw--; dayIdx=6; }
+    prevBtn.addEventListener('click',()=>{
+      if(dayIdx>0) dayIdx--;
+      else if(cw>0){ cw--; dayIdx=6; }
       renderDay();
     });
-    nextBtn.addEventListener('click', ()=>{
-      if (dayIdx<6) dayIdx++;
-      else if (cw<schedule.length-1) { cw++; dayIdx=0; }
+    nextBtn.addEventListener('click',()=>{
+      if(dayIdx<6) dayIdx++;
+      else if(cw<schedule.length-1){ cw++; dayIdx=0; }
       renderDay();
     });
-    toggleBtn.addEventListener('click', ()=>{
-      displayMode = displayMode==='verses' ? 'sections' : 'verses';
+    toggleBtn.addEventListener('click',()=>{
+      displayMode=displayMode==='verses'?'sections':'verses';
       renderDay();
     });
-    copyBtn.addEventListener('click', ()=>{
+    copyBtn.addEventListener('click',()=>{
       contentTA.select();
       document.execCommand('copy');
       alert('Copied!');
     });
 
-    // initial render
+    // INITIAL
     renderDay();
   });
   </script>
