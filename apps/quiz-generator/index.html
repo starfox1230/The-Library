@@ -104,7 +104,7 @@
             min-height: 300px;
         }
 
-        .action-button, .copy-button {
+        .action-button, .copy-button, .download-button { /* Added .download-button */
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
             color: white;
             border: none;
@@ -120,13 +120,15 @@
         }
 
         .action-button:hover:not(:disabled),
-        .copy-button:hover:not(:disabled) {
+        .copy-button:hover:not(:disabled),
+        .download-button:hover:not(:disabled) { /* Added .download-button */
             transform: scale(1.05);
             box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
         }
 
          .action-button:disabled,
-         .copy-button:disabled {
+         .copy-button:disabled,
+         .download-button:disabled { /* Added .download-button */
             background: #5a5a7e;
             cursor: not-allowed;
             opacity: 0.6;
@@ -152,7 +154,8 @@
         .button-group {
              display: flex;
              justify-content: center;
-             gap: 20px;
+             flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+             gap: 15px; /* Adjusted gap */
              margin-top: 10px;
              margin-bottom: 20px;
         }
@@ -168,7 +171,7 @@
              .prompt-controls {
                  gap: 10px;
              }
-             .action-button, .copy-button {
+             .action-button, .copy-button, .download-button { /* Added .download-button */
                  padding: 8px 18px;
                  font-size: 0.9em;
              }
@@ -240,8 +243,9 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             <textarea id="outputHtml" readonly></textarea>
             <div class="button-group">
                  <button id="copyHtmlBtn" class="copy-button">Copy HTML</button>
+                 <button id="downloadHtmlBtn" class="download-button">Download HTML</button> <!-- New Download Button -->
             </div>
-             <p>Copy the code above, save it as an `.html` file (e.g., `my_quiz.html`), and open it in a web browser.</p>
+             <p>Copy the code above, save it as an `.html` file (e.g., `my_quiz.html`), or use the Download button.</p>
              <p>Alternatively, paste the copied HTML code directly into the HTML box on <a href="https://codepen.io/pen" target="_blank" class="link-style">CodePen</a> to run it online.</p>
         </div>
     </div>
@@ -254,6 +258,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         const outputSection = document.getElementById('outputSection');
         const outputHtml = document.getElementById('outputHtml');
         const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+        const downloadHtmlBtn = document.getElementById('downloadHtmlBtn'); // Get download button reference
 
         // --- Copy Button Feedback Function ---
         function provideCopyFeedback(button) {
@@ -317,7 +322,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 return;
             }
 
-            // --- HTML Template (Comments Removed, Viewport Updated) ---
+            // --- HTML Template ---
             const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
@@ -705,6 +710,37 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                       alert('Failed to copy HTML automatically. Please copy manually.');
                  }
             }
+        });
+
+        // --- Download Generated HTML Logic ---
+        downloadHtmlBtn.addEventListener('click', () => {
+            const htmlContent = outputHtml.value;
+            if (!htmlContent) {
+                alert('No HTML content generated to download.');
+                return;
+            }
+
+            // Create a Blob
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+
+            // Create an Object URL
+            const url = URL.createObjectURL(blob);
+
+            // Create a temporary anchor element
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'generated_quiz.html'; // Set the desired filename
+            a.style.display = 'none'; // Hide the anchor
+
+            // Append the anchor to the body (required for Firefox)
+            document.body.appendChild(a);
+
+            // Programmatically click the anchor
+            a.click();
+
+            // Clean up: remove the anchor and revoke the URL
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
 
     </script>
