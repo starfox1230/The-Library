@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Report Search - Night Mode</title>
+  <style>
+    :root {
+      --bg-color: #1e1e1e;
+      --text-color: #d4d4d4;
+      --input-bg: #3c3c3c;
+      --input-border: #555;
+      --result-bg: #2a2a2a;
+      --result-border: #444;
+      --highlight-bg: #5a5a2a; /* Yellowish highlight */
+      --highlight-text: #f0f0aa;
+      --button-bg: #0e639c;
+      --button-hover-bg: #1177bb;
+      --button-text: #ffffff;
+      --danger-button-bg: #a03030;
+      --danger-button-hover-bg: #c04040;
+      --link-color: #9cdcfe;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      color: var(--text-color);
+      border-bottom: 1px solid var(--input-border);
+      padding-bottom: 0.75rem;
+      font-weight: 500;
+    }
+
+    #controls {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--input-border);
+    }
+
+    /* --- Raw Input Area --- */
+    #raw-input-section {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px dashed var(--input-border); /* Dashed separator */
+    }
+    #raw-input-section label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    #raw-case-input {
+        width: 100%;
+        box-sizing: border-box;
+        height: 200px; /* Adjust height as needed */
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        background-color: var(--input-bg);
+        border: 1px solid var(--input-border);
+        color: var(--text-color);
+        border-radius: 4px;
+        font-family: monospace; /* Good for code-like input */
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+     #raw-case-input:focus {
+      outline: none;
+      border-color: var(--button-bg);
+      box-shadow: 0 0 0 2px rgba(14, 99, 156, 0.5);
+    }
+    /* --- End Raw Input Area --- */
+
+
+    #txt-filter {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      background-color: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-color);
+      border-radius: 4px;
+      font-size: 1.1rem;
+    }
+    #txt-filter:focus {
+      outline: none;
+      border-color: var(--button-bg);
+      box-shadow: 0 0 0 2px rgba(14, 99, 156, 0.5);
+    }
+
+    #results {
+      margin-top: 1rem;
+    }
+
+    /* Result item (snippet view) */
+    .result-item {
+      background-color: var(--result-bg);
+      border: 1px solid var(--result-border);
+      border-radius: 5px;
+      padding: 0.8rem 1.2rem;
+      margin-bottom: 0.8rem;
+      cursor: pointer; /* Default for snippet */
+      transition: background-color 0.2s ease;
+       white-space: pre-wrap;
+       word-break: break-word;
+    }
+    .result-item:hover {
+        background-color: #333333;
+    }
+    /* Make expanded view non-hoverable */
+    .result-item:has(.full-report-view):hover {
+        background-color: var(--result-bg); /* Revert hover effect when expanded */
+    }
+
+
+    .result-item strong { /* Highlight */
+      background-color: var(--highlight-bg);
+      color: var(--highlight-text);
+      font-weight: normal;
+      padding: 0.1em 0.2em;
+      border-radius: 3px;
+    }
+
+    /* Expanded report view */
+    .full-report-view {
+        background-color: #252526;
+        border: 1px solid #555;
+        border-radius: 5px;
+        padding: 1rem 1.5rem;
+        margin-top: 0.5rem;
+        white-space: pre-wrap;
+        cursor: default; /* Override parent cursor */
+        font-family: monospace;
+        font-size: 0.95em;
+        line-height: 1.5;
+    }
+    .full-report-view h3 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        color: var(--link-color);
+        border-bottom: 1px dashed var(--input-border);
+        padding-bottom: 0.3rem;
+    }
+     /* Highlight within expanded view */
+    .full-report-view strong {
+        background-color: var(--highlight-bg);
+        color: var(--highlight-text);
+        font-weight: normal;
+        padding: 0.1em 0.2em;
+        border-radius: 3px;
+    }
+
+
+    .report-meta {
+        font-size: 0.85em;
+        color: #aaa;
+        margin-bottom: 0.5em;
+    }
+
+    #status-message {
+      text-align: center;
+      color: #888;
+      margin-top: 2rem;
+      font-style: italic;
+    }
+
+    button {
+      margin-right: .5rem;
+      padding: .5rem 1rem;
+      margin-top: .5rem;
+      border: none;
+      border-radius: 4px;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: var(--button-hover-bg);
+    }
+    #btn-clear-db {
+        background-color: var(--danger-button-bg);
+    }
+     #btn-clear-db:hover {
+        background-color: var(--danger-button-hover-bg);
+    }
+    #btn-parse-raw {
+        background-color: #2a8f5a;
+    }
+    #btn-parse-raw:hover {
+        background-color: #35a56c;
+    }
+
+
+    input[type="file"] { display: none; }
+
+  </style>
+</head>
+<body>
+  <h1>Report Search</h1>
+
+  <div id="controls">
+    <div id="raw-input-section">
+      <label for="raw-case-input">Paste Raw Cases Here (Format: Case X...Attending Report:...Resident Report:...):</label>
+      <textarea id="raw-case-input" placeholder="Case 1 Attending Report: ... Resident Report: ... Case 2 ..."></textarea><br>
+      <button id="btn-parse-raw">Parse & Add Cases</button>
+    </div>
+
+    <button id="btn-load-db" title="Replace current database with file content">Load Report Database (JSON)</button>
+    <button id="btn-append-db" title="Add reports from file to current database">Append to Database (JSON)</button>
+    <button id="btn-download-db">Download Database (JSON)</button>
+    <button id="btn-clear-db">Clear Saved Database</button>
+
+    <input type="file" id="json-upload-input" accept=".json">
+  </div>
+
+  <input
+    type="search"
+    id="txt-filter"
+    placeholder="Start typing to search reports..."
+  >
+
+  <div id="results"></div>
+  <div id="status-message">Load a database or type to search.</div>
+
+  <script>
+  const LOCAL_STORAGE_KEY = 'reportSearchDb_v1';
+  let reportDatabase = [];
+  let currentUploadMode = 'load';
+
+  // --- Database Utilities ---
+
+  function paragraphSplitter(text) {
+    if (!text) return [];
+    const paras = text.split(/\r?\n\s*\r?\n+/);
+    return paras.map(p => p.trim()).filter(p => p.length > 0);
+  }
+
+  function processLoadedData(data, mode = 'load') {
+      let loadedReports = [];
+      if (!Array.isArray(data)) {
+          if (typeof data === 'string' && data.trim().toLowerCase().startsWith('case')) {
+             console.log("Input seems like raw text, attempting raw parse...");
+             try {
+                 const parsedFromRaw = parseRawCases(data);
+                 loadedReports = parsedFromRaw.newReports;
+                 alert(`Parsed raw text input: ${parsedFromRaw.addedCount} reports added, ${parsedFromRaw.failedCount} failed.`);
+             } catch (rawParseError) {
+                  console.error("Failed to parse input as raw text:", rawParseError);
+                  throw new Error("Invalid JSON format and failed to parse as raw case text.");
+             }
+          } else {
+              throw new Error("Invalid JSON format: Expected an array of report objects.");
+          }
+      } else {
+         loadedReports = data.map((item, index) => {
+            if (!item || typeof item !== 'object' || typeof item.attendingReport === 'undefined' || typeof item.residentReport === 'undefined') { // Check presence better
+                console.warn(`Skipping invalid item at index ${index} during JSON load.`);
+                return null;
+            }
+            const id = item.id || `report_${Date.now()}_${index}`;
+            return {
+                id: id,
+                attendingReport: (item.attendingReport || "").trim(), // Handle null/undefined
+                residentReport: (item.residentReport || "").trim(), // Handle null/undefined
+                attendingParagraphs: paragraphSplitter(item.attendingReport),
+                residentParagraphs: paragraphSplitter(item.residentReport)
+            };
+         }).filter(Boolean);
+         if (mode === 'load') {
+             alert(`Database Loaded from JSON: ${loadedReports.length} reports processed.`);
+         }
+      }
+
+      const existingIds = new Set(reportDatabase.map(r => r.id));
+      let actuallyAddedCount = 0;
+
+      if (mode === 'load') {
+          reportDatabase = [];
+          loadedReports.forEach(newReport => {
+              if (!existingIds.has(newReport.id)) {
+                  reportDatabase.push(newReport);
+                  existingIds.add(newReport.id);
+                  actuallyAddedCount++;
+              } else {
+                 console.warn(`Skipping report with duplicate ID '${newReport.id}' during load.`);
+              }
+          });
+      } else if (mode === 'append') {
+          const initialCount = reportDatabase.length;
+          loadedReports.forEach(newReport => {
+              if (!existingIds.has(newReport.id)) {
+                  reportDatabase.push(newReport);
+                  existingIds.add(newReport.id);
+                  actuallyAddedCount++;
+              } else {
+                  console.warn(`Skipping report with duplicate ID '${newReport.id}' during append.`);
+              }
+          });
+           alert(`Database Appended: ${actuallyAddedCount} new reports added. Total: ${reportDatabase.length} reports.`);
+      }
+
+      if (actuallyAddedCount > 0 || mode === 'load') {
+        saveDatabase();
+      }
+      renderResults(document.getElementById('txt-filter').value);
+      updateStatusMessage();
+  }
+
+   function parseRawCases(rawText) {
+       if (!rawText || !rawText.trim()) {
+           return { addedCount: 0, failedCount: 0, newReports: [] };
+       }
+       const caseChunks = rawText.split(/(?=^Case\s*\d+)/m).filter(chunk => chunk.trim());
+       const newReports = [];
+       let addedCount = 0;
+       let failedCount = 0;
+       const existingIds = new Set(reportDatabase.map(r => r.id));
+
+       caseChunks.forEach((chunk, index) => {
+           chunk = chunk.trim();
+           if (!chunk) return;
+           const caseMatch = chunk.match(/^Case\s*(\d+)/);
+           const caseNum = caseMatch ? caseMatch[1] : null;
+           let reportId = caseNum ? `Case_${caseNum}` : `raw_${Date.now()}_${index}`;
+           let counter = 0;
+           let originalId = reportId;
+           while (existingIds.has(reportId) || newReports.some(r => r.id === reportId)) {
+               counter++;
+               reportId = `${originalId}_${counter}`;
+           }
+           let attendingReport = '';
+           let residentReport = '';
+           const attendHeaderMatch = chunk.match(/^Attending Report:/mi);
+           const residentHeaderMatch = chunk.match(/^(?:Resident|Residenrt)\s*Report:/mi);
+
+           if (attendHeaderMatch) {
+               const attendStartIndex = attendHeaderMatch.index + attendHeaderMatch[0].length;
+               let attendEndIndex = chunk.length;
+               if (residentHeaderMatch) { attendEndIndex = residentHeaderMatch.index; }
+               attendingReport = chunk.substring(attendStartIndex, attendEndIndex).trim();
+           }
+           if (residentHeaderMatch) {
+               const residentStartIndex = residentHeaderMatch.index + residentHeaderMatch[0].length;
+               residentReport = chunk.substring(residentStartIndex).trim();
+           }
+
+           if (attendingReport) {
+               const report = {
+                   id: reportId,
+                   attendingReport: attendingReport,
+                   residentReport: residentReport,
+                   attendingParagraphs: paragraphSplitter(attendingReport),
+                   residentParagraphs: paragraphSplitter(residentReport)
+               };
+               newReports.push(report);
+               addedCount++;
+           } else {
+               console.warn(`Failed to parse Case chunk starting with: "${chunk.substring(0, 50)}..." - Could not find 'Attending Report:'.`);
+               failedCount++;
+           }
+       });
+       return { addedCount, failedCount, newReports };
+   }
+
+  function saveDatabase() {
+    try {
+      const dataToSave = reportDatabase.map(r => ({
+          id: r.id,
+          attendingReport: r.attendingReport,
+          residentReport: r.residentReport
+      }));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+    } catch (e) {
+      console.error("Error saving database:", e);
+      alert("Error saving database to local storage. It might be full.");
+    }
+  }
+
+  function loadDatabase() {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    reportDatabase = [];
+    if (saved) {
+      try {
+        const parsedData = JSON.parse(saved);
+        processLoadedData(parsedData, 'load');
+      } catch (e) {
+        console.error("Error loading database:", e);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        alert("Error loading database from local storage. Cleared potentially corrupted data.");
+      }
+    }
+    updateStatusMessage();
+  }
+
+  // --- UI Rendering ---
+
+  function highlightMatches(text, term) {
+      if (!term || !text) return text; // Added check for text
+      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      try {
+        const regex = new RegExp(`(${escapedTerm})`, 'gi');
+         // Use callback to avoid issues with '$' in replacement
+         return text.replace(regex, (match, p1) => `<strong>${p1}</strong>`);
+      } catch (e) {
+          console.warn("Highlighting regex error:", e);
+          return text;
+      }
+  }
+
+  function renderResults(searchTerm) {
+    const resultsContainer = document.getElementById('results');
+    const statusMessage = document.getElementById('status-message');
+    resultsContainer.innerHTML = '';
+    searchTerm = searchTerm.trim().toLowerCase(); // Keep the search term used for this render
+
+    if (!searchTerm) {
+        updateStatusMessage();
+      return;
+    }
+
+    let matchFound = false;
+    const fragment = document.createDocumentFragment();
+
+    reportDatabase.forEach(report => {
+      const processParagraphs = (paragraphs, type, reportId) => {
+        paragraphs.forEach((p, index) => {
+          if (p.toLowerCase().includes(searchTerm)) {
+            matchFound = true;
+            const div = document.createElement('div');
+            div.className = 'result-item';
+            div.dataset.reportId = reportId;
+            // *** Store original data for collapsing ***
+            div.dataset.originalParagraph = p;
+            div.dataset.originalSearchTerm = searchTerm;
+            div.dataset.reportType = type;
+            // *********************************************
+
+            const meta = document.createElement('div');
+            meta.className = 'report-meta';
+            meta.textContent = `Match in ${reportId} (${type})`;
+            div.appendChild(meta);
+
+            const content = document.createElement('div');
+            content.textContent = p;
+            content.innerHTML = highlightMatches(content.innerHTML, searchTerm);
+            div.appendChild(content);
+
+            // Initial listener to expand
+            div.addEventListener('dblclick', handleResultDoubleClick);
+            fragment.appendChild(div);
+          }
+        });
+      };
+
+      processParagraphs(report.attendingParagraphs, 'Attending', report.id);
+      processParagraphs(report.residentParagraphs, 'Resident', report.id);
+    });
+
+    resultsContainer.appendChild(fragment);
+
+    if (searchTerm && !matchFound) {
+        statusMessage.textContent = 'No matching paragraphs found for "' + searchTerm + '".';
+        statusMessage.style.display = 'block';
+    } else {
+       updateStatusMessage();
+    }
+  }
+
+   function updateStatusMessage() {
+       const statusMessage = document.getElementById('status-message');
+       const filterInput = document.getElementById('txt-filter');
+       const resultsContainer = document.getElementById('results');
+       const searchTerm = filterInput.value.trim();
+
+       if (searchTerm === '' && resultsContainer.innerHTML === '') {
+            statusMessage.textContent = reportDatabase.length > 0
+                ? 'Type in the search box above to find reports.'
+                : 'Load a report database or paste raw cases above.';
+            statusMessage.style.display = 'block';
+       } else if (searchTerm !== '' && resultsContainer.innerHTML === '') {
+           if (statusMessage.textContent.startsWith('No matching')) {
+                statusMessage.style.display = 'block';
+           } else {
+                statusMessage.style.display = 'none';
+           }
+       } else if (resultsContainer.innerHTML !== '') {
+            statusMessage.style.display = 'none';
+       }
+        else {
+             statusMessage.textContent = reportDatabase.length > 0
+                ? 'Type in the search box above to find reports.'
+                : 'Load a report database or paste raw cases above.';
+           statusMessage.style.display = 'block';
+       }
+   }
+
+  // --- Event Handlers ---
+
+  // Expands the result
+  function handleResultDoubleClick(event) {
+    const resultItem = event.currentTarget;
+    const reportId = resultItem.dataset.reportId;
+    const report = reportDatabase.find(r => r.id === reportId);
+
+    if (!report) {
+        console.error("Could not find report for ID:", reportId);
+        resultItem.innerHTML = '<div class="report-meta" style="color: red;">Error: Report data not found.</div>';
+        resultItem.style.cursor = 'default';
+        resultItem.removeEventListener('dblclick', handleResultDoubleClick);
+        return;
+    };
+
+    resultItem.innerHTML = '';
+    resultItem.style.cursor = 'default'; // Default cursor for expanded view container
+    resultItem.removeEventListener('dblclick', handleResultDoubleClick); // Remove expand listener
+
+    const fullView = document.createElement('div');
+    fullView.className = 'full-report-view';
+
+    const meta = document.createElement('div');
+    meta.className = 'report-meta';
+    meta.textContent = `Full Report: ${report.id} (Double-click to collapse)`;
+    fullView.appendChild(meta);
+
+    const currentSearchTerm = document.getElementById('txt-filter').value.trim().toLowerCase(); // Get current term
+
+    const attendingHeader = document.createElement('h3');
+    attendingHeader.textContent = 'Attending Report';
+    fullView.appendChild(attendingHeader);
+    const attendingContent = document.createElement('div');
+    attendingContent.textContent = report.attendingReport;
+    if (currentSearchTerm) { // Highlight if term exists
+        attendingContent.innerHTML = highlightMatches(attendingContent.innerHTML, currentSearchTerm);
+    }
+    fullView.appendChild(attendingContent);
+
+    if (report.residentReport && report.residentReport.trim()) {
+        const residentHeader = document.createElement('h3');
+        residentHeader.textContent = 'Resident Report';
+        residentHeader.style.marginTop = '1rem';
+        fullView.appendChild(residentHeader);
+        const residentContent = document.createElement('div');
+        residentContent.textContent = report.residentReport;
+         if (currentSearchTerm) { // Highlight if term exists
+            residentContent.innerHTML = highlightMatches(residentContent.innerHTML, currentSearchTerm);
+        }
+        fullView.appendChild(residentContent);
+    }
+
+    resultItem.appendChild(fullView);
+
+    // Add listener to collapse the view
+    resultItem.addEventListener('dblclick', handleCollapseDoubleClick);
+  }
+
+  // Collapses the result
+  function handleCollapseDoubleClick(event) {
+      const resultItem = event.currentTarget;
+
+      const reportId = resultItem.dataset.reportId;
+      const originalParagraph = resultItem.dataset.originalParagraph;
+      const originalSearchTerm = resultItem.dataset.originalSearchTerm;
+      const reportType = resultItem.dataset.reportType;
+
+      // Should always have these, but check just in case
+      if (typeof originalParagraph === 'undefined' || typeof originalSearchTerm === 'undefined' || typeof reportType === 'undefined') {
+          console.error("Missing original data on element, cannot collapse correctly.", resultItem.dataset);
+          // Optionally, just remove the collapse listener and leave expanded
+          resultItem.removeEventListener('dblclick', handleCollapseDoubleClick);
+          resultItem.style.cursor = 'default';
+          return;
+      }
+
+      resultItem.innerHTML = ''; // Clear expanded view
+      resultItem.style.cursor = 'pointer'; // Restore snippet cursor
+      resultItem.removeEventListener('dblclick', handleCollapseDoubleClick); // Remove collapse listener
+
+      const meta = document.createElement('div');
+      meta.className = 'report-meta';
+      meta.textContent = `Match in ${reportId} (${reportType})`;
+      resultItem.appendChild(meta);
+
+      const content = document.createElement('div');
+      content.textContent = originalParagraph;
+      // Use the ORIGINAL search term to highlight the snippet
+      content.innerHTML = highlightMatches(content.innerHTML, originalSearchTerm);
+      resultItem.appendChild(content);
+
+      // Re-attach listener to allow expanding again
+      resultItem.addEventListener('dblclick', handleResultDoubleClick);
+  }
+
+
+  function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const fileContent = e.target.result;
+              let loadedData;
+              try {
+                  loadedData = JSON.parse(fileContent);
+              } catch (jsonError) {
+                  if (typeof fileContent === 'string' && fileContent.trim().toLowerCase().startsWith('case')) {
+                       console.log("File is not valid JSON, treating as raw text cases.");
+                       loadedData = fileContent;
+                  } else {
+                      throw new Error("File is not valid JSON and doesn't appear to be raw case text.");
+                  }
+              }
+              processLoadedData(loadedData, currentUploadMode);
+          } catch (err) {
+              alert(`Error loading or processing file: ${err.message}`);
+              console.error("File Load/Process Error:", err);
+          } finally {
+              event.target.value = '';
+          }
+      };
+      reader.onerror = (e) => {
+          alert("Error reading file.");
+          console.error("File Reader Error:", e);
+          event.target.value = '';
+      };
+      reader.readAsText(file);
+  }
+
+  // --- Initialization and Event Listeners ---
+  document.addEventListener('DOMContentLoaded', () => {
+    loadDatabase();
+
+    const filterInput = document.getElementById('txt-filter');
+    const fileUploadInput = document.getElementById('json-upload-input');
+    const rawCaseInput = document.getElementById('raw-case-input');
+    const parseRawButton = document.getElementById('btn-parse-raw');
+
+    let filterTimeout;
+    filterInput.addEventListener('input', () => {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+            renderResults(filterInput.value);
+        }, 150);
+    });
+
+    parseRawButton.addEventListener('click', () => {
+        const rawText = rawCaseInput.value;
+        if (!rawText.trim()) {
+            alert("Please paste case text into the box first.");
+            return;
+        }
+        try {
+            const parseResult = parseRawCases(rawText);
+            if (parseResult.addedCount > 0) {
+                const currentIds = new Set(reportDatabase.map(r => r.id));
+                let actuallyAdded = 0;
+                parseResult.newReports.forEach(newReport => {
+                    if (!currentIds.has(newReport.id)) {
+                        reportDatabase.push(newReport);
+                        currentIds.add(newReport.id);
+                        actuallyAdded++;
+                    } else {
+                        console.warn(`Skipping report with duplicate ID '${newReport.id}' during raw parse addition.`);
+                    }
+                });
+                if (actuallyAdded > 0) {
+                    saveDatabase();
+                    rawCaseInput.value = '';
+                    renderResults(filterInput.value);
+                    updateStatusMessage();
+                    alert(`Successfully added ${actuallyAdded} new reports from text.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} cases failed to parse.` : ''}`);
+                } else {
+                     alert(`No new reports were added. ${parseResult.addedCount} reports found in text but their IDs already exist in the database.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} cases failed to parse.` : ''}`);
+                }
+            } else {
+                alert(`Could not parse any valid reports from the text.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} potential cases failed to parse.` : ''}`);
+            }
+        } catch (error) {
+            console.error("Error parsing raw cases:", error);
+            alert("An unexpected error occurred while parsing the text. Check the console for details.");
+        }
+    });
+
+    document.getElementById('btn-load-db').onclick = () => {
+      currentUploadMode = 'load';
+      fileUploadInput.click();
+    };
+    document.getElementById('btn-append-db').onclick = () => {
+      currentUploadMode = 'append';
+      fileUploadInput.click();
+    };
+    fileUploadInput.addEventListener('change', handleFileUpload);
+
+    document.getElementById('btn-download-db').onclick = () => {
+        if (reportDatabase.length === 0) {
+            alert("Database is empty. Nothing to download."); return;
+        }
+        const dataToSave = reportDatabase.map(r => ({ id: r.id, attendingReport: r.attendingReport, residentReport: r.residentReport }));
+        const str = JSON.stringify(dataToSave, null, 2);
+        const blob = new Blob([str], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const date = new Date();
+        const timestamp = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
+        a.download = `reportDatabase_${timestamp}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    };
+
+    document.getElementById('btn-clear-db').onclick = () => {
+      if (confirm("Are you sure you want to clear the entire saved report database from your browser? This cannot be undone.")) {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        reportDatabase = [];
+        renderResults('');
+        updateStatusMessage();
+        alert("Saved database cleared.");
+      }
+    };
+  });
+
+  </script>
+</body>
+</html>
