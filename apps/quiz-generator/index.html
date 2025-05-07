@@ -104,7 +104,7 @@
             min-height: 300px;
         }
 
-        .action-button, .copy-button, .download-button { /* Added .download-button */
+        .action-button, .copy-button, .download-button {
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
             color: white;
             border: none;
@@ -121,14 +121,14 @@
 
         .action-button:hover:not(:disabled),
         .copy-button:hover:not(:disabled),
-        .download-button:hover:not(:disabled) { /* Added .download-button */
+        .download-button:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
         }
 
          .action-button:disabled,
          .copy-button:disabled,
-         .download-button:disabled { /* Added .download-button */
+         .download-button:disabled {
             background: #5a5a7e;
             cursor: not-allowed;
             opacity: 0.6;
@@ -154,8 +154,8 @@
         .button-group {
              display: flex;
              justify-content: center;
-             flex-wrap: wrap; /* Allow buttons to wrap on small screens */
-             gap: 15px; /* Adjusted gap */
+             flex-wrap: wrap;
+             gap: 15px;
              margin-top: 10px;
              margin-bottom: 20px;
         }
@@ -171,7 +171,7 @@
              .prompt-controls {
                  gap: 10px;
              }
-             .action-button, .copy-button, .download-button { /* Added .download-button */
+             .action-button, .copy-button, .download-button {
                  padding: 8px 18px;
                  font-size: 0.9em;
              }
@@ -243,7 +243,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             <textarea id="outputHtml" readonly></textarea>
             <div class="button-group">
                  <button id="copyHtmlBtn" class="copy-button">Copy HTML</button>
-                 <button id="downloadHtmlBtn" class="download-button">Download HTML</button> <!-- New Download Button -->
+                 <button id="downloadHtmlBtn" class="download-button">Download HTML</button>
             </div>
              <p>Copy the code above, save it as an `.html` file (e.g., `my_quiz.html`), or use the Download button.</p>
              <p>Alternatively, paste the copied HTML code directly into the HTML box on <a href="https://codepen.io/pen" target="_blank" class="link-style">CodePen</a> to run it online.</p>
@@ -258,7 +258,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         const outputSection = document.getElementById('outputSection');
         const outputHtml = document.getElementById('outputHtml');
         const copyHtmlBtn = document.getElementById('copyHtmlBtn');
-        const downloadHtmlBtn = document.getElementById('downloadHtmlBtn'); // Get download button reference
+        const downloadHtmlBtn = document.getElementById('downloadHtmlBtn');
 
         // --- Copy Button Feedback Function ---
         function provideCopyFeedback(button) {
@@ -643,8 +643,8 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             currentQuestionIndex++;
             loadQuestion();
         } else if (currentQuestionIndex === quizData.length - 1) {
-             currentQuestionIndex++;
-             loadQuestion();
+             currentQuestionIndex++; // Allow to go one beyond to trigger completion
+             loadQuestion(); // This will call showCompletion() if index is >= length
         }
     }
 
@@ -720,6 +720,18 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 return;
             }
 
+            // --- Generate dynamic filename ---
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timestamp = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+            const filename = `quiz_${timestamp}.html`;
+            // --- End of dynamic filename generation ---
+
             // Create a Blob
             const blob = new Blob([htmlContent], { type: 'text/html' });
 
@@ -729,7 +741,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             // Create a temporary anchor element
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'generated_quiz.html'; // Set the desired filename
+            a.download = filename; // Use the dynamic filename
             a.style.display = 'none'; // Hide the anchor
 
             // Append the anchor to the body (required for Firefox)
