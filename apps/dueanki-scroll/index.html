@@ -6,9 +6,9 @@
   <title>Anki True-Template Swipe Feed</title>
   <style>
     :root {
-      --bg: #0f0f0f; /* Darker bg */
-      --card-bg: #1c1c1e;
-      --text: #e0e0e0; /* Lighter text */
+      --bg: #0f0f0f; /* Darker bg for better contrast with cards */
+      --card-bg: #1c1c1e; /* Default card background */
+      --text: #e0e0e0; /* Lighter default text */
       --accent: #00c8ff;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,8 +21,8 @@
     header {
       text-align: center;
       padding: 1rem;
-      background: var(--card-bg);
-      border-bottom: 1px solid #333;
+      background: var(--card-bg); /* Use card-bg for header */
+      border-bottom: 1px solid #333; /* Subtle separator */
     }
     header h1 {
         font-size: 1.5rem;
@@ -45,49 +45,55 @@
       overflow-x: hidden; /* Prevent horizontal scroll from card content */
     }
     .card-container { /* Wrapper for each card including its style */
-      position: relative; /* For absolute positioning of .card inside if needed for styles */
+      position: relative;
       margin: 1rem auto;
-      max-width: 600px;
+      max-width: 600px; /* Max width for readability */
       border-radius: 8px;
-      /* The .card itself will get background from Anki CSS or our default */
+      /* The .card-content-wrapper inside will get background from Anki CSS or our default */
     }
-    .card {
-      position: relative; /* For absolute positioning of front/back */
+    .card { /* This is the structural swipeable card element */
+      position: relative;
       overflow: hidden;
-      background: var(--card-bg); /* Default background if Anki CSS doesn't override */
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      /* Height will be set by JS */
+      background: var(--card-bg); /* Default background if Anki CSS doesn't override .card-content-wrapper */
+      border-radius: 8px; /* Consistent rounded corners */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); /* Softer shadow */
+      /* Height will be set by JS after content loading */
+    }
+    /* .card-content-wrapper is what Anki's .card CSS will target via scoping */
+    .card .card-content-wrapper {
+        /* This class will be added alongside .card if CSS scoping targets it.
+           However, the main styling should come from Anki's CSS applied to #cardId .card-content-wrapper */
     }
     .card .back,
     .card .front {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      padding: 1rem;
+      padding: 1rem; /* Default padding, Anki CSS might override */
       white-space: pre-wrap; /* Preserve newlines from Anki fields */
       overflow-y: auto; /* Scroll if content overflows */
       word-wrap: break-word; /* Prevent long strings from breaking layout */
+      color: var(--text); /* Default text color, Anki CSS might override */
     }
     .card .back {
-      /* Sits underneath, revealed by swiping front */
-      background: var(--card-bg); /* Ensure back has a background */
+      background: var(--card-bg); /* Ensure back has a background, Anki CSS can override */
     }
     .card .front {
-      background: var(--card-bg); /* Ensure front has a background */
+      background: var(--card-bg); /* Ensure front has a background, Anki CSS can override */
       touch-action: pan-y; /* Allow vertical scroll, handle horizontal swipe */
       user-select: none;
       transition: transform 0.3s ease;
       z-index: 10; /* Ensure front is on top */
     }
-    /* Styling for images and audio from Anki content */
-    .card img {
+
+    /* Default styling for images and audio if not overridden by Anki CSS (scoped) */
+    .card-container img { /* Target images within any card container */
       max-width: 100%;
       height: auto;
-      display: block; /* Prevents extra space below image */
-      margin: 0.5em auto; /* Center images */
+      display: block; 
+      margin: 0.5em auto; 
       border-radius: 4px;
     }
-    .card audio {
+    .card-container audio { /* Target audio within any card container */
       width: 100%;
       margin-top: 0.5em;
     }
@@ -95,6 +101,9 @@
         text-align: center;
         padding: 1rem;
         color: #aaa;
+    }
+    .message.error {
+        color: #ff6b6b; /* Error color */
     }
   </style>
   <!-- dependencies -->
@@ -111,8 +120,9 @@
   </main>
 
 <script>
-  // Global cache for media blob URLs
+  // Global cache for media blob URLs, keyed by original filename
   const mediaBlobUrls = {};
+  const MAX_CARDS_TO_DISPLAY = 100;
 
   function clearMediaBlobUrls() {
     for (const key in mediaBlobUrls) {
@@ -121,120 +131,116 @@
     }
   }
 
-  async function getMediaURL(fileName, zip, mediaFileMap) {
-    if (mediaBlobUrls[fileName]) return mediaBlobUrls[fileName];
+  async function getMediaURL(originalFileName, zip, mediaFileMap) {
+    if (mediaBlobUrls[originalFileName]) {
+      return mediaBlobUrls[originalFileName];
+    }
 
-    let actualFileNameInZip = fileName;
-    // Check if fileName is a human-readable name that needs mapping to a numerical name
-    const numericalName = Object.keys(mediaFileMap).find(key => mediaFileMap[key] === fileName);
-    if (numericalName) {
-      actualFileNameInZip = numericalName;
+    let zipFileNameToTry = originalFileName;
+    const mappedZipName = Object.keys(mediaFileMap).find(key => mediaFileMap[key] === originalFileName);
+    if (mappedZipName) {
+      zipFileNameToTry = mappedZipName;
     }
     
-    let fileInZip = zip.file(actualFileNameInZip);
+    let fileInZip;
+    // Prioritize mapped name, then original name. Check root then common 'media/' prefix.
+    const potentialPaths = [
+      zipFileNameToTry, 
+      originalFileName, 
+      `media/${zipFileNameToTry}`,
+      `media/${originalFileName}`
+    ];
 
-    // Fallback: try common prefixes or if the name was already numerical
-    if (!fileInZip) {
-        const commonPrefixes = ["", "media/"];
-        for (const prefix of commonPrefixes) {
-            const potentialPath = prefix + actualFileNameInZip;
-            if (zip.files[potentialPath]) {
-                fileInZip = zip.file(potentialPath);
-                break;
-            }
+    for (const path of potentialPaths) {
+        if (zip.files[path]) {
+            fileInZip = zip.file(path);
+            break;
         }
     }
-    // Fallback for fileName if it was original and not in map, or if map is missing
-    if (!fileInZip && fileName !== actualFileNameInZip) {
-        fileInZip = zip.file(fileName);
-    }
-
-
+    
     if (fileInZip) {
       try {
         const blob = await fileInZip.async("blob");
         const url = URL.createObjectURL(blob);
-        mediaBlobUrls[fileName] = url; // Cache by original requested name
+        mediaBlobUrls[originalFileName] = url; // Cache by original requested name
         return url;
       } catch (error) {
-        console.error(`Error loading media ${fileName} (as ${fileInZip.name}):`, error);
-        return ""; // Or a placeholder URL
+        console.error(`Error loading media ${originalFileName} (tried as ${fileInZip.name}):`, error);
+        return "";
       }
     }
-    console.warn(`Media file not found in zip: ${fileName} (searched for ${actualFileNameInZip})`);
-    return ""; // Or a placeholder URL
+    console.warn(`Media file not found in zip: ${originalFileName} (tried variants including ${zipFileNameToTry})`);
+    return "";
   }
 
   async function renderAnkiTemplate(templateStr, fieldsData, modelFieldsArray, context, zip, mediaFileMap) {
     let output = templateStr;
 
-    // Handle {{FrontSide}} for back templates
-    if (context.isFront === false && context.frontContentForBack) {
-      output = output.replace(/\{\{FrontSide\}\}/g, context.frontContentForBack);
+    if (context.isFront === false && typeof context.frontContentForBack === 'string') {
+      output = output.replace(/\{\{FrontSide\}\}/gi, context.frontContentForBack);
     }
-
-    // Handle conditional rendering: {{#FieldName}}...{{/FieldName}} and {{^FieldName}}...{{/FieldName}}
-    // This is a simplified regex approach. A proper parser would be more robust.
-    output = output.replace(/\{\{#(.+?)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (match, fieldName, content) => {
-      const fieldValue = fieldsData[fieldName.trim()];
+    
+    output = output.replace(/\{\{#(.+?)\}\}([\s\S]*?)\{\{\/\1\}\}/gi, (match, fieldName, content) => {
+      const fName = fieldName.trim();
+      const fieldValue = fieldsData[fName];
       return (fieldValue && fieldValue.toString().trim() !== "") ? content : "";
     });
-    output = output.replace(/\{\{\^(.+?)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (match, fieldName, content) => {
-      const fieldValue = fieldsData[fieldName.trim()];
+    output = output.replace(/\{\{\^(.+?)\}\}([\s\S]*?)\{\{\/\1\}\}/gi, (match, fieldName, content) => {
+      const fName = fieldName.trim();
+      const fieldValue = fieldsData[fName];
       return (!fieldValue || fieldValue.toString().trim() === "") ? content : "";
     });
 
-    // Handle simple field replacements: {{FieldName}}
-    // Also handle {{edit:FieldName}} by showing field content, and {{cloze:FieldName}} similarly for simplicity
     modelFieldsArray.forEach(field => {
       const fieldName = field.name;
       const fieldValue = fieldsData[fieldName] || "";
-      // Basic field replacement
-      output = output.replace(new RegExp(`\\{\\{${fieldName}\\}\\}`, 'g'), fieldValue);
-      // Handle {{edit:FieldName}} by just showing content
-      output = output.replace(new RegExp(`\\{\\{edit:${fieldName}\\}\\}`, 'g'), fieldValue);
-      // Simplified {{cloze:FieldName}} - just show content. Full cloze rendering is complex.
-      // A more advanced version would parse {{c1::text}} syntax within fieldValue.
-      output = output.replace(new RegExp(`\\{\\{cloze:${fieldName}\\}\\}`, 'g'), fieldValue);
+      const escapedFieldName = fieldName.replace(/([:\\^#\/\?\{\}])/g, "\\$1");
+      
+      output = output.replace(new RegExp(`\\{\\{${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
+      output = output.replace(new RegExp(`\\{\\{edit:${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
+      output = output.replace(new RegExp(`\\{\\{cloze:${escapedFieldName}\\}\\}`, 'gi'), fieldValue); // Basic cloze: show full content
+      // Handle other common prefixes like hint:, type:, etc. by just showing the field content
+      output = output.replace(new RegExp(`\\{\\{[^:]+?:${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
     });
     
-    // Handle {{Tags}}, {{Type}}, {{Deck}}, {{Card}}, {{Subdeck}} - simplified
-    output = output.replace(/\{\{Tags\}\}/g, fieldsData.Tags || context.noteTags || "");
-    output = output.replace(/\{\{Type\}\}/g, context.modelName || "");
-    output = output.replace(/\{\{Deck\}\}/g, context.deckName || "");
-    output = output.replace(/\{\{Card\}\}/g, context.cardTypeName || "");
-    // Subdeck is harder without full deck hierarchy parsing.
+    output = output.replace(/\{\{Tags\}\}/gi, context.noteTags || "");
+    output = output.replace(/\{\{Type\}\}/gi, context.modelName || "");
+    output = output.replace(/\{\{Deck\}\}/gi, context.deckName || "");
+    output = output.replace(/\{\{Card\}\}/gi, context.cardTypeName || "");
+    output = output.replace(/\{\{Subdeck\}\}/gi, context.deckName || ""); // Simplification: Subdeck = Deck
 
-    // Handle media (images and audio)
-    // Images: <img src="filename.jpg">
-    const imgRegex = /<img src="([^"]+?)">/gi;
+    const imgRegex = /<img\s[^>]*src\s*=\s*['"]?([^'">\s]+)['"]?[^>]*>/gi;
     let imgMatch;
     const imgReplacements = [];
     while ((imgMatch = imgRegex.exec(output)) !== null) {
-      imgReplacements.push({ placeholder: imgMatch[0], src: imgMatch[1] });
+      imgReplacements.push({ placeholder: imgMatch[0], src: imgMatch[1], originalTag: imgMatch[0] });
     }
     for (const rep of imgReplacements) {
       const mediaUrl = await getMediaURL(rep.src, zip, mediaFileMap);
+      let newImgTag = rep.originalTag;
       if (mediaUrl) {
-        output = output.replace(rep.placeholder, `<img src="${mediaUrl}" alt="${rep.src}">`);
+        newImgTag = newImgTag.replace(new RegExp(rep.src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"), mediaUrl);
       } else {
-        output = output.replace(rep.placeholder, `<img src="#" alt="${rep.src} (not found)">`);
+        if (!/alt=/i.test(newImgTag)) {
+            newImgTag = newImgTag.replace(/<img/i, `<img alt="${rep.src} (not found)"`);
+        }
       }
+      output = output.replace(rep.placeholder, newImgTag);
     }
 
-    // Audio: [sound:filename.mp3]
     const soundRegex = /\[sound:([^\]]+?)\]/gi;
     let soundMatch;
     const soundReplacements = [];
     while ((soundMatch = soundRegex.exec(output)) !== null) {
-      soundReplacements.push({ placeholder: soundMatch[0], src: soundMatch[1] });
+      const soundSrc = soundMatch[1].split(',')[0].trim(); // Get filename, ignore options
+      soundReplacements.push({ placeholder: soundMatch[0], src: soundSrc });
     }
     for (const rep of soundReplacements) {
       const mediaUrl = await getMediaURL(rep.src, zip, mediaFileMap);
       if (mediaUrl) {
         output = output.replace(rep.placeholder, `<audio controls src="${mediaUrl}"></audio>`);
       } else {
-        output = output.replace(rep.placeholder, `<span>[Audio: ${rep.src} (not found)]</span>`);
+        output = output.replace(rep.placeholder, `<span style="color:orange; font-style:italic;">[Audio: ${rep.src} (not found)]</span>`);
       }
     }
     return output;
@@ -247,7 +253,7 @@
     const feed = document.getElementById('feed');
 
     fileInput.addEventListener('change', async e => {
-      clearMediaBlobUrls(); // Clear previous media objects
+      clearMediaBlobUrls();
       const file = e.target.files[0];
       if (!file) return;
       feed.innerHTML = '<p class="message">Loading deck...</p>';
@@ -255,97 +261,60 @@
       try {
         const fileData = await file.arrayBuffer();
         const zip = await JSZip.loadAsync(fileData);
-
-        console.log('ZIP files:', Object.keys(zip.files));
-
         const dbPath = Object.keys(zip.files).find(p => /collection\.anki21?$/i.test(p));
+
         if (!dbPath) {
-          feed.innerHTML = `<p class="message error">Could not find <code>collection.anki2</code> or <code>collection.anki21</code> in your .apkg/.zip. <br>See console for a full directory listing.</p>`;
+          feed.innerHTML = `<p class="message error">Could not find <code>collection.anki2</code> or <code>collection.anki21</code>.</p>`;
           return;
         }
-
         const dbFile = zip.file(dbPath);
-        if (!dbFile) {
-             feed.innerHTML = `<p class="message error">Error accessing database file: ${dbPath}</p>`;
-             return;
-        }
+        if (!dbFile) throw new Error(`Database file ${dbPath} not found in zip.`);
+        
         const dbData = new Uint8Array(await dbFile.async('arraybuffer'));
         const db = new SQL.Database(dbData);
 
-        // 1. Parse media map
         let mediaFileMap = {};
         const mediaMapFile = zip.file("media");
         if (mediaMapFile) {
           try {
-            const mediaContent = await mediaMapFile.async("string");
-            mediaFileMap = JSON.parse(mediaContent);
+            mediaFileMap = JSON.parse(await mediaMapFile.async("string"));
           } catch (err) {
-            console.error("Error parsing 'media' file:", err);
-            feed.innerHTML += '<p class="message" style="color:orange;">Warning: Could not parse "media" file. Media might not load correctly.</p>';
+            console.warn("Error parsing 'media' file:", err);
           }
-        } else {
-            console.warn("No 'media' file found in zip package.");
         }
 
-        // 2. Get models (note types)
         const colQuery = db.exec("SELECT models, decks FROM col LIMIT 1");
-        if (!colQuery || colQuery.length === 0 || !colQuery[0].values || colQuery[0].values.length === 0) {
-            throw new Error("Failed to query 'col' table or 'col' table is empty.");
-        }
-        const modelsData = JSON.parse(colQuery[0].values[0][0]); // models is a JSON string
-        const decksData = JSON.parse(colQuery[0].values[0][1]);  // decks is a JSON string
+        if (!colQuery?.[0]?.values?.[0]) throw new Error("Failed to query 'col' table.");
+        const modelsData = JSON.parse(colQuery[0].values[0][0]);
+        const decksData = JSON.parse(colQuery[0].values[0][1]);
 
-        // 3. Get notes
         const notesQuery = db.exec("SELECT id, mid, flds, tags FROM notes");
-        const notesMap = {}; // nid -> { mid, fldsArray, tagsArray }
-        if (notesQuery && notesQuery.length > 0 && notesQuery[0].values) {
-            notesQuery[0].values.forEach(row => {
-                notesMap[row[0]] = { // nid (note id)
-                    mid: row[1].toString(), // model id
-                    fldsArray: row[2].split('\x1f'), // field values
-                    tagsArray: row[3].trim().split(' ').filter(t => t) // tags
-                };
-            });
-        }
+        const notesMap = {};
+        notesQuery?.[0]?.values?.forEach(row => {
+            notesMap[row[0]] = { mid: row[1].toString(), fldsArray: row[2].split('\x1f'), tagsArray: row[3].trim().split(' ').filter(t => t) };
+        });
         
-        // 4. Get cards
-        const cardsQuery = db.exec("SELECT id, nid, did, ord FROM cards ORDER BY odid, ord, ivl"); // Better ordering
-        const cards = [];
-        if (cardsQuery && cardsQuery.length > 0 && cardsQuery[0].values) {
-            cardsQuery[0].values.forEach(row => {
-                cards.push({
-                    id: row[0],    // card id
-                    nid: row[1],   // note id
-                    did: row[2],   // deck id
-                    ord: row[3]    // template ordinal (0, 1, ...)
-                });
-            });
-        }
+        const cardsResult = db.exec("SELECT id, nid, did, ord FROM cards ORDER BY id");
+        let allCards = cardsResult?.[0]?.values?.map(row => ({ id: row[0], nid: row[1], did: row[2], ord: row[3] })) || [];
 
-        if (cards.length === 0) {
+        if (allCards.length === 0) {
           feed.innerHTML = '<p class="message">No cards found in the deck.</p>';
           return;
         }
 
-        feed.innerHTML = ''; // Clear "Loading..."
+        const cardsToDisplay = allCards.slice(0, MAX_CARDS_TO_DISPLAY);
+        feed.innerHTML = ''; 
+        if (allCards.length > MAX_CARDS_TO_DISPLAY) {
+            feed.innerHTML = `<p class="message">Displaying ${MAX_CARDS_TO_DISPLAY} of ${allCards.length} cards.</p>`;
+        }
 
-        // 5. Render cards
-        for (const cardData of cards) {
+        for (const cardData of cardsToDisplay) {
           const note = notesMap[cardData.nid];
-          if (!note) {
-            console.warn(`Note not found for card id ${cardData.id}, nid ${cardData.nid}`);
-            continue;
-          }
+          const model = modelsData[note?.mid];
+          const template = model?.tmpls?.[cardData.ord];
 
-          const model = modelsData[note.mid];
-          if (!model) {
-            console.warn(`Model not found for note (nid ${cardData.nid}), mid ${note.mid}`);
-            continue;
-          }
-
-          const template = model.tmpls[cardData.ord];
-          if (!template) {
-            console.warn(`Template not found for card (cid ${cardData.id}), model "${model.name}", ord ${cardData.ord}`);
+          if (!note || !model || !template) {
+            console.warn(`Skipping card id ${cardData.id}: missing note, model, or template.`);
             continue;
           }
 
@@ -353,128 +322,143 @@
           model.flds.forEach((fieldSchema, index) => {
             fieldsData[fieldSchema.name] = note.fldsArray[index] || "";
           });
-          fieldsData.Tags = note.tagsArray.join(' ');
 
-
+          const cardUniqueId = `card-container-${cardData.id}-${Date.now()}`;
           const cardContainer = document.createElement('div');
           cardContainer.className = 'card-container';
-          cardContainer.id = `card-container-${cardData.id}`;
+          cardContainer.id = cardUniqueId;
 
-          // Inject model-specific CSS
           if (model.css && model.css.trim() !== "") {
             const styleElement = document.createElement('style');
-            // Basic scoping: Anki CSS often uses .card class. We target this card's ID.
-            // A full CSS parser/scoper is complex. This assumes model.css is well-behaved.
-            let scopedCss = model.css.replace(/\.card(?=[^a-zA-Z0-9\-])/g, `#${cardContainer.id} .card`);
-            // Add scope for mobile specific styles
-            scopedCss = scopedCss.replace(/\.mobile\s*\.card(?=[^a-zA-Z0-9\-])/g, `#${cardContainer.id} .card`); // if .mobile.card
-            scopedCss = scopedCss.replace(/\.mobile(?=[^a-zA-Z0-9\-])/g, `#${cardContainer.id} .mobile-scope`); // if just .mobile
+            let scopedCss = model.css;
+            // Basic scoping for common Anki selectors.
+            // Targets .card, .cloze, body (when at start of line, common in Anki CSS for card body)
+            scopedCss = scopedCss.replace(/\.card(?=[^a-zA-Z0-9\-])/g, `#${cardUniqueId} .card-content-wrapper`);
+            scopedCss = scopedCss.replace(/\.cloze(?=[^a-zA-Z0-9\-])/g, `#${cardUniqueId} .cloze`);
+            scopedCss = scopedCss.replace(/^body\s*\{/gm, `#${cardUniqueId} .card-content-wrapper {`);
+            // A more specific scope for .mobile .card if body itself might have .mobile
+            scopedCss = scopedCss.replace(/\.mobile\s+\.card(?=[^a-zA-Z0-9\-])/g, `body.mobile #${cardUniqueId} .card-content-wrapper`);
+
 
             styleElement.textContent = scopedCss;
             cardContainer.appendChild(styleElement);
           }
           
+          // The .card div is for structure/swipe, .card-content-wrapper is for Anki's CSS.
           const cardElement = document.createElement('div');
-          cardElement.className = 'card mobile-scope'; // Add 'card' for Anki CSS and 'mobile-scope' for .mobile selectors
-          // cardElement.id = `card-${cardData.id}`; // Not strictly needed if cardContainer has ID
+          cardElement.className = 'card card-content-wrapper'; 
 
           const frontDiv = document.createElement('div');
           frontDiv.className = 'front';
           const backDiv = document.createElement('div');
           backDiv.className = 'back';
 
-          const deckName = decksData[cardData.did.toString()] ? decksData[cardData.did.toString()].name : "Unknown Deck";
-          const renderContext = {
-            isFront: true,
+          const deckName = decksData[cardData.did.toString()]?.name || "Unknown Deck";
+          const renderContextBase = {
             noteTags: note.tagsArray.join(' '),
             modelName: model.name,
             deckName: deckName,
             cardTypeName: template.name,
-            frontContentForBack: '' // Will be filled after front renders
           };
           
-          const frontHTML = await renderAnkiTemplate(template.qfmt, fieldsData, model.flds, renderContext, zip, mediaFileMap);
+          // Render front for {{FrontSide}} (fields replaced, media placeholders)
+          const preRenderedFrontForBack = await renderAnkiTemplate(
+            template.qfmt, fieldsData, model.flds, 
+            { ...renderContextBase, isFront: true }, // No zip/mediaMap here, rely on string replacement
+            null, {} // Pass null zip and empty mediaMap for pre-render
+          );
+
+          // Fully render front HTML (with media)
+          const frontHTML = await renderAnkiTemplate(
+            template.qfmt, fieldsData, model.flds,
+            { ...renderContextBase, isFront: true },
+            zip, mediaFileMap
+          );
           frontDiv.innerHTML = frontHTML;
           
-          renderContext.isFront = false;
-          renderContext.frontContentForBack = frontHTML; // Use the raw (but field-replaced) front HTML for {{FrontSide}}
-          const backHTML = await renderAnkiTemplate(template.afmt, fieldsData, model.flds, renderContext, zip, mediaFileMap);
+          // Fully render back HTML (with media and {{FrontSide}})
+          const backHTML = await renderAnkiTemplate(
+            template.afmt, fieldsData, model.flds,
+            { ...renderContextBase, isFront: false, frontContentForBack: preRenderedFrontForBack },
+            zip, mediaFileMap
+          );
           backDiv.innerHTML = backHTML;
 
-          cardElement.appendChild(backDiv); // Back first for z-index stacking
+          cardElement.appendChild(backDiv);
           cardElement.appendChild(frontDiv);
           cardContainer.appendChild(cardElement);
           feed.appendChild(cardContainer);
 
-          // Dynamically set card height after content is potentially loaded (images are async)
-          // A more robust solution would use new ResizeObserver or wait for images to load.
-          // For now, measure scrollHeight.
-          requestAnimationFrame(() => { // Ensure elements are in DOM and rendered for measurement
-            const frontHeight = frontDiv.scrollHeight;
-            const backHeight = backDiv.scrollHeight;
-            cardElement.style.height = Math.max(frontHeight, backHeight, 150) + 'px'; // Min height 150px
-          });
+          const setHeight = () => {
+            requestAnimationFrame(() => {
+                const frontScrollHeight = frontDiv.scrollHeight;
+                const backScrollHeight = backDiv.scrollHeight;
+                cardElement.style.height = Math.max(frontScrollHeight, backScrollHeight, 120) + 'px'; // Min height 120px
+            });
+          };
 
+          // Attempt to set height after images/audio might have loaded
+          const mediaElements = Array.from(cardElement.querySelectorAll('img, audio'));
+          if (mediaElements.length > 0) {
+            let loadedCount = 0;
+            mediaElements.forEach(el => {
+              if (el.tagName === 'IMG') {
+                if (el.complete) loadedCount++;
+                else el.onload = el.onerror = () => { loadedCount++; if (loadedCount === mediaElements.length) setHeight(); };
+              } else if (el.tagName === 'AUDIO') { // Audio metadata usually loads fast
+                if (el.readyState >= 1) loadedCount++; // HAVE_METADATA
+                else el.onloadedmetadata = el.onerror = () => { loadedCount++; if (loadedCount === mediaElements.length) setHeight(); };
+              }
+            });
+            if (loadedCount === mediaElements.length) setHeight();
+          } else {
+            setHeight();
+          }
 
-          // Swipe logic
           let startX = 0, currentX = 0, translateX = 0, isDragging = false;
-          const swipeThreshold = cardElement.offsetWidth / 3.5;
+          const swipeThreshold = cardElement.offsetWidth / 3.5; // Swipe 1/3.5 of card width
 
           frontDiv.addEventListener('pointerdown', e => {
-            if (e.button !== 0) return; // Only main click
+            if (e.button !== 0) return;
             isDragging = true;
-            startX = e.clientX;
-            currentX = e.clientX; // Initialize currentX
+            startX = e.clientX; currentX = startX;
             frontDiv.style.transition = 'none';
-            frontDiv.setPointerCapture(e.pointerId);
+            e.currentTarget.setPointerCapture(e.pointerId);
           });
 
           frontDiv.addEventListener('pointermove', e => {
             if (!isDragging) return;
             currentX = e.clientX;
-            const diffX = currentX - startX;
-            
-            // Only allow swiping left to reveal
-            translateX = Math.min(0, diffX); 
-            
+            translateX = Math.min(0, currentX - startX); // Swipe left only
             frontDiv.style.transform = `translateX(${translateX}px)`;
           });
+
+          const flipCard = (reveal) => {
+            frontDiv.style.transition = 'transform 0.3s ease';
+            frontDiv.style.transform = reveal ? 'translateX(-100%)' : 'translateX(0px)';
+          };
 
           frontDiv.addEventListener('pointerup', e => {
             if (!isDragging) return;
             isDragging = false;
-            frontDiv.style.transition = 'transform 0.3s ease';
-            frontDiv.releasePointerCapture(e.pointerId);
-
-            if (translateX < -swipeThreshold) {
-              frontDiv.style.transform = 'translateX(-100%)'; // Reveal back
-            } else {
-              frontDiv.style.transform = 'translateX(0px)'; // Snap back
-            }
+            e.currentTarget.releasePointerCapture(e.pointerId);
+            flipCard(translateX < -swipeThreshold);
           });
           
-          // Click to flip for non-touch devices or if preferred
           frontDiv.addEventListener('click', e => {
-            if (Math.abs(currentX - startX) > 10) return; // It was a drag, not a click
-            
-            const currentTransform = getComputedStyle(frontDiv).transform;
-            const matrix = new DOMMatrixReadOnly(currentTransform);
-            if (matrix.m41 < -10) { // If already swiped (e.g. -100%)
-                 frontDiv.style.transform = 'translateX(0px)';
-            } else {
-                 frontDiv.style.transform = 'translateX(-100%)';
-            }
+            if (Math.abs(currentX - startX) > 10) return; // Was a drag, not a click
+            const matrix = new DOMMatrixReadOnly(getComputedStyle(frontDiv).transform);
+            flipCard(matrix.m41 >= -10); // If mostly front, flip to back; else to front
           });
-        } // End of card loop
-
-        if (feed.children.length === 0 && cards.length > 0) {
-             feed.innerHTML = '<p class="message">Finished processing, but no cards could be rendered. Check console for errors.</p>';
         }
 
+        if (feed.children.length === (allCards.length > MAX_CARDS_TO_DISPLAY ? 1:0) && cardsToDisplay.length > 0) {
+             feed.innerHTML += '<p class="message error">Finished processing, but no cards could be rendered. Check console.</p>';
+        }
 
       } catch (err) {
-        console.error(err);
-        feed.innerHTML = `<p class="message error">Error processing deck: ${err.message}<br>Check console for more details.</p>`;
+        console.error("Fatal Error:", err);
+        feed.innerHTML = `<p class="message error">Error processing deck: ${err.message}. Check console.</p>`;
       }
     });
   });
