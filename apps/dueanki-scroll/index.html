@@ -89,8 +89,8 @@
     .card-container img { /* Target images within any card container */
       max-width: 100%;
       height: auto;
-      display: block; 
-      margin: 0.5em auto; 
+      display: block;
+      margin: 0.5em auto;
       border-radius: 4px;
     }
     .card-container audio { /* Target audio within any card container */
@@ -141,23 +141,22 @@
     if (mappedZipName) {
       zipFileNameToTry = mappedZipName;
     }
-    
+
     let fileInZip;
-    // Prioritize mapped name, then original name. Check root then common 'media/' prefix.
     const potentialPaths = [
-      zipFileNameToTry, 
-      originalFileName, 
+      zipFileNameToTry,
+      originalFileName,
       `media/${zipFileNameToTry}`,
       `media/${originalFileName}`
     ];
 
     for (const path of potentialPaths) {
-        if (zip.files[path]) {
+        if (zip && zip.files && zip.files[path]) { // Check if zip and zip.files exist
             fileInZip = zip.file(path);
-            break;
+            if (fileInZip) break;
         }
     }
-    
+
     if (fileInZip) {
       try {
         const blob = await fileInZip.async("blob");
@@ -179,7 +178,7 @@
     if (context.isFront === false && typeof context.frontContentForBack === 'string') {
       output = output.replace(/\{\{FrontSide\}\}/gi, context.frontContentForBack);
     }
-    
+
     output = output.replace(/\{\{#(.+?)\}\}([\s\S]*?)\{\{\/\1\}\}/gi, (match, fieldName, content) => {
       const fName = fieldName.trim();
       const fieldValue = fieldsData[fName];
@@ -195,53 +194,60 @@
       const fieldName = field.name;
       const fieldValue = fieldsData[fieldName] || "";
       const escapedFieldName = fieldName.replace(/([:\\^#\/\?\{\}])/g, "\\$1");
-      
+
       output = output.replace(new RegExp(`\\{\\{${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
       output = output.replace(new RegExp(`\\{\\{edit:${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
-      output = output.replace(new RegExp(`\\{\\{cloze:${escapedFieldName}\\}\\}`, 'gi'), fieldValue); // Basic cloze: show full content
-      // Handle other common prefixes like hint:, type:, etc. by just showing the field content
+      output = output.replace(new RegExp(`\\{\\{cloze:${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
       output = output.replace(new RegExp(`\\{\\{[^:]+?:${escapedFieldName}\\}\\}`, 'gi'), fieldValue);
     });
-    
+
     output = output.replace(/\{\{Tags\}\}/gi, context.noteTags || "");
     output = output.replace(/\{\{Type\}\}/gi, context.modelName || "");
     output = output.replace(/\{\{Deck\}\}/gi, context.deckName || "");
     output = output.replace(/\{\{Card\}\}/gi, context.cardTypeName || "");
-    output = output.replace(/\{\{Subdeck\}\}/gi, context.deckName || ""); // Simplification: Subdeck = Deck
+    output = output.replace(/\{\{Subdeck\}\}/gi, context.deckName || "");
 
-    const imgRegex = /<img\s[^>]*src\s*=\s*['"]?([^'">\s]+)['"]?[^>]*>/gi;
-    let imgMatch;
-    const imgReplacements = [];
-    while ((imgMatch = imgRegex.exec(output)) !== null) {
-      imgReplacements.push({ placeholder: imgMatch[0], src: imgMatch[1], originalTag: imgMatch[0] });
-    }
-    for (const rep of imgReplacements) {
-      const mediaUrl = await getMediaURL(rep.src, zip, mediaFileMap);
-      let newImgTag = rep.originalTag;
-      if (mediaUrl) {
-        newImgTag = newImgTag.replace(new RegExp(rep.src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"), mediaUrl);
-      } else {
-        if (!/alt=/i.test(newImgTag)) {
-            newImgTag = newImgTag.replace(/<img/i, `<img alt="${rep.src} (not found)"`);
+    // Ensure zip exists before trying to use it for media
+    if (zip) {
+        const imgRegex = /<img\s[^>]*src\s*=\s*['"]?([^'">\s]+)['"]?[^>]*>/gi;
+        let imgMatch;
+        const imgReplacements = [];
+        while ((imgMatch = imgRegex.exec(output)) !== null) {
+          imgReplacements.push({ placeholder: imgMatch[0], src: imgMatch[1], originalTag: imgMatch[0] });
         }
-      }
-      output = output.replace(rep.placeholder, newImgTag);
-    }
+        for (const rep of imgReplacements) {
+          const mediaUrl = await getMediaURL(rep.src, zip, mediaFileMap);
+          let newImgTag = rep.originalTag;
+          if (mediaUrl) {
+            newImgTag = newImgTag.replace(new RegExp(rep.src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"), mediaUrl);
+          } else {
+            if (!/alt=/i.test(newImgTag)) {
+                newImgTag = newImgTag.replace(/<img/i, `<img alt="${rep.src} (not found)"`);
+            }
+          }
+          output = output.replace(rep.placeholder, newImgTag);
+        }
 
-    const soundRegex = /\[sound:([^\]]+?)\]/gi;
-    let soundMatch;
-    const soundReplacements = [];
-    while ((soundMatch = soundRegex.exec(output)) !== null) {
-      const soundSrc = soundMatch[1].split(',')[0].trim(); // Get filename, ignore options
-      soundReplacements.push({ placeholder: soundMatch[0], src: soundSrc });
-    }
-    for (const rep of soundReplacements) {
-      const mediaUrl = await getMediaURL(rep.src, zip, mediaFileMap);
-      if (mediaUrl) {
-        output = output.replace(rep.placeholder, `<audio controls src="${mediaUrl}"></audio>`);
-      } else {
-        output = output.replace(rep.placeholder, `<span style="color:orange; font-style:italic;">[Audio: ${rep.src} (not found)]</span>`);
-      }
+        const soundRegex = /\[sound:([^\]]+?)\]/gi;
+        let soundMatch;
+        const soundReplacements = [];
+        while ((soundMatch = soundRegex.exec(output)) !== null) {
+          const soundSrc = soundMatch[1].split(',')[0].trim();
+          soundReplacements.push({ placeholder: soundMatch[0], src: soundSrc });
+        }
+        for (const rep of soundReplacements) {
+          const mediaUrl = await getMediaURL(rep.src, zip, mediaFileMap);
+          if (mediaUrl) {
+            output = output.replace(rep.placeholder, `<audio controls src="${mediaUrl}"></audio>`);
+          } else {
+            output = output.replace(rep.placeholder, `<span style="color:orange; font-style:italic;">[Audio: ${rep.src} (not found)]</span>`);
+          }
+        }
+    } else if (context.isFront === undefined || context.isFront === true) { // Only warn if processing main card, not pre-render for FrontSide
+        // If zip is null (e.g. during preRenderedFrontForBack), media won't be resolved.
+        // This is mostly fine for preRenderedFrontForBack as it's string replacement.
+        // However, if zip is unexpectedly null for main render, log it.
+        // console.warn("renderAnkiTemplate called with null zip; media will not be resolved.");
     }
     return output;
   }
@@ -259,17 +265,47 @@
       feed.innerHTML = '<p class="message">Loading deck...</p>';
 
       try {
-        const fileData = await file.arrayBuffer();
-        const zip = await JSZip.loadAsync(fileData);
-        const dbPath = Object.keys(zip.files).find(p => /collection\.anki21?$/i.test(p));
+        let fileData;
+        try {
+          console.log("Attempting to read file into ArrayBuffer. File size:", file.size, "bytes");
+          fileData = await file.arrayBuffer();
+          console.log("File successfully read into ArrayBuffer. Length:", fileData.byteLength);
+        } catch (bufferError) {
+          console.error("Error reading file into ArrayBuffer:", bufferError);
+          feed.innerHTML = `<p class="message error">Failed to read the file into memory (ArrayBuffer step). It might be too large or the browser encountered an issue. Error: ${bufferError.message}</p>`;
+          return;
+        }
 
+        let zip;
+        try {
+          console.log("Attempting to load ArrayBuffer with JSZip...");
+          zip = await JSZip.loadAsync(fileData);
+        } catch (jszipError) {
+          console.error("Error during JSZip.loadAsync:", jszipError);
+          feed.innerHTML = `<p class="message error">Failed to unzip the .apkg file. It might be corrupted, too large for the browser to handle, or an issue with the unzipping library. Error: ${jszipError.message}</p>`;
+          return;
+        }
+
+        if (!zip || typeof zip.files === 'undefined') { // Check if zip is valid and has 'files' property
+          console.error("JSZip.loadAsync completed but returned an invalid zip object or zip.files is undefined. Zip object:", zip);
+          feed.innerHTML = `<p class="message error">Failed to process the .apkg file. The unzipping library returned an unexpected or incomplete result. The file might be too large or in an unsupported format.</p>`;
+          return;
+        }
+        console.log('JSZip loaded successfully. Number of files in zip:', Object.keys(zip.files).length);
+
+
+        const dbPath = Object.keys(zip.files).find(p => /collection\.anki21?$/i.test(p));
         if (!dbPath) {
-          feed.innerHTML = `<p class="message error">Could not find <code>collection.anki2</code> or <code>collection.anki21</code>.</p>`;
+          feed.innerHTML = `<p class="message error">Could not find <code>collection.anki2</code> or <code>collection.anki21</code> in the .apkg. Ensure the export is correct.</p>`;
           return;
         }
         const dbFile = zip.file(dbPath);
-        if (!dbFile) throw new Error(`Database file ${dbPath} not found in zip.`);
-        
+        if (!dbFile) {
+            console.error(`Database file ${dbPath} found in zip keys, but JSZip.file() returned null.`);
+            feed.innerHTML = `<p class="message error">Error accessing the database file (${dbPath}) within the .apkg.</p>`;
+            return;
+        }
+
         const dbData = new Uint8Array(await dbFile.async('arraybuffer'));
         const db = new SQL.Database(dbData);
 
@@ -279,12 +315,18 @@
           try {
             mediaFileMap = JSON.parse(await mediaMapFile.async("string"));
           } catch (err) {
-            console.warn("Error parsing 'media' file:", err);
+            console.warn("Error parsing 'media' file, or 'media' file is not valid JSON:", err);
+            // Continue without media map if it's faulty
           }
+        } else {
+            console.warn("No 'media' file found in zip package. Media linking might be affected for some files.");
         }
 
         const colQuery = db.exec("SELECT models, decks FROM col LIMIT 1");
-        if (!colQuery?.[0]?.values?.[0]) throw new Error("Failed to query 'col' table.");
+        if (!colQuery?.[0]?.values?.[0]) {
+            db.close();
+            throw new Error("Failed to query 'col' table or 'col' table is empty. The Anki database might be corrupt or in an unexpected format.");
+        }
         const modelsData = JSON.parse(colQuery[0].values[0][0]);
         const decksData = JSON.parse(colQuery[0].values[0][1]);
 
@@ -293,9 +335,11 @@
         notesQuery?.[0]?.values?.forEach(row => {
             notesMap[row[0]] = { mid: row[1].toString(), fldsArray: row[2].split('\x1f'), tagsArray: row[3].trim().split(' ').filter(t => t) };
         });
-        
-        const cardsResult = db.exec("SELECT id, nid, did, ord FROM cards ORDER BY id");
+
+        const cardsResult = db.exec("SELECT id, nid, did, ord FROM cards ORDER BY id"); // Simple ordering for now
         let allCards = cardsResult?.[0]?.values?.map(row => ({ id: row[0], nid: row[1], did: row[2], ord: row[3] })) || [];
+
+        db.close(); // Close DB as soon as we have the data
 
         if (allCards.length === 0) {
           feed.innerHTML = '<p class="message">No cards found in the deck.</p>';
@@ -303,7 +347,7 @@
         }
 
         const cardsToDisplay = allCards.slice(0, MAX_CARDS_TO_DISPLAY);
-        feed.innerHTML = ''; 
+        feed.innerHTML = '';
         if (allCards.length > MAX_CARDS_TO_DISPLAY) {
             feed.innerHTML = `<p class="message">Displaying ${MAX_CARDS_TO_DISPLAY} of ${allCards.length} cards.</p>`;
         }
@@ -314,7 +358,7 @@
           const template = model?.tmpls?.[cardData.ord];
 
           if (!note || !model || !template) {
-            console.warn(`Skipping card id ${cardData.id}: missing note, model, or template.`);
+            console.warn(`Skipping card id ${cardData.id}: missing note (nid: ${cardData.nid}), model (mid: ${note?.mid}), or template (ord: ${cardData.ord}).`);
             continue;
           }
 
@@ -323,7 +367,7 @@
             fieldsData[fieldSchema.name] = note.fldsArray[index] || "";
           });
 
-          const cardUniqueId = `card-container-${cardData.id}-${Date.now()}`;
+          const cardUniqueId = `card-container-${cardData.id}-${Date.now()}`; // More unique ID
           const cardContainer = document.createElement('div');
           cardContainer.className = 'card-container';
           cardContainer.id = cardUniqueId;
@@ -331,22 +375,19 @@
           if (model.css && model.css.trim() !== "") {
             const styleElement = document.createElement('style');
             let scopedCss = model.css;
-            // Basic scoping for common Anki selectors.
-            // Targets .card, .cloze, body (when at start of line, common in Anki CSS for card body)
-            scopedCss = scopedCss.replace(/\.card(?=[^a-zA-Z0-9\-])/g, `#${cardUniqueId} .card-content-wrapper`);
+            scopedCss = scopedCss.replace(/\.card(?=[^a-zA-Z0-9\-])/g, `#${cardUniqueId} .card`); // Target .card specifically
             scopedCss = scopedCss.replace(/\.cloze(?=[^a-zA-Z0-9\-])/g, `#${cardUniqueId} .cloze`);
-            scopedCss = scopedCss.replace(/^body\s*\{/gm, `#${cardUniqueId} .card-content-wrapper {`);
-            // A more specific scope for .mobile .card if body itself might have .mobile
-            scopedCss = scopedCss.replace(/\.mobile\s+\.card(?=[^a-zA-Z0-9\-])/g, `body.mobile #${cardUniqueId} .card-content-wrapper`);
-
-
+            scopedCss = scopedCss.replace(/^body\s*\{/gm, `#${cardUniqueId} .card {`); // For body styles common in Anki
+            scopedCss = scopedCss.replace(/\.mobile\s+\.card(?=[^a-zA-Z0-9\-])/g, `body.mobile #${cardUniqueId} .card`);
             styleElement.textContent = scopedCss;
             cardContainer.appendChild(styleElement);
           }
-          
-          // The .card div is for structure/swipe, .card-content-wrapper is for Anki's CSS.
+
           const cardElement = document.createElement('div');
-          cardElement.className = 'card card-content-wrapper'; 
+          // Anki CSS usually targets .card, so we use it on the main content wrapper part
+          // The outer structure can be `card-structure` or similar if needed to avoid conflict,
+          // but for now, we give the structural element `card` and the content part will also be styled by it.
+          cardElement.className = 'card'; // This div will have the Anki card styling applied via scoped CSS
 
           const frontDiv = document.createElement('div');
           frontDiv.className = 'front';
@@ -360,23 +401,20 @@
             deckName: deckName,
             cardTypeName: template.name,
           };
-          
-          // Render front for {{FrontSide}} (fields replaced, media placeholders)
+
           const preRenderedFrontForBack = await renderAnkiTemplate(
-            template.qfmt, fieldsData, model.flds, 
-            { ...renderContextBase, isFront: true }, // No zip/mediaMap here, rely on string replacement
-            null, {} // Pass null zip and empty mediaMap for pre-render
+            template.qfmt, fieldsData, model.flds,
+            { ...renderContextBase, isFront: true },
+            null, {} // Pass null zip for pre-render; media won't be resolved, which is fine for {{FrontSide}}
           );
 
-          // Fully render front HTML (with media)
           const frontHTML = await renderAnkiTemplate(
             template.qfmt, fieldsData, model.flds,
             { ...renderContextBase, isFront: true },
             zip, mediaFileMap
           );
           frontDiv.innerHTML = frontHTML;
-          
-          // Fully render back HTML (with media and {{FrontSide}})
+
           const backHTML = await renderAnkiTemplate(
             template.afmt, fieldsData, model.flds,
             { ...renderContextBase, isFront: false, frontContentForBack: preRenderedFrontForBack },
@@ -390,33 +428,48 @@
           feed.appendChild(cardContainer);
 
           const setHeight = () => {
-            requestAnimationFrame(() => {
-                const frontScrollHeight = frontDiv.scrollHeight;
-                const backScrollHeight = backDiv.scrollHeight;
-                cardElement.style.height = Math.max(frontScrollHeight, backScrollHeight, 120) + 'px'; // Min height 120px
+            requestAnimationFrame(() => { // Ensure DOM updates are flushed
+                // Get natural height of content
+                const tempFront = frontDiv.cloneNode(true);
+                const tempBack = backDiv.cloneNode(true);
+                Object.assign(tempFront.style, {position:'absolute', visibility:'hidden', height:'auto', width: frontDiv.clientWidth + 'px'});
+                Object.assign(tempBack.style, {position:'absolute', visibility:'hidden', height:'auto', width: backDiv.clientWidth + 'px'});
+                document.body.appendChild(tempFront);
+                document.body.appendChild(tempBack);
+                const frontScrollHeight = tempFront.scrollHeight;
+                const backScrollHeight = tempBack.scrollHeight;
+                document.body.removeChild(tempFront);
+                document.body.removeChild(tempBack);
+
+                cardElement.style.height = Math.max(frontScrollHeight, backScrollHeight, 120) + 'px';
             });
           };
 
-          // Attempt to set height after images/audio might have loaded
           const mediaElements = Array.from(cardElement.querySelectorAll('img, audio'));
           if (mediaElements.length > 0) {
             let loadedCount = 0;
+            const totalMedia = mediaElements.length;
+            const onMediaLoadOrError = () => {
+                loadedCount++;
+                if (loadedCount === totalMedia) setHeight();
+            };
             mediaElements.forEach(el => {
               if (el.tagName === 'IMG') {
-                if (el.complete) loadedCount++;
-                else el.onload = el.onerror = () => { loadedCount++; if (loadedCount === mediaElements.length) setHeight(); };
-              } else if (el.tagName === 'AUDIO') { // Audio metadata usually loads fast
-                if (el.readyState >= 1) loadedCount++; // HAVE_METADATA
-                else el.onloadedmetadata = el.onerror = () => { loadedCount++; if (loadedCount === mediaElements.length) setHeight(); };
+                if (el.complete) onMediaLoadOrError(); else el.onload = el.onerror = onMediaLoadOrError;
+              } else if (el.tagName === 'AUDIO') {
+                if (el.readyState >= 1) onMediaLoadOrError(); else el.onloadedmetadata = el.onerror = onMediaLoadOrError;
+              } else { // Should not happen with current querySelector
+                onMediaLoadOrError();
               }
             });
-            if (loadedCount === mediaElements.length) setHeight();
+            if (loadedCount === totalMedia && totalMedia > 0) setHeight(); // If all already complete
           } else {
             setHeight();
           }
 
+
           let startX = 0, currentX = 0, translateX = 0, isDragging = false;
-          const swipeThreshold = cardElement.offsetWidth / 3.5; // Swipe 1/3.5 of card width
+          const swipeThreshold = cardElement.offsetWidth / 3.5;
 
           frontDiv.addEventListener('pointerdown', e => {
             if (e.button !== 0) return;
@@ -429,7 +482,7 @@
           frontDiv.addEventListener('pointermove', e => {
             if (!isDragging) return;
             currentX = e.clientX;
-            translateX = Math.min(0, currentX - startX); // Swipe left only
+            translateX = Math.min(0, currentX - startX);
             frontDiv.style.transform = `translateX(${translateX}px)`;
           });
 
@@ -444,11 +497,11 @@
             e.currentTarget.releasePointerCapture(e.pointerId);
             flipCard(translateX < -swipeThreshold);
           });
-          
+
           frontDiv.addEventListener('click', e => {
-            if (Math.abs(currentX - startX) > 10) return; // Was a drag, not a click
+            if (Math.abs(currentX - startX) > 10) return;
             const matrix = new DOMMatrixReadOnly(getComputedStyle(frontDiv).transform);
-            flipCard(matrix.m41 >= -10); // If mostly front, flip to back; else to front
+            flipCard(matrix.m41 >= -10);
           });
         }
 
@@ -456,9 +509,11 @@
              feed.innerHTML += '<p class="message error">Finished processing, but no cards could be rendered. Check console.</p>';
         }
 
+
       } catch (err) {
-        console.error("Fatal Error:", err);
-        feed.innerHTML = `<p class="message error">Error processing deck: ${err.message}. Check console.</p>`;
+        console.error("Fatal Error in main processing block:", err);
+        feed.innerHTML = `<p class="message error">An unexpected error occurred: ${err.message}. Check the browser console for more details.</p>`;
+        if (err.stack) console.error(err.stack);
       }
     });
   });
