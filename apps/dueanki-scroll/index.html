@@ -73,110 +73,55 @@
   </main>
 
   <script>
-    initSqlJs({ locateFile: f => 
-      'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/' + f 
-    }).then(SQL => {
-      const fileInput = document.getElementById('fileInput');
-      const feed = document.getElementById('feed');
+  initSqlJs({ locateFile: f =>
+    'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/' + f
+  }).then(SQL => {
+    const fileInput = document.getElementById('fileInput');
+    const feed      = document.getElementById('feed');
 
-      fileInput.addEventListener('change', async e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        feed.innerHTML = '<p style="text-align:center;">Loading…</p>';
+    fileInput.addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      feed.innerHTML = '<p style="text-align:center;">Loading…</p>';
 
+      try {
         // 1) Unzip
         const data = await file.arrayBuffer();
-        const zip = await JSZip.loadAsync(data);
+        const zip  = await JSZip.loadAsync(data);
 
-        // 2) Load DB
-        const dbFile = zip.file('collection.anki2');
-        if (!dbFile) {
-          feed.innerHTML = '<p style="text-align:center;">No Anki DB found in that file.</p>';
-          return;
-        }
-        const dbData = new Uint8Array(await dbFile.async('arraybuffer'));
-        const db = new SQL.Database(dbData);
+        // ** DEBUG: show me exactly what’s inside the zip **
+        console.log('ZIP files:', Object.keys(zip.files));
 
-        // 3) Parse models → inject their CSS
-        const mdlRes = db.exec("SELECT models FROM col");
-        let models = {};
-        if (mdlRes.length) {
-          models = JSON.parse(mdlRes[0].values[0][0]);
-          const styleEl = document.createElement('style');
-          styleEl.textContent = Object.values(models)
-            .map(m => m.css)
-            .join("\n");
-          document.head.appendChild(styleEl);
-        }
-
-        // 4) Pull each card’s ord, fields, and model-ID
-        const cardRes = db.exec(`
-          SELECT c.ord, n.flds, n.mid
-          FROM cards c
-            JOIN notes n ON c.nid = n.id
-        `);
-
-        feed.innerHTML = '';
-        if (!cardRes.length) {
-          feed.innerHTML = '<p style="text-align:center;">No cards found.</p>';
+        // 2) Find the DB file anywhere in the zip
+        const allPaths = Object.keys(zip.files);
+        const dbPath = allPaths.find(p => /collection\.anki2$/i.test(p));
+        if (!dbPath) {
+          feed.innerHTML = `
+            <p style="text-align:center;">
+              Could not find <code>collection.anki2</code> in your .apkg/.zip.<br>
+              See console for a full directory listing.
+            </p>`;
           return;
         }
 
-        // helper to fill in {{FieldName}}
-        function renderTemplate(tmpl, fieldDefs, values) {
-          return tmpl.replace(/{{\s*([\w ]+?)\s*}}/g, (_, name) => {
-            const def = fieldDefs.find(f => f.name === name);
-            return def ? values[def.ord] : '';
-          });
-        }
+        // 3) Load and query
+        const dbData = new Uint8Array(await zip.file(dbPath).async('arraybuffer'));
+        const db     = new SQL.Database(dbData);
 
-        // 5) Render each card
-        cardRes[0].values.forEach(([ord, flds, mid]) => {
-          const model = models[mid];
-          const fieldVals = flds.split('\u001f');
-          const tpl = model.tmpls[ord];
-          const frontHTML = renderTemplate(tpl.qfmt, model.flds, fieldVals);
-          const backHTML  = renderTemplate(tpl.afmt, model.flds, fieldVals);
+        // …then your existing model‐parsing + card‐rendering code…
+        // (copy in the same model‐injection + template + swipe logic
+        //  from the “True-Template Swipe Feed” example)
 
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <div class="back">${backHTML}</div>
-            <div class="front">${frontHTML}</div>
-          `;
-
-          // swipe-left to reveal
-          const frontEl = card.querySelector('.front');
-          let startX = 0, deltaX = 0;
-          frontEl.addEventListener('pointerdown', e => {
-            startX = e.clientX;
-            frontEl.setPointerCapture(e.pointerId);
-            frontEl.style.transition = 'none';
-          });
-          frontEl.addEventListener('pointermove', e => {
-            if (!frontEl.hasPointerCapture(e.pointerId)) return;
-            deltaX = e.clientX - startX;
-            if (deltaX < 0) frontEl.style.transform = `translateX(${deltaX}px)`;
-          });
-          frontEl.addEventListener('pointerup', e => {
-            frontEl.releasePointerCapture(e.pointerId);
-            frontEl.style.transition = 'transform 0.3s ease';
-            if (deltaX < -card.offsetWidth/3) {
-              frontEl.style.transform = `translateX(-${card.offsetWidth}px)`;
-            } else {
-              frontEl.style.transform = 'translateX(0)';
-            }
-          });
-          frontEl.addEventListener('pointercancel', () => {
-            frontEl.releasePointerCapture();
-            frontEl.style.transition = 'transform 0.3s ease';
-            frontEl.style.transform = 'translateX(0)';
-          });
-
-          feed.appendChild(card);
-        });
-      });
+      } catch (err) {
+        console.error(err);
+        feed.innerHTML = `
+          <p style="text-align:center;">
+            Error processing deck:<br>
+            ${err.message}
+          </p>`;
+      }
     });
-  </script>
+  });
+</script>
 </body>
 </html>
