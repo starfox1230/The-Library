@@ -150,6 +150,21 @@
     };
     const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
+    // SCRIPTURE LINK HELPER
+    function getScriptureLinkInfo(bookNameFromFile) {
+      // bookNameFromFile is the key from schedule.json (e.g., 'dc', 'JosephSmithHistory')
+      if (bookNameFromFile === 'dc') {
+        return { volumePath: 'dc-testament', bookAbbr: 'dc', bookDisplay: 'D&C' };
+      } else if (bookNameFromFile === 'JosephSmithHistory') {
+        return { volumePath: 'pgp', bookAbbr: 'js-h', bookDisplay: 'JS–H' };
+      } else if (bookNameFromFile === 'ArticlesOfFaith') {
+        return { volumePath: 'pgp', bookAbbr: 'a-of-f', bookDisplay: 'AoF' };
+      }
+      // Fallback for other books if schedule expands
+      console.warn(`No link info for book: ${bookNameFromFile}`);
+      return { volumePath: 'unknown', bookAbbr: bookNameFromFile, bookDisplay: bookNameFromFile };
+    }
+
     // STATE
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2025.json').then(r=>r.json());
@@ -179,19 +194,23 @@
     async function loadWeek(i){
       if(cache[i]) return cache[i];
       const wk = schedule[i];
+      const mainBookInfo = getScriptureLinkInfo(wk.book); // Get book info for main book
       const main = await fetch(`data/${wk.volume}/${wk.book}.json`).then(r=>r.json());
       let flat=[];
       for(let c=wk.chapStart;c<=wk.chapEnd;c++){
         const ch=main.chapters.find(x=>x.number===c);
         if(ch) ch.verses.forEach((v,j)=>flat.push({
+          bookInfo: mainBookInfo, // Store bookInfo
           section:c,verse:j+1,text:v.text
         }));
       }
       if(wk.extraBook){
+        const extraBookInfo = getScriptureLinkInfo(wk.extraBook); // Get book info for extra book
         const extra = await fetch(`data/${wk.volume}/${wk.extraBook}.json`).then(r=>r.json());
         for(let c=wk.extraStart;c<=wk.extraEnd;c++){
           const ch=extra.chapters.find(x=>x.number===c);
           if(ch) ch.verses.forEach((v,j)=>flat.push({
+            bookInfo: extraBookInfo, // Store bookInfo
             section:c,verse:j+1,text:v.text
           }));
         }
@@ -203,7 +222,7 @@
         assigns.push(flat.slice(pos,pos+cnt));
         pos+=cnt;
       }
-      return cache[i]={wk,flat,assigns};
+      return cache[i]={wk,flat,assigns}; // flat now contains items with bookInfo
     }
 
     // AUTO-RESIZE
@@ -215,15 +234,22 @@
     // RENDER
     async function renderDay(){
       const {wk,assigns}=await loadWeek(cw);
+
+      // Update week info text with bookDisplay names
+      const mainBookDisplay = getScriptureLinkInfo(wk.book).bookDisplay;
+      let weekSectionsText = `${mainBookDisplay} ${wk.chapStart}`;
+      if (wk.chapEnd > wk.chapStart) weekSectionsText += `–${wk.chapEnd}`;
+
+      if (wk.extraBook) {
+        const extraBookDisplay = getScriptureLinkInfo(wk.extraBook).bookDisplay;
+        weekSectionsText += `; ${extraBookDisplay} ${wk.extraStart}`;
+        if (wk.extraEnd > wk.extraStart) weekSectionsText += `–${wk.extraEnd}`;
+      }
+      
       weekInfo.textContent=
         `Week we're in: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}\n`+
-        `Sections: D&C ${wk.chapStart}`+
-        (wk.chapEnd>wk.chapStart?`–${wk.chapEnd}`:'')+
-        (wk.extraBook
-          ? `; ${wk.extraBook.replace(/([A-Z])/g,' $1').trim()} `+
-            `${wk.extraStart}`+
-            (wk.extraEnd>wk.extraStart?`–${wk.extraEnd}`:'')
-          : '');
+        `Sections: ${weekSectionsText}`;
+        
       const dt=new Date(parseDate(wk.start));
       dt.setDate(dt.getDate()+dayIdx);
       dayInfo.textContent=`Today's date: ${fmtDate(dt)}`;
@@ -233,28 +259,90 @@
       toggleBtn.textContent=displayMode==='verses'?'Show Sections':'Show Verses';
       copyBtn.textContent='Copy';
 
-      const arr=assigns[dayIdx];
+      const arr=assigns[dayIdx]; // arr items now have .bookInfo
+      
+      if (arr.length === 0) { // Handle days with no assignment
+          contentTA.value = "No assignment for this day.";
+          autoResize();
+          return;
+      }
+
       if(displayMode==='verses'){
-        const ranges=[];
-        arr.forEach((it,i)=>{
-          if(i===0||it.section!==arr[i-1].section)
-            ranges.push({sec:it.section,start:it.verse,end:it.verse});
-          else
-            ranges[ranges.length-1].end=it.verse;
+        // Generate unique links preamble
+        const uniqueBookSectionPairs = [];
+        const seenKeys = new Set();
+        arr.forEach(item => {
+          const key = `${item.bookInfo.bookAbbr}-${item.section}`; // Use bookAbbr for key
+          if (!seenKeys.has(key)) {
+            uniqueBookSectionPairs.push({ bookInfo: item.bookInfo, section: item.section });
+            seenKeys.add(key);
+          }
         });
-        const hdr=ranges.map(r=>`D&C ${r.sec}:${r.start}`+
+
+        const linksPreamble = uniqueBookSectionPairs.map(bs => {
+          const { volumePath, bookAbbr, bookDisplay } = bs.bookInfo;
+          const sectionNum = parseInt(bs.section);
+          if (volumePath && volumePath !== 'unknown' && bookAbbr && !isNaN(sectionNum)) {
+            return `Link: https://www.churchofjesuschrist.org/study/scriptures/${volumePath}/${bookAbbr}/${sectionNum}?lang=eng`;
+          }
+          return `(Link not available for ${bookDisplay} ${sectionNum})`;
+        }).join('\n');
+
+        // Generate header (list of scripture ranges, book-aware)
+        const ranges=[];
+        arr.forEach((item, i)=>{
+          // Start new range if first item, or book changes, or section changes
+          if(i===0 || item.bookInfo.bookAbbr !== arr[i-1].bookInfo.bookAbbr || item.section !== arr[i-1].section) {
+            ranges.push({bookDisplay: item.bookInfo.bookDisplay, sec:item.section, start:item.verse, end:item.verse});
+          } else { // Otherwise, extend the current range
+            ranges[ranges.length-1].end=item.verse;
+          }
+        });
+        const hdr=ranges.map(r=>`${r.bookDisplay} ${r.sec}:${r.start}`+
           (r.end>r.start?`–${r.end}`:'')).join(', ');
+        
         const body=arr.map(it=>`${it.verse}. ${it.text}`).join('\n');
-        contentTA.value=hdr+'\n\n'+body;
-      } else {
-        const secs=[...new Set(arr.map(it=>it.section))];
+        contentTA.value= (linksPreamble ? linksPreamble + '\n\n' : '') + hdr + '\n\n' + body;
+
+      } else { // displayMode 'sections'
+        // Identify unique sections (book-aware) from the day's assignment
+        const uniqueSectionKeys = new Set();
+        arr.forEach(item => {
+          uniqueSectionKeys.add(`${item.bookInfo.bookAbbr}|${item.section}`); // Key by bookAbbr and section
+        });
+
+        const sectionsToDisplayFull = [];
+        uniqueSectionKeys.forEach(key => {
+          const [bookAbbr, sectionStr] = key.split('|');
+          const section = parseInt(sectionStr);
+          // Find an item in arr to get the full bookInfo object
+          const arrItem = arr.find(it => it.bookInfo.bookAbbr === bookAbbr && it.section === section);
+          if (arrItem) { // Should always find one if key was derived from arr
+            sectionsToDisplayFull.push({ bookInfo: arrItem.bookInfo, section: section });
+          }
+        });
+        
+        const currentWeekData = await loadWeek(cw); // Ensures cache[cw] (and .flat) is populated
         let out='';
-        for(const sec of secs){
-          const verseList=(await loadWeek(cw)).flat
-            .filter(x=>x.section===sec);
-          out+=`D&C ${sec}\n\n`+
-            verseList.map(v=>`${v.verse}. ${v.text}`).join('\n')+
-            '\n\n';
+        for(const secInfo of sectionsToDisplayFull){
+          const { bookInfo, section } = secInfo; // section is section number
+          const { volumePath, bookAbbr, bookDisplay } = bookInfo;
+          
+          let linkText = '';
+          if (volumePath && volumePath !== 'unknown' && bookAbbr && !isNaN(section)) {
+            linkText = `Link: https://www.churchofjesuschrist.org/study/scriptures/${volumePath}/${bookAbbr}/${section}?lang=eng\n`;
+          } else {
+            linkText = `(Link not available for ${bookDisplay} ${section})\n`;
+          }
+
+          // Get all verses for this full section from the cached week's flat data
+          const verseList = currentWeekData.flat
+            .filter(x=> x.bookInfo.bookAbbr === bookAbbr && x.section === section);
+          
+          out += linkText + // Add the generated link
+                 `${bookDisplay} ${section}\n\n`+ // Add section header, e.g., D&C 76
+                 verseList.map(v=>`${v.verse}. ${v.text}`).join('\n')+
+                 '\n\n';
         }
         contentTA.value=out.trim();
       }
