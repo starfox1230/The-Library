@@ -152,8 +152,8 @@
 
     // SCRIPTURE LINK HELPER
     function getScriptureLinkInfo(bookNameFromFile) {
-      // bookNameFromFile is the key from schedule.json (e.g., 'dc', 'JosephSmithHistory')
-      if (bookNameFromFile === 'dc') {
+      // bookNameFromFile is the key from schedule.json (e.g., 'doctrineandcovenants', 'JosephSmithHistory')
+      if (bookNameFromFile === 'doctrineandcovenants') { // CORRECTED THIS LINE
         return { volumePath: 'dc-testament', bookAbbr: 'dc', bookDisplay: 'D&C' };
       } else if (bookNameFromFile === 'JosephSmithHistory') {
         return { volumePath: 'pgp', bookAbbr: 'js-h', bookDisplay: 'JS–H' };
@@ -162,7 +162,10 @@
       }
       // Fallback for other books if schedule expands
       console.warn(`No link info for book: ${bookNameFromFile}`);
-      return { volumePath: 'unknown', bookAbbr: bookNameFromFile, bookDisplay: bookNameFromFile };
+      // For fallback, attempt to make the display name more readable if it's camelCase or similar
+      let displayFallback = bookNameFromFile.replace(/([A-Z0-9])/g, ' $1').trim();
+      displayFallback = displayFallback.charAt(0).toUpperCase() + displayFallback.slice(1); // Capitalize first letter
+      return { volumePath: 'unknown', bookAbbr: bookNameFromFile, bookDisplay: displayFallback };
     }
 
     // STATE
@@ -281,7 +284,7 @@
 
         const linksPreamble = uniqueBookSectionPairs.map(bs => {
           const { volumePath, bookAbbr, bookDisplay } = bs.bookInfo;
-          const sectionNum = parseInt(bs.section);
+          const sectionNum = parseInt(bs.section); // Ensure section is a number
           if (volumePath && volumePath !== 'unknown' && bookAbbr && !isNaN(sectionNum)) {
             return `Link: https://www.churchofjesuschrist.org/study/scriptures/${volumePath}/${bookAbbr}/${sectionNum}?lang=eng`;
           }
@@ -314,7 +317,7 @@
         const sectionsToDisplayFull = [];
         uniqueSectionKeys.forEach(key => {
           const [bookAbbr, sectionStr] = key.split('|');
-          const section = parseInt(sectionStr);
+          const section = parseInt(sectionStr); // Ensure section is a number
           // Find an item in arr to get the full bookInfo object
           const arrItem = arr.find(it => it.bookInfo.bookAbbr === bookAbbr && it.section === section);
           if (arrItem) { // Should always find one if key was derived from arr
