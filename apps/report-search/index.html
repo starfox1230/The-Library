@@ -226,7 +226,7 @@
   <input
     type="search"
     id="txt-filter"
-    placeholder="Start typing to search reports..."
+    placeholder="Start typing to search reports (e.g., word1 word2 "exact phrase")..."
   >
 
   <div id="results"></div>
@@ -237,8 +237,40 @@
   let reportDatabase = [];
   let currentUploadMode = 'load';
 
-  // --- Database Utilities ---
+  // --- Search Term Parser ---
+  /**
+   * Parses a search query string into an array of search tokens.
+   * Quoted phrases are treated as single tokens.
+   * All tokens are converted to lowercase.
+   * Example: `word1 "exact phrase" word2` -> `["word1", "exact phrase", "word2"]`
+   * @param {string} query The raw search query.
+   * @returns {string[]} An array of search tokens.
+   */
+  function parseSearchTerm(query) {
+    query = query.trim();
+    if (!query) return [];
 
+    const tokens = [];
+    // Regex: Match either a quoted string (capturing content inside quotes) or a sequence of non-whitespace characters
+    const regex = /"([^"]+)"|\S+/g;
+    let match;
+
+    while ((match = regex.exec(query)) !== null) {
+        let tokenToAdd = "";
+        if (match[1]) { // Quoted phrase (content is in group 1)
+            tokenToAdd = match[1].toLowerCase();
+        } else { // Non-quoted word (the whole match is in match[0])
+            tokenToAdd = match[0].toLowerCase();
+        }
+        if (tokenToAdd) { // Only add non-empty tokens
+            tokens.push(tokenToAdd);
+        }
+    }
+    return tokens;
+  }
+
+
+  // --- Database Utilities ---
   function paragraphSplitter(text) {
     if (!text) return [];
     const paras = text.split(/\r?\n\s*\r?\n+/);
@@ -263,15 +295,15 @@
           }
       } else {
          loadedReports = data.map((item, index) => {
-            if (!item || typeof item !== 'object' || typeof item.attendingReport === 'undefined' || typeof item.residentReport === 'undefined') { // Check presence better
+            if (!item || typeof item !== 'object' || typeof item.attendingReport === 'undefined' || typeof item.residentReport === 'undefined') {
                 console.warn(`Skipping invalid item at index ${index} during JSON load.`);
                 return null;
             }
             const id = item.id || `report_${Date.now()}_${index}`;
             return {
                 id: id,
-                attendingReport: (item.attendingReport || "").trim(), // Handle null/undefined
-                residentReport: (item.residentReport || "").trim(), // Handle null/undefined
+                attendingReport: (item.attendingReport || "").trim(),
+                residentReport: (item.residentReport || "").trim(),
                 attendingParagraphs: paragraphSplitter(item.attendingReport),
                 residentParagraphs: paragraphSplitter(item.residentReport)
             };
@@ -285,18 +317,21 @@
       let actuallyAddedCount = 0;
 
       if (mode === 'load') {
-          reportDatabase = [];
+          reportDatabase = []; // Clear existing for 'load'
           loadedReports.forEach(newReport => {
-              if (!existingIds.has(newReport.id)) {
+              // For 'load', we overwrite, so ID check is more for sanity than strict prevention
+              // but good to keep if the source JSON itself had duplicates.
+              if (!reportDatabase.some(r => r.id === newReport.id)) { // Check within the newly forming DB
                   reportDatabase.push(newReport);
-                  existingIds.add(newReport.id);
                   actuallyAddedCount++;
               } else {
-                 console.warn(`Skipping report with duplicate ID '${newReport.id}' during load.`);
+                 console.warn(`Skipping report with duplicate ID '${newReport.id}' within the loaded data.`);
               }
           });
+          existingIds.clear(); // For 'load', all new IDs are from the loaded set
+          reportDatabase.forEach(r => existingIds.add(r.id));
+
       } else if (mode === 'append') {
-          const initialCount = reportDatabase.length;
           loadedReports.forEach(newReport => {
               if (!existingIds.has(newReport.id)) {
                   reportDatabase.push(newReport);
@@ -309,7 +344,8 @@
            alert(`Database Appended: ${actuallyAddedCount} new reports added. Total: ${reportDatabase.length} reports.`);
       }
 
-      if (actuallyAddedCount > 0 || mode === 'load') {
+
+      if (actuallyAddedCount > 0 || (mode === 'load' && loadedReports.length > 0) ) {
         saveDatabase();
       }
       renderResults(document.getElementById('txt-filter').value);
@@ -324,39 +360,73 @@
        const newReports = [];
        let addedCount = 0;
        let failedCount = 0;
-       const existingIds = new Set(reportDatabase.map(r => r.id));
+       // Note: existingIds passed to parseRawCases might not be needed if ID generation is robust
+       // and duplication check happens in processLoadedData or Add button handler.
+       // For now, this function purely parses, ID uniqueness is handled by caller.
 
        caseChunks.forEach((chunk, index) => {
            chunk = chunk.trim();
            if (!chunk) return;
            const caseMatch = chunk.match(/^Case\s*(\d+)/);
            const caseNum = caseMatch ? caseMatch[1] : null;
+           // Generate a base ID; uniqueness will be ensured by the calling context (e.g. Add button handler)
            let reportId = caseNum ? `Case_${caseNum}` : `raw_${Date.now()}_${index}`;
-           let counter = 0;
-           let originalId = reportId;
-           while (existingIds.has(reportId) || newReports.some(r => r.id === reportId)) {
-               counter++;
-               reportId = `${originalId}_${counter}`;
-           }
+
            let attendingReport = '';
            let residentReport = '';
-           const attendHeaderMatch = chunk.match(/^Attending Report:/mi);
-           const residentHeaderMatch = chunk.match(/^(?:Resident|Residenrt)\s*Report:/mi);
+           // Regex to find "Attending Report:" and "Resident Report:" (case insensitive, minor typo tolerance)
+           const attendHeaderMatch = chunk.match(/Attending\s*Report:/i);
+           const residentHeaderMatch = chunk.match(/(?:Resident|Residenrt)\s*Report:/i); // Added typo "Residenrt"
 
-           if (attendHeaderMatch) {
-               const attendStartIndex = attendHeaderMatch.index + attendHeaderMatch[0].length;
-               let attendEndIndex = chunk.length;
-               if (residentHeaderMatch) { attendEndIndex = residentHeaderMatch.index; }
-               attendingReport = chunk.substring(attendStartIndex, attendEndIndex).trim();
-           }
-           if (residentHeaderMatch) {
-               const residentStartIndex = residentHeaderMatch.index + residentHeaderMatch[0].length;
-               residentReport = chunk.substring(residentStartIndex).trim();
+           let textAfterCaseNum = chunk;
+           if(caseMatch) {
+               textAfterCaseNum = chunk.substring(caseMatch[0].length).trim();
            }
 
-           if (attendingReport) {
+
+           if (attendHeaderMatch && residentHeaderMatch) {
+                if (attendHeaderMatch.index < residentHeaderMatch.index) {
+                    attendingReport = textAfterCaseNum.substring(
+                        attendHeaderMatch.index + attendHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length), // adjust index relative to textAfterCaseNum
+                        residentHeaderMatch.index - (chunk.length - textAfterCaseNum.length)
+                    ).trim();
+                    residentReport = textAfterCaseNum.substring(
+                        residentHeaderMatch.index + residentHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
+                    ).trim();
+                } else { // Resident report appears before Attending report (unusual but handle)
+                    residentReport = textAfterCaseNum.substring(
+                        residentHeaderMatch.index + residentHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length),
+                        attendHeaderMatch.index - (chunk.length - textAfterCaseNum.length)
+                    ).trim();
+                    attendingReport = textAfterCaseNum.substring(
+                        attendHeaderMatch.index + attendHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
+                    ).trim();
+                }
+           } else if (attendHeaderMatch) {
+               attendingReport = textAfterCaseNum.substring(
+                   attendHeaderMatch.index + attendHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
+                ).trim();
+           } else if (residentHeaderMatch) { // Only resident report found
+               residentReport = textAfterCaseNum.substring(
+                   residentHeaderMatch.index + residentHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
+                ).trim();
+           } else {
+               // No clear "Attending Report:" or "Resident Report:" found after "Case X"
+               // Try to infer based on common structures or assume the whole text is attending if nothing else.
+               // This part can be complex. A simple assumption: if any text, it's attending.
+               // A more robust parser would look for keywords or structure.
+               // For now, if no headers, we might fail it or assign all to attending.
+               // Let's try assigning to attending if any text remains.
+               if (textAfterCaseNum) {
+                   attendingReport = textAfterCaseNum;
+                   // console.warn(`Case chunk for '${reportId}' has no clear 'Attending Report:' or 'Resident Report:' headers. Assigning remaining text to Attending.`);
+               }
+           }
+
+
+           if (attendingReport || residentReport) { // If at least one report part is found
                const report = {
-                   id: reportId,
+                   id: reportId, // Base ID, will be checked/made unique by caller
                    attendingReport: attendingReport,
                    residentReport: residentReport,
                    attendingParagraphs: paragraphSplitter(attendingReport),
@@ -365,12 +435,13 @@
                newReports.push(report);
                addedCount++;
            } else {
-               console.warn(`Failed to parse Case chunk starting with: "${chunk.substring(0, 50)}..." - Could not find 'Attending Report:'.`);
+               console.warn(`Failed to parse Case chunk effectively: "${chunk.substring(0, 100)}..." - Could not extract Attending or Resident report content.`);
                failedCount++;
            }
        });
        return { addedCount, failedCount, newReports };
    }
+
 
   function saveDatabase() {
     try {
@@ -392,40 +463,57 @@
     if (saved) {
       try {
         const parsedData = JSON.parse(saved);
-        processLoadedData(parsedData, 'load');
+        processLoadedData(parsedData, 'load'); // 'load' will clear and repopulate
       } catch (e) {
         console.error("Error loading database:", e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear potentially corrupted data
         alert("Error loading database from local storage. Cleared potentially corrupted data.");
       }
     }
-    updateStatusMessage();
+    updateStatusMessage(); // Update status after attempting to load
   }
 
   // --- UI Rendering ---
 
-  function highlightMatches(text, term) {
-      if (!term || !text) return text; // Added check for text
-      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      try {
-        const regex = new RegExp(`(${escapedTerm})`, 'gi');
-         // Use callback to avoid issues with '$' in replacement
-         return text.replace(regex, (match, p1) => `<strong>${p1}</strong>`);
-      } catch (e) {
-          console.warn("Highlighting regex error:", e);
-          return text;
+  /**
+   * Highlights search tokens within a given text.
+   * @param {string} text The original plain text to highlight.
+   * @param {string[]} searchTokens An array of lowercased search tokens.
+   * @returns {string} The text with matches wrapped in <strong> tags.
+   */
+  function highlightMatches(text, searchTokens) {
+      if (!searchTokens || searchTokens.length === 0 || !text) return text;
+
+      let highlightedText = text;
+      // Sort tokens by length, descending. This helps if a shorter token is part of a longer one
+      // (e.g., if tokens were "report" and "attending report", "attending report" would be highlighted first).
+      const sortedTokens = [...new Set(searchTokens)].sort((a, b) => b.length - a.length);
+
+      for (const token of sortedTokens) {
+          if (token.trim() === "") continue;
+          // Escape regex special characters in the token
+          const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          try {
+              const regex = new RegExp(`(${escapedToken})`, 'gi'); // 'g' for global, 'i' for case-insensitive
+              highlightedText = highlightedText.replace(regex, (match, p1) => `<strong>${p1}</strong>`);
+          } catch (e) {
+              console.warn("Highlighting regex error for token:", token, e);
+          }
       }
+      return highlightedText;
   }
 
-  function renderResults(searchTerm) {
+
+  function renderResults(rawQueryFromInput) {
     const resultsContainer = document.getElementById('results');
     const statusMessage = document.getElementById('status-message');
-    resultsContainer.innerHTML = '';
-    searchTerm = searchTerm.trim().toLowerCase(); // Keep the search term used for this render
+    resultsContainer.innerHTML = ''; // Clear previous results
 
-    if (!searchTerm) {
+    const searchTokens = parseSearchTerm(rawQueryFromInput);
+
+    if (searchTokens.length === 0) {
         updateStatusMessage();
-      return;
+        return;
     }
 
     let matchFound = false;
@@ -434,16 +522,18 @@
     reportDatabase.forEach(report => {
       const processParagraphs = (paragraphs, type, reportId) => {
         paragraphs.forEach((p, index) => {
-          if (p.toLowerCase().includes(searchTerm)) {
+          const paragraphTextLower = p.toLowerCase();
+          // Check if ALL search tokens are present in the paragraph
+          const allTokensFound = searchTokens.every(token => paragraphTextLower.includes(token));
+
+          if (allTokensFound) {
             matchFound = true;
             const div = document.createElement('div');
             div.className = 'result-item';
             div.dataset.reportId = reportId;
-            // *** Store original data for collapsing ***
             div.dataset.originalParagraph = p;
-            div.dataset.originalSearchTerm = searchTerm;
+            div.dataset.rawQueryForHighlight = rawQueryFromInput; // Store the raw query used for this snippet
             div.dataset.reportType = type;
-            // *********************************************
 
             const meta = document.createElement('div');
             meta.className = 'report-meta';
@@ -451,11 +541,10 @@
             div.appendChild(meta);
 
             const content = document.createElement('div');
-            content.textContent = p;
-            content.innerHTML = highlightMatches(content.innerHTML, searchTerm);
+            // Highlight using the original paragraph text and the parsed search tokens
+            content.innerHTML = highlightMatches(p, searchTokens);
             div.appendChild(content);
 
-            // Initial listener to expand
             div.addEventListener('dblclick', handleResultDoubleClick);
             fragment.appendChild(div);
           }
@@ -468,8 +557,8 @@
 
     resultsContainer.appendChild(fragment);
 
-    if (searchTerm && !matchFound) {
-        statusMessage.textContent = 'No matching paragraphs found for "' + searchTerm + '".';
+    if (searchTokens.length > 0 && !matchFound) {
+        statusMessage.textContent = 'No matching paragraphs found for "' + rawQueryFromInput + '".';
         statusMessage.style.display = 'block';
     } else {
        updateStatusMessage();
@@ -480,24 +569,28 @@
        const statusMessage = document.getElementById('status-message');
        const filterInput = document.getElementById('txt-filter');
        const resultsContainer = document.getElementById('results');
-       const searchTerm = filterInput.value.trim();
+       const currentRawQuery = filterInput.value;
+       const searchTokens = parseSearchTerm(currentRawQuery);
 
-       if (searchTerm === '' && resultsContainer.innerHTML === '') {
+
+       if (searchTokens.length === 0 && resultsContainer.innerHTML === '') {
             statusMessage.textContent = reportDatabase.length > 0
                 ? 'Type in the search box above to find reports.'
                 : 'Load a report database or paste raw cases above.';
             statusMessage.style.display = 'block';
-       } else if (searchTerm !== '' && resultsContainer.innerHTML === '') {
-           if (statusMessage.textContent.startsWith('No matching')) {
-                statusMessage.style.display = 'block';
-           } else {
+       } else if (searchTokens.length > 0 && resultsContainer.innerHTML === '') {
+           // This case is handled by renderResults itself if no matches are found.
+           // However, if renderResults decided not to show status (e.g. error), this might catch it.
+           // Let's ensure renderResults' message takes precedence.
+           if (!statusMessage.textContent.startsWith('No matching')) {
                 statusMessage.style.display = 'none';
+           } else {
+                statusMessage.style.display = 'block'; // Keep the "no matching" message
            }
-       } else if (resultsContainer.innerHTML !== '') {
+       } else if (resultsContainer.innerHTML !== '') { // Results are showing
             statusMessage.style.display = 'none';
-       }
-        else {
-             statusMessage.textContent = reportDatabase.length > 0
+       } else { // Default fallback (e.g., DB empty, no search yet)
+            statusMessage.textContent = reportDatabase.length > 0
                 ? 'Type in the search box above to find reports.'
                 : 'Load a report database or paste raw cases above.';
            statusMessage.style.display = 'block';
@@ -506,7 +599,6 @@
 
   // --- Event Handlers ---
 
-  // Expands the result
   function handleResultDoubleClick(event) {
     const resultItem = event.currentTarget;
     const reportId = resultItem.dataset.reportId;
@@ -521,8 +613,8 @@
     };
 
     resultItem.innerHTML = '';
-    resultItem.style.cursor = 'default'; // Default cursor for expanded view container
-    resultItem.removeEventListener('dblclick', handleResultDoubleClick); // Remove expand listener
+    resultItem.style.cursor = 'default';
+    resultItem.removeEventListener('dblclick', handleResultDoubleClick);
 
     const fullView = document.createElement('div');
     fullView.className = 'full-report-view';
@@ -532,15 +624,18 @@
     meta.textContent = `Full Report: ${report.id} (Double-click to collapse)`;
     fullView.appendChild(meta);
 
-    const currentSearchTerm = document.getElementById('txt-filter').value.trim().toLowerCase(); // Get current term
+    // Get current search tokens to highlight the full report
+    const rawCurrentQuery = document.getElementById('txt-filter').value;
+    const currentSearchTokens = parseSearchTerm(rawCurrentQuery);
 
     const attendingHeader = document.createElement('h3');
     attendingHeader.textContent = 'Attending Report';
     fullView.appendChild(attendingHeader);
     const attendingContent = document.createElement('div');
-    attendingContent.textContent = report.attendingReport;
-    if (currentSearchTerm) { // Highlight if term exists
-        attendingContent.innerHTML = highlightMatches(attendingContent.innerHTML, currentSearchTerm);
+    if (currentSearchTokens.length > 0) {
+        attendingContent.innerHTML = highlightMatches(report.attendingReport, currentSearchTokens);
+    } else {
+        attendingContent.textContent = report.attendingReport;
     }
     fullView.appendChild(attendingContent);
 
@@ -550,40 +645,36 @@
         residentHeader.style.marginTop = '1rem';
         fullView.appendChild(residentHeader);
         const residentContent = document.createElement('div');
-        residentContent.textContent = report.residentReport;
-         if (currentSearchTerm) { // Highlight if term exists
-            residentContent.innerHTML = highlightMatches(residentContent.innerHTML, currentSearchTerm);
+        if (currentSearchTokens.length > 0) {
+            residentContent.innerHTML = highlightMatches(report.residentReport, currentSearchTokens);
+        } else {
+            residentContent.textContent = report.residentReport;
         }
         fullView.appendChild(residentContent);
     }
 
     resultItem.appendChild(fullView);
-
-    // Add listener to collapse the view
     resultItem.addEventListener('dblclick', handleCollapseDoubleClick);
   }
 
-  // Collapses the result
   function handleCollapseDoubleClick(event) {
       const resultItem = event.currentTarget;
 
       const reportId = resultItem.dataset.reportId;
       const originalParagraph = resultItem.dataset.originalParagraph;
-      const originalSearchTerm = resultItem.dataset.originalSearchTerm;
+      const rawQueryForHighlight = resultItem.dataset.rawQueryForHighlight; // Raw query string
       const reportType = resultItem.dataset.reportType;
 
-      // Should always have these, but check just in case
-      if (typeof originalParagraph === 'undefined' || typeof originalSearchTerm === 'undefined' || typeof reportType === 'undefined') {
+      if (typeof originalParagraph === 'undefined' || typeof rawQueryForHighlight === 'undefined' || typeof reportType === 'undefined') {
           console.error("Missing original data on element, cannot collapse correctly.", resultItem.dataset);
-          // Optionally, just remove the collapse listener and leave expanded
           resultItem.removeEventListener('dblclick', handleCollapseDoubleClick);
           resultItem.style.cursor = 'default';
           return;
       }
 
-      resultItem.innerHTML = ''; // Clear expanded view
-      resultItem.style.cursor = 'pointer'; // Restore snippet cursor
-      resultItem.removeEventListener('dblclick', handleCollapseDoubleClick); // Remove collapse listener
+      resultItem.innerHTML = '';
+      resultItem.style.cursor = 'pointer';
+      resultItem.removeEventListener('dblclick', handleCollapseDoubleClick);
 
       const meta = document.createElement('div');
       meta.className = 'report-meta';
@@ -591,12 +682,11 @@
       resultItem.appendChild(meta);
 
       const content = document.createElement('div');
-      content.textContent = originalParagraph;
-      // Use the ORIGINAL search term to highlight the snippet
-      content.innerHTML = highlightMatches(content.innerHTML, originalSearchTerm);
+      // Parse the stored raw query to get tokens for highlighting the snippet
+      const tokensForSnippetHighlight = parseSearchTerm(rawQueryForHighlight);
+      content.innerHTML = highlightMatches(originalParagraph, tokensForSnippetHighlight);
       resultItem.appendChild(content);
 
-      // Re-attach listener to allow expanding again
       resultItem.addEventListener('dblclick', handleResultDoubleClick);
   }
 
@@ -614,7 +704,7 @@
               } catch (jsonError) {
                   if (typeof fileContent === 'string' && fileContent.trim().toLowerCase().startsWith('case')) {
                        console.log("File is not valid JSON, treating as raw text cases.");
-                       loadedData = fileContent;
+                       loadedData = fileContent; // Pass the raw string to processLoadedData
                   } else {
                       throw new Error("File is not valid JSON and doesn't appear to be raw case text.");
                   }
@@ -624,7 +714,7 @@
               alert(`Error loading or processing file: ${err.message}`);
               console.error("File Load/Process Error:", err);
           } finally {
-              event.target.value = '';
+              event.target.value = ''; // Reset file input
           }
       };
       reader.onerror = (e) => {
@@ -648,8 +738,8 @@
     filterInput.addEventListener('input', () => {
         clearTimeout(filterTimeout);
         filterTimeout = setTimeout(() => {
-            renderResults(filterInput.value);
-        }, 150);
+            renderResults(filterInput.value); // Pass the raw value from input
+        }, 250); // Slightly increased delay for more complex parsing/matching
     });
 
     parseRawButton.addEventListener('click', () => {
@@ -659,33 +749,42 @@
             return;
         }
         try {
-            const parseResult = parseRawCases(rawText);
-            if (parseResult.addedCount > 0) {
+            const parseResult = parseRawCases(rawText); // This returns { addedCount, failedCount, newReports }
+            let actuallyAddedToDbCount = 0;
+
+            if (parseResult.newReports.length > 0) {
                 const currentIds = new Set(reportDatabase.map(r => r.id));
-                let actuallyAdded = 0;
+                let idCounter = 0;
+
                 parseResult.newReports.forEach(newReport => {
-                    if (!currentIds.has(newReport.id)) {
-                        reportDatabase.push(newReport);
-                        currentIds.add(newReport.id);
-                        actuallyAdded++;
-                    } else {
-                        console.warn(`Skipping report with duplicate ID '${newReport.id}' during raw parse addition.`);
+                    let uniqueId = newReport.id;
+                    // Ensure ID is unique before adding
+                    while (currentIds.has(uniqueId)) {
+                        idCounter++;
+                        uniqueId = `${newReport.id}_${idCounter}`;
                     }
+                    newReport.id = uniqueId; // Update report with unique ID
+                    
+                    reportDatabase.push(newReport);
+                    currentIds.add(uniqueId);
+                    actuallyAddedToDbCount++;
                 });
-                if (actuallyAdded > 0) {
+
+                if (actuallyAddedToDbCount > 0) {
                     saveDatabase();
-                    rawCaseInput.value = '';
-                    renderResults(filterInput.value);
+                    rawCaseInput.value = ''; // Clear input on success
+                    renderResults(filterInput.value); // Re-render with current filter
                     updateStatusMessage();
-                    alert(`Successfully added ${actuallyAdded} new reports from text.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} cases failed to parse.` : ''}`);
+                    alert(`Successfully added ${actuallyAddedToDbCount} new reports from text.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} text segments failed to parse fully.` : ''}`);
                 } else {
-                     alert(`No new reports were added. ${parseResult.addedCount} reports found in text but their IDs already exist in the database.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} cases failed to parse.` : ''}`);
+                     // This case should be rare if newReports had items, means all were duplicates (which ID generation should prevent)
+                     alert(`No new reports were added. ${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} text segments failed to parse fully.` : ''}`);
                 }
             } else {
                 alert(`Could not parse any valid reports from the text.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} potential cases failed to parse.` : ''}`);
             }
         } catch (error) {
-            console.error("Error parsing raw cases:", error);
+            console.error("Error parsing raw cases from button:", error);
             alert("An unexpected error occurred while parsing the text. Check the console for details.");
         }
     });
@@ -720,7 +819,7 @@
       if (confirm("Are you sure you want to clear the entire saved report database from your browser? This cannot be undone.")) {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         reportDatabase = [];
-        renderResults('');
+        renderResults(''); // Clear results from display
         updateStatusMessage();
         alert("Saved database cleared.");
       }
