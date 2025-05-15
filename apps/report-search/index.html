@@ -226,17 +226,16 @@
   <input
     type="search"
     id="txt-filter"
-    placeholder="Start typing to search reports (e.g., word1 word2 &quot;exact phrase&quot;)..."
+    placeholder="Search: term "exact phrase" -exclude_term -"exclude phrase""
   >
-  <!-- NEW: Search Scope Toggle -->
+  <!-- Search Scope Toggle -->
   <div id="search-scope-controls" style="margin-bottom: 1rem; margin-top: -0.5rem; font-size: 0.9em;">
     <label style="margin-right: 0.5rem;">Search Scope:</label>
     <input type="radio" id="scope-section" name="search-scope" value="section" checked>
-    <label for="scope-section" style="margin-right: 1rem;">Within each section (all terms must match)</label>
+    <label for="scope-section" style="margin-right: 1rem;">Within each section (all terms must match, none of excluded)</label>
     <input type="radio" id="scope-report" name="search-scope" value="report">
-    <label for="scope-report">Across whole report (any term can match in any section)</label>
+    <label for="scope-report">Across whole report (any include term can match, none of excluded)</label>
   </div>
-  <!-- END NEW -->
   <div id="results"></div>
   <div id="status-message">Load a database or type to search.</div>
 
@@ -244,37 +243,46 @@
     const LOCAL_STORAGE_KEY = 'reportSearchDb_v1';
   let reportDatabase = [];
   let currentUploadMode = 'load';
-  let currentSearchScope = 'section'; // <<< NEW: Default search scope
+  let currentSearchScope = 'section';
 
-  // --- Search Term Parser ---
+  // --- Search Term Parser (MODIFIED) ---
   /**
-   * Parses a search query string into an array of search tokens.
+   * Parses a search query string into an object containing 'include' and 'exclude' token arrays.
    * Quoted phrases are treated as single tokens.
+   * '-' prefix marks a token for exclusion.
    * All tokens are converted to lowercase.
-   * Example: `word1 "exact phrase" word2` -> `["word1", "exact phrase", "word2"]`
+   * Example: `word1 -"exact phrase" -word2 "another phrase"`
+   * -> `{ include: ["word1", "another phrase"], exclude: ["exact phrase", "word2"] }`
    * @param {string} query The raw search query.
-   * @returns {string[]} An array of search tokens.
+   * @returns {{include: string[], exclude: string[]}} An object with include and exclude token arrays.
    */
   function parseSearchTerm(query) {
     query = query.trim();
-    if (!query) return [];
+    const includeTokens = [];
+    const excludeTokens = [];
+    if (!query) return { include: includeTokens, exclude: excludeTokens };
 
-    const tokens = [];
-    const regex = /"([^"]+)"|\S+/g;
+    // Regex: captures optional hyphen, then (quoted string OR non-whitespace sequence)
+    // Group 1: optional hyphen (-)
+    // Group 2: content of a quoted string (if present)
+    // Group 3: unquoted word (if present)
+    const regex = /(-)?(?:"([^"]+)"|([^\s"]+))/g;
     let match;
 
     while ((match = regex.exec(query)) !== null) {
-        let tokenToAdd = "";
-        if (match[1]) { 
-            tokenToAdd = match[1].toLowerCase();
-        } else { 
-            tokenToAdd = match[0].toLowerCase();
-        }
-        if (tokenToAdd) {
-            tokens.push(tokenToAdd);
+        const isExclude = match[1] === '-';
+        let tokenContent = match[2] || match[3]; // match[2] for quoted, match[3] for unquoted
+
+        if (tokenContent && tokenContent.trim() !== "") { // Ensure token is not just empty quotes
+            tokenContent = tokenContent.toLowerCase();
+            if (isExclude) {
+                excludeTokens.push(tokenContent);
+            } else {
+                includeTokens.push(tokenContent);
+            }
         }
     }
-    return tokens;
+    return { include: includeTokens, exclude: excludeTokens };
   }
 
 
@@ -489,13 +497,13 @@
   }
 
   // --- UI Rendering ---
-  function highlightMatches(text, searchTokens) {
-      if (!searchTokens || searchTokens.length === 0 || !text) return text;
+  function highlightMatches(text, includeTokens) { // Takes includeTokens only
+      if (!includeTokens || includeTokens.length === 0 || !text) return text;
       let highlightedText = text;
-      const sortedTokens = [...new Set(searchTokens)].sort((a, b) => b.length - a.length);
+      // Create a unique set of tokens, sorted by length (longest first) to prevent partial highlighting issues
+      const sortedTokens = [...new Set(includeTokens.filter(t => t.trim() !== ""))].sort((a, b) => b.length - a.length);
 
       for (const token of sortedTokens) {
-          if (token.trim() === "") continue;
           const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           try {
               const regex = new RegExp(`(${escapedToken})`, 'gi'); 
@@ -507,14 +515,15 @@
       return highlightedText;
   }
 
+  // --- renderResults (MODIFIED heavily for new search logic) ---
   function renderResults(rawQueryFromInput) {
     const resultsContainer = document.getElementById('results');
     const statusMessage = document.getElementById('status-message');
     resultsContainer.innerHTML = ''; 
 
-    const searchTokens = parseSearchTerm(rawQueryFromInput);
+    const parsedQuery = parseSearchTerm(rawQueryFromInput);
 
-    if (searchTokens.length === 0) {
+    if (parsedQuery.include.length === 0 && parsedQuery.exclude.length === 0) {
         updateStatusMessage();
         return;
     }
@@ -527,17 +536,20 @@
           const processParagraphs = (paragraphs, type, reportId) => {
             paragraphs.forEach((p) => {
               const paragraphTextLower = p.toLowerCase();
-              const allTokensFoundInSection = searchTokens.every(token => paragraphTextLower.includes(token));
+              
+              const allIncludeTokensFound = parsedQuery.include.length === 0 || 
+                                          parsedQuery.include.every(token => paragraphTextLower.includes(token));
+              const noExcludeTokensFound = parsedQuery.exclude.every(token => !paragraphTextLower.includes(token));
 
-              if (allTokensFoundInSection) {
+              if (allIncludeTokensFound && noExcludeTokensFound) {
                 matchFoundOverall = true;
                 const div = document.createElement('div');
                 div.className = 'result-item';
                 div.dataset.reportId = reportId;
-                div.dataset.originalParagraph = p; // For section-scope collapse
+                div.dataset.originalParagraph = p;
                 div.dataset.rawQueryForHighlight = rawQueryFromInput;
-                div.dataset.reportType = type; // Attending or Resident
-                div.dataset.searchScopeWhenCreated = 'section'; // Mark how it was created
+                div.dataset.reportType = type;
+                div.dataset.searchScopeWhenCreated = 'section';
 
                 const meta = document.createElement('div');
                 meta.className = 'report-meta';
@@ -545,7 +557,7 @@
                 div.appendChild(meta);
 
                 const content = document.createElement('div');
-                content.innerHTML = highlightMatches(p, searchTokens);
+                content.innerHTML = highlightMatches(p, parsedQuery.include); // Highlight only include terms
                 div.appendChild(content);
 
                 div.addEventListener('dblclick', handleResultDoubleClick);
@@ -558,58 +570,91 @@
         });
     } else { // currentSearchScope === 'report'
         reportDatabase.forEach(report => {
-            let reportHasAnyMatch = false;
-            const initiallyMatchedParagraphsData = []; // To store {text, type} for report-scope collapse
+            const reportFullTextLower = (report.attendingReport + " " + report.residentReport).toLowerCase();
 
-            const checkAndCollectMatches = (paragraphs, type) => {
-                paragraphs.forEach(p => {
-                    const paragraphTextLower = p.toLowerCase();
-                    // For 'report' scope, ANY token found in the paragraph makes it a match to display
-                    const anyTokenFoundInParagraph = searchTokens.some(token => paragraphTextLower.includes(token));
-                    if (anyTokenFoundInParagraph) {
-                        reportHasAnyMatch = true;
-                        initiallyMatchedParagraphsData.push({ text: p, type: type });
-                    }
-                });
-            };
+            const reportContainsExclusion = parsedQuery.exclude.some(token => reportFullTextLower.includes(token));
+            if (reportContainsExclusion) {
+                return; // Skip this report if any exclusion term is found
+            }
 
-            checkAndCollectMatches(report.attendingParagraphs, 'Attending');
-            checkAndCollectMatches(report.residentParagraphs, 'Resident');
+            let reportMatchesIncludeCriteria;
+            if (parsedQuery.include.length === 0) {
+                reportMatchesIncludeCriteria = true; // No include terms, and passed exclusion = match
+            } else {
+                reportMatchesIncludeCriteria = parsedQuery.include.some(token => reportFullTextLower.includes(token));
+            }
 
-            if (reportHasAnyMatch) {
+            if (reportMatchesIncludeCriteria) {
                 matchFoundOverall = true;
                 const reportDiv = document.createElement('div');
                 reportDiv.className = 'result-item';
                 reportDiv.dataset.reportId = report.id;
                 reportDiv.dataset.rawQueryForHighlight = rawQueryFromInput;
+                // For report scope, initiallyMatchedParagraphs stores those with *include* terms for snippet.
+                // Or it will be empty for purely negative searches.
+                const initiallyMatchedParagraphsData = [];
+
+                if (parsedQuery.include.length > 0) {
+                    const collectSnippets = (paragraphs, type) => {
+                        paragraphs.forEach(p => {
+                            const paragraphTextLower = p.toLowerCase();
+                            if (parsedQuery.include.some(token => paragraphTextLower.includes(token))) {
+                                initiallyMatchedParagraphsData.push({ text: p, type: type });
+                            }
+                        });
+                    };
+                    collectSnippets(report.attendingParagraphs, 'Attending');
+                    collectSnippets(report.residentParagraphs, 'Resident');
+                }
                 reportDiv.dataset.initiallyMatchedParagraphs = JSON.stringify(initiallyMatchedParagraphsData);
-                reportDiv.dataset.searchScopeWhenCreated = 'report'; // Mark how it was created
+                reportDiv.dataset.searchScopeWhenCreated = 'report';
 
                 const meta = document.createElement('div');
                 meta.className = 'report-meta';
                 meta.textContent = `Matches in Report ${report.id}`;
                 reportDiv.appendChild(meta);
 
-                // Display only the paragraphs that had a match
-                initiallyMatchedParagraphsData.forEach(paraData => {
-                    const contentDiv = document.createElement('div');
-                    contentDiv.style.marginBottom = "0.5em"; // Add some spacing between matched paragraphs
-                    contentDiv.style.paddingLeft = "1em";
-                    contentDiv.style.borderLeft = "2px solid var(--input-border)";
-                    
-                    const paraMeta = document.createElement('div');
-                    paraMeta.textContent = `(from ${paraData.type} report)`;
-                    paraMeta.style.fontSize = "0.8em";
-                    paraMeta.style.fontStyle = "italic";
-                    paraMeta.style.color = "#aaa";
-                    contentDiv.appendChild(paraMeta);
+                if (initiallyMatchedParagraphsData.length > 0) {
+                    initiallyMatchedParagraphsData.forEach(paraData => {
+                        const contentDiv = document.createElement('div');
+                        contentDiv.style.marginBottom = "0.5em"; contentDiv.style.paddingLeft = "1em";
+                        contentDiv.style.borderLeft = "2px solid var(--input-border)";
+                        
+                        const paraMeta = document.createElement('div');
+                        paraMeta.textContent = `(from ${paraData.type} report)`;
+                        paraMeta.style.fontSize = "0.8em"; paraMeta.style.fontStyle = "italic"; paraMeta.style.color = "#aaa";
+                        contentDiv.appendChild(paraMeta);
 
-                    const textContent = document.createElement('div');
-                    textContent.innerHTML = highlightMatches(paraData.text, searchTokens);
-                    contentDiv.appendChild(textContent);
-                    reportDiv.appendChild(contentDiv);
-                });
-
+                        const textContent = document.createElement('div');
+                        textContent.innerHTML = highlightMatches(paraData.text, parsedQuery.include);
+                        contentDiv.appendChild(textContent);
+                        reportDiv.appendChild(contentDiv);
+                    });
+                } else if (parsedQuery.include.length === 0) { // Purely negative search, show context
+                    const addReportContextSnippet = (fullSectionText, type, maxLength = 250) => {
+                        if (!fullSectionText || !fullSectionText.trim()) return;
+                        const contentDiv = document.createElement('div');
+                        contentDiv.style.marginBottom = "0.5em"; contentDiv.style.paddingLeft = "1em";
+                        contentDiv.style.borderLeft = "2px solid var(--input-border)";
+                        const paraMeta = document.createElement('div');
+                        paraMeta.textContent = `(from ${type} report)`;
+                        paraMeta.style.fontSize = "0.8em"; paraMeta.style.fontStyle = "italic"; paraMeta.style.color = "#aaa";
+                        contentDiv.appendChild(paraMeta);
+                        const textContentDisplay = document.createElement('div');
+                        textContentDisplay.textContent = fullSectionText.substring(0, maxLength) + (fullSectionText.length > maxLength ? "..." : "");
+                        contentDiv.appendChild(textContentDisplay);
+                        reportDiv.appendChild(contentDiv);
+                    };
+                    let addedContext = false;
+                    if (report.attendingReport) { addReportContextSnippet(report.attendingReport, 'Attending'); addedContext = true;}
+                    if (report.residentReport) { addReportContextSnippet(report.residentReport, 'Resident'); addedContext = true;}
+                    if (!addedContext) {
+                        const noPreview = document.createElement('div');
+                        noPreview.textContent = "(Report content is empty but meets search criteria)";
+                        noPreview.style.fontStyle = "italic"; noPreview.style.marginLeft = "1em";
+                        reportDiv.appendChild(noPreview);
+                    }
+                }
                 reportDiv.addEventListener('dblclick', handleResultDoubleClick);
                 fragment.appendChild(reportDiv);
             }
@@ -618,7 +663,7 @@
 
     resultsContainer.appendChild(fragment);
 
-    if (searchTokens.length > 0 && !matchFoundOverall) {
+    if ((parsedQuery.include.length > 0 || parsedQuery.exclude.length > 0) && !matchFoundOverall) {
         statusMessage.textContent = 'No matching results found for "' + rawQueryFromInput + '".';
         statusMessage.style.display = 'block';
     } else {
@@ -631,16 +676,17 @@
        const filterInput = document.getElementById('txt-filter');
        const resultsContainer = document.getElementById('results');
        const currentRawQuery = filterInput.value;
-       const searchTokens = parseSearchTerm(currentRawQuery);
+       const parsedQuery = parseSearchTerm(currentRawQuery); // MODIFIED
 
-       if (searchTokens.length === 0 && resultsContainer.innerHTML === '') {
+       if (parsedQuery.include.length === 0 && parsedQuery.exclude.length === 0 && resultsContainer.innerHTML === '') {
             statusMessage.textContent = reportDatabase.length > 0
                 ? 'Type in the search box above to find reports.'
                 : 'Load a report database or paste raw cases above.';
             statusMessage.style.display = 'block';
-       } else if (searchTokens.length > 0 && resultsContainer.innerHTML === '') {
-           if (!statusMessage.textContent.startsWith('No matching')) { // Avoid overwriting specific "no match"
-                statusMessage.style.display = 'none';
+       } else if ((parsedQuery.include.length > 0 || parsedQuery.exclude.length > 0) && resultsContainer.innerHTML === '') {
+           // "No matching results" is handled by renderResults, so only hide if not that message
+           if (!statusMessage.textContent.startsWith('No matching')) {
+                statusMessage.style.display = 'none'; // Should be hidden if no results were found due to renderResults setting specific msg
            } else {
                 statusMessage.style.display = 'block'; 
            }
@@ -655,7 +701,7 @@
    }
 
   // --- Event Handlers ---
-  function handleResultDoubleClick(event) { // EXPAND
+  function handleResultDoubleClick(event) { // EXPAND (MODIFIED)
     const resultItem = event.currentTarget;
     const reportId = resultItem.dataset.reportId;
     const report = reportDatabase.find(r => r.id === reportId);
@@ -668,18 +714,11 @@
         return;
     };
 
-    // Preserve necessary data for collapsing
     const originalDataset = { ...resultItem.dataset };
-
     resultItem.innerHTML = '';
     resultItem.style.cursor = 'default';
     resultItem.removeEventListener('dblclick', handleResultDoubleClick);
-
-    // Restore dataset for collapse handler
-    Object.keys(originalDataset).forEach(key => {
-        resultItem.dataset[key] = originalDataset[key];
-    });
-
+    Object.keys(originalDataset).forEach(key => { resultItem.dataset[key] = originalDataset[key]; });
 
     const fullView = document.createElement('div');
     fullView.className = 'full-report-view';
@@ -689,18 +728,15 @@
     meta.textContent = `Full Report: ${report.id} (Double-click to collapse)`;
     fullView.appendChild(meta);
 
-    const rawCurrentQuery = document.getElementById('txt-filter').value;
-    const currentSearchTokens = parseSearchTerm(rawCurrentQuery);
+    const rawCurrentQuery = document.getElementById('txt-filter').value; // Use current query for full view highlight
+    const currentParsedQuery = parseSearchTerm(rawCurrentQuery); // MODIFIED
 
     const attendingHeader = document.createElement('h3');
     attendingHeader.textContent = 'Attending Report';
     fullView.appendChild(attendingHeader);
     const attendingContent = document.createElement('div');
-    if (currentSearchTokens.length > 0) {
-        attendingContent.innerHTML = highlightMatches(report.attendingReport, currentSearchTokens);
-    } else {
-        attendingContent.textContent = report.attendingReport;
-    }
+    // Highlight using only include terms from current query
+    attendingContent.innerHTML = highlightMatches(report.attendingReport, currentParsedQuery.include);
     fullView.appendChild(attendingContent);
 
     if (report.residentReport && report.residentReport.trim()) {
@@ -709,11 +745,7 @@
         residentHeader.style.marginTop = '1rem';
         fullView.appendChild(residentHeader);
         const residentContent = document.createElement('div');
-        if (currentSearchTokens.length > 0) {
-            residentContent.innerHTML = highlightMatches(report.residentReport, currentSearchTokens);
-        } else {
-            residentContent.textContent = report.residentReport;
-        }
+        residentContent.innerHTML = highlightMatches(report.residentReport, currentParsedQuery.include);
         fullView.appendChild(residentContent);
     }
 
@@ -721,17 +753,17 @@
     resultItem.addEventListener('dblclick', handleCollapseDoubleClick);
   }
 
-  function handleCollapseDoubleClick(event) { // COLLAPSE
+  function handleCollapseDoubleClick(event) { // COLLAPSE (MODIFIED)
       const resultItem = event.currentTarget;
       const reportId = resultItem.dataset.reportId;
-      const rawQueryForHighlight = resultItem.dataset.rawQueryForHighlight;
+      const rawQueryForHighlight = resultItem.dataset.rawQueryForHighlight; // Query used when snippet was created
       const searchScopeWhenCreated = resultItem.dataset.searchScopeWhenCreated;
 
-      resultItem.innerHTML = ''; // Clear expanded view
+      resultItem.innerHTML = ''; 
       resultItem.style.cursor = 'pointer';
       resultItem.removeEventListener('dblclick', handleCollapseDoubleClick);
 
-      const tokensForSnippetHighlight = parseSearchTerm(rawQueryForHighlight);
+      const parsedQueryForSnippet = parseSearchTerm(rawQueryForHighlight); // MODIFIED
 
       if (searchScopeWhenCreated === 'report') {
           const initiallyMatchedParagraphs = JSON.parse(resultItem.dataset.initiallyMatchedParagraphs);
@@ -741,48 +773,65 @@
           meta.textContent = `Matches in Report ${reportId}`;
           resultItem.appendChild(meta);
 
-          initiallyMatchedParagraphs.forEach(paraData => {
-              const contentDiv = document.createElement('div');
-              contentDiv.style.marginBottom = "0.5em";
-              contentDiv.style.paddingLeft = "1em";
-              contentDiv.style.borderLeft = "2px solid var(--input-border)";
+          if (parsedQueryForSnippet.include.length > 0 && initiallyMatchedParagraphs.length > 0) {
+              initiallyMatchedParagraphs.forEach(paraData => {
+                  const contentDiv = document.createElement('div'); /* styles */
+                  const paraMeta = document.createElement('div'); /* styles */
+                  contentDiv.appendChild(paraMeta); paraMeta.textContent = `(from ${paraData.type} report)`;
+                  const textContent = document.createElement('div');
+                  textContent.innerHTML = highlightMatches(paraData.text, parsedQueryForSnippet.include);
+                  contentDiv.appendChild(textContent); resultItem.appendChild(contentDiv);
+                  // Basic styling for consistency
+                  contentDiv.style.marginBottom = "0.5em"; contentDiv.style.paddingLeft = "1em";
+                  contentDiv.style.borderLeft = "2px solid var(--input-border)";
+                  paraMeta.style.fontSize = "0.8em"; paraMeta.style.fontStyle = "italic"; paraMeta.style.color = "#aaa";
 
-              const paraMeta = document.createElement('div');
-              paraMeta.textContent = `(from ${paraData.type} report)`;
-              paraMeta.style.fontSize = "0.8em";
-              paraMeta.style.fontStyle = "italic";
-              paraMeta.style.color = "#aaa";
-              contentDiv.appendChild(paraMeta);
-              
-              const textContent = document.createElement('div');
-              textContent.innerHTML = highlightMatches(paraData.text, tokensForSnippetHighlight);
-              contentDiv.appendChild(textContent);
-              resultItem.appendChild(contentDiv);
-          });
-
-      } else { // Default to section scope (or if searchScopeWhenCreated is undefined)
+              });
+          } else if (parsedQueryForSnippet.include.length === 0) { // Purely negative search, recreate context snippet
+              const report = reportDatabase.find(r => r.id === reportId);
+              if (report) {
+                  const addReportContextSnippetForCollapse = (fullSectionText, type, maxLength = 250) => {
+                      if (!fullSectionText || !fullSectionText.trim()) return;
+                      const contentDiv = document.createElement('div'); /* styles */
+                      const paraMeta = document.createElement('div'); /* styles */
+                      contentDiv.appendChild(paraMeta); paraMeta.textContent = `(from ${type} report)`;
+                      const textContentDisplay = document.createElement('div');
+                      textContentDisplay.textContent = fullSectionText.substring(0, maxLength) + (fullSectionText.length > maxLength ? "..." : "");
+                      contentDiv.appendChild(textContentDisplay); resultItem.appendChild(contentDiv);
+                      // Basic styling for consistency
+                      contentDiv.style.marginBottom = "0.5em"; contentDiv.style.paddingLeft = "1em";
+                      contentDiv.style.borderLeft = "2px solid var(--input-border)";
+                      paraMeta.style.fontSize = "0.8em"; paraMeta.style.fontStyle = "italic"; paraMeta.style.color = "#aaa";
+                  };
+                  let addedContext = false;
+                  if (report.attendingReport) { addReportContextSnippetForCollapse(report.attendingReport, 'Attending'); addedContext = true;}
+                  if (report.residentReport) { addReportContextSnippetForCollapse(report.residentReport, 'Resident'); addedContext = true;}
+                  if (!addedContext) { 
+                      const noPreview = document.createElement('div'); noPreview.textContent = "(Report content is empty but meets search criteria)";
+                      noPreview.style.fontStyle = "italic"; noPreview.style.marginLeft = "1em"; resultItem.appendChild(noPreview);
+                  }
+              } else {
+                  resultItem.innerHTML += '<div style="color:orange">Error: Could not restore report context.</div>';
+              }
+          }
+      } else { // Section scope collapse
           const originalParagraph = resultItem.dataset.originalParagraph;
           const reportType = resultItem.dataset.reportType;
-
           if (typeof originalParagraph === 'undefined' || typeof reportType === 'undefined') {
-              console.error("Missing original data for section-scope collapse.", resultItem.dataset);
-              // Fallback: just leave it empty or show a minimal message
+              console.error("Missing data for section-scope collapse.", resultItem.dataset);
               resultItem.innerHTML = '<div class="report-meta" style="color: orange;">Error: Could not restore snippet.</div>';
-              resultItem.style.cursor = 'default'; // Prevent further interaction if broken
-              return; // Don't re-add dblclick listener
+              resultItem.style.cursor = 'default'; 
+              return; 
           }
-
           const meta = document.createElement('div');
           meta.className = 'report-meta';
           meta.textContent = `Match in ${reportId} (${reportType} Section)`;
           resultItem.appendChild(meta);
-
           const content = document.createElement('div');
-          content.innerHTML = highlightMatches(originalParagraph, tokensForSnippetHighlight);
+          content.innerHTML = highlightMatches(originalParagraph, parsedQueryForSnippet.include);
           resultItem.appendChild(content);
       }
-
-      resultItem.addEventListener('dblclick', handleResultDoubleClick); // Re-attach expand
+      resultItem.addEventListener('dblclick', handleResultDoubleClick);
   }
 
 
@@ -827,7 +876,7 @@
     const fileUploadInput = document.getElementById('json-upload-input');
     const rawCaseInput = document.getElementById('raw-case-input');
     const parseRawButton = document.getElementById('btn-parse-raw');
-    const searchScopeRadios = document.querySelectorAll('input[name="search-scope"]'); // <<< NEW
+    const searchScopeRadios = document.querySelectorAll('input[name="search-scope"]'); 
 
     let filterTimeout;
     filterInput.addEventListener('input', () => {
@@ -837,11 +886,10 @@
         }, 250); 
     });
 
-    // <<< NEW: Event listener for search scope change
     searchScopeRadios.forEach(radio => {
         radio.addEventListener('change', (event) => {
             currentSearchScope = event.target.value;
-            renderResults(filterInput.value); // Re-render with new scope
+            renderResults(filterInput.value); 
         });
     });
 
