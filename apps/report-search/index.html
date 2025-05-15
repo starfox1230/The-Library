@@ -228,14 +228,23 @@
     id="txt-filter"
     placeholder="Start typing to search reports (e.g., word1 word2 "exact phrase")..."
   >
-
+  <!-- NEW: Search Scope Toggle -->
+  <div id="search-scope-controls" style="margin-bottom: 1rem; margin-top: -0.5rem; font-size: 0.9em;">
+    <label style="margin-right: 0.5rem;">Search Scope:</label>
+    <input type="radio" id="scope-section" name="search-scope" value="section" checked>
+    <label for="scope-section" style="margin-right: 1rem;">Within each section (all terms must match)</label>
+    <input type="radio" id="scope-report" name="search-scope" value="report">
+    <label for="scope-report">Across whole report (any term can match in any section)</label>
+  </div>
+  <!-- END NEW -->
   <div id="results"></div>
   <div id="status-message">Load a database or type to search.</div>
 
   <script>
-  const LOCAL_STORAGE_KEY = 'reportSearchDb_v1';
+    const LOCAL_STORAGE_KEY = 'reportSearchDb_v1';
   let reportDatabase = [];
   let currentUploadMode = 'load';
+  let currentSearchScope = 'section'; // <<< NEW: Default search scope
 
   // --- Search Term Parser ---
   /**
@@ -251,18 +260,17 @@
     if (!query) return [];
 
     const tokens = [];
-    // Regex: Match either a quoted string (capturing content inside quotes) or a sequence of non-whitespace characters
     const regex = /"([^"]+)"|\S+/g;
     let match;
 
     while ((match = regex.exec(query)) !== null) {
         let tokenToAdd = "";
-        if (match[1]) { // Quoted phrase (content is in group 1)
+        if (match[1]) { 
             tokenToAdd = match[1].toLowerCase();
-        } else { // Non-quoted word (the whole match is in match[0])
+        } else { 
             tokenToAdd = match[0].toLowerCase();
         }
-        if (tokenToAdd) { // Only add non-empty tokens
+        if (tokenToAdd) {
             tokens.push(tokenToAdd);
         }
     }
@@ -274,70 +282,41 @@
   function paragraphSplitter(text) {
     if (!text) return [];
     const paragraphs = [];
-    let currentNonSectionParaBuffer = []; // Buffer for paragraphs not matching the specific sectionPattern
-
-    // Regex for identifying self-contained "Header: Content" sections
-    // Example: "ASCENDING THORACIC AORTA: Nonaneurysmal."
-    // It looks for:
-    // - Start of the line (^)
-    // - A header part:
-    //   - Starts with an uppercase letter ([A-Z])
-    //   - Followed by uppercase letters, digits, spaces, or common punctuation like / ( ) , ' -
-    //   - Ends with an uppercase letter or digit before the colon (to correctly capture short headers like "SMA:")
-    // - A colon (:)
-    // - One or more spaces (\s+)
-    // - Content on the rest of the line (.+) until the end of the line ($)
+    let currentNonSectionParaBuffer = []; 
     const selfContainedSectionRegex = /^([A-Z][A-Z0-9\s\/(),'-]*[A-Z0-9]):\s+(.+)$/;
-
     const lines = text.split(/\r?\n/);
 
     for (const line of lines) {
-        // We use line.trimEnd() to remove trailing spaces but preserve any intentional leading indentation.
-        // However, the regex `^` means the header must be at the absolute start of the line.
-        // If headers could be indented, the regex would need `^\s*`. For now, assume no indent.
         const currentLineContent = line.trimEnd();
         const sectionMatch = currentLineContent.match(selfContainedSectionRegex);
 
         if (sectionMatch) {
-            // This line is a self-contained section (e.g., "AORTA: Details.")
-            // First, if there was any buffered-up "normal" paragraph text, push it.
             if (currentNonSectionParaBuffer.length > 0) {
                 paragraphs.push(currentNonSectionParaBuffer.join('\n').trim());
                 currentNonSectionParaBuffer = [];
             }
-            // Then, push this self-contained section as its own paragraph.
             paragraphs.push(currentLineContent);
         } else {
-            // This line is NOT a self-contained section.
-            // It's either a blank line or part of a multi-line "normal" paragraph.
-            if (currentLineContent === '') { // An actual blank line
-                // Finalize and push the buffered "normal" paragraph.
+            if (currentLineContent === '') { 
                 if (currentNonSectionParaBuffer.length > 0) {
                     paragraphs.push(currentNonSectionParaBuffer.join('\n').trim());
                     currentNonSectionParaBuffer = [];
                 }
-                // Blank lines themselves don't become paragraphs unless they are the *only* content.
-                // Here, they act as separators for `currentNonSectionParaBuffer`.
             } else {
-                // It's a non-blank line, not a special section header. Add to the buffer.
-                currentNonSectionParaBuffer.push(line); // Push original line to preserve its exact spacing if part of a block
+                currentNonSectionParaBuffer.push(line); 
             }
         }
     }
-
-    // After the loop, push any remaining content in the buffer.
     if (currentNonSectionParaBuffer.length > 0) {
         paragraphs.push(currentNonSectionParaBuffer.join('\n').trim());
     }
-
-    return paragraphs.filter(p => p.length > 0); // Filter out any truly empty paragraphs
+    return paragraphs.filter(p => p.length > 0);
   }
 
   function processLoadedData(data, mode = 'load') {
       let loadedReports = [];
       if (!Array.isArray(data)) {
           if (typeof data === 'string' && data.trim().toLowerCase().startsWith('case')) {
-             console.log("Input seems like raw text, attempting raw parse...");
              try {
                  const parsedFromRaw = parseRawCases(data);
                  loadedReports = parsedFromRaw.newReports;
@@ -373,18 +352,16 @@
       let actuallyAddedCount = 0;
 
       if (mode === 'load') {
-          reportDatabase = []; // Clear existing for 'load'
+          reportDatabase = []; 
           loadedReports.forEach(newReport => {
-              // For 'load', we overwrite, so ID check is more for sanity than strict prevention
-              // but good to keep if the source JSON itself had duplicates.
-              if (!reportDatabase.some(r => r.id === newReport.id)) { // Check within the newly forming DB
+              if (!reportDatabase.some(r => r.id === newReport.id)) { 
                   reportDatabase.push(newReport);
                   actuallyAddedCount++;
               } else {
                  console.warn(`Skipping report with duplicate ID '${newReport.id}' within the loaded data.`);
               }
           });
-          existingIds.clear(); // For 'load', all new IDs are from the loaded set
+          existingIds.clear(); 
           reportDatabase.forEach(r => existingIds.add(r.id));
 
       } else if (mode === 'append') {
@@ -399,7 +376,6 @@
           });
            alert(`Database Appended: ${actuallyAddedCount} new reports added. Total: ${reportDatabase.length} reports.`);
       }
-
 
       if (actuallyAddedCount > 0 || (mode === 'load' && loadedReports.length > 0) ) {
         saveDatabase();
@@ -416,40 +392,32 @@
        const newReports = [];
        let addedCount = 0;
        let failedCount = 0;
-       // Note: existingIds passed to parseRawCases might not be needed if ID generation is robust
-       // and duplication check happens in processLoadedData or Add button handler.
-       // For now, this function purely parses, ID uniqueness is handled by caller.
 
        caseChunks.forEach((chunk, index) => {
            chunk = chunk.trim();
            if (!chunk) return;
            const caseMatch = chunk.match(/^Case\s*(\d+)/);
            const caseNum = caseMatch ? caseMatch[1] : null;
-           // Generate a base ID; uniqueness will be ensured by the calling context (e.g. Add button handler)
            let reportId = caseNum ? `Case_${caseNum}` : `raw_${Date.now()}_${index}`;
-
            let attendingReport = '';
            let residentReport = '';
-           // Regex to find "Attending Report:" and "Resident Report:" (case insensitive, minor typo tolerance)
            const attendHeaderMatch = chunk.match(/Attending\s*Report:/i);
-           const residentHeaderMatch = chunk.match(/(?:Resident|Residenrt)\s*Report:/i); // Added typo "Residenrt"
-
+           const residentHeaderMatch = chunk.match(/(?:Resident|Residenrt)\s*Report:/i);
            let textAfterCaseNum = chunk;
            if(caseMatch) {
                textAfterCaseNum = chunk.substring(caseMatch[0].length).trim();
            }
 
-
            if (attendHeaderMatch && residentHeaderMatch) {
                 if (attendHeaderMatch.index < residentHeaderMatch.index) {
                     attendingReport = textAfterCaseNum.substring(
-                        attendHeaderMatch.index + attendHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length), // adjust index relative to textAfterCaseNum
+                        attendHeaderMatch.index + attendHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length), 
                         residentHeaderMatch.index - (chunk.length - textAfterCaseNum.length)
                     ).trim();
                     residentReport = textAfterCaseNum.substring(
                         residentHeaderMatch.index + residentHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
                     ).trim();
-                } else { // Resident report appears before Attending report (unusual but handle)
+                } else { 
                     residentReport = textAfterCaseNum.substring(
                         residentHeaderMatch.index + residentHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length),
                         attendHeaderMatch.index - (chunk.length - textAfterCaseNum.length)
@@ -462,27 +430,19 @@
                attendingReport = textAfterCaseNum.substring(
                    attendHeaderMatch.index + attendHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
                 ).trim();
-           } else if (residentHeaderMatch) { // Only resident report found
+           } else if (residentHeaderMatch) { 
                residentReport = textAfterCaseNum.substring(
                    residentHeaderMatch.index + residentHeaderMatch[0].length - (chunk.length - textAfterCaseNum.length)
                 ).trim();
            } else {
-               // No clear "Attending Report:" or "Resident Report:" found after "Case X"
-               // Try to infer based on common structures or assume the whole text is attending if nothing else.
-               // This part can be complex. A simple assumption: if any text, it's attending.
-               // A more robust parser would look for keywords or structure.
-               // For now, if no headers, we might fail it or assign all to attending.
-               // Let's try assigning to attending if any text remains.
                if (textAfterCaseNum) {
                    attendingReport = textAfterCaseNum;
-                   // console.warn(`Case chunk for '${reportId}' has no clear 'Attending Report:' or 'Resident Report:' headers. Assigning remaining text to Attending.`);
                }
            }
 
-
-           if (attendingReport || residentReport) { // If at least one report part is found
+           if (attendingReport || residentReport) { 
                const report = {
-                   id: reportId, // Base ID, will be checked/made unique by caller
+                   id: reportId, 
                    attendingReport: attendingReport,
                    residentReport: residentReport,
                    attendingParagraphs: paragraphSplitter(attendingReport),
@@ -497,7 +457,6 @@
        });
        return { addedCount, failedCount, newReports };
    }
-
 
   function saveDatabase() {
     try {
@@ -519,38 +478,27 @@
     if (saved) {
       try {
         const parsedData = JSON.parse(saved);
-        processLoadedData(parsedData, 'load'); // 'load' will clear and repopulate
+        processLoadedData(parsedData, 'load'); 
       } catch (e) {
         console.error("Error loading database:", e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear potentially corrupted data
+        localStorage.removeItem(LOCAL_STORAGE_KEY); 
         alert("Error loading database from local storage. Cleared potentially corrupted data.");
       }
     }
-    updateStatusMessage(); // Update status after attempting to load
+    updateStatusMessage(); 
   }
 
   // --- UI Rendering ---
-
-  /**
-   * Highlights search tokens within a given text.
-   * @param {string} text The original plain text to highlight.
-   * @param {string[]} searchTokens An array of lowercased search tokens.
-   * @returns {string} The text with matches wrapped in <strong> tags.
-   */
   function highlightMatches(text, searchTokens) {
       if (!searchTokens || searchTokens.length === 0 || !text) return text;
-
       let highlightedText = text;
-      // Sort tokens by length, descending. This helps if a shorter token is part of a longer one
-      // (e.g., if tokens were "report" and "attending report", "attending report" would be highlighted first).
       const sortedTokens = [...new Set(searchTokens)].sort((a, b) => b.length - a.length);
 
       for (const token of sortedTokens) {
           if (token.trim() === "") continue;
-          // Escape regex special characters in the token
           const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           try {
-              const regex = new RegExp(`(${escapedToken})`, 'gi'); // 'g' for global, 'i' for case-insensitive
+              const regex = new RegExp(`(${escapedToken})`, 'gi'); 
               highlightedText = highlightedText.replace(regex, (match, p1) => `<strong>${p1}</strong>`);
           } catch (e) {
               console.warn("Highlighting regex error for token:", token, e);
@@ -559,11 +507,10 @@
       return highlightedText;
   }
 
-
   function renderResults(rawQueryFromInput) {
     const resultsContainer = document.getElementById('results');
     const statusMessage = document.getElementById('status-message');
-    resultsContainer.innerHTML = ''; // Clear previous results
+    resultsContainer.innerHTML = ''; 
 
     const searchTokens = parseSearchTerm(rawQueryFromInput);
 
@@ -572,49 +519,107 @@
         return;
     }
 
-    let matchFound = false;
+    let matchFoundOverall = false;
     const fragment = document.createDocumentFragment();
 
-    reportDatabase.forEach(report => {
-      const processParagraphs = (paragraphs, type, reportId) => {
-        paragraphs.forEach((p, index) => {
-          const paragraphTextLower = p.toLowerCase();
-          // Check if ALL search tokens are present in the paragraph
-          const allTokensFound = searchTokens.every(token => paragraphTextLower.includes(token));
+    if (currentSearchScope === 'section') {
+        reportDatabase.forEach(report => {
+          const processParagraphs = (paragraphs, type, reportId) => {
+            paragraphs.forEach((p) => {
+              const paragraphTextLower = p.toLowerCase();
+              const allTokensFoundInSection = searchTokens.every(token => paragraphTextLower.includes(token));
 
-          if (allTokensFound) {
-            matchFound = true;
-            const div = document.createElement('div');
-            div.className = 'result-item';
-            div.dataset.reportId = reportId;
-            div.dataset.originalParagraph = p;
-            div.dataset.rawQueryForHighlight = rawQueryFromInput; // Store the raw query used for this snippet
-            div.dataset.reportType = type;
+              if (allTokensFoundInSection) {
+                matchFoundOverall = true;
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.dataset.reportId = reportId;
+                div.dataset.originalParagraph = p; // For section-scope collapse
+                div.dataset.rawQueryForHighlight = rawQueryFromInput;
+                div.dataset.reportType = type; // Attending or Resident
+                div.dataset.searchScopeWhenCreated = 'section'; // Mark how it was created
 
-            const meta = document.createElement('div');
-            meta.className = 'report-meta';
-            meta.textContent = `Match in ${reportId} (${type})`;
-            div.appendChild(meta);
+                const meta = document.createElement('div');
+                meta.className = 'report-meta';
+                meta.textContent = `Match in ${reportId} (${type} Section)`;
+                div.appendChild(meta);
 
-            const content = document.createElement('div');
-            // Highlight using the original paragraph text and the parsed search tokens
-            content.innerHTML = highlightMatches(p, searchTokens);
-            div.appendChild(content);
+                const content = document.createElement('div');
+                content.innerHTML = highlightMatches(p, searchTokens);
+                div.appendChild(content);
 
-            div.addEventListener('dblclick', handleResultDoubleClick);
-            fragment.appendChild(div);
-          }
+                div.addEventListener('dblclick', handleResultDoubleClick);
+                fragment.appendChild(div);
+              }
+            });
+          };
+          processParagraphs(report.attendingParagraphs, 'Attending', report.id);
+          processParagraphs(report.residentParagraphs, 'Resident', report.id);
         });
-      };
+    } else { // currentSearchScope === 'report'
+        reportDatabase.forEach(report => {
+            let reportHasAnyMatch = false;
+            const initiallyMatchedParagraphsData = []; // To store {text, type} for report-scope collapse
 
-      processParagraphs(report.attendingParagraphs, 'Attending', report.id);
-      processParagraphs(report.residentParagraphs, 'Resident', report.id);
-    });
+            const checkAndCollectMatches = (paragraphs, type) => {
+                paragraphs.forEach(p => {
+                    const paragraphTextLower = p.toLowerCase();
+                    // For 'report' scope, ANY token found in the paragraph makes it a match to display
+                    const anyTokenFoundInParagraph = searchTokens.some(token => paragraphTextLower.includes(token));
+                    if (anyTokenFoundInParagraph) {
+                        reportHasAnyMatch = true;
+                        initiallyMatchedParagraphsData.push({ text: p, type: type });
+                    }
+                });
+            };
+
+            checkAndCollectMatches(report.attendingParagraphs, 'Attending');
+            checkAndCollectMatches(report.residentParagraphs, 'Resident');
+
+            if (reportHasAnyMatch) {
+                matchFoundOverall = true;
+                const reportDiv = document.createElement('div');
+                reportDiv.className = 'result-item';
+                reportDiv.dataset.reportId = report.id;
+                reportDiv.dataset.rawQueryForHighlight = rawQueryFromInput;
+                reportDiv.dataset.initiallyMatchedParagraphs = JSON.stringify(initiallyMatchedParagraphsData);
+                reportDiv.dataset.searchScopeWhenCreated = 'report'; // Mark how it was created
+
+                const meta = document.createElement('div');
+                meta.className = 'report-meta';
+                meta.textContent = `Matches in Report ${report.id}`;
+                reportDiv.appendChild(meta);
+
+                // Display only the paragraphs that had a match
+                initiallyMatchedParagraphsData.forEach(paraData => {
+                    const contentDiv = document.createElement('div');
+                    contentDiv.style.marginBottom = "0.5em"; // Add some spacing between matched paragraphs
+                    contentDiv.style.paddingLeft = "1em";
+                    contentDiv.style.borderLeft = "2px solid var(--input-border)";
+                    
+                    const paraMeta = document.createElement('div');
+                    paraMeta.textContent = `(from ${paraData.type} report)`;
+                    paraMeta.style.fontSize = "0.8em";
+                    paraMeta.style.fontStyle = "italic";
+                    paraMeta.style.color = "#aaa";
+                    contentDiv.appendChild(paraMeta);
+
+                    const textContent = document.createElement('div');
+                    textContent.innerHTML = highlightMatches(paraData.text, searchTokens);
+                    contentDiv.appendChild(textContent);
+                    reportDiv.appendChild(contentDiv);
+                });
+
+                reportDiv.addEventListener('dblclick', handleResultDoubleClick);
+                fragment.appendChild(reportDiv);
+            }
+        });
+    }
 
     resultsContainer.appendChild(fragment);
 
-    if (searchTokens.length > 0 && !matchFound) {
-        statusMessage.textContent = 'No matching paragraphs found for "' + rawQueryFromInput + '".';
+    if (searchTokens.length > 0 && !matchFoundOverall) {
+        statusMessage.textContent = 'No matching results found for "' + rawQueryFromInput + '".';
         statusMessage.style.display = 'block';
     } else {
        updateStatusMessage();
@@ -628,24 +633,20 @@
        const currentRawQuery = filterInput.value;
        const searchTokens = parseSearchTerm(currentRawQuery);
 
-
        if (searchTokens.length === 0 && resultsContainer.innerHTML === '') {
             statusMessage.textContent = reportDatabase.length > 0
                 ? 'Type in the search box above to find reports.'
                 : 'Load a report database or paste raw cases above.';
             statusMessage.style.display = 'block';
        } else if (searchTokens.length > 0 && resultsContainer.innerHTML === '') {
-           // This case is handled by renderResults itself if no matches are found.
-           // However, if renderResults decided not to show status (e.g. error), this might catch it.
-           // Let's ensure renderResults' message takes precedence.
-           if (!statusMessage.textContent.startsWith('No matching')) {
+           if (!statusMessage.textContent.startsWith('No matching')) { // Avoid overwriting specific "no match"
                 statusMessage.style.display = 'none';
            } else {
-                statusMessage.style.display = 'block'; // Keep the "no matching" message
+                statusMessage.style.display = 'block'; 
            }
-       } else if (resultsContainer.innerHTML !== '') { // Results are showing
+       } else if (resultsContainer.innerHTML !== '') { 
             statusMessage.style.display = 'none';
-       } else { // Default fallback (e.g., DB empty, no search yet)
+       } else { 
             statusMessage.textContent = reportDatabase.length > 0
                 ? 'Type in the search box above to find reports.'
                 : 'Load a report database or paste raw cases above.';
@@ -654,8 +655,7 @@
    }
 
   // --- Event Handlers ---
-
-  function handleResultDoubleClick(event) {
+  function handleResultDoubleClick(event) { // EXPAND
     const resultItem = event.currentTarget;
     const reportId = resultItem.dataset.reportId;
     const report = reportDatabase.find(r => r.id === reportId);
@@ -668,9 +668,18 @@
         return;
     };
 
+    // Preserve necessary data for collapsing
+    const originalDataset = { ...resultItem.dataset };
+
     resultItem.innerHTML = '';
     resultItem.style.cursor = 'default';
     resultItem.removeEventListener('dblclick', handleResultDoubleClick);
+
+    // Restore dataset for collapse handler
+    Object.keys(originalDataset).forEach(key => {
+        resultItem.dataset[key] = originalDataset[key];
+    });
+
 
     const fullView = document.createElement('div');
     fullView.className = 'full-report-view';
@@ -680,7 +689,6 @@
     meta.textContent = `Full Report: ${report.id} (Double-click to collapse)`;
     fullView.appendChild(meta);
 
-    // Get current search tokens to highlight the full report
     const rawCurrentQuery = document.getElementById('txt-filter').value;
     const currentSearchTokens = parseSearchTerm(rawCurrentQuery);
 
@@ -713,37 +721,68 @@
     resultItem.addEventListener('dblclick', handleCollapseDoubleClick);
   }
 
-  function handleCollapseDoubleClick(event) {
+  function handleCollapseDoubleClick(event) { // COLLAPSE
       const resultItem = event.currentTarget;
-
       const reportId = resultItem.dataset.reportId;
-      const originalParagraph = resultItem.dataset.originalParagraph;
-      const rawQueryForHighlight = resultItem.dataset.rawQueryForHighlight; // Raw query string
-      const reportType = resultItem.dataset.reportType;
+      const rawQueryForHighlight = resultItem.dataset.rawQueryForHighlight;
+      const searchScopeWhenCreated = resultItem.dataset.searchScopeWhenCreated;
 
-      if (typeof originalParagraph === 'undefined' || typeof rawQueryForHighlight === 'undefined' || typeof reportType === 'undefined') {
-          console.error("Missing original data on element, cannot collapse correctly.", resultItem.dataset);
-          resultItem.removeEventListener('dblclick', handleCollapseDoubleClick);
-          resultItem.style.cursor = 'default';
-          return;
-      }
-
-      resultItem.innerHTML = '';
+      resultItem.innerHTML = ''; // Clear expanded view
       resultItem.style.cursor = 'pointer';
       resultItem.removeEventListener('dblclick', handleCollapseDoubleClick);
 
-      const meta = document.createElement('div');
-      meta.className = 'report-meta';
-      meta.textContent = `Match in ${reportId} (${reportType})`;
-      resultItem.appendChild(meta);
-
-      const content = document.createElement('div');
-      // Parse the stored raw query to get tokens for highlighting the snippet
       const tokensForSnippetHighlight = parseSearchTerm(rawQueryForHighlight);
-      content.innerHTML = highlightMatches(originalParagraph, tokensForSnippetHighlight);
-      resultItem.appendChild(content);
 
-      resultItem.addEventListener('dblclick', handleResultDoubleClick);
+      if (searchScopeWhenCreated === 'report') {
+          const initiallyMatchedParagraphs = JSON.parse(resultItem.dataset.initiallyMatchedParagraphs);
+          
+          const meta = document.createElement('div');
+          meta.className = 'report-meta';
+          meta.textContent = `Matches in Report ${reportId}`;
+          resultItem.appendChild(meta);
+
+          initiallyMatchedParagraphs.forEach(paraData => {
+              const contentDiv = document.createElement('div');
+              contentDiv.style.marginBottom = "0.5em";
+              contentDiv.style.paddingLeft = "1em";
+              contentDiv.style.borderLeft = "2px solid var(--input-border)";
+
+              const paraMeta = document.createElement('div');
+              paraMeta.textContent = `(from ${paraData.type} report)`;
+              paraMeta.style.fontSize = "0.8em";
+              paraMeta.style.fontStyle = "italic";
+              paraMeta.style.color = "#aaa";
+              contentDiv.appendChild(paraMeta);
+              
+              const textContent = document.createElement('div');
+              textContent.innerHTML = highlightMatches(paraData.text, tokensForSnippetHighlight);
+              contentDiv.appendChild(textContent);
+              resultItem.appendChild(contentDiv);
+          });
+
+      } else { // Default to section scope (or if searchScopeWhenCreated is undefined)
+          const originalParagraph = resultItem.dataset.originalParagraph;
+          const reportType = resultItem.dataset.reportType;
+
+          if (typeof originalParagraph === 'undefined' || typeof reportType === 'undefined') {
+              console.error("Missing original data for section-scope collapse.", resultItem.dataset);
+              // Fallback: just leave it empty or show a minimal message
+              resultItem.innerHTML = '<div class="report-meta" style="color: orange;">Error: Could not restore snippet.</div>';
+              resultItem.style.cursor = 'default'; // Prevent further interaction if broken
+              return; // Don't re-add dblclick listener
+          }
+
+          const meta = document.createElement('div');
+          meta.className = 'report-meta';
+          meta.textContent = `Match in ${reportId} (${reportType} Section)`;
+          resultItem.appendChild(meta);
+
+          const content = document.createElement('div');
+          content.innerHTML = highlightMatches(originalParagraph, tokensForSnippetHighlight);
+          resultItem.appendChild(content);
+      }
+
+      resultItem.addEventListener('dblclick', handleResultDoubleClick); // Re-attach expand
   }
 
 
@@ -759,8 +798,7 @@
                   loadedData = JSON.parse(fileContent);
               } catch (jsonError) {
                   if (typeof fileContent === 'string' && fileContent.trim().toLowerCase().startsWith('case')) {
-                       console.log("File is not valid JSON, treating as raw text cases.");
-                       loadedData = fileContent; // Pass the raw string to processLoadedData
+                       loadedData = fileContent; 
                   } else {
                       throw new Error("File is not valid JSON and doesn't appear to be raw case text.");
                   }
@@ -770,7 +808,7 @@
               alert(`Error loading or processing file: ${err.message}`);
               console.error("File Load/Process Error:", err);
           } finally {
-              event.target.value = ''; // Reset file input
+              event.target.value = ''; 
           }
       };
       reader.onerror = (e) => {
@@ -789,14 +827,24 @@
     const fileUploadInput = document.getElementById('json-upload-input');
     const rawCaseInput = document.getElementById('raw-case-input');
     const parseRawButton = document.getElementById('btn-parse-raw');
+    const searchScopeRadios = document.querySelectorAll('input[name="search-scope"]'); // <<< NEW
 
     let filterTimeout;
     filterInput.addEventListener('input', () => {
         clearTimeout(filterTimeout);
         filterTimeout = setTimeout(() => {
-            renderResults(filterInput.value); // Pass the raw value from input
-        }, 250); // Slightly increased delay for more complex parsing/matching
+            renderResults(filterInput.value); 
+        }, 250); 
     });
+
+    // <<< NEW: Event listener for search scope change
+    searchScopeRadios.forEach(radio => {
+        radio.addEventListener('change', (event) => {
+            currentSearchScope = event.target.value;
+            renderResults(filterInput.value); // Re-render with new scope
+        });
+    });
+
 
     parseRawButton.addEventListener('click', () => {
         const rawText = rawCaseInput.value;
@@ -805,7 +853,7 @@
             return;
         }
         try {
-            const parseResult = parseRawCases(rawText); // This returns { addedCount, failedCount, newReports }
+            const parseResult = parseRawCases(rawText); 
             let actuallyAddedToDbCount = 0;
 
             if (parseResult.newReports.length > 0) {
@@ -814,12 +862,11 @@
 
                 parseResult.newReports.forEach(newReport => {
                     let uniqueId = newReport.id;
-                    // Ensure ID is unique before adding
                     while (currentIds.has(uniqueId)) {
                         idCounter++;
                         uniqueId = `${newReport.id}_${idCounter}`;
                     }
-                    newReport.id = uniqueId; // Update report with unique ID
+                    newReport.id = uniqueId; 
                     
                     reportDatabase.push(newReport);
                     currentIds.add(uniqueId);
@@ -828,12 +875,11 @@
 
                 if (actuallyAddedToDbCount > 0) {
                     saveDatabase();
-                    rawCaseInput.value = ''; // Clear input on success
-                    renderResults(filterInput.value); // Re-render with current filter
+                    rawCaseInput.value = ''; 
+                    renderResults(filterInput.value); 
                     updateStatusMessage();
                     alert(`Successfully added ${actuallyAddedToDbCount} new reports from text.${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} text segments failed to parse fully.` : ''}`);
                 } else {
-                     // This case should be rare if newReports had items, means all were duplicates (which ID generation should prevent)
                      alert(`No new reports were added. ${parseResult.failedCount > 0 ? ` ${parseResult.failedCount} text segments failed to parse fully.` : ''}`);
                 }
             } else {
@@ -875,13 +921,12 @@
       if (confirm("Are you sure you want to clear the entire saved report database from your browser? This cannot be undone.")) {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         reportDatabase = [];
-        renderResults(''); // Clear results from display
+        renderResults(''); 
         updateStatusMessage();
         alert("Saved database cleared.");
       }
     };
   });
-
   </script>
 </body>
 </html>
