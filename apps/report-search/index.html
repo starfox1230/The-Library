@@ -273,8 +273,64 @@
   // --- Database Utilities ---
   function paragraphSplitter(text) {
     if (!text) return [];
-    const paras = text.split(/\r?\n\s*\r?\n+/);
-    return paras.map(p => p.trim()).filter(p => p.length > 0);
+    const paragraphs = [];
+    let currentNonSectionParaBuffer = []; // Buffer for paragraphs not matching the specific sectionPattern
+
+    // Regex for identifying self-contained "Header: Content" sections
+    // Example: "ASCENDING THORACIC AORTA: Nonaneurysmal."
+    // It looks for:
+    // - Start of the line (^)
+    // - A header part:
+    //   - Starts with an uppercase letter ([A-Z])
+    //   - Followed by uppercase letters, digits, spaces, or common punctuation like / ( ) , ' -
+    //   - Ends with an uppercase letter or digit before the colon (to correctly capture short headers like "SMA:")
+    // - A colon (:)
+    // - One or more spaces (\s+)
+    // - Content on the rest of the line (.+) until the end of the line ($)
+    const selfContainedSectionRegex = /^([A-Z][A-Z0-9\s\/(),'-]*[A-Z0-9]):\s+(.+)$/;
+
+    const lines = text.split(/\r?\n/);
+
+    for (const line of lines) {
+        // We use line.trimEnd() to remove trailing spaces but preserve any intentional leading indentation.
+        // However, the regex `^` means the header must be at the absolute start of the line.
+        // If headers could be indented, the regex would need `^\s*`. For now, assume no indent.
+        const currentLineContent = line.trimEnd();
+        const sectionMatch = currentLineContent.match(selfContainedSectionRegex);
+
+        if (sectionMatch) {
+            // This line is a self-contained section (e.g., "AORTA: Details.")
+            // First, if there was any buffered-up "normal" paragraph text, push it.
+            if (currentNonSectionParaBuffer.length > 0) {
+                paragraphs.push(currentNonSectionParaBuffer.join('\n').trim());
+                currentNonSectionParaBuffer = [];
+            }
+            // Then, push this self-contained section as its own paragraph.
+            paragraphs.push(currentLineContent);
+        } else {
+            // This line is NOT a self-contained section.
+            // It's either a blank line or part of a multi-line "normal" paragraph.
+            if (currentLineContent === '') { // An actual blank line
+                // Finalize and push the buffered "normal" paragraph.
+                if (currentNonSectionParaBuffer.length > 0) {
+                    paragraphs.push(currentNonSectionParaBuffer.join('\n').trim());
+                    currentNonSectionParaBuffer = [];
+                }
+                // Blank lines themselves don't become paragraphs unless they are the *only* content.
+                // Here, they act as separators for `currentNonSectionParaBuffer`.
+            } else {
+                // It's a non-blank line, not a special section header. Add to the buffer.
+                currentNonSectionParaBuffer.push(line); // Push original line to preserve its exact spacing if part of a block
+            }
+        }
+    }
+
+    // After the loop, push any remaining content in the buffer.
+    if (currentNonSectionParaBuffer.length > 0) {
+        paragraphs.push(currentNonSectionParaBuffer.join('\n').trim());
+    }
+
+    return paragraphs.filter(p => p.length > 0); // Filter out any truly empty paragraphs
   }
 
   function processLoadedData(data, mode = 'load') {
