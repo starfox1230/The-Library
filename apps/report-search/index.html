@@ -879,12 +879,28 @@
     const searchScopeRadios = document.querySelectorAll('input[name="search-scope"]'); 
 
     let filterTimeout;
-    filterInput.addEventListener('input', () => {
-        clearTimeout(filterTimeout);
-        filterTimeout = setTimeout(() => {
-            renderResults(filterInput.value); 
-        }, 250); 
-    });
+        filterInput.addEventListener('input', () => {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                const currentQuery = filterInput.value; // Get current value from input field
+    
+                if (currentQuery.length >= 4) {
+                    renderResults(currentQuery);
+                } else {
+                    // Clear previous results if query length is less than 4
+                    document.getElementById('results').innerHTML = '';
+    
+                    if (currentQuery.length > 0) { // Input has 1, 2, or 3 characters
+                        document.getElementById('status-message').textContent = 'Please enter at least 4 characters to begin searching.';
+                        document.getElementById('status-message').style.display = 'block';
+                    } else { // Input is empty (0 characters)
+                        // updateStatusMessage will handle showing the default prompt
+                        // (e.g., "Type in the search box..." or "Load a report database...")
+                        updateStatusMessage();
+                    }
+                }
+            }, 250); // Debounce time remains 250ms
+        });
 
     searchScopeRadios.forEach(radio => {
         radio.addEventListener('change', (event) => {
