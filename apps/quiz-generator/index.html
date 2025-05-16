@@ -258,72 +258,55 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 
         function addActionButtonsForPreviousQuiz() {
             const previouslyGeneratedQuizHTML = sessionStorage.getItem('lastGeneratedQuizHTML');
+            // if we have a stored quiz and haven’t already injected the buttons:
             if (previouslyGeneratedQuizHTML && !document.getElementById('restored-quiz-actions')) {
-                const generatorContainer = document.querySelector('.generator-container');
-                const questionInputElem = document.getElementById('questionInput');
-
-                if (generatorContainer && questionInputElem) {
-                    const buttonsHeader = document.createElement('p');
-                    buttonsHeader.id = 'restored-quiz-actions-header';
-                    buttonsHeader.textContent = 'Actions for previously generated quiz:';
-                    buttonsHeader.style.marginTop = '20px';
-                    buttonsHeader.style.marginBottom = '10px';
-                    buttonsHeader.style.textAlign = 'left';
-
-                    const buttonGroupForRestored = document.createElement('div');
-                    buttonGroupForRestored.classList.add('button-group');
-                    buttonGroupForRestored.id = 'restored-quiz-actions';
-                    buttonGroupForRestored.style.marginTop = '0px'; // Header has margin-bottom
-                    buttonGroupForRestored.style.justifyContent = 'flex-start';
-
-                    const copyQuizHtmlBtn = document.createElement('button');
-                    copyQuizHtmlBtn.textContent = 'Copy Quiz HTML';
-                    copyQuizHtmlBtn.classList.add('action-button');
-                    copyQuizHtmlBtn.addEventListener('click', () => {
-                        if (navigator.clipboard) {
-                            navigator.clipboard.writeText(previouslyGeneratedQuizHTML)
-                                .then(() => provideCopyFeedback(copyQuizHtmlBtn))
-                                .catch(err => {
-                                    console.error('Failed to copy quiz HTML: ', err);
-                                    alert('Failed to copy quiz HTML.');
-                                });
-                        } else {
-                            try {
-                                const textArea = document.createElement('textarea');
-                                textArea.value = previouslyGeneratedQuizHTML;
-                                textArea.style.position = 'fixed'; textArea.style.opacity = '0';
-                                document.body.appendChild(textArea);
-                                textArea.select(); document.execCommand('copy');
-                                document.body.removeChild(textArea);
-                                provideCopyFeedback(copyQuizHtmlBtn);
-                            } catch (err) {
-                                console.error('Fallback copy quiz HTML failed: ', err);
-                                alert('Failed to copy quiz HTML automatically.');
-                            }
-                        }
-                    });
-
-                    const downloadQuizHtmlBtnRestored = document.createElement('button');
-                    downloadQuizHtmlBtnRestored.textContent = 'Download Quiz HTML';
-                    downloadQuizHtmlBtnRestored.classList.add('action-button');
-                    downloadQuizHtmlBtnRestored.addEventListener('click', () => {
-                        downloadHTML(previouslyGeneratedQuizHTML, 'generated_quiz.html');
-                    });
-
-                    buttonGroupForRestored.appendChild(copyQuizHtmlBtn);
-                    buttonGroupForRestored.appendChild(downloadQuizHtmlBtnRestored);
-
-                    // Insert after the textarea
-                    if (questionInputElem.nextSibling) {
-                        questionInputElem.parentElement.insertBefore(buttonsHeader, questionInputElem.nextSibling);
-                        questionInputElem.parentElement.insertBefore(buttonGroupForRestored, buttonsHeader.nextSibling);
-                    } else { // if textarea is the last child of its parent
-                        questionInputElem.parentElement.appendChild(buttonsHeader);
-                        questionInputElem.parentElement.appendChild(buttonGroupForRestored);
-                    }
-                }
+                // 1) grab the outer container...
+                const container = document.querySelector('.generator-container');
+                // 2) ...then the <div class="button-group"> that wraps your Generate button
+                const generateGroup = container.querySelector('.button-group');
+        
+                // 3) build the header paragraph
+                const buttonsHeader = document.createElement('p');
+                buttonsHeader.id = 'restored-quiz-actions-header';
+                buttonsHeader.textContent = 'Actions for previously generated quiz:';
+                buttonsHeader.style.marginTop    = '20px';
+                buttonsHeader.style.marginBottom = '10px';
+                buttonsHeader.style.textAlign    = 'left';
+        
+                // 4) build the button-group for the two action buttons
+                const buttonGroupForRestored = document.createElement('div');
+                buttonGroupForRestored.classList.add('button-group');
+                buttonGroupForRestored.id = 'restored-quiz-actions';
+                buttonGroupForRestored.style.justifyContent = 'flex-start';
+        
+                // 5a) Copy Quiz HTML button
+                const copyQuizHtmlBtn = document.createElement('button');
+                copyQuizHtmlBtn.textContent = 'Copy Quiz HTML';
+                copyQuizHtmlBtn.classList.add('action-button');
+                copyQuizHtmlBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(previouslyGeneratedQuizHTML)
+                        .then(() => provideCopyFeedback(copyQuizHtmlBtn))
+                        .catch(() => alert('Copy failed.'));
+                });
+        
+                // 5b) Download Quiz HTML button
+                const downloadQuizHtmlBtn = document.createElement('button');
+                downloadQuizHtmlBtn.textContent = 'Download Quiz HTML';
+                downloadQuizHtmlBtn.classList.add('action-button');
+                downloadQuizHtmlBtn.addEventListener('click', () => {
+                    downloadHTML(previouslyGeneratedQuizHTML, 'generated_quiz.html');
+                });
+        
+                // 6) stitch them together
+                buttonGroupForRestored.appendChild(copyQuizHtmlBtn);
+                buttonGroupForRestored.appendChild(downloadQuizHtmlBtn);
+        
+                // 7) inject them right after the Generate button’s <div>
+                generateGroup.insertAdjacentElement('afterend', buttonsHeader);
+                buttonsHeader.insertAdjacentElement('afterend', buttonGroupForRestored);
             }
         }
+
 
         // --- Main script logic (executed on initial load and on restoration) ---
         const promptTextElement = document.getElementById('promptText');
