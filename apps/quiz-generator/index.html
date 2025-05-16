@@ -440,64 +440,6 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 // --- End of existing structural validation loop ---
 
 
-                // --- MODIFICATION START: New validation for internal quotes in string content ---
-                let internalQuoteMessages = [];
-                for (let i = 0; i < parsedData.length; i++) {
-                    const item = parsedData[i];
-                    const questionNumberForDisplay = i + 1; // Use a different variable name for clarity
-
-                    // Helper to create a snippet for the message
-                    const createSnippet = (text) => {
-                        if (typeof text !== 'string') return "[Not a string]";
-                        return `"${text.slice(0, 70)}${text.length > 70 ? '...' : ''}"`;
-                    };
-
-                    // Check "question"
-                    if (typeof item.question === 'string' && item.question.includes('"')) {
-                        internalQuoteMessages.push(`Question ${questionNumberForDisplay}, 'question' field, content snippet: ${createSnippet(item.question)}`);
-                    }
-
-                    // Check "options"
-                    if (Array.isArray(item.options)) {
-                        item.options.forEach((opt, optIndex) => {
-                            if (typeof opt === 'string' && opt.includes('"')) {
-                                internalQuoteMessages.push(`Question ${questionNumberForDisplay}, 'options' field (option ${optIndex + 1}), content snippet: ${createSnippet(opt)}`);
-                            }
-                        });
-                    }
-
-                    // Check "correctAnswer"
-                    if (typeof item.correctAnswer === 'string' && item.correctAnswer.includes('"')) {
-                        internalQuoteMessages.push(`Question ${questionNumberForDisplay}, 'correctAnswer' field, content snippet: ${createSnippet(item.correctAnswer)}`);
-                    }
-
-                    // Check "explanation"
-                    if (typeof item.explanation === 'string' && item.explanation.includes('"')) {
-                        internalQuoteMessages.push(`Question ${questionNumberForDisplay}, 'explanation' field, content snippet: ${createSnippet(item.explanation)}`);
-                    }
-                }
-
-                if (internalQuoteMessages.length > 0) {
-                    let quoteWarningMsg = "POTENTIAL ISSUE IDENTIFIED IN QUIZ CONTENT:\n\n";
-                    quoteWarningMsg += "The following text fields in your successfully parsed quiz data contain internal quotation marks (e.g., text like \"This word is \"quoted\" inside the string.\").\n\n";
-                    quoteWarningMsg += "While your input JSON was structured correctly to allow these quotes (likely using `\\\"`), their presence in the actual content might be:\n";
-                    quoteWarningMsg += "1. Unintentional if the AI included them by mistake.\n";
-                    quoteWarningMsg += "2. Potentially confusing for the quiz taker, depending on context.\n\n";
-                    quoteWarningMsg += "Instances found (showing a snippet of the content):\n";
-                    internalQuoteMessages.forEach(msg => {
-                        quoteWarningMsg += `- ${msg}\n`;
-                    });
-                    quoteWarningMsg += "\nPlease review these. Do you want to proceed with generating the quiz with this content?";
-
-                    if (!confirm(quoteWarningMsg)) {
-                        // User chose to cancel, focus on input for easy editing
-                        questionInput.focus(); 
-                        return; 
-                    }
-                }
-                // --- MODIFICATION END: New validation for internal quotes ---
-
-
                 const currentGeneratorHTML = document.documentElement.outerHTML;
                 sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
                 history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
