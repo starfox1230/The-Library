@@ -100,7 +100,7 @@
             resize: vertical;
         }
 
-        .action-button, .copy-button { /* Removed .download-button from this group */
+        .action-button, .copy-button {
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
             color: white;
             border: none;
@@ -148,6 +148,10 @@
              margin-top: 10px;
              margin-bottom: 20px;
         }
+        #restored-quiz-actions { /* Style for the new button group on restored page */
+            justify-content: flex-start; /* Align buttons to the left */
+        }
+
 
         @media (max-width: 600px) {
             .generator-container {
@@ -219,21 +223,15 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         <label for="questionInput">Paste Formatted Quiz Data Here:</label>
         <textarea id="questionInput" placeholder="Paste your JavaScript array of questions here, starting with [ and ending with ]..."></textarea>
 
+        <!-- Buttons for restored quiz will be injected here by JS -->
+
         <div class="button-group">
             <button id="generateBtn" class="action-button">Generate & View Quiz</button>
         </div>
-        <!-- Output section removed -->
     </div>
 
     <script>
-        const promptTextElement = document.getElementById('promptText');
-        const copyPromptBtn = document.getElementById('copyPromptBtn');
-        const questionInput = document.getElementById('questionInput');
-        const generateBtn = document.getElementById('generateBtn');
-
-        let originalGeneratorHTML = ''; // To store the generator's HTML for restoration
-
-        // --- Copy Button Feedback Function ---
+        // --- Helper Functions (defined at the top level of the script) ---
         function provideCopyFeedback(button) {
             const originalText = button.textContent;
             button.textContent = 'Copied!';
@@ -247,64 +245,147 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             }, 1500);
         }
 
-        // --- Copy Prompt Logic ---
-        copyPromptBtn.addEventListener('click', () => {
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(promptTextElement.innerText)
-                    .then(() => {
-                        provideCopyFeedback(copyPromptBtn);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy prompt: ', err);
-                        alert('Failed to copy prompt. Please copy manually.');
+        function downloadHTML(content, fileName) {
+            const blob = new Blob([content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        function addActionButtonsForPreviousQuiz() {
+            const previouslyGeneratedQuizHTML = sessionStorage.getItem('lastGeneratedQuizHTML');
+            if (previouslyGeneratedQuizHTML && !document.getElementById('restored-quiz-actions')) {
+                const generatorContainer = document.querySelector('.generator-container');
+                const questionInputElem = document.getElementById('questionInput');
+
+                if (generatorContainer && questionInputElem) {
+                    const buttonsHeader = document.createElement('p');
+                    buttonsHeader.id = 'restored-quiz-actions-header';
+                    buttonsHeader.textContent = 'Actions for previously generated quiz:';
+                    buttonsHeader.style.marginTop = '20px';
+                    buttonsHeader.style.marginBottom = '10px';
+                    buttonsHeader.style.textAlign = 'left';
+
+                    const buttonGroupForRestored = document.createElement('div');
+                    buttonGroupForRestored.classList.add('button-group');
+                    buttonGroupForRestored.id = 'restored-quiz-actions';
+                    buttonGroupForRestored.style.marginTop = '0px'; // Header has margin-bottom
+                    buttonGroupForRestored.style.justifyContent = 'flex-start';
+
+                    const copyQuizHtmlBtn = document.createElement('button');
+                    copyQuizHtmlBtn.textContent = 'Copy Quiz HTML';
+                    copyQuizHtmlBtn.classList.add('action-button');
+                    copyQuizHtmlBtn.addEventListener('click', () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(previouslyGeneratedQuizHTML)
+                                .then(() => provideCopyFeedback(copyQuizHtmlBtn))
+                                .catch(err => {
+                                    console.error('Failed to copy quiz HTML: ', err);
+                                    alert('Failed to copy quiz HTML.');
+                                });
+                        } else {
+                            try {
+                                const textArea = document.createElement('textarea');
+                                textArea.value = previouslyGeneratedQuizHTML;
+                                textArea.style.position = 'fixed'; textArea.style.opacity = '0';
+                                document.body.appendChild(textArea);
+                                textArea.select(); document.execCommand('copy');
+                                document.body.removeChild(textArea);
+                                provideCopyFeedback(copyQuizHtmlBtn);
+                            } catch (err) {
+                                console.error('Fallback copy quiz HTML failed: ', err);
+                                alert('Failed to copy quiz HTML automatically.');
+                            }
+                        }
                     });
-            } else {
-                try {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = promptTextElement.innerText;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    provideCopyFeedback(copyPromptBtn);
-                } catch (err) {
-                     console.error('Fallback copy failed: ', err);
-                     alert('Failed to copy prompt automatically. Please copy manually.');
+
+                    const downloadQuizHtmlBtnRestored = document.createElement('button');
+                    downloadQuizHtmlBtnRestored.textContent = 'Download Quiz HTML';
+                    downloadQuizHtmlBtnRestored.classList.add('action-button');
+                    downloadQuizHtmlBtnRestored.addEventListener('click', () => {
+                        downloadHTML(previouslyGeneratedQuizHTML, 'generated_quiz.html');
+                    });
+
+                    buttonGroupForRestored.appendChild(copyQuizHtmlBtn);
+                    buttonGroupForRestored.appendChild(downloadQuizHtmlBtnRestored);
+
+                    // Insert after the textarea
+                    if (questionInputElem.nextSibling) {
+                        questionInputElem.parentElement.insertBefore(buttonsHeader, questionInputElem.nextSibling);
+                        questionInputElem.parentElement.insertBefore(buttonGroupForRestored, buttonsHeader.nextSibling);
+                    } else { // if textarea is the last child of its parent
+                        questionInputElem.parentElement.appendChild(buttonsHeader);
+                        questionInputElem.parentElement.appendChild(buttonGroupForRestored);
+                    }
                 }
             }
-        });
+        }
 
-        // --- Generate Quiz and Replace Page Logic ---
-        generateBtn.addEventListener('click', () => {
-            const quizDataInput = questionInput.value.trim();
+        // --- Main script logic (executed on initial load and on restoration) ---
+        const promptTextElement = document.getElementById('promptText');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const questionInput = document.getElementById('questionInput');
+        const generateBtn = document.getElementById('generateBtn');
 
-            if (!quizDataInput) {
-                alert('Please paste the quiz data into the input area first.');
-                return;
-            }
+        if (copyPromptBtn && promptTextElement) {
+            copyPromptBtn.addEventListener('click', () => {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(promptTextElement.innerText)
+                        .then(() => provideCopyFeedback(copyPromptBtn))
+                        .catch(err => {
+                            console.error('Failed to copy prompt: ', err);
+                            alert('Failed to copy prompt. Please copy manually.');
+                        });
+                } else {
+                    try {
+                        const textArea = document.createElement('textarea');
+                        textArea.value = promptTextElement.innerText;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        provideCopyFeedback(copyPromptBtn);
+                    } catch (err) {
+                         console.error('Fallback copy failed: ', err);
+                         alert('Failed to copy prompt automatically. Please copy manually.');
+                    }
+                }
+            });
+        }
 
-            if (!quizDataInput.startsWith('[') || !quizDataInput.endsWith(']')) {
-                alert('The input data does not seem to be correctly formatted as a JavaScript array. It should start with [ and end with ].');
-                return;
-            }
+        if (generateBtn && questionInput) {
+            generateBtn.addEventListener('click', () => {
+                const headerToRemove = document.getElementById('restored-quiz-actions-header');
+                if (headerToRemove) headerToRemove.remove();
+                const buttonsToRemove = document.getElementById('restored-quiz-actions');
+                if (buttonsToRemove) buttonsToRemove.remove();
 
-            try {
-                 new Function(`return ${quizDataInput};`)(); // Validate JS array structure
-            } catch (e) {
-                alert(`Error parsing quiz data: ${e.message}\nPlease check the format (e.g., missing commas, quotes, brackets).`);
-                return;
-            }
+                const quizDataInput = questionInput.value.trim();
 
-            // 1️⃣ Save the generator’s HTML so we can restore it later
-            originalGeneratorHTML = document.documentElement.outerHTML;
+                if (!quizDataInput) {
+                    alert('Please paste the quiz data into the input area first.');
+                    return;
+                }
+                if (!quizDataInput.startsWith('[') || !quizDataInput.endsWith(']')) {
+                    alert('The input data does not seem to be correctly formatted as a JavaScript array. It should start with [ and end with ].');
+                    return;
+                }
+                try {
+                     new Function(`return ${quizDataInput};`)();
+                } catch (e) {
+                    alert(`Error parsing quiz data: ${e.message}\nPlease check the format (e.g., missing commas, quotes, brackets).`);
+                    return;
+                }
 
-            // 2️⃣ Push a history entry. This state is associated with the CURRENT page (generator UI).
-            //    When history.back() is called from the quiz page, popstate's event.state will be this.
-            history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
+                const currentGeneratorHTML = document.documentElement.outerHTML;
+                sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
+                history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
 
-
-            // --- HTML Template for the Quiz Page ---
-            const htmlTemplate = `
+                const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -316,240 +397,131 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #12121f;
-            color: #e0e0fc;
-            font-family: 'Roboto', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center; /* Vertically center quiz container */
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
+            background-color: #12121f; color: #e0e0fc; font-family: 'Roboto', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;
         }
-        #backToGeneratorBtn {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 10000;
-            padding: 10px 18px;
-            background: linear-gradient(45deg, #4a4af5, #7a7aff);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.9em;
-            cursor: pointer;
+        #quizTopControls {
+            position: fixed; top: 15px; left: 15px; z-index: 10000;
+            display: flex; gap: 10px;
+        }
+        #backToGeneratorBtn, #downloadCurrentQuizBtn {
+            padding: 10px 18px; background: linear-gradient(45deg, #4a4af5, #7a7aff);
+            color: white; border: none; border-radius: 25px;
+            font-family: 'Orbitron', sans-serif; font-size: 0.9em; cursor: pointer;
             box-shadow: 0 3px 8px rgba(74, 74, 245, 0.4);
             transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
         }
-        #backToGeneratorBtn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6);
+        #backToGeneratorBtn:hover, #downloadCurrentQuizBtn:hover {
+            transform: scale(1.05); box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6);
             background: linear-gradient(45deg, #5a5aff, #8a8aff);
         }
         .quiz-container {
-            background-color: #1a1a2e;
-            padding: 30px 40px;
-            border-radius: 15px;
-            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4),
-                        0 5px 15px rgba(0, 0, 0, 0.3);
-            width: 90%;
-            max-width: 800px;
-            text-align: center;
-            border: 1px solid #3a3a5e;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 500px;
-            margin-top: 50px; /* Make space for the fixed back button */
+            background-color: #1a1a2e; padding: 30px 40px; border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%; max-width: 800px; text-align: center; border: 1px solid #3a3a5e;
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 500px; margin-top: 70px; /* Adjusted for top controls */
         }
-        .quiz-content {
-             flex-grow: 1;
-             margin-bottom: 20px;
-        }
+        .quiz-content { flex-grow: 1; margin-bottom: 20px; }
         h1 {
-            font-family: 'Orbitron', sans-serif;
-            color: #8a8aff;
-            margin-bottom: 25px;
+            font-family: 'Orbitron', sans-serif; color: #8a8aff; margin-bottom: 25px;
             text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
         }
-        #question-counter {
-            font-size: 0.9em;
-            color: #aaaafc;
-            margin-bottom: 15px;
-        }
+        #question-counter { font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; }
         #question-text {
-            font-size: 1.3em;
-            color: #f0f0ff;
-            margin-bottom: 30px;
-            line-height: 1.6;
-            min-height: 60px; /* Prevent layout shift */
+            font-size: 1.3em; color: #f0f0ff; margin-bottom: 30px;
+            line-height: 1.6; min-height: 60px;
         }
-        .options-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
+        .options-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
         .option-button {
-            background-color: #2a2a4e;
-            color: #d0d0fc;
-            border: 1px solid #4a4a7e;
-            padding: 12px 15px;
-            font-size: 1em;
-            border-radius: 8px;
-            cursor: pointer;
+            background-color: #2a2a4e; color: #d0d0fc; border: 1px solid #4a4a7e;
+            padding: 12px 15px; font-size: 1em; border-radius: 8px; cursor: pointer;
             transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-            text-align: left;
-            width: 100%;
-            box-sizing: border-box;
+            text-align: left; width: 100%; box-sizing: border-box;
         }
         .option-button:hover:not(:disabled) {
-            background-color: #3a3a6e;
-            transform: translateY(-2px);
+            background-color: #3a3a6e; transform: translateY(-2px);
             box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
         }
-        .option-button:active:not(:disabled) {
-            transform: translateY(0px);
-        }
-        .option-button:disabled {
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
+        .option-button:active:not(:disabled) { transform: translateY(0px); }
+        .option-button:disabled { cursor: not-allowed; opacity: 0.7; }
         .option-button.correct {
-            background-color: #1f7a3f !important; /* Ensure override */
-            border-color: #28a745 !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            background-color: #1f7a3f !important; border-color: #28a745 !important;
+            color: #ffffff !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
             opacity: 1 !important;
         }
         .option-button.incorrect {
-            background-color: #9a2532 !important; /* Ensure override */
-            border-color: #dc3545 !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
+            background-color: #9a2532 !important; border-color: #dc3545 !important;
+            color: #ffffff !important; box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
             opacity: 1 !important;
         }
-        .option-button.reveal-correct { /* Style for showing correct answer when user was wrong */
-            background-color: #1c6a39 !important; /* Slightly different green or keep same as .correct */
-            border-color: #258a3c !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
-            opacity: 0.9 !important; /* Can be slightly less prominent if desired */
+        .option-button.reveal-correct {
+            background-color: #1c6a39 !important; border-color: #258a3c !important;
+            color: #ffffff !important; box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
+            opacity: 0.9 !important;
         }
         .explanation-container {
-            background-color: #202035;
-            border: 1px solid #3a3a5e;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-            text-align: left;
-            font-size: 0.95em;
-            line-height: 1.5;
-            color: #c0c0fa;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            background-color: #202035; border: 1px solid #3a3a5e; border-radius: 8px;
+            padding: 20px; margin-top: 20px; text-align: left; font-size: 0.95em;
+            line-height: 1.5; color: #c0c0fa; box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
         }
-        .explanation-container strong {
-            color: #8a8aff;
-        }
+        .explanation-container strong { color: #8a8aff; }
         .navigation-buttons {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 30px;
-            width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 30px; width: 100%;
         }
         .nav-button {
-            background: linear-gradient(45deg, #4a4af5, #8a8aff);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            font-size: 1.1em;
-            font-family: 'Orbitron', sans-serif;
-            border-radius: 25px;
-            cursor: pointer;
+            background: linear-gradient(45deg, #4a4af5, #8a8aff); color: white; border: none;
+            padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
             box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
-            min-width: 120px;
-            text-align: center;
+            min-width: 120px; text-align: center;
         }
         .nav-button:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+            transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
         }
         .nav-button:disabled {
-            background: #5a5a7e;
-            cursor: not-allowed;
-            opacity: 0.6;
-            box-shadow: none;
-            transform: none;
+            background: #5a5a7e; cursor: not-allowed; opacity: 0.6;
+            box-shadow: none; transform: none;
         }
         #completion-message {
-            margin-top: 40px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            margin-top: 40px; flex-grow: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
         }
         #completion-message h2 {
-             font-family: 'Orbitron', sans-serif;
-             color: #28a745;
+             font-family: 'Orbitron', sans-serif; color: #28a745;
              text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
         }
         @media (max-width: 600px) {
-            .quiz-container {
-                padding: 20px;
-                width: 95%;
-                min-height: auto; /* Allow shrinking on small screens */
-                margin-top: 65px; /* More space for back button */
-            }
-            h1 {
-                font-size: 1.5em;
-            }
-            #question-text {
-                font-size: 1.1em;
-                min-height: 40px;
-            }
-            .option-button {
-                font-size: 0.9em;
-                padding: 10px 12px;
-            }
-            .nav-button {
-                padding: 10px 20px;
-                font-size: 1em;
-                min-width: 100px;
-            }
-             #backToGeneratorBtn {
-                padding: 8px 12px;
-                font-size: 0.8em;
-                top: 10px;
-                left: 10px;
-            }
+            #quizTopControls { top: 10px; left: 10px; }
+            #backToGeneratorBtn, #downloadCurrentQuizBtn { padding: 8px 12px; font-size: 0.8em; }
+            .quiz-container { padding: 20px; width: 95%; min-height: auto; margin-top: 60px; }
+            h1 { font-size: 1.5em; }
+            #question-text { font-size: 1.1em; min-height: 40px; }
+            .option-button { font-size: 0.9em; padding: 10px 12px; }
+            .nav-button { padding: 10px 20px; font-size: 1em; min-width: 100px; }
         }
     </style>
 </head>
 <body>
-    <!-- 3️⃣ A fixed “Back” button -->
-    <button id="backToGeneratorBtn">← Back to Generator</button>
+    <div id="quizTopControls">
+        <button id="backToGeneratorBtn">← Back</button>
+        <button id="downloadCurrentQuizBtn">Download HTML</button>
+    </div>
 
     <div class="quiz-container">
         <div class="quiz-content">
             <h1>Generated Quiz</h1>
             <div id="question-counter"></div>
             <div id="question-text">Loading question...</div>
-            <div id="answer-options" class="options-container">
-                <!-- Options will be dynamically inserted here -->
-            </div>
-            <div id="explanation" class="explanation-container" style="display: none;">
-                <!-- Explanation will be shown here -->
-            </div>
+            <div id="answer-options" class="options-container"></div>
+            <div id="explanation" class="explanation-container" style="display: none;"></div>
         </div>
         <div id="completion-message" style="display: none;">
             <h2>Quiz Complete!</h2>
             <p>You have finished all the questions.</p>
-            <!-- Score will be updated here -->
         </div>
         <div class="navigation-buttons">
             <button id="prev-button" class="nav-button">Previous</button>
@@ -558,16 +530,27 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     </div>
 
 <script>
-    // 5️⃣ Hook up the Back button (must be inside the quiz's script)
     const backButton = document.getElementById('backToGeneratorBtn');
     if (backButton) {
-        backButton.addEventListener('click', () => {
-            history.back();
+        backButton.addEventListener('click', () => { history.back(); });
+    }
+
+    const downloadCurrentQuizButton = document.getElementById('downloadCurrentQuizBtn');
+    if (downloadCurrentQuizButton) {
+        downloadCurrentQuizButton.addEventListener('click', () => {
+            const currentQuizHTML = document.documentElement.outerHTML;
+            const blob = new Blob([currentQuizHTML], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'quiz_page.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
         });
     }
 
     const quizData = ${quizDataInput};
-
     const questionCounterElement = document.getElementById('question-counter');
     const questionTextElement = document.getElementById('question-text');
     const answerOptionsElement = document.getElementById('answer-options');
@@ -577,178 +560,112 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     const completionMessageElement = document.getElementById('completion-message');
     const quizContentElement = document.querySelector('.quiz-content');
     const navigationButtonsElement = document.querySelector('.navigation-buttons');
-
     let currentQuestionIndex = 0;
     let userAnswers = new Array(quizData.length).fill(null);
 
     function loadQuestion() {
-        if (currentQuestionIndex >= quizData.length) {
-            showCompletion();
-            return;
-        }
-        // Ensure elements are visible if hidden by completion screen
+        if (currentQuestionIndex >= quizData.length) { showCompletion(); return; }
         if (quizContentElement) quizContentElement.style.display = 'block';
         if (navigationButtonsElement) navigationButtonsElement.style.display = 'flex';
         if (completionMessageElement) completionMessageElement.style.display = 'none';
-
-        if (explanationElement) {
-            explanationElement.style.display = 'none';
-            explanationElement.innerHTML = '';
-        }
+        if (explanationElement) { explanationElement.style.display = 'none'; explanationElement.innerHTML = ''; }
         if (answerOptionsElement) answerOptionsElement.innerHTML = '';
-
         const currentQuestion = quizData[currentQuestionIndex];
-
         if (questionCounterElement) questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
         if (questionTextElement) questionTextElement.textContent = currentQuestion.question;
-
         currentQuestion.options.forEach(option => {
             const button = document.createElement('button');
             button.textContent = option;
             button.classList.add('option-button');
-
-            if (userAnswers[currentQuestionIndex] !== null) { // Question has been answered before
+            if (userAnswers[currentQuestionIndex] !== null) {
                  button.disabled = true;
                  const savedAnswer = userAnswers[currentQuestionIndex];
-                 if (option === savedAnswer.selected) { // This was the selected option
-                     button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect');
-                 }
-                 // If this option is the correct answer AND the saved answer was incorrect, highlight it as correct
-                 if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) {
-                    button.classList.add('reveal-correct'); // Or 'correct' if you want the same styling
-                 }
-            } else { // Question not yet answered in this session/view
-                 button.addEventListener('click', selectAnswer);
-            }
+                 if (option === savedAnswer.selected) { button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect'); }
+                 if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) { button.classList.add('reveal-correct'); }
+            } else { button.addEventListener('click', selectAnswer); }
             if (answerOptionsElement) answerOptionsElement.appendChild(button);
         });
-
-        if (userAnswers[currentQuestionIndex] !== null && explanationElement) { // Show explanation if answered
+        if (userAnswers[currentQuestionIndex] !== null && explanationElement) {
             explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
             explanationElement.style.display = 'block';
         }
         updateNavButtonStates();
     }
-
     function updateNavButtonStates() {
         if (prevButton) prevButton.disabled = (currentQuestionIndex === 0);
-        if (nextButton) {
-            nextButton.disabled = false; // Default to enabled
-            nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next";
-        }
+        if (nextButton) { nextButton.disabled = false; nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next"; }
     }
-
     function selectAnswer(event) {
-        const selectedButton = event.target;
-        const selectedAnswer = selectedButton.textContent;
-        const currentQuestion = quizData[currentQuestionIndex];
-        const correctAnswer = currentQuestion.correctAnswer;
-
-        if(userAnswers[currentQuestionIndex] !== null) return; // Already answered
-
+        const selectedButton = event.target; const selectedAnswer = selectedButton.textContent;
+        const currentQuestion = quizData[currentQuestionIndex]; const correctAnswer = currentQuestion.correctAnswer;
+        if(userAnswers[currentQuestionIndex] !== null) return;
         const isCorrect = selectedAnswer === correctAnswer;
-
-        userAnswers[currentQuestionIndex] = {
-            selected: selectedAnswer,
-            isCorrect: isCorrect
-        };
-
+        userAnswers[currentQuestionIndex] = { selected: selectedAnswer, isCorrect: isCorrect };
         const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
         optionButtons.forEach(button => {
-            button.disabled = true; // Disable all options after one is chosen
-            if (button.textContent === selectedAnswer) {
-                button.classList.add(isCorrect ? 'correct' : 'incorrect');
-            }
-            // If the user was wrong, also highlight the correct answer
-            if (!isCorrect && button.textContent === correctAnswer) {
-                 button.classList.add('reveal-correct'); // Or 'correct'
-            }
+            button.disabled = true;
+            if (button.textContent === selectedAnswer) { button.classList.add(isCorrect ? 'correct' : 'incorrect'); }
+            if (!isCorrect && button.textContent === correctAnswer) { button.classList.add('reveal-correct'); }
         });
-
         if (explanationElement) {
             explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
             explanationElement.style.display = 'block';
         }
     }
-
     function goToNextQuestion() {
-         if (currentQuestionIndex < quizData.length - 1) {
-            currentQuestionIndex++;
-            loadQuestion();
-        } else if (currentQuestionIndex === quizData.length - 1) { // Last question, about to finish
-             currentQuestionIndex++; // Increment to trigger completion
-             loadQuestion(); // This will call showCompletion()
-        }
+         if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
+         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
     }
-
-    function goToPreviousQuestion() {
-        if (currentQuestionIndex > 0) {
-            currentQuestionIndex--;
-            loadQuestion();
-        }
-    }
-
+    function goToPreviousQuestion() { if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); } }
     function showCompletion() {
         if (quizContentElement) quizContentElement.style.display = 'none';
         if (navigationButtonsElement) navigationButtonsElement.style.display = 'none';
         if (completionMessageElement) {
-            completionMessageElement.style.display = 'flex'; // Use flex for centering
+            completionMessageElement.style.display = 'flex';
             let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
             const scoreP = completionMessageElement.querySelector('p');
-            if(scoreP) {
-                 scoreP.textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`;
-            }
+            if(scoreP) { scoreP.textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`; }
         }
     }
-
-    // Initial setup
     if (prevButton) prevButton.addEventListener('click', goToPreviousQuestion);
     if (nextButton) nextButton.addEventListener('click', goToNextQuestion);
-
-    if (quizData && quizData.length > 0) {
-         loadQuestion();
-    } else {
+    if (quizData && quizData.length > 0) { loadQuestion(); }
+    else {
         if (questionTextElement) questionTextElement.textContent = 'Error: No valid quiz data found or quiz data is empty.';
         if (questionCounterElement) questionCounterElement.textContent = '';
         if (answerOptionsElement) answerOptionsElement.innerHTML = '';
-        if (prevButton) prevButton.disabled = true;
-        if (nextButton) nextButton.disabled = true;
+        if (prevButton) prevButton.disabled = true; if (nextButton) nextButton.disabled = true;
     }
 <\/script>
 </body>
 </html>
 `; // End of template literal
 
-            // 6️⃣ Blow away the existing page and write the new quiz HTML
-            document.open();
-            document.write(htmlTemplate);
-            document.close();
+                sessionStorage.setItem('lastGeneratedQuizHTML', htmlTemplate);
+
+                document.open();
+                document.write(htmlTemplate);
+                document.close();
+            });
+        }
+
+        // --- Popstate listener ---
+        window.addEventListener('popstate', event => {
+            const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
+            if (event.state && event.state.view === 'generator_restoration_point' && storedOriginalHTML) {
+                document.open();
+                document.write(storedOriginalHTML);
+                document.close();
+                // The script on the restored page will re-run, including addActionButtonsForPreviousQuiz()
+            } else if (event.state === null && storedOriginalHTML) { // Navigating back to an even earlier state that might have been overwritten
+                document.open();
+                document.write(storedOriginalHTML);
+                document.close();
+            }
         });
 
-        // --- Restore generator UI when user navigates back ---
-        window.addEventListener('popstate', event => {
-            // When history.back() is called from the quiz page, we are navigating back
-            // to the state we pushed just before displaying the quiz.
-            if (event.state && event.state.view === 'generator_restoration_point') {
-                if (originalGeneratorHTML) {
-                    document.open();
-                    document.write(originalGeneratorHTML);
-                    document.close();
-                    // The script within originalGeneratorHTML will re-execute,
-                    // effectively re-attaching its event listeners and
-                    // re-initializing the generator page's state.
-                    // originalGeneratorHTML = ''; // Optional: clear if not needed further for this session
-                }
-            }
-            // This handles the case where the user might go back to the absolute initial page load state
-            // (e.g., if they used browser back multiple times, or if the initial page had no state set by this script)
-            // For this specific flow, the above `if` is the primary one.
-            else if (event.state === null && originalGeneratorHTML) {
-                 document.open();
-                 document.write(originalGeneratorHTML);
-                 document.close();
-            }
-        });
+        // --- Initial actions on script load (generator page) ---
+        addActionButtonsForPreviousQuiz();
 
     </script>
 </body>
