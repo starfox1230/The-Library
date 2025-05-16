@@ -338,7 +338,40 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 const buttonsToRemove = document.getElementById('restored-quiz-actions');
                 if (buttonsToRemove) buttonsToRemove.remove();
 
+                // Get raw value from textarea
+                let currentInputText = questionInput.value;
+
+                // --- START: ADDED TRANSFORMATION LOGIC ---
+                const firstBracketIndex = currentInputText.indexOf('[');
+                if (firstBracketIndex !== -1) {
+                    // Find the first colon *after* the first bracket
+                    const firstColonIndex = currentInputText.indexOf(':', firstBracketIndex + 1);
+
+                    if (firstColonIndex !== -1) {
+                        // Extract the part of the string before the initial bracket
+                        const prefix = currentInputText.substring(0, firstBracketIndex);
+                        // Extract the part of the string after the first colon
+                        const suffix = currentInputText.substring(firstColonIndex + 1);
+                        
+                        // The new segment to insert, as specified by the user
+                        const replacementKeySegment = "[\n  {\n    \"question\":";
+
+                        // Reconstruct the string
+                        currentInputText = prefix + replacementKeySegment + suffix;
+                        
+                        // Update the textarea with the modified content so the user sees the change
+                        questionInput.value = currentInputText;
+                    }
+                    // If no colon is found after the bracket, do nothing.
+                    // The existing validation will catch malformed JSON.
+                }
+                // If no initial bracket is found, do nothing.
+                // Existing validation will handle this.
+                // --- END: ADDED TRANSFORMATION LOGIC ---
+
+                // Now, get the (potentially modified) and trimmed input for processing
                 const quizDataInput = questionInput.value.trim();
+
 
                 if (!quizDataInput) {
                     alert('Please paste the quiz data into the input area first.');
