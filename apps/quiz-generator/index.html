@@ -100,11 +100,7 @@
             resize: vertical;
         }
 
-        textarea#outputHtml {
-            min-height: 300px;
-        }
-
-        .action-button, .copy-button, .download-button {
+        .action-button, .copy-button { /* Removed .download-button from this group */
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
             color: white;
             border: none;
@@ -120,15 +116,13 @@
         }
 
         .action-button:hover:not(:disabled),
-        .copy-button:hover:not(:disabled),
-        .download-button:hover:not(:disabled) {
+        .copy-button:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
         }
 
          .action-button:disabled,
-         .copy-button:disabled,
-         .download-button:disabled {
+         .copy-button:disabled {
             background: #5a5a7e;
             cursor: not-allowed;
             opacity: 0.6;
@@ -144,11 +138,6 @@
         .link-style:hover {
             color: #c0c0ff;
             text-decoration: underline;
-        }
-
-        .output-section {
-            margin-top: 30px;
-            text-align: left;
         }
 
         .button-group {
@@ -171,15 +160,12 @@
              .prompt-controls {
                  gap: 10px;
              }
-             .action-button, .copy-button, .download-button {
+             .action-button, .copy-button {
                  padding: 8px 18px;
                  font-size: 0.9em;
              }
              textarea {
                  min-height: 150px;
-             }
-             textarea#outputHtml {
-                 min-height: 250px;
              }
         }
 
@@ -192,7 +178,7 @@
 <body>
     <div class="generator-container">
         <h1>Quiz HTML Generator</h1>
-        <p>This tool generates a self-contained HTML quiz file based on the provided data. Paste your questions below, formatted as a JavaScript array of objects.</p>
+        <p>This tool generates a self-contained HTML quiz file based on the provided data. Paste your questions below, formatted as a JavaScript array of objects. The quiz will replace this page.</p>
 
         <div class="prompt-section">
             <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
@@ -234,20 +220,9 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         <textarea id="questionInput" placeholder="Paste your JavaScript array of questions here, starting with [ and ending with ]..."></textarea>
 
         <div class="button-group">
-            <button id="generateBtn" class="action-button">Generate HTML</button>
+            <button id="generateBtn" class="action-button">Generate & View Quiz</button>
         </div>
-
-
-        <div class="output-section" id="outputSection" style="display: none;">
-            <label for="outputHtml">Generated Quiz HTML:</label>
-            <textarea id="outputHtml" readonly></textarea>
-            <div class="button-group">
-                 <button id="copyHtmlBtn" class="copy-button">Copy HTML</button>
-                 <button id="downloadHtmlBtn" class="download-button">Download HTML</button>
-            </div>
-             <p>Copy the code above, save it as an `.html` file (e.g., `my_quiz.html`), or use the Download button.</p>
-             <p>Alternatively, paste the copied HTML code directly into the HTML box on <a href="https://codepen.io/pen" target="_blank" class="link-style">CodePen</a> to run it online.</p>
-        </div>
+        <!-- Output section removed -->
     </div>
 
     <script>
@@ -255,10 +230,8 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         const copyPromptBtn = document.getElementById('copyPromptBtn');
         const questionInput = document.getElementById('questionInput');
         const generateBtn = document.getElementById('generateBtn');
-        const outputSection = document.getElementById('outputSection');
-        const outputHtml = document.getElementById('outputHtml');
-        const copyHtmlBtn = document.getElementById('copyHtmlBtn');
-        const downloadHtmlBtn = document.getElementById('downloadHtmlBtn');
+
+        let originalGeneratorHTML = ''; // To store the generator's HTML for restoration
 
         // --- Copy Button Feedback Function ---
         function provideCopyFeedback(button) {
@@ -301,7 +274,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             }
         });
 
-        // --- Generate HTML Logic ---
+        // --- Generate Quiz and Replace Page Logic ---
         generateBtn.addEventListener('click', () => {
             const quizDataInput = questionInput.value.trim();
 
@@ -316,13 +289,21 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             }
 
             try {
-                 new Function(`return ${quizDataInput};`)();
+                 new Function(`return ${quizDataInput};`)(); // Validate JS array structure
             } catch (e) {
                 alert(`Error parsing quiz data: ${e.message}\nPlease check the format (e.g., missing commas, quotes, brackets).`);
                 return;
             }
 
-            // --- HTML Template ---
+            // 1️⃣ Save the generator’s HTML so we can restore it later
+            originalGeneratorHTML = document.documentElement.outerHTML;
+
+            // 2️⃣ Push a history entry. This state is associated with the CURRENT page (generator UI).
+            //    When history.back() is called from the quiz page, popstate's event.state will be this.
+            history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
+
+
+            // --- HTML Template for the Quiz Page ---
             const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
@@ -340,11 +321,32 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             font-family: 'Roboto', sans-serif;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: center; /* Vertically center quiz container */
             min-height: 100vh;
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+        }
+        #backToGeneratorBtn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 10000;
+            padding: 10px 18px;
+            background: linear-gradient(45deg, #4a4af5, #7a7aff);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(74, 74, 245, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+        #backToGeneratorBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6);
+            background: linear-gradient(45deg, #5a5aff, #8a8aff);
         }
         .quiz-container {
             background-color: #1a1a2e;
@@ -360,6 +362,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             flex-direction: column;
             justify-content: space-between;
             min-height: 500px;
+            margin-top: 50px; /* Make space for the fixed back button */
         }
         .quiz-content {
              flex-grow: 1;
@@ -381,7 +384,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             color: #f0f0ff;
             margin-bottom: 30px;
             line-height: 1.6;
-            min-height: 60px;
+            min-height: 60px; /* Prevent layout shift */
         }
         .options-container {
             display: flex;
@@ -415,25 +418,25 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             opacity: 0.7;
         }
         .option-button.correct {
-            background-color: #1f7a3f;
-            border-color: #28a745;
-            color: #ffffff;
-            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6);
-            opacity: 1;
-        }
-        .option-button.incorrect {
-            background-color: #9a2532;
-            border-color: #dc3545;
-            color: #ffffff;
-            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6);
-            opacity: 1;
-        }
-        .option-button.reveal-correct {
-            background-color: #1f7a3f !important;
+            background-color: #1f7a3f !important; /* Ensure override */
             border-color: #28a745 !important;
             color: #ffffff !important;
             box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
             opacity: 1 !important;
+        }
+        .option-button.incorrect {
+            background-color: #9a2532 !important; /* Ensure override */
+            border-color: #dc3545 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+        .option-button.reveal-correct { /* Style for showing correct answer when user was wrong */
+            background-color: #1c6a39 !important; /* Slightly different green or keep same as .correct */
+            border-color: #258a3c !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
+            opacity: 0.9 !important; /* Can be slightly less prominent if desired */
         }
         .explanation-container {
             background-color: #202035;
@@ -499,13 +502,15 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             .quiz-container {
                 padding: 20px;
                 width: 95%;
-                min-height: 400px;
+                min-height: auto; /* Allow shrinking on small screens */
+                margin-top: 65px; /* More space for back button */
             }
             h1 {
                 font-size: 1.5em;
             }
             #question-text {
                 font-size: 1.1em;
+                min-height: 40px;
             }
             .option-button {
                 font-size: 0.9em;
@@ -516,23 +521,35 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 font-size: 1em;
                 min-width: 100px;
             }
+             #backToGeneratorBtn {
+                padding: 8px 12px;
+                font-size: 0.8em;
+                top: 10px;
+                left: 10px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 3️⃣ A fixed “Back” button -->
+    <button id="backToGeneratorBtn">← Back to Generator</button>
+
     <div class="quiz-container">
         <div class="quiz-content">
             <h1>Generated Quiz</h1>
             <div id="question-counter"></div>
             <div id="question-text">Loading question...</div>
             <div id="answer-options" class="options-container">
+                <!-- Options will be dynamically inserted here -->
             </div>
             <div id="explanation" class="explanation-container" style="display: none;">
+                <!-- Explanation will be shown here -->
             </div>
         </div>
         <div id="completion-message" style="display: none;">
             <h2>Quiz Complete!</h2>
             <p>You have finished all the questions.</p>
+            <!-- Score will be updated here -->
         </div>
         <div class="navigation-buttons">
             <button id="prev-button" class="nav-button">Previous</button>
@@ -541,6 +558,14 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     </div>
 
 <script>
+    // 5️⃣ Hook up the Back button (must be inside the quiz's script)
+    const backButton = document.getElementById('backToGeneratorBtn');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            history.back();
+        });
+    }
+
     const quizData = ${quizDataInput};
 
     const questionCounterElement = document.getElementById('question-counter');
@@ -561,51 +586,56 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             showCompletion();
             return;
         }
-        quizContentElement.style.display = 'block';
-        navigationButtonsElement.style.display = 'flex';
-        completionMessageElement.style.display = 'none';
+        // Ensure elements are visible if hidden by completion screen
+        if (quizContentElement) quizContentElement.style.display = 'block';
+        if (navigationButtonsElement) navigationButtonsElement.style.display = 'flex';
+        if (completionMessageElement) completionMessageElement.style.display = 'none';
 
-        explanationElement.style.display = 'none';
-        explanationElement.innerHTML = '';
-        answerOptionsElement.innerHTML = '';
+        if (explanationElement) {
+            explanationElement.style.display = 'none';
+            explanationElement.innerHTML = '';
+        }
+        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
 
         const currentQuestion = quizData[currentQuestionIndex];
 
-        questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
-        questionTextElement.textContent = currentQuestion.question;
+        if (questionCounterElement) questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
+        if (questionTextElement) questionTextElement.textContent = currentQuestion.question;
 
         currentQuestion.options.forEach(option => {
             const button = document.createElement('button');
             button.textContent = option;
             button.classList.add('option-button');
 
-            if (userAnswers[currentQuestionIndex] !== null) {
+            if (userAnswers[currentQuestionIndex] !== null) { // Question has been answered before
                  button.disabled = true;
                  const savedAnswer = userAnswers[currentQuestionIndex];
-                 if (option === savedAnswer.selected) {
+                 if (option === savedAnswer.selected) { // This was the selected option
                      button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect');
                  }
+                 // If this option is the correct answer AND the saved answer was incorrect, highlight it as correct
                  if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) {
-                    button.classList.add('reveal-correct');
+                    button.classList.add('reveal-correct'); // Or 'correct' if you want the same styling
                  }
-            } else {
+            } else { // Question not yet answered in this session/view
                  button.addEventListener('click', selectAnswer);
             }
-            answerOptionsElement.appendChild(button);
+            if (answerOptionsElement) answerOptionsElement.appendChild(button);
         });
 
-         if (userAnswers[currentQuestionIndex] !== null) {
+        if (userAnswers[currentQuestionIndex] !== null && explanationElement) { // Show explanation if answered
             explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
             explanationElement.style.display = 'block';
         }
-
         updateNavButtonStates();
     }
 
     function updateNavButtonStates() {
-        prevButton.disabled = (currentQuestionIndex === 0);
-        nextButton.disabled = false;
-        nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next";
+        if (prevButton) prevButton.disabled = (currentQuestionIndex === 0);
+        if (nextButton) {
+            nextButton.disabled = false; // Default to enabled
+            nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next";
+        }
     }
 
     function selectAnswer(event) {
@@ -614,7 +644,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         const currentQuestion = quizData[currentQuestionIndex];
         const correctAnswer = currentQuestion.correctAnswer;
 
-        if(userAnswers[currentQuestionIndex] !== null) return;
+        if(userAnswers[currentQuestionIndex] !== null) return; // Already answered
 
         const isCorrect = selectedAnswer === correctAnswer;
 
@@ -625,26 +655,29 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 
         const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
         optionButtons.forEach(button => {
-            button.disabled = true;
+            button.disabled = true; // Disable all options after one is chosen
             if (button.textContent === selectedAnswer) {
                 button.classList.add(isCorrect ? 'correct' : 'incorrect');
             }
+            // If the user was wrong, also highlight the correct answer
             if (!isCorrect && button.textContent === correctAnswer) {
-                 button.classList.add('reveal-correct');
+                 button.classList.add('reveal-correct'); // Or 'correct'
             }
         });
 
-        explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
-        explanationElement.style.display = 'block';
+        if (explanationElement) {
+            explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
+            explanationElement.style.display = 'block';
+        }
     }
 
     function goToNextQuestion() {
          if (currentQuestionIndex < quizData.length - 1) {
             currentQuestionIndex++;
             loadQuestion();
-        } else if (currentQuestionIndex === quizData.length - 1) {
-             currentQuestionIndex++; // Allow to go one beyond to trigger completion
-             loadQuestion(); // This will call showCompletion() if index is >= length
+        } else if (currentQuestionIndex === quizData.length - 1) { // Last question, about to finish
+             currentQuestionIndex++; // Increment to trigger completion
+             loadQuestion(); // This will call showCompletion()
         }
     }
 
@@ -656,103 +689,65 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     }
 
     function showCompletion() {
-        quizContentElement.style.display = 'none';
-        navigationButtonsElement.style.display = 'none';
-        completionMessageElement.style.display = 'flex';
-
-        let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
-        const scoreP = completionMessageElement.querySelector('p');
-        if(scoreP) {
-             scoreP.textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`;
+        if (quizContentElement) quizContentElement.style.display = 'none';
+        if (navigationButtonsElement) navigationButtonsElement.style.display = 'none';
+        if (completionMessageElement) {
+            completionMessageElement.style.display = 'flex'; // Use flex for centering
+            let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
+            const scoreP = completionMessageElement.querySelector('p');
+            if(scoreP) {
+                 scoreP.textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`;
+            }
         }
     }
 
-    prevButton.addEventListener('click', goToPreviousQuestion);
-    nextButton.addEventListener('click', goToNextQuestion);
+    // Initial setup
+    if (prevButton) prevButton.addEventListener('click', goToPreviousQuestion);
+    if (nextButton) nextButton.addEventListener('click', goToNextQuestion);
 
     if (quizData && quizData.length > 0) {
          loadQuestion();
     } else {
-        questionTextElement.textContent = 'Error: No valid quiz data found.';
-        questionCounterElement.textContent = '';
-        answerOptionsElement.innerHTML = '';
-        prevButton.disabled = true;
-        nextButton.disabled = true;
+        if (questionTextElement) questionTextElement.textContent = 'Error: No valid quiz data found or quiz data is empty.';
+        if (questionCounterElement) questionCounterElement.textContent = '';
+        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
+        if (prevButton) prevButton.disabled = true;
+        if (nextButton) nextButton.disabled = true;
     }
 <\/script>
 </body>
 </html>
 `; // End of template literal
 
-            outputHtml.value = htmlTemplate;
-            outputSection.style.display = 'block';
-            outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 6️⃣ Blow away the existing page and write the new quiz HTML
+            document.open();
+            document.write(htmlTemplate);
+            document.close();
         });
 
-        // --- Copy Generated HTML Logic ---
-        copyHtmlBtn.addEventListener('click', () => {
-             if (navigator.clipboard) {
-                navigator.clipboard.writeText(outputHtml.value)
-                    .then(() => {
-                        provideCopyFeedback(copyHtmlBtn);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy HTML: ', err);
-                        alert('Failed to copy HTML. Please copy manually.');
-                    });
-            } else {
-                 try {
-                     outputHtml.select();
-                     document.execCommand('copy');
-                     provideCopyFeedback(copyHtmlBtn);
-                 } catch (err) {
-                      console.error('Fallback HTML copy failed: ', err);
-                      alert('Failed to copy HTML automatically. Please copy manually.');
-                 }
+        // --- Restore generator UI when user navigates back ---
+        window.addEventListener('popstate', event => {
+            // When history.back() is called from the quiz page, we are navigating back
+            // to the state we pushed just before displaying the quiz.
+            if (event.state && event.state.view === 'generator_restoration_point') {
+                if (originalGeneratorHTML) {
+                    document.open();
+                    document.write(originalGeneratorHTML);
+                    document.close();
+                    // The script within originalGeneratorHTML will re-execute,
+                    // effectively re-attaching its event listeners and
+                    // re-initializing the generator page's state.
+                    // originalGeneratorHTML = ''; // Optional: clear if not needed further for this session
+                }
             }
-        });
-
-        // --- Download Generated HTML Logic ---
-        downloadHtmlBtn.addEventListener('click', () => {
-            const htmlContent = outputHtml.value;
-            if (!htmlContent) {
-                alert('No HTML content generated to download.');
-                return;
+            // This handles the case where the user might go back to the absolute initial page load state
+            // (e.g., if they used browser back multiple times, or if the initial page had no state set by this script)
+            // For this specific flow, the above `if` is the primary one.
+            else if (event.state === null && originalGeneratorHTML) {
+                 document.open();
+                 document.write(originalGeneratorHTML);
+                 document.close();
             }
-
-            // --- Generate dynamic filename ---
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const timestamp = `${year}${month}${day}_${hours}${minutes}${seconds}`;
-            const filename = `quiz_${timestamp}.html`;
-            // --- End of dynamic filename generation ---
-
-            // Create a Blob
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-
-            // Create an Object URL
-            const url = URL.createObjectURL(blob);
-
-            // Create a temporary anchor element
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename; // Use the dynamic filename
-            a.style.display = 'none'; // Hide the anchor
-
-            // Append the anchor to the body (required for Firefox)
-            document.body.appendChild(a);
-
-            // Programmatically click the anchor
-            a.click();
-
-            // Clean up: remove the anchor and revoke the URL
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         });
 
     </script>
