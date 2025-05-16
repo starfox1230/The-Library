@@ -297,7 +297,34 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 buttonsHeader.insertAdjacentElement('afterend', buttonGroupForRestored);
             }
         }
-
+        // <<< INSERT ESCAPE FUNCTION HERE >>>
+        /**
+         * Escape any double‐quote INSIDE a JSON string literal
+         * so it won’t close that string prematurely.
+         */
+        function escapeInnerQuotes(raw) {
+          let inString = false, prevWasBackslash = false, out = '';
+          for (let i = 0; i < raw.length; i++) {
+            const ch = raw[i];
+            if (ch === '"' && !prevWasBackslash) {
+              const next = raw[i+1];
+              const isClosing = inString && (next === ',' || next === '}' || next === ']' || /\s/.test(next));
+              if (!inString) {
+                inString = true; out += ch;
+              } else if (isClosing) {
+                inString = false; out += ch;
+              } else {
+                out += '&quot;';  // or '\\\"' if you prefer JS escaping
+              }
+              prevWasBackslash = false;
+            } else {
+              out += ch;
+              prevWasBackslash = (ch === '\\' && !prevWasBackslash);
+            }
+          }
+          return out;
+        }
+        // <<< END INSERT >>>
 
         // --- Main script logic (executed on initial load and on restoration) ---
         const promptTextElement = document.getElementById('promptText');
@@ -340,7 +367,9 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 
                 // Get raw value from textarea
                 let currentInputText = questionInput.value;
-
+                // <<< CALL IT HERE, BEFORE ANY REPLACEMENTS >>>
+                currentInputText = escapeInnerQuotes(currentInputText);
+                // <<< END CALL >>>
                 // --- START: MODIFIED TRANSFORMATION LOGIC ---
                 // This is the new replacement string, including newlines and indentation.
                 const replacementText = '{\n    "question":';
