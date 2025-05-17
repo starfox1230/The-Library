@@ -1,0 +1,812 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Generated Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #12121f; color: #e0e0fc; font-family: 'Roboto', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;
+        }
+        #quizTopControls {
+            position: fixed; top: 15px; left: 15px; z-index: 10000;
+            display: flex; gap: 10px;
+        }
+        #backToGeneratorBtn, #downloadCurrentQuizBtn {
+            padding: 10px 18px; background: linear-gradient(45deg, #4a4af5, #7a7aff);
+            color: white; border: none; border-radius: 25px;
+            font-family: 'Orbitron', sans-serif; font-size: 0.9em; cursor: pointer;
+            box-shadow: 0 3px 8px rgba(74, 74, 245, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+        #backToGeneratorBtn:hover, #downloadCurrentQuizBtn:hover {
+            transform: scale(1.05); box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6);
+            background: linear-gradient(45deg, #5a5aff, #8a8aff);
+        }
+        .quiz-container {
+            background-color: #1a1a2e; padding: 30px 40px; border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%; max-width: 800px; text-align: center; border: 1px solid #3a3a5e;
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 500px; margin-top: 70px; /* Adjusted for top controls */
+        }
+        .quiz-content { flex-grow: 1; margin-bottom: 20px; }
+        h1 {
+            font-family: 'Orbitron', sans-serif; color: #8a8aff; margin-bottom: 25px;
+            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
+        }
+        #question-counter { font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; }
+        #question-text {
+            font-size: 1.3em; color: #f0f0ff; margin-bottom: 30px;
+            line-height: 1.6; min-height: 60px;
+        }
+        .options-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        .option-button {
+            background-color: #2a2a4e; color: #d0d0fc; border: 1px solid #4a4a7e;
+            padding: 12px 15px; font-size: 1em; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            text-align: left; width: 100%; box-sizing: border-box;
+        }
+        .option-button:hover:not(:disabled) {
+            background-color: #3a3a6e; transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
+        }
+        .option-button:active:not(:disabled) { transform: translateY(0px); }
+        .option-button:disabled { cursor: not-allowed; opacity: 0.7; }
+        .option-button.correct {
+            background-color: #1f7a3f !important; border-color: #28a745 !important;
+            color: #ffffff !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+        .option-button.incorrect {
+            background-color: #9a2532 !important; border-color: #dc3545 !important;
+            color: #ffffff !important; box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+        .option-button.reveal-correct {
+            background-color: #1c6a39 !important; border-color: #258a3c !important;
+            color: #ffffff !important; box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
+            opacity: 0.9 !important;
+        }
+        .explanation-container {
+            background-color: #202035; border: 1px solid #3a3a5e; border-radius: 8px;
+            padding: 20px; margin-top: 20px; text-align: left; font-size: 0.95em;
+            line-height: 1.5; color: #c0c0fa; box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        .explanation-container strong { color: #8a8aff; }
+        .navigation-buttons {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 30px; width: 100%;
+        }
+        .nav-button {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff); color: white; border: none;
+            padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+            min-width: 120px; text-align: center;
+        }
+        .nav-button:hover:not(:disabled) {
+            transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+        .nav-button:disabled {
+            background: #5a5a7e; cursor: not-allowed; opacity: 0.6;
+            box-shadow: none; transform: none;
+        }
+        #completion-message {
+            margin-top: 40px; flex-grow: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        #completion-message h2 {
+             font-family: 'Orbitron', sans-serif; color: #28a745;
+             text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+        @media (max-width: 600px) {
+            #quizTopControls { top: 10px; left: 10px; }
+            #backToGeneratorBtn, #downloadCurrentQuizBtn { padding: 8px 12px; font-size: 0.8em; }
+            .quiz-container { padding: 20px; width: 95%; min-height: auto; margin-top: 60px; }
+            h1 { font-size: 1.5em; }
+            #question-text { font-size: 1.1em; min-height: 40px; }
+            .option-button { font-size: 0.9em; padding: 10px 12px; }
+            .nav-button { padding: 10px 20px; font-size: 1em; min-width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="quizTopControls">
+        <button id="backToGeneratorBtn">← Back</button>
+        <button id="downloadCurrentQuizBtn">Download HTML</button>
+    </div>
+
+    <div class="quiz-container">
+        <div class="quiz-content">
+            <h1>Generated Quiz</h1>
+            <div id="question-counter"></div>
+            <div id="question-text">Loading question...</div>
+            <div id="answer-options" class="options-container"></div>
+            <div id="explanation" class="explanation-container" style="display: none;"></div>
+        </div>
+        <div id="completion-message" style="display: none;">
+            <h2>Quiz Complete!</h2>
+            <p>You have finished all the questions.</p>
+        </div>
+        <div class="navigation-buttons">
+            <button id="prev-button" class="nav-button">Previous</button>
+            <button id="next-button" class="nav-button">Next</button>
+        </div>
+    </div>
+
+<script>
+    const backButton = document.getElementById('backToGeneratorBtn');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            const original = sessionStorage.getItem('originalGeneratorHTML');
+            if (original) {
+                window.location.reload(); 
+            } else {
+                window.location.reload(); 
+            }
+        });
+    }
+
+    const downloadCurrentQuizButton = document.getElementById('downloadCurrentQuizBtn');
+    if (downloadCurrentQuizButton) {
+        downloadCurrentQuizButton.addEventListener('click', () => {
+            const currentQuizHTML = document.documentElement.outerHTML;
+            const blob = new Blob([currentQuizHTML], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'quiz_page.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        });
+    }
+
+    const quizData = [
+  {
+    "question": "What is the primary endpoint that healthcare efforts aim to achieve for individuals?",
+    "options": [
+      "Profitability for healthcare providers",
+      "Efficient use of medical technology",
+      "Health and well-being",
+      "Completion of prescribed treatments"
+    ],
+    "correctAnswer": "Health and well-being",
+    "explanation": "Page 1 states, 'The endpoint for healthcare is health and well-being.'"
+  },
+  {
+    "question": "Which of the following best defines 'Medical Imaging' according to the provided text?",
+    "options": [
+      "The use of photographic techniques to document patient conditions.",
+      "Several different technologies used to visualize the human body for diagnosis, monitoring, or treatment.",
+      "The electronic storage and retrieval of patient health records containing visual data.",
+      "The practice of interpreting X-rays by licensed physicians."
+    ],
+    "correctAnswer": "Several different technologies used to visualize the human body for diagnosis, monitoring, or treatment.",
+    "explanation": "Page 1 provides the definition: 'Several different technologies that are used to visualize the human body in order to diagnose, monitor, or treat medical conditions [2].'"
+  },
+  {
+    "question": "According to the text, which of the following healthcare roles is described as 'usually patient-facing,' while another role involved in image interpretation 'may or may not be'?",
+    "options": [
+      "Physician assistants; Registered nurses",
+      "Technologists; Radiologists",
+      "Support personnel; Physicians",
+      "Nurse practitioners; IT professionals"
+    ],
+    "correctAnswer": "Technologists; Radiologists",
+    "explanation": "Page 2 defines 'Patient-Facing' and states, 'In medical imaging, the technologists who create the images are usually patient-facing, but the radiologists who interpret the images may or may not be.'"
+  },
+  {
+    "question": "What are the two primary uses of medical images in healthcare as identified in the text?",
+    "options": [
+      "Generating revenue and training medical students",
+      "Guiding surgical procedures and documenting baseline health",
+      "Establishing a diagnosis in symptomatic patients and screening asymptomatic patients",
+      "Reducing the need for laboratory tests and facilitating remote consultations"
+    ],
+    "correctAnswer": "Establishing a diagnosis in symptomatic patients and screening asymptomatic patients",
+    "explanation": "Page 2 states, 'Medical images have two primary uses in healthcare: to establish a diagnosis in a patient with symptoms or signs of illness and to screen asymptomatic patients (those without symptoms).'"
+  },
+  {
+    "question": "Failure to accurately identify and report the presence of disease through medical imaging can lead to which of the following consequences?",
+    "options": [
+      "Increased hospital efficiency",
+      "Misdiagnosis and delayed diagnosis",
+      "Reduced need for follow-up appointments",
+      "Lower healthcare costs"
+    ],
+    "correctAnswer": "Misdiagnosis and delayed diagnosis",
+    "explanation": "Page 2 states, 'Failure to accurately identify and report the presence of disease may lead to misdiagnosis and delayed diagnosis, which may contribute to patient injury and/or death.'"
+  },
+  {
+    "question": "The scenario describing aortic dissection highlights that CT scans offer what significant advantage over history and physical examination alone?",
+    "options": [
+      "Lower cost and wider availability",
+      "Significantly higher accuracy in detection (98-100%)",
+      "Reduced radiation exposure for the patient",
+      "Ability to be performed by non-specialized personnel"
+    ],
+    "correctAnswer": "Significantly higher accuracy in detection (98-100%)",
+    "explanation": "Page 3, in the 'HYPOTHETICAL SCENARIO: Saving Lives with Imaging,' states history/physical exam accuracy is 15-43%, while CT scan accuracy for aortic dissection is 98-100%."
+  },
+  {
+    "question": "What is the primary goal of 'Screening' using medical imaging?",
+    "options": [
+      "To confirm a diagnosis in a patient already exhibiting strong symptoms",
+      "To detect hidden (occult) disease in an early stage in asymptomatic patients",
+      "To monitor the progression of a known chronic disease",
+      "To guide therapeutic interventions for acute conditions"
+    ],
+    "correctAnswer": "To detect hidden (occult) disease in an early stage in asymptomatic patients",
+    "explanation": "Page 3 defines 'Screening' as 'Using medical imaging to detect hidden (occult) disease in patients who do not feel sick. The goal of screening is to detect diseases in an early stage when they can be treated more successfully.'"
+  },
+  {
+    "question": "The text defines a 'modality' in medical imaging as:",
+    "options": [
+      "The urgency level assigned to an imaging request",
+      "A specific software used for image interpretation",
+      "A particular technology used to create medical images",
+      "The set of patient symptoms indicating the need for imaging"
+    ],
+    "correctAnswer": "A particular technology used to create medical images",
+    "explanation": "Page 3 provides the DEFINITION: Modality as 'A modality is a particular technology used to create medical images. Examples include CT scans and MRIs.'"
+  },
+  {
+    "question": "Which imaging modality is abbreviated as 'XR' in the checklist provided?",
+    "options": [
+      "Xeroradiography",
+      "External Radiotherapy",
+      "Conventional radiography (X-rays)",
+      "X-ray reflectometry"
+    ],
+    "correctAnswer": "Conventional radiography (X-rays)",
+    "explanation": "Page 4, under 'CHECKLIST: Imaging Modalities and Abbreviations,' lists 'Conventional radiography (X-rays) XR'."
+  },
+  {
+    "question": "The hypothetical scenario involving pulmonary embolism (PE) illustrates that CT imaging is crucial because:",
+    "options": [
+      "PE symptoms are highly specific and easily diagnosed clinically",
+      "Laboratory tests are definitive for confirming PE",
+      "CT can precisely show clots in pulmonary arteries when symptoms are nonspecific",
+      "PE is a chronic condition managed with routine imaging"
+    ],
+    "correctAnswer": "CT can precisely show clots in pulmonary arteries when symptoms are nonspecific",
+    "explanation": "Page 4, in 'HYPOTHETICAL SCENARIO: Relying on Imaging,' states PE symptoms are often nonspecific and CT 'can show the clots lodged inside the arteries and make a precise diagnosis.'"
+  },
+  {
+    "question": "According to 'The Chain of Events for Medical Imaging,' who is typically responsible for collecting and processing the images immediately after the imaging study is performed?",
+    "options": [
+      "The radiologist",
+      "The ordering physician",
+      "The technologist",
+      "A PACS administrator"
+    ],
+    "correctAnswer": "The technologist",
+    "explanation": "Page 5, step 15 in 'STEP-BY-STEP: An Imaging Encounter,' states: 'Images are collected and processed by the technologist.'"
+  },
+  {
+    "question": "In the 'STEP-BY-STEP: An Imaging Encounter' example, how are urgent findings typically communicated by the radiologist in addition to the standard report?",
+    "options": [
+      "By sending a certified letter to the patient",
+      "By contacting the provider caring for the patient by telephone",
+      "By posting a notification on a public bulletin board",
+      "By waiting for the provider to read the EMR report"
+    ],
+    "correctAnswer": "By contacting the provider caring for the patient by telephone",
+    "explanation": "Page 5, step 19 states: 'If there are urgent findings, the radiologist may also contact a provider caring for the patient by telephone.'"
+  },
+  {
+    "question": "The hypothetical scenario 'The Images Are on the Way' involving a delayed pneumothorax diagnosis primarily illustrates:",
+    "options": [
+      "The high cost of advanced imaging equipment",
+      "The importance of patient compliance with follow-up instructions",
+      "The critical need for timely image availability and reporting in patient care",
+      "The necessity of having redundant PACS systems"
+    ],
+    "correctAnswer": "The critical need for timely image availability and reporting in patient care",
+    "explanation": "Page 6, this scenario highlights how a 4-hour delay in receiving results for a critical finding (pneumothorax) led to physician anger and potential patient harm, emphasizing the need for expeditious evaluation."
+  },
+  {
+    "question": "What is the key message for an Imaging Informatics Professional (IIP) from the 'Have You Tried Rebooting?' scenario where a radiologist faces PACS issues with an urgent trauma case?",
+    "options": [
+      "Radiologists should be trained to perform basic IT troubleshooting themselves.",
+      "PACS issues are usually minor and can be addressed during routine maintenance.",
+      "IIPs should recognize the urgency of such issues and prioritize fixes proportionally to their clinical impact.",
+      "Hardware upgrades should be scheduled more frequently to prevent system freezes."
+    ],
+    "correctAnswer": "IIPs should recognize the urgency of such issues and prioritize fixes proportionally to their clinical impact.",
+    "explanation": "Page 7 states, 'It is important for the IIP to recognize this urgency and try to fix things with a priority proportional to their urgency.'"
+  },
+  {
+    "question": "The 'It's Only Been 15 Minutes' scenario, describing multiple delays culminating in frustration over a 15-minute image transmission delay, primarily emphasizes:",
+    "options": [
+      "Patients often have unrealistic expectations about healthcare speed.",
+      "The EMR system is the most common source of delays.",
+      "The cumulative effect of multiple small delays in the healthcare chain can significantly impact patient care and experience.",
+      "Radiology departments are generally understaffed."
+    ],
+    "correctAnswer": "The cumulative effect of multiple small delays in the healthcare chain can significantly impact patient care and experience.",
+    "explanation": "Page 7 illustrates how a series of delays (appointment, order entry, scan start) make a subsequent 15-minute image transmission delay critical, showing that 'delays at any point in the patient management chain will cascade downstream' (Page 8)."
+  },
+  {
+    "question": "The concept of 'the primacy of patient care' implies that in a hospital setting:",
+    "options": [
+      "The convenience of support staff takes precedence to ensure system stability.",
+      "The care of the patient takes precedence over the convenience and predictability preferred by providers and staff.",
+      "Scheduled maintenance should always proceed, even if it impacts urgent patient care.",
+      "Financial considerations are the primary driver for all healthcare decisions."
+    ],
+    "correctAnswer": "The care of the patient takes precedence over the convenience and predictability preferred by providers and staff.",
+    "explanation": "Page 8 states, 'In a hospital setting, the care of the patient takes precedence over the convenience and predictability that providers and support staff might otherwise prefer.'"
+  },
+  {
+    "question": "What are the two main functions of providing relevant clinical information to a radiologist, according to the text?",
+    "options": [
+      "To fulfill billing requirements and to document consent",
+      "To help select the best imaging examination and to aid in interpreting the study for a correct diagnosis",
+      "To educate the patient about the procedure and to manage their expectations",
+      "To track radiologist performance and to ensure protocol adherence"
+    ],
+    "correctAnswer": "To help select the best imaging examination and to aid in interpreting the study for a correct diagnosis",
+    "explanation": "Page 8, Section 1.5.1 states this information serves two main functions: '1. It helps the radiologist select the best imaging examination for the patient. 2. It helps the radiologist interpret the study and arrive at the correct diagnosis.'"
+  },
+  {
+    "question": "The 'History Matters' scenario, comparing two patients presenting with a 'cough,' demonstrates that comprehensive clinical history is crucial for:",
+    "options": [
+      "Determining the cost of the imaging study",
+      "Selecting the most appropriate imaging study and guiding interpretation",
+      "Deciding if the patient needs hospitalization",
+      "Assigning the case to a subspecialist radiologist"
+    ],
+    "correctAnswer": "Selecting the most appropriate imaging study and guiding interpretation",
+    "explanation": "Page 9 illustrates that a 17-year-old with acute fever/cough might primarily need a chest radiograph for pneumonia, while a 71-year-old with chronic cough/weight loss/smoking history raises cancer suspicion, potentially warranting a CT. This shows how history affects study choice and interpretation."
+  },
+  {
+    "question": "If PACS-EMR integration is not working, what is a potential direct consequence for outpatient care, as mentioned in the text?",
+    "options": [
+      "Imaging studies cannot be performed.",
+      "Radiologists will refuse to read any studies.",
+      "An outpatient CT might not be read until after the patient has left the clinic.",
+      "The EMR system will automatically shut down."
+    ],
+    "correctAnswer": "An outpatient CT might not be read until after the patient has left the clinic.",
+    "explanation": "Page 9 states, 'A few minutes here and a few minutes there may result in an outpatient CT not being read until after the patient has left the clinic' due to inefficiencies from manual EMR lookups."
+  },
+  {
+    "question": "What is the typical means of communicating routine, nonurgent imaging results to healthcare providers?",
+    "options": [
+      "A direct telephone call from the radiologist",
+      "A printed report mailed to the provider's office",
+      "The Electronic Medical Record (EMR)",
+      "A secure text message to the provider's mobile phone"
+    ],
+    "correctAnswer": "The Electronic Medical Record (EMR)",
+    "explanation": "Page 9, Section 1.5.2 states, 'The typical means of communicating routine nonurgent results is the EMR.'"
+  },
+  {
+    "question": "For unexpected and emergent findings on medical images, why might routine communication using the EMR be inadequate?",
+    "options": [
+      "EMR systems are not secure enough for sensitive findings.",
+      "EMR reports are too lengthy for emergent information.",
+      "Some results need to be communicated over the course of minutes.",
+      "Providers do not regularly check their EMR notifications."
+    ],
+    "correctAnswer": "Some results need to be communicated over the course of minutes.",
+    "explanation": "Page 10 states, 'Some results need to be communicated over the course of minutes, in which case routine communications using the EMR are not adequate.'"
+  },
+  {
+    "question": "What is a potential drawback of integrated critical results reporting systems, despite their benefits to workflow?",
+    "options": [
+      "They are too expensive for most healthcare institutions.",
+      "They reduce the need for skilled radiologists.",
+      "They represent another potential point of system failure for HIT professionals to manage.",
+      "They often lead to over-communication of minor findings."
+    ],
+    "correctAnswer": "They represent another potential point of system failure for HIT professionals to manage.",
+    "explanation": "Page 10 mentions, 'These integrated critical results reporting systems represent another potential point of system failure and yet another piece of interconnected software that the HIT professional may need to manage.'"
+  },
+  {
+    "question": "One of the 'PEARLS' emphasizes that when IT systems do not work as planned in clinical medicine, it causes stress and a sense of urgency that may not be immediately apparent to an IIP. Why is this the case?",
+    "options": [
+      "IIPs are intentionally kept unaware of clinical priorities.",
+      "The impact on patient care and downstream workflow is not always visible from an IT perspective.",
+      "Clinicians tend to exaggerate the severity of IT problems.",
+      "IIPs are primarily focused on system uptime rather than clinical workflow."
+    ],
+    "correctAnswer": "The impact on patient care and downstream workflow is not always visible from an IT perspective.",
+    "explanation": "Page 10, the last pearl states, 'When information technology systems do not work as planned...it causes stress on the remainder of the system and a sense of urgency that may not be immediately apparent to an IIP.' This implies the IIP may not fully see the clinical cascade."
+  },
+  {
+    "question": "Which statement best reflects the overall message regarding the role of an Imaging Informatics Professional (IIP) in the context of Chapter 1?",
+    "options": [
+      "IIPs are solely responsible for hardware maintenance and software updates.",
+      "IIPs should primarily focus on data security and compliance, with minimal involvement in clinical workflow issues.",
+      "IIPs play a crucial role in ensuring the timely and efficient functioning of imaging systems, which directly impacts patient care and requires an understanding of clinical urgency.",
+      "IIPs are expected to interpret medical images if radiologists are unavailable."
+    ],
+    "correctAnswer": "IIPs play a crucial role in ensuring the timely and efficient functioning of imaging systems, which directly impacts patient care and requires an understanding of clinical urgency.",
+    "explanation": "Chapter 1 repeatedly emphasizes the interconnectedness of the imaging chain, the impact of delays, the stress on clinicians from IT issues, and the need for IIPs to understand and respond to urgency (e.g., pages 2, 6, 7, 8, 10)."
+  },
+  {
+    "question": "According to the text, which of the following is a secondary use of medical images, distinct from primary diagnostic or screening purposes?",
+    "options": [
+      "Identifying the cause of a patient's acute symptoms",
+      "Detecting cancer in an asymptomatic individual",
+      "Guiding surgeons through complex operations",
+      "Confirming a suspected fracture after an injury"
+    ],
+    "correctAnswer": "Guiding surgeons through complex operations",
+    "explanation": "Page 2 lists secondary uses: 'Secondary uses include guiding patient management (e.g., evaluating a patient's response to chemotherapy), guiding surgeons through complex operations, and direct treatment (image-guided procedures).'"
+  },
+  {
+    "question": "What is the primary purpose of standardized medical terminology as described in Chapter 2?",
+    "options": [
+      "To increase the complexity of medical documentation for legal protection.",
+      "To create a common language for effective and efficient communication among healthcare professionals.",
+      "To restrict access to medical information to only licensed practitioners.",
+      "To facilitate automated billing and coding processes."
+    ],
+    "correctAnswer": "To create a common language for effective and efficient communication among healthcare professionals.",
+    "explanation": "Page 13, Section 2.1 states, 'Medical terminology creates a standard way for healthcare professionals to communicate effectively and efficiently. A common language allows medical professionals to accurately describe procedures and results...'"
+  },
+  {
+    "question": "The subdivision of a radiology department into subspecialty sections, such as Neuroradiology or Musculoskeletal Radiology, primarily serves to:",
+    "options": [
+      "Reduce the overall number of radiologists needed.",
+      "Increase competition among radiologists.",
+      "Permit radiologists to specialize and provide the highest quality of care in specific areas.",
+      "Simplify scheduling for imaging technologists."
+    ],
+    "correctAnswer": "Permit radiologists to specialize and provide the highest quality of care in specific areas.",
+    "explanation": "Page 13, Section 2.2 states, 'There are divisions within the Radiology Department that facilitate specialization in specific areas of the body. Specializing permits the radiologist to provide the highest quality of care to patients.'"
+  },
+  {
+    "question": "Which radiology subspecialty is primarily concerned with imaging of the heart and blood vessels?",
+    "options": [
+      "Body Imaging",
+      "Interventional Radiology",
+      "Cardiovascular imaging",
+      "Nuclear Medicine"
+    ],
+    "correctAnswer": "Cardiovascular imaging",
+    "explanation": "Page 14 lists 'Cardiovascular imaging is imaging of the heart and the blood vessels of the heart.'"
+  },
+  {
+    "question": "Interventional Radiology (IR) is characterized by:",
+    "options": [
+      "The exclusive use of non-ionizing radiation modalities like ultrasound and MRI.",
+      "Radiologists using images to guide 'minimally invasive' treatment procedures.",
+      "A focus on screening asymptomatic patients for early disease detection.",
+      "Interpretation of images from emergency department patients only."
+    ],
+    "correctAnswer": "Radiologists using images to guide 'minimally invasive' treatment procedures.",
+    "explanation": "Page 14 describes Interventional Radiology (IR) as 'a procedural division in which a radiologist uses images to guide treatment of medical conditions. These procedures are considered \"minimally invasive\"...'"
+  },
+  {
+    "question": "The 'anatomical position' is critical in medical imaging because:",
+    "options": [
+      "It is the only position in which patients can be safely imaged.",
+      "It serves as the standard reference for all directional terms, imaging planes, and projections.",
+      "It maximizes patient comfort during long imaging procedures.",
+      "It is required by regulatory bodies for all imaging studies."
+    ],
+    "correctAnswer": "It serves as the standard reference for all directional terms, imaging planes, and projections.",
+    "explanation": "Page 14, Section 2.3 states, 'Directional terms, imaging planes, and imaging projections are all based on the patient in this anatomical position.' The KEY CONCEPT reinforces this."
+  },
+  {
+    "question": "In the anatomical position, how are the palms of the hands oriented?",
+    "options": [
+      "Facing backward (posteriorly)",
+      "Facing inward, towards the thighs",
+      "Facing forward (anteriorly)",
+      "Clasped together in front of the body"
+    ],
+    "correctAnswer": "Facing forward (anteriorly)",
+    "explanation": "Page 15 describes the anatomical position: '...with palms of hands facing forward.'"
+  },
+  {
+    "question": "Which directional term means 'toward the midline of the body'?",
+    "options": [
+      "Lateral",
+      "Proximal",
+      "Medial",
+      "Ventral"
+    ],
+    "correctAnswer": "Medial",
+    "explanation": "Page 16 defines 'Medial' as 'toward the midline of the body. The big toe is medial to the little toe.'"
+  },
+  {
+    "question": "An axial plane divides the body into which parts?",
+    "options": [
+      "Anterior and posterior parts",
+      "Right and left parts",
+      "Superior and inferior parts",
+      "Medial and lateral parts"
+    ],
+    "correctAnswer": "Superior and inferior parts",
+    "explanation": "Page 16 defines 'Axial plane (transverse plane)' as 'a horizontal plane that divides the body into upper and lower parts.'"
+  },
+  {
+    "question": "A patient lying on their back is said to be in which position?",
+    "options": [
+      "Prone",
+      "Erect",
+      "Supine",
+      "Right lateral decubitus"
+    ],
+    "correctAnswer": "Supine",
+    "explanation": "Page 16 defines 'Supine' as 'lying on back.'"
+  },
+  {
+    "question": "A Posterior-Anterior (PA) projection in X-ray imaging means the X-ray beam passes:",
+    "options": [
+      "From the patient's front to their back",
+      "From the patient's right side to their left side",
+      "From the patient's back to their front",
+      "From the top of the patient's head downwards"
+    ],
+    "correctAnswer": "From the patient's back to their front",
+    "explanation": "Page 18 defines 'PA (posterior anterior) projection is when the X-ray beam passes from the back of the body to the front of the body...'"
+  },
+  {
+    "question": "In mammography, what does 'LCC' view signify?",
+    "options": [
+      "Left Cranial Compression",
+      "Left Caudal Cranial",
+      "Left Cranial Caudal",
+      "Lateral Chest Compression"
+    ],
+    "correctAnswer": "Left Cranial Caudal",
+    "explanation": "Page 18 lists 'LCC (left cranial caudal) is a view of the left breast from top to bottom.'"
+  },
+  {
+    "question": "The DICOM tag (0020,0062) 'Image Laterality' is used to specify:",
+    "options": [
+      "The specific imaging plane (e.g., axial, sagittal)",
+      "Whether the image pertains to the left side, right side, unpaired, or bilateral structures",
+      "The orientation of the patient within the scanner (e.g., head first, feet first)",
+      "The type of contrast agent used, if any"
+    ],
+    "correctAnswer": "Whether the image pertains to the left side, right side, unpaired, or bilateral structures",
+    "explanation": "Page 19, Section 2.4.1 states, 'The image laterality field refers to one side of the body versus the other. The available values are: Left side (L), Right side (R), Unpaired (U)..., Bilateral (B)...'"
+  },
+  {
+    "question": "The DICOM tag (0020,0020) 'Patient Orientation' defines the imaging plane using two values that designate:",
+    "options": [
+      "The patient's age and gender",
+      "The start and end time of the scan",
+      "The anatomical directions of the rows and columns of pixels in the image",
+      "The technologist's ID and the equipment ID"
+    ],
+    "correctAnswer": "The anatomical directions of the rows and columns of pixels in the image",
+    "explanation": "Page 19, Section 2.4.2 states, 'The patient orientation field defines the imaging plane by using two values that designate the anatomical directions of the rows and columns of pixels in the image.'"
+  },
+  {
+    "question": "The DICOM tag (0008,1030) 'Study Description' is typically generated by:",
+    "options": [
+      "The DICOM standard committee",
+      "The imaging equipment manufacturer",
+      "The patient during their registration",
+      "The institution performing the study, coordinated with RIS/EMR"
+    ],
+    "correctAnswer": "The institution performing the study, coordinated with RIS/EMR",
+    "explanation": "Page 19, Section 2.4.4 states, 'This DICOM tag is a description or classification of the study performed that is generated by the institution. This list of descriptions is variable and needs to be coordinated with the RIS... or EMR...'"
+  },
+  {
+    "question": "What does 'HFS' signify in the context of DICOM tag (0018,5100) 'Patient Position'?",
+    "options": [
+      "Head First - Sideways",
+      "Head First - Supine",
+      "Hands First - Standing",
+      "Heart Focused Scan"
+    ],
+    "correctAnswer": "Head First - Supine",
+    "explanation": "Page 20, Section 2.4.5 lists 'Head first – supine (HFS)' as a possible designation for Patient Position."
+  },
+  {
+    "question": "Which of the following is an example of an 'unpaired' structure according to the Image Laterality DICOM field definition?",
+    "options": [
+      "A kidney",
+      "A lung",
+      "The liver",
+      "A hand"
+    ],
+    "correctAnswer": "The liver",
+    "explanation": "Page 19 defines 'Unpaired (U)' as 'structures that exist on only one side of the body.' The liver is a large organ primarily on one side, unlike kidneys, lungs, or hands which are typically paired."
+  },
+  {
+    "question": "A sagittal plane through the exact midline of the body, dividing it into equal right and left halves, is specifically termed:",
+    "options": [
+      "Parasagittal plane",
+      "Coronal plane",
+      "Median (midsagittal) plane",
+      "Oblique plane"
+    ],
+    "correctAnswer": "Median (midsagittal) plane",
+    "explanation": "Page 16 defines 'Median (midsagittal plane) is a sagittal plane through the midline of the body dividing it into equal right and left halves.'"
+  },
+  {
+    "question": "A patient is lying on their left side on the imaging table. This position is best described as:",
+    "options": [
+      "Prone",
+      "Right lateral decubitus",
+      "Left lateral decubitus",
+      "Supine"
+    ],
+    "correctAnswer": "Left lateral decubitus",
+    "explanation": "Page 16 defines 'Left lateral decubitus – left side is down on the table.'"
+  },
+  {
+    "question": "Which directional term describes the relationship of the elbow to the fingers?",
+    "options": [
+      "Distal",
+      "Proximal",
+      "Superior",
+      "Medial"
+    ],
+    "correctAnswer": "Proximal",
+    "explanation": "Page 16 defines 'Proximal' as 'nearer to the center of the body. The elbow is proximal to the fingers...'"
+  },
+  {
+    "question": "Considering the 'patient care chain' analogy, what is a likely consequence if the system for transmitting images to PACS experiences a significant delay?",
+    "options": [
+      "Only the technologist's workflow will be affected.",
+      "The overall process of patient diagnosis and treatment may be delayed.",
+      "Image quality will be degraded.",
+      "The cost of the imaging study will increase."
+    ],
+    "correctAnswer": "The overall process of patient diagnosis and treatment may be delayed.",
+    "explanation": "Page 2 and Page 10 (Pearls) liken the healthcare sequence to a chain where breaking any link (like image transmission) causes failure or delays in the entire system, affecting downstream care."
+  },
+  {
+    "question": "If a radiologist urgently needs clinical information that is not available due to an EMR-PACS integration failure, the IIP's most appropriate immediate action, after acknowledging the urgency, would be to:",
+    "options": [
+      "Schedule EMR maintenance for the following week.",
+      "Instruct the radiologist to proceed without the clinical information.",
+      "Attempt to resolve the integration issue with high priority or find a workaround for information access.",
+      "File a complaint against the EMR vendor."
+    ],
+    "correctAnswer": "Attempt to resolve the integration issue with high priority or find a workaround for information access.",
+    "explanation": "Pages 7 and 8 emphasize the IIP's role in recognizing urgency and fixing problems with appropriate priority. Facilitating access to clinical information is part of this (Page 9)."
+  },
+  {
+    "question": "A new IIP notices that clinicians frequently express frustration over seemingly minor IT delays. According to the 'Key Concept: The Primacy of Patient Care,' this is because:",
+    "options": [
+      "Clinicians are generally unfamiliar with IT systems.",
+      "These small delays can have significant cumulative impacts on patient care and workflow in a high-stakes environment.",
+      "The hospital's IT infrastructure is outdated.",
+      "There is a lack of communication channels between clinical staff and IIPs."
+    ],
+    "correctAnswer": "These small delays can have significant cumulative impacts on patient care and workflow in a high-stakes environment.",
+    "explanation": "Page 8, 'KEY CONCEPT: The Primacy of Patient Care' explains that 'Even tiny delays cause huge frustrations' because patient care takes precedence and the hospital environment has high urgency."
+  },
+  {
+    "question": "Which term best describes the use of medical imaging to evaluate a patient's response to chemotherapy?",
+    "options": [
+      "Primary diagnosis",
+      "Screening",
+      "Guiding patient management (secondary use)",
+      "Image-guided treatment (secondary use)"
+    ],
+    "correctAnswer": "Guiding patient management (secondary use)",
+    "explanation": "Page 2 lists 'guiding patient management (e.g., evaluating a patient's response to chemotherapy)' as a secondary use of medical images."
+  },
+  {
+    "question": "The text implies that information technology professionals (IIPs) working in healthcare, especially those new to the field, may need to adjust to a culture that emphasizes:",
+    "options": [
+      "Strict adherence to pre-scheduled maintenance windows above all else.",
+      "A higher level of urgency and prioritization based on immediate patient care needs.",
+      "Minimal direct interaction with clinical staff.",
+      "A focus on long-term strategic projects over immediate operational issues."
+    ],
+    "correctAnswer": "A higher level of urgency and prioritization based on immediate patient care needs.",
+    "explanation": "Page 8, under 'The Primacy of Patient Care,' discusses this as 'one of the most difficult cultural changes for IIPs who have not previously worked in a healthcare setting,' referring to the expectation of fixing problems with high urgency."
+  },
+  {
+    "question": "A patient undergoing a portable chest X-ray in their hospital bed will most likely have the image acquired using which projection?",
+    "options": [
+      "PA (posterior anterior)",
+      "AP (anterior posterior)",
+      "Lateral decubitus",
+      "Oblique"
+    ],
+    "correctAnswer": "AP (anterior posterior)",
+    "explanation": "Page 18 mentions 'portable or bedside chest X-rays are taken AP' as an example of AP (anterior posterior) projection."
+  }
+]; 
+    const questionCounterElement = document.getElementById('question-counter');
+    const questionTextElement = document.getElementById('question-text');
+    const answerOptionsElement = document.getElementById('answer-options');
+    const explanationElement = document.getElementById('explanation');
+    const prevButton = document.getElementById('prev-button');
+    const nextButton = document.getElementById('next-button');
+    const completionMessageElement = document.getElementById('completion-message');
+    const quizContentElement = document.querySelector('.quiz-content');
+    const navigationButtonsElement = document.querySelector('.navigation-buttons');
+    let currentQuestionIndex = 0;
+    let userAnswers = new Array(quizData.length).fill(null);
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= quizData.length) { showCompletion(); return; }
+        if (quizContentElement) quizContentElement.style.display = 'block';
+        if (navigationButtonsElement) navigationButtonsElement.style.display = 'flex';
+        if (completionMessageElement) completionMessageElement.style.display = 'none';
+        if (explanationElement) { explanationElement.style.display = 'none'; explanationElement.innerHTML = ''; }
+        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
+        const currentQuestion = quizData[currentQuestionIndex];
+        if (questionCounterElement) questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+        if (questionTextElement) questionTextElement.textContent = currentQuestion.question;
+        currentQuestion.options.forEach(option => {
+            const button = document.createElement('button');
+            button.textContent = option;
+            button.classList.add('option-button');
+            if (userAnswers[currentQuestionIndex] !== null) {
+                 button.disabled = true;
+                 const savedAnswer = userAnswers[currentQuestionIndex];
+                 if (option === savedAnswer.selected) { button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect'); }
+                 if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) { button.classList.add('reveal-correct'); }
+            } else { button.addEventListener('click', selectAnswer); }
+            if (answerOptionsElement) answerOptionsElement.appendChild(button);
+        });
+        if (userAnswers[currentQuestionIndex] !== null && explanationElement) {
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
+            explanationElement.style.display = 'block';
+        }
+        updateNavButtonStates();
+    }
+    function updateNavButtonStates() {
+        if (prevButton) prevButton.disabled = (currentQuestionIndex === 0);
+        if (nextButton) { nextButton.disabled = false; nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next"; }
+    }
+    function selectAnswer(event) {
+        const selectedButton = event.target; const selectedAnswer = selectedButton.textContent;
+        const currentQuestion = quizData[currentQuestionIndex]; const correctAnswer = currentQuestion.correctAnswer;
+        if(userAnswers[currentQuestionIndex] !== null) return;
+        const isCorrect = selectedAnswer === correctAnswer;
+        userAnswers[currentQuestionIndex] = { selected: selectedAnswer, isCorrect: isCorrect };
+        const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
+        optionButtons.forEach(button => {
+            button.disabled = true;
+            if (button.textContent === selectedAnswer) { button.classList.add(isCorrect ? 'correct' : 'incorrect'); }
+            if (!isCorrect && button.textContent === correctAnswer) { button.classList.add('reveal-correct'); }
+        });
+        if (explanationElement) {
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
+            explanationElement.style.display = 'block';
+        }
+    }
+    function goToNextQuestion() {
+         if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
+         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; loadQuestion(); } 
+    }
+    function goToPreviousQuestion() { if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); } }
+    function showCompletion() {
+        if (quizContentElement) quizContentElement.style.display = 'none';
+        if (navigationButtonsElement) navigationButtonsElement.style.display = 'none';
+        if (completionMessageElement) {
+            completionMessageElement.style.display = 'flex';
+            let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
+            const scoreP = completionMessageElement.querySelector('p');
+            if(scoreP) { scoreP.textContent = `You answered ${correctCount} out of ${quizData.length} questions correctly.`; }
+        }
+    }
+    if (prevButton) prevButton.addEventListener('click', goToPreviousQuestion);
+    if (nextButton) nextButton.addEventListener('click', goToNextQuestion);
+    if (quizData && quizData.length > 0) { loadQuestion(); }
+    else {
+        if (questionTextElement) questionTextElement.textContent = 'Error: No valid quiz data found or quiz data is empty.';
+        if (questionCounterElement) questionCounterElement.textContent = '';
+        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
+        if (prevButton) prevButton.disabled = true; if (nextButton) nextButton.disabled = true;
+    }
+</script>
+</body>
+</html>
