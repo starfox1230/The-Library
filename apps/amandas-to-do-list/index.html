@@ -58,6 +58,7 @@
         transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out;
         position: relative;
         -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent; /* Add this to remove tap highlight on mobile for li elements */
     }
 
     li:last-child {
@@ -137,7 +138,8 @@
         color: #6D4C41;
     }
 
-    li:hover:not(.edit-mode-item):not(.sortable-chosen):not(.sortable-ghost) {
+    /* MODIFIED HOVER RULE */
+    li:hover:not(.edit-mode-item):not(.sortable-chosen):not(.sortable-ghost):not(.status-2) {
         background-color: #FFF8FA;
     }
 
@@ -393,12 +395,9 @@
 
         function makeTaskEditable(taskId, listItemElement) {
             const task = currentAmandaTasks.find(t => t.id === taskId);
-             // Try to find the span, not an existing input.
             const taskTextSpan = listItemElement.querySelector('span.task-text');
             
-            // If it's already an input, or no task/span, bail.
             if (!task || !taskTextSpan || listItemElement.querySelector('input.task-edit-input')) return;
-
 
             const otherActiveInput = taskListElement.querySelector('input.task-edit-input');
             if (otherActiveInput) { 
@@ -409,9 +408,8 @@
                 }
             }
             
-            const currentTaskTextSpanToReplace = listItemElement.querySelector('span.task-text'); // Re-query after potential blur
+            const currentTaskTextSpanToReplace = listItemElement.querySelector('span.task-text'); 
             if (!currentTaskTextSpanToReplace || currentTaskTextSpanToReplace.tagName === 'INPUT') return;
-
 
             const input = document.createElement('input');
             input.type = 'text';
@@ -424,13 +422,9 @@
                     task.text = newText;
                 }
                 saveTasksToStorage();
-                // Only re-render if still in edit mode and the input *was* part of this list item.
-                // This check is a bit tricky if the item itself was removed by another action.
-                // A safer check is simply `if (isEditMode)` and rely on `renderTasks` to handle item presence.
                 if (isEditMode && document.body.contains(input)) { 
                      renderTasks();
                 } else if (isEditMode && !document.body.contains(input)) {
-                    // If input is no longer in DOM (e.g., due to sort or delete), just ensure list is current
                     renderTasks();
                 }
             };
@@ -487,28 +481,22 @@
 
                     const activeEditInput = taskListElement.querySelector('input.task-edit-input');
                     if (activeEditInput) {
-                        // Temporarily remove blur listener to prevent double save/render
-                        // This is a common pattern but can be tricky.
-                        // A simpler way is to just grab the value and update data model.
                         const inputListItem = activeEditInput.closest('li');
                         if (inputListItem) {
                             const inputTaskId = inputListItem.dataset.id;
                             const taskBeingEdited = currentAmandaTasks.find(t => t.id === inputTaskId);
                             if (taskBeingEdited) {
                                 const newText = activeEditInput.value.trim();
-                                if (newText) { // Allow empty text to be saved if intended, or add validation
-                                    taskBeingEdited.text = newText;
-                                }
+                                taskBeingEdited.text = newText; // Update even if empty for consistency
                             }
                         }
-                        // No need to call activeEditInput.blur() here as renderTasks() will redraw.
                     }
 
                     const movedItem = currentAmandaTasks.splice(evt.oldIndex, 1)[0];
                     currentAmandaTasks.splice(evt.newIndex, 0, movedItem);
                     
                     saveTasksToStorage();
-                    renderTasks(); // Re-render to reflect new order and clean up (e.g., remove input)
+                    renderTasks(); 
                 }
             });
             console.log("Entered Edit Mode, SortableJS initialized.");
@@ -519,10 +507,7 @@
             
             const activeInput = taskListElement.querySelector('input.task-edit-input');
             if (activeInput) {
-                // Call blur to trigger its saveChanges logic, which includes a render
                 activeInput.blur(); 
-                // If blur itself caused a render, the DOM might be different.
-                // However, the subsequent steps should handle it.
             }
 
             if (sortableInstance) {
@@ -533,9 +518,8 @@
 
             isEditMode = false;
             appContainer.classList.remove('edit-mode');
-            // Save tasks just in case, though activeInput.blur() or onEnd should have done it.
             saveTasksToStorage(); 
-            renderTasks(); // Ensure final render in non-edit mode state.
+            renderTasks(); 
             console.log("Exited Edit Mode");
         }
 
@@ -544,8 +528,7 @@
             
             const otherActiveInput = taskListElement.querySelector('input.task-edit-input');
             if (otherActiveInput) {
-                otherActiveInput.blur(); // This will save and might re-render.
-                                        // The timeout for makeTaskEditable helps here.
+                otherActiveInput.blur(); 
             }
 
             const newText = "New Task";
