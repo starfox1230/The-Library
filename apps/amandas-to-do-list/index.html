@@ -1,18 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="format-detection" content="telephone=no">
+  <title>Amanda's Tasks</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <style>
+    html, body, button, input, textarea {
+      touch-action: manipulation;
+    }
+    li, .drag-handle-amanda {
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      user-select: none !important;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #FFF0F5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      color: #6D4C41;
+      padding: 20px;
+    }
+    .app-container {
+      position: relative;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(216, 139, 167, 0.15);
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      color: #C2185B;
+      margin-bottom: 20px;
+      font-weight: 600;
+      letter-spacing: .5px;
+    }
+    ul#taskListAmanda {
+      list-style: none;
+      margin: 0 0 20px;
+      padding: 0;
+      min-height: 50px;
+    }
+    li {
+      display: flex;
+      align-items: center;
+      padding: 15px 5px;
+      border-bottom: 1px solid #F8BBD0;
+      transition: background .2s, border .2s, opacity .2s;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    li:last-child { border-bottom: none; }
+
+    .drag-handle-amanda {
+      display: none;
+      cursor: grab;
+      margin-right: 10px;
+      font-size: 1.2em;
+      color: #AD1457;
+      padding: 5px;
+      touch-action: none;
+    }
+    .app-container.edit-mode li .drag-handle-amanda {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .app-container.edit-mode li .drag-handle-amanda:active { cursor: grabbing; }
+
+    .checkbox-container {
+      flex-shrink: 0;
+      width: 28px;
+      text-align: center;
+      margin-right: 18px;
+      font-size: 1.5em;
+      color: #D7CCC8;
+      cursor: pointer;
+      transition: color .2s;
+    }
+    .checkbox-container.status-0 .fa-square { display: inline-block; }
+    .checkbox-container.status-0 .fa-circle-half-stroke,
+    .checkbox-container.status-0 .fa-check-square { display: none; }
+    .checkbox-container.status-1 { color: #FFB74D; }
+    .checkbox-container.status-1 .fa-circle-half-stroke { display: inline-block; }
+    .checkbox-container.status-1 .fa-square,
+    .checkbox-container.status-1 .fa-check-square { display: none; }
+    .checkbox-container.status-2 { color: #AED581; }
+    .checkbox-container.status-2 .fa-check-square { display: inline-block; }
+    .checkbox-container.status-2 .fa-square,
+    .checkbox-container.status-2 .fa-circle-half-stroke { display: none; }
+
+    .task-text {
+      flex-grow: 1;
+      cursor: pointer;
+      transition: color .3s, text-decoration .3s;
+      word-break: break-word;
+    }
+    li.status-1 .task-text { color: #8D6E63; }
+    li.status-2 .task-text {
+      text-decoration: line-through;
+      color: #BCAAA4;
+    }
+    .pastel-bg-1 { background: #FFDFD3; }
+    .pastel-bg-2 { background: #D4F0F0; }
+    .pastel-bg-3 { background: #E6E0FF; }
+    .pastel-bg-4 { background: #FFFACD; }
+    li.status-2.pastel-bg-1 .task-text,
+    li.status-2.pastel-bg-2 .task-text,
+    li.status-2.pastel-bg-3 .task-text,
+    li.status-2.pastel-bg-4 .task-text { color: #6D4C41; }
+
+    .app-container.edit-mode .checkbox-container { cursor: default; }
+    .app-container.edit-mode .task-text { cursor: text; }
+
+    .add-task-btn {
+      display: none;
+      margin: 20px auto 0;
+      background: #C2185B;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(194, 24, 91, 0.3);
+    }
+    .add-task-btn i { margin-right: 8px; }
+    .app-container.edit-mode .add-task-btn { display: block; }
+    .add-task-btn:hover { background: #AD1457; }
+
+    .delete-task-btn {
+      display: none;
+      color: #E91E63;
+      font-size: 1.1em;
+      margin-left: 12px;
+      padding: 3px 6px;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background .2s, color .2s;
+      flex-shrink: 0;
+    }
+    .app-container.edit-mode li .delete-task-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .delete-task-btn:hover { background: #FCE4EC; color: #C2185B; }
+
+    .task-edit-input {
+        flex-grow: 1;
+        padding: 5px;
+        border: 1px solid #C2185B;
+        border-radius: 4px;
+        font-family: 'Poppins', sans-serif;
+        font-size: inherit;
+        color: #6D4C41;
+    }
+
+    li.dragging {
+        opacity: 0.6;
+        background: #FFECF0 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .drag-over-placeholder-amanda {
+        height: 60px;
+        background-color: rgba(248, 187, 208, 0.2);
+        border: 2px dashed #C2185B;
+        border-radius: 8px;
+        margin: 5px 0 5px 0;
+        box-sizing: border-box;
+        display: block;
+        list-style-type: none;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.7em; margin-bottom: 20px; }
+      .checkbox-container { width: 25px; margin-right: 12px; font-size: 1.3em; }
+      .task-text { font-size: .95em; }
+      li { padding: 12px 5px; }
+      .add-task-btn { font-size: .9em; padding: 8px 15px; }
+      .delete-task-btn { font-size: 1em; margin-left: 8px; }
+      .drag-over-placeholder-amanda { height: 55px; }
+      ul#taskListAmanda { min-height: 40px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <h1>Amanda's Tasks</h1>
+    <ul id="taskListAmanda"></ul>
+    <button id="addTaskBtnAmanda" class="add-task-btn">
+      <i class="fas fa-plus"></i> Add Task
+    </button>
+  </div>
+
+  <script>
+  (function(){
+    const STORAGE_KEY = 'amandaTasks_v4_longpress'; // Ensure this key is distinct if testing versions
+    // RESTORED DEFAULTS:
+    const defaults = [
+      { id: 'amanda-task-1', text: "👕 Put rest of my clothes in bins", status: 0 },
+      { id: 'amanda-task-2', text: "👟 Put my shoes in closet", status: 0 },
+      { id: 'amanda-task-3', text: "👧 Put away girls’ old shoes (attic box)", status: 0 },
+      { id: 'amanda-task-4', text: "🧺 Put away all my clean clothes", status: 0 },
+      { id: 'amanda-task-5', text: "🛏️ Tidy our room – bench, sheets (Sterling will help)", status: 0 },
+      { id: 'amanda-task-6', text: "🧼 Clean our closet dresser top", status: 0 },
+      { id: 'amanda-task-7', text: "🛁 Clean bathroom countertop", status: 0 }
+    ];
+    let tasks = [], isEditMode = false;
+    let draggedItem = null;
+    let amandaPlaceholder = null;
+
+    let longPressTimer = null;
+    const LONG_PRESS_DURATION = 750;
+    let pressStartX, pressStartY;
+
+    const pastel = ['pastel-bg-1','pastel-bg-2','pastel-bg-3','pastel-bg-4'];
+    const listEl = document.getElementById('taskListAmanda'),
+          addBtn = document.getElementById('addTaskBtnAmanda'),
+          appContainer = document.querySelector('.app-container');
+
+    function genId(){ return 'task-'+Date.now()+'-'+Math.random().toString(36).slice(2,9); }
+    
     function load(){
       try {
         const storedTasks = localStorage.getItem(STORAGE_KEY);
-        if (storedTasks) { // Check if anything was retrieved
+        if (storedTasks) {
             const arr = JSON.parse(storedTasks);
-            // Ensure arr is an array and has items before assigning
-            if (Array.isArray(arr) && arr.length > 0) { 
+            if (Array.isArray(arr) && arr.length > 0) { // Check if array is valid and not empty
                 tasks = arr;
-                return; // Successfully loaded from storage
+                return; // Loaded from storage, skip defaults
             }
         }
-        // If storedTasks is null, undefined, or parsed to an empty/invalid array, use defaults
+        // If nothing in storage or stored data is invalid/empty, use defaults
         tasks = defaults.map(t=>({...t, id: t.id || genId()})); // Ensure IDs for defaults
-      } catch (e) { // Catch JSON parsing errors or other unexpected issues
+      } catch (e) { // Catch JSON parsing errors or other issues
         console.error("Error loading tasks from localStorage, using defaults:", e);
         tasks = defaults.map(t=>({...t, id: t.id || genId()}));
       }
     }
+
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+
+    function updateTasksOrderFromDOM() {
+        const orderedTasks = [];
+        const itemElements = listEl.querySelectorAll('li[data-id]');
+        itemElements.forEach(itemEl => {
+            const taskId = itemEl.dataset.id;
+            const task = tasks.find(t => t.id === taskId);
+            if (task) orderedTasks.push(task);
+        });
+        tasks = orderedTasks;
+    }
+    function createAmandaPlaceholder() {
+        if (!amandaPlaceholder) {
+            amandaPlaceholder = document.createElement('li');
+            amandaPlaceholder.className = 'drag-over-placeholder-amanda';
+        }
+        return amandaPlaceholder;
+    }
+    function getDragAfterElementAmanda(container, y) {
+        const draggableElements = [...container.querySelectorAll('li[data-id]:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else { return closest; }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function render(){
+      listEl.innerHTML = '';
+      let doneCount = 0;
+      tasks.forEach(t => {
+        const li = document.createElement('li');
+        li.dataset.id = t.id;
+        li.className = `status-${t.status}`;
+        if (t.status === 2) li.classList.add(pastel[doneCount++ % pastel.length]);
+
+        const chk = document.createElement('span');
+        chk.className = `checkbox-container status-${t.status}`;
+        chk.innerHTML = '<i class="far fa-square"></i><i class="fas fa-circle-half-stroke"></i><i class="far fa-check-square"></i>';
+        if(!isEditMode) {
+            chk.addEventListener('click',()=>{ t.status=(t.status+1)%3; save(); render(); });
+        }
+        
+        const txt = document.createElement('span');
+        txt.className='task-text';
+        txt.textContent = t.text;
+        if(isEditMode){
+          txt.title='Click to edit';
+          txt.addEventListener('click', (e) => { e.stopPropagation(); editText(t.id,li); });
+        } else {
+          txt.addEventListener('click',()=>{ t.status=(t.status+1)%3; save(); render(); });
+        }
+        
+        if(isEditMode){
+          li.setAttribute('draggable', 'true');
+          const h = document.createElement('span');
+          h.className='drag-handle-amanda';
+          h.innerHTML='<i class="fas fa-grip-vertical"></i>';
+          li.addEventListener('dragstart', handleLiDragStart);
+          li.addEventListener('dragend', handleLiDragEnd);
+          h.addEventListener('touchstart', handleTouchDragStartOnHandle, { passive: true });
+          li.appendChild(h);
+        } else {
+            li.removeAttribute('draggable');
+        }
+        
+        li.appendChild(chk);
+        li.appendChild(txt);
+
+        if(isEditMode){
+          const del = document.createElement('span');
+          del.className='delete-task-btn';
+          del.innerHTML='<i class="fas fa-times"></i>';
+          del.title='Delete';
+          del.addEventListener('click',(e)=>{
+            e.stopPropagation();
+            tasks = tasks.filter(x=>x.id!==t.id);
+            save(); render();
+          });
+          li.appendChild(del);
+        }
+        listEl.appendChild(li);
+      });
+    }
+
+    function editText(id, li){
+        const t = tasks.find(x=>x.id===id), span = li.querySelector('.task-text');
+        if(!t||!span || li.querySelector('.task-edit-input')) return;
+        const inp = document.createElement('input');
+        inp.type='text'; inp.value=t.text; inp.className='task-edit-input';
+        inp.style.flexGrow = '1';
+        const finishEdit = () => {
+            const v=inp.value.trim(); if(v) t.text=v;
+            save(); render();
+        };
+        inp.addEventListener('blur', finishEdit);
+        inp.addEventListener('keydown',e=>{
+            if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }
+            if(e.key==='Escape'){ inp.value=t.text; inp.blur(); }
+        });
+        span.replaceWith(inp); inp.focus(); inp.select();
+    }
+
+    function enterEditMode(){
+      if (isEditMode) return;
+      isEditMode=true;
+      appContainer.classList.add('edit-mode');
+      render();
+      document.addEventListener('click', handleClickOutsideToExit, true);
+      document.addEventListener('touchend', handleClickOutsideToExit, true);
+    }
+
+    function exitEditMode(){
+      if (!isEditMode) return;
+      isEditMode=false;
+      appContainer.classList.remove('edit-mode');
+      
+      if (draggedItem) {
+          draggedItem.classList.remove('dragging');
+          draggedItem = null;
+      }
+      if (amandaPlaceholder && amandaPlaceholder.parentNode) {
+          amandaPlaceholder.remove();
+      }
+
+      updateTasksOrderFromDOM();
+      save();
+      render();
+      document.removeEventListener('click', handleClickOutsideToExit, true);
+      document.removeEventListener('touchend', handleClickOutsideToExit, true);
+    }
+    
+    function handleClickOutsideToExit(event) {
+        if (!isEditMode) return;
+        const clickedOnTaskItem = event.target.closest('#taskListAmanda li[data-id]');
+        const clickedOnAddTaskBtn = event.target.closest('#addTaskBtnAmanda');
+        if (!clickedOnTaskItem && !clickedOnAddTaskBtn) {
+            exitEditMode();
+        }
+    }
+
+    function addTask(){
+      if(!isEditMode) return;
+      const newT={ id:genId(), text:'New Task', status:0 };
+      tasks.push(newT);
+      save();
+      render(); 
+      const li = listEl.querySelector(`li[data-id="${newT.id}"]`);
+      if(li) editText(newT.id, li);
+    }
+
+    addBtn.addEventListener('click', addTask);
+
+    function handleLiDragStart(e) {
+        if (!isEditMode) { e.preventDefault(); return; }
+        const targetTagName = e.target.tagName.toLowerCase();
+        if (e.target.classList.contains('task-edit-input') ||
+            e.target.closest('.delete-task-btn') ||
+            e.target.closest('.checkbox-container') ||
+            targetTagName === 'input' || targetTagName === 'button' ||
+            (e.target.closest('.task-text') && this.querySelector('.task-edit-input'))
+           ) { e.preventDefault(); return; }
+        draggedItem = this;
+        try { e.dataTransfer.setData('text/plain', ''); } catch(err) {}
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => { if (draggedItem) draggedItem.classList.add('dragging'); }, 0);
+    }
+    function handleLiDragEnd() {
+        if (this.classList.contains('dragging')) this.classList.remove('dragging');
+        if (amandaPlaceholder && amandaPlaceholder.parentNode) amandaPlaceholder.remove();
+        if (draggedItem) { updateTasksOrderFromDOM(); save(); }
+        draggedItem = null;
+    }
+    function handleTouchDragStartOnHandle(e) {
+        if (!isEditMode) return;
+        const listItem = e.currentTarget.closest('li');
+        if (!listItem) return;
+        draggedItem = listItem;
+    }
+    function handleDragOverOrMove(e) {
+        if (!draggedItem || !isEditMode) return;
+        if (e.type === 'touchmove' && !draggedItem.classList.contains('dragging')) {
+            draggedItem.classList.add('dragging');
+        }
+        e.preventDefault();
+        const currentY = e.clientY || (e.touches && e.touches[0].clientY);
+        if (currentY === undefined) return;
+        const ph = createAmandaPlaceholder();
+        const afterElement = getDragAfterElementAmanda(listEl, currentY);
+        if (draggedItem.contains(ph)) return;
+        if (afterElement == null) { if (listEl.lastChild !== ph) listEl.appendChild(ph); }
+        else { if (afterElement !== ph && afterElement.previousSibling !== ph) listEl.insertBefore(ph, afterElement); }
+    }
+    listEl.addEventListener('dragover', handleDragOverOrMove);
+    listEl.addEventListener('touchmove', (e) => {
+        if (!draggedItem || !isEditMode) return;
+        if (longPressTimer) clearTimeout(longPressTimer); // Cancel long press if moving
+        e.preventDefault();
+        handleDragOverOrMove(e);
+    }, { passive: false });
+    listEl.addEventListener('drop', (e) => {
+        if (!draggedItem || !isEditMode) return;
+        e.preventDefault();
+        if (amandaPlaceholder && amandaPlaceholder.parentNode === listEl) {
+            listEl.insertBefore(draggedItem, amandaPlaceholder);
+        }
+    });
+    document.addEventListener('touchend', (e) => {
+        if (!draggedItem || !isEditMode || !draggedItem.classList.contains('dragging')) {
+            if (draggedItem && !draggedItem.classList.contains('dragging')) draggedItem = null;
+            return;
+        }
+        if (amandaPlaceholder && amandaPlaceholder.parentNode === listEl) {
+            listEl.insertBefore(draggedItem, amandaPlaceholder);
+            amandaPlaceholder.remove(); 
+        }
+        draggedItem.classList.remove('dragging');
+        updateTasksOrderFromDOM();
+        save();
+        draggedItem = null;
+    });
+
+    function handlePressStart(e) {
+        if (isEditMode) return;
+        if (e.target.closest('li[data-id] .checkbox-container') || e.target.closest('li[data-id] .task-text')) {
+            return;
+        }
+        clearTimeout(longPressTimer);
+        if (e.type === 'touchstart') {
+            pressStartX = e.touches[0].clientX;
+            pressStartY = e.touches[0].clientY;
+        } else {
+            pressStartX = e.clientX;
+            pressStartY = e.clientY;
+        }
+        longPressTimer = setTimeout(() => { enterEditMode(); }, LONG_PRESS_DURATION);
+    }
+    function handlePressMove(e) {
+        if (longPressTimer) {
+            let currentX, currentY;
+            if (e.type === 'touchmove') {
+                currentX = e.touches[0].clientX;
+                currentY = e.touches[0].clientY;
+            } else {
+                currentX = e.clientX;
+                currentY = e.clientY;
+            }
+            if (Math.abs(currentX - pressStartX) > 10 || Math.abs(currentY - pressStartY) > 10) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+    }
+    function handlePressEnd() {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+
+    listEl.addEventListener('mousedown', handlePressStart);
+    listEl.addEventListener('touchstart', handlePressStart, { passive: true });
+    listEl.addEventListener('mousemove', handlePressMove);
+    // listEl.addEventListener('touchmove', handlePressMove); // This is covered by the drag touchmove
+    listEl.addEventListener('mouseup', handlePressEnd);
+    listEl.addEventListener('mouseleave', handlePressEnd);
+    listEl.addEventListener('touchend', handlePressEnd);
+    listEl.addEventListener('touchcancel', handlePressEnd);
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      load(); 
+      render();
+    });
+  })();
+  </script>
+</body>
+</html>
