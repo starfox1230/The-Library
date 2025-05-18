@@ -116,7 +116,8 @@
       margin-right: 10px;
       font-size: 1.2em;
       color: #AD1457;
-      padding: 5px;
+      padding: 5px; /* Make it a bit easier to tap */
+      touch-action: none; /* Prevent scrolling when trying to drag handle on touch */
     }
     .app-container.edit-mode li .drag-handle-amanda {
       display: inline-flex;
@@ -234,6 +235,17 @@
       opacity: .4;
       background: #FFECF0 !important;
     }
+    /* Styles for the input field during editing */
+    .task-edit-input {
+        flex-grow: 1;
+        padding: 5px;
+        border: 1px solid #C2185B;
+        border-radius: 4px;
+        font-family: 'Poppins', sans-serif;
+        font-size: inherit; /* Inherit from parent li or .task-text */
+        color: #6D4C41;
+    }
+
 
     @media (max-width: 600px) {
       h1 { font-size: 1.7em; margin-bottom: 20px; }
@@ -252,7 +264,8 @@
       const now = Date.now();
       if (
         now - lastTouchEnd <= 300 &&
-        !['INPUT', 'TEXTAREA', 'BUTTON', 'SUMMARY'].includes(e.target.tagName)
+        !['INPUT', 'TEXTAREA', 'BUTTON', 'SUMMARY'].includes(e.target.tagName) &&
+        !e.target.closest('.drag-handle-amanda') // Don't prevent default on drag handle touchend
       ) {
         e.preventDefault();
       }
@@ -306,6 +319,11 @@
       }
     }
     function save(){
+      // Before saving, update tasks array from SortableJS order if in edit mode
+      if (isEditMode && sortableInst) {
+          const newOrder = sortableInst.toArray(); // Gets data-id attributes
+          tasks.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }
     function render(){
@@ -313,7 +331,7 @@
       let doneCount = 0;
       tasks.forEach(t => {
         const li = document.createElement('li');
-        li.dataset.id = t.id;
+        li.dataset.id = t.id; // Make sure data-id is set for SortableJS toArray()
         li.className = `status-${t.status}` + (isEditMode?' edit-mode-item':'');
         if(t.status===2) li.classList.add(pastel[doneCount++%pastel.length]);
 
@@ -352,7 +370,7 @@
           del.title='Delete';
           del.addEventListener('click',()=>{
             tasks = tasks.filter(x=>x.id!==t.id);
-            save(); render();
+            save(); render(); // Re-render after delete will also re-apply sortable if needed
           });
           li.appendChild(del);
         }
@@ -366,7 +384,8 @@
             span = li.querySelector('.task-text');
       if(!t||!span) return;
       const inp = document.createElement('input');
-      inp.type='text'; inp.value=t.text; inp.className='task-edit-input';
+      inp.type='text'; inp.value=t.text; inp.className='task-edit-input'; // Added class for styling
+      inp.style.flexGrow = '1'; // Ensure input takes available space
       inp.addEventListener('blur',()=>{
         const v=inp.value.trim(); if(v) t.text=v;
         save(); render();
@@ -382,8 +401,8 @@
     function enterEditMode(){
       isEditMode=true;
       document.querySelector('.app-container').classList.add('edit-mode');
-      render();
-      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints;
+      render(); // Render first to ensure drag handles are present
+      
       const opts = {
         animation:150,
         ghostClass:'sortable-ghost',
@@ -391,25 +410,49 @@
         dragClass:'sortable-drag',
         forceFallback:true,
         fallbackOnBody:true,
-        filter:'.task-edit-input, .delete-task-btn, .checkbox-container',
-        preventOnFilter:true
+        handle: '.drag-handle-amanda', // Ensure this is active for all devices
+        filter:'.task-edit-input, .delete-task-btn, .checkbox-container', // Elements that should not trigger drag
+        preventOnFilter:true, // Prevent dragging on filtered elements
+        // Optional: Add delay for better UX on touch, prevents accidental drags when scrolling
+        // delay: 150,
+        // delayOnTouchOnly: true,
+        onEnd: function () { // Save order after drag
+            save(); // This will now use the updated order from SortableJS
+        }
       };
-      if(!isTouch) opts.handle = '.drag-handle-amanda';
+      if (sortableInst) sortableInst.destroy(); // Destroy existing instance if any
       sortableInst = new Sortable(listEl, opts);
     }
 
     function exitEditMode(){
-      if(sortableInst){ sortableInst.destroy(); sortableInst=null; }
+      if(sortableInst){
+        // SortableJS has already updated the DOM order.
+        // We need to update our 'tasks' array to reflect this DOM order before saving.
+        const newOrderIds = sortableInst.toArray(); // Gets data-id attributes in the new order
+        const orderedTasks = [];
+        newOrderIds.forEach(id => {
+            const task = tasks.find(t => t.id === id);
+            if (task) orderedTasks.push(task);
+        });
+        tasks = orderedTasks;
+        
+        sortableInst.destroy();
+        sortableInst=null;
+      }
       isEditMode=false;
       document.querySelector('.app-container').classList.remove('edit-mode');
-      save(); render();
+      save(); // Save the potentially reordered tasks
+      render(); // Re-render in non-edit mode
     }
 
     function addTask(){
       if(!isEditMode) return;
       const newT={ id:genId(), text:'New Task', status:0 };
       tasks.push(newT);
-      save(); render();
+      save();
+      render(); // Re-render to add the new task LI
+      // If sortable is active, it will pick up the new item.
+      // Then immediately allow editing it.
       const li = listEl.querySelector(`li[data-id="${newT.id}"]`);
       if(li) editText(newT.id, li);
     }
