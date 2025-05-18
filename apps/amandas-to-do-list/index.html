@@ -59,7 +59,7 @@
       list-style: none;
       margin: 0 0 20px;
       padding: 0;
-      min-height: 50px;
+      min-height: 50px; /* Area to tap if empty */
     }
     li {
       display: flex;
@@ -217,8 +217,7 @@
 
   <script>
   (function(){
-    const STORAGE_KEY = 'amandaTasks_v4_longpress'; // Ensure this key is distinct if testing versions
-    // RESTORED DEFAULTS:
+    const STORAGE_KEY = 'amandaTasks_v5_longpress_item';
     const defaults = [
       { id: 'amanda-task-1', text: "👕 Put rest of my clothes in bins", status: 0 },
       { id: 'amanda-task-2', text: "👟 Put my shoes in closet", status: 0 },
@@ -233,7 +232,7 @@
     let amandaPlaceholder = null;
 
     let longPressTimer = null;
-    const LONG_PRESS_DURATION = 750;
+    const LONG_PRESS_DURATION = 500; // Changed to 0.5 seconds
     let pressStartX, pressStartY;
 
     const pastel = ['pastel-bg-1','pastel-bg-2','pastel-bg-3','pastel-bg-4'];
@@ -248,14 +247,13 @@
         const storedTasks = localStorage.getItem(STORAGE_KEY);
         if (storedTasks) {
             const arr = JSON.parse(storedTasks);
-            if (Array.isArray(arr) && arr.length > 0) { // Check if array is valid and not empty
+            if (Array.isArray(arr) && arr.length > 0) {
                 tasks = arr;
-                return; // Loaded from storage, skip defaults
+                return;
             }
         }
-        // If nothing in storage or stored data is invalid/empty, use defaults
-        tasks = defaults.map(t=>({...t, id: t.id || genId()})); // Ensure IDs for defaults
-      } catch (e) { // Catch JSON parsing errors or other issues
+        tasks = defaults.map(t=>({...t, id: t.id || genId()}));
+      } catch (e) {
         console.error("Error loading tasks from localStorage, using defaults:", e);
         tasks = defaults.map(t=>({...t, id: t.id || genId()}));
       }
@@ -263,7 +261,7 @@
 
     function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
 
-    function updateTasksOrderFromDOM() {
+    function updateTasksOrderFromDOM() { /* ... (same as before) ... */ 
         const orderedTasks = [];
         const itemElements = listEl.querySelectorAll('li[data-id]');
         itemElements.forEach(itemEl => {
@@ -273,14 +271,14 @@
         });
         tasks = orderedTasks;
     }
-    function createAmandaPlaceholder() {
+    function createAmandaPlaceholder() { /* ... (same as before) ... */ 
         if (!amandaPlaceholder) {
             amandaPlaceholder = document.createElement('li');
             amandaPlaceholder.className = 'drag-over-placeholder-amanda';
         }
         return amandaPlaceholder;
     }
-    function getDragAfterElementAmanda(container, y) {
+    function getDragAfterElementAmanda(container, y) { /* ... (same as before) ... */ 
         const draggableElements = [...container.querySelectorAll('li[data-id]:not(.dragging)')];
         return draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
@@ -304,6 +302,7 @@
         chk.className = `checkbox-container status-${t.status}`;
         chk.innerHTML = '<i class="far fa-square"></i><i class="fas fa-circle-half-stroke"></i><i class="far fa-check-square"></i>';
         if(!isEditMode) {
+            // Short click to toggle status
             chk.addEventListener('click',()=>{ t.status=(t.status+1)%3; save(); render(); });
         }
         
@@ -312,8 +311,10 @@
         txt.textContent = t.text;
         if(isEditMode){
           txt.title='Click to edit';
+          // Short click to edit text when in edit mode
           txt.addEventListener('click', (e) => { e.stopPropagation(); editText(t.id,li); });
         } else {
+          // Short click to toggle status
           txt.addEventListener('click',()=>{ t.status=(t.status+1)%3; save(); render(); });
         }
         
@@ -349,7 +350,7 @@
       });
     }
 
-    function editText(id, li){
+    function editText(id, li){ /* ... (same as before) ... */ 
         const t = tasks.find(x=>x.id===id), span = li.querySelector('.task-text');
         if(!t||!span || li.querySelector('.task-edit-input')) return;
         const inp = document.createElement('input');
@@ -405,7 +406,7 @@
         }
     }
 
-    function addTask(){
+    function addTask(){ /* ... (same as before) ... */ 
       if(!isEditMode) return;
       const newT={ id:genId(), text:'New Task', status:0 };
       tasks.push(newT);
@@ -417,12 +418,13 @@
 
     addBtn.addEventListener('click', addTask);
 
-    function handleLiDragStart(e) {
+    // --- DRAG AND DROP EVENT HANDLERS ---
+    function handleLiDragStart(e) { /* ... (same as before) ... */ 
         if (!isEditMode) { e.preventDefault(); return; }
         const targetTagName = e.target.tagName.toLowerCase();
         if (e.target.classList.contains('task-edit-input') ||
             e.target.closest('.delete-task-btn') ||
-            e.target.closest('.checkbox-container') ||
+            // e.target.closest('.checkbox-container') || // Allow drag start even if mouse is over checkbox in edit mode
             targetTagName === 'input' || targetTagName === 'button' ||
             (e.target.closest('.task-text') && this.querySelector('.task-edit-input'))
            ) { e.preventDefault(); return; }
@@ -431,19 +433,19 @@
         e.dataTransfer.effectAllowed = 'move';
         setTimeout(() => { if (draggedItem) draggedItem.classList.add('dragging'); }, 0);
     }
-    function handleLiDragEnd() {
+    function handleLiDragEnd() { /* ... (same as before) ... */ 
         if (this.classList.contains('dragging')) this.classList.remove('dragging');
         if (amandaPlaceholder && amandaPlaceholder.parentNode) amandaPlaceholder.remove();
         if (draggedItem) { updateTasksOrderFromDOM(); save(); }
         draggedItem = null;
     }
-    function handleTouchDragStartOnHandle(e) {
+    function handleTouchDragStartOnHandle(e) { /* ... (same as before) ... */ 
         if (!isEditMode) return;
         const listItem = e.currentTarget.closest('li');
         if (!listItem) return;
         draggedItem = listItem;
     }
-    function handleDragOverOrMove(e) {
+    function handleDragOverOrMove(e) { /* ... (same as before) ... */ 
         if (!draggedItem || !isEditMode) return;
         if (e.type === 'touchmove' && !draggedItem.classList.contains('dragging')) {
             draggedItem.classList.add('dragging');
@@ -458,20 +460,26 @@
         else { if (afterElement !== ph && afterElement.previousSibling !== ph) listEl.insertBefore(ph, afterElement); }
     }
     listEl.addEventListener('dragover', handleDragOverOrMove);
-    listEl.addEventListener('touchmove', (e) => {
-        if (!draggedItem || !isEditMode) return;
-        if (longPressTimer) clearTimeout(longPressTimer); // Cancel long press if moving
+    listEl.addEventListener('touchmove', (e) => { /* ... (same as before, including clearing longPressTimer) ... */ 
+        if (!draggedItem || !isEditMode) {
+            // If not dragging an item but moving finger, it could be scrolling or cancelling long press
+            if (longPressTimer) { // If a long press was pending, cancel it due to movement
+                handlePressMove(e); // Call handlePressMove to check distance
+            }
+            return;
+        }
+        if (longPressTimer) clearTimeout(longPressTimer);
         e.preventDefault();
         handleDragOverOrMove(e);
     }, { passive: false });
-    listEl.addEventListener('drop', (e) => {
+    listEl.addEventListener('drop', (e) => { /* ... (same as before) ... */ 
         if (!draggedItem || !isEditMode) return;
         e.preventDefault();
         if (amandaPlaceholder && amandaPlaceholder.parentNode === listEl) {
             listEl.insertBefore(draggedItem, amandaPlaceholder);
         }
     });
-    document.addEventListener('touchend', (e) => {
+    document.addEventListener('touchend', (e) => { /* ... (same as before, global touchend for drag) ... */ 
         if (!draggedItem || !isEditMode || !draggedItem.classList.contains('dragging')) {
             if (draggedItem && !draggedItem.classList.contains('dragging')) draggedItem = null;
             return;
@@ -486,12 +494,17 @@
         draggedItem = null;
     });
 
+    // --- LONG PRESS EVENT HANDLERS ---
     function handlePressStart(e) {
-        if (isEditMode) return;
-        if (e.target.closest('li[data-id] .checkbox-container') || e.target.closest('li[data-id] .task-text')) {
-            return;
-        }
+        if (isEditMode) return; // Don't start a new long press if already in edit mode
+
+        // REMOVED: The check that prevented long press if target was on a task item's child.
+        // Now, a long press can start anywhere on listEl or its children (task items).
+        // Normal click handlers on task items (checkbox, text) for toggling status
+        // do not stop propagation, so this event will still reach listEl.
+
         clearTimeout(longPressTimer);
+
         if (e.type === 'touchstart') {
             pressStartX = e.touches[0].clientX;
             pressStartY = e.touches[0].clientY;
@@ -499,37 +512,58 @@
             pressStartX = e.clientX;
             pressStartY = e.clientY;
         }
-        longPressTimer = setTimeout(() => { enterEditMode(); }, LONG_PRESS_DURATION);
+
+        longPressTimer = setTimeout(() => {
+            // If this timer fires, it means it was a long press.
+            // Check if the user is currently dragging an item (shouldn't be possible if not in edit mode,
+            // but good for robustness).
+            if (draggedItem) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+                return;
+            }
+            enterEditMode();
+        }, LONG_PRESS_DURATION);
     }
+
     function handlePressMove(e) {
         if (longPressTimer) {
             let currentX, currentY;
-            if (e.type === 'touchmove') {
-                currentX = e.touches[0].clientX;
-                currentY = e.touches[0].clientY;
-            } else {
-                currentX = e.clientX;
-                currentY = e.clientY;
-            }
-            if (Math.abs(currentX - pressStartX) > 10 || Math.abs(currentY - pressStartY) > 10) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
+            if (e.type === 'touchmove' || e.type === 'mousemove') { // Check for both event types
+                const touch = e.touches ? e.touches[0] : null;
+                currentX = touch ? touch.clientX : e.clientX;
+                currentY = touch ? touch.clientY : e.clientY;
+
+                if (Math.abs(currentX - pressStartX) > 10 || Math.abs(currentY - pressStartY) > 10) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
             }
         }
     }
+
     function handlePressEnd() {
         clearTimeout(longPressTimer);
         longPressTimer = null;
     }
 
+    // Attach long press listeners to the list container (ul)
     listEl.addEventListener('mousedown', handlePressStart);
-    listEl.addEventListener('touchstart', handlePressStart, { passive: true });
+    listEl.addEventListener('touchstart', handlePressStart, { passive: true }); // passive:true for scroll perf
+
+    // Listen for move on the listEl to cancel long press if user starts scrolling/dragging on the list itself
     listEl.addEventListener('mousemove', handlePressMove);
-    // listEl.addEventListener('touchmove', handlePressMove); // This is covered by the drag touchmove
+    // listEl.addEventListener('touchmove', handlePressMove); // This is tricky:
+    // The main touchmove listener for listEl is already set up for drag-and-drop with passive:false
+    // and calls e.preventDefault(). Adding another general touchmove listener for long-press cancellation
+    // here might conflict or be redundant. The existing touchmove for drag *does* clear longPressTimer.
+    // The `handlePressMove` is primarily for mouse. For touch, the main listEl touchmove for drag
+    // will cancel the long press if significant movement occurs.
+
     listEl.addEventListener('mouseup', handlePressEnd);
-    listEl.addEventListener('mouseleave', handlePressEnd);
-    listEl.addEventListener('touchend', handlePressEnd);
-    listEl.addEventListener('touchcancel', handlePressEnd);
+    listEl.addEventListener('mouseleave', handlePressEnd); // If mouse leaves list element
+    listEl.addEventListener('touchend', handlePressEnd);   // For touch release
+    listEl.addEventListener('touchcancel', handlePressEnd); // For touch interruption
 
     document.addEventListener('DOMContentLoaded',()=>{
       load(); 
