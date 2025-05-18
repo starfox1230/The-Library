@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- SortableJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" integrity="sha512-Eezs+g9Lq4TCCq0wae01s97wKye9gpASwl28OEYnlUPHZzPdiSbSKqck7VHCjwlgJrtIokUdsTEuaWiA8cnmA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
     body {
         font-family: 'Poppins', sans-serif;
@@ -55,7 +57,6 @@
         border-bottom: 1px solid #F8BBD0;
         transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out;
         position: relative;
-        /* Prevent iOS callout menu on long press */
         -webkit-touch-callout: none;
     }
 
@@ -80,20 +81,17 @@
         line-height: 1.5;
         transition: color 0.3s ease, text-decoration 0.3s ease;
         cursor: pointer;
-        /* Prevent text selection during long-press attempts */
         -webkit-user-select: none; /* Safari */
         -moz-user-select: none;    /* Firefox */
         -ms-user-select: none;     /* IE10+/Edge */
         user-select: none;         /* Standard */
     }
 
-    /* Allow text selection for the input field when editing */
     .task-edit-input {
         -webkit-user-select: text !important;
         -moz-user-select: text !important;
         -ms-user-select: text !important;
         user-select: text !important;
-        /* Other input styles */
         flex-grow: 1;
         font-family: 'Poppins', sans-serif;
         font-size: 1em;
@@ -127,7 +125,6 @@
         color: #BCAAA4;
     }
 
-    /* Alternating Pastel Backgrounds for Completed Tasks */
     .pastel-bg-1 { background-color: #FFDFD3; } /* Pastel Peach */
     .pastel-bg-2 { background-color: #D4F0F0; } /* Pastel Mint */
     .pastel-bg-3 { background-color: #E6E0FF; } /* Pastel Lavender */
@@ -140,15 +137,15 @@
         color: #6D4C41;
     }
 
-    li:hover:not(.edit-mode-item) {
+    li:hover:not(.edit-mode-item):not(.sortable-chosen):not(.sortable-ghost) {
         background-color: #FFF8FA;
     }
 
     /* Edit Mode Styles */
     .app-container.edit-mode li {
         border: 1px dashed #E91E63;
-        margin-bottom: -1px;
-        cursor: grab;
+        margin-bottom: -1px; /* Compensate for border */
+        cursor: grab; /* Default cursor for draggable items */
     }
     .app-container.edit-mode li:active {
         cursor: grabbing;
@@ -156,11 +153,10 @@
     .app-container.edit-mode .checkbox-container {
         cursor: default;
     }
-     .app-container.edit-mode .task-text {
+     .app-container.edit-mode .task-text:not(input) { /* Apply to span, not input */
         cursor: text;
-        /* Re-enable selection for task text in edit mode if needed, though input handles it */
-        /* -webkit-user-select: auto; user-select: auto; */
     }
+
 
     .add-task-btn {
         display: none;
@@ -190,39 +186,39 @@
         margin-right: 8px;
     }
 
-    /* Delete Task Button */
     .delete-task-btn {
-        display: none; /* Hidden by default */
-        color: #E91E63; /* Pink to match edit mode border */
-        font-size: 1.1em; /* Adjusted for better visual balance */
-        margin-left: 12px; /* Spacing from text */
-        padding: 3px 6px; /* Clickable area */
+        display: none; 
+        color: #E91E63; 
+        font-size: 1.1em; 
+        margin-left: 12px; 
+        padding: 3px 6px; 
         cursor: pointer;
         border-radius: 50%;
         transition: background-color 0.2s, color 0.2s;
-        line-height: 1; /* Ensure icon is centered well */
-        align-self: center; /* Align with flex items */
+        line-height: 1; 
+        align-self: center; 
     }
-
     .app-container.edit-mode li .delete-task-btn {
-        display: inline-flex; /* Use flex for centering icon if needed */
+        display: inline-flex; 
         align-items: center;
         justify-content: center;
     }
-
     .delete-task-btn:hover {
-        background-color: #FCE4EC; /* Light pink hover background */
-        color: #C2185B; /* Darker pink on hover for icon */
+        background-color: #FCE4EC; 
+        color: #C2185B; 
     }
 
-
-    /* Drag and Drop Visuals */
-    .dragging {
-        opacity: 0.5;
-        background: #FFECF0;
+    /* SortableJS Custom Styles (Optional) */
+    .sortable-ghost { /* The placeholder for the item being dragged */
+        opacity: 0.4;
+        background-color: #FFECF0 !important; /* Light pinkish tint */
     }
-    .drag-over-target {
-         box-shadow: 0 0 0 2px #FFB74D inset;
+    .sortable-chosen { /* The item being dragged */
+        /* You can add specific styles for the item itself while it's chosen */
+        /* e.g., box-shadow: 0 0 10px rgba(0,0,0,0.2); */
+    }
+    .sortable-drag { /* Also the item being dragged, often same as chosen */
+         /* opacity: 0.7; */
     }
     
     @media (max-width: 600px) {
@@ -264,7 +260,7 @@
         let isEditMode = false;
         let longPressTimer;
         const LONG_PRESS_DURATION = 1000; // 1 second
-        let draggedItemId = null;
+        let sortableInstance = null; // To store the SortableJS instance
 
         const appContainer = document.querySelector('.app-container');
         const taskListElement = document.getElementById('taskListAmanda');
@@ -285,13 +281,9 @@
                         (parsedTasks.length === 0 || (typeof parsedTasks[0].id !== 'undefined' && typeof parsedTasks[0].status !== 'undefined'))) {
                         currentAmandaTasks = parsedTasks;
                         return;
-                    } else {
-                        console.warn(`Invalid data in localStorage for ${STORAGE_KEY_AMANDA}, falling back to defaults.`);
                     }
                 }
-            } catch (error) {
-                console.error(`Error loading tasks from localStorage for ${STORAGE_KEY_AMANDA}:`, error);
-            }
+            } catch (error) { /* Fall through to defaults */ }
             currentAmandaTasks = initialDefaultAmandaTasks.map(task => ({ ...task }));
         }
 
@@ -309,7 +301,7 @@
             
             currentAmandaTasks.forEach((task) => {
                 const listItem = document.createElement('li');
-                listItem.setAttribute('data-id', task.id);
+                listItem.setAttribute('data-id', task.id); // Essential for SortableJS to identify items
                 listItem.className = `status-${task.status}`;
                 if (isEditMode) {
                     listItem.classList.add('edit-mode-item');
@@ -335,7 +327,6 @@
                     });
                 }
 
-
                 const taskTextElement = document.createElement('span');
                 taskTextElement.classList.add('task-text');
                 taskTextElement.textContent = task.text;
@@ -349,19 +340,13 @@
                         e.stopPropagation(); 
                         makeTaskEditable(task.id, listItem);
                     });
-                    listItem.draggable = true;
-                    listItem.addEventListener('dragstart', (e) => handleDragStart(e, task.id));
-                    listItem.addEventListener('dragover', handleDragOver);
-                    listItem.addEventListener('drop', (e) => handleDrop(e, listItem));
-                    listItem.addEventListener('dragend', handleDragEnd);
-
-                    // Add Delete Button in Edit Mode
+                    
                     const deleteButton = document.createElement('span');
                     deleteButton.className = 'delete-task-btn';
                     deleteButton.innerHTML = '<i class="fas fa-times"></i>';
                     deleteButton.title = "Delete task";
                     deleteButton.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent other LI listeners
+                        e.stopPropagation(); 
                         deleteTask(task.id);
                     });
                     listItem.appendChild(deleteButton);
@@ -372,15 +357,11 @@
                         toggleTaskStatus(task.id);
                     });
                     
-                    // Long press listeners only if not in edit mode
                     let pressStartX, pressStartY;
                     const handlePressStart = (e) => {
-                        // For touch events, use e.touches[0]
                         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
                         if ((e.type === "mousedown" && e.button !== 0) || isEditMode || listItem.querySelector('input.task-edit-input')) return;
-                        
                         pressStartX = clientX;
                         pressStartY = clientY;
                         clearTimeout(longPressTimer); 
@@ -389,24 +370,19 @@
                             enterEditMode(task.id);
                         }, LONG_PRESS_DURATION);
                     };
-
                     const clearLongPress = () => clearTimeout(longPressTimer);
-
                     const handlePressMove = (e) => {
                         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                        if (Math.abs(clientX - pressStartX) > 10 || Math.abs(clientY - pressStartY) > 10) { // Increased tolerance
+                        if (Math.abs(clientX - pressStartX) > 10 || Math.abs(clientY - pressStartY) > 10) {
                             clearTimeout(longPressTimer);
                         }
                     };
-
                     listItem.addEventListener('mousedown', handlePressStart);
                     listItem.addEventListener('mouseup', clearLongPress);
                     listItem.addEventListener('mouseleave', clearLongPress);
                     listItem.addEventListener('mousemove', handlePressMove);
-
-                    // Add touch event listeners for long press on mobile
-                    listItem.addEventListener('touchstart', handlePressStart, { passive: true }); // passive:true for better scroll performance
+                    listItem.addEventListener('touchstart', handlePressStart, { passive: true });
                     listItem.addEventListener('touchend', clearLongPress);
                     listItem.addEventListener('touchcancel', clearLongPress);
                     listItem.addEventListener('touchmove', handlePressMove, { passive: true });
@@ -435,11 +411,6 @@
                 const newText = input.value.trim();
                 if (newText && newText !== task.text) {
                     task.text = newText;
-                } else if (!newText && currentAmandaTasks.some(t => t.id === task.id)) { // Task still exists
-                    // If text is cleared, revert to original or decide on a behavior (e.g., delete or keep old)
-                    // For now, let's revert if cleared, unless it's a brand new task being cleared.
-                    // This example will just keep the old text if newText is empty.
-                    // If you want to delete if empty, add that logic here.
                 }
                 saveTasksToStorage();
                 if (isEditMode && listItemElement.contains(input)) { 
@@ -463,7 +434,6 @@
             input.select();
         }
 
-
         function toggleTaskStatus(taskId) {
             if (isEditMode) return; 
             const task = currentAmandaTasks.find(t => t.id === taskId);
@@ -477,15 +447,39 @@
         function deleteTask(taskId) {
             currentAmandaTasks = currentAmandaTasks.filter(t => t.id !== taskId);
             saveTasksToStorage();
-            renderTasks(); // Re-render to show changes while still in edit mode
+            renderTasks(); 
         }
 
         function enterEditMode(initiatingTaskId = null) {
             if (isEditMode) return;
             isEditMode = true;
             appContainer.classList.add('edit-mode');
-            console.log("Entered Edit Mode");
-            renderTasks(); 
+            renderTasks(); // Render first to ensure all items have data-id
+            
+            if (sortableInstance) sortableInstance.destroy(); // Destroy if somehow exists
+            
+            sortableInstance = new Sortable(taskListElement, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',  // Class for the drop placeholder
+                chosenClass: 'sortable-chosen', // Class for the chosen item
+                dragClass: 'sortable-drag',    // Class for the dragging item
+                filter: '.task-edit-input, .delete-task-btn, .checkbox-container', // Elements not to drag from
+                preventOnFilter: true, // Necessary for filter to work
+                onEnd: function (evt) {
+                    // evt.oldIndex and evt.newIndex are the original and new position of the moved item
+                    if (evt.oldIndex === evt.newIndex) return;
+
+                    // Reorder currentAmandaTasks array
+                    const movedItem = currentAmandaTasks.splice(evt.oldIndex, 1)[0];
+                    currentAmandaTasks.splice(evt.newIndex, 0, movedItem);
+                    
+                    saveTasksToStorage();
+                    // Re-render to apply alternating pastels correctly after sort
+                    // and ensure overall UI consistency.
+                    renderTasks(); 
+                }
+            });
+            console.log("Entered Edit Mode, SortableJS initialized.");
         }
 
         function exitEditMode() {
@@ -494,23 +488,24 @@
             const activeInput = taskListElement.querySelector('input.task-edit-input:focus');
             if (activeInput) {
                 activeInput.blur(); 
-                isEditMode = false; 
-                appContainer.classList.remove('edit-mode');
-                saveTasksToStorage(); 
-                renderTasks(); 
-                return;
+            }
+
+            if (sortableInstance) {
+                sortableInstance.destroy();
+                sortableInstance = null;
+                console.log("SortableJS destroyed.");
             }
 
             isEditMode = false;
             appContainer.classList.remove('edit-mode');
-            console.log("Exited Edit Mode");
             saveTasksToStorage(); 
             renderTasks();
+            console.log("Exited Edit Mode");
         }
 
         function addNewTask() {
             if (!isEditMode) return;
-            const newText = "New Task"; // Simpler default
+            const newText = "New Task";
             const newTask = {
                 id: generateUniqueId('amanda-task'),
                 text: newText,
@@ -526,66 +521,6 @@
             }
         }
 
-        // Drag and Drop Handlers
-        function handleDragStart(event, taskId) {
-            draggedItemId = taskId;
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('text/plain', taskId);
-            event.currentTarget.classList.add('dragging');
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-            const targetLi = event.target.closest('li');
-            if (targetLi && targetLi.dataset.id !== draggedItemId) {
-                document.querySelectorAll('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
-                targetLi.classList.add('drag-over-target');
-            }
-        }
-
-        function handleDrop(event, targetListItem) {
-            event.preventDefault();
-            document.querySelectorAll('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
-            const droppedOnItemId = targetListItem.dataset.id;
-            if (!draggedItemId || draggedItemId === droppedOnItemId) return;
-
-            const draggedItemIndex = currentAmandaTasks.findIndex(t => t.id === draggedItemId);
-            let targetItemIndex = currentAmandaTasks.findIndex(t => t.id === droppedOnItemId);
-
-            if (draggedItemIndex === -1 || targetItemIndex === -1) return;
-
-            const [draggedItem] = currentAmandaTasks.splice(draggedItemIndex, 1);
-            
-            // Re-find target index as splice might have shifted it if only one item between.
-            targetItemIndex = currentAmandaTasks.findIndex(t => t.id === droppedOnItemId); 
-            // If droppedOnItem was removed (shouldn't happen here), handle appropriately.
-            // For now, assume it's still there.
-
-            const rect = targetListItem.getBoundingClientRect();
-            const isDroppingBefore = event.clientY < rect.top + rect.height / 2;
-
-            if (isDroppingBefore) {
-                currentAmandaTasks.splice(targetItemIndex, 0, draggedItem);
-            } else {
-                currentAmandaTasks.splice(targetItemIndex + 1, 0, draggedItem);
-            }
-            
-            draggedItemId = null;
-            saveTasksToStorage();
-            renderTasks(); 
-        }
-
-        function handleDragEnd(event) {
-            if (event.currentTarget) { // Ensure currentTarget exists
-                event.currentTarget.classList.remove('dragging');
-            }
-            document.querySelectorAll('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
-            draggedItemId = null;
-        }
-
-
-        // Event Listeners
         addTaskButton.addEventListener('click', addNewTask);
 
         appContainer.addEventListener('click', (event) => {
@@ -595,7 +530,6 @@
                 }
             }
         });
-
 
         document.addEventListener('DOMContentLoaded', () => {
             loadTasksFromStorage();
