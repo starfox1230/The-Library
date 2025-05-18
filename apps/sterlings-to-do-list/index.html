@@ -14,12 +14,12 @@
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f0f4f8; /* Slightly different background for visual distinction if opened side-by-side */
+            background-color: #f0f4f8;
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Align to top */
+            align-items: flex-start;
             min-height: 100vh;
             color: #333;
         }
@@ -34,7 +34,7 @@
         }
 
         h1 {
-            color: #16a085; /* Different accent color for Sterling */
+            color: #16a085;
             text-align: center;
             margin-top: 0;
             margin-bottom: 25px;
@@ -63,9 +63,10 @@
             font-size: 1.4em;
             margin-right: 15px;
             cursor: pointer;
-            width: 25px; /* Fixed width for alignment */
+            width: 25px; 
             text-align: center;
             transition: color 0.2s ease-in-out;
+            flex-shrink: 0; /* Prevent shrinking */
         }
 
         .task-text {
@@ -73,6 +74,7 @@
             font-size: 1em;
             line-height: 1.5;
             transition: color 0.3s ease, text-decoration 0.3s ease;
+            cursor: pointer; /* Make text clickable */
         }
 
         /* State Styles */
@@ -80,120 +82,141 @@
         .checkbox-container.status-0 .fa-circle-half-stroke,
         .checkbox-container.status-0 .fa-check-square { display: none; }
 
-        .checkbox-container.status-1 .fa-circle-half-stroke { display: inline-block; color: #e67e22; } /* Different orange for in-progress */
+        .checkbox-container.status-1 .fa-circle-half-stroke { display: inline-block; color: #e67e22; }
         .checkbox-container.status-1 .fa-square,
         .checkbox-container.status-1 .fa-check-square { display: none; }
 
-        .checkbox-container.status-2 .fa-check-square { display: inline-block; color: #1abc9c; } /* Different green for done */
+        .checkbox-container.status-2 .fa-check-square { display: inline-block; color: #1abc9c; }
         .checkbox-container.status-2 .fa-square,
         .checkbox-container.status-2 .fa-circle-half-stroke { display: none; }
         
         li.status-1 .task-text {
-            color: #444; /* Slightly darker for in-progress */
+            color: #444; 
         }
 
         li.status-2 .task-text {
             text-decoration: line-through;
-            color: #95a5a6; /* Muted color for done */
+            color: #95a5a6;
         }
 
-        /* Hover effect for list items */
         li:hover {
             background-color: #f9f9f9;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 600px) {
-            .app-container {
-                padding: 20px;
-            }
-            h1 {
-                font-size: 1.8em;
-            }
-            .checkbox-container {
-                font-size: 1.2em;
-                margin-right: 10px;
-            }
-            .task-text {
-                font-size: 0.95em;
-            }
+            .app-container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            .checkbox-container { font-size: 1.2em; margin-right: 10px; }
+            .task-text { font-size: 0.95em; }
         }
     </style>
 </head>
 <body>
     <div class="app-container">
         <h1>Sterling's Tasks</h1>
-        <ul id="taskList">
+        <ul id="taskListSterling">
             <!-- Tasks will be rendered here by JavaScript -->
         </ul>
     </div>
 
     <script>
-        const sterlingTasks = [
-            { id: 'sterling-task-1', text: "📦 Move my bins to attic", status: 0 },
-            { id: 'sterling-task-2', text: "🌸 Put spring decor box in attic", status: 0 },
-            { id: 'sterling-task-3', text: "🧺 Fold laundry", status: 0 },
-            { id: 'sterling-task-4', text: "🔄 Start another load & move to dryer", status: 0 },
-            { id: 'sterling-task-5', text: "🛋️ Clean living room – use 60x", status: 0 },
-            { id: 'sterling-task-6', text: "🧱 Fix Lego guinea pig house & put away", status: 0 },
-            { id: 'sterling-task-7', text: "🍽️ Clean kitchen counters", status: 0 },
-            { id: 'sterling-task-8', text: "🧊 Clean out fridge", status: 0 },
-            { id: 'sterling-task-9', text: "🍽️ Do dishes", status: 0 },
-            { id: 'sterling-task-10', text: "🌋 Complete La Caldera Circuit & monitor volcanic activity", status: 0 }
-        ];
+        (function() {
+            const STORAGE_KEY_STERLING = 'sterlingTasks_v2_storage';
+            const initialDefaultSterlingTasks = [
+                { id: 'sterling-task-1', text: "📦 Move my bins to attic", status: 0 },
+                { id: 'sterling-task-2', text: "🌸 Put spring decor box in attic", status: 0 },
+                { id: 'sterling-task-3', text: "🧺 Fold laundry", status: 0 },
+                { id: 'sterling-task-4', text: "🔄 Start another load & move to dryer", status: 0 },
+                { id: 'sterling-task-5', text: "🛋️ Clean living room – use 60x", status: 0 },
+                { id: 'sterling-task-6', text: "🧱 Fix Lego guinea pig house & put away", status: 0 },
+                { id: 'sterling-task-7', text: "🍽️ Clean kitchen counters", status: 0 },
+                { id: 'sterling-task-8', text: "🧊 Clean out fridge", status: 0 },
+                { id: 'sterling-task-9', text: "🍽️ Do dishes", status: 0 },
+                { id: 'sterling-task-10', text: "🌋 Complete La Caldera Circuit & monitor volcanic activity", status: 0 }
+            ];
+            let currentSterlingTasks;
 
-        const taskListElement = document.getElementById('taskList');
+            const taskListElement = document.getElementById('taskListSterling');
 
-        function renderTasks() {
-            taskListElement.innerHTML = ''; // Clear existing tasks
-            sterlingTasks.forEach((task, index) => {
-                const listItem = document.createElement('li');
-                listItem.setAttribute('data-id', task.id);
-                listItem.classList.add(`status-${task.status}`);
-
-                const checkboxContainer = document.createElement('span');
-                checkboxContainer.classList.add('checkbox-container');
-                checkboxContainer.classList.add(`status-${task.status}`);
-                checkboxContainer.innerHTML = `
-                    <i class="far fa-square"></i>
-                    <i class="fas fa-circle-half-stroke"></i>
-                    <i class="far fa-check-square"></i>
-                `;
-                checkboxContainer.addEventListener('click', () => toggleTaskStatus(task.id));
-
-                const taskText = document.createElement('span');
-                taskText.classList.add('task-text');
-                taskText.textContent = task.text;
-
-                listItem.appendChild(checkboxContainer);
-                listItem.appendChild(taskText);
-                taskListElement.appendChild(listItem);
-            });
-        }
-
-        function toggleTaskStatus(taskId) {
-            const task = sterlingTasks.find(t => t.id === taskId);
-            if (task) {
-                task.status = (task.status + 1) % 3; // Cycle 0 -> 1 -> 2 -> 0
-                updateTaskDOM(task);
+            function loadTasksFromStorage() {
+                try {
+                    const storedTasks = localStorage.getItem(STORAGE_KEY_STERLING);
+                    if (storedTasks) {
+                        const parsedTasks = JSON.parse(storedTasks);
+                        if (Array.isArray(parsedTasks) && 
+                            (parsedTasks.length === 0 || (typeof parsedTasks[0].id !== 'undefined' && typeof parsedTasks[0].status !== 'undefined'))) {
+                            currentSterlingTasks = parsedTasks;
+                            return;
+                        } else {
+                            console.warn(`Invalid data in localStorage for ${STORAGE_KEY_STERLING}, falling back to defaults.`);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error loading tasks from localStorage for ${STORAGE_KEY_STERLING}:`, error);
+                }
+                currentSterlingTasks = initialDefaultSterlingTasks.map(task => ({ ...task })); // Deep copy
             }
-        }
 
-        function updateTaskDOM(task) {
-            const listItem = taskListElement.querySelector(`li[data-id="${task.id}"]`);
-            const checkboxContainer = listItem.querySelector('.checkbox-container');
+            function saveTasksToStorage() {
+                try {
+                    localStorage.setItem(STORAGE_KEY_STERLING, JSON.stringify(currentSterlingTasks));
+                } catch (error) {
+                    console.error(`Error saving tasks to localStorage for ${STORAGE_KEY_STERLING}:`, error);
+                }
+            }
+
+            function renderTasks() {
+                taskListElement.innerHTML = ''; 
+                currentSterlingTasks.forEach((task) => {
+                    const listItem = document.createElement('li');
+                    listItem.setAttribute('data-id', task.id);
+                    listItem.className = `status-${task.status}`;
+
+                    const checkboxContainer = document.createElement('span');
+                    checkboxContainer.className = `checkbox-container status-${task.status}`;
+                    checkboxContainer.innerHTML = `
+                        <i class="far fa-square"></i>
+                        <i class="fas fa-circle-half-stroke"></i>
+                        <i class="far fa-check-square"></i>
+                    `;
+                    checkboxContainer.addEventListener('click', () => toggleTaskStatus(task.id));
+
+                    const taskTextElement = document.createElement('span');
+                    taskTextElement.classList.add('task-text');
+                    taskTextElement.textContent = task.text;
+                    taskTextElement.addEventListener('click', () => toggleTaskStatus(task.id));
+
+                    listItem.appendChild(checkboxContainer);
+                    listItem.appendChild(taskTextElement);
+                    taskListElement.appendChild(listItem);
+                });
+            }
+
+            function toggleTaskStatus(taskId) {
+                const task = currentSterlingTasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = (task.status + 1) % 3; 
+                    updateTaskDOM(task);
+                    saveTasksToStorage();
+                }
+            }
+
+            function updateTaskDOM(task) {
+                const listItem = taskListElement.querySelector(`li[data-id="${task.id}"]`);
+                if (!listItem) return;
+                const checkboxContainer = listItem.querySelector('.checkbox-container');
+                
+                listItem.className = `status-${task.status}`;
+                if (checkboxContainer) {
+                    checkboxContainer.className = `checkbox-container status-${task.status}`;
+                }
+            }
             
-            // Update list item class for text styling
-            listItem.className = ''; // Clear existing status classes
-            listItem.classList.add(`status-${task.status}`);
-
-            // Update checkbox container class for icon display
-            checkboxContainer.className = 'checkbox-container'; // Clear existing status classes
-            checkboxContainer.classList.add(`status-${task.status}`);
-        }
-
-        // Initial render
-        document.addEventListener('DOMContentLoaded', renderTasks);
+            document.addEventListener('DOMContentLoaded', () => {
+                loadTasksFromStorage();
+                renderTasks();
+            });
+        })();
     </script>
 </body>
 </html>
