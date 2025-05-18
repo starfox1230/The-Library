@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amanda's Tasks</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .checkbox-container {
+            font-size: 1.4em;
+            margin-right: 15px;
+            cursor: pointer;
+            width: 25px; /* Fixed width for alignment */
+            text-align: center;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .task-text {
+            flex-grow: 1;
+            font-size: 1em;
+            line-height: 1.5;
+            transition: color 0.3s ease, text-decoration 0.3s ease;
+        }
+
+        /* State Styles */
+        .checkbox-container.status-0 .fa-square { display: inline-block; color: #7f8c8d; }
+        .checkbox-container.status-0 .fa-circle-half-stroke,
+        .checkbox-container.status-0 .fa-check-square { display: none; }
+
+        .checkbox-container.status-1 .fa-circle-half-stroke { display: inline-block; color: #f39c12; } /* Orange for in-progress */
+        .checkbox-container.status-1 .fa-square,
+        .checkbox-container.status-1 .fa-check-square { display: none; }
+
+        .checkbox-container.status-2 .fa-check-square { display: inline-block; color: #2ecc71; } /* Green for done */
+        .checkbox-container.status-2 .fa-square,
+        .checkbox-container.status-2 .fa-circle-half-stroke { display: none; }
+
+        li.status-1 .task-text {
+            color: #555; /* Slightly darker for in-progress */
+        }
+        
+        li.status-2 .task-text {
+            text-decoration: line-through;
+            color: #95a5a6; /* Muted color for done */
+        }
+
+        /* Hover effect for list items */
+        li:hover {
+            background-color: #f9f9f9;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .app-container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .checkbox-container {
+                font-size: 1.2em;
+                margin-right: 10px;
+            }
+            .task-text {
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1>Amanda's Tasks</h1>
+        <ul id="taskList">
+            <!-- Tasks will be rendered here by JavaScript -->
+        </ul>
+    </div>
+
+    <script>
+        const amandaTasks = [
+            { id: 'amanda-task-1', text: "👕 Put rest of my clothes in bins", status: 0 }, // 0: empty, 1: in-progress, 2: done
+            { id: 'amanda-task-2', text: "👟 Put my shoes in closet", status: 0 },
+            { id: 'amanda-task-3', text: "👧 Put away girls’ old shoes (attic box)", status: 0 },
+            { id: 'amanda-task-4', text: "🧺 Put away all my clean clothes", status: 0 },
+            { id: 'amanda-task-5', text: "🛏️ Tidy our room – bench, sheets (Sterling will help)", status: 0 },
+            { id: 'amanda-task-6', text: "🧼 Clean our closet dresser top", status: 0 },
+            { id: 'amanda-task-7', text: "🛁 Clean bathroom countertop", status: 0 }
+        ];
+
+        const taskListElement = document.getElementById('taskList');
+
+        function renderTasks() {
+            taskListElement.innerHTML = ''; // Clear existing tasks
+            amandaTasks.forEach((task, index) => {
+                const listItem = document.createElement('li');
+                listItem.setAttribute('data-id', task.id);
+                listItem.classList.add(`status-${task.status}`);
+
+                const checkboxContainer = document.createElement('span');
+                checkboxContainer.classList.add('checkbox-container');
+                checkboxContainer.classList.add(`status-${task.status}`);
+                checkboxContainer.innerHTML = `
+                    <i class="far fa-square"></i>
+                    <i class="fas fa-circle-half-stroke"></i>
+                    <i class="far fa-check-square"></i>
+                `;
+                checkboxContainer.addEventListener('click', () => toggleTaskStatus(task.id));
+
+                const taskText = document.createElement('span');
+                taskText.classList.add('task-text');
+                taskText.textContent = task.text;
+
+                listItem.appendChild(checkboxContainer);
+                listItem.appendChild(taskText);
+                taskListElement.appendChild(listItem);
+            });
+        }
+
+        function toggleTaskStatus(taskId) {
+            const task = amandaTasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = (task.status + 1) % 3; // Cycle 0 -> 1 -> 2 -> 0
+                updateTaskDOM(task);
+            }
+        }
+
+        function updateTaskDOM(task) {
+            const listItem = taskListElement.querySelector(`li[data-id="${task.id}"]`);
+            const checkboxContainer = listItem.querySelector('.checkbox-container');
+
+            // Update list item class for text styling
+            listItem.className = ''; // Clear existing status classes
+            listItem.classList.add(`status-${task.status}`);
+
+            // Update checkbox container class for icon display
+            checkboxContainer.className = 'checkbox-container'; // Clear existing status classes
+            checkboxContainer.classList.add(`status-${task.status}`);
+        }
+
+        // Initial render
+        document.addEventListener('DOMContentLoaded', renderTasks);
+    </script>
+</body>
+</html>
