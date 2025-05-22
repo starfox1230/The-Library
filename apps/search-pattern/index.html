@@ -17,62 +17,64 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 10px; /* Slightly reduced body padding */
+      padding: 10px;
       user-select: none;
     }
     .container {
       position: relative; text-align: center;
-      padding: 10px; /* Reduced container padding */
-      background: #1a1a1a;
+      padding: 10px 12px; /* Adjusted padding: more horizontal for top panel */
+      background: #1a1a1a; /* Default background */
       border-radius: 12px;
       box-shadow: 0 0 20px rgba(0,0,0,0.9);
-      width: 95vw; /* Slightly wider to accommodate side-by-side top */
+      width: 95vw;
       max-width: 600px;
       height: 90vh;
       max-height: 800px;
       display: flex;
       flex-direction: column;
     }
-    .container.running-state { background: #3a0f6f; }
-    .container.paused-state { background: #d4a01a; }
+    /* State-specific backgrounds for the container */
+    .container.running-state { background: #3a0f6f; } /* Purple when running */
+    .container.paused-state { background: #d4a01a; } /* Gold when paused */
 
     .top-panel {
       display: flex;
-      justify-content: space-between; /* Pushes timer left, controls right */
-      align-items: center; /* Vertically aligns timer text and button stack */
-      padding: 5px 0; /* Minimal vertical padding */
-      margin-bottom: 10px; /* Space below top panel */
+      justify-content: space-between;
+      align-items: center; /* Key for vertical alignment */
+      padding: 5px 0;
+      margin-bottom: 10px;
       flex-shrink: 0;
     }
 
     #totalTimeDisplay {
-      font-size: clamp(3.2rem, 12vw, 5.5rem); /* Increased font size */
+      font-size: clamp(2.8rem, 10vw, 4.5rem); /* Slightly adjusted font size for balance */
       color: #e0e0e0;
       text-align: left;
-      margin: 0; /* Remove default margins */
-      padding-left: 5px; /* Small padding from edge */
-      line-height: 1; /* Tighter line height */
+      margin: 0;
+      line-height: 1; /* Ensure it doesn't take extra vertical space */
+      padding-left: 2px; /* Minimal left padding */
     }
 
     .controls {
-      display: flex;
-      flex-direction: column; /* Stack buttons vertically */
-      align-items: flex-end; /* Align buttons to their right edge */
+      display: flex; /* Default is row, so buttons are side-by-side */
+      align-items: center; /* Vertically center buttons within their container if they have different heights */
       margin: 0;
-      padding-right: 5px; /* Small padding from edge */
+      padding-right: 2px; /* Minimal right padding */
     }
 
     .controls button {
       background: #282828;
       border: none;
       color: #c5c5c5;
-      padding: 8px 15px; /* Adjusted padding for stacked buttons */
-      margin: 3px 0; /* Vertical margin between stacked buttons */
-      font-size: clamp(0.8rem, 2.5vw, 1rem); /* Slightly smaller button text */
+      padding: 10px 15px; /* Reverted to slightly larger padding */
+      margin-left: 8px; /* Space between buttons */
+      font-size: clamp(0.85rem, 2.8vw, 1rem);
       border-radius: 6px;
       cursor: pointer; transition: background .2s, transform .1s;
-      min-width: 90px; /* Give buttons a minimum width */
-      text-align: center;
+      white-space: nowrap; /* Prevent button text from wrapping */
+    }
+    .controls button:first-child {
+        margin-left: 0; /* No left margin for the first button */
     }
     .controls button:hover { background: #383838; }
     .controls button:active { transform: scale(0.98); }
@@ -90,11 +92,11 @@
       background-color: #161616;
     }
     #sectionList li {
-      padding: 7px 10px; /* Slightly adjusted padding */
+      padding: 7px 10px;
       border-bottom: 1px solid #2f2f2f;
       cursor: pointer; display: flex;
       justify-content: space-between; align-items: center;
-      font-size: clamp(0.8rem, 2.7vw, 1.05rem); /* Slightly increased base list font */
+      font-size: clamp(0.8rem, 2.7vw, 1.05rem);
       color: #b0b0b0;
       transition: background-color 0.2s;
     }
@@ -114,7 +116,7 @@
     }
 
     .sectionItemTime {
-      font-size: clamp(0.75rem, 2.3vw, 0.95rem); /* Slightly increased base sec time font */
+      font-size: clamp(0.75rem, 2.3vw, 0.95rem);
       color:#888;
       margin-left: 10px;
       white-space: nowrap;
@@ -124,10 +126,10 @@
 </head>
 <body>
   <div class="container" id="mainContainer">
-    <div class="top-panel"> <!-- New wrapper for top elements -->
+    <div class="top-panel">
       <div id="totalTimeDisplay">00:00</div>
-      <div class="controls">
-        <button id="startPauseBtn">Start</button> <!-- Start/Pause on top -->
+      <div class="controls"> <!-- Buttons are now direct children for side-by-side layout -->
+        <button id="startPauseBtn">Start</button>
         <button id="resetBtn">Reset</button>
       </div>
     </div>
@@ -204,16 +206,21 @@
     }
 
     function updateBackground() {
+        // Clear previous state classes first
         mainC.classList.remove('running-state', 'paused-state');
-        // mainC.style.background = ''; // Not needed if classes define all states
+        // Remove inline style if you want classes to fully take over
+        // mainC.style.background = ''; 
 
         if (running) {
             mainC.classList.add('running-state');
         } else if (isPaused) {
             mainC.classList.add('paused-state');
         } else {
-            // Default background is set by .container in CSS if no state class applies
-            mainC.style.background = '#1a1a1a'; // Explicitly set default if needed
+            // When not running and not paused (i.e., idle/reset),
+            // rely on the .container's default background from CSS.
+            // If the default is #1a1a1a, ensure no other class is overriding it.
+            // Or, explicitly set it if needed for clarity:
+            mainC.style.background = '#1a1a1a'; 
         }
     }
 
@@ -255,7 +262,7 @@
       startPauseBtn.textContent = 'Start';
       Array.from(sectionListEl.children).forEach(li => li.classList.remove('active'));
       updateDisplay();
-      updateBackground();
+      updateBackground(); // This will set it to the default background
     }
 
     startPauseBtn.addEventListener('click', () => {
@@ -269,7 +276,7 @@
 
     // Initialization
     updateDisplay();
-    updateBackground();
+    updateBackground(); // Set initial background state
   </script>
 </body>
 </html>
