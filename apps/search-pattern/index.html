@@ -22,8 +22,8 @@
     }
     .container {
       position: relative; text-align: center;
-      padding: 10px 12px; /* Adjusted padding: more horizontal for top panel */
-      background: #1a1a1a; /* Default background */
+      padding: 10px 12px;
+      background: #1a1a1a; /* Default background when idle */
       border-radius: 12px;
       box-shadow: 0 0 20px rgba(0,0,0,0.9);
       width: 95vw;
@@ -32,50 +32,53 @@
       max-height: 800px;
       display: flex;
       flex-direction: column;
+      transition: background-color 0.3s ease; /* Smooth background transition */
     }
     /* State-specific backgrounds for the container */
-    .container.running-state { background: #3a0f6f; } /* Purple when running */
-    .container.paused-state { background: #d4a01a; } /* Gold when paused */
+    .container.running-state { background-color: #3a0f6f; } /* Purple when running */
+    .container.paused-state { background-color: #d4a01a; } /* Gold when paused */
 
     .top-panel {
       display: flex;
-      justify-content: space-between;
-      align-items: center; /* Key for vertical alignment */
+      justify-content: space-between; /* Timer left, Controls right */
+      align-items: center; /* Vertically align timer and button row */
       padding: 5px 0;
       margin-bottom: 10px;
       flex-shrink: 0;
     }
 
     #totalTimeDisplay {
-      font-size: clamp(2.8rem, 10vw, 4.5rem); /* Slightly adjusted font size for balance */
+      font-size: clamp(2.8rem, 10vw, 4.5rem);
       color: #e0e0e0;
       text-align: left;
       margin: 0;
-      line-height: 1; /* Ensure it doesn't take extra vertical space */
-      padding-left: 2px; /* Minimal left padding */
+      line-height: 1;
+      padding-left: 2px;
     }
 
     .controls {
-      display: flex; /* Default is row, so buttons are side-by-side */
-      align-items: center; /* Vertically center buttons within their container if they have different heights */
-      margin: 0;
-      padding-right: 2px; /* Minimal right padding */
+      display: flex; /* Buttons side-by-side */
+      align-items: center; /* Vertically center buttons if they differ in height */
     }
 
     .controls button {
       background: #282828;
       border: none;
       color: #c5c5c5;
-      padding: 10px 15px; /* Reverted to slightly larger padding */
-      margin-left: 8px; /* Space between buttons */
+      padding: 10px 15px;
       font-size: clamp(0.85rem, 2.8vw, 1rem);
       border-radius: 6px;
       cursor: pointer; transition: background .2s, transform .1s;
-      white-space: nowrap; /* Prevent button text from wrapping */
+      white-space: nowrap;
+      /* Ensure buttons stretch to match timer height if desired */
+      /* height: 100%; /* This might be too aggressive, padding usually controls height */
+      /* align-self: stretch; /* Alternative if .controls has a defined height */
     }
-    .controls button:first-child {
-        margin-left: 0; /* No left margin for the first button */
+    /* Spacing between buttons */
+    .controls button#startPauseBtn {
+      margin-right: 8px; /* Space between Start/Pause and Reset */
     }
+
     .controls button:hover { background: #383838; }
     .controls button:active { transform: scale(0.98); }
 
@@ -128,7 +131,8 @@
   <div class="container" id="mainContainer">
     <div class="top-panel">
       <div id="totalTimeDisplay">00:00</div>
-      <div class="controls"> <!-- Buttons are now direct children for side-by-side layout -->
+      <div class="controls">
+        <!-- Button order: Start/Pause on left, Reset on Right -->
         <button id="startPauseBtn">Start</button>
         <button id="resetBtn">Reset</button>
       </div>
@@ -206,23 +210,18 @@
     }
 
     function updateBackground() {
-        // Clear previous state classes first
         mainC.classList.remove('running-state', 'paused-state');
-        // Remove inline style if you want classes to fully take over
-        // mainC.style.background = ''; 
-
+        // The default background is set by .container's `background: #1a1a1a;`
+        // No need to set mainC.style.background here unless overriding the class
         if (running) {
             mainC.classList.add('running-state');
         } else if (isPaused) {
             mainC.classList.add('paused-state');
-        } else {
-            // When not running and not paused (i.e., idle/reset),
-            // rely on the .container's default background from CSS.
-            // If the default is #1a1a1a, ensure no other class is overriding it.
-            // Or, explicitly set it if needed for clarity:
-            mainC.style.background = '#1a1a1a'; 
         }
+        // When idle (not running, not paused), no extra class is added,
+        // so it defaults to .container's specified background.
     }
+
 
     function tick() {
       if (!running) return;
@@ -262,7 +261,7 @@
       startPauseBtn.textContent = 'Start';
       Array.from(sectionListEl.children).forEach(li => li.classList.remove('active'));
       updateDisplay();
-      updateBackground(); // This will set it to the default background
+      updateBackground();
     }
 
     startPauseBtn.addEventListener('click', () => {
@@ -276,7 +275,7 @@
 
     // Initialization
     updateDisplay();
-    updateBackground(); // Set initial background state
+    updateBackground(); // Set initial background state based on idle
   </script>
 </body>
 </html>
