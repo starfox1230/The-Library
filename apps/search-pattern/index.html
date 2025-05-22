@@ -6,95 +6,107 @@
   <title>Section Stopwatch</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; /* Make html and body take full available height */
+      overflow: hidden; /* Prevent double scrollbars if container manages its own scroll */
+    }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #0d0d0d;
       color: #c5c5c5;
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh;
-      overflow-y: auto;
+      display: flex;
+      align-items: center; /* Center container horizontally */
+      justify-content: center; /* Center container vertically */
+      padding: 15px; /* Padding around the container */
       user-select: none;
-      padding: 10px 0;
     }
     .container {
       position: relative; text-align: center;
-      padding: 10px;
-      background: #1a1a1a; /* Default background */
-      border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.9);
-      width: 320px;
-      max-width: 95vw;
+      padding: 15px;
+      background: #1a1a1a;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.9);
+
+      width: 90vw;       /* Take up 90% of viewport width */
+      max-width: 600px;  /* But not more than 600px wide */
+      height: 90vh;      /* Take up 90% of viewport height */
+      max-height: 800px; /* But not more than 800px tall */
+
+      display: flex;
+      flex-direction: column; /* Stack children vertically */
     }
     /* State-specific backgrounds for the container */
     .container.running-state { background: #3a0f6f; } /* Purple when running */
     .container.paused-state { background: #d4a01a; } /* Gold when paused */
 
-    #totalTimeDisplay { /* Renamed from timerDisplay for clarity */
-      font-size: 56px;
-      margin: 8px 0 12px 0;
+    #totalTimeDisplay {
+      font-size: clamp(2.5rem, 10vw, 4rem); /* Responsive font size */
+      margin: 10px 0 15px 0; /* Adjusted margin */
       color: #e0e0e0;
-      /* No cursor pointer needed as it won't toggle modes */
+      flex-shrink: 0; /* Prevent display from shrinking */
     }
 
     .controls {
-        margin-bottom: 12px;
+        margin-bottom: 15px; /* Adjusted margin */
+        flex-shrink: 0; /* Prevent controls from shrinking */
     }
 
     button {
       background: #282828;
       border: none;
       color: #c5c5c5;
-      padding: 10px 15px;
-      margin: 4px;
-      font-size: 15px;
-      border-radius: 6px;
+      padding: 12px 20px; /* Slightly larger buttons */
+      margin: 5px;
+      font-size: clamp(0.9rem, 3vw, 1.1rem); /* Responsive font size */
+      border-radius: 8px; /* Slightly larger radius */
       cursor: pointer; transition: background .2s, transform .1s;
     }
     button:hover { background: #383838; }
     button:active { transform: scale(0.98); }
 
-    #sectionList { /* Renamed from patternList */
+    #sectionList {
       list-style: none;
       padding: 0;
       margin-top: 0;
       display: block;
       text-align: left;
       border: 1px solid #2f2f2f;
-      border-radius: 5px;
-      max-height: calc(100vh - 220px); /* Adjust based on other elements' height */
-      overflow-y: auto; /* Allow scrolling if many sections */
+      border-radius: 8px; /* Match button radius */
+      overflow-y: auto; /* Allow scrolling for the list */
+      flex-grow: 1; /* Allow list to take available vertical space */
+      background-color: #161616; /* Slightly different background for the list area */
     }
     #sectionList li {
-      padding: 5px 8px; /* Slightly more vertical padding */
+      padding: 8px 12px; /* Adjusted padding */
       border-bottom: 1px solid #2f2f2f;
       cursor: pointer; display: flex;
       justify-content: space-between; align-items: center;
-      font-size: 12px; /* Slightly larger for section names */
+      font-size: clamp(0.75rem, 2.5vw, 1rem); /* Responsive font size */
       color: #b0b0b0;
+      transition: background-color 0.2s; /* Smooth transition for hover/active */
+    }
+    #sectionList li:hover {
+        background-color: #252525;
     }
     #sectionList li:last-child {
       border-bottom: none;
     }
     #sectionList li.active {
-      background: rgba(100, 60, 150, 0.4); /* Active section highlight, matches running color theme */
+      background: rgba(100, 60, 150, 0.5); /* Slightly more intense active highlight */
       color: #e0e0e0;
       font-weight: bold;
     }
     #sectionList li.active .sectionItemTime {
-        color: #f0f0f0; /* Brighter time for active section */
+        color: #f0f0f0;
     }
 
-    .sectionItemTime { /* Renamed from secTime */
-      font-size: 11px; /* Slightly larger */
+    .sectionItemTime {
+      font-size: clamp(0.7rem, 2.2vw, 0.9rem); /* Responsive font size */
       color:#888;
-      margin-left: 8px;
+      margin-left: 10px; /* Increased margin */
       white-space: nowrap;
-      font-weight: normal; /* Ensure non-active times are normal weight */
+      font-weight: normal;
     }
-
-    /* Animation styles - can be removed if not desired for stopwatch */
-    /* @keyframes smoothPulse { ... } */
-    /* .pulse{animation:smoothPulse 4s infinite linear;} */
-    /* .fast-pulse{animation:smoothPulse 1.5s infinite linear;} */
   </style>
 </head>
 <body>
@@ -114,6 +126,7 @@
       <li data-section="LN">LN <span class="sectionItemTime">00:00</span></li>
       <li data-section="Peritoneum">Peritoneum <span class="sectionItemTime">00:00</span></li>
       <li data-section="Liver">Liver <span class="sectionItemTime">00:00</span></li>
+      <li data-section="Adrenals">Adrenals <span class="sectionItemTime">00:00</span></li> <!-- Added Adrenals -->
       <li data-section="Kidneys">Kidneys <span class="sectionItemTime">00:00</span></li>
       <li data-section="Ureters">Ureters <span class="sectionItemTime">00:00</span></li>
       <li data-section="Bladder">Bladder <span class="sectionItemTime">00:00</span></li>
@@ -122,7 +135,6 @@
       <li data-section="Small bowel">Small bowel <span class="sectionItemTime">00:00</span></li>
       <li data-section="Peritoneum2">Peritoneum <span class="sectionItemTime">00:00</span></li>
     </ul>
-    <!-- Overlay HTML removed -->
   </div>
   <script>
     // State variables
@@ -146,24 +158,18 @@
       sectionTimes[sectionName] = 0; // Initialize time for each section to 0
 
       li.addEventListener('click', () => {
-        // console.log("Section item clicked:", sectionName, "| Running:", running);
-        // Allow changing section even if paused, but time only accrues if running.
-        
         if (currentSection === sectionName) {
           // Optional: Clicking active section again could deselect it
           // li.classList.remove('active');
           // currentSection = null;
         } else {
-          // Remove 'active' class from previously active section item
           const currentlyActiveLi = sectionListEl.querySelector('li.active');
           if (currentlyActiveLi) {
             currentlyActiveLi.classList.remove('active');
           }
-          // Add 'active' class to the newly clicked section item
           li.classList.add('active');
           currentSection = sectionName;
         }
-        // updateDisplay(); // Update display to show current section's time immediately if needed
       });
     });
 
@@ -189,7 +195,7 @@
 
     // Update container background based on state
     function updateBackground() {
-        mainC.classList.remove('running-state', 'paused-state'); // Clear previous state classes
+        mainC.classList.remove('running-state', 'paused-state');
         mainC.style.background = ''; // Reset to default CSS background for .container
 
         if (running) {
@@ -197,39 +203,34 @@
         } else if (isPaused) {
             mainC.classList.add('paused-state');
         }
-        // If not running and not paused (i.e., idle/reset), it uses the default #1a1a1a
     }
 
     // Main tick function for stopwatch
     function tick() {
-      if (!running) return; // Should not happen if interval is cleared properly
+      if (!running) return;
 
       stopwatchElapsed++;
       if (currentSection) {
         sectionTimes[currentSection]++;
       }
       updateDisplay();
-      // updateBackground() is not called here per tick; only on state change (start/pause/reset)
     }
 
     function start() {
-      // console.log("start() called. Running:", running, "isPaused:", isPaused);
       if (running) return;
 
-      clearInterval(stopwatchInterval); // Clear any existing interval
+      clearInterval(stopwatchInterval);
       running = true;
       isPaused = false;
       startPauseBtn.textContent = 'Pause';
       stopwatchInterval = setInterval(tick, 1000);
       updateBackground();
-      if (stopwatchElapsed === 0 && !currentSection) { // First start from reset
-        tick(); // Call tick once immediately for responsiveness
-      }
+      // Optionally call tick() once immediately if stopwatchElapsed is 0
+      // if (stopwatchElapsed === 0) tick();
     }
 
     function pause() {
-      // console.log("pause() called. Running:", running);
-      if (!running) return; // Can't pause if not running
+      if (!running) return;
 
       clearInterval(stopwatchInterval);
       running = false;
@@ -239,7 +240,6 @@
     }
 
     function reset() {
-      // console.log("reset() called.");
       clearInterval(stopwatchInterval);
       running = false;
       isPaused = false;
@@ -251,13 +251,12 @@
       startPauseBtn.textContent = 'Start';
       Array.from(sectionListEl.children).forEach(li => li.classList.remove('active'));
       
-      updateDisplay(); // Resets all times to 00:00
-      updateBackground(); // Resets background to default
+      updateDisplay();
+      updateBackground();
     }
 
     // Event Listeners for main controls
     startPauseBtn.addEventListener('click', () => {
-      // console.log("Start/Pause button clicked. Current state running:", running);
       if (running) {
         pause();
       } else {
@@ -267,8 +266,8 @@
     resetBtn.addEventListener('click', reset);
 
     // Initialization
-    updateDisplay();    // Initial display update (all zeros)
-    updateBackground(); // Initial background (idle state)
+    updateDisplay();
+    updateBackground();
 
     // console.log("Stopwatch script initialized.");
   </script>
