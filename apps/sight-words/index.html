@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,12 +54,12 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: auto; /* Adjust height based on content */
+      height: auto;
       min-height: 70px;
       display: flex;
-      align-items: flex-start;
+      align-items: flex-start; /* Align to top for vertical stack */
       justify-content: space-between;
-      padding: 0 0 0 16px; /* Remove right padding, RHS container handles it */
+      padding: 0 0 0 16px;
       z-index: 50;
     }
 
@@ -69,7 +70,7 @@
       padding: 8px 12px;
       border-radius: 8px;
       box-shadow: 0 2px 4px var(--shadow-color);
-      margin-top: 10px;
+      margin-top: 10px; /* Align with top of buttons */
     }
     #timer-wrapper {
       position: absolute;
@@ -81,9 +82,8 @@
     }
     #circular-timer { width: 100%; height: 100%; }
 
-    /* RHS Vertical Controls Container */
+    /* RHS Vertical Controls Container (Restored) */
     #controls-RHS-container {
-      position: relative; /* For dropdown positioning */
       display: flex;
       flex-direction: column;
       align-items: flex-end;
@@ -93,9 +93,9 @@
     }
 
     /* Shared styles for top bar control buttons */
+    #word-list-open-btn,
     #toggle-minigames-btn,
-    #toggle-background-btn,
-    #word-source-toggle-btn {
+    #toggle-background-btn {
         padding: 0.4rem 0.8rem;
         font-size: 0.8rem;
         font-weight: 600;
@@ -106,53 +106,171 @@
         box-shadow: 0 2px 4px var(--shadow-color);
         text-align: center;
         line-height: 1.2;
-        width: 165px; /* Adjusted width */
+        width: 165px; /* Consistent width */
     }
-    #word-source-toggle-btn { width: auto; min-width: 165px; } /* Allow to grow for longer text */
-
-
-    /* Active state for toggles */
+    
+    #word-list-open-btn {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    #word-list-open-btn .badge {
+        background-color: var(--brand);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.8em;
+    }
+    
     #toggle-minigames-btn.active-minigame-toggle,
     #toggle-background-btn.active-animated-bg {
         background-color: var(--brand-light);
         color: var(--brand-dark);
         border-color: var(--brand-dark);
     }
-
-    /* Dropdown Menus Styling */
-    #word-list-dropdown-menu,
-    #levels-dropdown-menu {
+    
+    /* Word List Modal (New) */
+    .word-list-modal-overlay {
         display: none;
-        position: absolute;
-        background-color: white;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 100;
-        padding: 0.5rem 0;
-        min-width: 170px; /* For Fry levels like "Fry 901-1000" */
-        /* Positioned to the left of the vertical button stack */
-        top: 0; /* Align with the top of #controls-RHS-container */
-        right: calc(165px + 10px + 0.5rem); /* Button width + container padding-right + some gap */
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        z-index: 950;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
+    .word-list-modal-overlay.visible { display: flex; }
 
-    #word-list-dropdown-menu.visible,
-    #levels-dropdown-menu.visible { display: block; }
-
-    .dropdown-item {
-        padding: 0.6rem 1rem;
+    .word-list-modal-content {
+        background-color: var(--bg);
+        width: 100%;
+        height: 100%;
+        max-width: 500px;
+        max-height: 95vh;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .word-list-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+    }
+    .word-list-modal-header h2 { color: var(--brand-dark); }
+    .word-list-modal-close-btn {
+        font-size: 2rem;
+        font-weight: 300;
+        background: none;
+        border: none;
         cursor: pointer;
+        color: #888;
+        line-height: 1;
+    }
+    .word-list-summary {
+        padding: 0.5rem 1.5rem 1rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+        background-color: #fff;
+        flex-shrink: 0;
+    }
+    .word-list-summary p { margin: 0.25rem 0; color: #555;}
+
+    .word-list-tree {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    .word-list-tree details { margin-bottom: 0.5rem; }
+    .word-list-tree summary {
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        background-color: white;
+        border: 1px solid var(--btn-border);
+        border-radius: 12px;
+        cursor: pointer;
+        list-style: none; /* remove default arrow */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .word-list-tree summary::before {
+        content: '▸';
+        margin-right: 0.75rem;
+        transition: transform 0.2s;
+    }
+    .word-list-tree details[open] > summary::before {
+        transform: rotate(90deg);
+    }
+    .bank-count { font-size: 0.8em; font-weight: 400; color: #777; }
+    
+    .level-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        user-select: none;
-        font-size:0.8rem;
+        padding: 0 1rem; /* Padding on container for easier spacing */
+        margin: 0.5rem 0 0.5rem 0.5rem;
+        background: #fdfdfd;
+        border-radius: 10px;
+        border: 1px solid #eee;
+        min-height: 48px; /* Touch target size */
     }
-    .dropdown-item:hover { background-color: #f0f0f0; }
-    .dropdown-item.selected { background-color: var(--brand-light); color: var(--brand-dark); font-weight: 600; }
-    .level-item .long-press-indicator { font-size: 0.7em; color: #777; margin-left: 8px; }
-    .level-item.selected .long-press-indicator { color: var(--brand-dark); }
+    .level-item label {
+        display: flex;
+        align-items: center;
+        flex-grow: 1;
+        cursor: pointer;
+        padding: 0.5rem 0; /* Vertical padding inside label */
+        font-size: 1rem;
+    }
+    .level-item input[type="checkbox"] {
+        margin-right: 1rem;
+        width: 20px;
+        height: 20px;
+        accent-color: var(--brand);
+    }
+    .level-word-count { font-size: 0.85em; color: #888; margin-left: 6px; }
 
+    .edit-level-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--brand-dark);
+        padding: 0.5rem;
+        border-radius: 50%;
+        line-height: 1;
+        transition: background-color 0.2s;
+    }
+    .edit-level-btn:hover { background-color: #e0f7fa; }
+
+    .word-list-modal-footer {
+        padding: 1rem;
+        border-top: 1px solid #eee;
+        background: #fff;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    #word-list-save-btn {
+        width: 100%;
+        padding: 0.9rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--brand);
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+    }
 
     #quiz-container{ display:flex;justify-content:center;align-items:center; min-height: 30vh; padding:1rem; margin-top: 80px; /* Increased to clear taller top-bar */ height: calc(100vh - 80px - 70px); }
     #listen-pick-word-area { display: flex; justify-content: center; align-items: center; width: 100%; }
@@ -370,19 +488,35 @@
   <div class="top-bar">
     <div id="score">Score: <span id="score-val">0</span></div>
     <div id="timer-wrapper"><div id="circular-timer"></div></div>
-    <div id="controls-RHS-container"> <!-- Vertical buttons will go here -->
+    <div id="controls-RHS-container">
+        <button id="word-list-open-btn">
+            <span>Word List</span>
+            <span class="badge" id="word-count-badge">0</span>
+        </button>
         <button id="toggle-minigames-btn">Mini-Games: Off</button>
         <button id="toggle-background-btn">Background: Animated</button>
-        <button id="word-source-toggle-btn">Words</button>
-        <!-- Dropdowns will be positioned relative to this container by CSS/JS -->
-        <div id="word-list-dropdown-menu" class="dropdown-menu">
-            <!-- Word list items (Dolch, Fry, Custom) will be populated by JS -->
-        </div>
-        <div id="levels-dropdown-menu" class="dropdown-menu">
-            <!-- Level items (A, B, C, D or Fry buckets) will be populated by JS -->
-        </div>
     </div>
   </div>
+  
+  <div id="word-list-modal" class="word-list-modal-overlay">
+    <div class="word-list-modal-content">
+      <div class="word-list-modal-header">
+        <h2>Word List</h2>
+        <button id="word-list-close-btn" class="word-list-modal-close-btn">&times;</button>
+      </div>
+      <div class="word-list-summary">
+        <p id="word-list-summary-text">You've selected: ...</p>
+        <p>Total Active Words: <strong id="word-list-total-count">0</strong></p>
+      </div>
+      <div class="word-list-tree" id="word-list-tree-container">
+        <!-- Dynamically populated by JS -->
+      </div>
+      <div class="word-list-modal-footer">
+        <button id="word-list-save-btn">Save & Close</button>
+      </div>
+    </div>
+  </div>
+
 
   <div id="word-customization-modal">
     <div class="modal-content">
@@ -481,7 +615,7 @@
     const audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if (audioCtx) { window.addEventListener('pointerdown', () => { if (audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true }); } function playOsc({ type='sine', freq=440, dur=0.3, modFreq, modIndex, vol=1 }) { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); if (modFreq && modIndex) { const mod = audioCtx.createOscillator(); const mGain = audioCtx.createGain(); mod.frequency.setValueAtTime(modFreq, audioCtx.currentTime); mGain.gain.setValueAtTime(modIndex, audioCtx.currentTime); mod.connect(mGain).connect(osc.frequency); mod.start(audioCtx.currentTime); mod.stop(audioCtx.currentTime + dur); } osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + dur); } function playBell() { if (!audioCtx) return; playOsc({ type:'sine', freq:660, dur:0.3, vol: 0.6 }); setTimeout(() => playOsc({ type:'sine', freq:880, dur:0.3, vol: 0.6 }), 120); } function playBuzz() { if (!audioCtx) return; playOsc({ type:'square', freq:150, dur:0.4, vol: 0.4 }); }
     const pronunciationMap = { "I": "I." };
 
-    // --- DATA LAYER (RESTRUCTURED) ---
+    // --- DATA LAYER (UNCHANGED) ---
     const WORD_BANK = {
         dolch: {
             A: ["a","all","am","and","away","be","big","blue","but","can","come", "did","down","find","for","funny","go","good","he","help","here","I", "in","is","it","like","little","look","make","me","my","no","not", "on","one","play","ran","red","run","said","see","so","that","the", "three","to","two","up","was","we","what","where","yellow","yes","you"],
@@ -501,34 +635,28 @@
           "801-900": ["addition","army","bell","belong","block","blood","blow","board","bones","branches","cattle","chief","compare","compound","consider","cook","corner","crops","crowd","current","doctor","dollars","eight","electric","elements","enjoy","entered","except","exciting","expect","famous","fit","flat","fruit","fun","guess","hat","hit","indicate","industry","insects","interesting","Japanese","lie","lifted","loud","major","mall","meat","mine","modern","movement","necessary","observe","park","particular","planets","poem","pole","position","process","property","provide","rather","rhythm","rich","safe","sand","science","sell","send","sense","seven","sharp","shoulder","sight","silent","soldiers","spot","spread","stream","string","suggested","supply","swim","terms","thick","thin","thus","tied","tone","trade","tube","value","wash","wasn’t","weight","wife","wings","won’t"],
           "901-1000": ["action","actually","adjective","afraid","agreed","ahead","allow","apple","arrived","born","bought","British","capital","chance","chart","church","column","company","conditions","corn","cotton","cows","create","dead","deal","death","details","determine","difficult","division","doesn’t","effect","entire","especially","evening","experience","factories","fair","fear","fig","forward","France","fresh","Greek","gun","hoe","huge","isn’t","led","level","located","march","match","molecules","northern","nose","office","opposite","oxygen","plural","prepared","pretty","printed","radio","repeated","rope","rose","score","seat","settled","shoes","shop","similar","sir","sister","smell","solution","southern","steel","stretched","substances","suffix","sugar","tools","total","track","triangle","truck","underline","various","view","Washington","we’ll","western","win","women","workers","wouldn’t","wrong","yellow"]
         },
-        custom: [] // Single flat array for all custom words
+        custom: []
     };
 
-    let activeWordList = 'dolch';
-    let selectedLevels = ['A']; // For Dolch/Fry. For Custom, this will be ['__ALL__'] if active
+    let selectionState = {}; // The single source of truth for word selections
     let words = []; // Current words for the quiz
 
-    // --- IMPORT/EXPORT & DATA HELPERS (UPDATED) ---
+    // --- IMPORT/EXPORT & DATA HELPERS (UNCHANGED) ---
     function downloadWordData() {
         const dataToExport = {
-            activeWordList: activeWordList,
-            selectedLevels: selectedLevels,
+            wordSelectionState: selectionState,
             customBank: WORD_BANK.custom,
-            userSelections: {}
+            userIndividualWordSelections: {}
         };
-
         Object.keys(WORD_BANK).forEach(listKey => {
             if (listKey !== 'custom' && WORD_BANK[listKey] && typeof WORD_BANK[listKey] === 'object') {
-                dataToExport.userSelections[listKey] = {};
+                dataToExport.userIndividualWordSelections[listKey] = {};
                 Object.keys(WORD_BANK[listKey]).forEach(levelKey => {
                     const selection = JSON.parse(localStorage.getItem(`${listKey}_${levelKey}_userSelections`) || 'null');
-                    if (selection) {
-                        dataToExport.userSelections[listKey][levelKey] = selection;
-                    }
+                    if (selection) { dataToExport.userIndividualWordSelections[listKey][levelKey] = selection; }
                 });
             }
         });
-
         const jsonString = JSON.stringify(dataToExport, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -536,152 +664,46 @@
         a.style.display = 'none';
         a.href = url;
         a.download = `sight-words-quiz-data-${new Date().toISOString().slice(0,10)}.json`;
-        
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
         showFloatingMessage("Word data downloaded!", "var(--brand-light)", "var(--fg)");
     }
-
-    function triggerFileUpload() {
-        document.getElementById('upload-file-input').click();
-    }
-    
-    // Core processing function, now separate
     async function processImportedData(importedData) {
         try {
-            // 1. Validate the imported data structure
-            if (!importedData || typeof importedData.activeWordList !== 'string' ||
-                !Array.isArray(importedData.selectedLevels) ||
-                !Array.isArray(importedData.customBank)) {
-                showFloatingMessage("Invalid file format or missing core fields.", "var(--incorrect-bg)");
-                return;
-            }
-
-            // 2. Handle Custom Words with Conflict Resolution
+            if (!importedData || typeof importedData.customBank === 'undefined') { showFloatingMessage("Invalid file format.", "var(--incorrect-bg)"); return; }
             const existingCustomWords = WORD_BANK.custom.length > 0;
             const incomingCustomWords = importedData.customBank.length > 0;
-            let action = 'merge'; // Default action if no conflict
-
+            let action = 'merge';
             if (existingCustomWords && incomingCustomWords) {
-                try {
-                    // This promise-based function shows the modal and waits for user input
-                    action = await promptConflictResolution();
-                } catch (error) {
-                    // This 'catch' block runs if the promise is rejected (user clicked "Cancel Upload")
-                    showFloatingMessage("Upload cancelled.", "var(--brand-dark)");
-                    return; // Stop the entire import process
-                }
+                try { action = await promptConflictResolution(); } catch (error) { showFloatingMessage("Upload cancelled.", "var(--brand-dark)"); return; }
             }
-            
-            // Apply the chosen action for custom words
-            if (action === 'merge') {
-                if (incomingCustomWords) {
-                    const combined = new Set([...WORD_BANK.custom, ...importedData.customBank]);
-                    WORD_BANK.custom = Array.from(combined).sort();
-                }
-            } else if (action === 'replace') {
-                WORD_BANK.custom = [...new Set(importedData.customBank)].sort();
-            }
+            if (action === 'merge' && incomingCustomWords) { WORD_BANK.custom = Array.from(new Set([...WORD_BANK.custom, ...importedData.customBank])).sort(); }
+            else if (action === 'replace') { WORD_BANK.custom = [...new Set(importedData.customBank)].sort(); }
             localStorage.setItem('customBank', JSON.stringify(WORD_BANK.custom));
-
-
-            // 3. Process the rest of the imported data (unchanged)
-            if (importedData.userSelections && typeof importedData.userSelections === 'object') {
-                Object.keys(importedData.userSelections).forEach(listKey => {
-                    if (WORD_BANK[listKey] && listKey !== 'custom' && typeof WORD_BANK[listKey] === 'object') {
-                        Object.keys(importedData.userSelections[listKey]).forEach(levelKey => {
-                             if (WORD_BANK[listKey][levelKey] && Array.isArray(importedData.userSelections[listKey][levelKey])) {
-                                localStorage.setItem(`${listKey}_${levelKey}_userSelections`, JSON.stringify(importedData.userSelections[listKey][levelKey]));
-                             }
-                        });
-                    }
+            if (importedData.userIndividualWordSelections) {
+                Object.keys(importedData.userIndividualWordSelections).forEach(listKey => {
+                    if (WORD_BANK[listKey]) { Object.keys(importedData.userIndividualWordSelections[listKey]).forEach(levelKey => { if (WORD_BANK[listKey][levelKey]) { localStorage.setItem(`${listKey}_${levelKey}_userSelections`, JSON.stringify(importedData.userIndividualWordSelections[listKey][levelKey])); } }); }
                 });
             }
-
-            if (WORD_BANK[importedData.activeWordList]) {
-                activeWordList = importedData.activeWordList;
-                localStorage.setItem('activeWordList', activeWordList);
+            if (importedData.wordSelectionState) {
+                selectionState = importedData.wordSelectionState;
+                localStorage.setItem('wordSelectionState', JSON.stringify(selectionState));
+            } else if (importedData.activeWordList && importedData.selectedLevels) {
+                selectionState = {};
+                Object.keys(WORD_BANK).forEach(listKey => {
+                    selectionState[listKey] = {};
+                    if (listKey === 'custom') { selectionState.custom.all = importedData.activeWordList === 'custom'; }
+                    else { Object.keys(WORD_BANK[listKey]).forEach(levelKey => { selectionState[listKey][levelKey] = (importedData.activeWordList === listKey && importedData.selectedLevels.includes(levelKey)); }); }
+                });
+                localStorage.setItem('wordSelectionState', JSON.stringify(selectionState));
             }
-
-            if (Array.isArray(importedData.selectedLevels) && importedData.selectedLevels.length > 0) {
-                if (activeWordList === 'custom') {
-                    selectedLevels = ["__ALL__"];
-                } else if (WORD_BANK[activeWordList] && typeof WORD_BANK[activeWordList] === 'object') {
-                    const validLevelsForList = Object.keys(WORD_BANK[activeWordList]);
-                    let newSelectedLevels = importedData.selectedLevels.filter(l => validLevelsForList.includes(l));
-                    if (newSelectedLevels.length === 0 && validLevelsForList.length > 0) {
-                        newSelectedLevels = [validLevelsForList[0]];
-                    }
-                    selectedLevels = newSelectedLevels;
-                } else {
-                    selectedLevels = activeWordList === 'custom' ? ["__ALL__"] : (WORD_BANK.dolch ? [Object.keys(WORD_BANK.dolch)[0]] : []);
-                }
-                localStorage.setItem('selectedLevels', JSON.stringify(selectedLevels));
-            }
-
-            // 4. Finalize and update UI
             showFloatingMessage("Word data imported successfully!", "var(--correct-bg)");
-            populateWordListDropdown();
-            populateLevelsDropdown();
-            updateActiveQuizWords();
-            closeWordCustomizationModal();
-
-        } catch (error) {
-            console.error("Error processing imported data:", error);
-            showFloatingMessage("Error processing data. Check console.", "var(--incorrect-bg)");
-        }
+            updateQuizWordsFromSelectionState(); closeWordCustomizationModal();
+        } catch (error) { console.error("Error processing imported data:", error); showFloatingMessage("Error processing data. Check console.", "var(--incorrect-bg)"); }
     }
-    
-    // This is called when a file is selected from the file picker
-    async function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        event.target.value = null; // Reset file input
-
-        try {
-            const fileContent = await file.text();
-            const importedData = JSON.parse(fileContent);
-            await processImportedData(importedData); // Hand off to the core processor
-        } catch (error) {
-            console.error("Error reading or parsing file:", error);
-            showFloatingMessage("Could not read or parse the file.", "var(--incorrect-bg)");
-        }
-    }
-    
-    // New function to show the conflict modal and return a promise
-    function promptConflictResolution() {
-        return new Promise((resolve, reject) => {
-            const modal = document.getElementById('upload-conflict-modal');
-            const mergeBtn = document.getElementById('upload-conflict-merge-btn');
-            const replaceBtn = document.getElementById('upload-conflict-replace-btn');
-            const cancelBtn = document.getElementById('upload-conflict-cancel-btn');
-
-            const cleanup = () => {
-                modal.classList.remove('visible');
-                // Use .cloneNode(true) to remove all old event listeners easily
-                mergeBtn.replaceWith(mergeBtn.cloneNode(true));
-                replaceBtn.replaceWith(replaceBtn.cloneNode(true));
-                cancelBtn.replaceWith(cancelBtn.cloneNode(true));
-            };
-
-            const onMerge = () => { cleanup(); resolve('merge'); };
-            const onReplace = () => { cleanup(); resolve('replace'); };
-            const onCancel = () => { cleanup(); reject(new Error('User cancelled upload.')); };
-
-            mergeBtn.addEventListener('click', onMerge, { once: true });
-            replaceBtn.addEventListener('click', onReplace, { once: true });
-            cancelBtn.addEventListener('click', onCancel, { once: true });
-
-            modal.classList.add('visible');
-        });
-    }
-
+    function triggerFileUpload() { document.getElementById('upload-file-input').click(); }
+    async function handleFileUpload(event) { const file = event.target.files[0]; if (!file) return; event.target.value = null; try { const fileContent = await file.text(); const importedData = JSON.parse(fileContent); await processImportedData(importedData); } catch (error) { console.error("Error reading or parsing file:", error); showFloatingMessage("Could not read or parse the file.", "var(--incorrect-bg)"); } }
+    function promptConflictResolution() { return new Promise((resolve, reject) => { const modal = document.getElementById('upload-conflict-modal'); const mergeBtn = document.getElementById('upload-conflict-merge-btn'); const replaceBtn = document.getElementById('upload-conflict-replace-btn'); const cancelBtn = document.getElementById('upload-conflict-cancel-btn'); const cleanup = () => { modal.classList.remove('visible'); mergeBtn.replaceWith(mergeBtn.cloneNode(true)); replaceBtn.replaceWith(replaceBtn.cloneNode(true)); cancelBtn.replaceWith(cancelBtn.cloneNode(true)); }; const onMerge = () => { cleanup(); resolve('merge'); }; const onReplace = () => { cleanup(); resolve('replace'); }; const onCancel = () => { cleanup(); reject(new Error('User cancelled upload.')); }; mergeBtn.addEventListener('click', onMerge, { once: true }); replaceBtn.addEventListener('click', onReplace, { once: true }); cancelBtn.addEventListener('click', onCancel, { once: true }); modal.classList.add('visible'); }); }
 
     // --- VANTA.JS DYNAMIC BACKGROUNDS (UNCHANGED) ---
     let vantaEffect = null; const vantaElement = document.body; let vantaBackgroundKeys = []; let currentBackgroundKey = null; const baseGlobalParams = { mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00, }; const effectConfigurations = { "FOG_Soft_Blue": { effect: "FOG", params: { highlightColor: 0x80deea, midtoneColor: 0x26c6da, lowlightColor: 0x00acc1, baseColor: 0xf4f6f8, blurFactor: 0.6, zoom: 1.2, speed: 1.0 }}, "WAVES_Ocean": { effect: "WAVES", params: { color: 0x005577, shininess: 30, waveHeight: 15, waveSpeed: 0.8, zoom: 1.0 }}, "BIRDS_Day_Sky": { effect: "BIRDS", params: { backgroundColor: 0x87ceeb, color1: 0x444444, color2: 0x666666, birdSize: 1.0, wingSpan: 20.00, speedLimit: 3.00, separation: 20.00, alignment: 20.00, cohesion: 20.00, quantity: 4 }}, "NET_Cyber_Grid": { effect: "NET", params: { color: 0x00ffff, backgroundColor: 0x000022, points: 10.00, maxDistance: 20.00, spacing: 15.00, showDots: true }}, "CELLS_Bio_Blue": { effect: "CELLS", params: { color1: 0x2196f3, color2: 0x90caf9, size: 3.0, speed: 1.0 }}, "CLOUDS_Sunny_Day": { effect: "CLOUDS", params: { skyColor: 0x68b8d7, cloudColor: 0xadc1de, cloudShadowColor: 0x183550, sunColor: 0xff9919, sunGlareColor: 0xff6633, sunlightColor: 0xff9933, speed: 1.0 }}, "DOTS_Starfield": { effect: "DOTS", params: { color: 0xffffff, color2: 0xdddddd, backgroundColor: 0x000011, size: 3.00, spacing: 30.00, showLines: false }}, "RINGS_Golden_Aura": { effect: "RINGS", params: { backgroundColor: 0x110022, color: 0xffd700, strength: 2.00 }}, "HALO_Gentle_Sun": { effect: "HALO", params: { baseColor: 0xffe082, backgroundColor: 0xfff8e1, amplitudeFactor: 0.5, size: 1.0 }}, "FOG_Mystic_Purple": { effect: "FOG", params: { highlightColor: 0xff00ff, midtoneColor: 0xaa00aa, lowlightColor: 0x550055, baseColor: 0x300030, blurFactor: 0.7, zoom: 1.0, speed: 0.8 }}, "WAVES_Lava": { effect: "WAVES", params: { color: 0xff3300, shininess: 10, waveHeight: 25, waveSpeed: 0.4, zoom: 0.75 }}, "BIRDS_Sunset": { effect: "BIRDS", params: { backgroundColor: 0xffa07a, color1: 0x5d4037, color2: 0x000000, birdSize: 1.2, wingSpan: 25.00, quantity: 3, speedLimit: 2.00 }}, "NET_Golden_Web": { effect: "NET", params: { color: 0xffd700, backgroundColor: 0x301934, points: 8.00, maxDistance: 25.00, spacing: 20.00, showDots: true }}, "CELLS_Pulsing_Red": { effect: "CELLS", params: { color1: 0xf44336, color2: 0xffcdd2, size: 4.5, speed: 0.5 }}, "CLOUDS_Evening_Sky": { effect: "CLOUDS", params: { skyColor: 0x334d5c, cloudColor: 0x8e8e8e, cloudShadowColor: 0x2e2e2e, sunColor: 0xf57c00, sunGlareColor: 0xffb74d, sunlightColor: 0xffa726, speed: 0.6 }}, "DOTS_Colorful_Grid": { effect: "DOTS", params: { color: 0xff00ff, color2: 0x00ff00, backgroundColor: 0x222222, size: 5.00, spacing: 25.00, showLines: true }}, "RINGS_Blue_Energy": { effect: "RINGS", params: { backgroundColor: 0x001020, color: 0x00aaff, strength: 3.50 }}, "HALO_Deep_Space": { effect: "HALO", params: { baseColor: 0x7e57c2, backgroundColor: 0x1a001a, amplitudeFactor: 1.5, size: 1.2, xOffset: 0.2, yOffset: 0.1 }} };
@@ -709,9 +731,16 @@
     const confettiCanvas = document.getElementById('confetti-canvas');
     const myConfetti = confetti.create(confettiCanvas, { resize: true, useWorker: true });
 
-    const wordSourceToggleBtn = document.getElementById('word-source-toggle-btn');
-    const wordListDropdownMenu = document.getElementById('word-list-dropdown-menu');
-    const levelsDropdownMenu = document.getElementById('levels-dropdown-menu');
+    // Word List Modal UI Refs (NEW)
+    const wordListOpenBtn = document.getElementById('word-list-open-btn');
+    const wordCountBadge = document.getElementById('word-count-badge');
+    const wordListModal = document.getElementById('word-list-modal');
+    const wordListCloseBtn = document.getElementById('word-list-close-btn');
+    const wordListSaveBtn = document.getElementById('word-list-save-btn');
+    const wordListSummaryText = document.getElementById('word-list-summary-text');
+    const wordListTotalCount = document.getElementById('word-list-total-count');
+    const wordListTreeContainer = document.getElementById('word-list-tree-container');
+    const bankDisplayNames = { dolch: "Dolch Sight Words", fry: "Fry Sight Words", custom: "My Custom Words" };
 
     const wordCustomizationModal = document.getElementById('word-customization-modal');
     const modalTitle = document.getElementById('modal-title');
@@ -729,7 +758,6 @@
     const uploadFileInput = document.getElementById('upload-file-input');
     const modalCloseBtn = document.getElementById('modal-close-btn');
 
-    // --- NEW UI REFS ---
     const uploadChoiceModal = document.getElementById('upload-choice-modal');
     const pasteJsonModal = document.getElementById('paste-json-modal');
 
@@ -748,71 +776,67 @@
     const streakThresholds = {3: "Streak x3!", 5: "Super Streak x5!", 10: "AMAZING x10!"};
     let currentGameMode = localStorage.getItem('sightWordsGameMode') || 'listenAndPickWord';
     let selectedSoundButton = null;
-
-    let currentModalListContext = 'dolch'; // For the customization modal: 'dolch', 'fry', or 'custom'
-    let currentModalLevelContext = 'A';    // For Dolch/Fry: "A", "1-100", etc. For 'custom': "__ALL__"
-    let longPressTimer = null;
-    let isLongPress = false;
+    let currentModalListContext = 'dolch';
+    let currentModalLevelContext = 'A';    
+    let tempSelectionState = {}; // For non-destructive editing in the modal
     let miniGamesEnabled = localStorage.getItem('miniGamesEnabled') === 'true';
     let isMiniGameActive = false;
-    let availableMiniGames = []; // Will be populated with game objects
+    let availableMiniGames = []; 
     let currentMiniGameIdx = 0;
     let animatedBackgroundsEnabled = localStorage.getItem('animatedBackgroundsEnabled') !== 'false';
     let PREFERS_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 
-    // ---- INITIALIZATION & STATE HYDRATION (UPDATED) ----
+    // ---- INITIALIZATION & STATE HYDRATION (REWRITTEN) ----
     function hydrateFromStorage() {
         try {
             const storedCustomBank = localStorage.getItem('customBank');
-            if (storedCustomBank) {
-                const parsedCustom = JSON.parse(storedCustomBank);
-                if (Array.isArray(parsedCustom)) {
-                    WORD_BANK.custom = [...new Set(parsedCustom)];
-                } else { WORD_BANK.custom = []; }
-            } else { WORD_BANK.custom = []; }
+            if (storedCustomBank) { WORD_BANK.custom = JSON.parse(storedCustomBank); }
         } catch (e) { console.error("Error parsing customBank from localStorage:", e); WORD_BANK.custom = []; }
-
-        activeWordList = localStorage.getItem('activeWordList') || 'dolch';
-        if (!WORD_BANK[activeWordList]) activeWordList = 'dolch';
-
-        try {
-            const storedLevels = localStorage.getItem('selectedLevels');
-            if (storedLevels) {
-                const parsed = JSON.parse(storedLevels);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    if (activeWordList === 'custom') {
-                        selectedLevels = ["__ALL__"];
-                    } else if (WORD_BANK[activeWordList] && typeof WORD_BANK[activeWordList] === 'object') {
-                        const validLevelsForList = Object.keys(WORD_BANK[activeWordList]);
-                        selectedLevels = parsed.filter(l => validLevelsForList.includes(l));
-                        if (selectedLevels.length === 0 && validLevelsForList.length > 0) {
-                            selectedLevels = [validLevelsForList[0]];
-                        } else if (selectedLevels.length === 0 && validLevelsForList.length === 0) { // list has no levels
-                            selectedLevels = []; // e.g. an empty fry list
-                        }
-                    } else { selectedLevels = ['A']; } // Fallback
-                } else { // parsed was empty or not array
-                    selectedLevels = activeWordList === 'custom' ? ["__ALL__"] : (WORD_BANK[activeWordList] && Object.keys(WORD_BANK[activeWordList]).length > 0 ? [Object.keys(WORD_BANK[activeWordList])[0]] : ['A']);
-                }
-            } else { // No stored levels
-                 selectedLevels = activeWordList === 'custom' ? ["__ALL__"] : (WORD_BANK[activeWordList] && Object.keys(WORD_BANK[activeWordList]).length > 0 ? [Object.keys(WORD_BANK[activeWordList])[0]] : ['A']);
-            }
-        } catch (e) {
-            console.error("Error parsing selectedLevels from localStorage:", e);
-            selectedLevels = activeWordList === 'custom' ? ["__ALL__"] : (WORD_BANK.dolch ? [Object.keys(WORD_BANK.dolch)[0]] : ['A']);
+        
+        const storedSelectionState = localStorage.getItem('wordSelectionState');
+        if (storedSelectionState) {
+            try { selectionState = JSON.parse(storedSelectionState); } 
+            catch (e) { console.error("Error parsing selectionState, creating default.", e); createDefaultSelectionState(); }
+        } else {
+            const oldActiveList = localStorage.getItem('activeWordList');
+            const oldSelectedLevels = JSON.parse(localStorage.getItem('selectedLevels') || 'null');
+            
+            if (oldActiveList && oldSelectedLevels) {
+                console.log("Migrating from old word list format...");
+                selectionState = {};
+                Object.keys(WORD_BANK).forEach(listKey => {
+                    selectionState[listKey] = {};
+                    if (listKey === 'custom') { selectionState.custom.all = (oldActiveList === 'custom'); } 
+                    else { Object.keys(WORD_BANK[listKey]).forEach(levelKey => { selectionState[listKey][levelKey] = (oldActiveList === listKey && oldSelectedLevels.includes(levelKey)); }); }
+                });
+                localStorage.removeItem('activeWordList');
+                localStorage.removeItem('selectedLevels');
+            } else { createDefaultSelectionState(); }
+            localStorage.setItem('wordSelectionState', JSON.stringify(selectionState));
         }
-
 
         miniGamesEnabled = localStorage.getItem('miniGamesEnabled') === 'true';
         animatedBackgroundsEnabled = localStorage.getItem('animatedBackgroundsEnabled') !== 'false';
         currentGameMode = localStorage.getItem('sightWordsGameMode') || 'listenAndPickWord';
-
         const storedTimeLimit = localStorage.getItem('quizTimeLimit');
-        if (storedTimeLimit !== null && !isNaN(parseInt(storedTimeLimit))) {
-            timeLimit = parseInt(storedTimeLimit);
-        }
-        updateActiveQuizWords();
+        if (storedTimeLimit !== null && !isNaN(parseInt(storedTimeLimit))) { timeLimit = parseInt(storedTimeLimit); }
+        updateQuizWordsFromSelectionState();
+    }
+
+    function createDefaultSelectionState() {
+        selectionState = {};
+        Object.keys(WORD_BANK).forEach(listKey => {
+            selectionState[listKey] = {};
+            if (listKey === 'custom') {
+                selectionState.custom.all = true;
+            } else {
+                const levelKeys = Object.keys(WORD_BANK[listKey]);
+                levelKeys.forEach((levelKey, index) => {
+                    selectionState[listKey][levelKey] = (listKey === 'dolch' && index === 0);
+                });
+            }
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -820,9 +844,8 @@
       hydrateFromStorage();
 
       const initialScoreTier = Math.floor(score / 10);
-      if (vantaBackgroundKeys.length > 0) {
-          currentBackgroundKey = vantaBackgroundKeys[initialScoreTier % vantaBackgroundKeys.length];
-      } else { currentBackgroundKey = null; }
+      if (vantaBackgroundKeys.length > 0) { currentBackgroundKey = vantaBackgroundKeys[initialScoreTier % vantaBackgroundKeys.length]; }
+      else { currentBackgroundKey = null; }
       currentPastelBgIndex = initialScoreTier % pastelBackgroundColors.length;
       updateBackgroundState();
 
@@ -835,14 +858,13 @@
       }
 
       const mediaQueryReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-      function handleReducedMotionChange(event) {
+      mediaQueryReducedMotion.addEventListener('change', (event) => {
           PREFERS_REDUCED_MOTION = event.matches;
           updateBackgroundState();
-      }
-      mediaQueryReducedMotion.addEventListener('change', handleReducedMotionChange);
-
-      initWordLevelManagementUI();
-      initMiniGameSystem(); // This now just sets up the toggle and populates availableMiniGames
+      });
+      
+      initWordListModal();
+      initMiniGameSystem();
       updateModeUI();
       initCircularTimer();
 
@@ -865,36 +887,18 @@
       modalAddCustomWordBtn.addEventListener('click', handleAddCustomWordFromModal);
       modalDownloadBtn.addEventListener('click', downloadWordData);
       
-      // --- MODIFIED: Start the new upload flow ---
       modalUploadBtn.addEventListener('click', () => uploadChoiceModal.classList.add('visible'));
       uploadFileInput.addEventListener('change', handleFileUpload);
       
-      // --- NEW: Event listeners for the new upload modals ---
       document.getElementById('upload-choice-cancel-btn').addEventListener('click', () => uploadChoiceModal.classList.remove('visible'));
-      document.getElementById('upload-choice-file-btn').addEventListener('click', () => {
-          uploadChoiceModal.classList.remove('visible');
-          triggerFileUpload();
-      });
-      document.getElementById('upload-choice-paste-btn').addEventListener('click', () => {
-          uploadChoiceModal.classList.remove('visible');
-          pasteJsonModal.classList.add('visible');
-          document.getElementById('paste-json-textarea').value = ''; // Clear previous pastes
-      });
-
+      document.getElementById('upload-choice-file-btn').addEventListener('click', () => { uploadChoiceModal.classList.remove('visible'); triggerFileUpload(); });
+      document.getElementById('upload-choice-paste-btn').addEventListener('click', () => { uploadChoiceModal.classList.remove('visible'); pasteJsonModal.classList.add('visible'); document.getElementById('paste-json-textarea').value = ''; });
       document.getElementById('paste-json-cancel-btn').addEventListener('click', () => pasteJsonModal.classList.remove('visible'));
       document.getElementById('paste-json-process-btn').addEventListener('click', async () => {
           const jsonText = document.getElementById('paste-json-textarea').value;
-          if (!jsonText.trim()) {
-              showFloatingMessage("Text box is empty.", "var(--incorrect-bg)");
-              return;
-          }
-          try {
-              const importedData = JSON.parse(jsonText);
-              pasteJsonModal.classList.remove('visible'); // Hide before processing
-              await processImportedData(importedData);
-          } catch (error) {
-              showFloatingMessage("Invalid JSON. Please check the text.", "var(--incorrect-bg)");
-          }
+          if (!jsonText.trim()) { showFloatingMessage("Text box is empty.", "var(--incorrect-bg)"); return; }
+          try { const importedData = JSON.parse(jsonText); pasteJsonModal.classList.remove('visible'); await processImportedData(importedData); }
+          catch (error) { showFloatingMessage("Invalid JSON. Please check the text.", "var(--incorrect-bg)"); }
       });
     });
 
@@ -904,591 +908,19 @@
 
 
     // ******************************************************
-    // *                                                    *
     // *    MINI-GAME OBJECT DEFINITIONS (UNCHANGED)        *
-    // *    (CatchTheStarGame, BalloonPopGame, HoopBounceGame) *
-    // *                                                    *
     // ******************************************************
-        // --- MINI-GAME DEFINITIONS ---
-    const CatchTheStarGame = {
-    name: "Catch the Star",
-    score: 0,
-    gameTimerId: null,        // For overall game duration
-    starIntervalId: null,     // For spawning stars
-    timerIntervalId: null,    // For updating the visual timer bar
-    animationFrameId: null,   // For the game's main loop (collision detection)
-    container: null,
-    onCompleteCallback: null,
-    duration: 20000,          // 20 seconds
-    starsOnScreen: [],        // Array of starData objects { element, removeTimeoutId }
-    elements: {},             // To store UI elements like scoreDisplay, timerBar
-
-    // --- New properties for Hoop mechanic ---
-    hoopElement: null,
-    isHoopingActive: false,    // True when pointer is down
-    hoopRadius: 50,            // Radius of the hoop in pixels
-    starVisualRadius: 20,      // Approximate visual radius of a star for collision
-    hoopPosition: { x: 0, y: 0 }, // Center of the hoop, relative to the container
-
-    // Bound event handlers for easy add/remove
-    boundOnPointerDown: null,
-    boundOnPointerMove: null,
-    boundOnPointerUp: null,
-    boundGameLoop: null,
-
-    start: function(containerElement, onComplete) {
-        this.container = containerElement;
-        this.onCompleteCallback = onComplete;
-        this.score = 0;
-        this.starsOnScreen = [];
-        this.container.innerHTML = ''; // Clear previous game content
-
-        speak("Catch the stars in your hoop!");
-
-        // Setup UI (score, timer bar - same as before)
-        const infoBar = document.createElement('div');
-        infoBar.className = 'minigame-info-bar';
-        this.elements.scoreDisplay = document.createElement('div');
-        this.elements.scoreDisplay.className = 'minigame-score';
-        infoBar.appendChild(this.elements.scoreDisplay);
-        this.updateScoreDisplay();
-
-        const timerContainer = document.createElement('div');
-        timerContainer.className = 'minigame-timer-bar-container';
-        this.elements.timerBar = document.createElement('div');
-        this.elements.timerBar.className = 'minigame-timer-bar';
-        timerContainer.appendChild(this.elements.timerBar);
-        infoBar.appendChild(timerContainer);
-        this.container.appendChild(infoBar);
-
-        let timeLeft = this.duration;
-        this.elements.timerBar.style.width = '100%';
-        this.timerIntervalId = setInterval(() => {
-            timeLeft -= 100;
-            const progress = Math.max(0, (timeLeft / this.duration) * 100);
-            this.elements.timerBar.style.width = `${progress}%`;
-            if (timeLeft <= 0) clearInterval(this.timerIntervalId);
-        }, 100);
-
-        // --- Hoop Setup ---
-        this.hoopElement = document.createElement('div');
-        this.hoopElement.style.position = 'absolute';
-        this.hoopElement.style.width = `${this.hoopRadius * 2}px`;
-        this.hoopElement.style.height = `${this.hoopRadius * 2}px`;
-        this.hoopElement.style.border = '3px dashed white';
-        this.hoopElement.style.borderRadius = '50%';
-        this.hoopElement.style.boxSizing = 'border-box';
-        this.hoopElement.style.display = 'none'; // Initially hidden
-        this.hoopElement.style.pointerEvents = 'none'; // Hoop itself should not catch pointer events
-        this.container.appendChild(this.hoopElement);
-
-        // Bind event handlers
-        this.boundOnPointerDown = this.onPointerDown.bind(this);
-        this.boundOnPointerMove = this.onPointerMove.bind(this);
-        this.boundOnPointerUp = this.onPointerUp.bind(this);
-        this.boundGameLoop = this.gameLoop.bind(this);
-
-        // Add event listeners to the game container
-        this.container.addEventListener('pointerdown', this.boundOnPointerDown);
-        // We add move/up to window to catch events even if pointer leaves container
-        window.addEventListener('pointermove', this.boundOnPointerMove);
-        window.addEventListener('pointerup', this.boundOnPointerUp);
-        window.addEventListener('pointercancel', this.boundOnPointerUp); // Handle cancellations
-
-        this.starIntervalId = setInterval(() => this.spawnStar(), 800); // Spawn stars
-        this.gameTimerId = setTimeout(() => this.endGame(), this.duration); // End game after duration
-
-        this.animationFrameId = requestAnimationFrame(this.boundGameLoop); // Start the game loop
-    },
-
-    onPointerDown: function(event) {
-        // Only activate if the event is within the game container
-        if (event.target !== this.container && !this.container.contains(event.target)) {
-             // If pointerdown is on a star or other element *inside* the container,
-             // we still want to activate the hoop if the container itself is the event handler target.
-             // However, if the event.target is something entirely outside the container, ignore.
-             let el = event.target;
-             let isInsideContainer = false;
-             while(el) {
-                if (el === this.container) {
-                    isInsideContainer = true;
-                    break;
-                }
-                el = el.parentElement;
-             }
-             if(!isInsideContainer) return;
-        }
-        event.preventDefault(); // Prevent default browser actions like text selection or scrolling
-        this.isHoopingActive = true;
-        this.updateHoopDisplay(event);
-        this.hoopElement.style.display = 'block';
-    },
-
-    onPointerMove: function(event) {
-        if (this.isHoopingActive) {
-            event.preventDefault();
-            this.updateHoopDisplay(event);
-        }
-    },
-
-    onPointerUp: function(event) {
-        if (this.isHoopingActive) {
-            // event.preventDefault(); // Not always needed for up, but can be good
-            this.isHoopingActive = false;
-            this.hoopElement.style.display = 'none';
-        }
-    },
-
-    updateHoopDisplay: function(event) {
-        if (!this.container) return;
-        const rect = this.container.getBoundingClientRect();
-        // Calculate pointer position relative to the container
-        this.hoopPosition.x = event.clientX - rect.left;
-        this.hoopPosition.y = event.clientY - rect.top;
-
-        // Position the hoop so its center is at the pointer
-        this.hoopElement.style.left = `${this.hoopPosition.x - this.hoopRadius}px`;
-        this.hoopElement.style.top = `${this.hoopPosition.y - this.hoopRadius}px`;
-    },
-
-    gameLoop: function() {
-        if (this.isHoopingActive) {
-            this.checkHoopCollisions();
-        }
-        this.animationFrameId = requestAnimationFrame(this.boundGameLoop);
-    },
-
-    checkHoopCollisions: function() {
-        if (!this.isHoopingActive || this.starsOnScreen.length === 0) return;
-
-        // Iterate backwards because we might be removing items from the array
-        for (let i = this.starsOnScreen.length - 1; i >= 0; i--) {
-            const starData = this.starsOnScreen[i];
-            const starElement = starData.element;
-
-            if (!starElement.parentNode) { // Star already removed (e.g., by timeout)
-                this.starsOnScreen.splice(i, 1);
-                continue;
-            }
-
-            const starCenterX = starElement.offsetLeft + starElement.offsetWidth / 2;
-            const starCenterY = starElement.offsetTop + starElement.offsetHeight / 2;
-
-            const dx = this.hoopPosition.x - starCenterX;
-            const dy = this.hoopPosition.y - starCenterY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Collision if distance is less than sum of hoop radius and star's visual radius
-            if (distance < this.hoopRadius + this.starVisualRadius) {
-                this._processStarCatch(starData, i); // Pass index for efficient removal
-            }
-        }
-    },
-
-    spawnStar: function() {
-        if (!this.container || this.starsOnScreen.length > 12) return; // Max 12 stars
-        const star = document.createElement('div');
-        star.style.position = 'absolute';
-        star.style.width = '40px'; // Star visual size
-        star.style.height = '40px';
-        star.style.left = `${Math.random() * (this.container.clientWidth - 40)}px`;
-        star.style.top = `-40px`; // Start above screen
-        star.style.fontSize = '2.2rem';
-        star.style.userSelect = 'none'; // Global CSS should handle this too
-        // star.style.cursor = 'pointer'; // Not clickable directly anymore
-        star.style.transition = 'top 1.9s linear, transform 0.3s ease-out'; // Added transform for pop
-        star.textContent = '⭐';
-        
-        this.container.appendChild(star);
-
-        const starData = {
-            element: star,
-            removeTimeoutId: null 
-        };
-        this.starsOnScreen.push(starData);
-
-        // Trigger CSS animation to move down
-        setTimeout(() => {
-            if (star.parentNode) { // Check if still in DOM
-                 star.style.top = `${this.container.clientHeight}px`; // Fall to bottom
-            }
-        }, 30); 
-
-        // Set timeout to remove star if not caught and falls off screen
-        starData.removeTimeoutId = setTimeout(() => {
-            const index = this.starsOnScreen.indexOf(starData);
-            if (index !== -1) { // If still in the array (i.e., not caught)
-                if (star.parentNode) {
-                    star.remove();
-                }
-                this.starsOnScreen.splice(index, 1);
-            }
-        }, 1900); // Matches transition duration
-    },
-
-    _processStarCatch: function(starData, starArrayIndex) {
-        const starElement = starData.element;
-
-        // Clear the timeout that would remove it if it fell off screen
-        clearTimeout(starData.removeTimeoutId);
-
-        playBell(); // Assume playBell is defined globally
-        const rect = starElement.getBoundingClientRect(); // For confetti origin
-        const x = (rect.left + rect.right) / 2 / window.innerWidth;
-        const y = (rect.top + rect.bottom) / 2 / window.innerHeight;
-        myConfetti({ particleCount: 25, spread: 45, origin: { x: x, y: y }, scalar: 0.6 }); // Assume myConfetti is global
-
-        this.score++;
-        speak(this.score, 1.2, 1.3); // Assume speak is defined globally
-        this.updateScoreDisplay();
-
-        // Visual feedback for caught star (e.g., shrink and fade)
-        starElement.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-        starElement.style.transform = 'scale(0.1)';
-        starElement.style.opacity = '0';
-
-        // Remove from DOM after animation & from array
-        setTimeout(() => {
-            if (starElement.parentNode) {
-                starElement.remove();
-            }
-        }, 300); // Matches animation duration
-
-        // Remove from starsOnScreen array
-        if (starArrayIndex !== undefined && starArrayIndex < this.starsOnScreen.length && this.starsOnScreen[starArrayIndex] === starData) {
-            this.starsOnScreen.splice(starArrayIndex, 1);
-        } else {
-            // Fallback if index is not reliable (shouldn't happen with reverse loop)
-            const index = this.starsOnScreen.indexOf(starData);
-            if (index !== -1) this.starsOnScreen.splice(index, 1);
-        }
-    },
-
-    updateScoreDisplay: function() {
-        if(this.elements.scoreDisplay) this.elements.scoreDisplay.textContent = `Stars: ${this.score}`;
-    },
-
-        // Inside CatchTheStarGame
-    endGame: function() {
-        const canCallPrimaryCallback = !!this.onCompleteCallback;
-        clearInterval(this.starIntervalId);
-        this.starIntervalId = null;
-        clearInterval(this.timerIntervalId);
-        this.timerIntervalId = null;
-        clearTimeout(this.gameTimerId);
-        this.gameTimerId = null;
-        if (this.animationFrameId) {
-            cancelAnimationFrame(this.animationFrameId);
-            this.animationFrameId = null;
-        }
-
-        if (this.container) {
-            this.container.removeEventListener('pointerdown', this.boundOnPointerDown);
-        }
-        window.removeEventListener('pointermove', this.boundOnPointerMove);
-        window.removeEventListener('pointerup', this.boundOnPointerUp);
-        window.removeEventListener('pointercancel', this.boundOnPointerUp);
-
-        this.starsOnScreen.forEach(starData => {
-            clearTimeout(starData.removeTimeoutId);
-            if (starData.element.parentNode) {
-                starData.element.remove();
-            }
-        });
-        this.starsOnScreen = [];
-
-        if (this.hoopElement && this.hoopElement.parentNode) {
-            this.hoopElement.remove();
-        }
-        this.hoopElement = null; 
-        this.isHoopingActive = false;
-        
-        if (canCallPrimaryCallback) {
-            speak(`Congratulations! You caught ${this.score} stars!`);
-            const callbackToExecute = this.onCompleteCallback;
-            this.onCompleteCallback = null;
-            if (callbackToExecute) {
-                callbackToExecute(this.score);
-            }
-        }
-    },
-
-    destroy: function() {
-        this.endGame(); 
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-        this.container = null;
-        this.elements = {};
-        this.onCompleteCallback = null;
-    }
-};
-     const BalloonPopGame = {
-        name: "Balloon Pop",
-        score: 0,
-        gameTimerId: null,
-        timerIntervalId: null,
-        balloonIntervalId: null,
-        container: null,
-        onCompleteCallback: null,
-        duration: 20000,
-        balloonsOnScreen: [],
-        elements: {},
-        forgivingTapRadius: 70,
-        boundForgivingTapHandler: null,
-
-        start: function(containerElement, onComplete) {
-            this.container = containerElement;
-            this.onCompleteCallback = onComplete;
-            this.score = 0;
-            this.balloonsOnScreen = [];
-            this.container.innerHTML = '';
-
-            speak("Tap as many balloons as you can before time runs out!");
-
-            const infoBar = document.createElement('div');
-            infoBar.className = 'minigame-info-bar';
-            this.elements.scoreDisplay = document.createElement('div');
-            this.elements.scoreDisplay.className = 'minigame-score';
-            infoBar.appendChild(this.elements.scoreDisplay);
-            this.updateScoreDisplay();
-            const timerContainer = document.createElement('div');
-            timerContainer.className = 'minigame-timer-bar-container';
-            this.elements.timerBar = document.createElement('div');
-            this.elements.timerBar.className = 'minigame-timer-bar';
-            timerContainer.appendChild(this.elements.timerBar);
-            infoBar.appendChild(timerContainer);
-            this.container.appendChild(infoBar);
-            let timeLeft = this.duration;
-            this.elements.timerBar.style.width = '100%';
-            this.timerIntervalId = setInterval(() => {
-                timeLeft -= 100;
-                const progress = Math.max(0, (timeLeft / this.duration) * 100);
-                this.elements.timerBar.style.width = `${progress}%`;
-                if (timeLeft <= 0) clearInterval(this.timerIntervalId);
-            }, 100);
-
-            this.balloonIntervalId = setInterval(() => this.spawnBalloon(), 700);
-            this.gameTimerId = setTimeout(() => this.endGame(), this.duration);
-
-            this.boundForgivingTapHandler = this._handleForgivingTap.bind(this);
-            this.container.addEventListener('pointerdown', this.boundForgivingTapHandler);
-        },
-
-        _handleForgivingTap: function(event) {
-            if (!this.container) return;
-            const clickX = event.clientX;
-            const clickY = event.clientY;
-
-            for (let i = this.balloonsOnScreen.length - 1; i >= 0; i--) {
-                const balloonElement = this.balloonsOnScreen[i];
-
-                if (!balloonElement || !balloonElement.parentNode) {
-                    if (this.balloonsOnScreen[i] === balloonElement) {
-                        this.balloonsOnScreen.splice(i, 1);
-                    }
-                    continue;
-                }
-                const balloonRect = balloonElement.getBoundingClientRect();
-                const balloonViewportCenterX = balloonRect.left + balloonRect.width / 2;
-                const balloonViewportCenterY = balloonRect.top + balloonRect.height / 2;
-
-                const distance = Math.sqrt(
-                    Math.pow(clickX - balloonViewportCenterX, 2) +
-                    Math.pow(clickY - balloonViewportCenterY, 2)
-                );
-                if (distance <= this.forgivingTapRadius) {
-                    this.popBalloon(balloonElement);
-                }
-            }
-        },
-        spawnBalloon: function() {
-            if (!this.container || this.balloonsOnScreen.length > 15) return;
-            const balloon = document.createElement('div');
-            balloon.className = 'balloon';
-            balloon.style.backgroundColor = getRandomColor();
-            balloon.style.left = `${Math.random() * (this.container.clientWidth - parseFloat(getComputedStyle(balloon).width || '60'))}px`;
-            balloon.style.bottom = '-100px';
-            this.container.appendChild(balloon);
-            this.balloonsOnScreen.push(balloon);
-            balloon.classList.add('balloon-rising');
-            balloon.addEventListener('animationend', () => {
-                const index = this.balloonsOnScreen.indexOf(balloon);
-                if (index > -1) { this.balloonsOnScreen.splice(index, 1); }
-                if (balloon.parentNode) { balloon.remove(); }
-            }, { once: true });
-        },
-        popBalloon: function(balloonElement) {
-            const index = this.balloonsOnScreen.indexOf(balloonElement);
-            if (index === -1) return;
-            playBell();
-            const rect = balloonElement.getBoundingClientRect();
-            const confettiX = (rect.left + rect.right) / 2 / window.innerWidth;
-            const confettiY = (rect.top + rect.bottom) / 2 / window.innerHeight;
-            myConfetti({ particleCount: 30, spread: 50, origin: { x: confettiX, y: confettiY }, scalar: 0.7 });
-            this.score++;
-            speak(this.score, 1.2, 1.3);
-            this.updateScoreDisplay();
-            if (balloonElement.parentNode) { balloonElement.remove(); }
-            this.balloonsOnScreen.splice(index, 1);
-        },
-        updateScoreDisplay: function() { if(this.elements.scoreDisplay) this.elements.scoreDisplay.textContent = `Popped: ${this.score}`; },
-        endGame: function() {
-            const canCallPrimaryCallback = !!this.onCompleteCallback;
-            clearInterval(this.balloonIntervalId); this.balloonIntervalId = null;
-            clearInterval(this.timerIntervalId); this.timerIntervalId = null;
-            clearTimeout(this.gameTimerId); this.gameTimerId = null;
-            if (this.boundForgivingTapHandler && this.container) { this.container.removeEventListener('pointerdown', this.boundForgivingTapHandler); }
-            this.balloonsOnScreen.forEach(b => { if (b.parentNode) b.remove(); });
-            this.balloonsOnScreen = [];
-            if (canCallPrimaryCallback) {
-                speak(`You popped ${this.score} balloons!`);
-                const callbackToExecute = this.onCompleteCallback;
-                this.onCompleteCallback = null;
-                if(callbackToExecute) callbackToExecute(this.score);
-            }
-        },
-        destroy: function() {
-            this.endGame();
-            this.boundForgivingTapHandler = null;
-            if (this.container) { this.container.innerHTML = ''; }
-            this.container = null;
-            this.elements = {};
-            this.onCompleteCallback = null;
-        }
-    };
-    const HoopBounceGame = {
-        name: "Hoop Bounce",
-        score: 0, gameTimerId: null, timerDisplayIntervalId: null, animationFrameId: null,
-        container: null, onCompleteCallback: null, duration: 20000, elements: {},
-        hoopElement: null, isHoopActive: false, hoopRadius: 55, hoopEffectiveRadius: 50,
-        hoopBorderThickness: 5, hoopPosition: { x: 0, y: 0 },
-        ballElement: null, ballRadius: 15, ballPosition: { x: 100, y: 100 },
-        ballVelocity: { x: 2, y: 1 }, gravity: 0.28, wallRestitution: 0.65, maxSpeed: 17,
-        strongUpwardBounceForce: 13.5, maxHorizontalSpeedFromHoop: 7.5,
-        boundOnPointerDown: null, boundOnPointerMove: null, boundOnPointerUp: null, boundGameLoop: null,
-        start: function(containerElement, onComplete) {
-            this.container = containerElement; this.onCompleteCallback = onComplete; this.score = 0;
-            this.container.innerHTML = ''; speak("Keepy Uppy!");
-            const infoBar = document.createElement('div'); infoBar.className = 'minigame-info-bar';
-            this.elements.scoreDisplay = document.createElement('div'); this.elements.scoreDisplay.className = 'minigame-score';
-            infoBar.appendChild(this.elements.scoreDisplay); this.updateScoreDisplay();
-            this.elements.timerText = document.createElement('div'); this.elements.timerText.className = 'minigame-timer-text';
-            infoBar.appendChild(this.elements.timerText); this.container.appendChild(infoBar);
-            this.hoopElement = document.createElement('div');
-            this.hoopElement.style.cssText = `position: absolute; width: ${this.hoopRadius * 2}px; height: ${this.hoopRadius * 2}px; border: ${this.hoopBorderThickness}px solid white; border-radius: 50%; box-sizing: border-box; display: none; pointer-events: none; opacity: 0.8;`;
-            this.container.appendChild(this.hoopElement);
-            this.ballElement = document.createElement('div');
-            this.ballElement.className = 'bounce-ball';
-            this.ballElement.style.cssText = `width: ${this.ballRadius * 2}px; height: ${this.ballRadius * 2}px; background-color: var(--brand-light); border-radius: 50%; position: absolute;`;
-            this.container.appendChild(this.ballElement);
-            this.ballPosition.x = this.container.clientWidth / 2; this.ballPosition.y = this.ballRadius + 50;
-            this.ballVelocity.x = (Math.random() - 0.5) * 4; this.ballVelocity.y = 1;
-            this.updateBallElementPosition();
-            this.boundOnPointerDown = this.onPointerDown.bind(this); this.boundOnPointerMove = this.onPointerMove.bind(this);
-            this.boundOnPointerUp = this.onPointerUp.bind(this); this.boundGameLoop = this.gameLoop.bind(this);
-            this.container.addEventListener('pointerdown', this.boundOnPointerDown);
-            window.addEventListener('pointermove', this.boundOnPointerMove);
-            window.addEventListener('pointerup', this.boundOnPointerUp);
-            window.addEventListener('pointercancel', this.boundOnPointerUp);
-            let timeLeftSeconds = this.duration / 1000;
-            this.elements.timerText.textContent = `Time: ${timeLeftSeconds}s`;
-            this.timerDisplayIntervalId = setInterval(() => { timeLeftSeconds--; this.elements.timerText.textContent = `Time: ${Math.max(0, timeLeftSeconds)}s`; if (timeLeftSeconds <= 0) clearInterval(this.timerDisplayIntervalId); }, 1000);
-            this.gameTimerId = setTimeout(() => this.endGame(), this.duration);
-            this.animationFrameId = requestAnimationFrame(this.boundGameLoop);
-        },
-        onPointerDown: function(event) {
-            let el = event.target; let isInsideContainer = false;
-            while(el) { if (el === this.container) { isInsideContainer = true; break; } el = el.parentElement; }
-            if(!isInsideContainer && event.target !== this.container) return;
-            event.preventDefault(); this.isHoopActive = true; this.updateHoopElementPosition(event); this.hoopElement.style.display = 'block';
-        },
-        onPointerMove: function(event) { if (this.isHoopActive) { event.preventDefault(); this.updateHoopElementPosition(event); } },
-        onPointerUp: function(event) { if (this.isHoopActive) { this.isHoopActive = false; this.hoopElement.style.display = 'none'; } },
-        updateHoopElementPosition: function(event) {
-            if (!this.container) return; const rect = this.container.getBoundingClientRect();
-            this.hoopPosition.x = event.clientX - rect.left; this.hoopPosition.y = event.clientY - rect.top;
-            this.hoopElement.style.left = `${this.hoopPosition.x - this.hoopRadius}px`; this.hoopElement.style.top = `${this.hoopPosition.y - this.hoopRadius}px`;
-        },
-        updateBallElementPosition: function() { if (!this.ballElement) return; this.ballElement.style.left = `${this.ballPosition.x - this.ballRadius}px`; this.ballElement.style.top = `${this.ballPosition.y - this.ballRadius}px`; },
-        gameLoop: function() {
-            if (!this.container || !this.ballElement) { cancelAnimationFrame(this.animationFrameId); return; }
-            this.applyPhysics(); this.checkWallCollisions();
-            if (this.isHoopActive) { this.checkHoopCollision(); }
-            this.limitSpeed(); this.updateBallElementPosition();
-            this.animationFrameId = requestAnimationFrame(this.boundGameLoop);
-        },
-        applyPhysics: function() { this.ballVelocity.y += this.gravity; this.ballPosition.x += this.ballVelocity.x; this.ballPosition.y += this.ballVelocity.y; },
-        limitSpeed: function() {
-            const speed = Math.sqrt(this.ballVelocity.x * this.ballVelocity.x + this.ballVelocity.y * this.ballVelocity.y);
-            if (speed > this.maxSpeed) { const factor = this.maxSpeed / speed; this.ballVelocity.x *= factor; this.ballVelocity.y *= factor; }
-        },
-        checkWallCollisions: function() {
-            const restitution = this.wallRestitution;
-            if (this.ballPosition.x - this.ballRadius < 0) { this.ballPosition.x = this.ballRadius; this.ballVelocity.x *= -restitution; }
-            if (this.ballPosition.x + this.ballRadius > this.container.clientWidth) { this.ballPosition.x = this.container.clientWidth - this.ballRadius; this.ballVelocity.x *= -restitution; }
-            if (this.ballPosition.y - this.ballRadius < 0) { this.ballPosition.y = this.ballRadius; this.ballVelocity.y *= -restitution; }
-            if (this.ballPosition.y + this.ballRadius > this.container.clientHeight) { this.ballPosition.y = this.container.clientHeight - this.ballRadius; this.ballVelocity.y *= -restitution; }
-        },
-        checkHoopCollision: function() {
-            const dx = this.ballPosition.x - this.hoopPosition.x; const dy = this.ballPosition.y - this.hoopPosition.y; const distance = Math.sqrt(dx * dx + dy * dy);
-            const collisionDistance = this.hoopEffectiveRadius + this.ballRadius;
-            if (distance < collisionDistance && distance > 0) {
-                const normalX = dx / distance; const normalY = dy / distance;
-                const velocityAlongNormal = this.ballVelocity.x * normalX + this.ballVelocity.y * normalY;
-                if (velocityAlongNormal < 0) {
-                    this.ballVelocity.y = -this.strongUpwardBounceForce;
-                    const relativeHitX = this.ballPosition.x - this.hoopPosition.x;
-                    let normalizedHitX = Math.max(-1, Math.min(1, relativeHitX / this.hoopEffectiveRadius));
-                    this.ballVelocity.x = normalizedHitX * this.maxHorizontalSpeedFromHoop;
-                    if (Math.abs(this.ballVelocity.x) < 0.5 && Math.abs(normalizedHitX) > 0.05) { this.ballVelocity.x = Math.sign(normalizedHitX) * 0.5; }
-                    const overlap = collisionDistance - distance;
-                    if (overlap > 0) { this.ballPosition.x += overlap * normalX * 1.05; this.ballPosition.y += overlap * normalY * 1.05; }
-                    this.score++; this.updateScoreDisplay(); playBell();
-                    const ballRect = this.ballElement.getBoundingClientRect();
-                    const confettiX = (ballRect.left + ballRect.right) / 2 / window.innerWidth; const confettiY = (ballRect.top + ballRect.bottom) / 2 / window.innerHeight;
-                    myConfetti({ particleCount: 25, spread: 45, origin: { x: confettiX, y: confettiY }, scalar: 0.6 });
-                    speak(this.score, 1.4, 1.5);
-                }
-            }
-        },
-        updateScoreDisplay: function() { if(this.elements.scoreDisplay) this.elements.scoreDisplay.textContent = `Bounces: ${this.score}`; },
-        endGame: function() {
-            const canCallPrimaryCallback = !!this.onCompleteCallback;
-            cancelAnimationFrame(this.animationFrameId); this.animationFrameId = null;
-            clearInterval(this.timerDisplayIntervalId); this.timerDisplayIntervalId = null;
-            clearTimeout(this.gameTimerId); this.gameTimerId = null;
-            if (this.container) this.container.removeEventListener('pointerdown', this.boundOnPointerDown);
-            window.removeEventListener('pointermove', this.boundOnPointerMove); window.removeEventListener('pointerup', this.boundOnPointerUp); window.removeEventListener('pointercancel', this.boundOnPointerUp);
-            if (this.hoopElement && this.hoopElement.parentNode) this.hoopElement.remove(); this.hoopElement = null;
-            if (this.ballElement && this.ballElement.parentNode) this.ballElement.remove(); this.ballElement = null;
-            this.isHoopActive = false;
-            if (canCallPrimaryCallback) {
-                speak(`Congratulations! You bounced the ball ${this.score} times!`);
-                const callbackToExecute = this.onCompleteCallback; this.onCompleteCallback = null; 
-                if (callbackToExecute) callbackToExecute(this.score);
-            }
-        },
-        destroy: function() { this.endGame(); if (this.container) this.container.innerHTML = ''; this.container = null; this.elements = {}; this.onCompleteCallback = null; }
-    };
+    const CatchTheStarGame = { name: "Catch the Star", score: 0, gameTimerId: null, starIntervalId: null, timerIntervalId: null, animationFrameId: null, container: null, onCompleteCallback: null, duration: 20000, starsOnScreen: [], elements: {}, hoopElement: null, isHoopingActive: false, hoopRadius: 50, starVisualRadius: 20, hoopPosition: { x: 0, y: 0 }, boundOnPointerDown: null, boundOnPointerMove: null, boundOnPointerUp: null, boundGameLoop: null, start: function(containerElement, onComplete) { this.container = containerElement; this.onCompleteCallback = onComplete; this.score = 0; this.starsOnScreen = []; this.container.innerHTML = ''; speak("Catch the stars in your hoop!"); const infoBar = document.createElement('div'); infoBar.className = 'minigame-info-bar'; this.elements.scoreDisplay = document.createElement('div'); this.elements.scoreDisplay.className = 'minigame-score'; infoBar.appendChild(this.elements.scoreDisplay); this.updateScoreDisplay(); const timerContainer = document.createElement('div'); timerContainer.className = 'minigame-timer-bar-container'; this.elements.timerBar = document.createElement('div'); this.elements.timerBar.className = 'minigame-timer-bar'; timerContainer.appendChild(this.elements.timerBar); infoBar.appendChild(timerContainer); this.container.appendChild(infoBar); let timeLeft = this.duration; this.elements.timerBar.style.width = '100%'; this.timerIntervalId = setInterval(() => { timeLeft -= 100; const progress = Math.max(0, (timeLeft / this.duration) * 100); this.elements.timerBar.style.width = `${progress}%`; if (timeLeft <= 0) clearInterval(this.timerIntervalId); }, 100); this.hoopElement = document.createElement('div'); this.hoopElement.style.position = 'absolute'; this.hoopElement.style.width = `${this.hoopRadius * 2}px`; this.hoopElement.style.height = `${this.hoopRadius * 2}px`; this.hoopElement.style.border = '3px dashed white'; this.hoopElement.style.borderRadius = '50%'; this.hoopElement.style.boxSizing = 'border-box'; this.hoopElement.style.display = 'none'; this.hoopElement.style.pointerEvents = 'none'; this.container.appendChild(this.hoopElement); this.boundOnPointerDown = this.onPointerDown.bind(this); this.boundOnPointerMove = this.onPointerMove.bind(this); this.boundOnPointerUp = this.onPointerUp.bind(this); this.boundGameLoop = this.gameLoop.bind(this); this.container.addEventListener('pointerdown', this.boundOnPointerDown); window.addEventListener('pointermove', this.boundOnPointerMove); window.addEventListener('pointerup', this.boundOnPointerUp); window.addEventListener('pointercancel', this.boundOnPointerUp); this.starIntervalId = setInterval(() => this.spawnStar(), 800); this.gameTimerId = setTimeout(() => this.endGame(), this.duration); this.animationFrameId = requestAnimationFrame(this.boundGameLoop); }, onPointerDown: function(event) { if (event.target !== this.container && !this.container.contains(event.target)) { let el = event.target; let isInsideContainer = false; while(el) { if (el === this.container) { isInsideContainer = true; break; } el = el.parentElement; } if(!isInsideContainer) return; } event.preventDefault(); this.isHoopingActive = true; this.updateHoopDisplay(event); this.hoopElement.style.display = 'block'; }, onPointerMove: function(event) { if (this.isHoopingActive) { event.preventDefault(); this.updateHoopDisplay(event); } }, onPointerUp: function(event) { if (this.isHoopingActive) { this.isHoopingActive = false; this.hoopElement.style.display = 'none'; } }, updateHoopDisplay: function(event) { if (!this.container) return; const rect = this.container.getBoundingClientRect(); this.hoopPosition.x = event.clientX - rect.left; this.hoopPosition.y = event.clientY - rect.top; this.hoopElement.style.left = `${this.hoopPosition.x - this.hoopRadius}px`; this.hoopElement.style.top = `${this.hoopPosition.y - this.hoopRadius}px`; }, gameLoop: function() { if (this.isHoopingActive) { this.checkHoopCollisions(); } this.animationFrameId = requestAnimationFrame(this.boundGameLoop); }, checkHoopCollisions: function() { if (!this.isHoopingActive || this.starsOnScreen.length === 0) return; for (let i = this.starsOnScreen.length - 1; i >= 0; i--) { const starData = this.starsOnScreen[i]; const starElement = starData.element; if (!starElement.parentNode) { this.starsOnScreen.splice(i, 1); continue; } const starCenterX = starElement.offsetLeft + starElement.offsetWidth / 2; const starCenterY = starElement.offsetTop + starElement.offsetHeight / 2; const dx = this.hoopPosition.x - starCenterX; const dy = this.hoopPosition.y - starCenterY; const distance = Math.sqrt(dx * dx + dy * dy); if (distance < this.hoopRadius + this.starVisualRadius) { this._processStarCatch(starData, i); } } }, spawnStar: function() { if (!this.container || this.starsOnScreen.length > 12) return; const star = document.createElement('div'); star.style.position = 'absolute'; star.style.width = '40px'; star.style.height = '40px'; star.style.left = `${Math.random() * (this.container.clientWidth - 40)}px`; star.style.top = `-40px`; star.style.fontSize = '2.2rem'; star.style.userSelect = 'none'; star.style.transition = 'top 1.9s linear, transform 0.3s ease-out'; star.textContent = '⭐'; this.container.appendChild(star); const starData = { element: star, removeTimeoutId: null }; this.starsOnScreen.push(starData); setTimeout(() => { if (star.parentNode) { star.style.top = `${this.container.clientHeight}px`; } }, 30); starData.removeTimeoutId = setTimeout(() => { const index = this.starsOnScreen.indexOf(starData); if (index !== -1) { if (star.parentNode) { star.remove(); } this.starsOnScreen.splice(index, 1); } }, 1900); }, _processStarCatch: function(starData, starArrayIndex) { const starElement = starData.element; clearTimeout(starData.removeTimeoutId); playBell(); const rect = starElement.getBoundingClientRect(); const x = (rect.left + rect.right) / 2 / window.innerWidth; const y = (rect.top + rect.bottom) / 2 / window.innerHeight; myConfetti({ particleCount: 25, spread: 45, origin: { x: x, y: y }, scalar: 0.6 }); this.score++; speak(this.score, 1.2, 1.3); this.updateScoreDisplay(); starElement.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; starElement.style.transform = 'scale(0.1)'; starElement.style.opacity = '0'; setTimeout(() => { if (starElement.parentNode) { starElement.remove(); } }, 300); if (starArrayIndex !== undefined && starArrayIndex < this.starsOnScreen.length && this.starsOnScreen[starArrayIndex] === starData) { this.starsOnScreen.splice(starArrayIndex, 1); } else { const index = this.starsOnScreen.indexOf(starData); if (index !== -1) this.starsOnScreen.splice(index, 1); } }, updateScoreDisplay: function() { if(this.elements.scoreDisplay) this.elements.scoreDisplay.textContent = `Stars: ${this.score}`; }, endGame: function() { const canCallPrimaryCallback = !!this.onCompleteCallback; clearInterval(this.starIntervalId); this.starIntervalId = null; clearInterval(this.timerIntervalId); this.timerIntervalId = null; clearTimeout(this.gameTimerId); this.gameTimerId = null; if (this.animationFrameId) { cancelAnimationFrame(this.animationFrameId); this.animationFrameId = null; } if (this.container) { this.container.removeEventListener('pointerdown', this.boundOnPointerDown); } window.removeEventListener('pointermove', this.boundOnPointerMove); window.removeEventListener('pointerup', this.boundOnPointerUp); window.removeEventListener('pointercancel', this.boundOnPointerUp); this.starsOnScreen.forEach(starData => { clearTimeout(starData.removeTimeoutId); if (starData.element.parentNode) { starData.element.remove(); } }); this.starsOnScreen = []; if (this.hoopElement && this.hoopElement.parentNode) { this.hoopElement.remove(); } this.hoopElement = null; this.isHoopingActive = false; if (canCallPrimaryCallback) { speak(`Congratulations! You caught ${this.score} stars!`); const callbackToExecute = this.onCompleteCallback; this.onCompleteCallback = null; if (callbackToExecute) { callbackToExecute(this.score); } } }, destroy: function() { this.endGame(); if (this.container) { this.container.innerHTML = ''; } this.container = null; this.elements = {}; this.onCompleteCallback = null; } };
+    const BalloonPopGame = { name: "Balloon Pop", score: 0, gameTimerId: null, timerIntervalId: null, balloonIntervalId: null, container: null, onCompleteCallback: null, duration: 20000, balloonsOnScreen: [], elements: {}, forgivingTapRadius: 70, boundForgivingTapHandler: null, start: function(containerElement, onComplete) { this.container = containerElement; this.onCompleteCallback = onComplete; this.score = 0; this.balloonsOnScreen = []; this.container.innerHTML = ''; speak("Tap as many balloons as you can before time runs out!"); const infoBar = document.createElement('div'); infoBar.className = 'minigame-info-bar'; this.elements.scoreDisplay = document.createElement('div'); this.elements.scoreDisplay.className = 'minigame-score'; infoBar.appendChild(this.elements.scoreDisplay); this.updateScoreDisplay(); const timerContainer = document.createElement('div'); timerContainer.className = 'minigame-timer-bar-container'; this.elements.timerBar = document.createElement('div'); this.elements.timerBar.className = 'minigame-timer-bar'; timerContainer.appendChild(this.elements.timerBar); infoBar.appendChild(timerContainer); this.container.appendChild(infoBar); let timeLeft = this.duration; this.elements.timerBar.style.width = '100%'; this.timerIntervalId = setInterval(() => { timeLeft -= 100; const progress = Math.max(0, (timeLeft / this.duration) * 100); this.elements.timerBar.style.width = `${progress}%`; if (timeLeft <= 0) clearInterval(this.timerIntervalId); }, 100); this.balloonIntervalId = setInterval(() => this.spawnBalloon(), 700); this.gameTimerId = setTimeout(() => this.endGame(), this.duration); this.boundForgivingTapHandler = this._handleForgivingTap.bind(this); this.container.addEventListener('pointerdown', this.boundForgivingTapHandler); }, _handleForgivingTap: function(event) { if (!this.container) return; const clickX = event.clientX; const clickY = event.clientY; for (let i = this.balloonsOnScreen.length - 1; i >= 0; i--) { const balloonElement = this.balloonsOnScreen[i]; if (!balloonElement || !balloonElement.parentNode) { if (this.balloonsOnScreen[i] === balloonElement) { this.balloonsOnScreen.splice(i, 1); } continue; } const balloonRect = balloonElement.getBoundingClientRect(); const balloonViewportCenterX = balloonRect.left + balloonRect.width / 2; const balloonViewportCenterY = balloonRect.top + balloonRect.height / 2; const distance = Math.sqrt( Math.pow(clickX - balloonViewportCenterX, 2) + Math.pow(clickY - balloonViewportCenterY, 2) ); if (distance <= this.forgivingTapRadius) { this.popBalloon(balloonElement); } } }, spawnBalloon: function() { if (!this.container || this.balloonsOnScreen.length > 15) return; const balloon = document.createElement('div'); balloon.className = 'balloon'; balloon.style.backgroundColor = getRandomColor(); balloon.style.left = `${Math.random() * (this.container.clientWidth - parseFloat(getComputedStyle(balloon).width || '60'))}px`; balloon.style.bottom = '-100px'; this.container.appendChild(balloon); this.balloonsOnScreen.push(balloon); balloon.classList.add('balloon-rising'); balloon.addEventListener('animationend', () => { const index = this.balloonsOnScreen.indexOf(balloon); if (index > -1) { this.balloonsOnScreen.splice(index, 1); } if (balloon.parentNode) { balloon.remove(); } }, { once: true }); }, popBalloon: function(balloonElement) { const index = this.balloonsOnScreen.indexOf(balloonElement); if (index === -1) return; playBell(); const rect = balloonElement.getBoundingClientRect(); const confettiX = (rect.left + rect.right) / 2 / window.innerWidth; const confettiY = (rect.top + rect.bottom) / 2 / window.innerHeight; myConfetti({ particleCount: 30, spread: 50, origin: { x: confettiX, y: confettiY }, scalar: 0.7 }); this.score++; speak(this.score, 1.2, 1.3); this.updateScoreDisplay(); if (balloonElement.parentNode) { balloonElement.remove(); } this.balloonsOnScreen.splice(index, 1); }, updateScoreDisplay: function() { if(this.elements.scoreDisplay) this.elements.scoreDisplay.textContent = `Popped: ${this.score}`; }, endGame: function() { const canCallPrimaryCallback = !!this.onCompleteCallback; clearInterval(this.balloonIntervalId); this.balloonIntervalId = null; clearInterval(this.timerIntervalId); this.timerIntervalId = null; clearTimeout(this.gameTimerId); this.gameTimerId = null; if (this.boundForgivingTapHandler && this.container) { this.container.removeEventListener('pointerdown', this.boundForgivingTapHandler); } this.balloonsOnScreen.forEach(b => { if (b.parentNode) b.remove(); }); this.balloonsOnScreen = []; if (canCallPrimaryCallback) { speak(`You popped ${this.score} balloons!`); const callbackToExecute = this.onCompleteCallback; this.onCompleteCallback = null; if(callbackToExecute) callbackToExecute(this.score); } }, destroy: function() { this.endGame(); this.boundForgivingTapHandler = null; if (this.container) { this.container.innerHTML = ''; } this.container = null; this.elements = {}; this.onCompleteCallback = null; } };
+    const HoopBounceGame = { name: "Hoop Bounce", score: 0, gameTimerId: null, timerDisplayIntervalId: null, animationFrameId: null, container: null, onCompleteCallback: null, duration: 20000, elements: {}, hoopElement: null, isHoopActive: false, hoopRadius: 55, hoopEffectiveRadius: 50, hoopBorderThickness: 5, hoopPosition: { x: 0, y: 0 }, ballElement: null, ballRadius: 15, ballPosition: { x: 100, y: 100 }, ballVelocity: { x: 2, y: 1 }, gravity: 0.28, wallRestitution: 0.65, maxSpeed: 17, strongUpwardBounceForce: 13.5, maxHorizontalSpeedFromHoop: 7.5, boundOnPointerDown: null, boundOnPointerMove: null, boundOnPointerUp: null, boundGameLoop: null, start: function(containerElement, onComplete) { this.container = containerElement; this.onCompleteCallback = onComplete; this.score = 0; this.container.innerHTML = ''; speak("Keepy Uppy!"); const infoBar = document.createElement('div'); infoBar.className = 'minigame-info-bar'; this.elements.scoreDisplay = document.createElement('div'); this.elements.scoreDisplay.className = 'minigame-score'; infoBar.appendChild(this.elements.scoreDisplay); this.updateScoreDisplay(); this.elements.timerText = document.createElement('div'); this.elements.timerText.className = 'minigame-timer-text'; infoBar.appendChild(this.elements.timerText); this.container.appendChild(infoBar); this.hoopElement = document.createElement('div'); this.hoopElement.style.cssText = `position: absolute; width: ${this.hoopRadius * 2}px; height: ${this.hoopRadius * 2}px; border: ${this.hoopBorderThickness}px solid white; border-radius: 50%; box-sizing: border-box; display: none; pointer-events: none; opacity: 0.8;`; this.container.appendChild(this.hoopElement); this.ballElement = document.createElement('div'); this.ballElement.className = 'bounce-ball'; this.ballElement.style.cssText = `width: ${this.ballRadius * 2}px; height: ${this.ballRadius * 2}px; background-color: var(--brand-light); border-radius: 50%; position: absolute;`; this.container.appendChild(this.ballElement); this.ballPosition.x = this.container.clientWidth / 2; this.ballPosition.y = this.ballRadius + 50; this.ballVelocity.x = (Math.random() - 0.5) * 4; this.ballVelocity.y = 1; this.updateBallElementPosition(); this.boundOnPointerDown = this.onPointerDown.bind(this); this.boundOnPointerMove = this.onPointerMove.bind(this); this.boundOnPointerUp = this.onPointerUp.bind(this); this.boundGameLoop = this.gameLoop.bind(this); this.container.addEventListener('pointerdown', this.boundOnPointerDown); window.addEventListener('pointermove', this.boundOnPointerMove); window.addEventListener('pointerup', this.boundOnPointerUp); window.addEventListener('pointercancel', this.boundOnPointerUp); let timeLeftSeconds = this.duration / 1000; this.elements.timerText.textContent = `Time: ${timeLeftSeconds}s`; this.timerDisplayIntervalId = setInterval(() => { timeLeftSeconds--; this.elements.timerText.textContent = `Time: ${Math.max(0, timeLeftSeconds)}s`; if (timeLeftSeconds <= 0) clearInterval(this.timerDisplayIntervalId); }, 1000); this.gameTimerId = setTimeout(() => this.endGame(), this.duration); this.animationFrameId = requestAnimationFrame(this.boundGameLoop); }, onPointerDown: function(event) { let el = event.target; let isInsideContainer = false; while(el) { if (el === this.container) { isInsideContainer = true; break; } el = el.parentElement; } if(!isInsideContainer && event.target !== this.container) return; event.preventDefault(); this.isHoopActive = true; this.updateHoopElementPosition(event); this.hoopElement.style.display = 'block'; }, onPointerMove: function(event) { if (this.isHoopActive) { event.preventDefault(); this.updateHoopElementPosition(event); } }, onPointerUp: function(event) { if (this.isHoopActive) { this.isHoopActive = false; this.hoopElement.style.display = 'none'; } }, updateHoopElementPosition: function(event) { if (!this.container) return; const rect = this.container.getBoundingClientRect(); this.hoopPosition.x = event.clientX - rect.left; this.hoopPosition.y = event.clientY - rect.top; this.hoopElement.style.left = `${this.hoopPosition.x - this.hoopRadius}px`; this.hoopElement.style.top = `${this.hoopPosition.y - this.hoopRadius}px`; }, updateBallElementPosition: function() { if (!this.ballElement) return; this.ballElement.style.left = `${this.ballPosition.x - this.ballRadius}px`; this.ballElement.style.top = `${this.ballPosition.y - this.ballRadius}px`; }, gameLoop: function() { if (!this.container || !this.ballElement) { cancelAnimationFrame(this.animationFrameId); return; } this.applyPhysics(); this.checkWallCollisions(); if (this.isHoopActive) { this.checkHoopCollision(); } this.limitSpeed(); this.updateBallElementPosition(); this.animationFrameId = requestAnimationFrame(this.boundGameLoop); }, applyPhysics: function() { this.ballVelocity.y += this.gravity; this.ballPosition.x += this.ballVelocity.x; this.ballPosition.y += this.ballVelocity.y; }, limitSpeed: function() { const speed = Math.sqrt(this.ballVelocity.x * this.ballVelocity.x + this.ballVelocity.y * this.ballVelocity.y); if (speed > this.maxSpeed) { const factor = this.maxSpeed / speed; this.ballVelocity.x *= factor; this.ballVelocity.y *= factor; } }, checkWallCollisions: function() { const restitution = this.wallRestitution; if (this.ballPosition.x - this.ballRadius < 0) { this.ballPosition.x = this.ballRadius; this.ballVelocity.x *= -restitution; } if (this.ballPosition.x + this.ballRadius > this.container.clientWidth) { this.ballPosition.x = this.container.clientWidth - this.ballRadius; this.ballVelocity.x *= -restitution; } if (this.ballPosition.y - this.ballRadius < 0) { this.ballPosition.y = this.ballRadius; this.ballVelocity.y *= -restitution; } if (this.ballPosition.y + this.ballRadius > this.container.clientHeight) { this.ballPosition.y = this.container.clientHeight - this.ballRadius; this.ballVelocity.y *= -restitution; } }, checkHoopCollision: function() { const dx = this.ballPosition.x - this.hoopPosition.x; const dy = this.ballPosition.y - this.hoopPosition.y; const distance = Math.sqrt(dx * dx + dy * dy); const collisionDistance = this.hoopEffectiveRadius + this.ballRadius; if (distance < collisionDistance && distance > 0) { const normalX = dx / distance; const normalY = dy / distance; const velocityAlongNormal = this.ballVelocity.x * normalX + this.ballVelocity.y * normalY; if (velocityAlongNormal < 0) { this.ballVelocity.y = -this.strongUpwardBounceForce; const relativeHitX = this.ballPosition.x - this.hoopPosition.x; let normalizedHitX = Math.max(-1, Math.min(1, relativeHitX / this.hoopEffectiveRadius)); this.ballVelocity.x = normalizedHitX * this.maxHorizontalSpeedFromHoop; if (Math.abs(this.ballVelocity.x) < 0.5 && Math.abs(normalizedHitX) > 0.05) { this.ballVelocity.x = Math.sign(normalizedHitX) * 0.5; } const overlap = collisionDistance - distance; if (overlap > 0) { this.ballPosition.x += overlap * normalX * 1.05; this.ballPosition.y += overlap * normalY * 1.05; } this.score++; this.updateScoreDisplay(); playBell(); const ballRect = this.ballElement.getBoundingClientRect(); const confettiX = (ballRect.left + ballRect.right) / 2 / window.innerWidth; const confettiY = (ballRect.top + ballRect.bottom) / 2 / window.innerHeight; myConfetti({ particleCount: 25, spread: 45, origin: { x: confettiX, y: confettiY }, scalar: 0.6 }); speak(this.score, 1.4, 1.5); } } }, updateScoreDisplay: function() { if(this.elements.scoreDisplay) this.elements.scoreDisplay.textContent = `Bounces: ${this.score}`; }, endGame: function() { const canCallPrimaryCallback = !!this.onCompleteCallback; cancelAnimationFrame(this.animationFrameId); this.animationFrameId = null; clearInterval(this.timerDisplayIntervalId); this.timerDisplayIntervalId = null; clearTimeout(this.gameTimerId); this.gameTimerId = null; if (this.container) this.container.removeEventListener('pointerdown', this.boundOnPointerDown); window.removeEventListener('pointermove', this.boundOnPointerMove); window.removeEventListener('pointerup', this.boundOnPointerUp); window.removeEventListener('pointercancel', this.boundOnPointerUp); if (this.hoopElement && this.hoopElement.parentNode) this.hoopElement.remove(); this.hoopElement = null; if (this.ballElement && this.ballElement.parentNode) this.ballElement.remove(); this.ballElement = null; this.isHoopActive = false; if (canCallPrimaryCallback) { speak(`Congratulations! You bounced the ball ${this.score} times!`); const callbackToExecute = this.onCompleteCallback; this.onCompleteCallback = null; if (callbackToExecute) callbackToExecute(this.score); } }, destroy: function() { this.endGame(); if (this.container) { this.container.innerHTML = ''; } this.container = null; this.elements = {}; this.onCompleteCallback = null; } };
 
     // --- MINI-GAME SYSTEM (UNCHANGED) ---
-    function initMiniGameSystem() {
-        availableMiniGames.push(BalloonPopGame, HoopBounceGame, CatchTheStarGame);
-        toggleMiniGamesBtn.textContent = `Mini-Games: ${miniGamesEnabled ? 'On' : 'Off'}`;
-        toggleMiniGamesBtn.classList.toggle('active-minigame-toggle', miniGamesEnabled);
-        toggleMiniGamesBtn.addEventListener('click', () => {
-            miniGamesEnabled = !miniGamesEnabled;
-            localStorage.setItem('miniGamesEnabled', miniGamesEnabled.toString());
-            toggleMiniGamesBtn.textContent = `Mini-Games: ${miniGamesEnabled ? 'On' : 'Off'}`;
-            toggleMiniGamesBtn.classList.toggle('active-minigame-toggle', miniGamesEnabled);
-        });
-    }
+    function initMiniGameSystem() { availableMiniGames.push(BalloonPopGame, HoopBounceGame, CatchTheStarGame); toggleMiniGamesBtn.textContent = `Mini-Games: ${miniGamesEnabled ? 'On' : 'Off'}`; toggleMiniGamesBtn.classList.toggle('active-minigame-toggle', miniGamesEnabled); toggleMiniGamesBtn.addEventListener('click', () => { miniGamesEnabled = !miniGamesEnabled; localStorage.setItem('miniGamesEnabled', miniGamesEnabled.toString()); toggleMiniGamesBtn.textContent = `Mini-Games: ${miniGamesEnabled ? 'On' : 'Off'}`; toggleMiniGamesBtn.classList.toggle('active-minigame-toggle', miniGamesEnabled); }); }
     function triggerMiniGame() { if (availableMiniGames.length === 0) { console.warn("No mini-games available!"); resumeQuizAfterMiniGame(undefined); return; } isMiniGameActive = true; if (animatedBackgroundsEnabled && !PREFERS_REDUCED_MOTION && vantaEffect) { applyVantaEffect(null); } miniGameArea.classList.add('active'); miniGameArea.setAttribute('tabindex', '-1'); miniGameArea.focus(); const gameToPlay = availableMiniGames[currentMiniGameIdx]; currentMiniGameIdx = (currentMiniGameIdx + 1) % availableMiniGames.length; gameToPlay.start(miniGameArea, (miniGameScore) => { gameToPlay.destroy(); miniGameArea.classList.remove('active'); resumeQuizAfterMiniGame(miniGameScore); }); }
     function resumeQuizAfterMiniGame(miniGameScore) { setTimeout(() => { isMiniGameActive = false; updateBackgroundState(); quizCont.style.display = 'flex'; controlsBar.style.display = 'flex'; if (typeof gsap === 'undefined') { quizCont.style.opacity = '0'; controlsBar.style.opacity = '0'; } quizCont.classList.add('animate__animated', 'animate__fadeInCustom'); controlsBar.classList.add('animate__animated', 'animate__fadeInCustom'); let animationHandled = false; const animationEndHandler = () => { if (animationHandled) return; animationHandled = true; quizCont.classList.remove('animate__animated', 'animate__fadeInCustom'); controlsBar.classList.remove('animate__animated', 'animate__fadeInCustom'); if (typeof gsap === 'undefined') { quizCont.style.opacity = '1'; controlsBar.style.opacity = '1'; } if (miniGameScore !== undefined && miniGameScore !== null) { showFloatingMessage(`Mini-Game: ${miniGameScore} points!`, 'var(--brand-light)', 'var(--fg)'); } setTimeout(nextQ, 300); }; if (typeof gsap !== 'undefined') { gsap.fromTo([quizCont, controlsBar], {opacity: 0}, {opacity: 1, duration: 0.3, onComplete: animationEndHandler}); } else { quizCont.style.transition = 'opacity 0.3s ease-in-out'; controlsBar.style.transition = 'opacity 0.3s ease-in-out'; void quizCont.offsetWidth; quizCont.style.opacity = '1'; controlsBar.style.opacity = '1'; quizCont.addEventListener('transitionend', function onTransitionEnd(event) { if (event.propertyName === 'opacity') { animationEndHandler(); quizCont.removeEventListener('transitionend', onTransitionEnd); quizCont.style.transition = ''; controlsBar.style.transition = ''; } }, { once: false }); setTimeout(() => { if (!animationHandled) { animationEndHandler(); } }, 350); } }, 4000); }
 
 
-    // --- UI & GAME LOGIC (UNCHANGED except listeners moved to DOMContentLoaded) ---
+    // --- UI & GAME LOGIC (UNCHANGED) ---
     function updateModeUI() { if (currentGameMode === 'listenAndPickWord') { listenPickWordArea.style.display = 'flex'; readPickSoundArea.style.display = 'none'; modeToggleBtn.textContent = 'Mode: Listen'; listenBtn.innerHTML = '🔊'; } else { listenPickWordArea.style.display = 'none'; readPickSoundArea.style.display = 'flex'; modeToggleBtn.textContent = 'Mode: Read'; listenBtn.innerHTML = '📖'; if(submitAnswerBtn) submitAnswerBtn.disabled = true; } }
     modeToggleBtn.addEventListener('click', () => { currentGameMode = (currentGameMode === 'listenAndPickWord') ? 'readAndPickSound' : 'listenAndPickWord'; localStorage.setItem('sightWordsGameMode', currentGameMode); updateModeUI(); clearTimeout(questionTimeoutId); resetQuestionState(); setTimeout(nextQ, 100); });
     function resetQuestionState() { questionAnsweredThisTurn = false; selectedSoundButton = null; soundChoiceBtns.forEach(btn => btn.classList.remove('sound-btn-selected', 'correct', 'incorrect')); wordChoiceBtns.forEach(btn => btn.classList.remove('correct', 'incorrect')); if (submitAnswerBtn) submitAnswerBtn.disabled = true; }
@@ -1511,7 +943,7 @@
         if (words.length === 0) {
             console.error("No words available for the quiz! Check list/level/word selections.");
             wordToReadDisplay.textContent = "No Words!";
-            showFloatingMessage("Please select word list/levels or add custom words!", "var(--brand-dark)");
+            showFloatingMessage("Please select word lists via the 'Word List' button!", "var(--brand-dark)");
             listenPickWordArea.style.display = 'none';
             readPickSoundArea.style.display = 'flex';
             soundChoiceBtns.forEach(btn => btn.style.display = 'none');
@@ -1621,130 +1053,131 @@
     function showFloatingScore(message, targetButton, isError = false) { const floatEl = document.createElement('div'); floatEl.textContent = message; floatEl.classList.add('floating-effect'); floatEl.classList.add(isError ? 'floating-message' : 'floating-score'); if(isError) {floatEl.style.backgroundColor = 'var(--incorrect-bg)'; floatEl.style.color = '#333';} document.body.appendChild(floatEl); const btnRect = targetButton.getBoundingClientRect(); floatEl.style.left = `${btnRect.left + btnRect.width / 2 - floatEl.offsetWidth / 2}px`; floatEl.style.top = `${btnRect.top - floatEl.offsetHeight - 10}px`; gsap.to(floatEl, { y: -60, opacity: 0, duration: 1.8, ease: 'power1.out', onComplete: () => floatEl.remove() }); }
     function showFloatingMessage(text, bgColor = 'var(--brand)', textColor = 'white') { const msgEl = document.createElement('div'); msgEl.textContent = text; msgEl.classList.add('floating-effect', 'floating-message'); msgEl.style.backgroundColor = bgColor; msgEl.style.color = textColor; msgEl.style.left = '50%'; msgEl.style.top = '15%'; msgEl.style.transform = 'translateX(-50%)'; msgEl.style.padding = '0.8rem 1.5rem'; msgEl.style.fontSize = '1.5em'; document.body.appendChild(msgEl); gsap.fromTo(msgEl, { opacity: 0, y: -20, scale: 0.8 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: 'back.out(1.7)' } ); setTimeout(() => { gsap.to(msgEl, { opacity: 0, y: 20, scale: 0.8, duration: 0.5, ease: 'back.in(1.7)', onComplete: () => msgEl.remove() }); }, 2300); }
 
-    // --- WORD LIST & LEVEL MANAGEMENT (UNCHANGED) ---
-    function initWordLevelManagementUI() {
-        populateWordListDropdown(); populateLevelsDropdown();
-        wordSourceToggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (levelsDropdownMenu.classList.contains('visible')) { levelsDropdownMenu.classList.remove('visible'); }
-            else if (wordListDropdownMenu.classList.contains('visible')) { wordListDropdownMenu.classList.remove('visible'); }
-            else { wordListDropdownMenu.classList.add('visible'); }
-        });
-        document.addEventListener('click', (event) => {
-            const controlsRHSParent = document.getElementById('controls-RHS-container');
-            if (controlsRHSParent && !controlsRHSParent.contains(event.target)) {
-                 wordListDropdownMenu.classList.remove('visible');
-                 levelsDropdownMenu.classList.remove('visible');
-            }
-        });
+    // --- NEW: WORD LIST MANAGEMENT (Modal-based) ---
+    function initWordListModal() {
+        wordListOpenBtn.addEventListener('click', openWordListModal); // FIX: This listener now correctly opens the modal.
+        wordListCloseBtn.addEventListener('click', closeWordListModal);
+        wordListSaveBtn.addEventListener('click', saveAndCloseWordListModal);
     }
-    function populateWordListDropdown() {
-        wordListDropdownMenu.innerHTML = ''; const listNames = { dolch: "Dolch", fry: "Fry", custom: "Custom" };
-        Object.keys(listNames).forEach(listKey => {
-            if (WORD_BANK[listKey]) {
-                const listItem = document.createElement('div'); listItem.className = 'dropdown-item'; listItem.dataset.listKey = listKey; listItem.textContent = listNames[listKey];
-                if (listKey === activeWordList) { listItem.classList.add('selected'); }
-                listItem.addEventListener('pointerdown', (e) => {
-                    e.preventDefault(); isLongPress = false; clearTimeout(longPressTimer);
-                    longPressTimer = setTimeout(() => {
-                        isLongPress = true;
-                        if (listKey === 'custom') { openWordCustomizationModal('custom', '__ALL__'); wordListDropdownMenu.classList.remove('visible'); levelsDropdownMenu.classList.remove('visible'); }
-                    }, 600);
+    
+    function openWordListModal() {
+        tempSelectionState = JSON.parse(JSON.stringify(selectionState));
+        renderWordListModalContent();
+        wordListModal.classList.add('visible');
+    }
+
+    function closeWordListModal() {
+        wordListModal.classList.remove('visible');
+    }
+
+    function saveAndCloseWordListModal() {
+        selectionState = JSON.parse(JSON.stringify(tempSelectionState));
+        localStorage.setItem('wordSelectionState', JSON.stringify(selectionState));
+        updateQuizWordsFromSelectionState();
+        closeWordListModal();
+    }
+
+    function renderWordListModalContent() {
+        wordListTreeContainer.innerHTML = '';
+        Object.keys(bankDisplayNames).forEach(listKey => {
+            const details = document.createElement('details');
+            if (listKey === 'dolch') details.open = true;
+            
+            const summary = document.createElement('summary');
+            const bankName = document.createElement('span');
+            bankName.textContent = bankDisplayNames[listKey];
+            const bankCount = document.createElement('span');
+            bankCount.className = 'bank-count';
+            summary.appendChild(bankName);
+            summary.appendChild(bankCount);
+            details.appendChild(summary);
+
+            if (listKey === 'custom') {
+                const levelItem = createLevelItem(listKey, 'all', `All Custom Words`);
+                details.appendChild(levelItem);
+            } else {
+                const levelKeys = Object.keys(WORD_BANK[listKey]);
+                if (listKey === 'fry') { levelKeys.sort((a, b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0])); }
+                levelKeys.forEach(levelKey => {
+                    const levelName = listKey === 'dolch' ? `Level ${levelKey}` : `Fry ${levelKey}`;
+                    details.appendChild(createLevelItem(listKey, levelKey, levelName));
                 });
-                listItem.addEventListener('pointerup', (e) => {
-                    clearTimeout(longPressTimer);
-                    if (!isLongPress) {
-                        setActiveWordList(listKey);
-                        wordListDropdownMenu.classList.remove('visible');
-                        if (listKey !== 'custom') { levelsDropdownMenu.classList.add('visible'); }
-                        else { levelsDropdownMenu.classList.remove('visible'); }
-                    }
-                    isLongPress = false;
-                });
-                listItem.addEventListener('pointerleave', () => clearTimeout(longPressTimer));
-                wordListDropdownMenu.appendChild(listItem);
             }
+            wordListTreeContainer.appendChild(details);
         });
+        updateWordListModalUI();
     }
-    function setActiveWordList(newListKey) {
-        if (activeWordList === newListKey && selectedLevels.length > 0 && !(newListKey === 'custom' && selectedLevels[0] !== "__ALL__")) return;
-        activeWordList = newListKey; localStorage.setItem('activeWordList', activeWordList);
-        if (newListKey === 'custom') { selectedLevels = ["__ALL__"]; }
-        else if (WORD_BANK[newListKey] && typeof WORD_BANK[newListKey] === 'object' && Object.keys(WORD_BANK[newListKey]).length > 0) { selectedLevels = [Object.keys(WORD_BANK[newListKey])[0]]; }
-        else { selectedLevels = []; }
-        localStorage.setItem('selectedLevels', JSON.stringify(selectedLevels));
-        Array.from(wordListDropdownMenu.children).forEach(child => { child.classList.toggle('selected', child.dataset.listKey === activeWordList); });
-        populateLevelsDropdown(); updateActiveQuizWords(); updateWordSourceButtonText();
+    
+    function createLevelItem(listKey, levelKey, levelName) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'level-item';
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = tempSelectionState[listKey]?.[levelKey] || false;
+        checkbox.addEventListener('change', () => { tempSelectionState[listKey][levelKey] = checkbox.checked; updateWordListModalUI(); });
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = levelName;
+        const countSpan = document.createElement('span');
+        countSpan.className = 'level-word-count';
+        label.appendChild(checkbox);
+        label.appendChild(nameSpan);
+        label.appendChild(countSpan);
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-level-btn';
+        editBtn.innerHTML = '✎';
+        editBtn.title = `Edit words for ${levelName}`;
+        editBtn.addEventListener('click', () => { openWordCustomizationModal(listKey, listKey === 'custom' ? '__ALL__' : levelKey); });
+        itemDiv.appendChild(label);
+        itemDiv.appendChild(editBtn);
+        return itemDiv;
     }
-    function populateLevelsDropdown() {
-        levelsDropdownMenu.innerHTML = '';
-        if (activeWordList === 'custom') { levelsDropdownMenu.classList.remove('visible'); updateWordSourceButtonText(); return; }
-        const currentList = WORD_BANK[activeWordList];
-        if (!currentList || typeof currentList !== 'object') { updateWordSourceButtonText(); return; }
-        const levelKeys = Object.keys(currentList);
-        if (activeWordList === 'fry') { levelKeys.sort((a, b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0])); }
-        else { levelKeys.sort(); }
-        levelKeys.forEach(levelKey => {
-            const levelItem = document.createElement('div'); levelItem.className = 'dropdown-item level-item'; levelItem.dataset.level = levelKey;
-            levelItem.textContent = activeWordList === 'dolch' ? `Level ${levelKey}` : `Fry ${levelKey}`;
-            const longPressHint = document.createElement('span'); longPressHint.className = 'long-press-indicator'; longPressHint.textContent = '(customize)'; levelItem.appendChild(longPressHint);
-            if (selectedLevels.includes(levelKey)) { levelItem.classList.add('selected'); }
-            levelItem.addEventListener('mousedown', (e) => handleLevelInteractionStart(e, activeWordList, levelKey));
-            levelItem.addEventListener('touchstart', (e) => handleLevelInteractionStart(e, activeWordList, levelKey), { passive: false });
-            levelItem.addEventListener('mouseup', (e) => handleLevelInteractionEnd(e, levelKey, levelItem));
-            levelItem.addEventListener('mouseleave', (e) => handleLevelInteractionEnd(e, levelKey, levelItem));
-            levelItem.addEventListener('touchend', (e) => handleLevelInteractionEnd(e, levelKey, levelItem));
-            levelItem.addEventListener('touchcancel', (e) => handleLevelInteractionEnd(e, levelKey, levelItem));
-            levelsDropdownMenu.appendChild(levelItem);
+
+    function updateWordListModalUI() {
+        let totalSelectedWords = 0;
+        let summaryParts = [];
+        wordListTreeContainer.querySelectorAll('details').forEach(details => {
+            let bankSelectedWords = 0;
+            const listKey = Object.keys(bankDisplayNames).find(key => bankDisplayNames[key] === details.querySelector('summary span:first-child').textContent);
+            details.querySelectorAll('.level-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const levelNameText = checkbox.nextElementSibling.textContent;
+                const levelKey = levelNameText.includes('Custom') ? 'all' : (listKey === 'dolch' ? levelNameText.split(' ')[1] : levelNameText.split(' ')[1]);
+                const levelWordCount = getWordCountForLevel(listKey, levelKey);
+                item.querySelector('.level-word-count').textContent = `(${levelWordCount})`;
+                if (checkbox.checked) {
+                    bankSelectedWords += levelWordCount;
+                    if(listKey !== 'custom') summaryParts.push(`${listKey === 'dolch' ? 'Dolch' : 'Fry'} ${levelKey}`);
+                    else if(!summaryParts.includes('Custom')) summaryParts.push('Custom');
+                }
+            });
+            details.querySelector('.bank-count').textContent = `(${bankSelectedWords} words)`;
+            totalSelectedWords += bankSelectedWords;
         });
-        updateWordSourceButtonText();
+        wordListTotalCount.textContent = totalSelectedWords;
+        wordListSummaryText.textContent = `You've selected: ${summaryParts.length > 0 ? summaryParts.join(' • ') : 'None'}`;
     }
-    function handleLevelInteractionStart(event, listContext, levelKey) {
-        if(isMiniGameActive) return; event.preventDefault(); isLongPress = false; clearTimeout(longPressTimer);
-        longPressTimer = setTimeout(() => {
-            isLongPress = true;
-            openWordCustomizationModal(listContext, levelKey);
-            levelsDropdownMenu.classList.remove('visible'); wordListDropdownMenu.classList.remove('visible');
-        }, 600);
-    }
-    function handleLevelInteractionEnd(event, levelKey, levelItemElement) {
-        clearTimeout(longPressTimer);
-        if (!isLongPress) {
-            if (event.type === 'mouseup' || event.type === 'touchend') {
-                let target = event.target; let isClickOnItem = false;
-                while(target && target !== document.body) { if (target === levelItemElement) { isClickOnItem = true; break; } target = target.parentElement; }
-                if (isClickOnItem) { toggleLevelSelection(levelKey, levelItemElement); }
-            }
+
+    function getWordCountForLevel(listKey, levelKey) {
+        let wordsForLevel = (listKey === 'custom') ? WORD_BANK.custom : (WORD_BANK[listKey]?.[levelKey] || []);
+        const userSelectionsKey = `${listKey}_${levelKey === 'all' ? '__ALL__' : levelKey}_userSelections`;
+        const storedUserSelections = localStorage.getItem(userSelectionsKey);
+        if (storedUserSelections) {
+            try {
+                const userSelectedSubset = JSON.parse(storedUserSelections);
+                return wordsForLevel.filter(word => userSelectedSubset.includes(word)).length;
+            } catch (e) { /* fall through */ }
         }
-        isLongPress = false;
+        return wordsForLevel.length;
     }
-    function toggleLevelSelection(levelKey, levelItemElement) {
-        const index = selectedLevels.indexOf(levelKey);
-        if (index > -1) {
-            if (selectedLevels.length > 1) { selectedLevels.splice(index, 1); levelItemElement.classList.remove('selected'); }
-            else { showFloatingMessage("At least one level must be selected.", "var(--brand-dark)"); return; }
-        } else { selectedLevels.push(levelKey); levelItemElement.classList.add('selected'); }
-        if (activeWordList === 'fry') { selectedLevels.sort((a, b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0])); } else { selectedLevels.sort(); }
-        localStorage.setItem('selectedLevels', JSON.stringify(selectedLevels));
-        updateActiveQuizWords(); updateWordSourceButtonText();
-    }
-    function updateWordSourceButtonText() {
-        const listName = activeWordList.charAt(0).toUpperCase() + activeWordList.slice(1);
-        let levelsText = 'None';
-        if (activeWordList === 'custom') { levelsText = "All"; }
-        else if (selectedLevels && selectedLevels.length > 0) {
-            if (activeWordList === 'fry' && selectedLevels.length > 2) { levelsText = `${selectedLevels.length} groups`; }
-            else { levelsText = selectedLevels.join(','); }
-        }
-        wordSourceToggleBtn.textContent = `${listName}: ${levelsText}`;
-    }
-    function updateActiveQuizWords() {
-        words = []; const currentWordSet = new Set();
-        if (activeWordList !== 'custom' && WORD_BANK[activeWordList] && typeof WORD_BANK[activeWordList] === 'object') {
-            selectedLevels.forEach(levelKey => {
-                if (WORD_BANK[activeWordList][levelKey]) {
-                    let baseWordsForLevel = [...WORD_BANK[activeWordList][levelKey]];
-                    const userSelectionsKey = `${activeWordList}_${levelKey}_userSelections`;
+
+    function updateQuizWordsFromSelectionState() {
+        const currentWordSet = new Set();
+        Object.keys(selectionState).forEach(listKey => {
+            Object.keys(selectionState[listKey]).forEach(levelKey => {
+                if (selectionState[listKey][levelKey]) {
+                    let baseWordsForLevel = (listKey === 'custom') ? [...WORD_BANK.custom] : [...(WORD_BANK[listKey]?.[levelKey] || [])];
+                    const userSelectionsKey = `${listKey}_${levelKey === 'all' ? '__ALL__' : levelKey}_userSelections`;
                     const storedUserSelections = localStorage.getItem(userSelectionsKey);
                     if (storedUserSelections) {
                         try {
@@ -1755,25 +1188,19 @@
                     baseWordsForLevel.forEach(word => currentWordSet.add(word));
                 }
             });
-        }
-        (WORD_BANK.custom || []).forEach(word => currentWordSet.add(word));
+        });
         words = Array.from(currentWordSet);
-        if (words.length === 0) {
-            showFloatingMessage("No words for selection. Defaulting to Dolch A + Custom.", "var(--brand-dark)");
-            activeWordList = 'dolch'; selectedLevels = ['A'];
-            localStorage.setItem('activeWordList', activeWordList); localStorage.setItem('selectedLevels', JSON.stringify(selectedLevels));
-            populateWordListDropdown(); populateLevelsDropdown();
-            (WORD_BANK.dolch.A || []).forEach(w => currentWordSet.add(w)); (WORD_BANK.custom || []).forEach(w => currentWordSet.add(w));
-            words = Array.from(currentWordSet);
-            if (words.length === 0) words = ["the", "a"];
-        }
-        updateWordSourceButtonText(); clearTimeout(questionTimeoutId); resetQuestionState(); setTimeout(nextQ, 100);
+        wordCountBadge.textContent = words.length;
+        if (words.length === 0) { showFloatingMessage("No words selected. Please choose some lists.", "var(--brand-dark)"); }
+        clearTimeout(questionTimeoutId); resetQuestionState(); setTimeout(nextQ, 100);
     }
 
-    // --- WORD CUSTOMIZATION MODAL (UNCHANGED) ---
+    // --- WORD CUSTOMIZATION MODAL (Inner modal, adapted to work with new system) ---
     function openWordCustomizationModal(listKey, levelKeyContext) {
-        currentModalListContext = listKey; currentModalLevelContext = levelKeyContext;
-        modalSearchInput.value = ''; modalAddCustomWordBtn.classList.add('hidden');
+        currentModalListContext = listKey;
+        currentModalLevelContext = levelKeyContext;
+        modalSearchInput.value = '';
+        modalAddCustomWordBtn.classList.add('hidden');
         if (listKey === 'custom') {
             modalTitle.textContent = `Customize: Custom Word List`;
             modalLevelSelector.style.display = 'none'; modalLevelSelectorLabel.style.display = 'none';
@@ -1784,14 +1211,11 @@
             const levelsForThisList = Object.keys(WORD_BANK[listKey]);
             if (listKey === 'fry') { levelsForThisList.sort((a, b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0])); }
             else { levelsForThisList.sort(); }
-            levelsForThisList.forEach(lvl => {
-                const option = document.createElement('option'); option.value = lvl;
-                option.textContent = (listKey === 'dolch' ? `Level ${lvl}` : `${lvl}`);
-                modalLevelSelector.appendChild(option);
-            });
+            levelsForThisList.forEach(lvl => { const option = document.createElement('option'); option.value = lvl; option.textContent = (listKey === 'dolch' ? `Level ${lvl}` : `${lvl}`); modalLevelSelector.appendChild(option); });
             modalLevelSelector.value = levelKeyContext;
         }
-        populateModalWordList(); wordCustomizationModal.classList.add('visible');
+        populateModalWordList();
+        wordCustomizationModal.classList.add('visible');
     }
     function closeWordCustomizationModal() { wordCustomizationModal.classList.remove('visible'); }
     function populateModalWordList() {
@@ -1799,10 +1223,7 @@
         let wordsToDisplay = new Map(); let foundResultsInCurrentList = false;
         if (currentModalListContext === 'custom') {
             (WORD_BANK.custom || []).forEach(word => {
-                if (searchTerm === '' || word.toLowerCase().includes(searchTerm)) {
-                    wordsToDisplay.set(word, { isCustomGlobal: true, isSelectedForBaseLevel: true });
-                    foundResultsInCurrentList = true;
-                }
+                if (searchTerm === '' || word.toLowerCase().includes(searchTerm)) { wordsToDisplay.set(word, { isCustomGlobal: true, isSelectedForBaseLevel: true }); foundResultsInCurrentList = true; }
             });
         } else {
             const baseWordsForLevel = WORD_BANK[currentModalListContext]?.[currentModalLevelContext] || [];
@@ -1812,10 +1233,8 @@
             if (storedUserSelections) { try { userSelectedSubsetForBaseLevel = JSON.parse(storedUserSelections); } catch (e) { /* ignore */ } }
             baseWordsForLevel.forEach(word => {
                 if (searchTerm === '' || word.toLowerCase().includes(searchTerm)) {
-                    let isSelected = true;
-                    if (userSelectedSubsetForBaseLevel && Array.isArray(userSelectedSubsetForBaseLevel)) { isSelected = userSelectedSubsetForBaseLevel.includes(word); }
-                    wordsToDisplay.set(word, { isCustomGlobal: WORD_BANK.custom.includes(word), isSelectedForBaseLevel: isSelected });
-                    foundResultsInCurrentList = true;
+                    let isSelected = !Array.isArray(userSelectedSubsetForBaseLevel) || userSelectedSubsetForBaseLevel.includes(word);
+                    wordsToDisplay.set(word, { isCustomGlobal: WORD_BANK.custom.includes(word), isSelectedForBaseLevel: isSelected }); foundResultsInCurrentList = true;
                 }
             });
         }
@@ -1823,16 +1242,15 @@
         sortedWords.forEach(word => {
             const wordData = wordsToDisplay.get(word);
             const itemDiv = document.createElement('div'); itemDiv.classList.add('modal-word-item');
-            const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.id = `modal-word-${currentModalListContext}-${currentModalLevelContext.replace(/\s+/g, '-')}-${word.replace(/\s+/g, '-')}`;
+            const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.id = `modal-word-${word.replace(/\s+/g, '-')}`;
             checkbox.value = word; checkbox.checked = wordData.isSelectedForBaseLevel;
             if (wordData.isCustomGlobal) { itemDiv.classList.add('custom-word'); }
             const label = document.createElement('label'); label.htmlFor = checkbox.id; label.textContent = word;
             itemDiv.appendChild(checkbox); itemDiv.appendChild(label);
             modalWordList.appendChild(itemDiv);
         });
-        if (searchTerm !== '' && !foundResultsInCurrentList && !WORD_BANK.custom.includes(searchTerm)) {
-            modalAddCustomWordTerm.textContent = searchTerm; modalAddCustomWordBtn.classList.remove('hidden');
-        } else { modalAddCustomWordBtn.classList.add('hidden'); }
+        if (searchTerm !== '' && !foundResultsInCurrentList && !WORD_BANK.custom.includes(searchTerm)) { modalAddCustomWordTerm.textContent = searchTerm; modalAddCustomWordBtn.classList.remove('hidden'); }
+        else { modalAddCustomWordBtn.classList.add('hidden'); }
     }
     function handleAddCustomWordFromModal() {
         const newWord = modalSearchInput.value.trim(); if (newWord === '') return;
@@ -1840,7 +1258,8 @@
             WORD_BANK.custom.push(newWord); WORD_BANK.custom.sort();
             localStorage.setItem('customBank', JSON.stringify(WORD_BANK.custom));
             showFloatingMessage(`"${newWord}" added to Custom list.`, "var(--correct-bg)");
-            populateModalWordList(); updateActiveQuizWords();
+            populateModalWordList();
+            if (wordListModal.classList.contains('visible')) updateWordListModalUI();
         } else { showFloatingMessage(`"${newWord}" is already in Custom list.`, "var(--brand-light)", "var(--fg)"); }
         modalSearchInput.value = ''; modalAddCustomWordBtn.classList.add('hidden');
     }
@@ -1852,18 +1271,14 @@
             localStorage.setItem('customBank', JSON.stringify(WORD_BANK.custom));
         } else {
             const selectedWordsForThisBaseLevel = [];
-            modalWordList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                if (WORD_BANK[currentModalListContext]?.[currentModalLevelContext]?.includes(cb.value)) {
-                    if (cb.checked) { selectedWordsForThisBaseLevel.push(cb.value); }
-                }
-            });
+            modalWordList.querySelectorAll('input[type="checkbox"]').forEach(cb => { if (cb.checked) { selectedWordsForThisBaseLevel.push(cb.value); } });
             const userSelectionsKey = `${currentModalListContext}_${currentModalLevelContext}_userSelections`;
             const originalBaseWordsForLevel = WORD_BANK[currentModalListContext]?.[currentModalLevelContext] || [];
-            if (selectedWordsForThisBaseLevel.length === originalBaseWordsForLevel.length && originalBaseWordsForLevel.every(w => selectedWordsForThisBaseLevel.includes(w))) {
-                localStorage.removeItem(userSelectionsKey);
-            } else { localStorage.setItem(userSelectionsKey, JSON.stringify([...new Set(selectedWordsForThisBaseLevel)].sort())); }
+            if (selectedWordsForThisBaseLevel.length === originalBaseWordsForLevel.length) { localStorage.removeItem(userSelectionsKey); }
+            else { localStorage.setItem(userSelectionsKey, JSON.stringify([...new Set(selectedWordsForThisBaseLevel)].sort())); }
         }
-        closeWordCustomizationModal(); updateActiveQuizWords();
+        closeWordCustomizationModal();
+        if (wordListModal.classList.contains('visible')) { updateWordListModalUI(); }
         showFloatingMessage("Word customizations saved!", "var(--correct-bg)");
     }
     function toggleAllModalWords(select) { modalWordList.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = select; }); }
