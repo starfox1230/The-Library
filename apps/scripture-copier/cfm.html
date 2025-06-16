@@ -42,6 +42,8 @@
       margin: 0; cursor: pointer; display: inline-block; font-size: 1.5rem;
       user-select: none;
     }
+
+    /* --- OLD MENU STYLES (partially replaced) --- */
     .dropdown-menu {
       display: none;
       position: absolute;
@@ -52,13 +54,79 @@
       border: 1px solid var(--input-border);
       border-radius: var(--radius);
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      z-index: 10; min-width: 180px;
+      z-index: 10;
+      min-width: 240px; /* Increased width for nested items */
+      padding: 0;
     }
-    .dropdown-menu a {
-      display: block; padding: 10px 14px;
-      color: var(--text); text-decoration:none; font-size:0.95rem;
+    
+    /* --- NEW NESTED MENU STYLES --- */
+    .dropdown-menu ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
     }
-    .dropdown-menu a:hover { background: var(--input-border); }
+    .dropdown-menu li {
+      position: relative; /* For submenu positioning */
+    }
+    .dropdown-menu a, .dropdown-menu span {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      cursor: pointer;
+      text-align: left; /* Align text left */
+    }
+    .dropdown-menu a:hover, .dropdown-menu span:hover {
+      background: var(--input-border);
+    }
+    .dropdown-menu .submenu {
+      display: none;
+      position: absolute;
+      top: -1px; /* Aligns with parent top edge */
+      left: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      z-index: 11;
+    }
+    .dropdown-menu li:hover > .submenu {
+      display: block;
+    }
+    .dropdown-menu .has-submenu > span::after {
+      content: '▸';
+      float: right;
+      margin-left: 10px;
+    }
+    
+    /* --- NEW FULLSCREEN EMBED STYLES --- */
+    .embed-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      padding: 40px;
+    }
+    .embed-modal iframe {
+      width: 100%; height: 100%;
+      background-color: #fff;
+      border-radius: var(--radius);
+      border: none;
+    }
+    .embed-close {
+      position: absolute;
+      top: 5px; right: 15px;
+      background: none; border: none;
+      color: #fff;
+      font-size: 2.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+    }
 
     #week-info, #day-info {
       white-space: pre-line; margin-bottom: var(--spacing);
@@ -78,46 +146,27 @@
     .actions button:disabled {
       opacity: 0.4; cursor: not-allowed;
     }
-    /* auto-resizing textarea */
     #content-text {
-      width: 100%;
-      padding: var(--spacing);
-      background: var(--input-bg);
-      color: var(--text);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius);
-      resize: none;
-      font-size: 0.9rem;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      overflow: hidden;
-      height: auto;
+      width: 100%; padding: var(--spacing);
+      background: var(--input-bg); color: var(--text);
+      border: 1px solid var(--input-border); border-radius: var(--radius);
+      resize: none; font-size: 0.9rem; line-height: 1.4;
+      white-space: pre-wrap; overflow: hidden; height: auto;
+    }
+    #scripture-links {
+      margin-bottom: var(--spacing); text-align: center;
+      font-size: 0.95rem; line-height: 1.4;
+    }
+    #scripture-links a {
+      color: var(--accent); background: var(--input-bg);
+      padding: 4px 8px; border-radius: var(--radius);
+      text-decoration: none; margin: 0 4px; font-weight: 500;
+    }
+    #scripture-links a:hover {
+      background: var(--input-border); opacity: 0.9;
     }
     @media (min-width:600px) {
       .actions { justify-content: space-between; }
-    }
-    /* in your <style> block, below the existing rules */
-
-    #scripture-links {
-      margin-bottom: var(--spacing);
-      text-align: center;
-      font-size: 0.95rem;
-      line-height: 1.4;
-    }
-    
-    #scripture-links a {
-      color: var(--accent);
-      background: var(--input-bg);
-      padding: 4px 8px;
-      border-radius: var(--radius);
-      text-decoration: none;
-      margin: 0 4px;
-      font-weight: 500;
-    }
-    
-    #scripture-links a:hover {
-      background: var(--input-border);
-      opacity: 0.9;
     }
   </style>
 </head>
@@ -125,12 +174,35 @@
   <div class="container">
     <div class="title-nav">
       <h1 id="dropdown-btn">Come Follow Me ▾</h1>
-      <div id="dropdown-menu" class="dropdown-menu">
-        <a href="index.html">Scripture Copier</a>
-        <a href="https://yt2anki.onrender.com/" target="_blank">Anki/Quiz Generator</a>
-        <a href="https://starfox1230.github.io/TTS/" target="_blank">Text-to-Speech</a>
-        <a href="https://starfox1230.github.io/memorize/" target="_blank">Memorize</a>
-      </div>
+      <!-- UPDATED MENU STRUCTURE -->
+      <nav id="dropdown-menu" class="dropdown-menu">
+        <ul>
+          <li><a href="index.html">Scripture Copier</a></li>
+          <li class="has-submenu">
+            <span>Learn It</span>
+            <ul class="submenu">
+              <li><a href="https://chat.openai.com/chat" target="_blank" rel="noopener">ChatGPT</a></li>
+              <li><a href="https://yt2anki.onrender.com/" target="_blank" rel="noopener">Anki / Short Quiz Generator</a></li>
+              <li><a href="https://starfox1230.github.io/The-Library/apps/quiz-generator/index.html" target="_blank" rel="noopener">Long Quiz Generator</a></li>
+              <li><a href="https://starfox1230.github.io/memorize/" target="_blank" rel="noopener">Memorize</a></li>
+            </ul>
+          </li>
+          <li class="has-submenu">
+            <span>YouTube</span>
+            <ul class="submenu">
+              <li><a href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLekBXC8CBIQEysfrjee9ivY&si=lcm8wAjKnVFwkceJ">Church History Matters</a></li>
+              <li><a href="youtube://www.youtube.com/c/FollowHimOfficialChannel">Follow Him</a></li>
+              <li class="has-submenu">
+                <span>Copy YouTube Transcript</span>
+                <ul class="submenu">
+                  <li><a href="#" class="embed-link" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a></li>
+                  <li><a href="#" class="embed-link" data-url="https://tactiq.io/tools/youtube-transcript">Tactiq.io</a></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
     </div>
 
     <div id="week-info">Loading week…</div>
@@ -148,17 +220,56 @@
     <div id="scripture-links"></div>
     <textarea id="content-text" readonly placeholder="Content will appear here…"></textarea>
   </div>
+  
+  <!-- NEW: IFRAME MODAL FOR EMBEDS -->
+  <div id="embed-modal" class="embed-modal">
+    <button id="embed-close" class="embed-close">×</button>
+    <iframe id="embed-iframe" src="" allow="fullscreen"></iframe>
+  </div>
+
 
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    // TITLE-DROPDOWN
+    // TITLE-DROPDOWN (with improved closing logic)
     const ddTitle = document.getElementById('dropdown-btn'),
           ddMenu  = document.getElementById('dropdown-menu');
     ddTitle.addEventListener('click', e => {
       e.stopPropagation();
       ddMenu.style.display = ddMenu.style.display==='block'?'none':'block';
     });
-    document.addEventListener('click',()=>ddMenu.style.display='none');
+    ddMenu.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', e => {
+        if (!ddMenu.contains(e.target) && e.target !== ddTitle) {
+            ddMenu.style.display = 'none';
+        }
+    });
+
+    // NEW: FULLSCREEN EMBED LOGIC
+    const embedModal = document.getElementById('embed-modal');
+    const embedIframe = document.getElementById('embed-iframe');
+    const embedCloseBtn = document.getElementById('embed-close');
+    const embedLinks = document.querySelectorAll('.embed-link');
+
+    function openEmbed(url) {
+      embedIframe.src = url;
+      embedModal.style.display = 'block';
+      ddMenu.style.display = 'none'; // Close dropdown when opening embed
+    }
+
+    function closeEmbed() {
+      embedIframe.src = 'about:blank'; // Clear iframe to stop content
+      embedModal.style.display = 'none';
+    }
+
+    embedLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = link.dataset.url;
+        if (url) openEmbed(url);
+      });
+    });
+    embedCloseBtn.addEventListener('click', closeEmbed);
+    // END NEW LOGIC
 
     // UTILS
     const parseDate = s => {
@@ -238,18 +349,13 @@
     async function renderDay(){
       const {wk,assigns}=await loadWeek(cw);
         
-      // 1. figure out which D&C section numbers this day uses:
       const todaySections = Array.from(new Set(assigns[dayIdx].map(x => x.section)));
-  
-      // 2. build one link per section
       const linksHtml = todaySections
         .map(sec =>
           `<a href="https://www.churchofjesuschrist.org/study/scriptures/dc-testament/dc/${sec}?lang=eng"`
-          + ` target="_blank" rel="noopener">D&amp;C ${sec}</a>`
+          + ` target="_blank" rel="noopener">D&C ${sec}</a>`
         )
-        .join(' | ');  // you can choose any separator
-  
-      // 3. inject into the new container
+        .join(' | ');
       document.getElementById('scripture-links').innerHTML = linksHtml;
       weekInfo.textContent=
         `Week we're in: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}\n`+
@@ -316,7 +422,8 @@
     copyBtn.addEventListener('click',()=>{
       contentTA.select();
       document.execCommand('copy');
-      alert('Copied!');
+      copyBtn.textContent = 'Copied!';
+      setTimeout(()=> copyBtn.textContent = 'Copy', 1500);
     });
 
     // INITIAL
