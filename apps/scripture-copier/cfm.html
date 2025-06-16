@@ -11,7 +11,7 @@
       --text: #e0e0e0;
       --accent: #bb86fc;
       --input-bg: #272727;
-      --input-border: #333;
+      --input-border: #444; /* Slightly lighter for better contrast */
       --radius: 8px;
       --spacing: 16px;
       --font: 16px;
@@ -32,7 +32,7 @@
       background: var(--card-bg);
       border-radius: var(--radius);
       padding: var(--spacing);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
     }
     .title-nav {
       position: relative; text-align: center; margin-bottom: var(--spacing);
@@ -42,7 +42,7 @@
       user-select: none;
     }
 
-    /* --- NEW ACCORDION MENU STYLES (Mobile-First & Desktop-Friendly) --- */
+    /* --- MODERNIZED ACCORDION MENU STYLES --- */
     .dropdown-menu {
       display: none;
       position: absolute;
@@ -52,58 +52,63 @@
       background: var(--card-bg);
       border: 1px solid var(--input-border);
       border-radius: var(--radius);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       z-index: 10;
-      min-width: 240px;
+      min-width: 250px;
       text-align: left;
-      padding: 5px 0;
+      padding: 6px 0;
+      overflow: hidden; /* Ensures child border-radius is respected */
     }
     .dropdown-menu ul {
       list-style: none;
       margin: 0;
       padding: 0;
     }
+    .dropdown-menu li {
+      border-bottom: 1px solid var(--input-border);
+    }
+    .dropdown-menu li:last-child {
+      border-bottom: none;
+    }
     .dropdown-menu a, .dropdown-menu .submenu-trigger {
-      display: block;
-      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
       color: var(--text);
       text-decoration: none;
       font-size: 0.95rem;
-      white-space: nowrap;
       cursor: pointer;
+      transition: background-color 0.2s ease;
     }
     .dropdown-menu a:hover, .dropdown-menu .submenu-trigger:hover {
-      background: var(--input-border);
+      background: var(--input-bg);
     }
-    /* Submenu container is hidden by default */
-    .dropdown-menu .submenu {
-      display: none;
-      background: rgba(0, 0, 0, 0.2);
-      padding-left: 15px; /* Indent nested items */
-    }
-    /* Style for the trigger (the text you click) */
-    .submenu-trigger {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    /* Arrow points down by default */
     .submenu-trigger::after {
-      content: '▾';
-      font-size: 0.8em;
-      margin-left: 10px;
-      transition: transform 0.2s ease;
+      content: '›'; /* Chevron right */
+      margin-left: auto;
+      font-weight: bold;
+      font-size: 1.2em;
+      color: var(--accent);
+      transition: transform 0.3s ease-in-out;
     }
-    /* When a menu item is open, show its submenu */
-    .dropdown-menu .menu-item-open > .submenu {
-      display: block;
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.2);
+      transition: max-height 0.3s ease-in-out;
     }
-    /* When open, point the arrow up */
-    .dropdown-menu .menu-item-open > .submenu-trigger::after {
-      transform: rotate(180deg);
+    .submenu a {
+      padding-left: 35px; /* Indent submenu items */
+    }
+    /* Open State */
+    .menu-item-open > .submenu {
+      max-height: 500px; /* Animate to a large enough height */
+    }
+    .menu-item-open > .submenu-trigger::after {
+      transform: rotate(90deg); /* Point chevron down */
     }
     
-    /* --- FULLSCREEN EMBED STYLES (Unchanged) --- */
+    /* --- FULLSCREEN EMBED STYLES --- */
     .embed-modal {
       display: none; position: fixed; top: 0; left: 0;
       width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
@@ -152,7 +157,6 @@
   <div class="container">
     <div class="title-nav">
       <h1 id="dropdown-btn">Come Follow Me ▾</h1>
-      <!-- REVISED MENU HTML (Structure is same, but classes are now key) -->
       <nav id="dropdown-menu" class="dropdown-menu">
         <ul>
           <li><a href="index.html">Scripture Copier</a></li>
@@ -204,7 +208,7 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    // --- MENU LOGIC ---
+    // --- MENU LOGIC (with toggle-to-close) ---
     const ddTitle = document.getElementById('dropdown-btn');
     const ddMenu = document.getElementById('dropdown-menu');
     
@@ -219,35 +223,31 @@
       ddMenu.style.display = 'none';
     });
 
-    // NEW: ACCORDION SUBMENU LOGIC
+    // Accordion submenu logic with toggle-to-close
     ddMenu.addEventListener('click', e => {
-      e.stopPropagation(); // Prevent clicks inside the menu from closing it
-      
+      e.stopPropagation(); // Keep the main menu open
       const trigger = e.target.closest('.submenu-trigger');
-      if (trigger) {
-        const parentLi = trigger.parentElement;
-        if (parentLi.classList.contains('has-submenu')) {
-          // Check if it's already open
-          const wasOpen = parentLi.classList.contains('menu-item-open');
-          
-          // Close all siblings
-          Array.from(parentLi.parentElement.children).forEach(sibling => {
-            sibling.classList.remove('menu-item-open');
-          });
-          
-          // If it was closed, open it.
-          if (!wasOpen) {
-            parentLi.classList.add('menu-item-open');
-          }
+      if (!trigger) return; // Exit if the click wasn't on a trigger
+
+      const parentLi = trigger.parentElement;
+
+      // Close sibling submenus to maintain accordion behavior
+      Array.from(parentLi.parentElement.children).forEach(sibling => {
+        if (sibling !== parentLi) {
+          sibling.classList.remove('menu-item-open');
+          // Also close any sub-sub-menus within the sibling
+          sibling.querySelector('.menu-item-open')?.classList.remove('menu-item-open');
         }
-      }
+      });
+      
+      // Now, simply toggle the class on the clicked item
+      parentLi.classList.toggle('menu-item-open');
     });
 
     // --- FULLSCREEN EMBED LOGIC ---
     const embedModal = document.getElementById('embed-modal');
     const embedIframe = document.getElementById('embed-iframe');
     const embedCloseBtn = document.getElementById('embed-close');
-
     function openEmbed(url) {
       embedIframe.src = url;
       embedModal.style.display = 'block';
@@ -265,7 +265,7 @@
     });
     embedCloseBtn.addEventListener('click', closeEmbed);
 
-    // --- CORE APP LOGIC (Unchanged) ---
+    // --- CORE APP LOGIC ---
     const parseDate = s => {
       const [y,m,d] = s.split('-').map(Number);
       return new Date(y,m-1,d);
@@ -275,7 +275,6 @@
             dd=String(d.getDate()).padStart(2,'0');
       return `${mm}/${dd}/${d.getFullYear()}`;
     };
-
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2025.json').then(r=>r.json());
     let cw = schedule.findIndex(wk=>{
@@ -288,7 +287,6 @@
     }
     let dayIdx = Math.floor((today-parseDate(schedule[cw].start))/(1000*60*60*24));
     dayIdx = Math.max(0,Math.min(6,dayIdx));
-
     let displayMode='verses', cache={};
     const weekInfo = document.getElementById('week-info'),
           dayInfo  = document.getElementById('day-info'),
@@ -297,7 +295,6 @@
           toggleBtn= document.getElementById('toggle-btn'),
           copyBtn  = document.getElementById('copy-btn'),
           contentTA= document.getElementById('content-text');
-
     async function loadWeek(i){
       if(cache[i]) return cache[i];
       const wk = schedule[i];
