@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <!-- Prevent double-tap zoom on mobile -->
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
   <title>Come Follow Me</title>
   <style>
@@ -43,7 +42,7 @@
       user-select: none;
     }
 
-    /* --- OLD MENU STYLES (partially replaced) --- */
+    /* --- NEW ACCORDION MENU STYLES (Mobile-First & Desktop-Friendly) --- */
     .dropdown-menu {
       display: none;
       position: absolute;
@@ -55,77 +54,68 @@
       border-radius: var(--radius);
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
       z-index: 10;
-      min-width: 240px; /* Increased width for nested items */
-      padding: 0;
+      min-width: 240px;
+      text-align: left;
+      padding: 5px 0;
     }
-    
-    /* --- NEW NESTED MENU STYLES --- */
     .dropdown-menu ul {
       list-style: none;
       margin: 0;
       padding: 0;
     }
-    .dropdown-menu li {
-      position: relative; /* For submenu positioning */
-    }
-    .dropdown-menu a, .dropdown-menu span {
+    .dropdown-menu a, .dropdown-menu .submenu-trigger {
       display: block;
-      padding: 10px 14px;
+      padding: 10px 20px;
       color: var(--text);
       text-decoration: none;
       font-size: 0.95rem;
       white-space: nowrap;
       cursor: pointer;
-      text-align: left; /* Align text left */
     }
-    .dropdown-menu a:hover, .dropdown-menu span:hover {
+    .dropdown-menu a:hover, .dropdown-menu .submenu-trigger:hover {
       background: var(--input-border);
     }
+    /* Submenu container is hidden by default */
     .dropdown-menu .submenu {
       display: none;
-      position: absolute;
-      top: -1px; /* Aligns with parent top edge */
-      left: 100%;
-      background: var(--card-bg);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      z-index: 11;
+      background: rgba(0, 0, 0, 0.2);
+      padding-left: 15px; /* Indent nested items */
     }
-    .dropdown-menu li:hover > .submenu {
+    /* Style for the trigger (the text you click) */
+    .submenu-trigger {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    /* Arrow points down by default */
+    .submenu-trigger::after {
+      content: '▾';
+      font-size: 0.8em;
+      margin-left: 10px;
+      transition: transform 0.2s ease;
+    }
+    /* When a menu item is open, show its submenu */
+    .dropdown-menu .menu-item-open > .submenu {
       display: block;
     }
-    .dropdown-menu .has-submenu > span::after {
-      content: '▸';
-      float: right;
-      margin-left: 10px;
+    /* When open, point the arrow up */
+    .dropdown-menu .menu-item-open > .submenu-trigger::after {
+      transform: rotate(180deg);
     }
     
-    /* --- NEW FULLSCREEN EMBED STYLES --- */
+    /* --- FULLSCREEN EMBED STYLES (Unchanged) --- */
     .embed-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.85);
-      z-index: 1000;
-      padding: 40px;
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
+      z-index: 1000; padding: 40px;
     }
     .embed-modal iframe {
-      width: 100%; height: 100%;
-      background-color: #fff;
-      border-radius: var(--radius);
-      border: none;
+      width: 100%; height: 100%; background-color: #fff;
+      border-radius: var(--radius); border: none;
     }
     .embed-close {
-      position: absolute;
-      top: 5px; right: 15px;
-      background: none; border: none;
-      color: #fff;
-      font-size: 2.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      line-height: 1;
+      position: absolute; top: 5px; right: 15px; background: none; border: none;
+      color: #fff; font-size: 2.5rem; font-weight: bold; cursor: pointer; line-height: 1;
     }
 
     #week-info, #day-info {
@@ -137,49 +127,37 @@
       margin-bottom: var(--spacing); justify-content:center;
     }
     .actions button {
-      flex: 1 1 120px; padding: 10px;
-      font-size: .95rem; font-weight:500;
-      color: var(--bg); background: var(--accent);
-      border:none; border-radius: var(--radius);
+      flex: 1 1 120px; padding: 10px; font-size: .95rem; font-weight:500;
+      color: var(--bg); background: var(--accent); border:none; border-radius: var(--radius);
       cursor: pointer;
     }
-    .actions button:disabled {
-      opacity: 0.4; cursor: not-allowed;
-    }
+    .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
     #content-text {
-      width: 100%; padding: var(--spacing);
-      background: var(--input-bg); color: var(--text);
-      border: 1px solid var(--input-border); border-radius: var(--radius);
-      resize: none; font-size: 0.9rem; line-height: 1.4;
-      white-space: pre-wrap; overflow: hidden; height: auto;
+      width: 100%; padding: var(--spacing); background: var(--input-bg); color: var(--text);
+      border: 1px solid var(--input-border); border-radius: var(--radius); resize: none;
+      font-size: 0.9rem; line-height: 1.4; white-space: pre-wrap; overflow: hidden; height: auto;
     }
     #scripture-links {
-      margin-bottom: var(--spacing); text-align: center;
-      font-size: 0.95rem; line-height: 1.4;
+      margin-bottom: var(--spacing); text-align: center; font-size: 0.95rem; line-height: 1.4;
     }
     #scripture-links a {
-      color: var(--accent); background: var(--input-bg);
-      padding: 4px 8px; border-radius: var(--radius);
-      text-decoration: none; margin: 0 4px; font-weight: 500;
+      color: var(--accent); background: var(--input-bg); padding: 4px 8px;
+      border-radius: var(--radius); text-decoration: none; margin: 0 4px; font-weight: 500;
     }
-    #scripture-links a:hover {
-      background: var(--input-border); opacity: 0.9;
-    }
-    @media (min-width:600px) {
-      .actions { justify-content: space-between; }
-    }
+    #scripture-links a:hover { background: var(--input-border); opacity: 0.9; }
+    @media (min-width:600px) { .actions { justify-content: space-between; } }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="title-nav">
       <h1 id="dropdown-btn">Come Follow Me ▾</h1>
-      <!-- UPDATED MENU STRUCTURE -->
+      <!-- REVISED MENU HTML (Structure is same, but classes are now key) -->
       <nav id="dropdown-menu" class="dropdown-menu">
         <ul>
           <li><a href="index.html">Scripture Copier</a></li>
           <li class="has-submenu">
-            <span>Learn It</span>
+            <span class="submenu-trigger">Learn It</span>
             <ul class="submenu">
               <li><a href="https://chat.openai.com/chat" target="_blank" rel="noopener">ChatGPT</a></li>
               <li><a href="https://yt2anki.onrender.com/" target="_blank" rel="noopener">Anki / Short Quiz Generator</a></li>
@@ -188,12 +166,12 @@
             </ul>
           </li>
           <li class="has-submenu">
-            <span>YouTube</span>
+            <span class="submenu-trigger">YouTube</span>
             <ul class="submenu">
               <li><a href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLekBXC8CBIQEysfrjee9ivY&si=lcm8wAjKnVFwkceJ">Church History Matters</a></li>
               <li><a href="youtube://www.youtube.com/c/FollowHimOfficialChannel">Follow Him</a></li>
               <li class="has-submenu">
-                <span>Copy YouTube Transcript</span>
+                <span class="submenu-trigger">Copy YouTube Transcript</span>
                 <ul class="submenu">
                   <li><a href="#" class="embed-link" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a></li>
                   <li><a href="#" class="embed-link" data-url="https://tactiq.io/tools/youtube-transcript">Tactiq.io</a></li>
@@ -207,12 +185,10 @@
 
     <div id="week-info">Loading week…</div>
     <div id="day-info"></div>
-
     <div class="actions">
       <button id="prev-day-btn" disabled>← Previous Day</button>
       <button id="next-day-btn" disabled>Next Day →</button>
     </div>
-
     <div class="actions">
       <button id="toggle-btn" disabled>Show Sections</button>
       <button id="copy-btn" disabled>Copy</button>
@@ -221,57 +197,75 @@
     <textarea id="content-text" readonly placeholder="Content will appear here…"></textarea>
   </div>
   
-  <!-- NEW: IFRAME MODAL FOR EMBEDS -->
   <div id="embed-modal" class="embed-modal">
     <button id="embed-close" class="embed-close">×</button>
     <iframe id="embed-iframe" src="" allow="fullscreen"></iframe>
   </div>
 
-
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    // TITLE-DROPDOWN (with improved closing logic)
-    const ddTitle = document.getElementById('dropdown-btn'),
-          ddMenu  = document.getElementById('dropdown-menu');
+    // --- MENU LOGIC ---
+    const ddTitle = document.getElementById('dropdown-btn');
+    const ddMenu = document.getElementById('dropdown-menu');
+    
+    // Toggle main dropdown
     ddTitle.addEventListener('click', e => {
       e.stopPropagation();
-      ddMenu.style.display = ddMenu.style.display==='block'?'none':'block';
+      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
     });
-    ddMenu.addEventListener('click', e => e.stopPropagation());
-    document.addEventListener('click', e => {
-        if (!ddMenu.contains(e.target) && e.target !== ddTitle) {
-            ddMenu.style.display = 'none';
-        }
+    
+    // Close dropdown if clicking outside
+    document.addEventListener('click', () => {
+      ddMenu.style.display = 'none';
     });
 
-    // NEW: FULLSCREEN EMBED LOGIC
+    // NEW: ACCORDION SUBMENU LOGIC
+    ddMenu.addEventListener('click', e => {
+      e.stopPropagation(); // Prevent clicks inside the menu from closing it
+      
+      const trigger = e.target.closest('.submenu-trigger');
+      if (trigger) {
+        const parentLi = trigger.parentElement;
+        if (parentLi.classList.contains('has-submenu')) {
+          // Check if it's already open
+          const wasOpen = parentLi.classList.contains('menu-item-open');
+          
+          // Close all siblings
+          Array.from(parentLi.parentElement.children).forEach(sibling => {
+            sibling.classList.remove('menu-item-open');
+          });
+          
+          // If it was closed, open it.
+          if (!wasOpen) {
+            parentLi.classList.add('menu-item-open');
+          }
+        }
+      }
+    });
+
+    // --- FULLSCREEN EMBED LOGIC ---
     const embedModal = document.getElementById('embed-modal');
     const embedIframe = document.getElementById('embed-iframe');
     const embedCloseBtn = document.getElementById('embed-close');
-    const embedLinks = document.querySelectorAll('.embed-link');
 
     function openEmbed(url) {
       embedIframe.src = url;
       embedModal.style.display = 'block';
-      ddMenu.style.display = 'none'; // Close dropdown when opening embed
+      ddMenu.style.display = 'none';
     }
-
     function closeEmbed() {
-      embedIframe.src = 'about:blank'; // Clear iframe to stop content
+      embedIframe.src = 'about:blank';
       embedModal.style.display = 'none';
     }
-
-    embedLinks.forEach(link => {
+    document.querySelectorAll('.embed-link').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        const url = link.dataset.url;
-        if (url) openEmbed(url);
+        openEmbed(link.dataset.url);
       });
     });
     embedCloseBtn.addEventListener('click', closeEmbed);
-    // END NEW LOGIC
 
-    // UTILS
+    // --- CORE APP LOGIC (Unchanged) ---
     const parseDate = s => {
       const [y,m,d] = s.split('-').map(Number);
       return new Date(y,m-1,d);
@@ -281,9 +275,7 @@
             dd=String(d.getDate()).padStart(2,'0');
       return `${mm}/${dd}/${d.getFullYear()}`;
     };
-    const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-    // STATE
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2025.json').then(r=>r.json());
     let cw = schedule.findIndex(wk=>{
@@ -298,8 +290,6 @@
     dayIdx = Math.max(0,Math.min(6,dayIdx));
 
     let displayMode='verses', cache={};
-
-    // ELEMENTS
     const weekInfo = document.getElementById('week-info'),
           dayInfo  = document.getElementById('day-info'),
           prevBtn  = document.getElementById('prev-day-btn'),
@@ -308,7 +298,6 @@
           copyBtn  = document.getElementById('copy-btn'),
           contentTA= document.getElementById('content-text');
 
-    // LOAD & CACHE
     async function loadWeek(i){
       if(cache[i]) return cache[i];
       const wk = schedule[i];
@@ -338,17 +327,12 @@
       }
       return cache[i]={wk,flat,assigns};
     }
-
-    // AUTO-RESIZE
     function autoResize(){
       contentTA.style.height='auto';
       contentTA.style.height=contentTA.scrollHeight+'px';
     }
-
-    // RENDER
     async function renderDay(){
       const {wk,assigns}=await loadWeek(cw);
-        
       const todaySections = Array.from(new Set(assigns[dayIdx].map(x => x.section)));
       const linksHtml = todaySections
         .map(sec =>
@@ -374,7 +358,6 @@
       toggleBtn.disabled=false; copyBtn.disabled=false;
       toggleBtn.textContent=displayMode==='verses'?'Show Sections':'Show Verses';
       copyBtn.textContent='Copy';
-
       const arr=assigns[dayIdx];
       if(displayMode==='verses'){
         const ranges=[];
@@ -387,7 +370,6 @@
         const hdr=ranges.map(r=>`D&C ${r.sec}:${r.start}`+
           (r.end>r.start?`–${r.end}`:'')).join(', ');
         const body=arr.map(it=>`${it.verse}. ${it.text}`).join('\n');
-        
         contentTA.value=hdr+'\n\n'+body;
       } else {
         const secs=[...new Set(arr.map(it=>it.section))];
@@ -403,8 +385,6 @@
       }
       autoResize();
     }
-
-    // HANDLERS
     prevBtn.addEventListener('click',()=>{
       if(dayIdx>0) dayIdx--;
       else if(cw>0){ cw--; dayIdx=6; }
@@ -425,8 +405,6 @@
       copyBtn.textContent = 'Copied!';
       setTimeout(()=> copyBtn.textContent = 'Copy', 1500);
     });
-
-    // INITIAL
     renderDay();
   });
   </script>
