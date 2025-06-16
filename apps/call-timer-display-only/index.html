@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Timer / Stopwatch</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none; /* Prevent text selection during hold */
+      -webkit-user-select: none; /* Safari */
+      -ms-user-select: none; /* IE 10+ */
+    }
+    .container {
+      position: relative;
+      text-align: center;
+      padding: 12px 6px 12px 6px;
+      background: #1e1e1e;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      aspect-ratio: 5/3;
+      width: 320px;
+      transition: background 0.5s;
+    }
+    /* Stopwatch mode specific background */
+    .container.stopwatch-mode {
+       background: #4a148c; /* Deep Night Mode Purple */
+    }
+    /* Pause state background (used by both modes) */
+    .container.paused-state {
+        background: #fbc02d; /* Paused yellow */
+    }
+    #timerDisplay {
+      font-size: 80px;
+      margin: 10px 0;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+    }
+    button {
+      background: #333;
+      border: none;
+      color: #e0e0e0;
+      padding: 15px 30px;
+      margin: 5px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    button:hover { background: #444; }
+    button:active { transform: scale(0.98); }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(30, 30, 30, 1.0); /* Opaque background */
+      display: none; /* Initially hidden */
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px; /* Match container */
+      z-index: 10; /* Above main content */
+      cursor: pointer; /* Indicate the background is clickable */
+    }
+    .duration-group {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 10px;
+      padding: 20px;
+      width: 300px;
+      margin: 0 auto;
+      border-radius: 12px;
+      background: rgba(40, 40, 40, 0.95); /* Slightly different background for the group */
+      position: relative;
+      cursor: default; /* Reset cursor for the group itself */
+    }
+    .duration-group button {
+      margin: 0;
+      width: 45px;
+      height: 45px;
+      font-size: 16px;
+      padding: 0;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer; /* Ensure buttons have pointer cursor */
+    }
+    .duration-group button.active {
+      background: #ff5722;
+      color: #121212;
+      font-weight: bold;
+    }
+
+    /* Style for the input field replacing the button number */
+    .duration-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        font-size: 16px;
+        text-align: center;
+        border: 1px solid #ff5722;
+        background-color: #333;
+        color: #e0e0e0;
+        border-radius: 50%;
+        box-sizing: border-box;
+        padding: 0;
+        outline: none;
+        z-index: 11; /* Above button content */
+        cursor: text; /* Indicate text input */
+        /* Remove spinners for number input */
+        -moz-appearance: textfield;
+    }
+    .duration-input::-webkit-outer-spin-button,
+    .duration-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    /* Make button span text invisible when editing */
+    .duration-group button.editing span {
+        visibility: hidden;
+    }
+
+    /* Timer pulse animations */
+    @keyframes smoothPulse {
+      0%, 100% { background-color: rgb(40, 0, 0); }
+      10%      { background-color: rgb(130, 0, 0); }
+      50%      { background-color: rgb(40, 0, 0); }
+      60%      { background-color: rgb(130, 0, 0); }
+    }
+    .pulse {
+      animation: smoothPulse 4s infinite linear;
+    }
+    .fast-pulse {
+      animation: smoothPulse 1.5s infinite linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="mainContainer">
+    <div id="timerDisplay">08:00</div>
+    <div>
+      <button id="startPauseBtn">Start</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <div id="overlay">
+      <div class="duration-group" id="durationGroup">
+         <!-- Duration buttons will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- State Variables ---
+    let appMode = 'timer'; // 'timer' or 'stopwatch'
+    let buttonDurations = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    let selectedDuration = buttonDurations[7] * 60; // Default to 8 mins (index 7)
+    let timerDuration = selectedDuration;
+    let remainingTime = timerDuration;
+    let stopwatchElapsedTime = 0;
+    let timerInterval = null;
+    let running = false;
+    let isPaused = false; // Tracks explicit pause state (via button)
+    let isOverlayPaused = false; // Timer specific: Tracks if timer paused *because* overlay is open
+    let prevRunning = false; // Timer specific: State before overlay shown
+    let overlayActive = false; // Is the duration selection overlay visible?
+
+    // --- Long Press Variables ---
+    let mainDisplayLongPressTimer = null;
+    let isMainDisplayLongPress = false;
+    const MAIN_LONG_PRESS_DURATION = 500;
+
+    let durationBtnLongPressTimer = null;
+    let isDurationBtnLongPress = false; // Flag set during/after duration button long press/edit
+    let editingButtonIndex = null; // Track which button index is being edited (null if none)
+    const DURATION_BTN_LONG_PRESS_DURATION = 600;
+
+    // --- DOM Elements ---
+    const mainContainer = document.getElementById("mainContainer");
+    const timerDisplay = document.getElementById("timerDisplay");
+    const startPauseBtn = document.getElementById("startPauseBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const durationGroup = document.getElementById("durationGroup");
+    const overlay = document.getElementById("overlay");
+
+    // --- Core Functions ---
+
+    function formatTime(totalSeconds) {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      } else {
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+
+    function updateDisplay() {
+        if (appMode === 'timer') {
+            timerDisplay.textContent = formatTime(remainingTime);
+        } else {
+            timerDisplay.textContent = formatTime(stopwatchElapsedTime);
+        }
+        if (overlayActive && appMode === 'timer') {
+            updateActiveDurationButtonVisuals();
+        }
+    }
+
+    function updateActiveDurationButtonVisuals() {
+        document.querySelectorAll('.duration-group button').forEach(b => {
+            if (parseInt(b.dataset.minutes) * 60 === selectedDuration) {
+                b.classList.add("active");
+            } else {
+                b.classList.remove("active");
+            }
+        });
+    }
+
+    function updateBackground() {
+      mainContainer.classList.remove("pulse", "fast-pulse", "stopwatch-mode", "paused-state");
+      mainContainer.style.background = "";
+      if (isPaused && !isOverlayPaused) {
+          mainContainer.classList.add("paused-state"); return;
+      }
+      if (appMode === 'stopwatch') {
+        mainContainer.classList.add("stopwatch-mode"); return;
+      }
+      if (remainingTime <= 0) {
+        mainContainer.style.background = "#1565c0"; return;
+      }
+      if (!running && !isPaused) {
+         mainContainer.style.background = "#1e1e1e"; return;
+      }
+      if (running) {
+          if (remainingTime > 120) {
+            const frac = (timerDuration - remainingTime)/(timerDuration-120);
+            const red = Math.floor(30 + frac*40);
+            const green = Math.floor(30 - frac*30);
+            const blue = Math.floor(30 - frac*30);
+            mainContainer.style.background = `rgb(${red},${green},${blue})`;
+          } else if (remainingTime > 20) {
+            mainContainer.classList.add("pulse");
+          } else {
+            mainContainer.classList.add("fast-pulse");
+          }
+      }
+    }
+
+    function tick() {
+      if (appMode === 'timer') {
+        if (remainingTime > 0) { remainingTime--; }
+        if (remainingTime <= 0) {
+          clearInterval(timerInterval); timerInterval = null;
+          running = false; startPauseBtn.textContent = "Start";
+        }
+      } else {
+        stopwatchElapsedTime++;
+      }
+      updateDisplay();
+      updateBackground();
+    }
+
+    function startAction() {
+      if (running) return;
+      if (editingButtonIndex !== null) { cancelDurationInput(); }
+      running = true; isPaused = false;
+      if (appMode === 'timer') { isOverlayPaused = false; }
+      startPauseBtn.textContent = "Pause";
+      clearInterval(timerInterval);
+      timerInterval = setInterval(tick, 1000);
+      updateBackground();
+    }
+
+    function pauseAction() {
+      if (!running) return;
+      if (editingButtonIndex !== null) { cancelDurationInput(); }
+      running = false; isPaused = true;
+      if (appMode === 'timer') { isOverlayPaused = false; }
+      clearInterval(timerInterval); timerInterval = null;
+      startPauseBtn.textContent = "Resume";
+      updateBackground();
+    }
+
+    function resetAction() {
+      if (editingButtonIndex !== null) { cancelDurationInput(); }
+      clearInterval(timerInterval); timerInterval = null;
+      running = false; isPaused = false;
+      startPauseBtn.textContent = "Start";
+      if (appMode === 'timer') {
+        isOverlayPaused = false;
+        remainingTime = selectedDuration; timerDuration = selectedDuration;
+      } else {
+        stopwatchElapsedTime = 0;
+      }
+      updateDisplay(); updateBackground();
+    }
+
+    function toggleMode() {
+        if (editingButtonIndex !== null) { cancelDurationInput(); }
+        clearInterval(timerInterval); timerInterval = null;
+        running = false; isPaused = false;
+        if (appMode === 'timer') {
+            appMode = 'stopwatch';
+            if (overlayActive) hideOverlay();
+        } else {
+            appMode = 'timer';
+        }
+        resetAction();
+    }
+
+    // --- Duration Button Editing Functions ---
+
+    function showDurationInput(button, index) {
+        if (editingButtonIndex !== null && editingButtonIndex !== index) {
+             const otherButton = durationGroup.querySelector(`button[data-index="${editingButtonIndex}"]`);
+             if (otherButton) {
+                 const otherInput = otherButton.querySelector('.duration-input');
+                 if (otherInput) saveDurationInput(otherInput); else cancelDurationInput();
+             }
+        } else if (editingButtonIndex === index) { return; }
+
+        if (appMode === 'timer' && (running && !isOverlayPaused)) {
+             console.log("Cannot edit duration while timer is actively running."); return;
+        }
+
+        editingButtonIndex = index; isDurationBtnLongPress = true;
+        button.classList.add('editing');
+
+        const input = document.createElement('input');
+        input.type = 'number'; input.className = 'duration-input';
+        input.value = buttonDurations[index];
+        input.min = 1; input.max = 999;
+        input.setAttribute('data-index', index);
+        // *** Crucial: Stop click on input itself from bubbling to overlay ***
+        input.addEventListener('click', e => e.stopPropagation());
+        input.addEventListener('blur', handleInputBlur);
+        input.addEventListener('keydown', handleInputKeydown);
+        button.appendChild(input);
+        input.focus();
+        try { input.select(); } catch (e) { console.warn("Could not select input text."); }
+    }
+
+    function handleInputBlur(e) {
+        // Delay allows other potential events (like button clicks) to process first
+        setTimeout(() => {
+            // Check if still editing (not cancelled by Escape) and input still exists
+            if (editingButtonIndex !== null && e.target.parentNode) {
+                saveDurationInput(e.target);
+            }
+        }, 10);
+    }
+
+    function handleInputKeydown(e) {
+        if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+        else if (e.key === 'Escape') { e.preventDefault(); cancelDurationInput(); }
+    }
+
+    function saveDurationInput(inputElement) {
+        if (!inputElement || editingButtonIndex === null) return;
+        const index = parseInt(inputElement.getAttribute('data-index'));
+        const button = durationGroup.querySelector(`button[data-index="${index}"]`);
+        let newValue = parseInt(inputElement.value);
+        if (isNaN(newValue) || newValue < 1) { newValue = 1; }
+        else if (newValue > 999) { newValue = 999; }
+        const previousValue = buttonDurations[index];
+        buttonDurations[index] = newValue;
+        if(button) {
+             const span = button.querySelector('span');
+             if (span) span.textContent = newValue;
+             button.dataset.minutes = newValue;
+        }
+        const wasSelectedDuration = selectedDuration === previousValue * 60;
+        cleanupInput(inputElement, button); // Clean up happens *before* potential reset
+        if (wasSelectedDuration && appMode === 'timer' && !running && !isPaused) {
+             selectedDuration = newValue * 60; timerDuration = selectedDuration;
+             resetAction(); // Resets display to new value
+             updateActiveDurationButtonVisuals(); // Ensure it's visually active
+        } else if (appMode === 'timer') {
+             updateActiveDurationButtonVisuals(); // Update active state if needed
+        }
+    }
+
+    function cancelDurationInput() {
+        if (editingButtonIndex === null) return;
+        const index = editingButtonIndex;
+        const button = durationGroup.querySelector(`button[data-index="${index}"]`);
+        const inputElement = button ? button.querySelector('.duration-input') : null;
+        cleanupInput(inputElement, button);
+    }
+
+    function cleanupInput(inputElement, button) {
+        if (inputElement) {
+            inputElement.removeEventListener('blur', handleInputBlur);
+            inputElement.removeEventListener('keydown', handleInputKeydown);
+            inputElement.removeEventListener('click', e => e.stopPropagation()); // Clean up input click listener
+            inputElement.remove();
+        }
+         if (button) { button.classList.remove('editing'); }
+        editingButtonIndex = null;
+        // Short delay helps prevent immediate re-trigger / conflicts
+        setTimeout(() => { isDurationBtnLongPress = false; }, 50);
+    }
+
+    // --- Timer Mode Specific Functions (Overlay) ---
+
+    function populateDurationButtons() {
+      durationGroup.innerHTML = "";
+      buttonDurations.forEach((minutes, index) => {
+        const btn = document.createElement("button");
+        const span = document.createElement("span");
+        span.textContent = minutes; btn.appendChild(span);
+        btn.dataset.minutes = minutes; btn.dataset.index = index;
+        if (appMode === 'timer' && selectedDuration === minutes * 60) { btn.classList.add("active"); }
+
+        // Click: Select Duration
+        btn.addEventListener("click", (e) => {
+          // *** Crucial: Stop click from reaching overlay listener ***
+          e.stopPropagation();
+          if (isDurationBtnLongPress) { return; } // Avoid click after long press edit
+          if (appMode === 'timer' && (!running || isOverlayPaused)) {
+             if (editingButtonIndex !== null && editingButtonIndex !== index) {
+                 // If editing another button, save/cancel it first
+                 const otherButton = durationGroup.querySelector(`button[data-index="${editingButtonIndex}"]`);
+                 const otherInput = otherButton ? otherButton.querySelector('.duration-input') : null;
+                 if(otherInput) saveDurationInput(otherInput); else cancelDurationInput();
+             } else if (editingButtonIndex === index) {
+                 // Clicked the button being edited -> Save it
+                 saveDurationInput(btn.querySelector('.duration-input')); return;
+             }
+             // Proceed with selection
+             selectedDuration = parseInt(btn.dataset.minutes) * 60;
+             timerDuration = selectedDuration;
+             updateActiveDurationButtonVisuals();
+             resetAction(); // Reset timer to new duration
+             hideOverlay(); // Close overlay
+          }
+        });
+
+        // Long Press: Edit Duration
+        btn.addEventListener("mousedown", (e) => {
+            if (appMode !== 'timer' || !overlayActive) return;
+             e.preventDefault(); clearTimeout(durationBtnLongPressTimer);
+             isDurationBtnLongPress = false;
+             durationBtnLongPressTimer = setTimeout(() => {
+                 if (appMode === 'timer' && overlayActive && (!running || isOverlayPaused)) {
+                    showDurationInput(btn, index);
+                 }
+             }, DURATION_BTN_LONG_PRESS_DURATION);
+        });
+        btn.addEventListener("mouseup", () => { clearTimeout(durationBtnLongPressTimer); });
+        btn.addEventListener("mouseleave", () => { clearTimeout(durationBtnLongPressTimer); });
+
+        durationGroup.appendChild(btn);
+      });
+    }
+
+    function pauseForOverlay() {
+        if (appMode === 'timer' && running) {
+            if (editingButtonIndex !== null) { cancelDurationInput(); } // Cancel edit if pausing
+            clearInterval(timerInterval); timerInterval = null;
+            isOverlayPaused = true;
+            updateBackground(); // Update bg (won't be yellow)
+        }
+    }
+
+    function showOverlay() {
+      if (overlayActive || appMode !== 'timer') return;
+       if (editingButtonIndex !== null) { cancelDurationInput(); } // Cancel edits before showing
+      overlay.style.display = "flex"; overlayActive = true;
+      prevRunning = running || (isPaused && !isOverlayPaused);
+      populateDurationButtons(); // Populate/Refresh buttons
+      pauseForOverlay(); // Pause timer if needed
+    }
+
+    function hideOverlay() {
+      if (!overlayActive) return;
+      // If editing, trigger blur on the input to save/cancel via its handler
+      if (editingButtonIndex !== null) {
+          const inputElement = durationGroup.querySelector('.duration-input');
+          if (inputElement) { inputElement.blur(); }
+          else { cancelDurationInput(); } // Fallback if input missing
+          // Add slight delay to allow blur handler (which calls save/cancel) to finish
+          setTimeout(finishHideOverlay, 30);
+      } else {
+           finishHideOverlay(); // Hide immediately if not editing
+      }
+    }
+
+    // Separated logic for actually hiding after potential save delay
+    function finishHideOverlay() {
+        if (!overlayActive) return; // Check again in case state changed during delay
+        overlay.style.display = "none"; overlayActive = false;
+        // Resume timer logic
+        if (appMode === 'timer') {
+            if (isOverlayPaused) {
+                isOverlayPaused = false;
+                if (prevRunning && !isPaused) { startAction(); } // Resume if running before
+                else { updateBackground(); } // Update background if paused/reset before
+            }
+        }
+        prevRunning = false; // Clear state tracking
+    }
+
+    // --- Main Display Event Listeners ---
+    timerDisplay.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+       if (editingButtonIndex !== null) { cancelDurationInput(); } // Cancel edit if interacting
+       isMainDisplayLongPress = false; clearTimeout(mainDisplayLongPressTimer);
+       mainDisplayLongPressTimer = setTimeout(() => {
+         isMainDisplayLongPress = true; toggleMode();
+       }, MAIN_LONG_PRESS_DURATION);
+    });
+    timerDisplay.addEventListener("mouseup", (e) => {
+      clearTimeout(mainDisplayLongPressTimer);
+      if (!isMainDisplayLongPress && appMode === 'timer') {
+         e.stopPropagation(); // Prevent triggering overlay close listener
+         showOverlay();
+      }
+    });
+    timerDisplay.addEventListener("mouseleave", () => { clearTimeout(mainDisplayLongPressTimer); });
+
+
+    // --- Overlay Click Listener (Replaces Document Listener) ---
+    overlay.addEventListener('click', (e) => {
+        // Check if the click *originated* directly on the overlay background
+        // or the duration group's background. Clicks on buttons/inputs inside
+        // the group will have a different e.target and should be stopped
+        // by their own stopPropagation calls.
+        if (e.target === overlay || e.target === durationGroup) {
+            hideOverlay();
+        }
+    });
+
+
+    // --- Control Button Listeners ---
+        // --- Global Click Listener (Handles Closing Overlay) ---
+    document.addEventListener("click", (e) => {
+        // If overlay is active...
+        if (overlayActive) {
+            // Check if the click target is OUTSIDE the duration group container
+            // AND also not the main timer display itself (handled by its mouseup)
+            if (!durationGroup.contains(e.target) && e.target !== timerDisplay) {
+                // If we are editing a button, the hideOverlay function will handle saving/cancelling.
+                hideOverlay();
+            }
+            // Optional: Handle clicks *inside* the group but not on buttons/inputs (gap space)
+            // else if (durationGroup.contains(e.target) && e.target === durationGroup) {
+            //      // Click was on the grey background of the duration group
+            //      if (editingButtonIndex !== null) {
+            //           // If editing, save/cancel the input
+            //           const inputElement = durationGroup.querySelector('.duration-input');
+            //           if (inputElement) inputElement.blur(); // Trigger save via blur
+            //      }
+            //      // Decide whether to close overlay or not on gap click (currently does not close)
+            // }
+        }
+    });
+    startPauseBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Good practice
+      if (running) { pauseAction(); } else { startAction(); }
+    });
+    resetBtn.addEventListener("click", (e) => {
+      e.stopPropagation(); // Good practice
+      resetAction();
+    });
+
+    // --- Initialization ---
+    updateDisplay(); // Set initial time
+    updateBackground(); // Set initial background
+
+  </script>
+</body>
+</html>
