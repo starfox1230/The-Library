@@ -18,7 +18,6 @@
       --font: 16px;
     }
     *, *::before, *::after { box-sizing: border-box; }
-    html, h1 { touch-action: manipulation; }
     body {
       margin: 0; padding: 0;
       background: var(--bg);
@@ -88,9 +87,7 @@
     <div class="form-group">
       <div>
         <label for="chapter">Chapter</label>
-        <select id="chapter">
-          <option value="">-- Select Chapter --</option>
-        </select>
+        <select id="chapter"><option value="">-- Select Chapter --</option></select>
       </div>
       <div>
         <label for="start-section">Start Section</label>
@@ -112,88 +109,108 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    let manifest = null;
+    let manifest, currentSections = [];
 
-    // Load the JSON manifest
+    // load manifest
     fetch('index.json')
       .then(r => r.json())
       .then(data => {
         manifest = data["Core Radiology"];
-        const chSelect = document.getElementById('chapter');
-        Object.keys(manifest)
-          .sort((a,b) => parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')))
-          .forEach(chKey => {
-            const opt = document.createElement('option');
-            opt.value = chKey;
-            opt.textContent = chKey.replace(/^Chapter0*/, 'Chapter ');
-            chSelect.appendChild(opt);
+        const ch = document.getElementById('chapter');
+        Object.entries(manifest)
+          .sort((a,b) => parseInt(a[0].replace(/\D/g,'')) - parseInt(b[0].replace(/\D/g,'')))
+          .forEach(([chKey, chData]) => {
+            const o = document.createElement('option');
+            o.value = chKey;
+            // display chapter number and name; requires chData.title in JSON
+            o.textContent = `${chKey.replace(/^Chapter0*/, 'Chapter ')} – ${chData.title}`;
+            ch.appendChild(o);
           });
       })
-      .catch(err => alert('Failed to load index.json: ' + err));
+      .catch(err => alert('Error loading index.json: '+err));
 
-    const chapterEl = document.getElementById('chapter');
-    const startEl   = document.getElementById('start-section');
-    const endEl     = document.getElementById('end-section');
-    const fetchBtn  = document.getElementById('fetch-btn');
-    const copyBtn   = document.getElementById('copy-btn');
-    const outTA     = document.getElementById('text-content');
+    const chapterEl = document.getElementById('chapter'),
+          startEl   = document.getElementById('start-section'),
+          endEl     = document.getElementById('end-section'),
+          fetchBtn  = document.getElementById('fetch-btn'),
+          copyBtn   = document.getElementById('copy-btn'),
+          outTA     = document.getElementById('text-content');
 
+    // when chapter changes
     chapterEl.addEventListener('change', () => {
       startEl.innerHTML = '<option value="">--</option>';
       endEl.innerHTML   = '<option value="">--</option>';
-      fetchBtn.disabled = true;
-      copyBtn.disabled  = true;
-      outTA.value       = '';
-      if (!chapterEl.value) {
-        startEl.disabled = endEl.disabled = true;
-        return;
-      }
-      const sections = Object.entries(manifest[chapterEl.value])
+      startEl.disabled = endEl.disabled = true;
+      fetchBtn.disabled = copyBtn.disabled = true;
+      outTA.value = '';
+
+      if (!chapterEl.value) return;
+
+      // build sections list
+      currentSections = Object.entries(manifest[chapterEl.value])
         .sort(([a],[b]) => parseFloat(a) - parseFloat(b));
-      sections.forEach(([secKey, { title }]) => {
-        const o1 = document.createElement('option');
-        o1.value = secKey;
-        o1.textContent = `${secKey} – ${title}`;
-        startEl.appendChild(o1);
-        const o2 = o1.cloneNode(true);
-        endEl.appendChild(o2);
+
+      // populate start dropdown
+      currentSections.forEach(([secKey,{title}])=>{
+        const o = document.createElement('option');
+        o.value = secKey;
+        o.textContent = `${secKey} – ${title}`;
+        startEl.appendChild(o);
       });
-      startEl.disabled = endEl.disabled = false;
+      startEl.disabled = false;
     });
 
-    [startEl, endEl].forEach(el =>
-      el.addEventListener('change', () => {
-        fetchBtn.disabled = !startEl.value;
-      })
-    );
+    // when start changes, populate end from that index on
+    startEl.addEventListener('change', () => {
+      endEl.innerHTML = '<option value="">--</option>';
+      fetchBtn.disabled = true;
+      copyBtn.disabled = true;
+      outTA.value = '';
 
+      const startKey = startEl.value;
+      if (!startKey) {
+        endEl.disabled = true;
+        return;
+      }
+
+      const idx = currentSections.findIndex(([k]) => k === startKey);
+      // build end options only from idx → end
+      for (let i = idx; i < currentSections.length; i++) {
+        const [secKey, {title}] = currentSections[i];
+        const o = document.createElement('option');
+        o.value = secKey;
+        o.textContent = `${secKey} – ${title}`;
+        endEl.appendChild(o);
+      }
+      endEl.disabled = false;
+      fetchBtn.disabled = false;
+    });
+
+    // fetch & concatenate
     fetchBtn.addEventListener('click', async () => {
       const chapKey = chapterEl.value;
       const startKey = startEl.value;
-      let endKey = endEl.value || startKey;
-      const allKeys = Object.keys(manifest[chapKey])
-        .sort((a,b) => parseFloat(a) - parseFloat(b));
-      const startIdx = allKeys.indexOf(startKey);
-      const endIdx   = allKeys.indexOf(endKey);
-      const range    = allKeys.slice(startIdx, endIdx + 1);
+      const endKey = endEl.value || startKey;
+      const keys = currentSections.map(([k])=>k);
+      const slice = keys.slice(keys.indexOf(startKey), keys.indexOf(endKey) + 1);
 
       outTA.value = 'Loading…';
       try {
-        const texts = await Promise.all(range.map(secKey => {
-          const fp = manifest[chapKey][secKey].file;
+        const texts = await Promise.all(slice.map(k => {
+          const fp = manifest[chapKey][k].file;
           return fetch(`Core_Radiology/${fp}`).then(r => r.text());
         }));
         outTA.value = texts.join('\n\n');
         copyBtn.disabled = false;
       } catch (err) {
-        outTA.value = 'Error loading text: ' + err.message;
+        outTA.value = 'Error: '+err.message;
       }
     });
 
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(outTA.value)
-        .then(() => alert('Copied to clipboard!'))
-        .catch(e => alert('Copy failed: ' + e));
+        .then(()=>alert('Copied!'))
+        .catch(e=>alert('Copy failed: '+e));
     });
   });
   </script>
