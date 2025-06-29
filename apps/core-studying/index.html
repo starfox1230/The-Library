@@ -1,153 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Core Radiology Textbook Copier</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        label, select, button {
-            margin-right: 10px;
-            margin-top: 10px;
-        }
-        #text-content {
-            width: 100%;
-            height: 300px;
-            margin-top: 20px;
-            padding: 10px;
-            font-size: 14px;
-            white-space: pre-wrap;
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <!-- Prevent double-tap zoom on mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Core Radiology Textbook Copier</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --input-bg: #272727;
+      --input-border: #333;
+      --radius: 8px;
+      --spacing: 16px;
+      --font: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, h1 { touch-action: manipulation; }
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: var(--font)/1.5 system-ui, sans-serif;
+      height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .container {
+      display: flex; flex-direction: column;
+      padding: var(--spacing);
+      max-width: 600px; width: 100%; height: 100%;
+    }
+    .form-group {
+      display: flex; flex-wrap: wrap;
+      gap: var(--spacing);
+      margin-bottom: var(--spacing);
+    }
+    .form-group > div {
+      flex: 1 1 45%; min-width: 120px;
+    }
+    label {
+      display: block; margin-bottom: 4px; font-weight: 500;
+    }
+    select {
+      width: 100%; padding: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    .actions {
+      display: flex; gap: 8px;
+      margin-bottom: var(--spacing);
+    }
+    .actions button {
+      flex: 1; padding: 12px;
+      font-size: 1rem; font-weight: 500;
+      color: var(--bg); background: var(--accent);
+      border: none; border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .actions button:disabled {
+      opacity: 0.4; cursor: not-allowed;
+    }
+    #text-content {
+      flex: 1; width: 100%;
+      padding: var(--spacing);
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      resize: none; overflow-y: auto;
+      font-size: 0.9rem; line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    @media (min-width:600px) {
+      .form-group { flex-wrap: nowrap; }
+    }
+  </style>
 </head>
 <body>
-
+  <div class="container">
     <h1>Core Radiology Textbook Copier</h1>
 
-    <label for="chapter">Select Chapter:</label>
-    <select id="chapter">
-        <option value="">-- Select Chapter --</option>
-    </select>
+    <div class="form-group">
+      <div>
+        <label for="chapter">Chapter</label>
+        <select id="chapter">
+          <option value="">-- Select Chapter --</option>
+        </select>
+      </div>
+      <div>
+        <label for="start-section">Start Section</label>
+        <select id="start-section" disabled><option value="">--</option></select>
+      </div>
+      <div>
+        <label for="end-section">End Section (optional)</label>
+        <select id="end-section" disabled><option value="">--</option></select>
+      </div>
+    </div>
 
-    <label for="start-section">Start Section:</label>
-    <select id="start-section" disabled>
-        <option value="">--</option>
-    </select>
+    <div class="actions">
+      <button id="fetch-btn" disabled>Fetch Text</button>
+      <button id="copy-btn" disabled>Copy to Clipboard</button>
+    </div>
 
-    <label for="end-section">End Section (optional):</label>
-    <select id="end-section" disabled>
-        <option value="">--</option>
-    </select>
+    <textarea id="text-content" readonly placeholder="Your selection will appear here…"></textarea>
+  </div>
 
-    <br>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let manifest = null;
 
-    <button id="fetch-text-btn" disabled>Fetch Text</button>
-    <button id="copy-btn" disabled>Copy to Clipboard</button>
+    // Load the JSON manifest
+    fetch('index.json')
+      .then(r => r.json())
+      .then(data => {
+        manifest = data["Core Radiology"];
+        const chSelect = document.getElementById('chapter');
+        Object.keys(manifest)
+          .sort((a,b) => parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')))
+          .forEach(chKey => {
+            const opt = document.createElement('option');
+            opt.value = chKey;
+            opt.textContent = chKey.replace(/^Chapter0*/, 'Chapter ');
+            chSelect.appendChild(opt);
+          });
+      })
+      .catch(err => alert('Failed to load index.json: ' + err));
 
-    <textarea id="text-content" readonly></textarea>
+    const chapterEl = document.getElementById('chapter');
+    const startEl   = document.getElementById('start-section');
+    const endEl     = document.getElementById('end-section');
+    const fetchBtn  = document.getElementById('fetch-btn');
+    const copyBtn   = document.getElementById('copy-btn');
+    const outTA     = document.getElementById('text-content');
 
-    <script>
-        let manifest = null;
+    chapterEl.addEventListener('change', () => {
+      startEl.innerHTML = '<option value="">--</option>';
+      endEl.innerHTML   = '<option value="">--</option>';
+      fetchBtn.disabled = true;
+      copyBtn.disabled  = true;
+      outTA.value       = '';
+      if (!chapterEl.value) {
+        startEl.disabled = endEl.disabled = true;
+        return;
+      }
+      const sections = Object.entries(manifest[chapterEl.value])
+        .sort(([a],[b]) => parseFloat(a) - parseFloat(b));
+      sections.forEach(([secKey, { title }]) => {
+        const o1 = document.createElement('option');
+        o1.value = secKey;
+        o1.textContent = `${secKey} – ${title}`;
+        startEl.appendChild(o1);
+        const o2 = o1.cloneNode(true);
+        endEl.appendChild(o2);
+      });
+      startEl.disabled = endEl.disabled = false;
+    });
 
-        // Load the manifest JSON on page load
-        fetch('index.json')
-            .then(res => res.json())
-            .then(data => {
-                // Assuming only one book for now: "Core Radiology"
-                manifest = data["Core Radiology"];
-                const chapterSelect = document.getElementById('chapter');
-                Object.keys(manifest)
-                    .sort((a, b) => parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')))
-                    .forEach(chKey => {
-                        const opt = document.createElement('option');
-                        opt.value = chKey;
-                        opt.textContent = chKey.replace(/^Chapter/, 'Chapter ');
-                        chapterSelect.appendChild(opt);
-                    });
-            })
-            .catch(err => {
-                console.error('Failed to load index.json:', err);
-                alert('Error loading manifest. Make sure index.json is present.');
-            });
+    [startEl, endEl].forEach(el =>
+      el.addEventListener('change', () => {
+        fetchBtn.disabled = !startEl.value;
+      })
+    );
 
-        document.getElementById('chapter').addEventListener('change', function() {
-            const chapter = this.value;
-            const startSelect = document.getElementById('start-section');
-            const endSelect = document.getElementById('end-section');
-            startSelect.innerHTML = '<option value="">--</option>';
-            endSelect.innerHTML = '<option value="">--</option>';
-            document.getElementById('fetch-text-btn').disabled = true;
-            document.getElementById('copy-btn').disabled = true;
-            document.getElementById('text-content').value = '';
+    fetchBtn.addEventListener('click', async () => {
+      const chapKey = chapterEl.value;
+      const startKey = startEl.value;
+      let endKey = endEl.value || startKey;
+      const allKeys = Object.keys(manifest[chapKey])
+        .sort((a,b) => parseFloat(a) - parseFloat(b));
+      const startIdx = allKeys.indexOf(startKey);
+      const endIdx   = allKeys.indexOf(endKey);
+      const range    = allKeys.slice(startIdx, endIdx + 1);
 
-            if (!chapter) {
-                startSelect.disabled = endSelect.disabled = true;
-                return;
-            }
+      outTA.value = 'Loading…';
+      try {
+        const texts = await Promise.all(range.map(secKey => {
+          const fp = manifest[chapKey][secKey].file;
+          return fetch(`Core_Radiology/${fp}`).then(r => r.text());
+        }));
+        outTA.value = texts.join('\n\n');
+        copyBtn.disabled = false;
+      } catch (err) {
+        outTA.value = 'Error loading text: ' + err.message;
+      }
+    });
 
-            const sections = Object.entries(manifest[chapter])
-                .sort(([a], [b]) => parseFloat(a) - parseFloat(b));
-
-            sections.forEach(([secKey, { title }]) => {
-                const opt1 = document.createElement('option');
-                opt1.value = secKey;
-                opt1.textContent = `${secKey} – ${title}`;
-                startSelect.appendChild(opt1);
-
-                const opt2 = opt1.cloneNode(true);
-                endSelect.appendChild(opt2);
-            });
-
-            startSelect.disabled = endSelect.disabled = false;
-        });
-
-        document.getElementById('start-section').addEventListener('change', enableFetch);
-        document.getElementById('end-section').addEventListener('change', enableFetch);
-
-        function enableFetch() {
-            const start = document.getElementById('start-section').value;
-            const fetchBtn = document.getElementById('fetch-text-btn');
-            fetchBtn.disabled = !start;
-        }
-
-        document.getElementById('fetch-text-btn').addEventListener('click', async () => {
-            const chapter = document.getElementById('chapter').value;
-            const startKey = document.getElementById('start-section').value;
-            let endKey = document.getElementById('end-section').value;
-            if (!endKey) endKey = startKey;
-
-            // determine consecutive keys between start and end
-            const allKeys = Object.keys(manifest[chapter])
-                .sort((a, b) => parseFloat(a) - parseFloat(b));
-            const startIndex = allKeys.indexOf(startKey);
-            const endIndex = allKeys.indexOf(endKey);
-            const rangeKeys = allKeys.slice(startIndex, endIndex + 1);
-
-            const textArea = document.getElementById('text-content');
-            textArea.value = 'Loading…';
-
-            try {
-                const texts = await Promise.all(rangeKeys.map(secKey => {
-                    const filePath = manifest[chapter][secKey].file;
-                    return fetch(filePath).then(res => res.text());
-                }));
-                textArea.value = texts.join('\n\n');
-                document.getElementById('copy-btn').disabled = false;
-            } catch (err) {
-                textArea.value = `Error loading sections: ${err.message}`;
-            }
-        });
-
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const textArea = document.getElementById('text-content');
-            navigator.clipboard.writeText(textArea.value)
-                .then(() => alert('Text copied to clipboard!'))
-                .catch(err => alert('Copy failed: ' + err));
-        });
-    </script>
-
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(outTA.value)
+        .then(() => alert('Copied to clipboard!'))
+        .catch(e => alert('Copy failed: ' + e));
+    });
+  });
+  </script>
 </body>
 </html>
