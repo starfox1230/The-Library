@@ -1,0 +1,590 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Generated Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&amp;family=Roboto:wght@300;400&amp;display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #12121f; color: #e0e0fc; font-family: 'Roboto', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;
+        }
+        #quizTopControls {
+            position: fixed; top: 15px; left: 15px; z-index: 10000;
+            display: flex; gap: 10px;
+        }
+        #backToGeneratorBtn, #downloadCurrentQuizBtn {
+            padding: 10px 18px; background: linear-gradient(45deg, #4a4af5, #7a7aff);
+            color: white; border: none; border-radius: 25px;
+            font-family: 'Orbitron', sans-serif; font-size: 0.9em; cursor: pointer;
+            box-shadow: 0 3px 8px rgba(74, 74, 245, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+        #backToGeneratorBtn:hover, #downloadCurrentQuizBtn:hover {
+            transform: scale(1.05); box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6);
+            background: linear-gradient(45deg, #5a5aff, #8a8aff);
+        }
+        .quiz-container {
+            background-color: #1a1a2e; padding: 30px 40px; border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%; max-width: 800px; text-align: center; border: 1px solid #3a3a5e;
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 500px; margin-top: 70px; /* Adjusted for top controls */
+        }
+        .quiz-content { flex-grow: 1; margin-bottom: 20px; }
+        h1 {
+            font-family: 'Orbitron', sans-serif; color: #8a8aff; margin-bottom: 25px;
+            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
+        }
+        #question-counter { font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; }
+        #question-text {
+            font-size: 1.3em; color: #f0f0ff; margin-bottom: 30px;
+            line-height: 1.6; min-height: 60px;
+        }
+        .options-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        .option-button {
+            background-color: #2a2a4e; color: #d0d0fc; border: 1px solid #4a4a7e;
+            padding: 12px 15px; font-size: 1em; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            text-align: left; width: 100%; box-sizing: border-box;
+        }
+        .option-button:hover:not(:disabled) {
+            background-color: #3a3a6e; transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
+        }
+        .option-button:active:not(:disabled) { transform: translateY(0px); }
+        .option-button:disabled { cursor: not-allowed; opacity: 0.7; }
+        .option-button.correct {
+            background-color: #1f7a3f !important; border-color: #28a745 !important;
+            color: #ffffff !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+        .option-button.incorrect {
+            background-color: #9a2532 !important; border-color: #dc3545 !important;
+            color: #ffffff !important; box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+        .option-button.reveal-correct {
+            background-color: #1c6a39 !important; border-color: #258a3c !important;
+            color: #ffffff !important; box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
+            opacity: 0.9 !important;
+        }
+        .explanation-container {
+            background-color: #202035; border: 1px solid #3a3a5e; border-radius: 8px;
+            padding: 20px; margin-top: 20px; text-align: left; font-size: 0.95em;
+            line-height: 1.5; color: #c0c0fa; box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        .explanation-container strong { color: #8a8aff; }
+        .navigation-buttons {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 30px; width: 100%;
+        }
+        .nav-button {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff); color: white; border: none;
+            padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+            min-width: 120px; text-align: center;
+        }
+        .nav-button:hover:not(:disabled) {
+            transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+        .nav-button:disabled {
+            background: #5a5a7e; cursor: not-allowed; opacity: 0.6;
+            box-shadow: none; transform: none;
+        }
+        #completion-message {
+            margin-top: 40px; flex-grow: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        #completion-message h2 {
+             font-family: 'Orbitron', sans-serif; color: #28a745;
+             text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+        @media (max-width: 600px) {
+            #quizTopControls { top: 10px; left: 10px; }
+            #backToGeneratorBtn, #downloadCurrentQuizBtn { padding: 8px 12px; font-size: 0.8em; }
+            .quiz-container { padding: 20px; width: 95%; min-height: auto; margin-top: 60px; }
+            h1 { font-size: 1.5em; }
+            #question-text { font-size: 1.1em; min-height: 40px; }
+            .option-button { font-size: 0.9em; padding: 10px 12px; }
+            .nav-button { padding: 10px 20px; font-size: 1em; min-width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="quizTopControls">
+        <button id="backToGeneratorBtn">← Back</button>
+        <button id="downloadCurrentQuizBtn">Download HTML</button>
+    </div>
+
+    <div class="quiz-container">
+        <div class="quiz-content" style="display: block;">
+            <h1>Generated Quiz</h1>
+            <div id="question-counter">Question 6 of 30</div>
+            <div id="question-text">A patient with known severe coronary artery disease has a fixed perfusion defect on SPECT imaging. A subsequent F-18 FDG PET scan shows intense glucose uptake in the same region. This "mismatch" pattern indicates the presence of what condition?</div>
+            <div id="answer-options" class="options-container"><button class="option-button" disabled="">Myocardial scar</button><button class="option-button correct" disabled="">Hibernating myocardium</button><button class="option-button" disabled="">Myocardial stunning</button><button class="option-button" disabled="">Active myocarditis</button></div>
+            <div id="explanation" class="explanation-container" style="display: block;"><strong>Explanation:</strong> Hibernating myocardium is viable but chronically hypoperfused. It appears as a fixed defect on perfusion imaging but demonstrates preserved glucose metabolism, resulting in a mismatch between the perfusion defect and FDG uptake. This signifies viability.</div>
+        </div>
+        <div id="completion-message" style="display: none;">
+            <h2>Quiz Complete!</h2>
+            <p>You have finished all the questions.</p>
+        </div>
+        <div class="navigation-buttons" style="display: flex;">
+            <button id="prev-button" class="nav-button">Previous</button>
+            <button id="next-button" class="nav-button">Next</button>
+        </div>
+    </div>
+
+<script>
+    const backButton = document.getElementById('backToGeneratorBtn');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            const original = sessionStorage.getItem('originalGeneratorHTML');
+            if (original) {
+                window.location.reload(); 
+            } else {
+                window.location.reload(); 
+            }
+        });
+    }
+
+    const downloadCurrentQuizButton = document.getElementById('downloadCurrentQuizBtn');
+    if (downloadCurrentQuizButton) {
+        downloadCurrentQuizButton.addEventListener('click', () => {
+            const currentQuizHTML = document.documentElement.outerHTML;
+            const blob = new Blob([currentQuizHTML], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'quiz_page.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        });
+    }
+
+    const quizData = [
+  {
+    "question": "A patient with severe asthma requires a myocardial perfusion study but cannot exercise. Which pharmacologic stress agent is most appropriate for this patient?",
+    "options": [
+      "Adenosine",
+      "Dipyridamole",
+      "Regadenoson",
+      "Dobutamine"
+    ],
+    "correctAnswer": "Dobutamine",
+    "explanation": "Dobutamine is a β1 agonist that increases myocardial oxygen demand. It is preferred over vasodilators like adenosine, dipyridamole, and regadenoson in patients with severe asthma or COPD, as vasodilators can induce bronchospasm."
+  },
+  {
+    "question": "A fixed perfusion defect is identified on a Tc-99m sestamibi stress/rest study. Gated images reveal normal wall motion and thickening in the corresponding segment. What is the most likely explanation for this finding?",
+    "options": [
+      "Myocardial scar",
+      "Hibernating myocardium",
+      "Attenuation artifact",
+      "Myocardial stunning"
+    ],
+    "correctAnswer": "Attenuation artifact",
+    "explanation": "A true fixed defect representing scar or hibernating myocardium would be associated with abnormal wall motion (hypokinesis/akinesis). Normal wall motion and thickening in the area of a fixed defect strongly suggest the defect is an artifact caused by attenuation from overlying tissue, such as the diaphragm or breast."
+  },
+  {
+    "question": "What is the primary mechanism by which Thallium-201 is taken up by myocardial cells?",
+    "options": [
+      "Passive diffusion and binding to mitochondrial proteins",
+      "Active transport via the Na+/K+-ATPase pump",
+      "Metabolic trapping as a glucose analog",
+      "Receptor-mediated endocytosis"
+    ],
+    "correctAnswer": "Active transport via the Na+/K+-ATPase pump",
+    "explanation": "The source states that Thallium-201 acts as a potassium analog and crosses into the cell via active transport through the ATP-dependent sodium-potassium transmembrane pump."
+  },
+  {
+    "question": "A patient undergoes a nuclear stress test and the report notes a significantly increased lung-to-heart ratio on the stress images. This finding is most suggestive of what underlying condition?",
+    "options": [
+      "Right ventricular hypertrophy",
+      "Acute pulmonary embolism",
+      "Stress-induced left ventricular dysfunction",
+      "Anterior wall attenuation artifact"
+    ],
+    "correctAnswer": "Stress-induced left ventricular dysfunction",
+    "explanation": "An abnormally increased lung-to-heart activity ratio indicates stress-induced left ventricular dysfunction, which raises concern for severe underlying coronary artery disease, such as left main or multivessel disease."
+  },
+  {
+    "question": "Which of the following radiotracers is generator-produced, has a half-life of 76 seconds, and is used for PET perfusion imaging?",
+    "options": [
+      "Nitrogen-13 ammonia",
+      "Fluorine-18 FDG",
+      "Rubidium-82",
+      "Technetium-99m sestamibi"
+    ],
+    "correctAnswer": "Rubidium-82",
+    "explanation": "Rubidium-82 is a positron-emitting PET perfusion agent generated from strontium-82. Its very short half-life of 76 seconds allows for high administered doses but precludes its use with exercise stress."
+  },
+  {
+    "question": "A patient with known severe coronary artery disease has a fixed perfusion defect on SPECT imaging. A subsequent F-18 FDG PET scan shows intense glucose uptake in the same region. This \"mismatch\" pattern indicates the presence of what condition?",
+    "options": [
+      "Myocardial scar",
+      "Hibernating myocardium",
+      "Myocardial stunning",
+      "Active myocarditis"
+    ],
+    "correctAnswer": "Hibernating myocardium",
+    "explanation": "Hibernating myocardium is viable but chronically hypoperfused. It appears as a fixed defect on perfusion imaging but demonstrates preserved glucose metabolism, resulting in a mismatch between the perfusion defect and FDG uptake. This signifies viability."
+  },
+  {
+    "question": "What is a primary advantage of using Technetium-99m labeled agents over Thallium-201 for SPECT perfusion imaging?",
+    "options": [
+      "Tc-99m agents undergo redistribution, allowing for viability assessment with a single injection.",
+      "Tc-99m's lower photon energy reduces scatter.",
+      "Tc-99m's higher photon energy results in less attenuation artifact and better image quality.",
+      "Tc-99m has a longer half-life, allowing for more flexible imaging protocols."
+    ],
+    "correctAnswer": "Tc-99m's higher photon energy results in less attenuation artifact and better image quality.",
+    "explanation": "Tc-99m emits 140 keV photons, which are less prone to attenuation artifact compared to Thallium-201's low-energy 69-81 keV X-rays. This, along with its shorter half-life allowing for higher doses, leads to superior image quality."
+  },
+  {
+    "question": "A patient undergoing a dipyridamole stress test develops severe bronchospasm and hypotension. What is the most appropriate pharmacologic reversal agent?",
+    "options": [
+      "Dobutamine",
+      "Esmolol",
+      "Atropine",
+      "Aminophylline"
+    ],
+    "correctAnswer": "Aminophylline",
+    "explanation": "Aminophylline is the antidote for dipyridamole and regadenoson. It competitively inhibits the adenosine receptors, reversing the vasodilatory effects and side effects like wheezing and heart block."
+  },
+  {
+    "question": "A nuclear cardiology report mentions transient ischemic dilation (TID). What is the clinical significance of this finding?",
+    "options": [
+      "It is a common artifact caused by patient motion.",
+      "It suggests right ventricular volume overload.",
+      "It implies severe, extensive coronary artery disease and a poor prognosis.",
+      "It is a specific sign of acute myocardial stunning."
+    ],
+    "correctAnswer": "It implies severe, extensive coronary artery disease and a poor prognosis.",
+    "explanation": "Transient ischemic dilation (TID) is the apparent enlargement of the left ventricle on stress images compared to rest images. It suggests extensive, severe ischemia, often from left main or three-vessel disease, and is associated with a worse prognosis."
+  },
+  {
+    "question": "In the context of myocardial viability, how is myocardial stunning distinguished from hibernating myocardium?",
+    "options": [
+      "Stunning shows a fixed perfusion defect, while hibernation shows a reversible defect.",
+      "Stunning has abnormal FDG uptake, while hibernation has normal FDG uptake.",
+      "Stunning has normal or near-normal perfusion with abnormal function, while hibernation has a fixed perfusion defect.",
+      "Stunning is a chronic condition, while hibernation is an acute process."
+    ],
+    "correctAnswer": "Stunning has normal or near-normal perfusion with abnormal function, while hibernation has a fixed perfusion defect.",
+    "explanation": "Myocardial stunning is characterized by post-ischemic contractile dysfunction despite restoration of normal blood flow, thus perfusion is normal. Hibernating myocardium is a state of chronic hypoperfusion, resulting in a fixed perfusion defect but preserved viability."
+  },
+  {
+    "question": "Which imaging technique is considered the noninvasive gold standard for diagnosing transthyretin cardiac amyloidosis, assuming light-chain amyloidosis has been excluded?",
+    "options": [
+      "F-18 FDG PET/CT",
+      "Rest-redistribution Thallium-201 SPECT",
+      "Tc-99m pyrophosphate (PYP) scintigraphy",
+      "Gated blood pool (MUGA) scan"
+    ],
+    "correctAnswer": "Tc-99m pyrophosphate (PYP) scintigraphy",
+    "explanation": "Tc-99m labeled bisphosphonates, like pyrophosphate (PYP), are taken up by transthyretin amyloid. Grade 2 or 3 myocardial uptake on SPECT is nearly 100% specific for transthyretin cardiac amyloidosis if AL amyloid is ruled out."
+  },
+  {
+    "question": "What is the cellular mechanism of uptake for Tc-99m sestamibi in the myocardium?",
+    "options": [
+      "Active transport as a potassium analog",
+      "Passive diffusion and binding to mitochondrial membrane proteins",
+      "Metabolic trapping following phosphorylation",
+      "Uptake by inflammatory macrophages"
+    ],
+    "correctAnswer": "Passive diffusion and binding to mitochondrial membrane proteins",
+    "explanation": "Unlike thallium, which is a potassium analog, the source states that Tc-99m sestamibi enters the myocardium via passive diffusion and localizes by binding to mitochondrial membrane proteins."
+  },
+  {
+    "question": "For which clinical question is F-18 FDG PET/CT most reliable and accurate?",
+    "options": [
+      "Diagnosing native valve endocarditis",
+      "Quantifying myocardial blood flow",
+      "Diagnosing prosthetic valve endocarditis",
+      "Detecting right-to-left intracardiac shunts"
+    ],
+    "correctAnswer": "Diagnosing prosthetic valve endocarditis",
+    "explanation": "The source explicitly states that F-18 FDG PET/CT can accurately diagnose prosthetic valve endocarditis and its complications, but it is less reliable for detecting native valve endocarditis."
+  },
+  {
+    "question": "A patient with a left bundle branch block (LBBB) is scheduled for a myocardial perfusion scan. Why is pharmacologic stress generally preferred over exercise stress in this patient?",
+    "options": [
+      "Patients with LBBB cannot achieve target heart rate with exercise.",
+      "Exercise can cause false-positive reversible septal defects.",
+      "Pharmacologic agents provide better coronary vasodilation in the presence of LBBB.",
+      "Exercise is associated with a higher risk of arrhythmia in patients with LBBB."
+    ],
+    "correctAnswer": "Exercise can cause false-positive reversible septal defects.",
+    "explanation": "In patients with LBBB, the abnormal septal activation pattern can lead to reduced septal perfusion during exercise-induced tachycardia, creating a false-positive finding of ischemia. This artifact is not seen with pharmacologic vasodilator stress."
+  },
+  {
+    "question": "What is the key physiological property of Thallium-201 that allows it to be used for both stress perfusion and viability assessment with redistribution imaging?",
+    "options": [
+      "It has a short physical half-life of 6 hours.",
+      "It remains fixed in the myocardium after initial uptake.",
+      "It is a positron emitter with high spatial resolution.",
+      "It undergoes continuous cellular washout and re-extraction from the blood pool."
+    ],
+    "correctAnswer": "It undergoes continuous cellular washout and re-extraction from the blood pool.",
+    "explanation": "Thallium-201 undergoes redistribution, a process of simultaneous washout from and re-extraction into viable myocardial cells. This allows an initial stress defect in ischemic but viable tissue to \"fill in\" over time on delayed (redistribution) images."
+  },
+  {
+    "question": "A nuclear cardiology protocol calls for a patient to follow a high-fat, low-carbohydrate diet for 24 hours, followed by a 12-hour fast. This preparation is specifically designed to enhance the diagnosis of which condition?",
+    "options": [
+      "Transthyretin cardiac amyloidosis",
+      "Coronary artery disease",
+      "Hibernating myocardium",
+      "Cardiac sarcoidosis"
+    ],
+    "correctAnswer": "Cardiac sarcoidosis",
+    "explanation": "This specific diet is intended to suppress physiologic glucose uptake by normal myocardium, which switches to metabolizing fatty acids. This makes abnormal FDG uptake by inflamed granulomas in cardiac sarcoidosis more conspicuous."
+  },
+  {
+    "question": "What is the primary mechanism of action for the pharmacologic stress agents adenosine and regadenoson?",
+    "options": [
+      "Inhibition of adenosine deaminase",
+      "Direct agonism of β1 adrenergic receptors",
+      "Direct agonism of A2A adenosine receptors",
+      "Competitive inhibition of the Na+/K+ pump"
+    ],
+    "correctAnswer": "Direct agonism of A2A adenosine receptors",
+    "explanation": "Adenosine is a direct A2A agonist, and regadenoson is a selective A2A agonist. Activation of this receptor leads to potent coronary vasodilation. Dipyridamole, in contrast, works indirectly by inhibiting adenosine deaminase."
+  },
+  {
+    "question": "According to the provided material, what is a major limitation of Gated SPECT (GSPECT) for assessing overall cardiac function?",
+    "options": [
+      "It cannot calculate left ventricular ejection fraction.",
+      "It is unable to assess regional wall motion.",
+      "It provides no information on the right ventricle.",
+      "It requires a separate injection from the perfusion study."
+    ],
+    "correctAnswer": "It provides no information on the right ventricle.",
+    "explanation": "GSPECT analysis focuses on the left ventricle, allowing for assessment of LV perfusion, wall motion, wall thickening, and ejection fraction. The source explicitly states, \"It is not used to evaluate right ventricular function.\""
+  },
+  {
+    "question": "Which PET perfusion tracer requires an on-site cyclotron for production due to its 10-minute half-life?",
+    "options": [
+      "Rubidium-82",
+      "Nitrogen-13 ammonia",
+      "Fluorine-18 FDG",
+      "Technetium-99m tetrofosmin"
+    ],
+    "correctAnswer": "Nitrogen-13 ammonia",
+    "explanation": "Nitrogen-13 ammonia is a cyclotron-produced PET perfusion agent. Its short 10-minute half-life necessitates that the production cyclotron be located on-site."
+  },
+  {
+    "question": "A patient with known coronary artery disease undergoes a viability study. Perfusion imaging shows a severe, fixed defect in the anterior wall. A subsequent FDG-PET scan shows no significant FDG uptake in that same area. This \"matched\" defect pattern is most consistent with what diagnosis?",
+    "options": [
+      "Hibernating myocardium",
+      "Myocardial stunning",
+      "Myocardial scar",
+      "Attenuation artifact"
+    ],
+    "correctAnswer": "Myocardial scar",
+    "explanation": "A matched defect, where there is both a lack of perfusion and a lack of glucose metabolism (FDG uptake), indicates that the tissue is non-viable. This pattern is characteristic of a myocardial scar or infarct."
+  },
+  {
+    "question": "What is the rationale for using a two-day SPECT protocol, particularly in obese patients?",
+    "options": [
+      "To reduce the total radiation dose to the patient.",
+      "To allow for the use of Thallium-201, which requires a long redistribution time.",
+      "To administer a maximum dose for both rest and stress studies, improving image quality.",
+      "To eliminate the need for pharmacologic stress agents."
+    ],
+    "correctAnswer": "To administer a maximum dose for both rest and stress studies, improving image quality.",
+    "explanation": "A two-day protocol allows a full, high dose (e.g., 25-30 mCi) to be given for both the rest and stress portions of the exam. This maximizes counts and improves image quality, which is especially beneficial in obese patients where attenuation is a greater concern."
+  },
+  {
+    "question": "For an exercise stress test to be considered diagnostically adequate, the patient must achieve a target heart rate, which is defined as what percentage of the age-predicted maximum?",
+    "options": [
+      "75%",
+      "85%",
+      "90%",
+      "100%"
+    ],
+    "correctAnswer": "85%",
+    "explanation": "The source states that for an exercise stress study to be diagnostic, the patient must achieve the target heart rate, calculated as 85% of the maximal heart rate (220 bpm minus age)."
+  },
+  {
+    "question": "A key difference between Tc-99m sestamibi and Tc-99m tetrofosmin is that tetrofosmin has:",
+    "options": [
+      "A longer physical half-life",
+      "Higher photon energy",
+      "The ability to redistribute",
+      "Faster hepatobiliary clearance"
+    ],
+    "correctAnswer": "Faster hepatobiliary clearance",
+    "explanation": "The source notes that Tc-99m tetrofosmin (Myoview) is similar to sestamibi but offers the advantage of faster clearance from the liver, which can reduce interference from adjacent liver activity and allow for earlier imaging."
+  },
+  {
+    "question": "A patient's nuclear perfusion scan is interpreted as normal. According to the source, what is the approximate annual rate of a major cardiac event for this patient?",
+    "options": [
+      "0.6%",
+      "1.5%",
+      "3.0%",
+      "5.0%"
+    ],
+    "correctAnswer": "0.6%",
+    "explanation": "A normal myocardial perfusion exam carries a very favorable prognosis. The source states it is associated with a 0.6% annual rate of a cardiac event, which underscores the high negative predictive value of the test."
+  },
+  {
+    "question": "Which of the following is an absolute contraindication for performing an exercise stress test?",
+    "options": [
+      "Left bundle branch block",
+      "Recent caffeine intake",
+      "History of stable angina",
+      "High-risk unstable angina"
+    ],
+    "correctAnswer": "High-risk unstable angina",
+    "explanation": "The source lists several contraindications for exercise stress, including acute MI (<48 hours) and high-risk unstable angina, as stressing the heart in these acute, unstable conditions is dangerous."
+  },
+  {
+    "question": "How is left ventricular ejection fraction (LVEF) calculated from gated SPECT count data?",
+    "options": [
+      "LVEF = (End Diastolic Counts × End Systolic Counts) / End Diastolic Counts",
+      "LVEF = (End Diastolic Counts - Background Counts) / End Diastolic Counts",
+      "LVEF = (End Diastolic Counts - End Systolic Counts) / End Diastolic Counts",
+      "LVEF = (End Systolic Counts - Background Counts) / End Systolic Counts"
+    ],
+    "correctAnswer": "LVEF = (End Diastolic Counts - End Systolic Counts) / End Diastolic Counts",
+    "explanation": "The ejection fraction from gated imaging is calculated based on the relative change in counts (proportional to volume) within the left ventricular chamber from end-diastole (maximal volume) to end-systole (minimal volume). The source provides the formula as EF = (EDC − ESC)/(EDC)."
+  },
+  {
+    "question": "A patient has a reversible perfusion defect on a stress/rest SPECT scan. The post-stress gated images show a new wall motion abnormality in the same territory. What do these combined findings most strongly indicate?",
+    "options": [
+      "Myocardial scar with an adjacent attenuation artifact",
+      "Ischemia complicated by myocardial stunning",
+      "Hibernating myocardium",
+      "A false positive result due to left bundle branch block"
+    ],
+    "correctAnswer": "Ischemia complicated by myocardial stunning",
+    "explanation": "A reversible defect signifies ischemia. The development of a new wall motion abnormality in that ischemic territory is the classic definition of myocardial stunning, which is a highly specific sign for significant obstructive coronary artery disease."
+  },
+  {
+    "question": "Which characteristic of Nitrogen-13 allows for PET imaging with relatively high spatial resolution compared to other PET tracers?",
+    "options": [
+      "Its long half-life of 110 minutes",
+      "Its production in a generator",
+      "The low kinetic energy of its emitted positrons",
+      "Its mechanism of uptake as a glucose analog"
+    ],
+    "correctAnswer": "The low kinetic energy of its emitted positrons",
+    "explanation": "The source states that N-13 positrons have a low kinetic energy. This means they do not travel far in tissue before annihilation, leading to less positional uncertainty and thus, higher spatial resolution in the reconstructed PET image."
+  },
+  {
+    "question": "In a single-day rest-stress SPECT protocol, why is imaging performed sooner after an exercise stress injection (e.g., 30 min) compared to a rest injection (e.g., 45-90 min)?",
+    "options": [
+      "To capture the peak effect of the exercise.",
+      "Because the stress dose is smaller and clears faster.",
+      "Because exercise leads to faster clearance of liver activity.",
+      "To allow for redistribution to occur before imaging."
+    ],
+    "correctAnswer": "Because exercise leads to faster clearance of liver activity.",
+    "explanation": "The source explains that imaging is performed at 30 minutes for exercise stress studies because of faster clearance of tracer activity from the liver, which could otherwise interfere with visualization of the inferior myocardial wall."
+  },
+  {
+    "question": "Which statement accurately compares the diagnostic performance of PET and SPECT for coronary artery disease?",
+    "options": [
+      "SPECT has higher sensitivity, but PET has higher specificity.",
+      "PET and SPECT have equivalent overall accuracy.",
+      "PET has greater sensitivity, specificity, and accuracy than SPECT.",
+      "SPECT is more accurate in obese patients, while PET is better for others."
+    ],
+    "correctAnswer": "PET has greater sensitivity, specificity, and accuracy than SPECT.",
+    "explanation": "The source states directly that \"PET rest-stress myocardial perfusion has greater sensitivity, specificity, and accuracy for diagnosis of coronary artery disease compared to SPECT imaging.\""
+  }
+]; 
+    const questionCounterElement = document.getElementById('question-counter');
+    const questionTextElement = document.getElementById('question-text');
+    const answerOptionsElement = document.getElementById('answer-options');
+    const explanationElement = document.getElementById('explanation');
+    const prevButton = document.getElementById('prev-button');
+    const nextButton = document.getElementById('next-button');
+    const completionMessageElement = document.getElementById('completion-message');
+    const quizContentElement = document.querySelector('.quiz-content');
+    const navigationButtonsElement = document.querySelector('.navigation-buttons');
+    let currentQuestionIndex = 0;
+    let userAnswers = new Array(quizData.length).fill(null);
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= quizData.length) { showCompletion(); return; }
+        if (quizContentElement) quizContentElement.style.display = 'block';
+        if (navigationButtonsElement) navigationButtonsElement.style.display = 'flex';
+        if (completionMessageElement) completionMessageElement.style.display = 'none';
+        if (explanationElement) { explanationElement.style.display = 'none'; explanationElement.innerHTML = ''; }
+        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
+        const currentQuestion = quizData[currentQuestionIndex];
+        if (questionCounterElement) questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+        if (questionTextElement) questionTextElement.textContent = currentQuestion.question;
+        currentQuestion.options.forEach(option => {
+            const button = document.createElement('button');
+            button.textContent = option;
+            button.classList.add('option-button');
+            if (userAnswers[currentQuestionIndex] !== null) {
+                 button.disabled = true;
+                 const savedAnswer = userAnswers[currentQuestionIndex];
+                 if (option === savedAnswer.selected) { button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect'); }
+                 if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) { button.classList.add('reveal-correct'); }
+            } else { button.addEventListener('click', selectAnswer); }
+            if (answerOptionsElement) answerOptionsElement.appendChild(button);
+        });
+        if (userAnswers[currentQuestionIndex] !== null && explanationElement) {
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
+            explanationElement.style.display = 'block';
+        }
+        updateNavButtonStates();
+    }
+    function updateNavButtonStates() {
+        if (prevButton) prevButton.disabled = (currentQuestionIndex === 0);
+        if (nextButton) { nextButton.disabled = false; nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next"; }
+    }
+    function selectAnswer(event) {
+        const selectedButton = event.target; const selectedAnswer = selectedButton.textContent;
+        const currentQuestion = quizData[currentQuestionIndex]; const correctAnswer = currentQuestion.correctAnswer;
+        if(userAnswers[currentQuestionIndex] !== null) return;
+        const isCorrect = selectedAnswer === correctAnswer;
+        userAnswers[currentQuestionIndex] = { selected: selectedAnswer, isCorrect: isCorrect };
+        const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
+        optionButtons.forEach(button => {
+            button.disabled = true;
+            if (button.textContent === selectedAnswer) { button.classList.add(isCorrect ? 'correct' : 'incorrect'); }
+            if (!isCorrect && button.textContent === correctAnswer) { button.classList.add('reveal-correct'); }
+        });
+        if (explanationElement) {
+            explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
+            explanationElement.style.display = 'block';
+        }
+    }
+    function goToNextQuestion() {
+         if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
+         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; loadQuestion(); } 
+    }
+    function goToPreviousQuestion() { if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); } }
+    function showCompletion() {
+        if (quizContentElement) quizContentElement.style.display = 'none';
+        if (navigationButtonsElement) navigationButtonsElement.style.display = 'none';
+        if (completionMessageElement) {
+            completionMessageElement.style.display = 'flex';
+            let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
+            const scoreP = completionMessageElement.querySelector('p');
+            if(scoreP) { scoreP.textContent = `You answered ${correctCount} out of ${quizData.length} questions correctly.`; }
+        }
+    }
+    if (prevButton) prevButton.addEventListener('click', goToPreviousQuestion);
+    if (nextButton) nextButton.addEventListener('click', goToNextQuestion);
+    if (quizData && quizData.length > 0) { loadQuestion(); }
+    else {
+        if (questionTextElement) questionTextElement.textContent = 'Error: No valid quiz data found or quiz data is empty.';
+        if (questionCounterElement) questionCounterElement.textContent = '';
+        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
+        if (prevButton) prevButton.disabled = true; if (nextButton) nextButton.disabled = true;
+    }
+</script>
+
+
+</body></html>
