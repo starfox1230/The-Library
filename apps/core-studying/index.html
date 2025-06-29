@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Radiology Textbook Copier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label, select, button {
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        #text-content {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Core Radiology Textbook Copier</h1>
+
+    <label for="chapter">Select Chapter:</label>
+    <select id="chapter">
+        <option value="">-- Select Chapter --</option>
+    </select>
+
+    <label for="start-section">Start Section:</label>
+    <select id="start-section" disabled>
+        <option value="">--</option>
+    </select>
+
+    <label for="end-section">End Section (optional):</label>
+    <select id="end-section" disabled>
+        <option value="">--</option>
+    </select>
+
+    <br>
+
+    <button id="fetch-text-btn" disabled>Fetch Text</button>
+    <button id="copy-btn" disabled>Copy to Clipboard</button>
+
+    <textarea id="text-content" readonly></textarea>
+
+    <script>
+        let manifest = null;
+
+        // Load the manifest JSON on page load
+        fetch('index.json')
+            .then(res => res.json())
+            .then(data => {
+                // Assuming only one book for now: "Core Radiology"
+                manifest = data["Core Radiology"];
+                const chapterSelect = document.getElementById('chapter');
+                Object.keys(manifest)
+                    .sort((a, b) => parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')))
+                    .forEach(chKey => {
+                        const opt = document.createElement('option');
+                        opt.value = chKey;
+                        opt.textContent = chKey.replace(/^Chapter/, 'Chapter ');
+                        chapterSelect.appendChild(opt);
+                    });
+            })
+            .catch(err => {
+                console.error('Failed to load index.json:', err);
+                alert('Error loading manifest. Make sure index.json is present.');
+            });
+
+        document.getElementById('chapter').addEventListener('change', function() {
+            const chapter = this.value;
+            const startSelect = document.getElementById('start-section');
+            const endSelect = document.getElementById('end-section');
+            startSelect.innerHTML = '<option value="">--</option>';
+            endSelect.innerHTML = '<option value="">--</option>';
+            document.getElementById('fetch-text-btn').disabled = true;
+            document.getElementById('copy-btn').disabled = true;
+            document.getElementById('text-content').value = '';
+
+            if (!chapter) {
+                startSelect.disabled = endSelect.disabled = true;
+                return;
+            }
+
+            const sections = Object.entries(manifest[chapter])
+                .sort(([a], [b]) => parseFloat(a) - parseFloat(b));
+
+            sections.forEach(([secKey, { title }]) => {
+                const opt1 = document.createElement('option');
+                opt1.value = secKey;
+                opt1.textContent = `${secKey} – ${title}`;
+                startSelect.appendChild(opt1);
+
+                const opt2 = opt1.cloneNode(true);
+                endSelect.appendChild(opt2);
+            });
+
+            startSelect.disabled = endSelect.disabled = false;
+        });
+
+        document.getElementById('start-section').addEventListener('change', enableFetch);
+        document.getElementById('end-section').addEventListener('change', enableFetch);
+
+        function enableFetch() {
+            const start = document.getElementById('start-section').value;
+            const fetchBtn = document.getElementById('fetch-text-btn');
+            fetchBtn.disabled = !start;
+        }
+
+        document.getElementById('fetch-text-btn').addEventListener('click', async () => {
+            const chapter = document.getElementById('chapter').value;
+            const startKey = document.getElementById('start-section').value;
+            let endKey = document.getElementById('end-section').value;
+            if (!endKey) endKey = startKey;
+
+            // determine consecutive keys between start and end
+            const allKeys = Object.keys(manifest[chapter])
+                .sort((a, b) => parseFloat(a) - parseFloat(b));
+            const startIndex = allKeys.indexOf(startKey);
+            const endIndex = allKeys.indexOf(endKey);
+            const rangeKeys = allKeys.slice(startIndex, endIndex + 1);
+
+            const textArea = document.getElementById('text-content');
+            textArea.value = 'Loading…';
+
+            try {
+                const texts = await Promise.all(rangeKeys.map(secKey => {
+                    const filePath = manifest[chapter][secKey].file;
+                    return fetch(filePath).then(res => res.text());
+                }));
+                textArea.value = texts.join('\n\n');
+                document.getElementById('copy-btn').disabled = false;
+            } catch (err) {
+                textArea.value = `Error loading sections: ${err.message}`;
+            }
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const textArea = document.getElementById('text-content');
+            navigator.clipboard.writeText(textArea.value)
+                .then(() => alert('Text copied to clipboard!'))
+                .catch(err => alert('Copy failed: ' + err));
+        });
+    </script>
+
+</body>
+</html>
