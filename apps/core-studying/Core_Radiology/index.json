@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <!-- Prevent double-tap zoom on mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Core Radiology Textbook Copier</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --input-bg: #272727;
+      --input-border: #333;
+      --radius: 8px;
+      --spacing: 16px;
+      --font: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: var(--font)/1.5 system-ui, sans-serif;
+      height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .container {
+      display: flex; flex-direction: column;
+      padding: var(--spacing);
+      max-width: 600px; width: 100%; height: 100%;
+    }
+    .form-group {
+      display: flex; flex-wrap: wrap;
+      gap: var(--spacing);
+      margin-bottom: var(--spacing);
+    }
+    .form-group > div {
+      flex: 1 1 45%; min-width: 120px;
+    }
+    label {
+      display: block; margin-bottom: 4px; font-weight: 500;
+    }
+    select {
+      width: 100%; padding: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    .actions {
+      display: flex; gap: 8px;
+      margin-bottom: var(--spacing);
+    }
+    .actions button {
+      flex: 1; padding: 12px;
+      font-size: 1rem; font-weight: 500;
+      color: var(--bg); background: var(--accent);
+      border: none; border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .actions button:disabled {
+      opacity: 0.4; cursor: not-allowed;
+    }
+    #text-content {
+      flex: 1; width: 100%;
+      padding: var(--spacing);
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      resize: none; overflow-y: auto;
+      font-size: 0.9rem; line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    @media (min-width:600px) {
+      .form-group { flex-wrap: nowrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Core Radiology Textbook Copier</h1>
+
+    <div class="form-group">
+      <div>
+        <label for="chapter">Chapter</label>
+        <select id="chapter"><option value="">-- Select Chapter --</option></select>
+      </div>
+      <div>
+        <label for="start-section">Start Section</label>
+        <select id="start-section" disabled><option value="">--</option></select>
+      </div>
+      <div>
+        <label for="end-section">End Section (optional)</label>
+        <select id="end-section" disabled><option value="">--</option></select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="fetch-btn" disabled>Fetch Text</button>
+      <button id="copy-btn" disabled>Copy to Clipboard</button>
+    </div>
+
+    <textarea id="text-content" readonly placeholder="Your selection will appear here…"></textarea>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let manifest, currentSections = [];
+
+    // load manifest
+    fetch('index.json')
+      .then(r => r.json())
+      .then(data => {
+        manifest = data["Core Radiology"];
+        const ch = document.getElementById('chapter');
+        Object.entries(manifest)
+          .sort((a,b) => parseInt(a[0].replace(/\D/g,'')) - parseInt(b[0].replace(/\D/g,'')))
+          .forEach(([chKey, chData]) => {
+            const o = document.createElement('option');
+            o.value = chKey;
+            o.textContent = `${chKey.replace(/^Chapter0*/, 'Chapter ')} – ${chData.title}`;
+            ch.appendChild(o);
+          });
+      })
+      .catch(err => alert('Error loading index.json: '+err));
+
+    const chapterEl = document.getElementById('chapter'),
+          startEl   = document.getElementById('start-section'),
+          endEl     = document.getElementById('end-section'),
+          fetchBtn  = document.getElementById('fetch-btn'),
+          copyBtn   = document.getElementById('copy-btn'),
+          outTA     = document.getElementById('text-content');
+
+    // when chapter changes
+    chapterEl.addEventListener('change', () => {
+      startEl.innerHTML = '<option value="">--</option>';
+      endEl.innerHTML   = '<option value="">--</option>';
+      startEl.disabled = endEl.disabled = true;
+      fetchBtn.disabled = copyBtn.disabled = true;
+      outTA.value = '';
+
+      if (!chapterEl.value) return;
+
+      // build sections list, excluding chapter title entry
+      currentSections = Object.entries(manifest[chapterEl.value])
+        .filter(([key]) => key !== 'title')
+        .sort(([a],[b]) => parseFloat(a) - parseFloat(b));
+
+      // populate start dropdown
+      currentSections.forEach(([secKey,{title}])=>{
+        const o = document.createElement('option');
+        o.value = secKey;
+        o.textContent = `${secKey} – ${title}`;
+        startEl.appendChild(o);
+      });
+      startEl.disabled = false;
+    });
+
+    // when start changes, populate end from that index on
+    startEl.addEventListener('change', () => {
+      endEl.innerHTML = '<option value="">--</option>';
+      fetchBtn.disabled = true;
+      copyBtn.disabled = true;
+      outTA.value = '';
+
+      const startKey = startEl.value;
+      if (!startKey) {
+        endEl.disabled = true;
+        return;
+      }
+
+      const idx = currentSections.findIndex(([k]) => k === startKey);
+      for (let i = idx; i < currentSections.length; i++) {
+        const [secKey, {title}] = currentSections[i];
+        const o = document.createElement('option');
+        o.value = secKey;
+        o.textContent = `${secKey} – ${title}`;
+        endEl.appendChild(o);
+      }
+      endEl.disabled = false;
+      fetchBtn.disabled = false;
+    });
+
+    // fetch & concatenate
+    fetchBtn.addEventListener('click', async () => {
+      const chapKey = chapterEl.value;
+      const startKey = startEl.value;
+      const endKey = endEl.value || startKey;
+      const keys = currentSections.map(([k])=>k);
+      const slice = keys.slice(keys.indexOf(startKey), keys.indexOf(endKey) + 1);
+
+      outTA.value = 'Loading…';
+      try {
+        const texts = await Promise.all(slice.map(k => {
+          const fp = manifest[chapKey][k].file;
+          return fetch(`Core_Radiology/${fp}`).then(r => r.text());
+        }));
+        outTA.value = texts.join('\n\n');
+        copyBtn.disabled = false;
+      } catch (err) {
+        outTA.value = 'Error: '+err.message;
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(outTA.value)
+        .then(()=>alert('Copied!'))
+        .catch(e=>alert('Copy failed: '+e));
+    });
+  });
+  </script>
+</body>
+</html>
