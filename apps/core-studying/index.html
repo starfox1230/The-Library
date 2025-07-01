@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <!-- Prevent double-tap zoom on mobile -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Core Radiology Textbook Copier</title>
+  <title>Textbook Copier</title>
   <style>
     :root {
       --bg: #121212;
@@ -29,7 +28,7 @@
     .container {
       display: flex; flex-direction: column;
       padding: var(--spacing);
-      max-width: 600px; width: 100%; height: 100%;
+      max-width: 800px; width: 100%; height: 100%;
     }
     .form-group {
       display: flex; flex-wrap: wrap;
@@ -37,7 +36,7 @@
       margin-bottom: var(--spacing);
     }
     .form-group > div {
-      flex: 1 1 45%; min-width: 120px;
+      flex: 1 1 20%; min-width: 120px;
     }
     label {
       display: block; margin-bottom: 4px; font-weight: 500;
@@ -75,19 +74,20 @@
       font-size: 0.9rem; line-height: 1.4;
       white-space: pre-wrap;
     }
-    @media (min-width:600px) {
-      .form-group { flex-wrap: nowrap; }
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Core Radiology Textbook Copier</h1>
+    <h1>Textbook Copier</h1>
 
     <div class="form-group">
       <div>
+        <label for="book">Book</label>
+        <select id="book"><option value="">-- Select Book --</option></select>
+      </div>
+      <div>
         <label for="chapter">Chapter</label>
-        <select id="chapter"><option value="">-- Select Chapter --</option></select>
+        <select id="chapter" disabled><option value="">--</option></select>
       </div>
       <div>
         <label for="start-section">Start Section</label>
@@ -109,48 +109,78 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    let manifest, currentSections = [];
+    let booksData, currentBookManifest, currentBookPath, currentSections = [];
 
-    // load manifest
-    fetch('index.json')
-      .then(r => r.json())
-      .then(data => {
-        manifest = data["Core Radiology"];
-        const ch = document.getElementById('chapter');
-        Object.entries(manifest)
-          .sort((a,b) => parseInt(a[0].replace(/\D/g,'')) - parseInt(b[0].replace(/\D/g,'')))
-          .forEach(([chKey, chData]) => {
-            const o = document.createElement('option');
-            o.value = chKey;
-            o.textContent = `${chKey.replace(/^Chapter0*/, 'Chapter ')} – ${chData.title}`;
-            ch.appendChild(o);
-          });
-      })
-      .catch(err => alert('Error loading index.json: '+err));
-
-    const chapterEl = document.getElementById('chapter'),
+    const bookEl = document.getElementById('book'),
+          chapterEl = document.getElementById('chapter'),
           startEl   = document.getElementById('start-section'),
           endEl     = document.getElementById('end-section'),
           fetchBtn  = document.getElementById('fetch-btn'),
           copyBtn   = document.getElementById('copy-btn'),
           outTA     = document.getElementById('text-content');
+    
+    // Helper to reset dropdowns
+    const resetDropdowns = (startFrom) => {
+        const dropdowns = [chapterEl, startEl, endEl];
+        const startIdx = ['book', 'chapter', 'start'].indexOf(startFrom);
+        for(let i = startIdx; i < dropdowns.length; i++){
+            dropdowns[i].innerHTML = '<option value="">--</option>';
+            dropdowns[i].disabled = true;
+        }
+        fetchBtn.disabled = true;
+        copyBtn.disabled = true;
+        outTA.value = '';
+    }
 
-    // when chapter changes
+    // Load the list of all books
+    fetch('books.json')
+      .then(r => r.json())
+      .then(data => {
+        booksData = data;
+        Object.keys(booksData).forEach(bookTitle => {
+          const o = document.createElement('option');
+          o.value = bookTitle;
+          o.textContent = bookTitle;
+          bookEl.appendChild(o);
+        });
+      })
+      .catch(err => alert('Error loading books.json: ' + err));
+
+    // When a book is selected
+    bookEl.addEventListener('change', () => {
+      resetDropdowns('book');
+      const selectedBook = bookEl.value;
+      if (!selectedBook) return;
+
+      const bookInfo = booksData[selectedBook];
+      currentBookPath = bookInfo.basePath;
+      
+      fetch(bookInfo.manifest)
+        .then(r => r.json())
+        .then(manifest => {
+          currentBookManifest = manifest;
+          Object.entries(manifest)
+            .sort((a,b) => parseInt(a[0].replace(/\D/g,'')) - parseInt(b[0].replace(/\D/g,'')))
+            .forEach(([chKey, chData]) => {
+              const o = document.createElement('option');
+              o.value = chKey;
+              o.textContent = `${chKey.replace(/^Chapter0*/, 'Chapter ')} – ${chData.title}`;
+              chapterEl.appendChild(o);
+            });
+          chapterEl.disabled = false;
+        })
+        .catch(err => alert(`Error loading manifest for ${selectedBook}: ` + err));
+    });
+
+    // When chapter changes
     chapterEl.addEventListener('change', () => {
-      startEl.innerHTML = '<option value="">--</option>';
-      endEl.innerHTML   = '<option value="">--</option>';
-      startEl.disabled = endEl.disabled = true;
-      fetchBtn.disabled = copyBtn.disabled = true;
-      outTA.value = '';
-
+      resetDropdowns('chapter');
       if (!chapterEl.value) return;
 
-      // build sections list, excluding chapter title entry
-      currentSections = Object.entries(manifest[chapterEl.value])
+      currentSections = Object.entries(currentBookManifest[chapterEl.value])
         .filter(([key]) => key !== 'title')
         .sort(([a],[b]) => parseFloat(a) - parseFloat(b));
 
-      // populate start dropdown
       currentSections.forEach(([secKey,{title}])=>{
         const o = document.createElement('option');
         o.value = secKey;
@@ -160,18 +190,11 @@
       startEl.disabled = false;
     });
 
-    // when start changes, populate end from that index on
+    // When start section changes
     startEl.addEventListener('change', () => {
-      endEl.innerHTML = '<option value="">--</option>';
-      fetchBtn.disabled = true;
-      copyBtn.disabled = true;
-      outTA.value = '';
-
+      resetDropdowns('start');
       const startKey = startEl.value;
-      if (!startKey) {
-        endEl.disabled = true;
-        return;
-      }
+      if (!startKey) return;
 
       const idx = currentSections.findIndex(([k]) => k === startKey);
       for (let i = idx; i < currentSections.length; i++) {
@@ -185,7 +208,7 @@
       fetchBtn.disabled = false;
     });
 
-    // fetch & concatenate
+    // Fetch & concatenate text files
     fetchBtn.addEventListener('click', async () => {
       const chapKey = chapterEl.value;
       const startKey = startEl.value;
@@ -196,20 +219,22 @@
       outTA.value = 'Loading…';
       try {
         const texts = await Promise.all(slice.map(k => {
-          const fp = manifest[chapKey][k].file;
-          return fetch(`Core_Radiology/${fp}`).then(r => r.text());
+          const fp = currentBookManifest[chapKey][k].file;
+          // Use the dynamic path for the current book
+          return fetch(`${currentBookPath}/${fp}`).then(r => r.text());
         }));
         outTA.value = texts.join('\n\n');
         copyBtn.disabled = false;
       } catch (err) {
-        outTA.value = 'Error: '+err.message;
+        outTA.value = 'Error: ' + err.message;
       }
     });
 
+    // Copy to clipboard
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(outTA.value)
-        .then(()=>alert('Copied!'))
-        .catch(e=>alert('Copy failed: '+e));
+        .then(() => alert('Copied!'))
+        .catch(e => alert('Copy failed: ' + e));
     });
   });
   </script>
