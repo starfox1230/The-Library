@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StudyPace - Your Personal Study Planner</title>
+    
+    <style>
+        /* 1. Reset & Global Styles */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-text-color: #e0e0e0;
+            --secondary-text-color: #a0a0a0;
+            --accent-color: #009688;
+            --accent-hover-color: #00796b;
+            --border-color: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            background-color: var(--bg-color);
+            color: var(--primary-text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 2. Layout & Containers */
+        #app-container { max-width: 600px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 24px; }
+        header, .card { background-color: var(--surface-color); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
+        header { display: flex; justify-content: space-between; align-items: center; }
+
+        /* 3. Typography & UI Elements */
+        h1 { font-size: 1.5rem; }
+        h2 { font-size: 1.2rem; margin-bottom: 16px; color: var(--secondary-text-color); }
+        h3 { font-size: 1.1rem; margin-bottom: 4px; }
+        .target-date-display { font-size: 0.9rem; color: var(--secondary-text-color); margin-top: 4px; }
+
+        .type-card { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 16px; }
+        .type-info p { font-size: 0.9rem; color: var(--secondary-text-color); }
+        .active-resource-subtitle { font-style: italic; font-size: 0.85rem; margin-top: 8px; }
+        .daily-target { text-align: right; }
+        .daily-target .target-value { font-size: 2rem; font-weight: bold; color: var(--accent-color); }
+        .daily-target .target-unit { font-size: 0.8rem; color: var(--secondary-text-color); }
+
+        /* 4. Forms & Inputs */
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--secondary-text-color); }
+        input[type="number"], input[type="text"], input[type="date"] { width: 100%; padding: 12px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: var(--primary-text-color); font-size: 1rem; }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s ease; }
+        .btn-primary { background-color: var(--accent-color); color: var(--bg-color); }
+        .btn-primary:hover { background-color: var(--accent-hover-color); }
+        .btn-secondary { background-color: var(--surface-color); color: var(--primary-text-color); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: var(--border-color); }
+        .icon-btn { background: none; border: none; padding: 8px; cursor: pointer; width: auto; height: auto; border-radius: 50%; }
+        .icon-btn svg { width: 24px; height: 24px; stroke: var(--secondary-text-color); transition: stroke 0.2s ease; }
+        .icon-btn:hover svg { stroke: var(--primary-text-color); }
+
+        /* 5. Modal (Settings Panel) */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7); animation: fadeIn 0.3s ease; }
+        .modal-content { background-color: var(--surface-color); margin: 5% auto; padding: 24px; border-radius: 12px; width: 90%; max-width: 500px; position: relative; animation: slideIn 0.3s ease; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-header h2 { margin: 0; }
+
+        .settings-section-header { margin-top: 24px; margin-bottom: 12px; font-weight: bold; color: var(--secondary-text-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .settings-grid { display: grid; grid-template-columns: auto 1fr 120px; gap: 12px; align-items: center; margin-bottom: 12px; }
+        .drag-handle { cursor: grab; color: var(--secondary-text-color); }
+        .reorderable.dragging { opacity: 0.4; background: var(--border-color); }
+        .settings-actions { display: flex; gap: 12px; margin-top: 24px; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <header>
+            <div>
+                <h1>StudyPace</h1>
+                <p id="target-date-display" class="target-date-display"></p>
+            </div>
+            <button id="settings-btn" class="icon-btn" aria-label="Open settings">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </header>
+
+        <main id="dashboard"></main>
+
+        <div id="progress-card" class="card">
+            <h2>Today's Progress</h2>
+            <div id="progress-inputs"></div>
+            <button id="update-progress-btn" class="btn-primary" style="margin-top: 16px;">Update Progress</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="close-settings-btn" class="icon-btn" aria-label="Close settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <label for="target-date-input">Target Completion Date</label>
+                <input type="date" id="target-date-input">
+            </div>
+
+            <div id="settings-resources-list"></div>
+            
+            <h3 class="settings-section-header">Data Management</h3>
+            <div class="settings-actions">
+                <button id="import-btn" class="btn-secondary">Import Plan</button>
+                <button id="export-btn" class="btn-secondary">Export Plan</button>
+            </div>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+
+            <button id="save-settings-btn" class="btn-primary" style="margin-top: 24px;">Save and Close</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- STATE MANAGEMENT ---
+        const getInitialState = () => ({
+            settings: {
+                targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                resources: [
+                    { id: "ctc1", type: "Textbook", name: "Crack the Core Vol. 1", total: 572, unit: "pages" },
+                    { id: "ctc2", type: "Textbook", name: "Crack the Core Vol. 2", total: 584, unit: "pages" },
+                    { id: "core", type: "Textbook", name: "Core", total: 1270, unit: "pages" },
+                    { id: "wm", type: "Textbook", name: "War Machine", total: 565, unit: "pages" },
+                    { id: "xray", type: "Video", name: "X-Ray Physics", total: 33, unit: "videos" },
+                    { id: "us", type: "Video", name: "Ultrasound Physics", total: 26, unit: "videos" },
+                    { id: "mri", type: "Video", name: "MRI Physics", total: 28, unit: "videos" },
+                    { id: "ct", type: "Video", name: "CT Physics", total: 17, unit: "videos" },
+                    { id: "rpb", type: "QBank", name: "RadPrimer Beginner", total: 1742, unit: "questions" },
+                    { id: "rpi", type: "QBank", name: "RadPrimer Intermediate", total: 3466, unit: "questions" },
+                ],
+            },
+            progress: {},
+            history: [],
+        });
+
+        let state = {};
+
+        function saveState() {
+            localStorage.setItem('studyPaceState', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const savedState = localStorage.getItem('studyPaceState');
+            if (savedState) {
+                state = JSON.parse(savedState);
+                // Ensure all resources have a progress entry
+                state.settings.resources.forEach(r => {
+                    if (state.progress[r.id] === undefined) {
+                        state.progress[r.id] = 0;
+                    }
+                });
+            } else {
+                state = getInitialState();
+                state.settings.resources.forEach(r => {
+                    state.progress[r.id] = 0;
+                });
+            }
+        }
+        
+        // --- CORE LOGIC & CALCULATIONS ---
+        const getDaysRemaining = () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const target = new Date(state.settings.targetDate + 'T00:00:00');
+            if (target < today) return 1;
+            const diffTime = target - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive of target date
+        };
+
+        const getGroupedResourceTypes = () => {
+            const types = [...new Set(state.settings.resources.map(r => r.type))];
+            return types;
+        };
+        
+        const getActiveResourceForType = (type) => {
+            const resourcesOfType = state.settings.resources.filter(r => r.type === type);
+            for (const resource of resourcesOfType) {
+                if (state.progress[resource.id] < resource.total) {
+                    return resource;
+                }
+            }
+            return resourcesOfType[resourcesOfType.length - 1] || null;
+        };
+        
+        const calculateCumulativeTargetForType = (type) => {
+            const resourcesOfType = state.settings.resources.filter(r => r.type === type);
+            const totalItems = resourcesOfType.reduce((sum, r) => sum + r.total, 0);
+            const completedItems = resourcesOfType.reduce((sum, r) => sum + (state.progress[r.id] || 0), 0);
+            
+            const remaining = totalItems - completedItems;
+            if (remaining <= 0) return { remaining: 0, target: 0, total: totalItems };
+            
+            const daysRemaining = getDaysRemaining();
+            const target = Math.ceil(remaining / daysRemaining);
+            return { remaining, target, total: totalItems };
+        };
+
+        // --- DOM ELEMENTS ---
+        const dashboard = document.getElementById('dashboard');
+        const progressInputsContainer = document.getElementById('progress-inputs');
+        const updateProgressBtn = document.getElementById('update-progress-btn');
+        const targetDateDisplay = document.getElementById('target-date-display');
+        
+        // Settings Modal Elements
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const targetDateInput = document.getElementById('target-date-input');
+        const settingsResourcesList = document.getElementById('settings-resources-list');
+        const importBtn = document.getElementById('import-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const importFileInput = document.getElementById('import-file-input');
+        
+        // --- RENDERING ---
+        function render() {
+            renderHeader();
+            renderDashboard();
+            renderProgressInputs();
+        }
+
+        function renderHeader() {
+            const date = new Date(state.settings.targetDate + 'T00:00:00');
+            targetDateDisplay.textContent = `Target: ${date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })} (${getDaysRemaining()} days)`;
+        }
+
+        function renderDashboard() {
+            dashboard.innerHTML = '';
+            const types = getGroupedResourceTypes();
+
+            types.forEach(type => {
+                const { remaining, target, total } = calculateCumulativeTargetForType(type);
+                if (total === 0) return; // Don't show empty categories
+
+                const activeResource = getActiveResourceForType(type);
+                const isComplete = remaining <= 0;
+                
+                const card = document.createElement('div');
+                card.className = 'card type-card';
+                card.innerHTML = `
+                    <div class="type-info">
+                        <h3>${type}s</h3>
+                        <p>${remaining.toLocaleString()} of ${total.toLocaleString()} remaining</p>
+                        ${!isComplete && activeResource ? `<p class="active-resource-subtitle">Current: ${activeResource.name}</p>` : ''}
+                        ${isComplete ? `<p class="active-resource-subtitle" style="color: var(--accent-color);">Category Complete!</p>` : ''}
+                    </div>
+                    <div class="daily-target">
+                        <span class="target-value">${target.toLocaleString()}</span>
+                        <p class="target-unit">per day</p>
+                    </div>
+                `;
+                dashboard.appendChild(card);
+            });
+        }
+        
+        function renderProgressInputs() {
+            progressInputsContainer.innerHTML = '';
+            const types = getGroupedResourceTypes();
+
+            types.forEach(type => {
+                const activeResource = getActiveResourceForType(type);
+                if (!activeResource || state.progress[activeResource.id] >= activeResource.total) return;
+                
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+                inputGroup.innerHTML = `
+                    <label for="progress-${activeResource.id}">Current ${activeResource.unit} in "${activeResource.name}"</label>
+                    <input type="number" id="progress-${activeResource.id}" data-resource-id="${activeResource.id}" placeholder="${state.progress[activeResource.id]}" min="0" max="${activeResource.total}">
+                `;
+                progressInputsContainer.appendChild(inputGroup);
+            });
+        }
+
+        function renderSettings() {
+            targetDateInput.value = state.settings.targetDate;
+            settingsResourcesList.innerHTML = '';
+            const grouped = {};
+            state.settings.resources.forEach(r => {
+                if (!grouped[r.type]) grouped[r.type] = [];
+                grouped[r.type].push(r);
+            });
+
+            for (const type in grouped) {
+                const isReorderable = type === "Video";
+                const header = document.createElement('h3');
+                header.className = 'settings-section-header';
+                header.textContent = `${type}s ${isReorderable ? '(Drag to Reorder)' : ''}`;
+                settingsResourcesList.appendChild(header);
+
+                const container = document.createElement('div');
+                if (isReorderable) {
+                    container.dataset.reorderableContainer = 'true';
+                }
+                settingsResourcesList.appendChild(container);
+
+                grouped[type].forEach(res => {
+                    const div = document.createElement('div');
+                    div.className = 'settings-grid';
+                    if (isReorderable) {
+                        div.classList.add('reorderable');
+                        div.draggable = true;
+                        div.dataset.resourceId = res.id;
+                    }
+                    div.innerHTML = `
+                        ${isReorderable ? '<span class="drag-handle">☰</span>' : '<span></span>'}
+                        <label for="setting-${res.id}" style="text-align: right;">${res.name}</label>
+                        <input type="number" id="setting-${res.id}" data-resource-id="${res.id}" value="${res.total}">
+                    `;
+                    container.appendChild(div);
+                });
+            }
+            addDragAndDropHandlers();
+        }
+        
+        // --- EVENT HANDLERS ---
+        function handleUpdateProgress() {
+            const inputs = progressInputsContainer.querySelectorAll('input[type="number"]');
+            let hasChanged = false;
+            inputs.forEach(input => {
+                if (input.value) {
+                    const resourceId = input.dataset.resourceId;
+                    const newValue = parseInt(input.value, 10);
+                    if (!isNaN(newValue) && newValue >= 0) {
+                        state.progress[resourceId] = newValue;
+                        hasChanged = true;
+                    }
+                }
+            });
+            if (hasChanged) {
+                saveState();
+                render();
+            }
+        }
+
+        function handleSaveSettings() {
+            state.settings.targetDate = targetDateInput.value;
+            
+            const newResourceOrder = [];
+            const tempTotals = {};
+            
+            // First pass: capture all new totals from inputs
+            const inputs = settingsResourcesList.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                const resourceId = input.dataset.resourceId;
+                const newValue = parseInt(input.value, 10);
+                if (!isNaN(newValue) && newValue >= 0) {
+                    tempTotals[resourceId] = newValue;
+                }
+            });
+            
+            // Second pass: rebuild resource array respecting new order
+            const reorderedElements = settingsResourcesList.querySelectorAll('[data-resource-id]');
+            const processedIds = new Set();
+            
+            reorderedElements.forEach(el => {
+                const resourceId = el.dataset.resourceId;
+                if (!processedIds.has(resourceId)) {
+                    const originalResource = state.settings.resources.find(r => r.id === resourceId);
+                    if (originalResource) {
+                        originalResource.total = tempTotals[resourceId] || originalResource.total;
+                        newResourceOrder.push(originalResource);
+                        processedIds.add(resourceId);
+                    }
+                }
+            });
+            
+            state.settings.resources = newResourceOrder;
+
+            saveState();
+            render();
+            settingsModal.style.display = 'none';
+        }
+
+        function handleExport() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob([dataStr], { type: 'application/json' }));
+            link.download = `studypace_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    if (importedState.settings && importedState.progress) {
+                        state = importedState;
+                        saveState();
+                        render();
+                        alert('Plan imported successfully!');
+                    } else { throw new Error('Invalid format'); }
+                } catch (error) { alert('Error reading or parsing file.'); }
+            };
+            reader.readAsText(file);
+            settingsModal.style.display = 'none';
+        }
+        
+        function addDragAndDropHandlers() {
+            const draggables = settingsResourcesList.querySelectorAll('.reorderable');
+            const container = settingsResourcesList.querySelector('[data-reorderable-container]');
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => {
+                    draggable.classList.add('dragging');
+                });
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('dragging');
+                });
+            });
+
+            if (container) {
+                container.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    const draggable = document.querySelector('.dragging');
+                    if (afterElement == null) {
+                        container.appendChild(draggable);
+                    } else {
+                        container.insertBefore(draggable, afterElement);
+                    }
+                });
+            }
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.reorderable:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        function init() {
+            loadState();
+            render();
+            
+            updateProgressBtn.addEventListener('click', handleUpdateProgress);
+            
+            settingsBtn.addEventListener('click', () => {
+                renderSettings();
+                settingsModal.style.display = 'block';
+            });
+            closeSettingsBtn.addEventListener('click', () => settingsModal.style.display = 'none');
+            saveSettingsBtn.addEventListener('click', handleSaveSettings);
+            window.addEventListener('click', e => { if (e.target == settingsModal) settingsModal.style.display = 'none'; });
+            
+            exportBtn.addEventListener('click', handleExport);
+            importBtn.addEventListener('click', () => importFileInput.click());
+            importFileInput.addEventListener('change', handleImport);
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
