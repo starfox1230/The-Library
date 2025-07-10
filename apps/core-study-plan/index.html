@@ -200,7 +200,7 @@
         const getActiveResourceForCategory = (category) => {
             const resources = state.settings.resources.filter(r => r.group === category);
             for (const resource of resources) {
-                if (state.progress[resource.id] < resource.total) return resource;
+                if ((state.progress[resource.id] || 0) < resource.total) return resource;
             }
             return resources[resources.length - 1] || null;
         };
@@ -215,28 +215,32 @@
             
             const daysRemaining = getDaysRemaining();
             const target = Math.ceil(remaining / daysRemaining);
-            return { remaining, target, total: totalItems, completed: completedItems };
+            return { remaining, target, total: totalItems };
         };
         
         /**
-         * [NEW] Calculates the user's current position within a category (e.g., Page X of Book Y).
+         * [CORRECTED] Calculates the user's current position within a category (e.g., Page X of Book Y).
+         * This now correctly looks at the progress of the single active resource, not the whole category.
          */
         const calculateCurrentPosition = (category) => {
-            let { completed } = calculateTargetForCategory(category);
-            const resources = state.settings.resources.filter(r => r.group === category);
+            const activeResource = getActiveResourceForCategory(category);
+            
+            if (!activeResource) return `Category Complete!`;
 
-            for(const resource of resources) {
-                if (completed < resource.total) {
-                    return `Current: ${resource.unit.slice(0, -1)} ${completed + 1} of ${resource.total} in ${resource.name}`;
-                }
-                completed -= resource.total;
+            const currentProgress = state.progress[activeResource.id] || 0;
+            
+            if (currentProgress >= activeResource.total) {
+                // This case should ideally not be hit if there are other resources,
+                // but it's a good fallback for the last item in a category.
+                return `Finished: ${activeResource.name}`;
             }
-            return `Category Complete!`;
+
+            // The +1 makes it human-readable (e.g., progress of 0 is "on page 1")
+            const currentItemNumber = currentProgress + 1;
+
+            return `Current: ${activeResource.unit.slice(0, -1)} ${currentItemNumber} of ${activeResource.total} in ${activeResource.name}`;
         }
 
-        /**
-         * [NEW] Gets the total progress for a resource at the beginning of the current day.
-         */
         const getProgressAtStartOfDay = (resourceId) => {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -256,7 +260,6 @@
         const historySummary = document.getElementById('history-summary');
         const viewHistoryBtn = document.getElementById('view-history-btn');
         
-        // Modals
         const settingsModal = document.getElementById('settings-modal');
         const historyModal = document.getElementById('history-modal');
         
@@ -280,7 +283,6 @@
                 if (total === 0) return;
                 const isComplete = remaining <= 0;
                 
-                // [MODIFIED] Get current position string (bookmark).
                 const positionString = isComplete ? 
                     `<p class="active-resource-subtitle" style="color: var(--accent-color);">Category Complete!</p>` :
                     `<p class="active-resource-subtitle">${calculateCurrentPosition(category)}</p>`;
@@ -306,9 +308,8 @@
             progressInputsContainer.innerHTML = '';
             getCategories().forEach(category => {
                 const activeResource = getActiveResourceForCategory(category);
-                if (!activeResource || state.progress[activeResource.id] >= activeResource.total) return;
+                if (!activeResource || (state.progress[activeResource.id] || 0) >= activeResource.total) return;
 
-                // [MODIFIED] Calculate progress made *today* to show in the input field.
                 const progressAtStartOfDay = getProgressAtStartOfDay(activeResource.id);
                 const progressToday = (state.progress[activeResource.id] || 0) - progressAtStartOfDay;
 
@@ -330,15 +331,24 @@
             const listEl = document.getElementById('settings-resources-list');
             listEl.innerHTML = '';
             
-            getCategories().forEach(category => {
-                // [MODIFIED] Allow reordering for any category. The user mentioned it for Physics but it's a good general feature.
-                const isReorderable = state.settings.resources.filter(r => r.group === category).length > 1;
+            const categoriesInOrder = getCategories();
+            const resourcesByGroup = state.settings.resources.reduce((acc, res) => {
+                if (!acc[res.group]) acc[res.group] = [];
+                acc[res.group].push(res);
+                return acc;
+            }, {});
+
+            categoriesInOrder.forEach(category => {
+                const resources = resourcesByGroup[category];
+                if (!resources) return;
+                
+                const isReorderable = resources.length > 1;
                 listEl.insertAdjacentHTML('beforeend', `<h3 class="settings-section-header">${category} ${isReorderable ? '(Use arrows to reorder)' : ''}</h3>`);
                 const container = document.createElement('div');
                 container.dataset.containerFor = category;
                 listEl.appendChild(container);
 
-                state.settings.resources.filter(r => r.group === category).forEach(res => {
+                resources.forEach(res => {
                     container.insertAdjacentHTML('beforeend', `
                         <div class="settings-grid" data-resource-id="${res.id}">
                             ${isReorderable ? `
@@ -387,9 +397,6 @@
         }
 
         // --- EVENT HANDLERS ---
-        /**
-         * [MODIFIED] Handles progress updates based on the total work done for the day.
-         */
         function handleUpdateProgress() {
             const inputs = progressInputsContainer.querySelectorAll('input[type="number"]');
             let hasChanged = false;
@@ -403,8 +410,7 @@
                     const progressAtStartOfDay = getProgressAtStartOfDay(resourceId);
                     const newTotalProgress = progressAtStartOfDay + progressTodayValue;
                     
-                    // Only update if the value has actually changed
-                    if (state.progress[resourceId] !== newTotalProgress) {
+                    if ((state.progress[resourceId] || 0) !== newTotalProgress) {
                         state.progress[resourceId] = newTotalProgress;
                         state.history.push({ id: Date.now() + Math.random(), timestamp, resourceId, value: newTotalProgress });
                         hasChanged = true;
@@ -413,17 +419,6 @@
             });
 
             if (hasChanged) {
-                // Clean up history by removing multiple updates for the same resource on the same day, keeping only the latest.
-                const latestEntries = {};
-                state.history.forEach(entry => {
-                    const day = new Date(entry.timestamp).toDateString();
-                    const key = `${entry.resourceId}-${day}`;
-                    if (!latestEntries[key] || new Date(entry.timestamp) > new Date(latestEntries[key].timestamp)) {
-                        latestEntries[key] = entry;
-                    }
-                });
-                state.history = Object.values(latestEntries);
-
                 saveState();
                 render();
             }
@@ -432,23 +427,21 @@
         function handleSaveSettings() {
             state.settings.targetDate = document.getElementById('target-date-input').value;
             
-            const newResourceList = [];
-            const settingsContainer = document.getElementById('settings-resources-list');
+            const resourcesContainer = document.getElementById('settings-resources-list');
+            const allResourceElements = resourcesContainer.querySelectorAll('[data-resource-id]');
             
-            // [MODIFIED] Read reordered items correctly from the DOM.
-            const newOrder = [];
-            settingsContainer.querySelectorAll('[data-resource-id]').forEach(el => {
-                newOrder.push(el.dataset.resourceId);
+            const newResourcesOrder = [];
+            allResourceElements.forEach(el => {
+                const resourceId = el.dataset.resourceId;
+                const resource = state.settings.resources.find(r => r.id === resourceId);
+                const input = el.querySelector('input[type="number"]');
+                
+                if(resource && input) {
+                    resource.total = parseInt(input.value, 10) || 0;
+                    newResourcesOrder.push(resource);
+                }
             });
-
-            const oldResources = [...state.settings.resources];
-            state.settings.resources = [];
-            newOrder.forEach(id => {
-                 const resource = oldResources.find(r => r.id === id);
-                 const input = settingsContainer.querySelector(`#setting-${resource.id}`);
-                 resource.total = parseInt(input.value, 10) || 0;
-                 state.settings.resources.push(resource);
-            });
+            state.settings.resources = newResourcesOrder;
             
             saveState();
             render();
@@ -478,27 +471,24 @@
             if (!entryToDelete) return;
 
             if (confirm("Are you sure you want to delete this progress entry? This will rewind your progress for this item.")) {
-                // Remove the entry
                 state.history = state.history.filter(h => h.id !== idToDelete);
                 
-                // Find the latest remaining entry for this resource
                 const resourceHistory = state.history
                     .filter(h => h.resourceId === entryToDelete.resourceId)
                     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-                // Rewind progress to the last known value, or 0 if no history remains
                 state.progress[entryToDelete.resourceId] = resourceHistory.length > 0 ? resourceHistory[0].value : 0;
                 
                 saveState();
                 render();
-                renderHistoryModal(); // Refresh the modal view
+                renderHistoryModal();
             }
         }
 
         function handleReset() {
             if (confirm("Are you sure you want to reset all progress and settings? This will delete everything.")) {
                 localStorage.removeItem('studyPaceState');
-                loadState(); // Re-initializes state
+                loadState();
                 render();
                 settingsModal.style.display = 'none';
             }
@@ -527,7 +517,6 @@
                         const importedState = JSON.parse(e.target.result);
                         if (importedState.settings && importedState.progress) {
                             state = importedState;
-                            // Reset file input to allow importing the same file again
                             importFileInput.value = ''; 
                             saveState(); 
                             render(); 
@@ -539,6 +528,7 @@
                 settingsModal.style.display = 'none';
             };
         }
+
         // --- INITIALIZATION ---
         function init() {
             loadState();
@@ -546,25 +536,21 @@
             
             updateProgressBtn.addEventListener('click', handleUpdateProgress);
             
-            // Settings Modal
             document.getElementById('settings-btn').addEventListener('click', () => { renderSettings(); settingsModal.style.display = 'block'; });
             document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.style.display = 'none');
             document.getElementById('save-settings-btn').addEventListener('click', handleSaveSettings);
             document.getElementById('settings-resources-list').addEventListener('click', handleReorder);
             document.getElementById('reset-btn').addEventListener('click', handleReset);
             
-            // History Modal
             viewHistoryBtn.addEventListener('click', () => { renderHistoryModal(); historyModal.style.display = 'block'; });
             document.getElementById('close-history-btn').addEventListener('click', () => historyModal.style.display = 'none');
             document.getElementById('history-log-content').addEventListener('click', handleDeleteHistory);
 
-            // Close modals on outside click
             window.addEventListener('click', e => {
                 if (e.target == settingsModal) settingsModal.style.display = 'none';
                 if (e.target == historyModal) historyModal.style.display = 'none';
             });
             
-            // Data Management
             document.getElementById('export-btn').addEventListener('click', handleExport);
             document.getElementById('import-btn').addEventListener('click', handleImport);
         }
