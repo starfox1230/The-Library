@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Quiz HTML Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #12121f;
+            color: #e0e0fc;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .generator-container {
+            background-color: #1a1a2e;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4),
+                        0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 900px;
+            text-align: center;
+            border: 1px solid #3a3a5e;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #8a8aff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
+        }
+
+        p, label {
+            color: #c0c0fa;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .prompt-section {
+            background-color: #202035;
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #c0c0fa;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .prompt-section strong {
+             color: #8a8aff;
+        }
+
+        .prompt-section code {
+            background-color: #12121f;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #f0f0ff;
+            display: block;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .prompt-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background-color: #2a2a4e;
+            color: #d0d0fc;
+            border: 1px solid #4a4a7e;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        .action-button, .copy-button {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 1em;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .action-button:hover:not(:disabled),
+        .copy-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+
+         .action-button:disabled,
+         .copy-button:disabled {
+            background: #5a5a7e;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .link-style {
+            color: #a0a0ff;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .link-style:hover {
+            color: #c0c0ff;
+            text-decoration: underline;
+        }
+
+        .button-group {
+             display: flex;
+             justify-content: center;
+             flex-wrap: wrap;
+             gap: 15px;
+             margin-top: 10px;
+             margin-bottom: 20px;
+        }
+        #restored-quiz-actions { /* Style for the new button group on restored page */
+            justify-content: flex-start; /* Align buttons to the left */
+        }
+
+
+        @media (max-width: 600px) {
+            .generator-container {
+                padding: 20px;
+                width: 95%;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+             .prompt-controls {
+                 gap: 10px;
+             }
+             .action-button, .copy-button {
+                 padding: 8px 18px;
+                 font-size: 0.9em;
+             }
+             textarea {
+                 min-height: 150px;
+             }
+        }
+
+        .copied-feedback {
+            background-color: #1f7a3f !important;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="generator-container">
+        <h1>Quiz HTML Generator</h1>
+        <p>This tool generates a self-contained, two-player HTML quiz file. Paste your questions below, formatted as a JavaScript array of objects. The quiz will replace this page.</p>
+
+        <div class="prompt-section">
+            <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
+            <p>Use the following prompt to generate questions. Ensure the AI output is accurate and the `correctAnswer` exactly matches one of the four `options` strings.</p>
+            <code id="promptText">Based *solely* on the attached source (PDF, YouTube video, or pasted text), generate **30 board-exam–level** multiple-choice questions that probe deep factual and conceptual mastery of the material.
+Questions must test understanding of facts and concepts as they apply in general contexts—not recall of the source’s exact wording or examples. 
+                
+For each question, include exactly these four properties (use straight double-quotes around every key and string value). If any string value itself needs to contain a double-quote character, ensure it is properly escaped with a backslash (e.g., \"example of an internal quote\").               
+1. "question": the question stem, phrased like a high-level exam item.
+2. "options": an array of **exactly four** distinct answer strings.
+3. "correctAnswer": the one option that is correct (must match exactly one entry in "options").
+4. "explanation": a brief, board-style rationale citing the source material.
+
+                
+Format the entire output *only* as a single JavaScript array of objects, like this example:
+
+[
+  {
+    "question": "Sample question text here?",
+    "options": ["Option A", "Option B", "Correct Option C", "Option D"],
+    "correctAnswer": "Correct Option C",
+    "explanation": "Brief explanation based on the document content."
+  },
+  {
+    "question": "Another question text?",
+    "options": ["Choice 1", "Choice 2", "Choice 3", "Correct Choice 4"],
+    "correctAnswer": "Correct Choice 4",
+    "explanation": "Another explanation referencing the source."
+  }
+]
+                
+Do not include any introductory text, concluding remarks, or markdown formatting like javascript before or after the array. Do not include any output in Cyrillic. Just output the raw JavaScript array structure starting with `[` and ending with `]`.</code>
+            <div class="prompt-controls">
+                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
+                <span>Paste prompt at:</span>
+                <a href="https://aistudio.google.com/prompts/new_chat" target="_blank" class="link-style">Google AI Studio</a>
+            </div>
+        </div>
+
+        <label for="questionInput">Paste Formatted Quiz Data Here:</label>
+        <textarea id="questionInput" placeholder="Paste your JavaScript array of questions here, starting with [ and ending with ]..."></textarea>
+
+        <!-- Buttons for restored quiz will be injected here by JS -->
+
+        <div class="button-group">
+            <button id="generateBtn" class="action-button">Generate & View Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Helper Functions (defined at the top level of the script) ---
+        function provideCopyFeedback(button) {
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.classList.add('copied-feedback');
+            button.disabled = true;
+
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied-feedback');
+                button.disabled = false;
+            }, 1500);
+        }
+
+        function downloadHTML(content, fileName) {
+            const blob = new Blob([content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        function addActionButtonsForPreviousQuiz() {
+            const previouslyGeneratedQuizHTML = sessionStorage.getItem('lastGeneratedQuizHTML');
+            if (previouslyGeneratedQuizHTML && !document.getElementById('restored-quiz-actions')) {
+                const container = document.querySelector('.generator-container');
+                const generateGroup = container.querySelector('.button-group');
+        
+                const buttonsHeader = document.createElement('p');
+                buttonsHeader.id = 'restored-quiz-actions-header';
+                buttonsHeader.textContent = 'Actions for previously generated quiz:';
+                buttonsHeader.style.marginTop    = '20px';
+                buttonsHeader.style.marginBottom = '10px';
+                buttonsHeader.style.textAlign    = 'left';
+        
+                const buttonGroupForRestored = document.createElement('div');
+                buttonGroupForRestored.classList.add('button-group');
+                buttonGroupForRestored.id = 'restored-quiz-actions';
+                buttonGroupForRestored.style.justifyContent = 'flex-start';
+        
+                const downloadQuizHtmlBtn = document.createElement('button');
+                downloadQuizHtmlBtn.textContent = 'Download Quiz HTML';
+                downloadQuizHtmlBtn.classList.add('action-button');
+                downloadQuizHtmlBtn.addEventListener('click', () => {
+                    downloadHTML(previouslyGeneratedQuizHTML, '2-player-quiz.html');
+                });
+        
+                buttonGroupForRestored.appendChild(downloadQuizHtmlBtn);
+        
+                generateGroup.insertAdjacentElement('afterend', buttonsHeader);
+                buttonsHeader.insertAdjacentElement('afterend', buttonGroupForRestored);
+            }
+        }
+
+
+        // --- Main script logic (executed on initial load and on restoration) ---
+        const promptTextElement = document.getElementById('promptText');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const questionInput = document.getElementById('questionInput');
+        const generateBtn = document.getElementById('generateBtn');
+
+        if (copyPromptBtn && promptTextElement) {
+            copyPromptBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(promptTextElement.innerText)
+                    .then(() => provideCopyFeedback(copyPromptBtn))
+                    .catch(err => alert('Failed to copy prompt. Please copy manually.'));
+            });
+        }
+
+        if (generateBtn && questionInput) {
+            generateBtn.addEventListener('click', () => {
+                const quizDataInput = questionInput.value.trim();
+
+                if (!quizDataInput) {
+                    alert('Please paste the quiz data into the input area first.');
+                    return;
+                }
+                if (!quizDataInput.startsWith('[') || !quizDataInput.endsWith(']')) {
+                    alert('Validation Error: Input must start with [ and end with ].');
+                    return;
+                }
+
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(quizDataInput);
+                } catch (e) {
+                    alert(`JSON Parsing Error: ${e.message}. Please use a JSON validator like jsonlint.com to find the issue (e.g., a missing comma or quote).`);
+                    return;
+                }
+
+                if (!Array.isArray(parsedData) || parsedData.length === 0) {
+                    alert('Validation Error: The data must be a non-empty array of question objects.');
+                    return;
+                }
+
+                for (let i = 0; i < parsedData.length; i++) {
+                    const item = parsedData[i];
+                    const questionNumber = i + 1;
+                    const expectedKeys = ["question", "options", "correctAnswer", "explanation"];
+
+                    if (typeof item !== 'object' || item === null) {
+                        alert(`Validation Error in Question ${questionNumber}: Entry is not a valid object.`);
+                        return;
+                    }
+                    for (const key of expectedKeys) {
+                        if (!item.hasOwnProperty(key)) {
+                            alert(`Validation Error in Question ${questionNumber}: Missing required property "${key}".`);
+                            return;
+                        }
+                    }
+                    if (!Array.isArray(item.options) || item.options.length !== 4) {
+                        alert(`Validation Error in Question ${questionNumber}: "options" must be an array with exactly 4 strings.`);
+                        return;
+                    }
+                    if (item.options.some(opt => typeof opt !== 'string' || opt.trim() === '')) {
+                        alert(`Validation Error in Question ${questionNumber}: All options must be non-empty strings.`);
+                        return;
+                    }
+                    if (!item.options.includes(item.correctAnswer)) {
+                        alert(`Validation Error in Question ${questionNumber}: "correctAnswer" ("${item.correctAnswer}") does not exactly match any of the provided options. Check for typos or extra spaces.`);
+                        return;
+                    }
+                }
+
+                const currentGeneratorHTML = document.documentElement.outerHTML;
+                sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
+                history.pushState({ view: 'generator' }, document.title, window.location.href);
+
+                const htmlTemplate = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Head-to-Head Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p1-color: #00fddc; /* Neon Teal */
+            --p2-color: #ff79c6; /* Neon Light Pink */
+            --bg-dark: #12121f;
+            --bg-med: #1a1a2e;
+            --bg-light: #2a2a4e;
+            --border-color: #3a3a5e;
+            --text-light: #e0e0fc;
+            --text-med: #c0c0fa;
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 4px #fff, 0 0 8px #fff, 0 0 12px var(--correct-color), 0 0 16px var(--correct-color); }
+            to { text-shadow: 0 0 8px #fff, 0 0 12px #fff, 0 0 18px var(--correct-color), 0 0 24px var(--correct-color); }
+        }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        body {
+            background-color: var(--bg-dark); color: var(--text-light); font-family: 'Roboto', sans-serif;
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; overflow: hidden;
+        }
+        #quiz-nav {
+            position: fixed; top: 15px; left: 15px; z-index: 1001; display: flex; gap: 10px;
+        }
+        .nav-btn {
+            padding: 8px 16px; background: linear-gradient(45deg, #4a4af5, #7a7aff);
+            color: white; border: none; border-radius: 20px; font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em; cursor: pointer; box-shadow: 0 3px 8px rgba(74, 74, 245, 0.4);
+            transition: all 0.2s ease;
+        }
+        .nav-btn:hover { transform: scale(1.05); box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6); }
+        .scoreboard {
+            display: flex; justify-content: space-between; width: 100%; max-width: 800px; margin-bottom: 20px;
+        }
+        .player-panel {
+            background-color: var(--bg-med); border: 2px solid var(--border-color);
+            padding: 10px 20px; border-radius: 10px; text-align: center; width: 48%;
+            transition: all 0.3s ease; position: relative;
+        }
+        #player1-panel { border-color: var(--p1-color); box-shadow: 0 0 10px 0px color-mix(in srgb, var(--p1-color) 40%, transparent); }
+        #player2-panel { border-color: var(--p2-color); box-shadow: 0 0 10px 0px color-mix(in srgb, var(--p2-color) 40%, transparent); }
+        .player-panel.locked-in { transform: scale(1.03); }
+        .player-name {
+            font-family: 'Orbitron', sans-serif; font-size: 1.2em; font-weight: 700;
+            display: block; margin-bottom: 5px; outline: none;
+        }
+        #player1-panel .player-name { color: var(--p1-color); }
+        #player2-panel .player-name { color: var(--p2-color); }
+        .player-score { font-size: 1.5em; font-weight: 700; font-family: 'Orbitron', sans-serif; }
+        .ready-indicator {
+            height: 20px; margin-top: 5px; font-family: 'Orbitron', sans-serif;
+            font-weight: 700; color: var(--correct-color); text-shadow: 0 0 8px var(--correct-color);
+            transition: opacity 0.3s ease; opacity: 0;
+        }
+        .ready-indicator.is-ready { opacity: 1; }
+        .quiz-container {
+            background-color: var(--bg-med); padding: 30px 40px; border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.2), 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 100%; max-width: 800px; text-align: center; border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 550px;
+        }
+        #timer-container {
+            position: relative; width: 120px; height: 120px; margin-bottom: 20px; cursor: pointer;
+        }
+        #timer-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .timer-ring { fill: none; stroke-width: 10; }
+        .timer-bg { stroke: var(--bg-light); }
+        .timer-fg { stroke: var(--p1-color); transition: stroke-dashoffset 1s linear, stroke 0.3s ease; }
+        .timer-fg.danger { stroke: var(--incorrect-color); animation: blink 1s infinite; }
+        #timer-text {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Orbitron', sans-serif; font-size: 2.5em; font-weight: 900;
+        }
+        #question-text {
+            font-size: 1.4em; color: var(--text-light); margin-bottom: 30px;
+            line-height: 1.6; min-height: 80px; transition: opacity 0.5s ease;
+        }
+        .options-container {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%;
+            transition: opacity 0.5s ease; align-items: stretch;
+        }
+        .option-button {
+            background-color: var(--bg-light); color: var(--text-med); border: 2px solid var(--border-color);
+            padding: 15px; font-size: 1em; border-radius: 8px;
+            transition: all 0.2s ease; text-align: left;
+            display: flex; align-items: center; gap: 15px; min-height: 90px;
+            word-wrap: break-word; outline: 3px solid transparent; outline-offset: 2px;
+        }
+        .option-icon {
+            font-family: 'Orbitron', sans-serif; font-size: 1.5em; font-weight: 900;
+            min-width: 35px; width: 35px; height: 35px; text-align: center;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            background-color: #333; color: white; border: 2px solid #555;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+        }
+        #option-0 .option-icon { background-color: #005f73; border-color: #007f96; color: var(--p1-color); } /* X */
+        #option-1 .option-icon { background-color: #7f0000; border-color: #a30000; } /* B */
+        #option-2 .option-icon { background-color: #b38600; border-color: #cca300; } /* Y */
+        #option-3 .option-icon { background-color: #006400; border-color: #008000; color: var(--p2-color); } /* A */
+
+        .option-button.p1-choice { outline-color: var(--p1-color); }
+        .option-button.p2-choice { outline-color: var(--p2-color); }
+        .option-button.p1-choice.p2-choice {
+            outline: none;
+            border: 4px solid transparent;
+            background-image: linear-gradient(var(--bg-light), var(--bg-light)), linear-gradient(to right, var(--p1-color), var(--p2-color));
+            background-origin: border-box; background-clip: content-box, border-box;
+        }
+        .option-button.correct { background-color: color-mix(in srgb, var(--correct-color) 40%, var(--bg-light)); border-color: var(--correct-color) !important; color: white; }
+        .option-button.incorrect { background-color: color-mix(in srgb, var(--incorrect-color) 40%, var(--bg-light)); border-color: var(--incorrect-color) !important; color: #ffc0c0; }
+        #explanation {
+            background-color: var(--bg-dark); border-top: 2px solid var(--border-color);
+            padding: 20px; margin-top: 25px; text-align: left; font-size: 0.95em;
+            line-height: 1.5; color: var(--text-med); width: 100%; box-sizing: border-box;
+            border-radius: 0 0 12px 12px;
+        }
+        #advance-prompt {
+            margin-top: 20px; font-family: 'Orbitron', sans-serif; color: #a0a0ff;
+        }
+        #advance-prompt.glowing { animation: glow 1.5s ease-in-out infinite alternate; }
+        /* Overlays */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(18, 18, 31, 0.95); z-index: 1000;
+            display: flex; justify-content: center; align-items: center; text-align: center;
+        }
+        .overlay-content {
+            background-color: var(--bg-med); padding: 40px; border-radius: 15px;
+            border: 1px solid var(--border-color); box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        .overlay h2 { font-family: 'Orbitron', sans-serif; color: #8a8aff; font-size: 2em; margin-bottom: 20px; }
+        .overlay p { text-align: center; color: var(--text-med); font-size: 1.1em; }
+        .overlay button {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff); color: white; border: none;
+            padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
+            border-radius: 25px; cursor: pointer; margin-top: 20px;
+            transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+        }
+        .overlay button:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5); }
+        .overlay-content.scrollable { max-height: 80vh; overflow-y: auto; }
+        #history-log { display: flex; flex-direction: column; gap: 15px; min-width: 50vw; text-align: left; }
+        .history-item { background-color: var(--bg-light); padding: 15px; border-radius: 8px; border-left: 5px solid var(--border-color); }
+        .history-item p { margin: 0 0 8px 0; }
+        .history-item .p1-ans { color: var(--p1-color); }
+        .history-item .p2-ans { color: var(--p2-color); }
+    </style>
+</head>
+<body>
+    <div id="quiz-nav">
+        <button id="backToGeneratorBtn" class="nav-btn" title="Return to Generator">← Back</button>
+        <button id="downloadCurrentQuizBtn" class="nav-btn" title="Download This Quiz HTML">Download</button>
+        <button id="historyBtn" class="nav-btn" title="View Round History">History</button>
+    </div>
+
+    <div class="scoreboard">
+        <div id="player1-panel" class="player-panel">
+            <span id="player1-name" class="player-name" contenteditable="true" spellcheck="false">Player 1</span>
+            <span id="player1-score" class="player-score">0</span>
+            <div id="player1-ready" class="ready-indicator"></div>
+        </div>
+        <div id="player2-panel" class="player-panel">
+            <span id="player2-name" class="player-name" contenteditable="true" spellcheck="false">Player 2</span>
+            <span id="player2-score" class="player-score">0</span>
+            <div id="player2-ready" class="ready-indicator"></div>
+        </div>
+    </div>
+
+    <div class="quiz-container">
+        <div id="timer-container">
+            <svg id="timer-svg" viewBox="0 0 100 100">
+                <circle class="timer-ring timer-bg" cx="50" cy="50" r="45"></circle>
+                <circle id="timer-fg" class="timer-ring timer-fg" cx="50" cy="50" r="45"></circle>
+            </svg>
+            <div id="timer-text">15</div>
+        </div>
+        <div id="question-text" style="opacity: 0;"></div>
+        <div id="options-container" style="opacity: 0;"></div>
+        <div id="explanation" style="display: none;"></div>
+        <div id="advance-prompt" class="glowing" style="display: none;"></div>
+    </div>
+
+    <div id="game-overlay" class="overlay">
+        <div class="overlay-content">
+            <h2 id="overlay-title">Welcome!</h2>
+            <p id="overlay-text">The first player to answer correctly and quickly earns more points. Press the button to start.</p>
+            <button id="overlay-button">Start Quiz</button>
+        </div>
+    </div>
+    
+    <div id="history-overlay" class="overlay" style="display: none;">
+        <div class="overlay-content scrollable">
+            <h2>Round History</h2>
+            <div id="history-log"></div>
+            <button id="close-history-btn">Close</button>
+        </div>
+    </div>
+    
+<script>
+    const quizData = ${JSON.stringify(parsedData)};
+    const TIMER_DURATION = 15;
+    const ICONS = ['X', 'B', 'Y', 'A'];
+    const KEY_MAP = {
+        Player1: { 'w': 0, 's': 1, 'a': 2, 'd': 3, 'W': 0, 'S': 1, 'A': 2, 'D': 3 },
+        Player2: { 'ArrowUp': 0, 'ArrowDown': 1, 'ArrowLeft': 2, 'ArrowRight': 3 }
+    };
+    const ADVANCE_KEYS = { P1: 'd', P2: 'ArrowRight' }; // 'A' button
+
+    const gameState = {
+        currentQuestionIndex: -1,
+        player1: { name: 'Player 1', score: 0, answer: null, readyForNext: false },
+        player2: { name: 'Player 2', score: 0, answer: null, readyForNext: false },
+        timer: { id: null, remaining: TIMER_DURATION, isPaused: false, instance: null },
+        history: [],
+        gameStatus: 'initializing' // initializing, overlay, question_reveal, answering, round_end, finished
+    };
+
+    // DOM Elements
+    const dom = {
+        p1: { panel: document.getElementById('player1-panel'), name: document.getElementById('player1-name'), score: document.getElementById('player1-score'), ready: document.getElementById('player1-ready') },
+        p2: { panel: document.getElementById('player2-panel'), name: document.getElementById('player2-name'), score: document.getElementById('player2-score'), ready: document.getElementById('player2-ready') },
+        questionText: document.getElementById('question-text'),
+        optionsContainer: document.getElementById('options-container'),
+        explanation: document.getElementById('explanation'),
+        advancePrompt: document.getElementById('advance-prompt'),
+        timer: { container: document.getElementById('timer-container'), text: document.getElementById('timer-text'), fg: document.getElementById('timer-fg'), radius: document.getElementById('timer-fg').r.baseVal.value },
+        overlay: { el: document.getElementById('game-overlay'), title: document.getElementById('overlay-title'), text: document.getElementById('overlay-text'), button: document.getElementById('overlay-button') },
+        history: { overlay: document.getElementById('history-overlay'), log: document.getElementById('history-log'), closeBtn: document.getElementById('close-history-btn'), openBtn: document.getElementById('historyBtn') }
+    };
+
+    function updateScoreboard() {
+        dom.p1.name.textContent = gameState.player1.name;
+        dom.p1.score.textContent = gameState.player1.score;
+        dom.p2.name.textContent = gameState.player2.name;
+        dom.p2.score.textContent = gameState.player2.score;
+    }
+
+    function transitionTo(newStatus) {
+        gameState.gameStatus = newStatus;
+        switch (newStatus) {
+            case 'overlay': // Only for first question now
+                dom.overlay.el.style.display = 'flex';
+                break;
+            case 'question_reveal':
+                dom.overlay.el.style.display = 'none';
+                dom.questionText.style.opacity = 1;
+                dom.optionsContainer.style.opacity = 0;
+                dom.explanation.style.display = 'none';
+                dom.advancePrompt.style.display = 'none';
+                dom.timer.container.style.visibility = 'hidden';
+                setTimeout(() => transitionTo('answering'), 3000);
+                break;
+            case 'answering':
+                renderOptions();
+                dom.optionsContainer.style.opacity = 1;
+                dom.timer.container.style.visibility = 'visible';
+                startTimer();
+                break;
+            case 'round_end':
+                stopTimer();
+                revealAnswers();
+                dom.advancePrompt.textContent = \`Press 'A' Button (D / →) to Ready Up\`;
+                dom.advancePrompt.classList.add('glowing');
+                dom.advancePrompt.style.display = 'block';
+                break;
+        }
+    }
+
+    function startRound() {
+        gameState.currentQuestionIndex++;
+        if (gameState.currentQuestionIndex >= quizData.length) {
+            endGame();
+            return;
+        }
+        const question = quizData[gameState.currentQuestionIndex];
+        dom.questionText.textContent = question.question;
+
+        gameState.player1.answer = null;
+        gameState.player2.answer = null;
+        gameState.player1.readyForNext = false;
+        gameState.player2.readyForNext = false;
+        updateReadyStatus();
+
+        dom.p1.panel.classList.remove('locked-in');
+        dom.p2.panel.classList.remove('locked-in');
+        
+        transitionTo('question_reveal');
+    }
+
+    function renderOptions() {
+        const question = quizData[gameState.currentQuestionIndex];
+        dom.optionsContainer.innerHTML = '';
+        question.options.forEach((optionText, index) => {
+            const button = document.createElement('button');
+            button.className = 'option-button';
+            button.id = \`option-\${index}\`;
+            button.innerHTML = \`<span class="option-icon">\${ICONS[index]}</span><span class="option-text">\${optionText}</span>\`;
+            button.setAttribute('aria-label', \`Option \${ICONS[index]}: \${optionText}\`);
+            dom.optionsContainer.appendChild(button);
+        });
+    }
+
+    function handleAnswer(player, optionIndex) {
+        if (gameState.gameStatus !== 'answering') return;
+        const playerState = (player === 'Player1') ? gameState.player1 : gameState.player2;
+        if (playerState.answer !== null) return;
+
+        playerState.answer = {
+            choiceIndex: optionIndex,
+            choiceText: quizData[gameState.currentQuestionIndex].options[optionIndex],
+            time: gameState.timer.remaining
+        };
+        
+        const panel = (player === 'Player1') ? dom.p1.panel : dom.p2.panel;
+        panel.classList.add('locked-in');
+
+        if (gameState.player1.answer && gameState.player2.answer) {
+            transitionTo('round_end');
+        }
+    }
+
+    function revealAnswers() {
+        const question = quizData[gameState.currentQuestionIndex];
+        const correctIndex = question.options.indexOf(question.correctAnswer);
+
+        [gameState.player1, gameState.player2].forEach(p => {
+            if (p.answer) {
+                p.answer.isCorrect = p.answer.choiceText === question.correctAnswer;
+                p.answer.points = p.answer.isCorrect ? Math.ceil(p.answer.time) : 0;
+                p.score += p.answer.points;
+            }
+        });
+        updateScoreboard();
+
+        const optionButtons = dom.optionsContainer.querySelectorAll('.option-button');
+        optionButtons.forEach((btn, index) => {
+            if (gameState.player1.answer && gameState.player1.answer.choiceIndex === index) btn.classList.add('p1-choice');
+            if (gameState.player2.answer && gameState.player2.answer.choiceIndex === index) btn.classList.add('p2-choice');
+            if (index === correctIndex) {
+                btn.classList.add('correct');
+            } else if ((gameState.player1.answer && gameState.player1.answer.choiceIndex === index) || (gameState.player2.answer && gameState.player2.answer.choiceIndex === index)) {
+                btn.classList.add('incorrect');
+            }
+        });
+        
+        dom.explanation.innerHTML = \`<strong>Explanation:</strong> \${question.explanation}\`;
+        dom.explanation.style.display = 'block';
+        logHistory();
+    }
+    
+    function logHistory() {
+        const question = quizData[gameState.currentQuestionIndex];
+        gameState.history.push({ q: question.question, p1: gameState.player1.answer, p2: gameState.player2.answer });
+    }
+
+    function updateReadyStatus() {
+        dom.p1.ready.textContent = gameState.player1.readyForNext ? 'Ready!' : '';
+        dom.p1.ready.classList.toggle('is-ready', gameState.player1.readyForNext);
+        dom.p2.ready.textContent = gameState.player2.readyForNext ? 'Ready!' : '';
+        dom.p2.ready.classList.toggle('is-ready', gameState.player2.readyForNext);
+
+        if (gameState.player1.readyForNext && gameState.player2.readyForNext) {
+            startNextRoundCountdown();
+        }
+    }
+
+    function startNextRoundCountdown() {
+        let countdown = 3;
+        dom.advancePrompt.classList.remove('glowing');
+        const countdownInterval = setInterval(() => {
+            dom.advancePrompt.textContent = \`Next Round in \${countdown}...\`;
+            countdown--;
+            if (countdown < 0) {
+                clearInterval(countdownInterval);
+                startRound();
+            }
+        }, 1000);
+    }
+    
+    const fullDash = 2 * Math.PI * dom.timer.radius;
+    dom.timer.fg.style.strokeDasharray = fullDash;
+    function startTimer() {
+        clearInterval(gameState.timer.id);
+        gameState.timer.isPaused = false;
+        gameState.timer.remaining = TIMER_DURATION;
+        dom.timer.fg.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
+        dom.timer.fg.classList.remove('danger');
+        
+        gameState.timer.id = setInterval(() => {
+            if (gameState.timer.isPaused) return;
+            gameState.timer.remaining -= 0.01;
+            
+            const offset = (gameState.timer.remaining / TIMER_DURATION) * fullDash;
+            dom.timer.fg.style.strokeDashoffset = fullDash - offset;
+            dom.timer.text.textContent = Math.ceil(gameState.timer.remaining);
+
+            if (gameState.timer.remaining <= 5 && !dom.timer.fg.classList.contains('danger')) dom.timer.fg.classList.add('danger');
+            if (gameState.timer.remaining <= 0) {
+                stopTimer();
+                dom.timer.text.textContent = 0;
+                transitionTo('round_end');
+            }
+        }, 10);
+    }
+    function stopTimer() { clearInterval(gameState.timer.id); }
+    function togglePauseTimer() {
+        if (gameState.gameStatus !== 'answering') return;
+        gameState.timer.isPaused = !gameState.timer.isPaused;
+        dom.timer.container.style.opacity = gameState.timer.isPaused ? 0.7 : 1;
+    }
+
+    function handleKeyDown(e) {
+        if (gameState.gameStatus === 'answering') {
+            const p1Key = KEY_MAP.Player1[e.key];
+            if (p1Key !== undefined) { handleAnswer('Player1', p1Key); return; }
+            
+            const p2Key = KEY_MAP.Player2[e.key];
+            if (p2Key !== undefined) { handleAnswer('Player2', p2Key); return; }
+        }
+        
+        if (gameState.gameStatus === 'round_end' && !(gameState.player1.readyForNext && gameState.player2.readyForNext)) {
+            if (e.key.toLowerCase() === ADVANCE_KEYS.P1) {
+                gameState.player1.readyForNext = !gameState.player1.readyForNext;
+                updateReadyStatus();
+            }
+            if (e.key === ADVANCE_KEYS.P2) {
+                gameState.player2.readyForNext = !gameState.player2.readyForNext;
+                updateReadyStatus();
+            }
+        }
+    }
+    
+    function endGame() {
+        gameState.gameStatus = 'finished';
+        stopTimer();
+        let winnerText = (gameState.player1.score > gameState.player2.score) ? \`\${gameState.player1.name} wins!\` :
+                         (gameState.player2.score > gameState.player1.score) ? \`\${gameState.player2.name} wins!\` : "It's a tie!";
+        
+        const p1Correct = gameState.history.filter(h => h.p1 && h.p1.isCorrect).length;
+        const p2Correct = gameState.history.filter(h => h.p2 && h.p2.isCorrect).length;
+
+        const completionHTML = \`
+            <div id="completion-overlay" class="overlay" style="display: flex;">
+                <div class="overlay-content">
+                    <h2>\${winnerText}</h2>
+                    <p>\${gameState.player1.name}: \${gameState.player1.score} points (\${p1Correct}/\${quizData.length} correct)</p>
+                    <p>\${gameState.player2.name}: \${gameState.player2.score} points (\${p2Correct}/\${quizData.length} correct)</p>
+                    <div>
+                        <button onclick="downloadHTML(document.documentElement.outerHTML, 'quiz-results.html')">Download Results</button>
+                        <button onclick="window.location.reload()">New Quiz</button>
+                    </div>
+                </div>
+            </div>\`;
+        document.body.insertAdjacentHTML('beforeend', completionHTML);
+    }
+    
+    function showHistory() {
+        stopTimer();
+        gameState.timer.instance = gameState.timer.isPaused;
+        gameState.timer.isPaused = true;
+        
+        dom.history.log.innerHTML = gameState.history.length === 0 ? '<p>No rounds completed yet.</p>' : '';
+        
+        gameState.history.forEach((item, index) => {
+            const p1Answer = item.p1 ? \`\${item.p1.choiceText} (\${item.p1.points} pts)\` : 'No Answer';
+            const p2Answer = item.p2 ? \`\${item.p2.choiceText} (\${item.p2.points} pts)\` : 'No Answer';
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = \`<p><strong>Q\${index+1}:</strong> \${item.q}</p><p><strong class="p1-ans">\${gameState.player1.name}:</strong> \${p1Answer}</p><p><strong class="p2-ans">\${gameState.player2.name}:</strong> \${p2Answer}</p>\`;
+            dom.history.log.appendChild(historyItem);
+        });
+        dom.history.overlay.style.display = 'flex';
+    }
+    
+    function hideHistory() {
+        dom.history.overlay.style.display = 'none';
+        gameState.timer.isPaused = gameState.timer.instance;
+    }
+
+    // Initial Setup & Event Listeners
+    dom.overlay.button.addEventListener('click', () => startRound());
+    document.addEventListener('keydown', handleKeyDown);
+    dom.timer.container.addEventListener('click', togglePauseTimer);
+    [dom.p1.name, dom.p2.name].forEach(el => el.addEventListener('keydown', e => e.key === 'Enter' && e.target.blur()));
+    dom.p1.name.addEventListener('blur', e => { gameState.player1.name = e.target.textContent.trim() || 'Player 1'; updateScoreboard(); });
+    dom.p2.name.addEventListener('blur', e => { gameState.player2.name = e.target.textContent.trim() || 'Player 2'; updateScoreboard(); });
+
+    dom.history.openBtn.addEventListener('click', showHistory);
+    dom.history.closeBtn.addEventListener('click', hideHistory);
+    
+    document.getElementById('backToGeneratorBtn').addEventListener('click', () => window.location.reload());
+    document.getElementById('downloadCurrentQuizBtn').addEventListener('click', () => downloadHTML(document.documentElement.outerHTML, '2-player-quiz.html'));
+
+    function downloadHTML(content, fileName) {
+        const blob = new Blob([content], { type: 'text/html' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+    }
+    
+    updateScoreboard();
+    transitionTo('overlay');
+<\/script>
+</body>
+</html>
+`;
+                sessionStorage.setItem('lastGeneratedQuizHTML', htmlTemplate);
+                document.open();
+                document.write(htmlTemplate);
+                document.close();
+            });
+        }
+
+        window.addEventListener('popstate', event => {
+            const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
+            if (storedOriginalHTML) {
+                document.open();
+                document.write(storedOriginalHTML);
+                document.close();
+                setTimeout(addActionButtonsForPreviousQuiz, 0);
+            }
+        });
+        
+        addActionButtonsForPreviousQuiz();
+    </script>
+</body>
+</html>
