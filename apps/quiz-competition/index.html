@@ -465,10 +465,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                     }
                 }
                 
-                // The rest of your original quiz generation and display logic remains the same
-                // For brevity, it is not repeated here but would be the full HTML template string from your original file.
-                // Replace this comment and the line below with the full `const htmlTemplate = ...` from your file.
-                 const htmlTemplate = `
+                const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -582,21 +579,37 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             background-color: var(--bg-light); color: var(--text-med); border: 2px solid var(--border-color);
             padding: 15px; border-radius: 8px;
             transition: all 0.2s ease; text-align: left;
-            display: flex; align-items: center; gap: 15px; min-height: 120px;
+            display: flex; align-items: center; gap: 20px; min-height: 120px;
             word-wrap: break-word; outline: 3px solid transparent; outline-offset: 2px;
         }
         .option-text { font-size: clamp(1rem, 2.2vh, 2em); line-height: 1.3; }
-        .option-icon {
-            font-family: 'Orbitron', sans-serif; font-size: 1.5em; font-weight: 900;
-            min-width: 35px; width: 35px; height: 35px; text-align: center;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            background-color: #333; color: white; border: 2px solid #555;
-            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+        
+        /* NEW Controller Icon Styles */
+        .controller-icon {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
         }
-        #option-0 .option-icon { background-color: #005f73; border-color: #007f96; } /* X */
-        #option-1 .option-icon { background-color: #7f0000; border-color: #a30000; } /* B */
-        #option-2 .option-icon { background-color: #b38600; border-color: #cca300; } /* Y */
-        #option-3 .option-icon { background-color: #006400; border-color: #008000; } /* A */
+        .controller-icon .btn {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #3a3a5e;
+            border-radius: 50%;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid #1a1a2e;
+        }
+        .controller-icon .btn-x { top: 0; left: 50%; transform: translateX(-50%); } /* Top */
+        .controller-icon .btn-b { bottom: 0; left: 50%; transform: translateX(-50%); } /* Bottom */
+        .controller-icon .btn-y { top: 50%; left: 0; transform: translateY(-50%); } /* Left */
+        .controller-icon .btn-a { top: 50%; right: 0; transform: translateY(-50%); } /* Right */
+        
+        /* Highlight styles for the active button in the icon */
+        .controller-icon.highlight-x .btn-x { background-color: #00fddc; box-shadow: 0 0 6px #00fddc; }
+        .controller-icon.highlight-b .btn-b { background-color: #ff5555; box-shadow: 0 0 6px #ff5555; }
+        .controller-icon.highlight-y .btn-y { background-color: #f1fa8c; box-shadow: 0 0 6px #f1fa8c; }
+        .controller-icon.highlight-a .btn-a { background-color: #ff79c6; box-shadow: 0 0 6px #ff79c6; }
 
         .option-button.p1-choice { outline-color: var(--p1-color); }
         .option-button.p2-choice { outline-color: var(--p2-color); }
@@ -705,6 +718,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 <script>
     const quizData = ${JSON.stringify(parsedData)};
     const ICONS = ['X', 'B', 'Y', 'A'];
+    const HIGHLIGHT_MAP = ['x', 'b', 'y', 'a'];
     const KEY_MAP = {
         Player1: { 'w': 0, 's': 1, 'a': 2, 'd': 3, 'W': 0, 'S': 1, 'A': 2, 'D': 3 },
         Player2: { 'i': 0, 'k': 1, 'j': 2, 'l': 3, 'I': 0, 'K': 1, 'J': 2, 'L': 3 },
@@ -800,7 +814,16 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             const button = document.createElement('button');
             button.className = 'option-button';
             button.id = \`option-\${index}\`;
-            button.innerHTML = \`<span class="option-icon">\${ICONS[index]}</span><span class="option-text">\${optionText}</span>\`;
+            const highlightKey = HIGHLIGHT_MAP[index];
+            
+            button.innerHTML = '<div class="controller-icon highlight-' + highlightKey + '">' +
+                                   '<span class="btn btn-x"></span>' +
+                                   '<span class="btn btn-b"></span>' +
+                                   '<span class="btn btn-y"></span>' +
+                                   '<span class="btn btn-a"></span>' +
+                               '</div>' +
+                               '<span class="option-text">' + optionText + '</span>';
+                               
             button.setAttribute('aria-label', \`Option \${ICONS[index]}: \${optionText}\`);
             dom.optionsContainer.appendChild(button);
         });
