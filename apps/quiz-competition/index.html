@@ -534,7 +534,6 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         }
         #player1-panel { border-color: var(--p1-color); box-shadow: 0 0 10px 0px color-mix(in srgb, var(--p1-color) 40%, transparent); }
         #player2-panel { border-color: var(--p2-color); box-shadow: 0 0 10px 0px color-mix(in srgb, var(--p2-color) 40%, transparent); }
-        .player-panel.locked-in { transform: scale(1.03); }
         .player-name {
             font-family: 'Orbitron', sans-serif; font-size: 1.2em; font-weight: 700;
             display: block; margin-bottom: 5px; outline: none;
@@ -579,24 +578,17 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             background-color: var(--bg-light); color: var(--text-med); border: 2px solid var(--border-color);
             padding: 15px; border-radius: 8px;
             transition: all 0.2s ease; text-align: left;
-            display: flex; align-items: center; gap: 20px; min-height: 120px;
-            word-wrap: break-word; outline: 3px solid transparent; outline-offset: 2px;
+            display: flex; align-items: center; gap: 15px; min-height: 120px;
+            word-wrap: break-word; outline: none;
         }
         .option-text { font-size: clamp(1rem, 2.2vh, 2em); line-height: 1.3; }
         
-        /* NEW Controller Icon Styles */
         .controller-icon {
-            position: relative;
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
+            position: relative; width: 40px; height: 40px; min-width: 40px;
         }
         .controller-icon .btn {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: #3a3a5e;
-            border-radius: 50%;
+            position: absolute; width: 12px; height: 12px;
+            background-color: #3a3a5e; border-radius: 50%;
             transition: background-color 0.2s ease, box-shadow 0.2s ease;
             border: 1px solid #1a1a2e;
         }
@@ -605,19 +597,24 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         .controller-icon .btn-y { top: 50%; left: 0; transform: translateY(-50%); } /* Left */
         .controller-icon .btn-a { top: 50%; right: 0; transform: translateY(-50%); } /* Right */
         
-        /* Highlight styles for the active button in the icon */
         .controller-icon.highlight-x .btn-x { background-color: #00fddc; box-shadow: 0 0 6px #00fddc; }
         .controller-icon.highlight-b .btn-b { background-color: #ff5555; box-shadow: 0 0 6px #ff5555; }
         .controller-icon.highlight-y .btn-y { background-color: #f1fa8c; box-shadow: 0 0 6px #f1fa8c; }
         .controller-icon.highlight-a .btn-a { background-color: #ff79c6; box-shadow: 0 0 6px #ff79c6; }
-
-        .option-button.p1-choice { outline-color: var(--p1-color); }
-        .option-button.p2-choice { outline-color: var(--p2-color); }
-        .option-button.p1-choice.p2-choice {
-            outline: none; border: 4px solid transparent;
-            background-image: linear-gradient(var(--bg-light), var(--bg-light)), linear-gradient(to right, var(--p1-color), var(--p2-color));
-            background-origin: border-box; background-clip: content-box, border-box;
+        
+        /* NEW styles for player name tags on answers */
+        .player-choice-container {
+            display: flex; flex-direction: column; gap: 4px;
+            font-family: 'Orbitron', sans-serif; font-weight: 700;
+            text-align: right;
         }
+        .player-choice-tag {
+            padding: 2px 6px; border-radius: 4px; font-size: 0.8em;
+            background-color: var(--bg-dark);
+        }
+        .p1-ans-label { color: var(--p1-color); border: 1px solid var(--p1-color); }
+        .p2-ans-label { color: var(--p2-color); border: 1px solid var(--p2-color); }
+
         .option-button.correct { background-color: color-mix(in srgb, var(--correct-color) 40%, var(--bg-light)); border-color: var(--correct-color) !important; color: white; }
         .option-button.incorrect { background-color: color-mix(in srgb, var(--incorrect-color) 40%, var(--bg-light)); border-color: var(--incorrect-color) !important; color: #ffc0c0; }
         #explanation {
@@ -801,9 +798,8 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         gameState.player2.answer = null;
         gameState.player1.readyForNext = false;
         gameState.player2.readyForNext = false;
+        // This will clear both "Ready!" and "Locked In!" indicators
         updateReadyStatus();
-        dom.p1.panel.classList.remove('locked-in');
-        dom.p2.panel.classList.remove('locked-in');
         transitionTo('question_reveal');
     }
 
@@ -831,15 +827,22 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 
     function handleAnswer(player, optionIndex) {
         if (gameState.gameStatus !== 'answering') return;
+        
         const playerState = (player === 'Player1') ? gameState.player1 : gameState.player2;
-        if (playerState.answer !== null) return;
+        const playerUI = (player === 'Player1') ? dom.p1 : dom.p2;
+
+        if (playerState.answer !== null) return; // Already answered
+        
         playerState.answer = {
             choiceIndex: optionIndex,
             choiceText: quizData[gameState.currentQuestionIndex].options[optionIndex],
             time: gameState.timer.remaining
         };
-        const panel = (player === 'Player1') ? dom.p1.panel : dom.p2.panel;
-        panel.classList.add('locked-in');
+        
+        // **MODIFICATION**: Show "Locked In!" text instead of scaling panel
+        playerUI.ready.textContent = 'Locked In!';
+        playerUI.ready.classList.add('is-ready');
+
         if (gameState.player1.answer && gameState.player2.answer) {
             transitionTo('round_end');
         }
@@ -848,6 +851,8 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     function revealAnswers() {
         const question = quizData[gameState.currentQuestionIndex];
         const correctIndex = question.options.indexOf(question.correctAnswer);
+        
+        // Calculate points
         [gameState.player1, gameState.player2].forEach(p => {
             if (p.answer) {
                 p.answer.isCorrect = p.answer.choiceText === question.correctAnswer;
@@ -856,15 +861,51 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             }
         });
         updateScoreboard();
+
         const optionButtons = dom.optionsContainer.querySelectorAll('.option-button');
+        
+        // **MODIFICATION**: Group player choices to add name tags
+        const selections = {};
+        [
+            { player: gameState.player1, id: 'p1' },
+            { player: gameState.player2, id: 'p2' }
+        ].forEach(p_info => {
+            if (p_info.player.answer) {
+                const idx = p_info.player.answer.choiceIndex;
+                if (!selections[idx]) selections[idx] = [];
+                selections[idx].push({ name: p_info.player.name, time: p_info.player.answer.time, id: p_info.id });
+            }
+        });
+
+        // Add correct/incorrect visual feedback and player name tags
         optionButtons.forEach((btn, index) => {
-            if (gameState.player1.answer && gameState.player1.answer.choiceIndex === index) btn.classList.add('p1-choice');
-            if (gameState.player2.answer && gameState.player2.answer.choiceIndex === index) btn.classList.add('p2-choice');
-            if (index === correctIndex) btn.classList.add('correct');
-            else if ((gameState.player1.answer && gameState.player1.answer.choiceIndex === index) || (gameState.player2.answer && gameState.player2.answer.choiceIndex === index)) {
+            // Add name tags if this option was selected
+            if (selections[index]) {
+                // Sort by time (desc) to show faster player first
+                selections[index].sort((a, b) => b.time - a.time);
+                
+                const nameContainer = document.createElement('div');
+                nameContainer.className = 'player-choice-container';
+
+                selections[index].forEach(selection => {
+                    const nameTag = document.createElement('div');
+                    nameTag.className = \`player-choice-tag \${selection.id}-ans-label\`;
+                    nameTag.textContent = selection.name;
+                    nameContainer.appendChild(nameTag);
+                });
+                
+                btn.prepend(nameContainer);
+            }
+
+            // Color the buttons based on correctness
+            if (index === correctIndex) {
+                btn.classList.add('correct');
+            } else if (selections[index]) {
+                // If anyone chose this and it's not the correct one
                 btn.classList.add('incorrect');
             }
         });
+
         dom.explanation.innerHTML = \`<strong>Explanation:</strong> <span class="explanation-text">\${question.explanation}</span>\`;
         dom.explanation.style.display = 'block';
         logHistory();
@@ -876,10 +917,12 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     }
 
     function updateReadyStatus() {
+        // This function now handles both "Ready!" and clears "Locked In!" states
         dom.p1.ready.textContent = gameState.player1.readyForNext ? 'Ready!' : '';
         dom.p1.ready.classList.toggle('is-ready', gameState.player1.readyForNext);
         dom.p2.ready.textContent = gameState.player2.readyForNext ? 'Ready!' : '';
         dom.p2.ready.classList.toggle('is-ready', gameState.player2.readyForNext);
+        
         if (gameState.player1.readyForNext && gameState.player2.readyForNext) {
             startNextRoundCountdown();
         }
