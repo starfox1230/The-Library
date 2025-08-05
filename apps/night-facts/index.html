@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fact Screensaver Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #12121f;
+            color: #e0e0fc;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .generator-container {
+            background-color: #1a1a2e;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(212, 68, 68, 0.4),
+                        0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 900px;
+            text-align: center;
+            border: 1px solid #4a3a3e;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff8a8a;
+            margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(255, 138, 138, 0.5);
+        }
+
+        p, label {
+            color: #fac0c0;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .prompt-section {
+            background-color: #2a2020;
+            border: 1px solid #4a3a3e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #fac0c0;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .prompt-section strong {
+             color: #ff8a8a;
+        }
+
+        .prompt-section code {
+            background-color: #1f1212;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #f0f0ff;
+            display: block;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .prompt-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background-color: #3e2a2a;
+            color: #fcd0d0;
+            border: 1px solid #7e4a4a;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        .action-button, .copy-button {
+            background: linear-gradient(45deg, #f54a4a, #ff8a8a);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 1em;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(245, 74, 74, 0.3);
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .action-button:hover:not(:disabled),
+        .copy-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(245, 74, 74, 0.5);
+        }
+
+         .action-button:disabled,
+         .copy-button:disabled {
+            background: #7e5a5a;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .link-style {
+            color: #ffa0a0;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .link-style:hover {
+            color: #ffc0c0;
+            text-decoration: underline;
+        }
+
+        .button-group {
+             display: flex;
+             justify-content: center;
+             flex-wrap: wrap;
+             gap: 15px;
+             margin-top: 10px;
+             margin-bottom: 20px;
+        }
+        #restored-actions { /* Style for the new button group on restored page */
+            justify-content: flex-start; /* Align buttons to the left */
+        }
+
+
+        @media (max-width: 600px) {
+            .generator-container {
+                padding: 20px;
+                width: 95%;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+             .prompt-controls {
+                 gap: 10px;
+             }
+             .action-button, .copy-button {
+                 padding: 8px 18px;
+                 font-size: 0.9em;
+             }
+             textarea {
+                 min-height: 150px;
+             }
+        }
+
+        .copied-feedback {
+            background-color: #1f7a3f !important;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="generator-container">
+        <h1>Fact Screensaver Generator</h1>
+        <p>This tool generates a self-contained HTML screensaver file. Paste your source material into an AI chatbot, use the prompt below to generate a list of key facts, and then paste the resulting JSON data here.</p>
+
+        <div class="prompt-section">
+            <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
+            <p>Attach your source document and use the following prompt to generate key facts in the correct format. Review the AI's output for accuracy.</p>
+            <code id="promptText">Based *solely* on the attached source material, generate **30 key facts, findings, or critical data points**. These should be hard, verifiable facts, not general statements or definitions.
+
+For each fact, include exactly these two properties (use straight double-quotes around every key and string value):
+1. "fact": A concise string containing the key fact itself.
+2. "context": A very brief string indicating the topic or source of the fact (e.g., "On Stellar Nucleosynthesis" or "Chapter 3 Findings").
+
+Format the entire output *only* as a single JavaScript array of objects. Do not include any introductory text, concluding remarks, or markdown formatting like `javascript` before or after the array.
+
+Example format:
+[
+  {
+    "fact": "The Earth's core is estimated to be approximately 5,200°C (9,392°F).",
+    "context": "Geological Survey Data"
+  },
+  {
+    "fact": "A photon takes, on average, over 100,000 years to travel from the Sun's core to its surface.",
+    "context": "Stellar Physics"
+  }
+]</code>
+            <div class="prompt-controls">
+                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button><br><br>
+                <span>Paste prompt here:</span>
+                <a href="https://aistudio.google.com/prompts/new_chat" target="_blank" class="link-style">Google AI Studio Chat</a>
+            </div>
+        </div>
+
+        <label for="factInput">Paste Formatted Fact Data Here:</label>
+        <textarea id="factInput" placeholder="Paste your JavaScript array of facts here, starting with [ and ending with ]..."></textarea>
+
+        <!-- Buttons for restored screensaver will be injected here by JS -->
+
+        <div class="button-group">
+            <button id="generateBtn" class="action-button">Generate Screensaver</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Helper Functions ---
+        function provideCopyFeedback(button) {
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.classList.add('copied-feedback');
+            button.disabled = true;
+
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied-feedback');
+                button.disabled = false;
+            }, 1500);
+        }
+
+        function downloadHTML(content, fileName) {
+            const blob = new Blob([content], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        function addActionButtonsForPrevious() {
+            const lastGeneratedHTML = sessionStorage.getItem('lastGeneratedHTML');
+            if (lastGeneratedHTML && !document.getElementById('restored-actions')) {
+                const container = document.querySelector('.generator-container');
+                const generateGroup = container.querySelector('.button-group');
+        
+                const buttonsHeader = document.createElement('p');
+                buttonsHeader.id = 'restored-actions-header';
+                buttonsHeader.textContent = 'Actions for previously generated screensaver:';
+                buttonsHeader.style.marginTop = '20px';
+                buttonsHeader.style.marginBottom = '10px';
+                buttonsHeader.style.textAlign = 'left';
+        
+                const buttonGroupForRestored = document.createElement('div');
+                buttonGroupForRestored.classList.add('button-group');
+                buttonGroupForRestored.id = 'restored-actions';
+                buttonGroupForRestored.style.justifyContent = 'flex-start';
+        
+                const copyHtmlBtn = document.createElement('button');
+                copyHtmlBtn.textContent = 'Copy HTML';
+                copyHtmlBtn.classList.add('action-button');
+                copyHtmlBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(lastGeneratedHTML)
+                        .then(() => provideCopyFeedback(copyHtmlBtn))
+                        .catch(() => alert('Copy failed.'));
+                });
+        
+                const downloadHtmlBtn = document.createElement('button');
+                downloadHtmlBtn.textContent = 'Download HTML';
+                downloadHtmlBtn.classList.add('action-button');
+                downloadHtmlBtn.addEventListener('click', () => {
+                    downloadHTML(lastGeneratedHTML, 'generated_screensaver.html');
+                });
+        
+                buttonGroupForRestored.appendChild(copyHtmlBtn);
+                buttonGroupForRestored.appendChild(downloadHtmlBtn);
+        
+                generateGroup.insertAdjacentElement('afterend', buttonsHeader);
+                buttonsHeader.insertAdjacentElement('afterend', buttonGroupForRestored);
+            }
+        }
+
+        // --- Main script logic ---
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const promptTextElement = document.getElementById('promptText');
+        const factInput = document.getElementById('factInput');
+        const generateBtn = document.getElementById('generateBtn');
+
+        if (copyPromptBtn && promptTextElement) {
+            copyPromptBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(promptTextElement.innerText)
+                    .then(() => provideCopyFeedback(copyPromptBtn))
+                    .catch(err => {
+                        console.error('Failed to copy prompt: ', err);
+                        alert('Failed to copy prompt. Please copy manually.');
+                    });
+            });
+        }
+
+        if (generateBtn && factInput) {
+            generateBtn.addEventListener('click', () => {
+                const headerToRemove = document.getElementById('restored-actions-header');
+                if (headerToRemove) headerToRemove.remove();
+                const buttonsToRemove = document.getElementById('restored-actions');
+                if (buttonsToRemove) buttonsToRemove.remove();
+
+                const factDataInput = factInput.value.trim();
+
+                if (!factDataInput) {
+                    alert('Please paste the fact data into the input area first.');
+                    return;
+                }
+                if (!factDataInput.startsWith('[') || !factDataInput.endsWith(']')) {
+                    alert('The input data does not seem to be a correctly formatted JavaScript array. It must start with [ and end with ].');
+                    return;
+                }
+
+                let parsedData;
+                try {
+                    const evaluator = new Function(`return ${factDataInput};`);
+                    parsedData = evaluator();
+                } catch (e) {
+                    alert(`Error parsing data: ${e.message}\n\nThis usually means there's a syntax error (like a missing comma or incorrect quote). You can use a tool like jsonlint.com to validate the structure.`);
+                    return;
+                }
+
+                if (!Array.isArray(parsedData) || parsedData.length === 0) {
+                    alert('The data must be an array with at least one fact object.');
+                    return;
+                }
+
+                // --- Validation for the new "fact" structure ---
+                const expectedKeys = ["fact", "context"];
+                for (let i = 0; i < parsedData.length; i++) {
+                    const item = parsedData[i];
+                    const factNumber = i + 1;
+
+                    if (typeof item !== 'object' || item === null) {
+                        alert(`Error in Fact ${factNumber}: Each entry must be an object (e.g., { "fact": "...", ... }).`);
+                        return;
+                    }
+                    
+                    for (const key of expectedKeys) {
+                        if (!item.hasOwnProperty(key)) {
+                            alert(`Error in Fact ${factNumber}: Missing the required property: "${key}".`);
+                            return;
+                        }
+                    }
+
+                    if (typeof item.fact !== 'string' || item.fact.trim() === '') {
+                        alert(`Error in Fact ${factNumber}: The "fact" text is missing, empty, or not a string.`);
+                        return;
+                    }
+                }
+                
+                const currentGeneratorHTML = document.documentElement.outerHTML;
+                sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
+                history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
+
+                const htmlTemplate = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Key Facts</title>
+    <style>
+        :root {
+            --base-red: #D44;
+            --dim-red: #A33;
+            --bright-red: #F55;
+            --bg-color: #000;
+            --font-color: var(--base-red);
+            --context-color: #993333;
+            --fav-color: #ffb833; /* A gold/yellow for favorited star */
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--font-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .screensaver-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            text-align: center;
+            padding: 5vw;
+            box-sizing: border-box;
+            position: relative;
+            cursor: pointer;
+        }
+        .fact-wrapper {
+            max-width: 80vw;
+        }
+        #fact-text {
+            font-size: clamp(2rem, 5vw, 4.5rem);
+            font-weight: 500;
+            line-height: 1.3;
+            margin: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #fact-context {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 300;
+            margin-top: 1.5rem;
+            color: var(--context-color);
+            transition: opacity 0.5s ease-in-out;
+        }
+        /* --- Navigation & UI Elements --- */
+        .nav-overlay {
+            position: fixed;
+            top: 0;
+            height: 100%;
+            width: 30%; /* 30% for left/right nav, leaving 40% for favoriting */
+            z-index: 10;
+        }
+        #nav-left { left: 0; }
+        #nav-right { right: 0; }
+        
+        .ui-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            z-index: 100;
+        }
+        #counter, #view-favorites-btn {
+            font-size: 1.2rem;
+            color: var(--dim-red);
+            font-variant-numeric: tabular-nums;
+        }
+        #view-favorites-btn {
+            background: none;
+            border: 1px solid var(--dim-red);
+            color: var(--dim-red);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #view-favorites-btn:hover {
+            background-color: var(--dim-red);
+            color: var(--bg-color);
+        }
+        #favorite-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: transparent;
+            text-shadow: 0 0 var(--dim-red);
+            transition: all 0.3s ease;
+        }
+        #favorite-indicator.is-favorite {
+            color: var(--fav-color);
+            text-shadow: 0 0 15px var(--fav-color);
+            transform: translateX(-50%) scale(1.2);
+        }
+        
+        /* --- Favorites Panel --- */
+        #favorites-panel {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 200;
+            display: none; /* Changed by JS */
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        .favorites-content {
+            background-color: #110000;
+            border: 1px solid var(--dim-red);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .favorites-content h2 {
+            margin-top: 0;
+            color: var(--bright-red);
+            text-align: center;
+        }
+        #favorites-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #favorites-list li {
+            padding: 15px 0;
+            border-bottom: 1px solid #441111;
+            color: var(--font-color);
+            line-height: 1.5;
+        }
+        #favorites-list li:last-child {
+            border-bottom: none;
+        }
+        .favorites-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .fav-panel-btn {
+            background: none;
+            border: 1px solid var(--base-red);
+            color: var(--base-red);
+            padding: 10px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        .fav-panel-btn:hover {
+            background-color: var(--base-red);
+            color: var(--bg-color);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="screensaver-container" id="tap-to-favorite">
+        <div class="fact-wrapper">
+            <h1 id="fact-text"></h1>
+            <p id="fact-context"></p>
+        </div>
+    </div>
+    
+    <div id="nav-left" class="nav-overlay"></div>
+    <div id="nav-right" class="nav-overlay"></div>
+
+    <div class="ui-controls">
+        <span id="counter"></span>
+        <button id="view-favorites-btn">Favorites</button>
+    </div>
+
+    <div id="favorite-indicator">★</div>
+    
+    <div id="favorites-panel">
+        <div class="favorites-content">
+            <h2>Your Favorites</h2>
+            <ul id="favorites-list"></ul>
+            <div class="favorites-controls">
+                <button id="download-favorites-btn" class="fav-panel-btn">Download .txt</button>
+                <button id="close-favorites-btn" class="fav-panel-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const factsData = ${factDataInput};
+    
+    // DOM Elements
+    const factTextEl = document.getElementById('fact-text');
+    const factContextEl = document.getElementById('fact-context');
+    const counterEl = document.getElementById('counter');
+    const favoriteIndicatorEl = document.getElementById('favorite-indicator');
+    const favoritesPanelEl = document.getElementById('favorites-panel');
+    const favoritesListEl = document.getElementById('favorites-list');
+    
+    // State
+    let currentFactIndex = 0;
+    let favorites = JSON.parse(localStorage.getItem('factFavorites')) || [];
+    let autoAdvanceTimer;
+    const AUTO_ADVANCE_DELAY = 25000; // 25 seconds
+
+    function renderFact(index) {
+        // Fade out old fact
+        factTextEl.style.opacity = 0;
+        factContextEl.style.opacity = 0;
+
+        setTimeout(() => {
+            const fact = factsData[index];
+            factTextEl.textContent = fact.fact;
+            factContextEl.textContent = fact.context;
+            counterEl.textContent = \`\${index + 1} / \${factsData.length}\`;
+            
+            // Check favorite status and update UI
+            if (favorites.includes(index)) {
+                favoriteIndicatorEl.classList.add('is-favorite');
+            } else {
+                favoriteIndicatorEl.classList.remove('is-favorite');
+            }
+            
+            // Fade in new fact
+            factTextEl.style.opacity = 1;
+            factContextEl.style.opacity = 1;
+
+        }, 400); // Wait for fade-out to complete
+        
+        resetAutoAdvanceTimer();
+    }
+
+    function nextFact() {
+        currentFactIndex = (currentFactIndex + 1) % factsData.length;
+        renderFact(currentFactIndex);
+    }
+
+    function prevFact() {
+        currentFactIndex = (currentFactIndex - 1 + factsData.length) % factsData.length;
+        renderFact(currentFactIndex);
+    }
+
+    function toggleFavorite() {
+        const indexInFavorites = favorites.indexOf(currentFactIndex);
+        if (indexInFavorites > -1) {
+            favorites.splice(indexInFavorites, 1); // Remove from favorites
+            favoriteIndicatorEl.classList.remove('is-favorite');
+        } else {
+            favorites.push(currentFactIndex); // Add to favorites
+            favoriteIndicatorEl.classList.add('is-favorite');
+        }
+        localStorage.setItem('factFavorites', JSON.stringify(favorites));
+    }
+
+    function resetAutoAdvanceTimer() {
+        clearTimeout(autoAdvanceTimer);
+        autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY);
+    }
+
+    function showFavoritesPanel() {
+        clearTimeout(autoAdvanceTimer); // Pause screensaver
+        favoritesListEl.innerHTML = ''; // Clear previous list
+        if (favorites.length === 0) {
+            favoritesListEl.innerHTML = '<li>You haven\\'t favorited any facts yet. Tap a fact to save it.</li>';
+        } else {
+            favorites.forEach(index => {
+                const fact = factsData[index];
+                const li = document.createElement('li');
+                li.textContent = fact.fact;
+                favoritesListEl.appendChild(li);
+            });
+        }
+        favoritesPanelEl.style.display = 'flex';
+    }
+
+    function hideFavoritesPanel() {
+        favoritesPanelEl.style.display = 'none';
+        resetAutoAdvanceTimer(); // Resume screensaver
+    }
+
+    function downloadFavorites() {
+        if (favorites.length === 0) {
+            alert('No favorites to download.');
+            return;
+        }
+        let textContent = 'My Favorite Facts\\n===================\\n\\n';
+        favorites.forEach((index, i) => {
+            const fact = factsData[index];
+            textContent += \`\${i + 1}. \${fact.fact}\\n(Context: \${fact.context})\\n\\n\`;
+        });
+        const blob = new Blob([textContent], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'my_favorite_facts.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    // Event Listeners
+    document.getElementById('nav-left').addEventListener('click', prevFact);
+    document.getElementById('nav-right').addEventListener('click', nextFact);
+    document.getElementById('tap-to-favorite').addEventListener('click', toggleFavorite);
+    
+    document.getElementById('view-favorites-btn').addEventListener('click', showFavoritesPanel);
+    document.getElementById('close-favorites-btn').addEventListener('click', hideFavoritesPanel);
+    document.getElementById('download-favorites-btn').addEventListener('click', downloadFavorites);
+    
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+        if (favoritesPanelEl.style.display === 'flex') {
+             if (e.key === 'Escape') hideFavoritesPanel();
+             return;
+        }
+        if (e.key === 'ArrowLeft') prevFact();
+        if (e.key === 'ArrowRight') nextFact();
+        if (e.key === ' ') {
+            e.preventDefault(); // prevent page scroll
+            toggleFavorite();
+        }
+    });
+
+    // Initial Load
+    renderFact(currentFactIndex);
+<\/script>
+</body>
+</html>
+`;
+                sessionStorage.setItem('lastGeneratedHTML', htmlTemplate);
+
+                document.open();
+                document.write(htmlTemplate);
+                document.close();
+            });
+        }
+        
+        // --- Page Restoration Logic ---
+        window.addEventListener('popstate', event => {
+            const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
+            if (event.state && event.state.view === 'generator_restoration_point' && storedOriginalHTML) {
+                document.open();
+                document.write(storedOriginalHTML);
+                document.close();
+                setTimeout(addActionButtonsForPrevious, 0);
+            }
+        });
+        addActionButtonsForPrevious();
+    </script>
+</body>
+</html>
