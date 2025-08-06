@@ -426,6 +426,14 @@ Example format:
             color: var(--context-color);
             transition: opacity 0.5s ease-in-out;
         }
+        #clock-display {
+            font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+            margin-top: 2.5rem;
+            color: var(--dim-red);
+            transition: opacity 0.5s ease-in-out;
+        }
         /* --- Navigation & UI Elements --- */
         .nav-overlay {
             position: fixed;
@@ -550,6 +558,7 @@ Example format:
         <div class="fact-wrapper">
             <h1 id="fact-text"></h1>
             <p id="fact-context"></p>
+            <p id="clock-display"></p>
         </div>
     </div>
     
@@ -580,6 +589,7 @@ Example format:
     // DOM Elements
     const factTextEl = document.getElementById('fact-text');
     const factContextEl = document.getElementById('fact-context');
+    const clockDisplayEl = document.getElementById('clock-display');
     const counterEl = document.getElementById('counter');
     const favoriteIndicatorEl = document.getElementById('favorite-indicator');
     const favoritesPanelEl = document.getElementById('favorites-panel');
@@ -591,10 +601,22 @@ Example format:
     let autoAdvanceTimer;
     const AUTO_ADVANCE_DELAY = 25000; // 25 seconds
 
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString(navigator.language, {
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+        if (clockDisplayEl.textContent !== timeString) {
+            clockDisplayEl.textContent = timeString;
+        }
+    }
+
     function renderFact(index) {
-        // Fade out old fact
+        // Fade out old content
         factTextEl.style.opacity = 0;
         factContextEl.style.opacity = 0;
+        clockDisplayEl.style.opacity = 0;
 
         setTimeout(() => {
             const fact = factsData[index];
@@ -609,9 +631,10 @@ Example format:
                 favoriteIndicatorEl.classList.remove('is-favorite');
             }
             
-            // Fade in new fact
+            // Fade in new content
             factTextEl.style.opacity = 1;
             factContextEl.style.opacity = 1;
+            clockDisplayEl.style.opacity = 1;
 
         }, 400); // Wait for fade-out to complete
         
@@ -711,6 +734,8 @@ Example format:
 
     // Initial Load
     renderFact(currentFactIndex);
+    updateClock(); // Set initial time
+    setInterval(updateClock, 1000); // Update time every second
 <\/script>
 </body>
 </html>
