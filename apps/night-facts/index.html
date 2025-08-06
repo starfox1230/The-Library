@@ -191,7 +191,7 @@
 
 For each fact, include exactly these two properties (use straight double-quotes around every key and string value):
 1. "fact": A concise string containing the key fact itself.
-2. "context": A very brief string indicating the topic or source of the fact (e.g., "On Stellar Nucleosynthesis" or "Chapter 3 Findings").
+2. "context": A detailed paragraph (2-4 sentences) providing more background, explanation, or the source of the fact.
 
 Format the entire output *only* as a single JavaScript array of objects. Do not include any introductory text, concluding remarks, or markdown formatting like `javascript` before or after the array.
 
@@ -199,11 +199,11 @@ Example format:
 [
   {
     "fact": "The Earth's core is estimated to be approximately 5,200°C (9,392°F).",
-    "context": "Geological Survey Data"
+    "context": "This temperature is hotter than the surface of the Sun. The estimation is derived from seismic wave data and high-pressure laboratory experiments that simulate the conditions at the planet's center, as direct measurement is impossible."
   },
   {
     "fact": "A photon takes, on average, over 100,000 years to travel from the Sun's core to its surface.",
-    "context": "Stellar Physics"
+    "context": "This long journey is due to the 'random walk' a photon takes through the Sun's incredibly dense radiative zone. It is continuously absorbed and re-emitted in random directions by plasma particles, preventing a direct path outward."
   }
 ]</code>
             <div class="prompt-controls">
@@ -432,7 +432,7 @@ Example format:
             position: fixed;
             top: 0;
             height: 100%;
-            width: 25%; /* Reduced width */
+            width: 25%;
             z-index: 10;
             cursor: pointer;
         }
@@ -479,9 +479,9 @@ Example format:
             transform: translateX(-50%);
             z-index: 15;
             cursor: pointer;
-            width: 96px; /* Approx 3x diameter of 2rem star */
+            width: 96px;
             height: 96px;
-            border-radius: 50%; /* Circular tap zone */
+            border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -491,7 +491,7 @@ Example format:
             color: transparent;
             text-shadow: 0 0 var(--dim-red);
             transition: all 0.3s ease;
-            pointer-events: none; /* The star itself doesn't capture clicks */
+            pointer-events: none;
         }
         #favorite-indicator.is-favorite {
             color: var(--fav-color);
@@ -499,19 +499,20 @@ Example format:
             transform: scale(1.2);
         }
         
-        /* --- Panel Styles (Favorites & Context) --- */
+        /* --- Panel & Modal Styles --- */
         .panel-overlay {
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
             background-color: rgba(0,0,0,0.9);
             z-index: 200;
-            display: none; /* Changed by JS */
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 40px;
             box-sizing: border-box;
+            cursor: pointer;
         }
         .panel-content {
             background-color: #110000;
@@ -519,14 +520,33 @@ Example format:
             border-radius: 15px;
             padding: 30px;
             width: 90%;
-            max-width: 800px;
+            max-width: 700px;
             max-height: 80vh;
             overflow-y: auto;
+            position: relative; /* For positioning the close button */
+            cursor: default;
         }
         .panel-content h2 {
             margin-top: 0;
+            padding-right: 30px; /* Space for close button */
             color: var(--bright-red);
             text-align: center;
+        }
+        .close-button-x {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--dim-red);
+            background: none;
+            border: none;
+            cursor: pointer;
+            line-height: 1;
+            padding: 5px;
+        }
+        .close-button-x:hover {
+            color: var(--bright-red);
         }
         #favorites-list {
             list-style: none;
@@ -539,14 +559,13 @@ Example format:
             color: var(--font-color);
             line-height: 1.5;
         }
-        #favorites-list li:last-child {
-            border-bottom: none;
-        }
+        #favorites-list li:last-child { border-bottom: none; }
+        
         #context-text-panel {
             color: var(--font-color);
             line-height: 1.6;
             font-size: 1.1rem;
-            text-align: center;
+            text-align: left; /* Better for paragraphs */
         }
         .panel-controls {
             margin-top: 20px;
@@ -596,22 +615,20 @@ Example format:
     
     <div id="favorites-panel" class="panel-overlay">
         <div class="panel-content">
+            <button class="close-button-x" data-target="favorites-panel">&times;</button>
             <h2>Your Favorites</h2>
             <ul id="favorites-list"></ul>
             <div class="panel-controls">
                 <button id="download-favorites-btn" class="panel-btn">Download .txt</button>
-                <button id="close-favorites-btn" class="panel-btn">Close</button>
             </div>
         </div>
     </div>
 
     <div id="context-panel" class="panel-overlay">
         <div class="panel-content">
+            <button class="close-button-x" data-target="context-panel">&times;</button>
             <h2>Context</h2>
             <p id="context-text-panel"></p>
-            <div class="panel-controls">
-                <button id="close-context-btn" class="panel-btn">Close</button>
-            </div>
         </div>
     </div>
 
@@ -629,12 +646,10 @@ Example format:
     const infoBtnEl = document.getElementById('info-btn');
     const contextPanelEl = document.getElementById('context-panel');
     const contextTextPanelEl = document.getElementById('context-text-panel');
-    const closeContextBtnEl = document.getElementById('close-context-btn');
 
     const favoritesBtnEl = document.getElementById('view-favorites-btn');
     const favoritesPanelEl = document.getElementById('favorites-panel');
     const favoritesListEl = document.getElementById('favorites-list');
-    const closeFavoritesBtnEl = document.getElementById('close-favorites-btn');
     
     // State
     let currentFactIndex = 0;
@@ -662,19 +677,14 @@ Example format:
 
     function renderFact(index) {
         factTextEl.style.opacity = 0;
-
         setTimeout(() => {
             const fact = factsData[index];
             factTextEl.textContent = fact.fact;
             counterEl.textContent = \`\${index + 1} / \${factsData.length}\`;
-            
             favoriteIndicatorEl.classList.toggle('is-favorite', favorites.includes(index));
-            
             factTextEl.style.opacity = 1;
             positionFavoriteIndicator();
-
         }, 400);
-        
         resetAutoAdvanceTimer();
     }
 
@@ -704,20 +714,23 @@ Example format:
         autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY);
     }
 
-    function showContextPanel() {
+    function showPanel(panelEl) {
         clearTimeout(autoAdvanceTimer);
-        const fact = factsData[currentFactIndex];
-        contextTextPanelEl.textContent = fact.context || "No additional context available.";
-        contextPanelEl.style.display = 'flex';
+        panelEl.style.display = 'flex';
     }
 
-    function hideContextPanel() {
-        contextPanelEl.style.display = 'none';
+    function hidePanel(panelEl) {
+        panelEl.style.display = 'none';
         resetAutoAdvanceTimer();
     }
 
+    function showContextPanel() {
+        const fact = factsData[currentFactIndex];
+        contextTextPanelEl.textContent = fact.context || "No additional context available.";
+        showPanel(contextPanelEl);
+    }
+
     function showFavoritesPanel() {
-        clearTimeout(autoAdvanceTimer);
         favoritesListEl.innerHTML = '';
         if (favorites.length === 0) {
             favoritesListEl.innerHTML = '<li>You haven\\'t favorited any facts yet. Click the star area to save one.</li>';
@@ -729,12 +742,7 @@ Example format:
                 favoritesListEl.appendChild(li);
             });
         }
-        favoritesPanelEl.style.display = 'flex';
-    }
-
-    function hideFavoritesPanel() {
-        favoritesPanelEl.style.display = 'none';
-        resetAutoAdvanceTimer();
+        showPanel(favoritesPanelEl);
     }
 
     function downloadFavorites() {
@@ -757,31 +765,44 @@ Example format:
         URL.revokeObjectURL(a.href);
     }
 
-    // Event Listeners
+    // --- Event Listeners ---
     document.getElementById('nav-left').addEventListener('click', prevFact);
     document.getElementById('nav-right').addEventListener('click', nextFact);
     favoriteZoneEl.addEventListener('click', toggleFavorite);
     
     infoBtnEl.addEventListener('click', showContextPanel);
-    closeContextBtnEl.addEventListener('click', hideContextPanel);
-    
     favoritesBtnEl.addEventListener('click', showFavoritesPanel);
-    closeFavoritesBtnEl.addEventListener('click', hideFavoritesPanel);
     document.getElementById('download-favorites-btn').addEventListener('click', downloadFavorites);
+
+    // Panel Closing Listeners
+    document.querySelectorAll('.panel-overlay').forEach(panel => {
+        panel.addEventListener('click', (e) => {
+            if (e.target === panel) { // Only close if clicking on the background overlay itself
+                hidePanel(panel);
+            }
+        });
+    });
+    document.querySelectorAll('.close-button-x').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const targetPanel = document.getElementById(e.currentTarget.dataset.target);
+            if (targetPanel) hidePanel(targetPanel);
+        });
+    });
     
+    // Keyboard Listener
     window.addEventListener('keydown', (e) => {
         if (favoritesPanelEl.style.display === 'flex') {
-             if (e.key === 'Escape') hideFavoritesPanel();
+             if (e.key === 'Escape') hidePanel(favoritesPanelEl);
              return;
         }
         if (contextPanelEl.style.display === 'flex') {
-             if (e.key === 'Escape') hideContextPanel();
+             if (e.key === 'Escape') hidePanel(contextPanelEl);
              return;
         }
 
         if (e.key === 'ArrowLeft') prevFact();
         if (e.key === 'ArrowRight') nextFact();
-        if (e.key === 'i') showContextPanel();
+        if (e.key === 'i' || e.key === 'I') showContextPanel();
         if (e.key === ' ') {
             e.preventDefault();
             toggleFavorite();
