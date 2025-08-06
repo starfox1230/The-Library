@@ -381,7 +381,6 @@ Example format:
             --bright-red: #F55;
             --bg-color: #000;
             --font-color: var(--base-red);
-            --context-color: #993333;
             --fav-color: #ffb833; /* A gold/yellow for favorited star */
         }
         html, body {
@@ -428,26 +427,19 @@ Example format:
             margin: 0;
             transition: opacity 0.5s ease-in-out;
         }
-        #fact-context {
-            font-size: clamp(1rem, 2vw, 1.5rem);
-            font-weight: 300;
-            margin-top: 1.5rem;
-            color: var(--context-color);
-            transition: opacity 0.5s ease-in-out;
-        }
         /* --- Navigation & UI Elements --- */
         .nav-overlay {
             position: fixed;
             top: 0;
             height: 100%;
-            width: 30%;
+            width: 25%; /* Reduced width */
             z-index: 10;
             cursor: pointer;
         }
         #nav-left { left: 0; }
         #nav-right { right: 0; }
         
-        .ui-controls {
+        .top-ui-controls {
             position: fixed;
             top: 20px;
             right: 20px;
@@ -461,7 +453,7 @@ Example format:
             color: var(--dim-red);
             font-variant-numeric: tabular-nums;
         }
-        #view-favorites-btn {
+        .ui-button {
             background: none;
             border: 1px solid var(--dim-red);
             color: var(--dim-red);
@@ -470,9 +462,15 @@ Example format:
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        #view-favorites-btn:hover {
+        .ui-button:hover {
             background-color: var(--dim-red);
             color: var(--bg-color);
+        }
+        #info-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
         }
         
         #favorite-zone {
@@ -481,7 +479,9 @@ Example format:
             transform: translateX(-50%);
             z-index: 15;
             cursor: pointer;
-            padding: 20px; /* This creates the larger tap area around the star */
+            width: 96px; /* Approx 3x diameter of 2rem star */
+            height: 96px;
+            border-radius: 50%; /* Circular tap zone */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -491,6 +491,7 @@ Example format:
             color: transparent;
             text-shadow: 0 0 var(--dim-red);
             transition: all 0.3s ease;
+            pointer-events: none; /* The star itself doesn't capture clicks */
         }
         #favorite-indicator.is-favorite {
             color: var(--fav-color);
@@ -498,8 +499,8 @@ Example format:
             transform: scale(1.2);
         }
         
-        /* --- Favorites Panel --- */
-        #favorites-panel {
+        /* --- Panel Styles (Favorites & Context) --- */
+        .panel-overlay {
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
@@ -507,11 +508,12 @@ Example format:
             z-index: 200;
             display: none; /* Changed by JS */
             flex-direction: column;
+            justify-content: center;
             align-items: center;
             padding: 40px;
             box-sizing: border-box;
         }
-        .favorites-content {
+        .panel-content {
             background-color: #110000;
             border: 1px solid var(--dim-red);
             border-radius: 15px;
@@ -521,7 +523,7 @@ Example format:
             max-height: 80vh;
             overflow-y: auto;
         }
-        .favorites-content h2 {
+        .panel-content h2 {
             margin-top: 0;
             color: var(--bright-red);
             text-align: center;
@@ -540,13 +542,19 @@ Example format:
         #favorites-list li:last-child {
             border-bottom: none;
         }
-        .favorites-controls {
+        #context-text-panel {
+            color: var(--font-color);
+            line-height: 1.6;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .panel-controls {
             margin-top: 20px;
             display: flex;
             gap: 15px;
             justify-content: center;
         }
-        .fav-panel-btn {
+        .panel-btn {
             background: none;
             border: 1px solid var(--base-red);
             color: var(--base-red);
@@ -556,7 +564,7 @@ Example format:
             font-size: 1rem;
             transition: all 0.2s ease;
         }
-        .fav-panel-btn:hover {
+        .panel-btn:hover {
             background-color: var(--base-red);
             color: var(--bg-color);
         }
@@ -569,29 +577,40 @@ Example format:
     <div class="screensaver-container">
         <div class="fact-wrapper" id="fact-wrapper">
             <h1 id="fact-text"></h1>
-            <p id="fact-context"></p>
         </div>
     </div>
     
     <div id="nav-left" class="nav-overlay"></div>
     <div id="nav-right" class="nav-overlay"></div>
 
-    <div class="ui-controls">
+    <div class="top-ui-controls">
         <span id="counter"></span>
-        <button id="view-favorites-btn">Favorites</button>
+        <button id="view-favorites-btn" class="ui-button">Favorites</button>
     </div>
+
+    <button id="info-btn" class="ui-button">More Info</button>
 
     <div id="favorite-zone">
         <div id="favorite-indicator">★</div>
     </div>
     
-    <div id="favorites-panel">
-        <div class="favorites-content">
+    <div id="favorites-panel" class="panel-overlay">
+        <div class="panel-content">
             <h2>Your Favorites</h2>
             <ul id="favorites-list"></ul>
-            <div class="favorites-controls">
-                <button id="download-favorites-btn" class="fav-panel-btn">Download .txt</button>
-                <button id="close-favorites-btn" class="fav-panel-btn">Close</button>
+            <div class="panel-controls">
+                <button id="download-favorites-btn" class="panel-btn">Download .txt</button>
+                <button id="close-favorites-btn" class="panel-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="context-panel" class="panel-overlay">
+        <div class="panel-content">
+            <h2>Context</h2>
+            <p id="context-text-panel"></p>
+            <div class="panel-controls">
+                <button id="close-context-btn" class="panel-btn">Close</button>
             </div>
         </div>
     </div>
@@ -601,20 +620,27 @@ Example format:
     
     // DOM Elements
     const factTextEl = document.getElementById('fact-text');
-    const factContextEl = document.getElementById('fact-context');
     const factWrapperEl = document.getElementById('fact-wrapper');
     const liveClockEl = document.getElementById('live-clock');
     const counterEl = document.getElementById('counter');
     const favoriteZoneEl = document.getElementById('favorite-zone');
     const favoriteIndicatorEl = document.getElementById('favorite-indicator');
+    
+    const infoBtnEl = document.getElementById('info-btn');
+    const contextPanelEl = document.getElementById('context-panel');
+    const contextTextPanelEl = document.getElementById('context-text-panel');
+    const closeContextBtnEl = document.getElementById('close-context-btn');
+
+    const favoritesBtnEl = document.getElementById('view-favorites-btn');
     const favoritesPanelEl = document.getElementById('favorites-panel');
     const favoritesListEl = document.getElementById('favorites-list');
+    const closeFavoritesBtnEl = document.getElementById('close-favorites-btn');
     
     // State
     let currentFactIndex = 0;
     let favorites = JSON.parse(localStorage.getItem('factFavorites')) || [];
     let autoAdvanceTimer;
-    const AUTO_ADVANCE_DELAY = 25000; // 25 seconds
+    const AUTO_ADVANCE_DELAY = 25000;
 
     function updateClock() {
         const now = new Date();
@@ -630,37 +656,24 @@ Example format:
     function positionFavoriteIndicator() {
         const factRect = factWrapperEl.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        // Calculate the vertical midpoint between the bottom of the fact and the bottom of the screen
         const topPosition = factRect.bottom + ((viewportHeight - factRect.bottom) / 2);
-        // Set the position, subtracting half the element's own height to center it on the midpoint
         favoriteZoneEl.style.top = \`\${topPosition - (favoriteZoneEl.offsetHeight / 2)}px\`;
     }
 
     function renderFact(index) {
-        // Fade out old fact
         factTextEl.style.opacity = 0;
-        factContextEl.style.opacity = 0;
 
         setTimeout(() => {
             const fact = factsData[index];
             factTextEl.textContent = fact.fact;
-            factContextEl.textContent = fact.context;
             counterEl.textContent = \`\${index + 1} / \${factsData.length}\`;
             
-            if (favorites.includes(index)) {
-                favoriteIndicatorEl.classList.add('is-favorite');
-            } else {
-                favoriteIndicatorEl.classList.remove('is-favorite');
-            }
+            favoriteIndicatorEl.classList.toggle('is-favorite', favorites.includes(index));
             
-            // Fade in new fact
             factTextEl.style.opacity = 1;
-            factContextEl.style.opacity = 1;
-
-            // Reposition the star after the new text has rendered
             positionFavoriteIndicator();
 
-        }, 400); // Wait for fade-out to complete
+        }, 400);
         
         resetAutoAdvanceTimer();
     }
@@ -679,11 +692,10 @@ Example format:
         const indexInFavorites = favorites.indexOf(currentFactIndex);
         if (indexInFavorites > -1) {
             favorites.splice(indexInFavorites, 1);
-            favoriteIndicatorEl.classList.remove('is-favorite');
         } else {
             favorites.push(currentFactIndex);
-            favoriteIndicatorEl.classList.add('is-favorite');
         }
+        favoriteIndicatorEl.classList.toggle('is-favorite', indexInFavorites === -1);
         localStorage.setItem('factFavorites', JSON.stringify(favorites));
     }
 
@@ -692,8 +704,20 @@ Example format:
         autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY);
     }
 
+    function showContextPanel() {
+        clearTimeout(autoAdvanceTimer);
+        const fact = factsData[currentFactIndex];
+        contextTextPanelEl.textContent = fact.context || "No additional context available.";
+        contextPanelEl.style.display = 'flex';
+    }
+
+    function hideContextPanel() {
+        contextPanelEl.style.display = 'none';
+        resetAutoAdvanceTimer();
+    }
+
     function showFavoritesPanel() {
-        clearTimeout(autoAdvanceTimer); // Pause screensaver
+        clearTimeout(autoAdvanceTimer);
         favoritesListEl.innerHTML = '';
         if (favorites.length === 0) {
             favoritesListEl.innerHTML = '<li>You haven\\'t favorited any facts yet. Click the star area to save one.</li>';
@@ -710,7 +734,7 @@ Example format:
 
     function hideFavoritesPanel() {
         favoritesPanelEl.style.display = 'none';
-        resetAutoAdvanceTimer(); // Resume screensaver
+        resetAutoAdvanceTimer();
     }
 
     function downloadFavorites() {
@@ -738,8 +762,11 @@ Example format:
     document.getElementById('nav-right').addEventListener('click', nextFact);
     favoriteZoneEl.addEventListener('click', toggleFavorite);
     
-    document.getElementById('view-favorites-btn').addEventListener('click', showFavoritesPanel);
-    document.getElementById('close-favorites-btn').addEventListener('click', hideFavoritesPanel);
+    infoBtnEl.addEventListener('click', showContextPanel);
+    closeContextBtnEl.addEventListener('click', hideContextPanel);
+    
+    favoritesBtnEl.addEventListener('click', showFavoritesPanel);
+    closeFavoritesBtnEl.addEventListener('click', hideFavoritesPanel);
     document.getElementById('download-favorites-btn').addEventListener('click', downloadFavorites);
     
     window.addEventListener('keydown', (e) => {
@@ -747,8 +774,14 @@ Example format:
              if (e.key === 'Escape') hideFavoritesPanel();
              return;
         }
+        if (contextPanelEl.style.display === 'flex') {
+             if (e.key === 'Escape') hideContextPanel();
+             return;
+        }
+
         if (e.key === 'ArrowLeft') prevFact();
         if (e.key === 'ArrowRight') nextFact();
+        if (e.key === 'i') showContextPanel();
         if (e.key === ' ') {
             e.preventDefault();
             toggleFavorite();
