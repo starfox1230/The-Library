@@ -109,6 +109,36 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
+    // --- Cookie Helper Functions ---
+    const setCookie = (name, value, days = 365) => {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+    };
+
+    const getCookie = (name) => {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    };
+    
+    // --- Get Saved Selections from Cookies ---
+    const savedSelections = {
+        book: getCookie('selectedBook'),
+        chapter: getCookie('selectedChapter'),
+        start: getCookie('selectedStart'),
+        end: getCookie('selectedEnd'),
+    };
+
     let booksData, currentBookManifest, currentBookPath, currentSections = [];
 
     const bookEl = document.getElementById('book'),
@@ -143,11 +173,25 @@
           o.textContent = bookTitle;
           bookEl.appendChild(o);
         });
+        
+        // Restore saved book selection if it exists
+        if (savedSelections.book && bookEl.querySelector(`option[value="${savedSelections.book}"]`)) {
+            bookEl.value = savedSelections.book;
+            bookEl.dispatchEvent(new Event('change'));
+        }
       })
       .catch(err => alert('Error loading books.json: ' + err));
 
     // When a book is selected
-    bookEl.addEventListener('change', () => {
+    bookEl.addEventListener('change', (event) => {
+      // On user interaction, save selection and clear dependent cookies
+      if (event.isTrusted) {
+        setCookie('selectedBook', bookEl.value);
+        setCookie('selectedChapter', '', -1);
+        setCookie('selectedStart', '', -1);
+        setCookie('selectedEnd', '', -1);
+      }
+      
       resetDropdowns('book');
       const selectedBook = bookEl.value;
       if (!selectedBook) return;
@@ -168,12 +212,24 @@
               chapterEl.appendChild(o);
             });
           chapterEl.disabled = false;
+
+          // Restore saved chapter selection if it exists
+          if (savedSelections.chapter && chapterEl.querySelector(`option[value="${savedSelections.chapter}"]`)) {
+              chapterEl.value = savedSelections.chapter;
+              chapterEl.dispatchEvent(new Event('change'));
+          }
         })
         .catch(err => alert(`Error loading manifest for ${selectedBook}: ` + err));
     });
 
     // When chapter changes
-    chapterEl.addEventListener('change', () => {
+    chapterEl.addEventListener('change', (event) => {
+      if (event.isTrusted) {
+        setCookie('selectedChapter', chapterEl.value);
+        setCookie('selectedStart', '', -1);
+        setCookie('selectedEnd', '', -1);
+      }
+
       resetDropdowns('chapter');
       if (!chapterEl.value) return;
 
@@ -188,10 +244,21 @@
         startEl.appendChild(o);
       });
       startEl.disabled = false;
+
+      // Restore saved start section if it exists
+      if (savedSelections.start && startEl.querySelector(`option[value="${savedSelections.start}"]`)) {
+        startEl.value = savedSelections.start;
+        startEl.dispatchEvent(new Event('change'));
+      }
     });
 
     // When start section changes
-    startEl.addEventListener('change', () => {
+    startEl.addEventListener('change', (event) => {
+      if (event.isTrusted) {
+        setCookie('selectedStart', startEl.value);
+        setCookie('selectedEnd', '', -1);
+      }
+
       resetDropdowns('start');
       const startKey = startEl.value;
       if (!startKey) return;
@@ -206,6 +273,18 @@
       }
       endEl.disabled = false;
       fetchBtn.disabled = false;
+      
+      // Restore saved end section if it exists
+      if (savedSelections.end && endEl.querySelector(`option[value="${savedSelections.end}"]`)) {
+          endEl.value = savedSelections.end;
+      }
+    });
+
+    // When end section changes, save to cookie
+    endEl.addEventListener('change', (event) => {
+        if (event.isTrusted) {
+            setCookie('selectedEnd', endEl.value);
+        }
     });
 
     // Fetch & concatenate text files
