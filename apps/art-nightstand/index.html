@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Art Nightstand Slideshow</title>
+  <style>
+    :root{
+      --bg:#0b0b0f;           /* deep night */
+      --fg:#e9e9ef;           /* text */
+      --muted:#9aa0a6;        /* secondary text */
+      --accent:#6ee7ff;       /* will auto-tint from artwork */
+      --surface:#121218;      /* cards */
+      --btn:#1e1e27;
+      --good:#2bd576;
+      --bad:#ff6b6b;
+      --focus:#88ddff;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --step-fade: 500ms;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      display:flex; flex-direction:column; min-height:100vh; overflow:hidden;
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+      padding:.75rem 1rem; background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,0));
+    }
+    header .brand{display:flex; align-items:center; gap:.6rem; font-weight:600; letter-spacing:.2px}
+    header .dot{width:.8rem;height:.8rem;border-radius:50%;background:var(--accent);box-shadow:0 0 24px var(--accent)}
+    header .clock{font-variant-numeric:tabular-nums; color:var(--muted)}
+    header .chip{background:var(--surface); color:var(--muted); padding:.25rem .6rem; border-radius:999px; border:1px solid rgba(255,255,255,.06)}
+
+    #app{display:flex; flex-direction:column; gap:.75rem; height:100%;}
+
+    .stage{position:relative; flex:1; display:grid; place-items:center; padding:0 1rem 1rem 1rem;}
+    .frame{ position:relative; width:100%; height:100%; max-width:1200px; border-radius:var(--radius); overflow:hidden; background: radial-gradient(1200px 600px at 50% 110%, rgba(255,255,255,.05), transparent 60%); box-shadow: var(--shadow); }
+
+    /* image fills while preserving aspect */
+    .art{position:absolute; inset:0; display:grid; place-items:center;}
+    .art img{ max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,.35));}
+
+    /* tinted halo derived from dominant color */
+    .tint{position:absolute; inset:-10%; background:radial-gradient(60% 50% at 50% 65%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%); filter: blur(50px); opacity:.6; pointer-events:none}
+
+    /* overlay content */
+    .overlay{ position:absolute; inset:0; display:flex; flex-direction:column; justify-content:flex-end; padding:1.25rem; gap:.5rem; background:linear-gradient( to top, rgba(3,3,5,.48), rgba(0,0,0,0) 40% );}
+
+    .meta{ display:flex; flex-direction:column; gap:.25rem; max-width:min(900px, 95%);}
+    .kicker{ color:var(--accent); text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:.8rem; opacity:0; transform: translateY(8px); }
+    .title{ font-size: clamp(1.4rem, 4.8vw, 2.6rem); font-weight:800; letter-spacing:.2px; line-height:1.1; opacity:0; transform: translateY(8px);}
+    .sub{ color:var(--muted); font-size: clamp(.95rem, 2.6vw, 1.05rem); opacity:0; transform: translateY(8px);}
+
+    .reveal{ animation: fadeUp var(--step-fade) ease forwards; }
+    .reveal:nth-child(1){ animation-delay:0ms }
+    .reveal:nth-child(2){ animation-delay:60ms }
+    .reveal:nth-child(3){ animation-delay:120ms }
+    @keyframes fadeUp { to {opacity:1; transform: translateY(0)} }
+
+    /* controls */
+    .controls{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; padding: .6rem 1rem 1rem; }
+    .btn{ background:var(--btn); color:var(--fg); border:1px solid rgba(255,255,255,.08); padding:.7rem 1rem; border-radius:12px; cursor:pointer; user-select:none; transition: transform .06s ease, background .2s ease, border-color .2s ease; }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0); }
+    .btn.good{ border-color: color-mix(in srgb, var(--good) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--good) 30%, transparent) inset; }
+    .btn.bad{ border-color: color-mix(in srgb, var(--bad) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 30%, transparent) inset; }
+    .btn.secondary{ color:var(--muted); }
+
+    .seg{ display:flex; background:var(--surface); border:1px solid rgba(255,255,255,.08); border-radius:999px; overflow:hidden; }
+    .seg button{ all:unset; padding:.45rem .9rem; cursor:pointer; color:var(--muted); }
+    .seg button.active{ background:rgba(255,255,255,.06); color:var(--fg); }
+
+    .pill{ padding:.35rem .7rem; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); color:var(--muted); }
+
+    /* modal */
+    dialog{ border:none; border-radius:16px; background:var(--surface); color:var(--fg); width:min(680px, 92vw); box-shadow: var(--shadow); }
+    dialog::backdrop{ background:rgba(0,0,0,.6); backdrop-filter: blur(3px); }
+    .modal{ padding:1rem; display:grid; gap:1rem; }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap: .75rem .75rem; }
+    .grid label{ font-size:.9rem; color:var(--muted); }
+    .grid input[type="number"], .grid input[type="text"], .grid input[type="time"], .grid select{
+      width:100%; background:#0f0f15; border:1px solid rgba(255,255,255,.08); color:var(--fg); padding:.55rem .6rem; border-radius:10px;
+    }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; }
+    .row .actions{ display:flex; gap:.5rem; }
+
+    .legend{ display:flex; gap:.5rem; align-items:center; color:var(--muted); font-size:.9rem }
+    .legend .dot{ width:.6rem; height:.6rem; border-radius:999px; }
+
+    /* small helpers */
+    .hidden{ display:none !important }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0 }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="brand"><div class="dot" aria-hidden="true"></div> Art Nightstand</div>
+      <div class="row" style="gap:.5rem">
+        <div id="todayStats" class="chip" title="Today's counts">—</div>
+        <div class="seg" role="tablist" aria-label="Mode">
+          <button id="modeStudy" class="active" role="tab" aria-selected="true">Study</button>
+          <button id="modeNight" role="tab" aria-selected="false">Nightstand</button>
+        </div>
+        <button id="openSettings" class="btn secondary" title="Settings" aria-haspopup="dialog">⚙️</button>
+        <div class="clock" aria-live="polite" id="clock">--:--</div>
+      </div>
+    </header>
+
+    <main class="stage" aria-live="polite">
+      <div class="frame" id="frame">
+        <div class="tint" id="tint"></div>
+        <div class="art" aria-label="Artwork image">
+          <img id="artImg" alt="Artwork" />
+        </div>
+        <div class="overlay">
+          <div class="meta">
+            <div id="artist" class="kicker" aria-hidden="true"></div>
+            <div id="title" class="title" aria-hidden="true"></div>
+            <div id="details" class="sub" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="controls">
+      <button id="btnBad" class="btn bad">Not yet</button>
+      <div class="row" style="gap:.5rem">
+        <button id="btnPrev" class="btn secondary" title="Previous">⟵ Prev</button>
+        <button id="btnReveal" class="btn">Reveal</button>
+        <button id="btnNext" class="btn secondary" title="Next">Next ⟶</button>
+      </div>
+      <button id="btnGood" class="btn good">Got it</button>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <dialog id="settings">
+    <form method="dialog" class="modal" id="settingsForm">
+      <h3 style="margin:.2rem 0 .4rem">Settings</h3>
+      <div class="grid">
+        <div>
+          <label>New per day<input name="newPerDay" type="number" min="0" value="10"></label>
+        </div>
+        <div>
+          <label>Reviews per day<input name="reviewsPerDay" type="number" min="0" value="50"></label>
+        </div>
+        <div>
+          <label>Base image path<input name="imageBase" type="text" placeholder="./art/" value="./art/"></label>
+        </div>
+        <div>
+          <label>Auto accent from artwork
+            <select name="autoAccent">
+              <option value="on" selected>On</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>Image-only seconds<input name="tImage" type="number" min="1" value="4"></label>
+        </div>
+        <div>
+          <label>Artist seconds<input name="tArtist" type="number" min="1" value="3"></label>
+        </div>
+        <div>
+          <label>Title seconds<input name="tTitle" type="number" min="1" value="3"></label>
+        </div>
+        <div>
+          <label>Details seconds<input name="tDetails" type="number" min="1" value="4"></label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="legend">
+          <div class="dot" style="background:var(--good)"></div>Got it
+          <div class="dot" style="background:var(--bad)"></div>Not yet
+        </div>
+        <div class="actions">
+          <button id="btnRestartCard" value="restart" class="btn bad" title="Treat current card as new">Restart card</button>
+          <button id="btnResetAll" value="reset" class="btn bad" title="Clear all progress">Reset all</button>
+          <button class="btn" value="close">Close</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    /* ====== App Config ====== */
+    const CONFIG_KEY = 'artSRS_config_v1';
+    const STATE_KEY  = 'artSRS_state_v1';
+    const DEFAULTS = {
+      newPerDay: 10,
+      reviewsPerDay: 50,
+      tImage: 4,
+      tArtist: 3,
+      tTitle: 3,
+      tDetails: 4,
+      mode: 'study', // 'study' | 'night'
+      imageBase: './art/',
+      autoAccent: 'on',
+      easeDefault: 2.5
+    };
+
+    /* ====== DOM ====== */
+    const el = {
+      img: document.getElementById('artImg'),
+      artist: document.getElementById('artist'),
+      title: document.getElementById('title'),
+      details: document.getElementById('details'),
+      tint: document.getElementById('tint'),
+      btnGood: document.getElementById('btnGood'),
+      btnBad: document.getElementById('btnBad'),
+      btnNext: document.getElementById('btnNext'),
+      btnPrev: document.getElementById('btnPrev'),
+      btnReveal: document.getElementById('btnReveal'),
+      todayStats: document.getElementById('todayStats'),
+      clock: document.getElementById('clock'),
+      modeStudy: document.getElementById('modeStudy'),
+      modeNight: document.getElementById('modeNight'),
+      openSettings: document.getElementById('openSettings'),
+      settings: document.getElementById('settings'),
+      settingsForm: document.getElementById('settingsForm'),
+      btnRestartCard: document.getElementById('btnRestartCard'),
+      btnResetAll: document.getElementById('btnResetAll'),
+    };
+
+    let deck = [];
+    let progress = {}; // id -> { ease, intervalDays, dueISO, reps, lapses, state, learningStep }
+    let session = { queue: [], index: 0, phase: 0, timers: [], today: dayISO(new Date()), stats: {newUsed:0, reviewUsed:0} };
+
+    /* ====== Utilities ====== */
+    function dayISO(d){ const z = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return z.toISOString().slice(0,10); }
+    function nowISO(){ return new Date().toISOString(); }
+    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+    function isHttp(url){ return /^https?:/i.test(url); }
+
+    function loadConfig(){ const raw = localStorage.getItem(CONFIG_KEY); return raw ? {...DEFAULTS, ...JSON.parse(raw)} : {...DEFAULTS}; }
+    function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+    function loadState(){ const raw = localStorage.getItem(STATE_KEY); return raw ? JSON.parse(raw) : {}; }
+    function saveState(){ localStorage.setItem(STATE_KEY, JSON.stringify(progress)); }
+
+    function shuffle(a){ for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+    /* ====== Wake Lock (best-effort) ====== */
+    let wakeLock; async function acquireWake(){ try{ if ('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', ()=>{}); } }catch(e){ /* ignore */ } }
+
+    /* ====== Dominant color from image ====== */
+    function autoAccentFromImage(img){
+      try{
+        const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d', { willReadFrequently:true });
+        const w = canvas.width = 64, h = canvas.height = 64; ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0,0,w,h).data; let r=0,g=0,b=0,count=0;
+        for (let i=0;i<data.length;i+=4){ const a=data[i+3]; if (a<40) continue; r+=data[i]; g+=data[i+1]; b+=data[i+2]; count++; }
+        if(count){ r=Math.round(r/count); g=Math.round(g/count); b=Math.round(b/count); const accent=`rgb(${r},${g},${b})`; document.documentElement.style.setProperty('--accent', accent); }
+      }catch(e){ /* ignore */ }
+    }
+
+    /* ====== Spaced Repetition ====== */
+    function ensureProgress(card){
+      if (!progress[card.id]){
+        progress[card.id] = { ease: loadConfig().easeDefault, intervalDays: 0, dueISO: session.today, reps: 0, lapses: 0, state: 'new', learningStep: 0 };
+      }
+      return progress[card.id];
+    }
+
+    function grade(card, quality){
+      const p = ensureProgress(card);
+      const today = session.today;
+      if (quality==='good'){
+        if (p.state==='new'){
+          p.state = 'learning'; p.learningStep = 1; p.intervalDays = 1; p.dueISO = dayISO(new Date(Date.now()+86400000));
+        } else if (p.state==='learning'){
+          if (p.learningStep===1){ p.learningStep=2; p.intervalDays = 3; p.dueISO = dayISO(new Date(Date.now()+3*86400000)); }
+          else { p.state='review'; p.learningStep=0; p.intervalDays = Math.max(5, p.intervalDays||5); p.dueISO = dayISO(new Date(Date.now()+p.intervalDays*86400000)); }
+        } else { // review
+          // simple SM-2 style without complexity
+          const ease = p.ease; const next = Math.round(Math.max(1, p.intervalDays * ease));
+          p.intervalDays = next; p.dueISO = dayISO(new Date(Date.now()+next*86400000));
+        }
+        p.reps++;
+      } else { // not yet
+        p.lapses++; p.state = 'learning'; p.learningStep = 1; p.intervalDays = 1; p.dueISO = dayISO(new Date(Date.now()+86400000));
+      }
+      saveState();
+    }
+
+    function buildTodayQueue(){
+      const cfg = loadConfig();
+      const today = session.today; session.stats.newUsed=0; session.stats.reviewUsed=0;
+      const dueReviews = []; const news = [];
+      for (const c of deck){ const p = ensureProgress(c); if (p.state==='new'){ news.push(c); } else if (p.dueISO <= today){ dueReviews.push(c); }
+      }
+      // apply quotas
+      const takeReviews = dueReviews.slice(0, cfg.reviewsPerDay);
+      const remainingSlots = Math.max(0, cfg.newPerDay);
+      const takeNews = news.slice(0, remainingSlots);
+      const q = [...takeReviews, ...takeNews];
+      session.queue = shuffle(q);
+      session.index = 0; session.phase = 0; clearTimers();
+      updateStats();
+    }
+
+    /* ====== Rendering ====== */
+    function clearTimers(){ session.timers.forEach(t=>clearTimeout(t)); session.timers=[]; }
+
+    function setText(elm, text){ elm.textContent = text || ''; }
+
+    function loadImageFor(card){
+      return new Promise((resolve,reject)=>{
+        const src = isHttp(card.image) ? card.image : (loadConfig().imageBase || './') + card.image;
+        el.img.onload = ()=>resolve(); el.img.onerror = ()=>reject(new Error('Image failed'));
+        el.img.src = src;
+      });
+    }
+
+    function hideMeta(){
+      // instantly hide (no animation) before next reveal sequence
+      for (const node of [el.artist, el.title, el.details]){
+        node.classList.remove('reveal'); node.style.opacity=0; node.style.transform='translateY(8px)'; node.setAttribute('aria-hidden','true');
+      }
+    }
+
+    async function showCurrent(){
+      if (!session.queue.length){ emptyState(); return; }
+      const card = session.queue[session.index]; hideMeta();
+      setText(el.artist, ''); setText(el.title, ''); setText(el.details, '');
+      try { await loadImageFor(card); if (loadConfig().autoAccent==='on') autoAccentFromImage(el.img); } catch(e){ /* ignore */ }
+      session.phase = 0; // 0=image only, 1=artist, 2=title, 3=details, 4=grade
+      runReveal(card);
+    }
+
+    function runReveal(card){
+      const cfg = loadConfig(); clearTimers();
+      const artist = card.artist || '';
+      const title  = card.title || '';
+      const details = [card.date, card.style].filter(Boolean).join(' • ');
+      const plan = [ cfg.tImage, cfg.tArtist, cfg.tTitle, cfg.tDetails ].map(Number);
+
+      function stepReveal(){
+        if (session.phase===0){ /* image only */ }
+        if (session.phase===1){ setText(el.artist, artist); el.artist.classList.add('reveal'); el.artist.removeAttribute('aria-hidden'); }
+        if (session.phase===2){ setText(el.title, title); el.title.classList.add('reveal'); el.title.removeAttribute('aria-hidden'); }
+        if (session.phase===3){ setText(el.details, details); el.details.classList.add('reveal'); el.details.removeAttribute('aria-hidden'); }
+        if (session.phase>=4){ // grading phase
+          return;
+        }
+        session.phase++;
+        if (getMode()==='night'){
+          const t = setTimeout(stepReveal, plan[session.phase-1]*1000); session.timers.push(t);
+        }
+      }
+
+      if (getMode()==='night'){ stepReveal(); } else { /* study: wait for manual reveal */ }
+      updateStats();
+    }
+
+    function emptyState(){
+      setText(el.artist, 'All done for today');
+      setText(el.title, 'Tap Next or adjust settings');
+      setText(el.details, '');
+      [el.artist, el.title].forEach(n=>{ n.classList.add('reveal'); n.removeAttribute('aria-hidden'); });
+      el.details.classList.remove('reveal'); el.details.setAttribute('aria-hidden','true');
+    }
+
+    function updateStats(){
+      const cfg = loadConfig();
+      // Count how many due remain roughly by type
+      const today = session.today; let dueR=0, newN=0;
+      for(const c of deck){ const p=ensureProgress(c); if(p.state==='new') newN++; else if(p.dueISO<=today) dueR++; }
+      const inQ = session.queue.length ? `${session.index+1}/${session.queue.length}` : '0/0';
+      el.todayStats.textContent = `Q ${inQ} • Due ${dueR} • New ${Math.min(newN, cfg.newPerDay)}`;
+    }
+
+    /* ====== Navigation & Actions ====== */
+    function nextCard(){ if(!session.queue.length) return; session.index = (session.index+1) % session.queue.length; showCurrent(); }
+    function prevCard(){ if(!session.queue.length) return; session.index = (session.index-1+session.queue.length) % session.queue.length; showCurrent(); }
+
+    function revealOne(){ if (session.phase>=4){ return; } session.phase++; const card = session.queue[session.index]; const cfg = loadConfig();
+      if (session.phase===1){ setText(el.artist, card.artist||''); el.artist.classList.add('reveal'); el.artist.removeAttribute('aria-hidden'); }
+      else if (session.phase===2){ setText(el.title, card.title||''); el.title.classList.add('reveal'); el.title.removeAttribute('aria-hidden'); }
+      else if (session.phase===3){ const det=[card.date, card.style].filter(Boolean).join(' • '); setText(el.details, det); el.details.classList.add('reveal'); el.details.removeAttribute('aria-hidden'); }
+    }
+
+    function onGrade(kind){ if (!session.queue.length) return; const card = session.queue[session.index]; grade(card, kind); // remove from today queue
+      session.queue.splice(session.index, 1);
+      if (session.index>=session.queue.length) session.index=0;
+      if (session.queue.length===0){ buildTodayQueue(); }
+      showCurrent();
+    }
+
+    function getMode(){ return document.getElementById('modeNight').classList.contains('active') ? 'night' : 'study'; }
+    function setMode(m){ if(m==='night'){ el.modeNight.classList.add('active'); el.modeStudy.classList.remove('active'); } else { el.modeStudy.classList.add('active'); el.modeNight.classList.remove('active'); } saveConfig({ ...loadConfig(), mode:m }); }
+
+    /* ====== Settings Modal ====== */
+    function openSettings(){ const cfg=loadConfig(); const f=el.settingsForm; f.newPerDay.value=cfg.newPerDay; f.reviewsPerDay.value=cfg.reviewsPerDay; f.tImage.value=cfg.tImage; f.tArtist.value=cfg.tArtist; f.tTitle.value=cfg.tTitle; f.tDetails.value=cfg.tDetails; f.imageBase.value = cfg.imageBase; f.autoAccent.value = cfg.autoAccent; el.settings.showModal(); }
+    function closeSettings(){ el.settings.close(); }
+
+    el.settingsForm.addEventListener('close', ()=>{ /* noop for esc */});
+    el.settingsForm.addEventListener('submit', (e)=>{ const v=e.submitter?.value; if(v==='reset'){ if(confirm('Reset ALL progress?')){ progress={}; saveState(); buildTodayQueue(); showCurrent(); } e.preventDefault(); return; } if(v==='restart'){ const cur=session.queue[session.index]; if(cur && confirm('Restart this card as new?')){ progress[cur.id] = { ease: loadConfig().easeDefault, intervalDays:0, dueISO: session.today, reps:0, lapses:0, state:'new', learningStep:0 }; saveState(); buildTodayQueue(); showCurrent(); } e.preventDefault(); return; }
+      const f=e.target; const cfg={ ...loadConfig(), newPerDay:+f.newPerDay.value, reviewsPerDay:+f.reviewsPerDay.value, tImage:+f.tImage.value, tArtist:+f.tArtist.value, tTitle:+f.tTitle.value, tDetails:+f.tDetails.value, imageBase: f.imageBase.value.trim()||'./art/', autoAccent: f.autoAccent.value}; saveConfig(cfg); buildTodayQueue(); showCurrent(); });
+
+    /* ====== Clock ====== */
+    function startClock(){ const tick=()=>{ const d=new Date(); const h=d.getHours().toString().padStart(2,'0'); const m=d.getMinutes().toString().padStart(2,'0'); el.clock.textContent=`${h}:${m}`; }; tick(); setInterval(tick, 10000); }
+
+    /* ====== Init ====== */
+    async function init(){
+      // modes from config
+      const cfg = loadConfig(); setMode(cfg.mode);
+      progress = loadState();
+      startClock(); acquireWake();
+      // Load deck.json next to this file
+      const res = await fetch('deck.json');
+      deck = await res.json();
+      // Build initial queue
+      buildTodayQueue();
+      showCurrent();
+    }
+
+    /* ====== Events ====== */
+    el.btnGood.addEventListener('click', ()=>onGrade('good'));
+    el.btnBad.addEventListener('click', ()=>onGrade('bad'));
+    el.btnNext.addEventListener('click', nextCard);
+    el.btnPrev.addEventListener('click', prevCard);
+    el.btnReveal.addEventListener('click', ()=>{ if(getMode()==='study') revealOne(); });
+
+    el.modeStudy.addEventListener('click', ()=>setMode('study'));
+    el.modeNight.addEventListener('click', ()=>setMode('night'));
+
+    el.openSettings.addEventListener('click', openSettings);
+
+    // Keybindings
+    window.addEventListener('keydown', (e)=>{
+      if (e.key==='ArrowRight'){ onGrade('good'); }
+      else if (e.key==='ArrowLeft'){ onGrade('bad'); }
+      else if (e.key===' ' || e.key==='Enter'){ if(getMode()==='study'){ revealOne(); } }
+      else if (e.key==='['){ prevCard(); }
+      else if (e.key===']'){ nextCard(); }
+      else if (e.key.toLowerCase()==='s'){ openSettings(); }
+    });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
