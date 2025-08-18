@@ -67,7 +67,7 @@
 
         .prompt-section code {
             background-color: #12121f;
-            padding: 2px 5px;
+            padding: 10px 15px;
             border-radius: 4px;
             font-family: monospace;
             color: #f0f0ff;
@@ -100,7 +100,7 @@
             resize: vertical;
         }
 
-        .action-button, .copy-button {
+        .action-button, .copy-button, .secondary-button {
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
             color: white;
             border: none;
@@ -114,15 +114,27 @@
             text-align: center;
             min-width: 100px;
         }
+        .secondary-button {
+            background: none;
+            border: 1px solid #4a4af5;
+            color: #8a8aff;
+            box-shadow: none;
+        }
 
         .action-button:hover:not(:disabled),
-        .copy-button:hover:not(:disabled) {
+        .copy-button:hover:not(:disabled),
+        .secondary-button:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
         }
+        .secondary-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff);
+            color: white;
+        }
 
          .action-button:disabled,
-         .copy-button:disabled {
+         .copy-button:disabled,
+         .secondary-button:disabled {
             background: #5a5a7e;
             cursor: not-allowed;
             opacity: 0.6;
@@ -148,29 +160,37 @@
              margin-top: 10px;
              margin-bottom: 20px;
         }
-        #restored-quiz-actions { /* Style for the new button group on restored page */
-            justify-content: flex-start; /* Align buttons to the left */
+        
+        /* Modal styles for the main page */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(18, 18, 31, 0.9); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
         }
-
+        .modal-content {
+            background-color: #1a1a2e; padding: 30px; border-radius: 15px;
+            border: 1px solid #3a3a5e; width: 90%; max-width: 600px;
+            max-height: 80vh; overflow-y: auto; position: relative;
+        }
+        .modal-content h2 { color: #8a8aff; margin-top: 0; }
+        .modal-close-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 2rem; color: #c0c0fa;
+            cursor: pointer; background: none; border: none; line-height: 1;
+        }
+        #sessions-list { list-style: none; padding: 0; margin: 0; }
+        #sessions-list li {
+            padding: 15px; border-bottom: 1px solid #3a3a5e; color: #c0c0fa;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        #sessions-list li:hover { background-color: #202035; }
+        #sessions-list li:last-child { border-bottom: none; }
 
         @media (max-width: 600px) {
-            .generator-container {
-                padding: 20px;
-                width: 95%;
-            }
-            h1 {
-                font-size: 1.5em;
-            }
-             .prompt-controls {
-                 gap: 10px;
-             }
-             .action-button, .copy-button {
-                 padding: 8px 18px;
-                 font-size: 0.9em;
-             }
-             textarea {
-                 min-height: 150px;
-             }
+            .generator-container { padding: 20px; width: 95%; }
+            h1 { font-size: 1.5em; }
+            .prompt-controls { gap: 10px; }
+            .action-button, .copy-button { padding: 8px 18px; font-size: 0.9em; }
+            textarea { min-height: 150px; }
         }
 
         .copied-feedback {
@@ -187,7 +207,7 @@
         <div class="prompt-section">
             <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
             <p>Attach your PDF document and use the following prompt to generate questions in the correct format. Remember to review the AI's output for accuracy and ensure the correctAnswer exactly matches one of the options strings.</p>
-            <code id="promptText">Based *solely* on the attached source (PDF, YouTube video, or pasted text), generate **30 board-exam–level** multiple-choice questions that probe deep factual and conceptual mastery of the material.
+            <code id="promptText">Based *solely* on the attached source material, first create a concise, descriptive title for the subject matter (5-7 words). Then, generate **30 board-exam–level** multiple-choice questions that probe deep factual and conceptual mastery of the material.
 Questions must test understanding of facts and concepts as they apply in general contexts—not recall of the source’s exact wording or examples. 
                 
 For each question, include exactly these four properties (use straight double-quotes around every key and string value). If any string value itself needs to contain a double-quote character, ensure it is properly escaped with a backslash (e.g., \"example of an internal quote\").               
@@ -196,50 +216,56 @@ For each question, include exactly these four properties (use straight double-qu
 3. "correctAnswer": the one option that is correct (must match exactly one entry in "options").
 4. "explanation": a brief, board-style rationale citing the source material.
 
-                
-Format the entire output *only* as a single JavaScript array of objects, like this example:
+Format the entire output *only* as a single JSON object. This object must have exactly two top-level properties:
+1. "title": The descriptive title you created.
+2. "questions": A JavaScript array containing all the question objects.
 
-[
-  {
-    "question": "Sample question text here?",
-    "options": ["Option A", "Option B", "Correct Option C", "Option D"],
-    "correctAnswer": "Correct Option C",
-    "explanation": "Brief explanation based on the document content."
-  },
-  {
-    "question": "Another question text?",
-    "options": ["Choice 1", "Choice 2", "Choice 3", "Correct Choice 4"],
-    "correctAnswer": "Correct Choice 4",
-    "explanation": "Another explanation referencing the source."
-  }
-]
-                
-Do not include any introductory text, concluding remarks, or markdown formatting like javascript before or after the array. Do not include any output in Cyrillic. Just output the raw JavaScript array structure starting with `[` and ending with `]`.</code>
+Do not include any introductory text, concluding remarks, or markdown formatting like `javascript` before or after the object. Do not include any output in Cyrillic. Just output the raw JSON object structure starting with `{` and ending with `}`.
+
+Example format:
+{
+  "title": "Advanced Concepts in Cellular Biology",
+  "questions": [
+    {
+      "question": "Sample question text here?",
+      "options": ["Option A", "Option B", "Correct Option C", "Option D"],
+      "correctAnswer": "Correct Option C",
+      "explanation": "Brief explanation based on the document content."
+    }
+  ]
+}</code>
             <div class="prompt-controls">
-                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button><br><br>
+                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
                 <span>Paste prompt here:</span>
                 <a href="https://aistudio.google.com/prompts/new_chat" target="_blank" class="link-style">Google AI Studio Chat</a>
             </div>
         </div>
 
         <label for="questionInput">Paste Formatted Quiz Data Here:</label>
-        <textarea id="questionInput" placeholder="Paste your JavaScript array of questions here, starting with [ and ending with ]..."></textarea>
-
-        <!-- Buttons for restored quiz will be injected here by JS -->
+        <textarea id="questionInput" placeholder="Paste your JavaScript object here, starting with { and ending with }..."></textarea>
 
         <div class="button-group">
+            <button id="viewPastSessionsBtn" class="secondary-button">View Past Sessions</button>
             <button id="generateBtn" class="action-button">Generate & View Quiz</button>
         </div>
     </div>
 
+    <!-- Modal for viewing past sessions on the main page -->
+    <div id="main-sessions-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h2>Select a Past Quiz to View</h2>
+            <ul id="sessions-list"></ul>
+        </div>
+    </div>
+
     <script>
-        // --- Helper Functions (defined at the top level of the script) ---
+        // --- Global Helper Functions ---
         function provideCopyFeedback(button) {
             const originalText = button.textContent;
             button.textContent = 'Copied!';
             button.classList.add('copied-feedback');
             button.disabled = true;
-
             setTimeout(() => {
                 button.textContent = originalText;
                 button.classList.remove('copied-feedback');
@@ -247,204 +273,13 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             }, 1500);
         }
 
-        function downloadHTML(content, fileName) {
-            const blob = new Blob([content], { type: 'text/html' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-        }
+        function launchQuiz(sessionData) {
+            const currentGeneratorHTML = document.documentElement.outerHTML;
+            sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
+            sessionStorage.setItem('loadQuizTitle', sessionData.title);
 
-        function addActionButtonsForPreviousQuiz() {
-            const previouslyGeneratedQuizHTML = sessionStorage.getItem('lastGeneratedQuizHTML');
-            if (previouslyGeneratedQuizHTML && !document.getElementById('restored-quiz-actions')) {
-                const container = document.querySelector('.generator-container');
-                const generateGroup = container.querySelector('.button-group');
-        
-                const buttonsHeader = document.createElement('p');
-                buttonsHeader.id = 'restored-quiz-actions-header';
-                buttonsHeader.textContent = 'Actions for previously generated quiz:';
-                buttonsHeader.style.marginTop    = '20px';
-                buttonsHeader.style.marginBottom = '10px';
-                buttonsHeader.style.textAlign    = 'left';
-        
-                const buttonGroupForRestored = document.createElement('div');
-                buttonGroupForRestored.classList.add('button-group');
-                buttonGroupForRestored.id = 'restored-quiz-actions';
-                buttonGroupForRestored.style.justifyContent = 'flex-start';
-        
-                const copyQuizHtmlBtn = document.createElement('button');
-                copyQuizHtmlBtn.textContent = 'Copy Quiz HTML';
-                copyQuizHtmlBtn.classList.add('action-button');
-                copyQuizHtmlBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(previouslyGeneratedQuizHTML)
-                        .then(() => provideCopyFeedback(copyQuizHtmlBtn))
-                        .catch(() => alert('Copy failed.'));
-                });
-        
-                const downloadQuizHtmlBtn = document.createElement('button');
-                downloadQuizHtmlBtn.textContent = 'Download Quiz HTML';
-                downloadQuizHtmlBtn.classList.add('action-button');
-                downloadQuizHtmlBtn.addEventListener('click', () => {
-                    downloadHTML(previouslyGeneratedQuizHTML, 'generated_quiz.html');
-                });
-        
-                buttonGroupForRestored.appendChild(copyQuizHtmlBtn);
-                buttonGroupForRestored.appendChild(downloadQuizHtmlBtn);
-        
-                generateGroup.insertAdjacentElement('afterend', buttonsHeader);
-                buttonsHeader.insertAdjacentElement('afterend', buttonGroupForRestored);
-            }
-        }
-
-
-        // --- Main script logic (executed on initial load and on restoration) ---
-        const promptTextElement = document.getElementById('promptText');
-        const copyPromptBtn = document.getElementById('copyPromptBtn');
-        const questionInput = document.getElementById('questionInput');
-        const generateBtn = document.getElementById('generateBtn');
-
-        if (copyPromptBtn && promptTextElement) {
-            copyPromptBtn.addEventListener('click', () => {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(promptTextElement.innerText)
-                        .then(() => provideCopyFeedback(copyPromptBtn))
-                        .catch(err => {
-                            console.error('Failed to copy prompt: ', err);
-                            alert('Failed to copy prompt. Please copy manually.');
-                        });
-                } else {
-                    try {
-                        const textArea = document.createElement('textarea');
-                        textArea.value = promptTextElement.innerText;
-                        document.body.appendChild(textArea);
-                        textArea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textArea);
-                        provideCopyFeedback(copyPromptBtn);
-                    } catch (err) {
-                         console.error('Fallback copy failed: ', err);
-                         alert('Failed to copy prompt automatically. Please copy manually.');
-                    }
-                }
-            });
-        }
-
-        if (generateBtn && questionInput) {
-            generateBtn.addEventListener('click', () => {
-                const headerToRemove = document.getElementById('restored-quiz-actions-header');
-                if (headerToRemove) headerToRemove.remove();
-                const buttonsToRemove = document.getElementById('restored-quiz-actions');
-                if (buttonsToRemove) buttonsToRemove.remove();
-
-                let currentInputText = questionInput.value;
-                const replacementText = '{\n    "question":';
-                currentInputText = currentInputText.replace(/\{[\s\S]*?\:/g, replacementText);
-                questionInput.value = currentInputText;
-                
-                const quizDataInput = questionInput.value.trim();
-
-                if (!quizDataInput) {
-                    alert('Please paste the quiz data into the input area first.');
-                    return;
-                }
-                if (!quizDataInput.startsWith('[') || !quizDataInput.endsWith(']')) {
-                    alert('The input data does not seem to be correctly formatted as a JavaScript array. It should start with [ and end with ].');
-                    return;
-                }
-
-                let parsedData;
-                try {
-                    const evaluator = new Function(`return ${quizDataInput};`);
-                    parsedData = evaluator();
-                } catch (e) {
-                    // --- MODIFICATION START: Enhanced error message for parsing failure ---
-                    let detailedErrorMessage = `Error parsing quiz data as JavaScript: ${e.message}\n\n`;
-                    detailedErrorMessage += "This usually means a syntax error in the JSON-like structure. Go to jsonlint.com and paste the JSON output for Gemini to find the error.";
-                    alert(detailedErrorMessage);
-                    // --- MODIFICATION END: Enhanced error message for parsing failure ---
-                    return;
-                }
-
-                if (!Array.isArray(parsedData)) {
-                    alert('The root of the quiz data must be an array (e.g., [ {question_object_1}, {question_object_2} ]). Please check the overall structure.');
-                    return;
-                }
-
-                if (parsedData.length === 0) {
-                    alert('The quiz data array is empty. Please provide at least one question object.');
-                    return;
-                }
-
-                const expectedKeys = ["question", "options", "correctAnswer", "explanation"];
-                const nonAsciiInKeyRegex = /[^\x00-\x7F]/; 
-
-                for (let i = 0; i < parsedData.length; i++) {
-                    const item = parsedData[i];
-                    const questionNumberForAlert = i + 1;
-
-                    if (typeof item !== 'object' || item === null) {
-                        alert(`Error in Question ${questionNumberForAlert}: Each entry in the array must be an object (e.g., { "question": "...", ... }). Found a non-object.`);
-                        return;
-                    }
-
-                    const itemKeys = Object.keys(item);
-                    for (const key of itemKeys) {
-                        if (nonAsciiInKeyRegex.test(key)) {
-                            alert(`Error in Question ${questionNumberForAlert}: Found a key ("${key}") containing non-standard (non-ASCII) characters. Keys should be simple English text like "question", "options", etc. Please review the AI output and correct this key.`);
-                            return;
-                        }
-                    }
-                    
-                    for (const expectedKey of expectedKeys) {
-                        if (!item.hasOwnProperty(expectedKey)) {
-                            alert(`Error in Question ${questionNumberForAlert}: Missing the required property: "${expectedKey}". Each question object must have: ${expectedKeys.join(', ')}.`);
-                            return;
-                        }
-                    }
-
-                    if (typeof item.question !== 'string' || item.question.trim() === '') {
-                        alert(`Error in Question ${questionNumberForAlert}: The "question" text is missing, empty, or not a string.`);
-                        return;
-                    }
-
-                    if (!Array.isArray(item.options) || item.options.length === 0) {
-                        alert(`Error in Question ${questionNumberForAlert}: The "options" property must be an array with at least one option string.`);
-                        return;
-                    }
-                    if (item.options.some(opt => typeof opt !== 'string' || opt.trim() === '')) {
-                        alert(`Error in Question ${questionNumberForAlert}: One or more "options" are empty or not strings.`);
-                        return;
-                    }
-                     if (item.options.length !== 4) { 
-                        alert(`Warning for Question ${questionNumberForAlert}: Expected 4 options, but found ${item.options.length}. The quiz UI might not display optimally.`);
-                    }
-
-                    if (typeof item.correctAnswer !== 'string' || item.correctAnswer.trim() === '') {
-                        alert(`Error in Question ${questionNumberForAlert}: The "correctAnswer" text is missing, empty, or not a string.`);
-                        return;
-                    }
-                    if (!item.options.includes(item.correctAnswer)) {
-                        alert(`Error in Question ${questionNumberForAlert}: The "correctAnswer" ("${item.correctAnswer}") does not exactly match any of the provided options. Check for typos or extra spaces.`);
-                        return;
-                    }
-
-                    if (typeof item.explanation !== 'string' || item.explanation.trim() === '') {
-                        alert(`Error in Question ${questionNumberForAlert}: The "explanation" text is missing, empty, or not a string.`);
-                        return;
-                    }
-                }
-                // --- End of existing structural validation loop ---
-
-
-                const currentGeneratorHTML = document.documentElement.outerHTML;
-                sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
-                history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
-
-                const htmlTemplate = `
+            const sessionDataJSON = JSON.stringify(sessionData);
+            const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -455,36 +290,36 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <style>
+        :root { 
+            --base-blue: #4a4af5; --dim-blue: #3a3a9e; --bright-blue: #8a8aff; 
+            --bg-color: #12121f; --font-color: #c0c0fa;
+        }
         body {
-            background-color: #12121f; color: #e0e0fc; font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color); color: var(--font-color); font-family: 'Roboto', sans-serif;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;
         }
         #quizTopControls {
-            position: fixed; top: 15px; left: 15px; z-index: 10000;
+            position: fixed; top: 15px; right: 15px; z-index: 10000;
             display: flex; gap: 10px;
         }
-        #backToGeneratorBtn, #downloadCurrentQuizBtn {
-            padding: 10px 18px; background: linear-gradient(45deg, #4a4af5, #7a7aff);
-            color: white; border: none; border-radius: 25px;
+        #profile-btn {
+            padding: 10px 18px; background: none; border: 1px solid var(--dim-blue);
+            color: var(--dim-blue); border-radius: 25px;
             font-family: 'Orbitron', sans-serif; font-size: 0.9em; cursor: pointer;
-            box-shadow: 0 3px 8px rgba(74, 74, 245, 0.4);
-            transition: transform 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+            transition: all 0.2s ease;
         }
-        #backToGeneratorBtn:hover, #downloadCurrentQuizBtn:hover {
-            transform: scale(1.05); box-shadow: 0 5px 12px rgba(74, 74, 245, 0.6);
-            background: linear-gradient(45deg, #5a5aff, #8a8aff);
-        }
+        #profile-btn:hover { background-color: var(--dim-blue); color: var(--bg-color); }
         .quiz-container {
             background-color: #1a1a2e; padding: 30px 40px; border-radius: 15px;
             box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
             width: 90%; max-width: 800px; text-align: center; border: 1px solid #3a3a5e;
             display: flex; flex-direction: column; justify-content: space-between;
-            min-height: 500px; margin-top: 70px; /* Adjusted for top controls */
+            min-height: 500px; margin-top: 70px;
         }
         .quiz-content { flex-grow: 1; margin-bottom: 20px; }
         h1 {
-            font-family: 'Orbitron', sans-serif; color: #8a8aff; margin-bottom: 25px;
+            font-family: 'Orbitron', sans-serif; color: var(--bright-blue); margin-bottom: 25px;
             text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
         }
         #question-counter { font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; }
@@ -505,60 +340,63 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         }
         .option-button:active:not(:disabled) { transform: translateY(0px); }
         .option-button:disabled { cursor: not-allowed; opacity: 0.7; }
-        .option-button.correct {
-            background-color: #1f7a3f !important; border-color: #28a745 !important;
-            color: #ffffff !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
-            opacity: 1 !important;
-        }
-        .option-button.incorrect {
-            background-color: #9a2532 !important; border-color: #dc3545 !important;
-            color: #ffffff !important; box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
-            opacity: 1 !important;
-        }
-        .option-button.reveal-correct {
-            background-color: #1c6a39 !important; border-color: #258a3c !important;
-            color: #ffffff !important; box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
-            opacity: 0.9 !important;
-        }
+        .option-button.correct { background-color: #1f7a3f !important; border-color: #28a745 !important; color: #ffffff !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important; opacity: 1 !important; }
+        .option-button.incorrect { background-color: #9a2532 !important; border-color: #dc3545 !important; color: #ffffff !important; box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important; opacity: 1 !important; }
+        .option-button.reveal-correct { background-color: #1c6a39 !important; border-color: #258a3c !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important; opacity: 0.9 !important; }
         .explanation-container {
             background-color: #202035; border: 1px solid #3a3a5e; border-radius: 8px;
             padding: 20px; margin-top: 20px; text-align: left; font-size: 0.95em;
             line-height: 1.5; color: #c0c0fa; box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
         }
-        .explanation-container strong { color: #8a8aff; }
-        .navigation-buttons {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-top: 30px; width: 100%;
-        }
+        .explanation-container strong { color: var(--bright-blue); }
+        .navigation-buttons { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; width: 100%; }
         .nav-button {
-            background: linear-gradient(45deg, #4a4af5, #8a8aff); color: white; border: none;
+            background: linear-gradient(45deg, var(--base-blue), var(--bright-blue)); color: white; border: none;
             padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
             border-radius: 25px; cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
             box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
             min-width: 120px; text-align: center;
         }
-        .nav-button:hover:not(:disabled) {
-            transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        .nav-button:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5); }
+        .nav-button:disabled { background: #5a5a7e; cursor: not-allowed; opacity: 0.6; box-shadow: none; transform: none; }
+        #completion-message { margin-top: 40px; flex-grow: 1; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        #completion-message h2 { font-family: 'Orbitron', sans-serif; color: #28a745; text-shadow: 0 0 8px rgba(40, 167, 69, 0.5); }
+
+        /* Panel & Modal Styles */
+        .panel-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.9);
+            z-index: 20000; display: none; flex-direction: column; justify-content: center;
+            align-items: center; padding: 40px; box-sizing: border-box; cursor: pointer;
         }
-        .nav-button:disabled {
-            background: #5a5a7e; cursor: not-allowed; opacity: 0.6;
-            box-shadow: none; transform: none;
+        .panel-content {
+            background-color: #1a1a2e; border: 1px solid var(--dim-blue); border-radius: 15px; padding: 30px;
+            width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; position: relative; cursor: default;
         }
-        #completion-message {
-            margin-top: 40px; flex-grow: 1; display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
+        .panel-content h2 { margin-top: 0; padding-right: 30px; color: var(--bright-blue); text-align: center; }
+        .close-button-x {
+            position: absolute; top: 10px; right: 15px; font-size: 2rem; font-weight: bold; color: var(--dim-blue);
+            background: none; border: none; cursor: pointer; line-height: 1; padding: 5px;
         }
-        #completion-message h2 {
-             font-family: 'Orbitron', sans-serif; color: #28a745;
-             text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        .close-button-x:hover { color: var(--bright-blue); }
+        #past-sessions-list { list-style: none; padding: 0; margin: 0; }
+        #past-sessions-list li { padding: 15px; border-bottom: 1px solid #444466; color: var(--font-color); line-height: 1.5; cursor: pointer; transition: background-color 0.2s ease; }
+        #past-sessions-list li:hover { background-color: #202035; }
+        #past-sessions-list li:last-child { border-bottom: none; }
+        .profile-menu-container { display: flex; flex-direction: column; gap: 15px; }
+        .profile-menu-container .menu-btn, .profile-menu-container .file-upload-label {
+            display: block; width: 100%; text-align: center; background: none; border: 1px solid var(--base-blue);
+            color: var(--bright-blue); padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 1rem;
+            transition: all 0.2s ease; box-sizing: border-box; 
         }
+        .profile-menu-container .menu-btn:hover, .profile-menu-container .file-upload-label:hover { background-color: var(--base-blue); color: #fff; }
+        .profile-menu-container input[type="file"] { display: none; }
+
         @media (max-width: 600px) {
-            #quizTopControls { top: 10px; left: 10px; }
-            #backToGeneratorBtn, #downloadCurrentQuizBtn { padding: 8px 12px; font-size: 0.8em; }
+            #quizTopControls { top: 10px; right: 10px; }
+            #profile-btn { padding: 8px 12px; font-size: 0.8em; }
             .quiz-container { padding: 20px; width: 95%; min-height: auto; margin-top: 60px; }
-            h1 { font-size: 1.5em; }
-            #question-text { font-size: 1.1em; min-height: 40px; }
+            h1 { font-size: 1.5em; } #question-text { font-size: 1.1em; min-height: 40px; }
             .option-button { font-size: 0.9em; padding: 10px 12px; }
             .nav-button { padding: 10px 20px; font-size: 1em; min-width: 100px; }
         }
@@ -566,19 +404,18 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 </head>
 <body>
     <div id="quizTopControls">
-        <button id="backToGeneratorBtn">← Back</button>
-        <button id="downloadCurrentQuizBtn">Download HTML</button>
+        <button id="profile-btn">Profile</button>
     </div>
 
     <div class="quiz-container">
         <div class="quiz-content">
-            <h1>Generated Quiz</h1>
+            <h1 id="quiz-title">Generated Quiz</h1>
             <div id="question-counter"></div>
             <div id="question-text">Loading question...</div>
             <div id="answer-options" class="options-container"></div>
             <div id="explanation" class="explanation-container" style="display: none;"></div>
         </div>
-        <div id="completion-message" style="display: none;">
+        <div id="completion-message">
             <h2>Quiz Complete!</h2>
             <p>You have finished all the questions.</p>
         </div>
@@ -587,36 +424,27 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             <button id="next-button" class="nav-button">Next</button>
         </div>
     </div>
+    
+    <div id="profile-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="profile-panel">&times;</button><h2>Profile & Sessions</h2><div class="profile-menu-container"><button id="view-past-sessions-btn" class="menu-btn">View Past Quizzes</button><button id="download-current-session-btn" class="menu-btn">Download this Quiz JSON</button><button id="download-all-sessions-btn" class="menu-btn">Download All Quizzes JSON</button><label for="upload-single-session" class="file-upload-label">Upload New Quiz JSON</label><input type="file" id="upload-single-session" accept=".json"><label for="upload-multiple-sessions" class="file-upload-label">Merge Past Quizzes JSON</label><input type="file" id="upload-multiple-sessions" accept=".json"></div></div></div>
+    <div id="past-sessions-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="past-sessions-panel">&times;</button><h2>Select a Past Quiz</h2><ul id="past-sessions-list"></ul></div></div>
 
 <script>
-    const backButton = document.getElementById('backToGeneratorBtn');
-    if (backButton) {
-        backButton.addEventListener('click', () => {
-            const original = sessionStorage.getItem('originalGeneratorHTML');
-            if (original) {
-                window.location.reload(); 
-            } else {
-                window.location.reload(); 
-            }
-        });
+    // --- Session Loading Logic ---
+    let activeSessionData;
+    const embeddedSessionData = ${sessionDataJSON};
+    const loadTitle = sessionStorage.getItem('loadQuizTitle');
+    if (loadTitle) {
+        const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+        const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
+        activeSessionData = sessionToLoad ? sessionToLoad : embeddedSessionData;
+    } else {
+        activeSessionData = embeddedSessionData;
     }
+    const quizData = activeSessionData.questions;
+    document.title = activeSessionData.title;
 
-    const downloadCurrentQuizButton = document.getElementById('downloadCurrentQuizBtn');
-    if (downloadCurrentQuizButton) {
-        downloadCurrentQuizButton.addEventListener('click', () => {
-            const currentQuizHTML = document.documentElement.outerHTML;
-            const blob = new Blob([currentQuizHTML], { type: 'text/html' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'quiz_page.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-        });
-    }
-
-    const quizData = ${quizDataInput}; 
+    // --- DOM Elements ---
+    const quizTitleEl = document.getElementById('quiz-title');
     const questionCounterElement = document.getElementById('question-counter');
     const questionTextElement = document.getElementById('question-text');
     const answerOptionsElement = document.getElementById('answer-options');
@@ -626,19 +454,27 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     const completionMessageElement = document.getElementById('completion-message');
     const quizContentElement = document.querySelector('.quiz-content');
     const navigationButtonsElement = document.querySelector('.navigation-buttons');
+    const profileBtnEl = document.getElementById('profile-btn');
+    const profilePanelEl = document.getElementById('profile-panel');
+    const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
+    const pastSessionsListEl = document.getElementById('past-sessions-list');
+
+    // --- Quiz State ---
     let currentQuestionIndex = 0;
     let userAnswers = new Array(quizData.length).fill(null);
 
+    // --- Core Quiz Functions ---
     function loadQuestion() {
         if (currentQuestionIndex >= quizData.length) { showCompletion(); return; }
-        if (quizContentElement) quizContentElement.style.display = 'block';
-        if (navigationButtonsElement) navigationButtonsElement.style.display = 'flex';
-        if (completionMessageElement) completionMessageElement.style.display = 'none';
-        if (explanationElement) { explanationElement.style.display = 'none'; explanationElement.innerHTML = ''; }
-        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
+        quizContentElement.style.display = 'block';
+        navigationButtonsElement.style.display = 'flex';
+        completionMessageElement.style.display = 'none';
+        explanationElement.style.display = 'none';
+        explanationElement.innerHTML = '';
+        answerOptionsElement.innerHTML = '';
         const currentQuestion = quizData[currentQuestionIndex];
-        if (questionCounterElement) questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
-        if (questionTextElement) questionTextElement.textContent = currentQuestion.question;
+        questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
+        questionTextElement.textContent = currentQuestion.question;
         currentQuestion.options.forEach(option => {
             const button = document.createElement('button');
             button.textContent = option;
@@ -649,92 +485,227 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                  if (option === savedAnswer.selected) { button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect'); }
                  if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) { button.classList.add('reveal-correct'); }
             } else { button.addEventListener('click', selectAnswer); }
-            if (answerOptionsElement) answerOptionsElement.appendChild(button);
+            answerOptionsElement.appendChild(button);
         });
-        if (userAnswers[currentQuestionIndex] !== null && explanationElement) {
+        if (userAnswers[currentQuestionIndex] !== null) {
             explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
             explanationElement.style.display = 'block';
         }
         updateNavButtonStates();
     }
     function updateNavButtonStates() {
-        if (prevButton) prevButton.disabled = (currentQuestionIndex === 0);
-        if (nextButton) { nextButton.disabled = false; nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next"; }
+        prevButton.disabled = (currentQuestionIndex === 0);
+        nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next";
     }
     function selectAnswer(event) {
-        const selectedButton = event.target; const selectedAnswer = selectedButton.textContent;
-        const currentQuestion = quizData[currentQuestionIndex]; const correctAnswer = currentQuestion.correctAnswer;
         if(userAnswers[currentQuestionIndex] !== null) return;
-        const isCorrect = selectedAnswer === correctAnswer;
+        const selectedButton = event.target; const selectedAnswer = selectedButton.textContent;
+        const currentQuestion = quizData[currentQuestionIndex];
+        const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
         userAnswers[currentQuestionIndex] = { selected: selectedAnswer, isCorrect: isCorrect };
-        const optionButtons = answerOptionsElement.querySelectorAll('.option-button');
-        optionButtons.forEach(button => {
+        answerOptionsElement.querySelectorAll('.option-button').forEach(button => {
             button.disabled = true;
             if (button.textContent === selectedAnswer) { button.classList.add(isCorrect ? 'correct' : 'incorrect'); }
-            if (!isCorrect && button.textContent === correctAnswer) { button.classList.add('reveal-correct'); }
+            if (!isCorrect && button.textContent === currentQuestion.correctAnswer) { button.classList.add('reveal-correct'); }
         });
-        if (explanationElement) {
-            explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
-            explanationElement.style.display = 'block';
-        }
+        explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
+        explanationElement.style.display = 'block';
     }
     function goToNextQuestion() {
          if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
-         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; loadQuestion(); } 
+         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; showCompletion(); } 
     }
     function goToPreviousQuestion() { if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); } }
     function showCompletion() {
-        if (quizContentElement) quizContentElement.style.display = 'none';
-        if (navigationButtonsElement) navigationButtonsElement.style.display = 'none';
-        if (completionMessageElement) {
-            completionMessageElement.style.display = 'flex';
-            let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
-            const scoreP = completionMessageElement.querySelector('p');
-            if(scoreP) { scoreP.textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`; }
+        quizContentElement.style.display = 'none';
+        navigationButtonsElement.style.display = 'none';
+        completionMessageElement.style.display = 'flex';
+        let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
+        completionMessageElement.querySelector('p').textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`;
+    }
+
+    // --- Panel & Session Management Functions ---
+    function showPanel(panelEl) { panelEl.style.display = 'flex'; }
+    function hidePanel(panelEl) { panelEl.style.display = 'none'; }
+    function downloadFile(content, fileName, contentType) {
+        const blob = new Blob([content], { type: contentType });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+    function populateAndShowPastSessions() {
+        const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+        pastSessionsListEl.innerHTML = '';
+        if (pastSessions.length === 0) {
+            pastSessionsListEl.innerHTML = '<li>No past quizzes found.</li>';
+        } else {
+            pastSessions.forEach(session => {
+                const li = document.createElement('li');
+                li.textContent = session.title;
+                if (session.title === activeSessionData.title) li.style.color = 'var(--bright-blue)';
+                li.addEventListener('click', () => {
+                    sessionStorage.setItem('loadQuizTitle', session.title);
+                    window.location.reload();
+                });
+                pastSessionsListEl.appendChild(li);
+            });
         }
+        showPanel(pastSessionsPanelEl);
     }
-    if (prevButton) prevButton.addEventListener('click', goToPreviousQuestion);
-    if (nextButton) nextButton.addEventListener('click', goToNextQuestion);
-    if (quizData && quizData.length > 0) { loadQuestion(); }
-    else {
-        if (questionTextElement) questionTextElement.textContent = 'Error: No valid quiz data found or quiz data is empty.';
-        if (questionCounterElement) questionCounterElement.textContent = '';
-        if (answerOptionsElement) answerOptionsElement.innerHTML = '';
-        if (prevButton) prevButton.disabled = true; if (nextButton) nextButton.disabled = true;
+     function handleFileUpload(event, isMultiple) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                let pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+                if (isMultiple) {
+                    if (!Array.isArray(data)) throw new Error("File should contain an array of sessions.");
+                    const sessionMap = new Map(pastSessions.map(s => [s.title, s]));
+                    data.forEach(newSession => {
+                        if (newSession.title && Array.isArray(newSession.questions)) sessionMap.set(newSession.title, newSession);
+                    });
+                    pastSessions = Array.from(sessionMap.values());
+                    alert(\`Merged \${data.length} quizzes. Total quizzes now: \${pastSessions.length}.\`);
+                } else {
+                    if (!data.title || !Array.isArray(data.questions)) throw new Error("Invalid session JSON format.");
+                    const existingIndex = pastSessions.findIndex(s => s.title === data.title);
+                    if (existingIndex > -1) pastSessions[existingIndex] = data; else pastSessions.push(data);
+                    alert(\`Quiz "\${data.title}" was successfully uploaded.\`);
+                }
+                localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
+            } catch (err) { alert('Error processing file: ' + err.message); }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
     }
+
+    // --- Event Listeners ---
+    prevButton.addEventListener('click', goToPreviousQuestion);
+    nextButton.addEventListener('click', goToNextQuestion);
+    profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
+
+    // Profile Panel Listeners
+    document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
+    document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), \`\${activeSessionData.title.replace(/[.\\s]/g, '_')}.json\`, 'application/json'));
+    document.getElementById('download-all-sessions-btn').addEventListener('click', () => downloadFile(localStorage.getItem('pastQuizSessions') || '[]', 'all_past_quizzes.json', 'application/json'));
+    document.getElementById('upload-single-session').addEventListener('change', (e) => handleFileUpload(e, false));
+    document.getElementById('upload-multiple-sessions').addEventListener('change', (e) => handleFileUpload(e, true));
+
+    // Universal Panel Closing
+    document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
+    document.querySelectorAll('.close-button-x').forEach(b => b.addEventListener('click', e => hidePanel(document.getElementById(e.currentTarget.dataset.target))));
+    
+    // --- Initial Load ---
+    quizTitleEl.textContent = activeSessionData.title.split(' ').slice(1).join(' '); // Show AI title without date
+    loadQuestion();
 <\/script>
 </body>
 </html>
 `; 
 
-                sessionStorage.setItem('lastGeneratedQuizHTML', htmlTemplate);
+            history.pushState({ view: 'quiz' }, '', '#quiz');
+            document.open();
+            document.write(htmlTemplate);
+            document.close();
+        }
 
-                document.open();
-                document.write(htmlTemplate);
-                document.close();
+        // --- Main Page Script Logic ---
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const promptTextElement = document.getElementById('promptText');
+        const questionInput = document.getElementById('questionInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const viewPastSessionsBtn = document.getElementById('viewPastSessionsBtn');
+        const mainSessionsModal = document.getElementById('main-sessions-modal');
+
+        if (copyPromptBtn && promptTextElement) {
+            copyPromptBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(promptTextElement.innerText)
+                    .then(() => provideCopyFeedback(copyPromptBtn))
+                    .catch(err => {
+                        console.error('Failed to copy prompt: ', err);
+                        alert('Failed to copy prompt. Please copy manually.');
+                    });
             });
         }
 
+        if (generateBtn && questionInput) {
+            generateBtn.addEventListener('click', () => {
+                const quizDataInput = questionInput.value.trim();
+                if (!quizDataInput) { alert('Please paste the quiz data into the input area first.'); return; }
+                if (!quizDataInput.startsWith('{') || !quizDataInput.endsWith('}')) { alert('The input data does not seem to be a correctly formatted JSON object.'); return; }
+
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(quizDataInput);
+                } catch (e) {
+                    alert(`Error parsing quiz data: ${e.message}\n\nThis usually means a syntax error. You can use a tool like jsonlint.com to validate the structure.`);
+                    return;
+                }
+
+                if (typeof parsedData.title !== 'string' || parsedData.title.trim() === '') { alert('The JSON object is missing a valid "title" string property.'); return; }
+                if (!Array.isArray(parsedData.questions) || parsedData.questions.length === 0) { alert('The JSON object must have a "questions" property that is an array with at least one question object.'); return; }
+
+                const today = new Date();
+                const formattedTitle = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} ${parsedData.title}`;
+
+                const sessionData = { title: formattedTitle, questions: parsedData.questions };
+
+                try {
+                    let pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+                    pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
+                    pastSessions.push(sessionData);
+                    localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
+                } catch (e) {
+                    console.error("Could not save to localStorage:", e);
+                }
+                
+                launchQuiz(sessionData);
+            });
+        }
+        
+        // --- Main Page Modal Logic ---
+        if (viewPastSessionsBtn && mainSessionsModal) {
+            const sessionsList = document.getElementById('sessions-list');
+            const closeModalBtn = mainSessionsModal.querySelector('.modal-close-btn');
+
+            viewPastSessionsBtn.addEventListener('click', () => {
+                const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+                sessionsList.innerHTML = '';
+                if (pastSessions.length === 0) {
+                    sessionsList.innerHTML = '<li>No past quizzes found.</li>';
+                } else {
+                    pastSessions.forEach(session => {
+                        const li = document.createElement('li');
+                        li.textContent = session.title;
+                        li.addEventListener('click', () => {
+                            launchQuiz(session);
+                        });
+                        sessionsList.appendChild(li);
+                    });
+                }
+                mainSessionsModal.style.display = 'flex';
+            });
+
+            const closeModal = () => mainSessionsModal.style.display = 'none';
+            closeModalBtn.addEventListener('click', closeModal);
+            mainSessionsModal.addEventListener('click', (e) => {
+                if (e.target === mainSessionsModal) closeModal();
+            });
+        }
+
+        // --- Page Restoration Logic ---
         window.addEventListener('popstate', event => {
             const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
-            if (event.state && event.state.view === 'generator_restoration_point' && storedOriginalHTML) {
+            if (storedOriginalHTML) {
+                sessionStorage.removeItem('loadQuizTitle');
                 document.open();
                 document.write(storedOriginalHTML);
                 document.close();
-                setTimeout(addActionButtonsForPreviousQuiz, 0);
-            } else if (event.state === null && storedOriginalHTML) {
-                const currentPageContent = document.documentElement.outerHTML;
-                if (currentPageContent !== storedOriginalHTML) { 
-                    document.open();
-                    document.write(storedOriginalHTML);
-                    document.close();
-                    setTimeout(addActionButtonsForPreviousQuiz, 0);
-                } else if (!document.getElementById('restored-quiz-actions')) {
-                    addActionButtonsForPreviousQuiz();
-                }
             }
         });
-        addActionButtonsForPreviousQuiz();
     </script>
 </body>
 </html>
