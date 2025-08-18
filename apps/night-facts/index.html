@@ -85,19 +85,27 @@
             flex-wrap: wrap;
         }
 
+        input.text-input,
         textarea {
             width: 100%;
-            min-height: 200px;
             background-color: #3e2a2a;
             color: #fcd0d0;
             border: 1px solid #7e4a4a;
             border-radius: 8px;
             padding: 15px;
             font-family: monospace;
-            font-size: 0.9em;
-            margin-bottom: 20px;
             box-sizing: border-box;
             resize: vertical;
+        }
+        input.text-input {
+            margin-bottom: 20px;
+            font-size: 1em;
+            resize: none;
+        }
+        textarea {
+            min-height: 200px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
         }
 
         .action-button, .copy-button {
@@ -208,11 +216,14 @@ Example format:
   }
 ]</code>
             <div class="prompt-controls">
-                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button><br><br>
+                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
                 <span>Paste prompt here:</span>
                 <a href="https://aistudio.google.com/prompts/new_chat" target="_blank" class="link-style">Google AI Studio Chat</a>
             </div>
         </div>
+        
+        <label for="sessionTitle">Session Title:</label>
+        <input type="text" id="sessionTitle" class="text-input" placeholder="e.g., Fun Facts About Space">
 
         <label for="factInput">Paste Formatted Fact Data Here:</label>
         <textarea id="factInput" placeholder="Paste your JavaScript array of facts here, starting with [ and ending with ]..."></textarea>
@@ -297,6 +308,7 @@ Example format:
         const promptTextElement = document.getElementById('promptText');
         const factInput = document.getElementById('factInput');
         const generateBtn = document.getElementById('generateBtn');
+        const sessionTitleInput = document.getElementById('sessionTitle');
 
         if (copyPromptBtn && promptTextElement) {
             copyPromptBtn.addEventListener('click', () => {
@@ -309,15 +321,27 @@ Example format:
             });
         }
 
-        if (generateBtn && factInput) {
+        if (generateBtn && factInput && sessionTitleInput) {
             generateBtn.addEventListener('click', () => {
                 const headerToRemove = document.getElementById('restored-actions-header');
                 if (headerToRemove) headerToRemove.remove();
                 const buttonsToRemove = document.getElementById('restored-actions');
                 if (buttonsToRemove) buttonsToRemove.remove();
+                
+                // --- Title Validation and Formatting ---
+                const titleText = sessionTitleInput.value.trim();
+                if (!titleText) {
+                    alert('Please provide a title for this session.');
+                    return;
+                }
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const formattedTitle = `${year}.${month}.${day} ${titleText}`;
 
+                // --- Fact Data Validation ---
                 const factDataInput = factInput.value.trim();
-
                 if (!factDataInput) {
                     alert('Please paste the fact data into the input area first.');
                     return;
@@ -340,34 +364,39 @@ Example format:
                     alert('The data must be an array with at least one fact object.');
                     return;
                 }
-
+                
                 const expectedKeys = ["fact", "context"];
                 for (let i = 0; i < parsedData.length; i++) {
                     const item = parsedData[i];
                     const factNumber = i + 1;
-
-                    if (typeof item !== 'object' || item === null) {
-                        alert(`Error in Fact ${factNumber}: Each entry must be an object (e.g., { "fact": "...", ... }).`);
-                        return;
-                    }
-                    
-                    for (const key of expectedKeys) {
-                        if (!item.hasOwnProperty(key)) {
-                            alert(`Error in Fact ${factNumber}: Missing the required property: "${key}".`);
-                            return;
-                        }
-                    }
-
-                    if (typeof item.fact !== 'string' || item.fact.trim() === '') {
-                        alert(`Error in Fact ${factNumber}: The "fact" text is missing, empty, or not a string.`);
+                    if (typeof item !== 'object' || item === null || !expectedKeys.every(key => key in item) || typeof item.fact !== 'string' || item.fact.trim() === '') {
+                        alert(`Error in Fact ${factNumber}: Each entry must be an object with non-empty "fact" and "context" string properties.`);
                         return;
                     }
                 }
-                
+
+                // --- Create and Store Session Data ---
+                const sessionData = {
+                    title: formattedTitle,
+                    facts: parsedData
+                };
+
+                try {
+                    let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+                    // Prevent exact title duplicates
+                    pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
+                    pastSessions.push(sessionData);
+                    localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
+                } catch (e) {
+                    console.error("Could not save to localStorage:", e);
+                    alert("Could not save session data to browser storage. Your browser might be in private mode or storage is full.");
+                }
+
                 const currentGeneratorHTML = document.documentElement.outerHTML;
                 sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
                 history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
 
+                const sessionDataJSON = JSON.stringify(sessionData);
                 const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
@@ -385,443 +414,366 @@ Example format:
             --fav-color: #ffb833; /* A gold/yellow for favorited star */
         }
         html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: var(--bg-color);
-            color: var(--font-color);
+            height: 100%; margin: 0; padding: 0; overflow: hidden;
+            background-color: var(--bg-color); color: var(--font-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
         }
         #live-clock {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            font-size: clamp(3rem, 6vw, 5rem);
-            font-weight: 700;
-            color: var(--dim-red);
-            font-variant-numeric: tabular-nums;
-            z-index: 50;
-            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            position: fixed; top: 20px; left: 20px; font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: 700; color: var(--dim-red); font-variant-numeric: tabular-nums;
+            z-index: 50; text-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
         .screensaver-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100vw;
-            height: 100vh;
-            text-align: center;
-            padding: 5vw;
-            box-sizing: border-box;
-            position: relative;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; width: 100vw; height: 100vh; text-align: center;
+            padding: 5vw; box-sizing: border-box; position: relative;
         }
-        .fact-wrapper {
-            max-width: 80vw;
-        }
+        .fact-wrapper { max-width: 80vw; }
         #fact-text {
-            font-size: clamp(2rem, 5vw, 4.5rem);
-            font-weight: 500;
-            line-height: 1.3;
-            margin: 0;
-            transition: opacity 0.5s ease-in-out;
+            font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 500;
+            line-height: 1.3; margin: 0; transition: opacity 0.5s ease-in-out;
         }
-        /* --- Navigation & UI Elements --- */
-        .nav-overlay {
-            position: fixed;
-            top: 0;
-            height: 100%;
-            width: 25%;
-            z-index: 10;
-            cursor: pointer;
-        }
+        .nav-overlay { position: fixed; top: 0; height: 100%; width: 25%; z-index: 10; cursor: pointer; }
         #nav-left { left: 0; }
         #nav-right { right: 0; }
         
         .top-ui-controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            z-index: 100;
+            position: fixed; top: 20px; right: 20px; display: flex;
+            gap: 20px; align-items: center; z-index: 100;
         }
-        #counter, #view-favorites-btn {
-            font-size: 1.2rem;
-            color: var(--dim-red);
-            font-variant-numeric: tabular-nums;
-        }
+        #counter { font-size: 1.2rem; color: var(--dim-red); font-variant-numeric: tabular-nums; }
         .ui-button {
-            background: none;
-            border: 1px solid var(--dim-red);
-            color: var(--dim-red);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            background: none; border: 1px solid var(--dim-red); color: var(--dim-red);
+            padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s ease;
         }
-        .ui-button:hover {
-            background-color: var(--dim-red);
-            color: var(--bg-color);
-        }
-        #info-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 100;
-        }
-        
+        .ui-button:hover { background-color: var(--dim-red); color: var(--bg-color); }
+        #info-btn { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
         #favorite-zone {
-            position: fixed;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 15;
-            cursor: pointer;
-            width: 96px;
-            height: 96px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: fixed; left: 50%; transform: translateX(-50%); z-index: 15;
+            cursor: pointer; width: 96px; height: 96px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
         }
         #favorite-indicator {
-            font-size: 2rem;
-            color: transparent;
-            text-shadow: 0 0 var(--dim-red);
-            transition: all 0.3s ease;
-            pointer-events: none;
+            font-size: 2rem; color: transparent; text-shadow: 0 0 var(--dim-red);
+            transition: all 0.3s ease; pointer-events: none;
         }
         #favorite-indicator.is-favorite {
-            color: var(--fav-color);
-            text-shadow: 0 0 15px var(--fav-color);
-            transform: scale(1.2);
+            color: var(--fav-color); text-shadow: 0 0 15px var(--fav-color); transform: scale(1.2);
         }
         
         /* --- Panel & Modal Styles --- */
         .panel-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background-color: rgba(0,0,0,0.9);
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-            box-sizing: border-box;
-            cursor: pointer;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0,0,0,0.9); z-index: 200; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            padding: 40px; box-sizing: border-box; cursor: pointer;
         }
         .panel-content {
-            background-color: #110000;
-            border: 1px solid var(--dim-red);
-            border-radius: 15px;
-            padding: 30px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative; /* For positioning the close button */
-            cursor: default;
+            background-color: #110000; border: 1px solid var(--dim-red); border-radius: 15px;
+            padding: 30px; width: 90%; max-width: 700px; max-height: 80vh;
+            overflow-y: auto; position: relative; cursor: default;
         }
-        .panel-content h2 {
-            margin-top: 0;
-            padding-right: 30px; /* Space for close button */
-            color: var(--bright-red);
-            text-align: center;
-        }
+        .panel-content h2 { margin-top: 0; padding-right: 30px; color: var(--bright-red); text-align: center; }
         .close-button-x {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--dim-red);
-            background: none;
-            border: none;
-            cursor: pointer;
-            line-height: 1;
-            padding: 5px;
+            position: absolute; top: 10px; right: 15px; font-size: 2rem;
+            font-weight: bold; color: var(--dim-red); background: none; border: none;
+            cursor: pointer; line-height: 1; padding: 5px;
         }
-        .close-button-x:hover {
-            color: var(--bright-red);
+        .close-button-x:hover { color: var(--bright-red); }
+        #favorites-list, #past-sessions-list { list-style: none; padding: 0; margin: 0; }
+        #favorites-list li, #past-sessions-list li {
+            padding: 15px 0; border-bottom: 1px solid #441111; color: var(--font-color); line-height: 1.5;
         }
-        #favorites-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        #favorites-list li {
-            padding: 15px 0;
-            border-bottom: 1px solid #441111;
-            color: var(--font-color);
-            line-height: 1.5;
-        }
-        #favorites-list li:last-child { border-bottom: none; }
+        #past-sessions-list li { cursor: pointer; transition: background-color 0.2s ease; padding: 15px; }
+        #past-sessions-list li:hover { background-color: #331111; }
+        #favorites-list li:last-child, #past-sessions-list li:last-child { border-bottom: none; }
         
-        #context-text-panel {
-            color: var(--font-color);
-            line-height: 1.6;
-            font-size: 1.1rem;
-            text-align: left; /* Better for paragraphs */
-        }
-        .panel-controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
+        #context-text-panel { color: var(--font-color); line-height: 1.6; font-size: 1.1rem; text-align: left; }
+        .panel-controls { margin-top: 20px; display: flex; gap: 15px; justify-content: center; }
         .panel-btn {
-            background: none;
-            border: 1px solid var(--base-red);
-            color: var(--base-red);
-            padding: 10px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.2s ease;
+            background: none; border: 1px solid var(--base-red); color: var(--base-red);
+            padding: 10px 25px; border-radius: 25px; cursor: pointer;
+            font-size: 1rem; transition: all 0.2s ease;
         }
-        .panel-btn:hover {
-            background-color: var(--base-red);
-            color: var(--bg-color);
+        .panel-btn:hover { background-color: var(--base-red); color: var(--bg-color); }
+        .profile-menu-container { display: flex; flex-direction: column; gap: 15px; }
+        .profile-menu-container .menu-btn, .profile-menu-container .file-upload-label {
+            display: block; width: 100%; text-align: center; background: none;
+            border: 1px solid var(--base-red); color: var(--base-red); padding: 12px 20px;
+            border-radius: 25px; cursor: pointer; font-size: 1rem; transition: all 0.2s ease;
+            box-sizing: border-box; 
         }
-
+        .profile-menu-container .menu-btn:hover, .profile-menu-container .file-upload-label:hover {
+            background-color: var(--base-red); color: var(--bg-color);
+        }
+        .profile-menu-container input[type="file"] { display: none; }
     </style>
 </head>
 <body>
     <div id="live-clock"></div>
-
     <div class="screensaver-container">
-        <div class="fact-wrapper" id="fact-wrapper">
-            <h1 id="fact-text"></h1>
-        </div>
+        <div class="fact-wrapper" id="fact-wrapper"><h1 id="fact-text"></h1></div>
     </div>
-    
     <div id="nav-left" class="nav-overlay"></div>
     <div id="nav-right" class="nav-overlay"></div>
-
     <div class="top-ui-controls">
         <span id="counter"></span>
-        <button id="view-favorites-btn" class="ui-button">Favorites</button>
+        <button id="profile-btn" class="ui-button">Profile</button>
     </div>
-
     <button id="info-btn" class="ui-button">More Info</button>
-
-    <div id="favorite-zone">
-        <div id="favorite-indicator">★</div>
-    </div>
+    <div id="favorite-zone"><div id="favorite-indicator">★</div></div>
     
+    <div id="context-panel" class="panel-overlay">
+        <div class="panel-content">
+            <button class="close-button-x" data-target="context-panel">&times;</button>
+            <h2>Context</h2><p id="context-text-panel"></p>
+        </div>
+    </div>
     <div id="favorites-panel" class="panel-overlay">
         <div class="panel-content">
             <button class="close-button-x" data-target="favorites-panel">&times;</button>
-            <h2>Your Favorites</h2>
-            <ul id="favorites-list"></ul>
+            <h2>This Session's Favorites</h2><ul id="favorites-list"></ul>
             <div class="panel-controls">
                 <button id="download-favorites-btn" class="panel-btn">Download .txt</button>
             </div>
         </div>
     </div>
-
-    <div id="context-panel" class="panel-overlay">
+    <div id="profile-panel" class="panel-overlay">
         <div class="panel-content">
-            <button class="close-button-x" data-target="context-panel">&times;</button>
-            <h2>Context</h2>
-            <p id="context-text-panel"></p>
+            <button class="close-button-x" data-target="profile-panel">&times;</button>
+            <h2>Profile & Sessions</h2>
+            <div class="profile-menu-container">
+                <button id="view-session-favorites-btn" class="menu-btn">View This Session Favorites</button>
+                <button id="view-past-sessions-btn" class="menu-btn">View Past Sessions</button>
+                <button id="download-current-session-btn" class="menu-btn">Download this Session JSON</button>
+                <button id="download-all-sessions-btn" class="menu-btn">Download All Past Sessions JSON</button>
+                <label for="upload-single-session" class="file-upload-label">Upload New Session JSON</label>
+                <input type="file" id="upload-single-session" accept=".json">
+                <label for="upload-multiple-sessions" class="file-upload-label">Merge Past Sessions JSON</label>
+                <input type="file" id="upload-multiple-sessions" accept=".json">
+            </div>
+        </div>
+    </div>
+    <div id="past-sessions-panel" class="panel-overlay">
+        <div class="panel-content">
+            <button class="close-button-x" data-target="past-sessions-panel">&times;</button>
+            <h2>Select a Past Session</h2>
+            <ul id="past-sessions-list"></ul>
         </div>
     </div>
 
 <script>
-    const factsData = ${factDataInput};
-    
-    // DOM Elements
-    const factTextEl = document.getElementById('fact-text');
-    const factWrapperEl = document.getElementById('fact-wrapper');
-    const liveClockEl = document.getElementById('live-clock');
-    const counterEl = document.getElementById('counter');
-    const favoriteZoneEl = document.getElementById('favorite-zone');
-    const favoriteIndicatorEl = document.getElementById('favorite-indicator');
-    
-    const infoBtnEl = document.getElementById('info-btn');
-    const contextPanelEl = document.getElementById('context-panel');
-    const contextTextPanelEl = document.getElementById('context-text-panel');
-
-    const favoritesBtnEl = document.getElementById('view-favorites-btn');
-    const favoritesPanelEl = document.getElementById('favorites-panel');
-    const favoritesListEl = document.getElementById('favorites-list');
-    
-    // State
-    let currentFactIndex = 0;
-    let favorites = JSON.parse(localStorage.getItem('factFavorites')) || [];
-    let autoAdvanceTimer;
-    const AUTO_ADVANCE_DELAY = 25000;
-
-    function updateClock() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString(navigator.language, {
-            hour: 'numeric',
-            minute: '2-digit'
-        });
-        if (liveClockEl.textContent !== timeString) {
-            liveClockEl.textContent = timeString;
+    // --- Initial Data Setup ---
+    let activeSessionData;
+    const embeddedSessionData = ${sessionDataJSON};
+    const loadTitle = sessionStorage.getItem('loadSessionTitle');
+    if (loadTitle) {
+        sessionStorage.removeItem('loadSessionTitle');
+        const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+        const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
+        if (sessionToLoad) {
+            activeSessionData = sessionToLoad;
+        } else {
+            alert('Could not find the selected session. Loading the original session for this file.');
+            activeSessionData = embeddedSessionData;
         }
+    } else {
+        activeSessionData = embeddedSessionData;
+    }
+    const factsData = activeSessionData.facts;
+    document.title = activeSessionData.title;
+
+    // --- DOM Elements ---
+    const factTextEl = document.getElementById('fact-text'), factWrapperEl = document.getElementById('fact-wrapper'),
+          liveClockEl = document.getElementById('live-clock'), counterEl = document.getElementById('counter'),
+          favoriteZoneEl = document.getElementById('favorite-zone'), favoriteIndicatorEl = document.getElementById('favorite-indicator'),
+          infoBtnEl = document.getElementById('info-btn'), contextPanelEl = document.getElementById('context-panel'),
+          contextTextPanelEl = document.getElementById('context-text-panel'), favoritesPanelEl = document.getElementById('favorites-panel'),
+          favoritesListEl = document.getElementById('favorites-list'), profileBtnEl = document.getElementById('profile-btn'),
+          profilePanelEl = document.getElementById('profile-panel'), pastSessionsPanelEl = document.getElementById('past-sessions-panel'),
+          pastSessionsListEl = document.getElementById('past-sessions-list');
+    
+    // --- State & Timers ---
+    let currentFactIndex = 0, autoAdvanceTimer;
+    const AUTO_ADVANCE_DELAY = 25000;
+    
+    // --- Favorites Management (Session Specific) ---
+    let allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
+    let sessionFavorites = allFavorites[activeSessionData.title] || [];
+    
+    function saveFavorites() {
+        allFavorites[activeSessionData.title] = sessionFavorites;
+        localStorage.setItem('factFavorites', JSON.stringify(allFavorites));
+    }
+    
+    // --- Helper Functions ---
+    function downloadFile(content, fileName, contentType) {
+        const blob = new Blob([content], { type: contentType });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
     }
 
+    // --- Core Display Functions ---
+    function updateClock() {
+        const timeString = new Date().toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
+        if (liveClockEl.textContent !== timeString) liveClockEl.textContent = timeString;
+    }
     function positionFavoriteIndicator() {
         const factRect = factWrapperEl.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const topPosition = factRect.bottom + ((viewportHeight - factRect.bottom) / 2);
-        favoriteZoneEl.style.top = \`\${topPosition - (favoriteZoneEl.offsetHeight / 2)}px\`;
+        favoriteZoneEl.style.top = `${factRect.bottom + ((window.innerHeight - factRect.bottom) / 2) - (favoriteZoneEl.offsetHeight / 2)}px`;
     }
-
     function renderFact(index) {
         factTextEl.style.opacity = 0;
         setTimeout(() => {
-            const fact = factsData[index];
-            factTextEl.textContent = fact.fact;
-            counterEl.textContent = \`\${index + 1} / \${factsData.length}\`;
-            favoriteIndicatorEl.classList.toggle('is-favorite', favorites.includes(index));
+            factTextEl.textContent = factsData[index].fact;
+            counterEl.textContent = `${index + 1} / ${factsData.length}`;
+            favoriteIndicatorEl.classList.toggle('is-favorite', sessionFavorites.includes(index));
             factTextEl.style.opacity = 1;
             positionFavoriteIndicator();
         }, 400);
         resetAutoAdvanceTimer();
     }
+    function nextFact() { renderFact(currentFactIndex = (currentFactIndex + 1) % factsData.length); }
+    function prevFact() { renderFact(currentFactIndex = (currentFactIndex - 1 + factsData.length) % factsData.length); }
+    function resetAutoAdvanceTimer() { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY); }
 
-    function nextFact() {
-        currentFactIndex = (currentFactIndex + 1) % factsData.length;
-        renderFact(currentFactIndex);
-    }
-
-    function prevFact() {
-        currentFactIndex = (currentFactIndex - 1 + factsData.length) % factsData.length;
-        renderFact(currentFactIndex);
-    }
-
+    // --- Panel Management ---
+    function showPanel(panelEl) { clearTimeout(autoAdvanceTimer); panelEl.style.display = 'flex'; }
+    function hidePanel(panelEl) { panelEl.style.display = 'none'; resetAutoAdvanceTimer(); }
+    
+    // --- Actions & Event Handlers ---
     function toggleFavorite() {
-        const indexInFavorites = favorites.indexOf(currentFactIndex);
-        if (indexInFavorites > -1) {
-            favorites.splice(indexInFavorites, 1);
-        } else {
-            favorites.push(currentFactIndex);
-        }
+        const indexInFavorites = sessionFavorites.indexOf(currentFactIndex);
+        if (indexInFavorites > -1) sessionFavorites.splice(indexInFavorites, 1);
+        else sessionFavorites.push(currentFactIndex);
         favoriteIndicatorEl.classList.toggle('is-favorite', indexInFavorites === -1);
-        localStorage.setItem('factFavorites', JSON.stringify(favorites));
+        saveFavorites();
     }
-
-    function resetAutoAdvanceTimer() {
-        clearTimeout(autoAdvanceTimer);
-        autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY);
-    }
-
-    function showPanel(panelEl) {
-        clearTimeout(autoAdvanceTimer);
-        panelEl.style.display = 'flex';
-    }
-
-    function hidePanel(panelEl) {
-        panelEl.style.display = 'none';
-        resetAutoAdvanceTimer();
-    }
-
     function showContextPanel() {
-        const fact = factsData[currentFactIndex];
-        contextTextPanelEl.textContent = fact.context || "No additional context available.";
+        contextTextPanelEl.textContent = factsData[currentFactIndex].context || "No context available.";
         showPanel(contextPanelEl);
     }
-
     function showFavoritesPanel() {
         favoritesListEl.innerHTML = '';
-        if (favorites.length === 0) {
+        if (sessionFavorites.length === 0) {
             favoritesListEl.innerHTML = '<li>You haven\\'t favorited any facts yet. Click the star area to save one.</li>';
         } else {
-            favorites.sort((a,b) => a-b).forEach(index => {
-                const fact = factsData[index];
+            sessionFavorites.sort((a,b) => a-b).forEach(index => {
                 const li = document.createElement('li');
-                li.textContent = fact.fact;
+                li.textContent = factsData[index].fact;
                 favoritesListEl.appendChild(li);
             });
         }
         showPanel(favoritesPanelEl);
     }
-
-    function downloadFavorites() {
-        if (favorites.length === 0) {
-            alert('No favorites to download.');
-            return;
-        }
-        let textContent = 'My Favorite Facts\\n===================\\n\\n';
-        favorites.sort((a,b) => a-b).forEach((index, i) => {
+    function downloadSessionFavorites() {
+        if (sessionFavorites.length === 0) { alert('No favorites to download.'); return; }
+        let textContent = `Favorite Facts from: ${activeSessionData.title}\\n===================\\n\\n`;
+        sessionFavorites.sort((a,b) => a-b).forEach((index, i) => {
             const fact = factsData[index];
-            textContent += \`\${i + 1}. \${fact.fact}\\n(Context: \${fact.context})\\n\\n\`;
+            textContent += `${i + 1}. ${fact.fact}\\n(Context: ${fact.context})\\n\\n`;
         });
-        const blob = new Blob([textContent], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'my_favorite_facts.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
+        downloadFile(textContent, 'my_favorite_facts.txt', 'text/plain');
+    }
+
+    // --- Profile Menu Functions ---
+    function populateAndShowPastSessions() {
+        const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+        pastSessionsListEl.innerHTML = '';
+        if (pastSessions.length === 0) {
+            pastSessionsListEl.innerHTML = '<li>No past sessions found.</li>';
+        } else {
+            pastSessions.forEach(session => {
+                const li = document.createElement('li');
+                li.textContent = session.title;
+                if (session.title === activeSessionData.title) li.style.color = 'var(--bright-red)';
+                li.addEventListener('click', () => {
+                    sessionStorage.setItem('loadSessionTitle', session.title);
+                    location.reload();
+                });
+                pastSessionsListEl.appendChild(li);
+            });
+        }
+        showPanel(pastSessionsPanelEl);
+    }
+    function handleFileUpload(event, isMultiple) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+                if (isMultiple) {
+                    if (!Array.isArray(data)) throw new Error("File should contain an array of sessions.");
+                    const sessionMap = new Map(pastSessions.map(s => [s.title, s]));
+                    data.forEach(newSession => {
+                        if (newSession.title && Array.isArray(newSession.facts)) {
+                           sessionMap.set(newSession.title, newSession); // Overwrites duplicates
+                        }
+                    });
+                    pastSessions = Array.from(sessionMap.values());
+                    alert(`Merged ${data.length} sessions. Total sessions now: ${pastSessions.length}.`);
+                } else {
+                    if (!data.title || !Array.isArray(data.facts)) throw new Error("Invalid session JSON format.");
+                    const existingIndex = pastSessions.findIndex(s => s.title === data.title);
+                    if (existingIndex > -1) pastSessions[existingIndex] = data;
+                    else pastSessions.push(data);
+                    alert(`Session "${data.title}" was successfully uploaded.`);
+                }
+                localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
+            } catch (err) { alert('Error processing file: ' + err.message); }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset input
     }
 
     // --- Event Listeners ---
     document.getElementById('nav-left').addEventListener('click', prevFact);
     document.getElementById('nav-right').addEventListener('click', nextFact);
     favoriteZoneEl.addEventListener('click', toggleFavorite);
-    
     infoBtnEl.addEventListener('click', showContextPanel);
-    favoritesBtnEl.addEventListener('click', showFavoritesPanel);
-    document.getElementById('download-favorites-btn').addEventListener('click', downloadFavorites);
+    profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
+    document.getElementById('download-favorites-btn').addEventListener('click', downloadSessionFavorites);
 
-    // Panel Closing Listeners
-    document.querySelectorAll('.panel-overlay').forEach(panel => {
-        panel.addEventListener('click', (e) => {
-            if (e.target === panel) { // Only close if clicking on the background overlay itself
-                hidePanel(panel);
-            }
-        });
-    });
-    document.querySelectorAll('.close-button-x').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const targetPanel = document.getElementById(e.currentTarget.dataset.target);
-            if (targetPanel) hidePanel(targetPanel);
-        });
-    });
+    // Profile Panel Listeners
+    document.getElementById('view-session-favorites-btn').addEventListener('click', () => { hidePanel(profilePanelEl); showFavoritesPanel(); });
+    document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
+    document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), `${activeSessionData.title.replace(/\\s/g, '_')}.json`, 'application/json'));
+    document.getElementById('download-all-sessions-btn').addEventListener('click', () => downloadFile(localStorage.getItem('pastSessions') || '[]', 'all_past_sessions.json', 'application/json'));
+    document.getElementById('upload-single-session').addEventListener('change', (e) => handleFileUpload(e, false));
+    document.getElementById('upload-multiple-sessions').addEventListener('change', (e) => handleFileUpload(e, true));
+    
+    // Universal Panel Closing
+    document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
+    document.querySelectorAll('.close-button-x').forEach(b => b.addEventListener('click', e => hidePanel(document.getElementById(e.currentTarget.dataset.target))));
     
     // Keyboard Listener
     window.addEventListener('keydown', (e) => {
-        if (favoritesPanelEl.style.display === 'flex') {
-             if (e.key === 'Escape') hidePanel(favoritesPanelEl);
-             return;
+        const anyPanelOpen = Array.from(document.querySelectorAll('.panel-overlay')).some(p => p.style.display === 'flex');
+        if (anyPanelOpen) {
+            if (e.key === 'Escape') document.querySelectorAll('.panel-overlay').forEach(hidePanel);
+            return;
         }
-        if (contextPanelEl.style.display === 'flex') {
-             if (e.key === 'Escape') hidePanel(contextPanelEl);
-             return;
-        }
-
         if (e.key === 'ArrowLeft') prevFact();
         if (e.key === 'ArrowRight') nextFact();
         if (e.key === 'i' || e.key === 'I') showContextPanel();
-        if (e.key === ' ') {
-            e.preventDefault();
-            toggleFavorite();
-        }
+        if (e.key === 'f' || e.key === 'F' || e.key === 'p' || e.key === 'P') showPanel(profilePanelEl);
+        if (e.key === ' ') { e.preventDefault(); toggleFavorite(); }
     });
-
     window.addEventListener('resize', positionFavoriteIndicator);
 
-    // Initial Load
+    // --- Initial Load ---
     renderFact(currentFactIndex);
     updateClock();
     setInterval(updateClock, 1000);
 <\/script>
 </body>
-</html>
-`;
+</html>`;
                 sessionStorage.setItem('lastGeneratedHTML', htmlTemplate);
-
                 document.open();
                 document.write(htmlTemplate);
                 document.close();
