@@ -85,27 +85,19 @@
             flex-wrap: wrap;
         }
 
-        input.text-input,
         textarea {
             width: 100%;
+            min-height: 200px;
             background-color: #3e2a2a;
             color: #fcd0d0;
             border: 1px solid #7e4a4a;
             border-radius: 8px;
             padding: 15px;
             font-family: monospace;
-            box-sizing: border-box;
-            resize: vertical;
-        }
-        input.text-input {
-            margin-bottom: 20px;
-            font-size: 1em;
-            resize: none;
-        }
-        textarea {
-            min-height: 200px;
             font-size: 0.9em;
             margin-bottom: 20px;
+            box-sizing: border-box;
+            resize: vertical;
         }
 
         .action-button, .copy-button {
@@ -195,38 +187,42 @@
         <div class="prompt-section">
             <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
             <p>Attach your source document and use the following prompt to generate key facts in the correct format. Review the AI's output for accuracy.</p>
-            <code id="promptText">Based *solely* on the attached source material, generate **30 key facts, findings, or critical data points**. These should be hard, verifiable facts, not general statements or definitions.
+            <code id="promptText">Based *solely* on the attached source material, first create a concise, descriptive title for the subject matter (5-7 words). Then, generate **30 key facts, findings, or critical data points**. These should be hard, verifiable facts, not general statements or definitions.
 
 For each fact, include exactly these two properties (use straight double-quotes around every key and string value):
 1. "fact": A concise string containing the key fact itself.
 2. "context": A detailed paragraph (2-4 sentences) providing more background, explanation, or the source of the fact.
 
-Format the entire output *only* as a single JavaScript array of objects. Do not include any introductory text, concluding remarks, or markdown formatting like `javascript` before or after the array.
+Format the entire output *only* as a single JSON object. This object must have exactly two top-level properties:
+1. "title": The descriptive title you created.
+2. "facts": A JavaScript array containing all the fact objects.
+
+Do not include any introductory text, concluding remarks, or markdown formatting like `javascript` before or after the object.
 Do not include double-quote characters within any JSON string values; use apostrophes instead if needed.
 
 Example format:
-[
-  {
-    "fact": "The Earth's core is estimated to be approximately 5,200°C (9,392°F).",
-    "context": "This temperature is hotter than the surface of the Sun. The estimation is derived from seismic wave data and high-pressure laboratory experiments that simulate the conditions at the planet's center, as direct measurement is impossible."
-  },
-  {
-    "fact": "A photon takes, on average, over 100,000 years to travel from the Sun's core to its surface.",
-    "context": "This long journey is due to the 'random walk' a photon takes through the Sun's incredibly dense radiative zone. It is continuously absorbed and re-emitted in random directions by plasma particles, preventing a direct path outward."
-  }
-]</code>
+{
+  "title": "Fascinating Facts About the Sun",
+  "facts": [
+    {
+      "fact": "The Earth's core is estimated to be approximately 5,200°C (9,392°F).",
+      "context": "This temperature is hotter than the surface of the Sun. The estimation is derived from seismic wave data and high-pressure laboratory experiments that simulate the conditions at the planet's center, as direct measurement is impossible."
+    },
+    {
+      "fact": "A photon takes, on average, over 100,000 years to travel from the Sun's core to its surface.",
+      "context": "This long journey is due to the 'random walk' a photon takes through the Sun's incredibly dense radiative zone. It is continuously absorbed and re-emitted in random directions by plasma particles, preventing a direct path outward."
+    }
+  ]
+}</code>
             <div class="prompt-controls">
                 <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
                 <span>Paste prompt here:</span>
                 <a href="https://aistudio.google.com/prompts/new_chat" target="_blank" class="link-style">Google AI Studio Chat</a>
             </div>
         </div>
-        
-        <label for="sessionTitle">Session Title:</label>
-        <input type="text" id="sessionTitle" class="text-input" placeholder="e.g., Fun Facts About Space">
 
         <label for="factInput">Paste Formatted Fact Data Here:</label>
-        <textarea id="factInput" placeholder="Paste your JavaScript array of facts here, starting with [ and ending with ]..."></textarea>
+        <textarea id="factInput" placeholder="Paste your JavaScript object here, starting with { and ending with }..."></textarea>
 
         <!-- Buttons for restored screensaver will be injected here by JS -->
 
@@ -308,7 +304,6 @@ Example format:
         const promptTextElement = document.getElementById('promptText');
         const factInput = document.getElementById('factInput');
         const generateBtn = document.getElementById('generateBtn');
-        const sessionTitleInput = document.getElementById('sessionTitle');
 
         if (copyPromptBtn && promptTextElement) {
             copyPromptBtn.addEventListener('click', () => {
@@ -321,69 +316,71 @@ Example format:
             });
         }
 
-        if (generateBtn && factInput && sessionTitleInput) {
+        if (generateBtn && factInput) {
             generateBtn.addEventListener('click', () => {
                 const headerToRemove = document.getElementById('restored-actions-header');
                 if (headerToRemove) headerToRemove.remove();
                 const buttonsToRemove = document.getElementById('restored-actions');
                 if (buttonsToRemove) buttonsToRemove.remove();
-                
-                // --- Title Validation and Formatting ---
-                const titleText = sessionTitleInput.value.trim();
-                if (!titleText) {
-                    alert('Please provide a title for this session.');
-                    return;
-                }
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const day = String(today.getDate()).padStart(2, '0');
-                const formattedTitle = `${year}.${month}.${day} ${titleText}`;
 
-                // --- Fact Data Validation ---
                 const factDataInput = factInput.value.trim();
+
                 if (!factDataInput) {
                     alert('Please paste the fact data into the input area first.');
                     return;
                 }
-                if (!factDataInput.startsWith('[') || !factDataInput.endsWith(']')) {
-                    alert('The input data does not seem to be a correctly formatted JavaScript array. It must start with [ and end with ].');
+                if (!factDataInput.startsWith('{') || !factDataInput.endsWith('}')) {
+                    alert('The input data does not seem to be a correctly formatted JSON object. It must start with { and end with }.');
                     return;
                 }
 
                 let parsedData;
                 try {
-                    const evaluator = new Function(`return ${factDataInput};`);
-                    parsedData = evaluator();
+                    // Using a safer parsing method than `new Function`
+                    parsedData = JSON.parse(factDataInput);
                 } catch (e) {
                     alert(`Error parsing data: ${e.message}\n\nThis usually means there's a syntax error (like a missing comma or incorrect quote). You can use a tool like jsonlint.com to validate the structure.`);
                     return;
                 }
 
-                if (!Array.isArray(parsedData) || parsedData.length === 0) {
-                    alert('The data must be an array with at least one fact object.');
+                // --- Validate the new object structure ---
+                if (typeof parsedData !== 'object' || parsedData === null || Array.isArray(parsedData)) {
+                    alert('The data must be a single JSON object.');
                     return;
                 }
-                
+                if (typeof parsedData.title !== 'string' || parsedData.title.trim() === '') {
+                    alert('The JSON object is missing a valid "title" string property.');
+                    return;
+                }
+                if (!Array.isArray(parsedData.facts) || parsedData.facts.length === 0) {
+                    alert('The JSON object must have a "facts" property that is an array with at least one fact object.');
+                    return;
+                }
+
                 const expectedKeys = ["fact", "context"];
-                for (let i = 0; i < parsedData.length; i++) {
-                    const item = parsedData[i];
+                for (let i = 0; i < parsedData.facts.length; i++) {
+                    const item = parsedData.facts[i];
                     const factNumber = i + 1;
                     if (typeof item !== 'object' || item === null || !expectedKeys.every(key => key in item) || typeof item.fact !== 'string' || item.fact.trim() === '') {
-                        alert(`Error in Fact ${factNumber}: Each entry must be an object with non-empty "fact" and "context" string properties.`);
+                        alert(`Error in Fact ${factNumber}: Each entry in the 'facts' array must be an object with non-empty "fact" and "context" string properties.`);
                         return;
                     }
                 }
-
+                
                 // --- Create and Store Session Data ---
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const formattedTitle = `${year}.${month}.${day} ${parsedData.title}`;
+
                 const sessionData = {
                     title: formattedTitle,
-                    facts: parsedData
+                    facts: parsedData.facts
                 };
 
                 try {
                     let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
-                    // Prevent exact title duplicates
                     pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
                     pastSessions.push(sessionData);
                     localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
@@ -406,12 +403,8 @@ Example format:
     <title>Key Facts</title>
     <style>
         :root {
-            --base-red: #D44;
-            --dim-red: #A33;
-            --bright-red: #F55;
-            --bg-color: #000;
-            --font-color: var(--base-red);
-            --fav-color: #ffb833; /* A gold/yellow for favorited star */
+            --base-red: #D44; --dim-red: #A33; --bright-red: #F55;
+            --bg-color: #000; --font-color: var(--base-red); --fav-color: #ffb833;
         }
         html, body {
             height: 100%; margin: 0; padding: 0; overflow: hidden;
@@ -425,19 +418,17 @@ Example format:
             z-index: 50; text-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
         .screensaver-container {
-            display: flex; flex-direction: column; justify-content: center;
-            align-items: center; width: 100vw; height: 100vh; text-align: center;
-            padding: 5vw; box-sizing: border-box; position: relative;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            width: 100vw; height: 100vh; text-align: center; padding: 5vw; box-sizing: border-box; position: relative;
         }
         .fact-wrapper { max-width: 80vw; }
         #fact-text {
-            font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 500;
-            line-height: 1.3; margin: 0; transition: opacity 0.5s ease-in-out;
+            font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 500; line-height: 1.3;
+            margin: 0; transition: opacity 0.5s ease-in-out;
         }
         .nav-overlay { position: fixed; top: 0; height: 100%; width: 25%; z-index: 10; cursor: pointer; }
         #nav-left { left: 0; }
         #nav-right { right: 0; }
-        
         .top-ui-controls {
             position: fixed; top: 20px; right: 20px; display: flex;
             gap: 20px; align-items: center; z-index: 100;
@@ -450,35 +441,27 @@ Example format:
         .ui-button:hover { background-color: var(--dim-red); color: var(--bg-color); }
         #info-btn { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
         #favorite-zone {
-            position: fixed; left: 50%; transform: translateX(-50%); z-index: 15;
-            cursor: pointer; width: 96px; height: 96px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
+            position: fixed; left: 50%; transform: translateX(-50%); z-index: 15; cursor: pointer;
+            width: 96px; height: 96px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
         }
         #favorite-indicator {
             font-size: 2rem; color: transparent; text-shadow: 0 0 var(--dim-red);
             transition: all 0.3s ease; pointer-events: none;
         }
-        #favorite-indicator.is-favorite {
-            color: var(--fav-color); text-shadow: 0 0 15px var(--fav-color); transform: scale(1.2);
-        }
-        
-        /* --- Panel & Modal Styles --- */
+        #favorite-indicator.is-favorite { color: var(--fav-color); text-shadow: 0 0 15px var(--fav-color); transform: scale(1.2); }
         .panel-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: rgba(0,0,0,0.9); z-index: 200; display: none;
-            flex-direction: column; justify-content: center; align-items: center;
-            padding: 40px; box-sizing: border-box; cursor: pointer;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.9);
+            z-index: 200; display: none; flex-direction: column; justify-content: center;
+            align-items: center; padding: 40px; box-sizing: border-box; cursor: pointer;
         }
         .panel-content {
-            background-color: #110000; border: 1px solid var(--dim-red); border-radius: 15px;
-            padding: 30px; width: 90%; max-width: 700px; max-height: 80vh;
-            overflow-y: auto; position: relative; cursor: default;
+            background-color: #110000; border: 1px solid var(--dim-red); border-radius: 15px; padding: 30px;
+            width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; position: relative; cursor: default;
         }
         .panel-content h2 { margin-top: 0; padding-right: 30px; color: var(--bright-red); text-align: center; }
         .close-button-x {
-            position: absolute; top: 10px; right: 15px; font-size: 2rem;
-            font-weight: bold; color: var(--dim-red); background: none; border: none;
-            cursor: pointer; line-height: 1; padding: 5px;
+            position: absolute; top: 10px; right: 15px; font-size: 2rem; font-weight: bold;
+            color: var(--dim-red); background: none; border: none; cursor: pointer; line-height: 1; padding: 5px;
         }
         .close-button-x:hover { color: var(--bright-red); }
         #favorites-list, #past-sessions-list { list-style: none; padding: 0; margin: 0; }
@@ -488,21 +471,18 @@ Example format:
         #past-sessions-list li { cursor: pointer; transition: background-color 0.2s ease; padding: 15px; }
         #past-sessions-list li:hover { background-color: #331111; }
         #favorites-list li:last-child, #past-sessions-list li:last-child { border-bottom: none; }
-        
         #context-text-panel { color: var(--font-color); line-height: 1.6; font-size: 1.1rem; text-align: left; }
         .panel-controls { margin-top: 20px; display: flex; gap: 15px; justify-content: center; }
         .panel-btn {
-            background: none; border: 1px solid var(--base-red); color: var(--base-red);
-            padding: 10px 25px; border-radius: 25px; cursor: pointer;
-            font-size: 1rem; transition: all 0.2s ease;
+            background: none; border: 1px solid var(--base-red); color: var(--base-red); padding: 10px 25px;
+            border-radius: 25px; cursor: pointer; font-size: 1rem; transition: all 0.2s ease;
         }
         .panel-btn:hover { background-color: var(--base-red); color: var(--bg-color); }
         .profile-menu-container { display: flex; flex-direction: column; gap: 15px; }
         .profile-menu-container .menu-btn, .profile-menu-container .file-upload-label {
-            display: block; width: 100%; text-align: center; background: none;
-            border: 1px solid var(--base-red); color: var(--base-red); padding: 12px 20px;
-            border-radius: 25px; cursor: pointer; font-size: 1rem; transition: all 0.2s ease;
-            box-sizing: border-box; 
+            display: block; width: 100%; text-align: center; background: none; border: 1px solid var(--base-red);
+            color: var(--base-red); padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 1rem;
+            transition: all 0.2s ease; box-sizing: border-box; 
         }
         .profile-menu-container .menu-btn:hover, .profile-menu-container .file-upload-label:hover {
             background-color: var(--base-red); color: var(--bg-color);
@@ -534,9 +514,7 @@ Example format:
         <div class="panel-content">
             <button class="close-button-x" data-target="favorites-panel">&times;</button>
             <h2>This Session's Favorites</h2><ul id="favorites-list"></ul>
-            <div class="panel-controls">
-                <button id="download-favorites-btn" class="panel-btn">Download .txt</button>
-            </div>
+            <div class="panel-controls"><button id="download-favorites-btn" class="panel-btn">Download .txt</button></div>
         </div>
     </div>
     <div id="profile-panel" class="panel-overlay">
@@ -558,13 +536,11 @@ Example format:
     <div id="past-sessions-panel" class="panel-overlay">
         <div class="panel-content">
             <button class="close-button-x" data-target="past-sessions-panel">&times;</button>
-            <h2>Select a Past Session</h2>
-            <ul id="past-sessions-list"></ul>
+            <h2>Select a Past Session</h2><ul id="past-sessions-list"></ul>
         </div>
     </div>
 
 <script>
-    // --- Initial Data Setup ---
     let activeSessionData;
     const embeddedSessionData = ${sessionDataJSON};
     const loadTitle = sessionStorage.getItem('loadSessionTitle');
@@ -572,19 +548,13 @@ Example format:
         sessionStorage.removeItem('loadSessionTitle');
         const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
         const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
-        if (sessionToLoad) {
-            activeSessionData = sessionToLoad;
-        } else {
-            alert('Could not find the selected session. Loading the original session for this file.');
-            activeSessionData = embeddedSessionData;
-        }
+        activeSessionData = sessionToLoad ? sessionToLoad : embeddedSessionData;
     } else {
         activeSessionData = embeddedSessionData;
     }
     const factsData = activeSessionData.facts;
     document.title = activeSessionData.title;
 
-    // --- DOM Elements ---
     const factTextEl = document.getElementById('fact-text'), factWrapperEl = document.getElementById('fact-wrapper'),
           liveClockEl = document.getElementById('live-clock'), counterEl = document.getElementById('counter'),
           favoriteZoneEl = document.getElementById('favorite-zone'), favoriteIndicatorEl = document.getElementById('favorite-indicator'),
@@ -594,20 +564,16 @@ Example format:
           profilePanelEl = document.getElementById('profile-panel'), pastSessionsPanelEl = document.getElementById('past-sessions-panel'),
           pastSessionsListEl = document.getElementById('past-sessions-list');
     
-    // --- State & Timers ---
     let currentFactIndex = 0, autoAdvanceTimer;
     const AUTO_ADVANCE_DELAY = 25000;
     
-    // --- Favorites Management (Session Specific) ---
     let allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
     let sessionFavorites = allFavorites[activeSessionData.title] || [];
-    
     function saveFavorites() {
         allFavorites[activeSessionData.title] = sessionFavorites;
         localStorage.setItem('factFavorites', JSON.stringify(allFavorites));
     }
     
-    // --- Helper Functions ---
     function downloadFile(content, fileName, contentType) {
         const blob = new Blob([content], { type: contentType });
         const a = document.createElement('a');
@@ -615,21 +581,19 @@ Example format:
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
     }
-
-    // --- Core Display Functions ---
     function updateClock() {
         const timeString = new Date().toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
         if (liveClockEl.textContent !== timeString) liveClockEl.textContent = timeString;
     }
     function positionFavoriteIndicator() {
         const factRect = factWrapperEl.getBoundingClientRect();
-        favoriteZoneEl.style.top = `${factRect.bottom + ((window.innerHeight - factRect.bottom) / 2) - (favoriteZoneEl.offsetHeight / 2)}px`;
+        favoriteZoneEl.style.top = \`\${factRect.bottom + ((window.innerHeight - factRect.bottom) / 2) - (favoriteZoneEl.offsetHeight / 2)}px\`;
     }
     function renderFact(index) {
         factTextEl.style.opacity = 0;
         setTimeout(() => {
             factTextEl.textContent = factsData[index].fact;
-            counterEl.textContent = `${index + 1} / ${factsData.length}`;
+            counterEl.textContent = \`\${index + 1} / \${factsData.length}\`;
             favoriteIndicatorEl.classList.toggle('is-favorite', sessionFavorites.includes(index));
             factTextEl.style.opacity = 1;
             positionFavoriteIndicator();
@@ -639,12 +603,8 @@ Example format:
     function nextFact() { renderFact(currentFactIndex = (currentFactIndex + 1) % factsData.length); }
     function prevFact() { renderFact(currentFactIndex = (currentFactIndex - 1 + factsData.length) % factsData.length); }
     function resetAutoAdvanceTimer() { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY); }
-
-    // --- Panel Management ---
     function showPanel(panelEl) { clearTimeout(autoAdvanceTimer); panelEl.style.display = 'flex'; }
     function hidePanel(panelEl) { panelEl.style.display = 'none'; resetAutoAdvanceTimer(); }
-    
-    // --- Actions & Event Handlers ---
     function toggleFavorite() {
         const indexInFavorites = sessionFavorites.indexOf(currentFactIndex);
         if (indexInFavorites > -1) sessionFavorites.splice(indexInFavorites, 1);
@@ -657,29 +617,18 @@ Example format:
         showPanel(contextPanelEl);
     }
     function showFavoritesPanel() {
-        favoritesListEl.innerHTML = '';
-        if (sessionFavorites.length === 0) {
-            favoritesListEl.innerHTML = '<li>You haven\\'t favorited any facts yet. Click the star area to save one.</li>';
-        } else {
-            sessionFavorites.sort((a,b) => a-b).forEach(index => {
-                const li = document.createElement('li');
-                li.textContent = factsData[index].fact;
-                favoritesListEl.appendChild(li);
-            });
-        }
+        favoritesListEl.innerHTML = sessionFavorites.length === 0 ? '<li>You haven\\'t favorited any facts yet.</li>' :
+            sessionFavorites.sort((a,b) => a-b).map(index => \`<li>\${factsData[index].fact}</li>\`).join('');
         showPanel(favoritesPanelEl);
     }
     function downloadSessionFavorites() {
         if (sessionFavorites.length === 0) { alert('No favorites to download.'); return; }
-        let textContent = `Favorite Facts from: ${activeSessionData.title}\\n===================\\n\\n`;
+        let textContent = \`Favorite Facts from: \${activeSessionData.title}\\n===================\\n\\n\`;
         sessionFavorites.sort((a,b) => a-b).forEach((index, i) => {
-            const fact = factsData[index];
-            textContent += `${i + 1}. ${fact.fact}\\n(Context: ${fact.context})\\n\\n`;
+            textContent += \`\${i + 1}. \${factsData[index].fact}\\n(Context: \${factsData[index].context})\\n\\n\`;
         });
         downloadFile(textContent, 'my_favorite_facts.txt', 'text/plain');
     }
-
-    // --- Profile Menu Functions ---
     function populateAndShowPastSessions() {
         const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
         pastSessionsListEl.innerHTML = '';
@@ -711,62 +660,52 @@ Example format:
                     if (!Array.isArray(data)) throw new Error("File should contain an array of sessions.");
                     const sessionMap = new Map(pastSessions.map(s => [s.title, s]));
                     data.forEach(newSession => {
-                        if (newSession.title && Array.isArray(newSession.facts)) {
-                           sessionMap.set(newSession.title, newSession); // Overwrites duplicates
-                        }
+                        if (newSession.title && Array.isArray(newSession.facts)) sessionMap.set(newSession.title, newSession);
                     });
                     pastSessions = Array.from(sessionMap.values());
-                    alert(`Merged ${data.length} sessions. Total sessions now: ${pastSessions.length}.`);
+                    alert(\`Merged \${data.length} sessions. Total sessions now: \${pastSessions.length}.\`);
                 } else {
                     if (!data.title || !Array.isArray(data.facts)) throw new Error("Invalid session JSON format.");
                     const existingIndex = pastSessions.findIndex(s => s.title === data.title);
-                    if (existingIndex > -1) pastSessions[existingIndex] = data;
-                    else pastSessions.push(data);
-                    alert(`Session "${data.title}" was successfully uploaded.`);
+                    if (existingIndex > -1) pastSessions[existingIndex] = data; else pastSessions.push(data);
+                    alert(\`Session "\${data.title}" was successfully uploaded.\`);
                 }
                 localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
             } catch (err) { alert('Error processing file: ' + err.message); }
         };
         reader.readAsText(file);
-        event.target.value = ''; // Reset input
+        event.target.value = '';
     }
 
-    // --- Event Listeners ---
     document.getElementById('nav-left').addEventListener('click', prevFact);
     document.getElementById('nav-right').addEventListener('click', nextFact);
     favoriteZoneEl.addEventListener('click', toggleFavorite);
     infoBtnEl.addEventListener('click', showContextPanel);
     profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
     document.getElementById('download-favorites-btn').addEventListener('click', downloadSessionFavorites);
-
-    // Profile Panel Listeners
     document.getElementById('view-session-favorites-btn').addEventListener('click', () => { hidePanel(profilePanelEl); showFavoritesPanel(); });
     document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
-    document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), `${activeSessionData.title.replace(/\\s/g, '_')}.json`, 'application/json'));
+    document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), \`\${activeSessionData.title.replace(/[.\\s]/g, '_')}.json\`, 'application/json'));
     document.getElementById('download-all-sessions-btn').addEventListener('click', () => downloadFile(localStorage.getItem('pastSessions') || '[]', 'all_past_sessions.json', 'application/json'));
     document.getElementById('upload-single-session').addEventListener('change', (e) => handleFileUpload(e, false));
     document.getElementById('upload-multiple-sessions').addEventListener('change', (e) => handleFileUpload(e, true));
     
-    // Universal Panel Closing
     document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
     document.querySelectorAll('.close-button-x').forEach(b => b.addEventListener('click', e => hidePanel(document.getElementById(e.currentTarget.dataset.target))));
     
-    // Keyboard Listener
     window.addEventListener('keydown', (e) => {
-        const anyPanelOpen = Array.from(document.querySelectorAll('.panel-overlay')).some(p => p.style.display === 'flex');
-        if (anyPanelOpen) {
+        if (Array.from(document.querySelectorAll('.panel-overlay')).some(p => p.style.display === 'flex')) {
             if (e.key === 'Escape') document.querySelectorAll('.panel-overlay').forEach(hidePanel);
             return;
         }
         if (e.key === 'ArrowLeft') prevFact();
         if (e.key === 'ArrowRight') nextFact();
         if (e.key === 'i' || e.key === 'I') showContextPanel();
-        if (e.key === 'f' || e.key === 'F' || e.key === 'p' || e.key === 'P') showPanel(profilePanelEl);
+        if (e.key === 'p' || e.key === 'P') showPanel(profilePanelEl);
         if (e.key === ' ') { e.preventDefault(); toggleFavorite(); }
     });
     window.addEventListener('resize', positionFavoriteIndicator);
 
-    // --- Initial Load ---
     renderFact(currentFactIndex);
     updateClock();
     setInterval(updateClock, 1000);
