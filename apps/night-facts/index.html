@@ -100,7 +100,7 @@
             resize: vertical;
         }
 
-        .action-button, .copy-button {
+        .action-button, .copy-button, .secondary-button {
             background: linear-gradient(45deg, #f54a4a, #ff8a8a);
             color: white;
             border: none;
@@ -114,15 +114,27 @@
             text-align: center;
             min-width: 100px;
         }
+        .secondary-button {
+            background: none;
+            border: 1px solid #f54a4a;
+            color: #f54a4a;
+            box-shadow: none;
+        }
 
         .action-button:hover:not(:disabled),
-        .copy-button:hover:not(:disabled) {
+        .copy-button:hover:not(:disabled),
+        .secondary-button:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 6px 15px rgba(245, 74, 74, 0.5);
         }
+        .secondary-button:hover:not(:disabled) {
+            background: linear-gradient(45deg, #f54a4a, #ff8a8a);
+            color: white;
+        }
 
          .action-button:disabled,
-         .copy-button:disabled {
+         .copy-button:disabled,
+         .secondary-button:disabled {
             background: #7e5a5a;
             cursor: not-allowed;
             opacity: 0.6;
@@ -148,34 +160,41 @@
              margin-top: 10px;
              margin-bottom: 20px;
         }
-        #restored-actions { /* Style for the new button group on restored page */
-            justify-content: flex-start; /* Align buttons to the left */
+        
+        /* Modal styles for the main page */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(18, 18, 31, 0.9); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
         }
+        .modal-content {
+            background-color: #1a1a2e; padding: 30px; border-radius: 15px;
+            border: 1px solid #4a3a3e; width: 90%; max-width: 600px;
+            max-height: 80vh; overflow-y: auto; position: relative;
+        }
+        .modal-content h2 { color: #ff8a8a; margin-top: 0; }
+        .modal-close-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 2rem; color: #fac0c0;
+            cursor: pointer; background: none; border: none; line-height: 1;
+        }
+        #sessions-list { list-style: none; padding: 0; margin: 0; }
+        #sessions-list li {
+            padding: 15px; border-bottom: 1px solid #4a3a3e; color: #fac0c0;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        #sessions-list li:hover { background-color: #2a2020; }
+        #sessions-list li:last-child { border-bottom: none; }
 
 
         @media (max-width: 600px) {
-            .generator-container {
-                padding: 20px;
-                width: 95%;
-            }
-            h1 {
-                font-size: 1.5em;
-            }
-             .prompt-controls {
-                 gap: 10px;
-             }
-             .action-button, .copy-button {
-                 padding: 8px 18px;
-                 font-size: 0.9em;
-             }
-             textarea {
-                 min-height: 150px;
-             }
+            .generator-container { padding: 20px; width: 95%; }
+            h1 { font-size: 1.5em; }
+            .prompt-controls { gap: 10px; }
+            .action-button, .copy-button { padding: 8px 18px; font-size: 0.9em; }
+            textarea { min-height: 150px; }
         }
 
-        .copied-feedback {
-            background-color: #1f7a3f !important;
-        }
+        .copied-feedback { background-color: #1f7a3f !important; }
 
     </style>
 </head>
@@ -224,177 +243,48 @@ Example format:
         <label for="factInput">Paste Formatted Fact Data Here:</label>
         <textarea id="factInput" placeholder="Paste your JavaScript object here, starting with { and ending with }..."></textarea>
 
-        <!-- Buttons for restored screensaver will be injected here by JS -->
-
         <div class="button-group">
+            <button id="viewPastSessionsBtn" class="secondary-button">View Past Sessions</button>
             <button id="generateBtn" class="action-button">Generate Screensaver</button>
         </div>
     </div>
 
+    <!-- Modal for viewing past sessions on the main page -->
+    <div id="main-sessions-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h2>Select a Past Session to View</h2>
+            <ul id="sessions-list"></ul>
+        </div>
+    </div>
+
     <script>
-        // --- Helper Functions ---
+        // --- Global Helper Functions ---
         function provideCopyFeedback(button) {
             const originalText = button.textContent;
             button.textContent = 'Copied!';
             button.classList.add('copied-feedback');
             button.disabled = true;
-
             setTimeout(() => {
                 button.textContent = originalText;
                 button.classList.remove('copied-feedback');
                 button.disabled = false;
             }, 1500);
         }
-
-        function downloadHTML(content, fileName) {
-            const blob = new Blob([content], { type: 'text/html' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-        }
-
-        function addActionButtonsForPrevious() {
-            const lastGeneratedHTML = sessionStorage.getItem('lastGeneratedHTML');
-            if (lastGeneratedHTML && !document.getElementById('restored-actions')) {
-                const container = document.querySelector('.generator-container');
-                const generateGroup = container.querySelector('.button-group');
         
-                const buttonsHeader = document.createElement('p');
-                buttonsHeader.id = 'restored-actions-header';
-                buttonsHeader.textContent = 'Actions for previously generated screensaver:';
-                buttonsHeader.style.marginTop = '20px';
-                buttonsHeader.style.marginBottom = '10px';
-                buttonsHeader.style.textAlign = 'left';
-        
-                const buttonGroupForRestored = document.createElement('div');
-                buttonGroupForRestored.classList.add('button-group');
-                buttonGroupForRestored.id = 'restored-actions';
-                buttonGroupForRestored.style.justifyContent = 'flex-start';
-        
-                const copyHtmlBtn = document.createElement('button');
-                copyHtmlBtn.textContent = 'Copy HTML';
-                copyHtmlBtn.classList.add('action-button');
-                copyHtmlBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(lastGeneratedHTML)
-                        .then(() => provideCopyFeedback(copyHtmlBtn))
-                        .catch(() => alert('Copy failed.'));
-                });
-        
-                const downloadHtmlBtn = document.createElement('button');
-                downloadHtmlBtn.textContent = 'Download HTML';
-                downloadHtmlBtn.classList.add('action-button');
-                downloadHtmlBtn.addEventListener('click', () => {
-                    downloadHTML(lastGeneratedHTML, 'generated_screensaver.html');
-                });
-        
-                buttonGroupForRestored.appendChild(copyHtmlBtn);
-                buttonGroupForRestored.appendChild(downloadHtmlBtn);
-        
-                generateGroup.insertAdjacentElement('afterend', buttonsHeader);
-                buttonsHeader.insertAdjacentElement('afterend', buttonGroupForRestored);
-            }
-        }
+        function launchScreensaver(sessionData) {
+            const currentGeneratorHTML = document.documentElement.outerHTML;
+            sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
+            
+            // Critical: Set the title for the next page load BEFORE generating the template
+            sessionStorage.setItem('loadSessionTitle', sessionData.title);
 
-        // --- Main script logic ---
-        const copyPromptBtn = document.getElementById('copyPromptBtn');
-        const promptTextElement = document.getElementById('promptText');
-        const factInput = document.getElementById('factInput');
-        const generateBtn = document.getElementById('generateBtn');
-
-        if (copyPromptBtn && promptTextElement) {
-            copyPromptBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(promptTextElement.innerText)
-                    .then(() => provideCopyFeedback(copyPromptBtn))
-                    .catch(err => {
-                        console.error('Failed to copy prompt: ', err);
-                        alert('Failed to copy prompt. Please copy manually.');
-                    });
-            });
-        }
-
-        if (generateBtn && factInput) {
-            generateBtn.addEventListener('click', () => {
-                const headerToRemove = document.getElementById('restored-actions-header');
-                if (headerToRemove) headerToRemove.remove();
-                const buttonsToRemove = document.getElementById('restored-actions');
-                if (buttonsToRemove) buttonsToRemove.remove();
-
-                const factDataInput = factInput.value.trim();
-
-                if (!factDataInput) {
-                    alert('Please paste the fact data into the input area first.');
-                    return;
-                }
-                if (!factDataInput.startsWith('{') || !factDataInput.endsWith('}')) {
-                    alert('The input data does not seem to be a correctly formatted JSON object. It must start with { and end with }.');
-                    return;
-                }
-
-                let parsedData;
-                try {
-                    // Using a safer parsing method than `new Function`
-                    parsedData = JSON.parse(factDataInput);
-                } catch (e) {
-                    alert(`Error parsing data: ${e.message}\n\nThis usually means there's a syntax error (like a missing comma or incorrect quote). You can use a tool like jsonlint.com to validate the structure.`);
-                    return;
-                }
-
-                // --- Validate the new object structure ---
-                if (typeof parsedData !== 'object' || parsedData === null || Array.isArray(parsedData)) {
-                    alert('The data must be a single JSON object.');
-                    return;
-                }
-                if (typeof parsedData.title !== 'string' || parsedData.title.trim() === '') {
-                    alert('The JSON object is missing a valid "title" string property.');
-                    return;
-                }
-                if (!Array.isArray(parsedData.facts) || parsedData.facts.length === 0) {
-                    alert('The JSON object must have a "facts" property that is an array with at least one fact object.');
-                    return;
-                }
-
-                const expectedKeys = ["fact", "context"];
-                for (let i = 0; i < parsedData.facts.length; i++) {
-                    const item = parsedData.facts[i];
-                    const factNumber = i + 1;
-                    if (typeof item !== 'object' || item === null || !expectedKeys.every(key => key in item) || typeof item.fact !== 'string' || item.fact.trim() === '') {
-                        alert(`Error in Fact ${factNumber}: Each entry in the 'facts' array must be an object with non-empty "fact" and "context" string properties.`);
-                        return;
-                    }
-                }
-                
-                // --- Create and Store Session Data ---
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, '0');
-                const day = String(today.getDate()).padStart(2, '0');
-                const formattedTitle = `${year}.${month}.${day} ${parsedData.title}`;
-
-                const sessionData = {
-                    title: formattedTitle,
-                    facts: parsedData.facts
-                };
-
-                try {
-                    let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
-                    pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
-                    pastSessions.push(sessionData);
-                    localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
-                } catch (e) {
-                    console.error("Could not save to localStorage:", e);
-                    alert("Could not save session data to browser storage. Your browser might be in private mode or storage is full.");
-                }
-
-                const currentGeneratorHTML = document.documentElement.outerHTML;
-                sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
-                history.pushState({ view: 'generator_restoration_point' }, document.title, window.location.href);
-
-                const sessionDataJSON = JSON.stringify(sessionData);
-                const htmlTemplate = `
+            // Directly embed the first session data to avoid race conditions.
+            // The logic on the destination page will use 'loadSessionTitle' to
+            // load the correct one from localStorage, but this ensures it has
+            // valid data to start with.
+            const sessionDataJSON = JSON.stringify(sessionData);
+            const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -504,54 +394,32 @@ Example format:
     <button id="info-btn" class="ui-button">More Info</button>
     <div id="favorite-zone"><div id="favorite-indicator">★</div></div>
     
-    <div id="context-panel" class="panel-overlay">
-        <div class="panel-content">
-            <button class="close-button-x" data-target="context-panel">&times;</button>
-            <h2>Context</h2><p id="context-text-panel"></p>
-        </div>
-    </div>
-    <div id="favorites-panel" class="panel-overlay">
-        <div class="panel-content">
-            <button class="close-button-x" data-target="favorites-panel">&times;</button>
-            <h2>This Session's Favorites</h2><ul id="favorites-list"></ul>
-            <div class="panel-controls"><button id="download-favorites-btn" class="panel-btn">Download .txt</button></div>
-        </div>
-    </div>
-    <div id="profile-panel" class="panel-overlay">
-        <div class="panel-content">
-            <button class="close-button-x" data-target="profile-panel">&times;</button>
-            <h2>Profile & Sessions</h2>
-            <div class="profile-menu-container">
-                <button id="view-session-favorites-btn" class="menu-btn">View This Session Favorites</button>
-                <button id="view-past-sessions-btn" class="menu-btn">View Past Sessions</button>
-                <button id="download-current-session-btn" class="menu-btn">Download this Session JSON</button>
-                <button id="download-all-sessions-btn" class="menu-btn">Download All Past Sessions JSON</button>
-                <label for="upload-single-session" class="file-upload-label">Upload New Session JSON</label>
-                <input type="file" id="upload-single-session" accept=".json">
-                <label for="upload-multiple-sessions" class="file-upload-label">Merge Past Sessions JSON</label>
-                <input type="file" id="upload-multiple-sessions" accept=".json">
-            </div>
-        </div>
-    </div>
-    <div id="past-sessions-panel" class="panel-overlay">
-        <div class="panel-content">
-            <button class="close-button-x" data-target="past-sessions-panel">&times;</button>
-            <h2>Select a Past Session</h2><ul id="past-sessions-list"></ul>
-        </div>
-    </div>
+    <div id="context-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="context-panel">&times;</button><h2>Context</h2><p id="context-text-panel"></p></div></div>
+    <div id="favorites-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="favorites-panel">&times;</button><h2>This Session's Favorites</h2><ul id="favorites-list"></ul><div class="panel-controls"><button id="download-favorites-btn" class="panel-btn">Download .txt</button></div></div></div>
+    <div id="profile-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="profile-panel">&times;</button><h2>Profile & Sessions</h2><div class="profile-menu-container"><button id="view-session-favorites-btn" class="menu-btn">View This Session Favorites</button><button id="view-past-sessions-btn" class="menu-btn">View Past Sessions</button><button id="download-current-session-btn" class="menu-btn">Download this Session JSON</button><button id="download-all-sessions-btn" class="menu-btn">Download All Past Sessions JSON</button><label for="upload-single-session" class="file-upload-label">Upload New Session JSON</label><input type="file" id="upload-single-session" accept=".json"><label for="upload-multiple-sessions" class="file-upload-label">Merge Past Sessions JSON</label><input type="file" id="upload-multiple-sessions" accept=".json"></div></div></div>
+    <div id="past-sessions-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="past-sessions-panel">&times;</button><h2>Select a Past Session</h2><ul id="past-sessions-list"></ul></div></div>
 
 <script>
     let activeSessionData;
     const embeddedSessionData = ${sessionDataJSON};
     const loadTitle = sessionStorage.getItem('loadSessionTitle');
+
     if (loadTitle) {
-        sessionStorage.removeItem('loadSessionTitle');
+        // We are loading a specific session
         const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
         const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
-        activeSessionData = sessionToLoad ? sessionToLoad : embeddedSessionData;
+        if (sessionToLoad) {
+            activeSessionData = sessionToLoad;
+        } else {
+            // Fallback if the title isn't found
+            alert('Could not find the selected session. Loading the original session for this file.');
+            activeSessionData = embeddedSessionData;
+        }
     } else {
+        // This is the first load
         activeSessionData = embeddedSessionData;
     }
+    
     const factsData = activeSessionData.facts;
     document.title = activeSessionData.title;
 
@@ -641,7 +509,7 @@ Example format:
                 if (session.title === activeSessionData.title) li.style.color = 'var(--bright-red)';
                 li.addEventListener('click', () => {
                     sessionStorage.setItem('loadSessionTitle', session.title);
-                    location.reload();
+                    window.location.reload();
                 });
                 pastSessionsListEl.appendChild(li);
             });
@@ -712,24 +580,108 @@ Example format:
 <\/script>
 </body>
 </html>`;
-                sessionStorage.setItem('lastGeneratedHTML', htmlTemplate);
-                document.open();
-                document.write(htmlTemplate);
-                document.close();
+            
+            // This replaces the current page content
+            history.pushState({ view: 'screensaver' }, '', '#screensaver');
+            document.open();
+            document.write(htmlTemplate);
+            document.close();
+        }
+
+        // --- Main Page Script Logic ---
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const promptTextElement = document.getElementById('promptText');
+        const factInput = document.getElementById('factInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const viewPastSessionsBtn = document.getElementById('viewPastSessionsBtn');
+        const mainSessionsModal = document.getElementById('main-sessions-modal');
+
+        if (copyPromptBtn && promptTextElement) {
+            copyPromptBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(promptTextElement.innerText)
+                    .then(() => provideCopyFeedback(copyPromptBtn))
+                    .catch(err => {
+                        console.error('Failed to copy prompt: ', err);
+                        alert('Failed to copy prompt. Please copy manually.');
+                    });
+            });
+        }
+
+        if (generateBtn && factInput) {
+            generateBtn.addEventListener('click', () => {
+                const factDataInput = factInput.value.trim();
+                if (!factDataInput) { alert('Please paste the fact data into the input area first.'); return; }
+                if (!factDataInput.startsWith('{') || !factDataInput.endsWith('}')) { alert('The input data does not seem to be a correctly formatted JSON object.'); return; }
+
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(factDataInput);
+                } catch (e) {
+                    alert(`Error parsing data: ${e.message}`); return;
+                }
+
+                if (typeof parsedData.title !== 'string' || parsedData.title.trim() === '') { alert('The JSON object is missing a valid "title" string property.'); return; }
+                if (!Array.isArray(parsedData.facts) || parsedData.facts.length === 0) { alert('The JSON object must have a "facts" property that is an array with at least one fact object.'); return; }
+
+                const today = new Date();
+                const formattedTitle = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} ${parsedData.title}`;
+
+                const sessionData = { title: formattedTitle, facts: parsedData.facts };
+
+                try {
+                    let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+                    pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
+                    pastSessions.push(sessionData);
+                    localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
+                } catch (e) {
+                    console.error("Could not save to localStorage:", e);
+                }
+                
+                launchScreensaver(sessionData);
+            });
+        }
+
+        // --- Main Page Modal Logic ---
+        if (viewPastSessionsBtn && mainSessionsModal) {
+            const sessionsList = document.getElementById('sessions-list');
+            const closeModalBtn = mainSessionsModal.querySelector('.modal-close-btn');
+
+            viewPastSessionsBtn.addEventListener('click', () => {
+                const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+                sessionsList.innerHTML = ''; // Clear previous list
+                if (pastSessions.length === 0) {
+                    sessionsList.innerHTML = '<li>No past sessions found.</li>';
+                } else {
+                    pastSessions.forEach(session => {
+                        const li = document.createElement('li');
+                        li.textContent = session.title;
+                        li.addEventListener('click', () => {
+                            launchScreensaver(session);
+                        });
+                        sessionsList.appendChild(li);
+                    });
+                }
+                mainSessionsModal.style.display = 'flex';
+            });
+
+            const closeModal = () => mainSessionsModal.style.display = 'none';
+            closeModalBtn.addEventListener('click', closeModal);
+            mainSessionsModal.addEventListener('click', (e) => {
+                if (e.target === mainSessionsModal) closeModal();
             });
         }
         
         // --- Page Restoration Logic ---
         window.addEventListener('popstate', event => {
             const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
-            if (event.state && event.state.view === 'generator_restoration_point' && storedOriginalHTML) {
+            if (storedOriginalHTML) {
+                // Remove the flag so a normal refresh doesn't trigger this
+                sessionStorage.removeItem('loadSessionTitle');
                 document.open();
                 document.write(storedOriginalHTML);
                 document.close();
-                setTimeout(addActionButtonsForPrevious, 0);
             }
         });
-        addActionButtonsForPrevious();
     </script>
 </body>
 </html>
