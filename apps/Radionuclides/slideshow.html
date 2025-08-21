@@ -31,7 +31,8 @@
 
     .side{ display:flex; flex-direction:column; justify-content:flex-start; padding:1.2rem; gap:1rem; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0) 40%); grid-column:1; pointer-events:none; }
     .clockWrap{ display:flex; flex-direction:column; align-items:flex-start; gap:.2rem; }
-    .clock{ font-variant-numeric:tabular-nums; font-weight:800; line-height:1; letter-spacing:.5px; color:var(--accent); text-shadow:0 0 24px color-mix(in srgb, var(--accent) 40%, transparent); }
+    /* FIX: Clock color is mixed with white to ensure it's always light enough to read */
+    .clock{ font-variant-numeric:tabular-nums; font-weight:800; line-height:1; letter-spacing:.5px; color: color-mix(in srgb, var(--accent) 85%, white 15%); text-shadow:0 0 24px color-mix(in srgb, var(--accent) 40%, transparent); }
     .clock .ampm{ font-weight:600; color: color-mix(in srgb, var(--accent) 75%, white 10%); opacity:.9; margin-left:.25em; }
 
     .meta{ display:flex; flex-direction:column; gap:.35rem; max-width: 95%; }
@@ -42,6 +43,7 @@
     .reveal{ animation: fadeUp var(--step-fade) ease forwards; }
     @keyframes fadeUp { to {opacity:1; transform: translateY(0)} }
 
+    /* FIX: CSS for art container and image are identical to the working original to ensure correct scaling */
     .art{ position:relative; width:100%; height:100%; display:grid; place-items:center; grid-column:2; }
     .art img{ max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,.35)); }
     .tint{ position:absolute; inset:-12%; background:radial-gradient(60% 50% at 50% 65%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%); filter: blur(60px); opacity:.6; pointer-events:none }
@@ -64,7 +66,7 @@
     dialog::backdrop{ background:rgba(0,0,0,.6); backdrop-filter: blur(3px); }
     .modal{ padding:1rem; display:grid; gap:1rem; }
     .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
-    .grid3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.8rem; }
+    .grid-auto-fit{ display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap:.8rem; }
     .field label{ display:block; font-size:.9rem; color:var(--muted); margin-bottom:.25rem; }
     .field input[type="number"], .field input[type="text"], .field select{ width:100%; background:#0f0f15; border:1px solid rgba(255,255,255,.1); color:var(--fg); padding:.55rem .6rem; border-radius:10px; }
     .list{ max-height:45vh; overflow:auto; border:1px solid rgba(255,255,255,.08); border-radius:12px; }
@@ -127,14 +129,17 @@
         <div class="field"><label>Base image path</label><input name="imageBase" type="text" placeholder="./" value="./"></div>
       </div>
       <p style="color:var(--muted); font-size: .9rem; margin:.5rem 0 0;">Fact display duration (seconds)</p>
-      <div class="grid3" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
-        <div class="field"><label>Image-only</label><input name="tImage" type="number" min="1" value="4"></div>
-        <div class="field"><label>Name</label><input name="tName" type="number" min="1" value="3"></div>
-        <div class="field"><label>Production</label><input name="tProduction" type="number" min="1" value="4"></div>
-        <div class="field"><label>Decay</label><input name="tDecay" type="number" min="1" value="4"></div>
-        <div class="field"><label>Photons</label><input name="tPhotons" type="number" min="1" value="4"></div>
-        <div class="field"><label>Half-life</label><input name="tHalfLife" type="number" min="1" value="4"></div>
-        <div class="field"><label>Other Facts</label><input name="tOtherFacts" type="number" min="1" value="5"></div>
+      <div class="grid-auto-fit">
+        <div class="field"><label>Image</label><input name="tImage" type="number" min="1" value="4"></div>
+        <div class="field"><label>Name</label><input name="tName" type="number" min="1" value="2"></div>
+        <div class="field"><label>Prod. (Q)</label><input name="tProductionQ" type="number" min="1" value="3"></div>
+        <div class="field"><label>Prod. (A)</label><input name="tProductionA" type="number" min="1" value="4"></div>
+        <div class="field"><label>Decay (Q)</label><input name="tDecayQ" type="number" min="1" value="3"></div>
+        <div class="field"><label>Decay (A)</label><input name="tDecayA" type="number" min="1" value="4"></div>
+        <div class="field"><label>Photons (Q)</label><input name="tPhotonsQ" type="number" min="1" value="3"></div>
+        <div class="field"><label>Photons (A)</label><input name="tPhotonsA" type="number" min="1" value="4"></div>
+        <div class="field"><label>HalfLife (Q)</label><input name="tHalfLifeQ" type="number" min="1" value="3"></div>
+        <div class="field"><label>HalfLife (A)</label><input name="tHalfLifeA" type="number" min="1" value="4"></div>
       </div>
       <div class="field"><label>Auto accent</label>
         <select name="autoAccent"><option value="on">On</option><option value="off">Off</option></select>
@@ -156,30 +161,28 @@
 
   <script>
     /* ===== Config & State ===== */
-    const CONFIG_KEY = 'radSRS_config_v2';
-    const STATE_KEY  = 'radSRS_state_v2';
-    const TODAY_KEY  = 'radSRS_today_v2';
+    const CONFIG_KEY = 'radSRS_config_v3';
+    const STATE_KEY  = 'radSRS_state_v3';
+    const TODAY_KEY  = 'radSRS_today_v3';
     const DEFAULTS = { 
-      dailyCount: 10,
-      imageBase: './', 
-      autoAccent: 'on', 
-      easeDefault: 2.5,
-      tImage: 4, tName: 3, tProduction: 4, tDecay: 4, tPhotons: 4, tHalfLife: 4, tOtherFacts: 5,
+      dailyCount: 10, imageBase: './', autoAccent: 'on', easeDefault: 2.5,
+      tImage: 4, tName: 2,
+      tProductionQ: 3, tProductionA: 4,
+      tDecayQ: 3, tDecayA: 4,
+      tPhotonsQ: 3, tPhotonsA: 4,
+      tHalfLifeQ: 3, tHalfLifeA: 4,
     };
 
     const el = {
-      frame: document.getElementById('frame'),
-      img: document.getElementById('artImg'),
-      tint: document.getElementById('tint'),
+      frame: document.getElementById('frame'), img: document.getElementById('artImg'), tint: document.getElementById('tint'),
       clock: document.getElementById('clock'), ampm: document.getElementById('ampm'),
       kicker: document.getElementById('kicker'), title: document.getElementById('title'), details: document.getElementById('details'),
-      hitL: document.getElementById('hitLeft'), hitR: document.getElementById('hitRight'), hits: document.getElementById('hits'),
+      hits: document.getElementById('hits'),
       btnGood: document.getElementById('btnGood'), btnBad: document.getElementById('btnBad'), btnSettings: document.getElementById('btnSettings'),
       mark: document.getElementById('mark'), chip: document.getElementById('chip'),
       settings: document.getElementById('settings'), settingsForm: document.getElementById('settingsForm'),
       deckList: document.getElementById('deckList'), selCount: document.getElementById('selCount'), search: document.getElementById('search'),
-      dailyCount: document.getElementById('dailyCount'),
-      artArea: document.getElementById('artArea'), backdrop: document.getElementById('backdrop'),
+      dailyCount: document.getElementById('dailyCount'), artArea: document.getElementById('artArea'), backdrop: document.getElementById('backdrop'),
       imgPreview: document.getElementById('imgPreview'), previewImg: document.getElementById('previewImg')
     };
 
@@ -191,15 +194,25 @@
     let session = { index:0, phase:0, timers:[], today: dayISO(new Date()) };
     let suppressNextClick = false;
 
-    // The order and properties of facts to be displayed.
+    // FIX: This defines the new reveal sequence and maps deck keys to labels and timers.
     const FACT_ORDER = [
-      { key: 'name',       label: 'Radionuclide', element: 'title' },
-      { key: 'production', label: 'Production',   element: 'details' },
-      { key: 'decay',      label: 'Decay Mode',   element: 'details' },
-      { key: 'photons',    label: 'Principal Photons', element: 'details' },
-      { key: 'halfLife',   label: 'Half-Life',    element: 'details' },
-      { key: 'otherFacts', label: 'Other Facts',  element: 'details' },
+      { key: 'name',       label: 'Name',          isQuestion: false, timerKey: 'tName' },
+      { key: 'production', label: 'Production',    isQuestion: true,  timerKeyQ: 'tProductionQ', timerKeyA: 'tProductionA' },
+      { key: 'decay',      label: 'Decay Mode',    isQuestion: true,  timerKeyQ: 'tDecayQ',      timerKeyA: 'tDecayA' },
+      { key: 'photons',    label: 'Principal Photons', isQuestion: true,  timerKeyQ: 'tPhotonsQ',    timerKeyA: 'tPhotonsA' },
+      { key: 'halfLife',   label: 'Half-Life',     isQuestion: true,  timerKeyQ: 'tHalfLifeQ',   timerKeyA: 'tHalfLifeA' },
     ];
+    
+    // Generate a flat list of all phases and their timings
+    const PHASES = [{type: 'image', duration: () => cfg.tImage * 1000}];
+    FACT_ORDER.forEach(fact => {
+      if (fact.isQuestion) {
+        PHASES.push({ type: 'question', fact: fact, duration: () => cfg[fact.timerKeyQ] * 1000 });
+        PHASES.push({ type: 'answer',   fact: fact, duration: () => cfg[fact.timerKeyA] * 1000 });
+      } else {
+        PHASES.push({ type: 'title',    fact: fact, duration: () => cfg[fact.timerKey] * 1000 });
+      }
+    });
 
     function loadConfig(){ const raw=localStorage.getItem(CONFIG_KEY); return raw?{...DEFAULTS, ...JSON.parse(raw)}:{...DEFAULTS}; }
     function saveConfig(){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
@@ -214,14 +227,11 @@
     function restartTimer(ms, fn){ clearTimers(); const t=setTimeout(fn, ms); session.timers=[t]; }
 
     function cleanText(val){ if(val==null) return ''; const s=String(val); const tmp=document.createElement('div'); tmp.innerHTML=s; const text=tmp.textContent||tmp.innerText||''; return text.split(/\s+/).join(' ').trim(); }
-
     function ensureProgress(card){ if(!progress[card.id]) progress[card.id]={ ease: cfg.easeDefault, intervalDays:0, dueISO: session.today, reps:0, lapses:0, state:'new', learningStep:0, lastGrade:null }; return progress[card.id]; }
 
     function grade(card, kind){ const p=ensureProgress(card); if(kind==='good'){ if(p.state==='new'){ p.state='learning'; p.learningStep=1; p.intervalDays=1; p.dueISO=dayISO(new Date(Date.now()+86400000)); } else if(p.state==='learning'){ if(p.learningStep===1){ p.learningStep=2; p.intervalDays=3; p.dueISO=dayISO(new Date(Date.now()+3*86400000)); } else { p.state='review'; p.learningStep=0; p.intervalDays=Math.max(5, p.intervalDays||5); p.dueISO=dayISO(new Date(Date.now()+p.intervalDays*86400000)); } } else { const next=Math.round(Math.max(1, p.intervalDays * p.ease)); p.intervalDays=next; p.dueISO=dayISO(new Date(Date.now()+next*86400000)); } p.reps++; }
       else { p.lapses++; p.state='learning'; p.learningStep=1; p.intervalDays=1; p.dueISO=dayISO(new Date(Date.now()+86400000)); }
-      p.lastGrade = kind; saveState();
-      showGradeFeedback(kind);
-      updateChip(); }
+      p.lastGrade = kind; saveState(); showGradeFeedback(kind); updateChip(); }
 
     function autoAccentFromImage(img){ try{ const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d',{willReadFrequently:true}); const w=canvas.width=80, h=canvas.height=80; ctx.drawImage(img,0,0,w,h); const data=ctx.getImageData(0,0,w,h).data; let r=0,g=0,b=0,c=0; for(let i=0;i<data.length;i+=4){ const a=data[i+3]; if(a<30) continue; r+=data[i]; g+=data[i+1]; b+=data[i+2]; c++; } if(c){ r=Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c); const accent=`rgb(${r},${g},${b})`; document.documentElement.style.setProperty('--accent', accent); } }catch(e){}
       const url = img.currentSrc || img.src; el.backdrop.style.backgroundImage = `url('${url}')`; el.backdrop.style.backgroundSize = 'cover'; el.backdrop.style.backgroundPosition = 'center'; el.backdrop.style.filter = 'blur(40px) brightness(.35) saturate(.9)'; el.backdrop.style.transform = 'scale(1.1)'; }
@@ -230,92 +240,67 @@
     function startClock(){ const tick=()=>{ const d=new Date(); const {h,m,ampm}=fmtTime(d); el.clock.textContent = `${h}:${m}`; el.ampm.textContent=ampm; }; tick(); setInterval(tick, 15000); }
 
     function ensureToday(){
-      const today = dayISO(new Date());
-      if(todaySel.date !== today){ todaySel = { date: today, ids: [] }; }
-      if(!todaySel.ids.length){
-        const due = []; const fresh = [];
-        for(const c of deck){ const p=ensureProgress(c); if(p.state!=='new' && p.dueISO<=today){ due.push(c.id); } else if(p.state==='new'){ fresh.push(c.id); } }
-        const chosen = [...due.slice(0, cfg.dailyCount)];
-        for(const id of fresh){ if(chosen.length>=cfg.dailyCount) break; if(!chosen.includes(id)) chosen.push(id); }
-        if(chosen.length<Math.min(cfg.dailyCount, deck.length)){
-          for(const c of deck){ if(chosen.length>=cfg.dailyCount) break; if(!chosen.includes(c.id)) chosen.push(c.id); }
-        }
-        todaySel.ids = chosen.slice(0, cfg.dailyCount);
-        saveToday();
-      }
+      const today = dayISO(new Date()); if(todaySel.date !== today){ todaySel = { date: today, ids: [] }; }
+      if(!todaySel.ids.length){ const due = []; const fresh = []; for(const c of deck){ const p=ensureProgress(c); if(p.state!=='new' && p.dueISO<=today){ due.push(c.id); } else if(p.state==='new'){ fresh.push(c.id); } }
+        const chosen = [...due.slice(0, cfg.dailyCount)]; for(const id of fresh){ if(chosen.length>=cfg.dailyCount) break; if(!chosen.includes(id)) chosen.push(id); }
+        if(chosen.length<Math.min(cfg.dailyCount, deck.length)){ for(const c of deck){ if(chosen.length>=cfg.dailyCount) break; if(!chosen.includes(c.id)) chosen.push(c.id); } }
+        todaySel.ids = chosen.slice(0, cfg.dailyCount); saveToday(); }
     }
 
     function buildPlaylist(){ ensureToday(); const map=new Map(deck.map(c=>[c.id,c])); playlist=todaySel.ids.map(id=>map.get(id)).filter(Boolean); if(!playlist.length && deck.length > 0){ playlist=deck.slice(0, cfg.dailyCount); todaySel.ids=playlist.map(c=>c.id); saveToday(); } session.index=0; updateChip(); }
     
     function hideMeta(){ [el.kicker, el.title, el.details].forEach(n => { n.classList.remove('reveal'); n.style.opacity=0; n.style.transform='translateY(8px)'; }); }
     function setMeta(kicker, title, details){ el.kicker.textContent=kicker||''; el.title.textContent=title||''; el.details.textContent=details||''; }
-
     function loadImageFor(card){ return new Promise((resolve)=>{ const src = isHttp(card.image)? card.image : (cfg.imageBase||'./') + card.image; el.img.onload=()=>resolve(); el.img.onerror=()=>resolve(); el.img.src=src; }); }
-
     function updateChip(){ const n=playlist.length||0; const i=Math.min(session.index+1, Math.max(n,1)); el.chip.textContent=`Today ${i}/${n}`; }
 
-    async function showCurrent(auto=true){ const card=playlist[session.index]; if(!card){ setMeta('No deck.json found or empty.', 'Please place deck.json next to this file.', ''); return; }
-      hideMeta(); setMeta('', '', ''); await loadImageFor(card); if(cfg.autoAccent==='on') autoAccentFromImage(el.img); if(auto){ session.phase=0; runReveal(); } updateChip();
-    }
+    async function showCurrent(auto=true){ const card=playlist[session.index]; if(!card){ setMeta('No deck.json found', '—', 'Please place deck.json next to this HTML file.'); return; }
+      hideMeta(); setMeta('', '', ''); await loadImageFor(card); if(cfg.autoAccent==='on') autoAccentFromImage(el.img); if(auto){ session.phase=0; runReveal(); } updateChip(); }
 
-    function revealStep() {
-        const card = playlist[session.index];
-        if (!card) return;
+    function revealStep(){
+      const card = playlist[session.index]; if(!card) return;
+      const currentPhase = PHASES[session.phase]; if (!currentPhase) return;
+      
+      hideMeta(); // Hide all text elements first
+      
+      // Always keep the title visible after it has been revealed.
+      const titlePhaseIndex = PHASES.findIndex(p => p.type === 'title');
+      if (session.phase >= titlePhaseIndex) {
+        el.title.textContent = card.name;
+        el.title.classList.add('reveal');
+      }
 
-        // Phase 0 is image only
-        if (session.phase === 0) return;
-
-        // Subsequent phases map to FACT_ORDER
-        const factIndex = session.phase - 1;
-        if (factIndex >= FACT_ORDER.length) return;
-
-        const factInfo = FACT_ORDER[factIndex];
-        const factValue = card[factInfo.key];
-
-        if (factValue) { // Only reveal if the fact has data
-            if (factInfo.element === 'title') {
-                el.title.textContent = factValue;
-                el.title.classList.add('reveal');
-            } else if (factInfo.element === 'details') {
-                el.kicker.textContent = factInfo.label;
-                el.details.textContent = factValue;
-                el.kicker.classList.add('reveal');
-                el.details.classList.add('reveal');
-            }
-        }
+      // Reveal the elements for the current phase
+      switch(currentPhase.type) {
+        case 'question':
+          el.kicker.textContent = currentPhase.fact.label;
+          el.kicker.classList.add('reveal');
+          el.details.textContent = ''; // Ensure answer is hidden
+          break;
+        case 'answer':
+          el.kicker.textContent = currentPhase.fact.label;
+          el.details.textContent = card[currentPhase.fact.key] || 'N/A';
+          el.kicker.classList.add('reveal');
+          el.details.classList.add('reveal');
+          break;
+      }
     }
     
-    function getTimings() {
-        return [cfg.tImage, cfg.tName, cfg.tProduction, cfg.tDecay, cfg.tPhotons, cfg.tHalfLife, cfg.tOtherFacts].map(Number);
-    }
-
     function runReveal(){
-      const plan = getTimings();
-      const maxPhase = FACT_ORDER.length; // Number of facts + 1 for image
-      
       function scheduleNext(){
-        if(session.phase < maxPhase){
-          const duration = plan[session.phase] * 1000;
+        if(session.phase < PHASES.length - 1){
+          const duration = PHASES[session.phase].duration();
           restartTimer(duration, ()=>{
             session.phase++;
-            // Before revealing the next fact, hide previous kicker/details if needed
-            if (session.phase > 1) { // Don't hide the main title
-                const prevFact = FACT_ORDER[session.phase - 2];
-                if (prevFact.element === 'details') {
-                    el.kicker.classList.remove('reveal');
-                    el.details.classList.remove('reveal');
-                }
-            }
             revealStep();
             scheduleNext();
           });
         } else {
-          // Last fact has been shown, wait its duration then go to next card
-          const lastDuration = plan[maxPhase] * 1000;
+          const lastDuration = PHASES[session.phase].duration();
           restartTimer(lastDuration, nextCard);
         }
       }
-      session.phase = 0;
+      session.phase=0;
       revealStep();
       scheduleNext();
     }
@@ -323,46 +308,16 @@
     function nextCard(){ if(!playlist.length) return; session.index = (session.index+1)%playlist.length; showCurrent(true); }
 
     function stepBackward(){
-      const plan = getTimings();
       if(session.phase > 0){
         session.phase--;
-        hideMeta(); // Hide everything
-        // Re-reveal everything up to the current phase instantly
-        for (let i = 1; i <= session.phase; i++) {
-            const factInfo = FACT_ORDER[i - 1];
-            const factValue = playlist[session.index][factInfo.key];
-            if (factValue) {
-                if (factInfo.element === 'title') el.title.textContent = factValue;
-                else if (factInfo.element === 'details') {
-                    el.kicker.textContent = factInfo.label;
-                    el.details.textContent = factValue;
-                }
-            }
-        }
-        // Make the current step visible with animation
         revealStep();
-        
-        const maxPhase = FACT_ORDER.length;
-        restartTimer(plan[session.phase]*1000, ()=>{
-          if(session.phase < maxPhase){ session.phase++; revealStep(); runReveal(); } else { nextCard(); }
-        });
+        runReveal(); // Restart the auto-advance from the new, earlier phase
       } else {
         session.index = (session.index - 1 + playlist.length) % playlist.length;
-        showCurrent(false);
-        session.phase = FACT_ORDER.length; // Go to last fact
-        for (let i = 1; i <= session.phase; i++) { // Instantly show all facts
-             const factInfo = FACT_ORDER[i-1];
-             const factValue = playlist[session.index][factInfo.key];
-             if(factValue) {
-                if(factInfo.element === 'title') el.title.textContent = factValue;
-                else {
-                    el.kicker.textContent = factInfo.label;
-                    el.details.textContent = factValue;
-                }
-             }
-        }
-        [el.kicker, el.title, el.details].forEach(e => e.classList.add('reveal'));
-        restartTimer((+plan[session.phase]||5)*1000, nextCard);
+        showCurrent(false); // Load previous card
+        session.phase = PHASES.length - 1; // Go to the very last fact
+        revealStep();
+        restartTimer(PHASES[session.phase].duration(), nextCard);
       }
     }
 
@@ -370,16 +325,18 @@
 
     function openSettings(){
       const f=el.settingsForm;
-      f.dailyCount.value = cfg.dailyCount; f.imageBase.value = cfg.imageBase; f.autoAccent.value = cfg.autoAccent;
-      f.tImage.value = cfg.tImage; f.tName.value = cfg.tName; f.tProduction.value = cfg.tProduction;
-      f.tDecay.value = cfg.tDecay; f.tPhotons.value = cfg.tPhotons; f.tHalfLife.value = cfg.tHalfLife;
-      f.tOtherFacts.value = cfg.tOtherFacts;
-      buildDeckListFresh(); el.settings.showModal(); setTimeout(()=>{ el.settings.focus({preventScroll:true}); }, 0);
+      Object.keys(DEFAULTS).forEach(key => {
+        if (f[key]) f[key].value = cfg[key];
+      });
+      buildDeckListFresh();
+      el.settings.showModal();
+      setTimeout(() => el.settings.focus({preventScroll:true}), 0);
     }
     
     let tempSel = new Set();
     function buildDeckListFresh(){
-      const term=(el.search.value||'').toLowerCase(); tempSel = new Set(todaySel.ids); el.deckList.innerHTML=''; let selectedCount = tempSel.size; const updateSelCount=()=>{ el.selCount.textContent = `${selectedCount}/${cfg.dailyCount}`; el.dailyCount.value = cfg.dailyCount; };
+      const term=(el.search.value||'').toLowerCase(); tempSel = new Set(todaySel.ids); el.deckList.innerHTML=''; let selectedCount = tempSel.size;
+      const updateSelCount=()=>{ el.selCount.textContent = `${selectedCount}/${cfg.dailyCount}`; el.dailyCount.value = cfg.dailyCount; };
       for(const c of deck){ const name=cleanText(c.name); if(term && !name.toLowerCase().includes(term)) continue; const row=document.createElement('div'); row.className='row'; row.dataset.id=c.id;
         const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=tempSel.has(c.id);
         const label=document.createElement('div'); label.innerHTML=`<strong>${name}</strong>`;
@@ -398,32 +355,29 @@
       const action = e.submitter && e.submitter.value;
       if(action==='save'){
         const f = el.settingsForm;
-        cfg.dailyCount = Math.max(1, Math.min(200, +f.dailyCount.value || cfg.dailyCount));
-        cfg.imageBase = f.imageBase.value.trim() || './';
-        cfg.autoAccent = f.autoAccent.value;
-        cfg.tImage = +f.tImage.value || 4; cfg.tName = +f.tName.value || 3;
-        cfg.tProduction = +f.tProduction.value || 4; cfg.tDecay = +f.tDecay.value || 4;
-        cfg.tPhotons = +f.tPhotons.value || 4; cfg.tHalfLife = +f.tHalfLife.value || 4;
-        cfg.tOtherFacts = +f.tOtherFacts.value || 5;
+        Object.keys(DEFAULTS).forEach(key => {
+          if (f[key]) {
+             const val = f[key].type === 'number' ? +f[key].value : f[key].value;
+             cfg[key] = val || DEFAULTS[key];
+          }
+        });
         saveConfig(); todaySel.ids = Array.from(tempSel).slice(0, cfg.dailyCount); saveToday(); buildPlaylist(); showCurrent(true);
       }
       e.preventDefault(); el.settings.close();
     });
 
+    // FIX: Restored original, working click handler logic.
     function onHitClick(e){
       if(suppressNextClick){ suppressNextClick=false; return; }
       const rect = e.currentTarget.getBoundingClientRect();
       const x = (e.clientX) - rect.left;
-      const plan = getTimings();
-      const maxPhase = FACT_ORDER.length;
-      if (x < rect.width / 2) { // Click left
+      if (x < rect.width / 2) {
         stepBackward();
-      } else { // Click right
-        if (session.phase < maxPhase) {
+      } else {
+        if (session.phase < PHASES.length - 1) {
           session.phase++;
           revealStep();
-          // This is a manual step, so we need to restart the auto-advance timer chain
-          runReveal();
+          runReveal(); // Restart auto-play from this new point
         } else {
           nextCard();
         }
@@ -438,17 +392,15 @@
     function onTouchEnd(e){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } }
 
     el.hits.addEventListener('click', onHitClick);
-    el.hits.addEventListener('touchstart', onTouchStart, {passive:true});
-    el.hits.addEventListener('touchmove', onTouchMove, {passive:true});
-    el.hits.addEventListener('touchend', onTouchEnd, {passive:true});
-    el.hits.addEventListener('touchcancel', onTouchEnd, {passive:true});
+    el.hits.addEventListener('touchstart', onTouchStart, {passive:true}); el.hits.addEventListener('touchmove', onTouchMove, {passive:true});
+    el.hits.addEventListener('touchend', onTouchEnd, {passive:true}); el.hits.addEventListener('touchcancel', onTouchEnd, {passive:true});
     
     el.btnGood.addEventListener('click', ()=>{ if(!playlist.length) return; grade(playlist[session.index], 'good'); el.btnGood.classList.add('selected'); setTimeout(()=>el.btnGood.classList.remove('selected'), 400); });
     el.btnBad.addEventListener('click', ()=>{ if(!playlist.length) return; grade(playlist[session.index], 'bad'); el.btnBad.classList.add('selected'); setTimeout(()=>el.btnBad.classList.remove('selected'), 400); });
     el.btnSettings.addEventListener('click', ()=>{ openSettings(); });
 
     window.addEventListener('keydown', (e)=>{
-      if (e.target.tagName === 'INPUT') return; // Ignore keypresses in settings inputs
+      if (e.target.tagName === 'INPUT') return;
       if(e.key==='ArrowRight'){ onHitClick({currentTarget:el.hits, clientX: el.hits.getBoundingClientRect().left + el.hits.offsetWidth*0.75}); }
       else if(e.key==='ArrowLeft'){ onHitClick({currentTarget:el.hits, clientX: el.hits.getBoundingClientRect().left + el.hits.offsetWidth*0.25}); }
       else if(e.key.toLowerCase()==='g'){ if(playlist.length) grade(playlist[session.index],'good'); }
@@ -459,26 +411,17 @@
     async function init(){
       startClock();
       try{
-        const res= await fetch('deck.json');
-        deck = await res.json();
+        const res= await fetch('deck.json'); deck = await res.json();
       } catch(e){
-        deck = [];
-        console.error("Failed to load or parse deck.json", e);
+        deck = []; console.error("Failed to load or parse deck.json", e);
       }
       deck = deck.map(card => ({
-        id: String(card.id || card.name),
-        image: card.image,
-        name: cleanText(card.name),
-        production: cleanText(card.production),
-        decay: cleanText(card.decay),
-        photons: cleanText(card.photons),
-        halfLife: cleanText(card.halfLife),
-        otherFacts: cleanText(card.otherFacts),
+        id: String(card.id || card.name), image: card.image, name: cleanText(card.name),
+        production: cleanText(card.production), decay: cleanText(card.decay),
+        photons: cleanText(card.photons), halfLife: cleanText(card.halfLife),
       }));
-      if(!deck.length){ setMeta('Error:', 'deck.json is missing or empty.', 'Please place it in the same folder as this HTML file.'); return; }
-      ensureToday();
-      buildPlaylist();
-      showCurrent(true);
+      if(!deck.length){ setMeta('Error:', 'deck.json is missing or empty.'); return; }
+      ensureToday(); buildPlaylist(); showCurrent(true);
     }
     init();
   </script>
