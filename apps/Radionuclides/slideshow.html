@@ -6,11 +6,11 @@
   <title>Radionuclide Slideshow</title>
   <style>
     :root{
-      --bg:#0b0b0f;           /* deep night */
-      --fg:#e9e9ef;           /* text */
-      --muted:#9aa0a6;        /* secondary text */
-      --accent:#00ff9c;       /* auto-tint from artwork */
-      --surface:#121218;      /* cards */
+      --bg:#0b0b0f;
+      --fg:#e9e9ef;
+      --muted:#9aa0a6;
+      --accent:#00ff9c;
+      --surface:#121218;
       --btn:#1e1e27;
       --good:#2bd576;
       --bad:#ff6b6b;
@@ -35,9 +35,10 @@
     .clock .ampm{ font-weight:600; color: color-mix(in srgb, var(--accent) 75%, white 10%); opacity:.9; margin-left:.25em; }
 
     .meta{ display:flex; flex-direction:column; gap:.35rem; max-width: 95%; }
-    .fact-name{ font-size: clamp(1.2rem, 3.6vw, 2.2rem); font-weight:800; letter-spacing:.2px; line-height:1.1; opacity:0; transform: translateY(8px); }
-    .fact{ color:var(--muted); font-size: clamp(.95rem, 2.2vw, 1.05rem); opacity:0; transform: translateY(8px); }
-    
+    .kicker{ color:var(--accent); text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:1rem; opacity:0; transform: translateY(8px); }
+    .title{ font-size: clamp(1.2rem, 3.6vw, 2.2rem); font-weight:800; letter-spacing:.2px; line-height:1.1; opacity:0; transform: translateY(8px); }
+    .sub{ color:var(--muted); font-size: clamp(.95rem, 2.2vw, 1.05rem); opacity:0; transform: translateY(8px); }
+
     .reveal{ animation: fadeUp var(--step-fade) ease forwards; }
     @keyframes fadeUp { to {opacity:1; transform: translateY(0)} }
 
@@ -47,7 +48,7 @@
 
     .hits{ position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; z-index:3; }
     .hit{ cursor:pointer; }
-    
+
     .footer{ position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; align-items:center; gap:.6rem; padding:.8rem 1rem; z-index:5; }
     .leftGroup{ display:flex; gap:.6rem; align-items:center; }
     .btn{ background:var(--btn); color:var(--fg); border:1px solid rgba(255,255,255,.08); padding:.8rem 1.1rem; border-radius:14px; cursor:pointer; user-select:none; transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease; overflow:hidden; }
@@ -58,25 +59,25 @@
 
     .mark{ position:absolute; right:1rem; bottom:1rem; font-size:2rem; opacity:.85; z-index:6; pointer-events:none; text-shadow:0 0 20px rgba(0,0,0,.45); }
     .chip{ position:absolute; top:.6rem; right:.6rem; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:999px; padding:.25rem .6rem; color:var(--muted); font-size:.9rem; z-index:6; }
-    
+
     dialog{ border:none; border-radius:16px; background:var(--surface); color:var(--fg); width:min(900px, 95vw); box-shadow: var(--shadow); }
     dialog::backdrop{ background:rgba(0,0,0,.6); backdrop-filter: blur(3px); }
     .modal{ padding:1rem; display:grid; gap:1rem; }
-    .grid3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.8rem; }
     .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+    .grid3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.8rem; }
     .field label{ display:block; font-size:.9rem; color:var(--muted); margin-bottom:.25rem; }
     .field input[type="number"], .field input[type="text"], .field select{ width:100%; background:#0f0f15; border:1px solid rgba(255,255,255,.1); color:var(--fg); padding:.55rem .6rem; border-radius:10px; }
     .list{ max-height:45vh; overflow:auto; border:1px solid rgba(255,255,255,.08); border-radius:12px; }
     .row{ display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center; padding:.5rem .6rem; border-bottom:1px solid rgba(255,255,255,.06); }
     .row:last-child{ border-bottom:none; }
     .row small{ color:var(--muted); }
-    .pill{ padding:.25rem .6rem; border-radius:999px; background:rgba(255,255,.06); border:1px solid rgba(255,255,255,.1); color:var(--muted); }
+    .pill{ padding:.25rem .6rem; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:var(--muted); }
     .actions{ display:flex; gap:.6rem; justify-content:flex-end; }
     
     .lightbox{ position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:9999; }
     .lightbox.show{ display:flex; }
     .lightbox img{ max-width:90vw; max-height:80vh; object-fit:contain; border-radius:12px; box-shadow: var(--shadow); }
-    
+
     @media (orientation: landscape){ .clock{ font-size: clamp(2.6rem, 7vw, 5.2rem); } }
     @media (orientation: portrait){ .clock{ font-size: clamp(2.2rem, 10vw, 4.2rem); } }
   </style>
@@ -90,26 +91,23 @@
           <div class="clock" id="clock">--:--<span class="ampm" id="ampm"></span></div>
         </div>
         <div class="meta">
-          <div id="factName" class="fact-name" aria-hidden="true"></div>
-          <div id="factProduction" class="fact" aria-hidden="true"></div>
-          <div id="factDecay" class="fact" aria-hidden="true"></div>
-          <div id="factPhotons" class="fact" aria-hidden="true"></div>
-          <div id="factHalfLife" class="fact" aria-hidden="true"></div>
-          <div id="factOther" class="fact" aria-hidden="true"></div>
+          <div id="kicker" class="kicker" aria-hidden="true"></div>
+          <div id="title" class="title" aria-hidden="true"></div>
+          <div id="details" class="sub" aria-hidden="true"></div>
         </div>
       </aside>
-      
+
       <div class="art" id="artArea">
         <div class="tint" id="tint"></div>
         <img id="artImg" alt="Radionuclide Mnemonic" />
         <div class="mark" id="mark">&nbsp;</div>
       </div>
-      
+
       <div class="hits" id="hits">
         <div class="hit" id="hitLeft" aria-label="Back"></div>
         <div class="hit" id="hitRight" aria-label="Forward"></div>
       </div>
-      
+
       <div class="footer">
         <div class="leftGroup">
           <button id="btnBad" class="btn bad">Not yet</button>
@@ -120,29 +118,30 @@
       </div>
     </section>
   </main>
-  
+
   <dialog id="settings" tabindex="-1">
     <form method="dialog" class="modal" id="settingsForm">
       <h3 style="margin:.2rem 0 .2rem">Settings</h3>
       <div class="grid2">
-        <div class="field"><label>Daily count</label><input name="dailyCount" id="dailyCount" type="number" min="1" max="200" value="5"></div>
+        <div class="field"><label>Daily count</label><input name="dailyCount" id="dailyCount" type="number" min="1" max="200" value="10"></div>
         <div class="field"><label>Base image path</label><input name="imageBase" type="text" placeholder="./" value="./"></div>
       </div>
       <p style="color:var(--muted); font-size: .9rem; margin:.5rem 0 0;">Fact display duration (seconds)</p>
-      <div class="grid3">
+      <div class="grid3" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
         <div class="field"><label>Image-only</label><input name="tImage" type="number" min="1" value="4"></div>
         <div class="field"><label>Name</label><input name="tName" type="number" min="1" value="3"></div>
         <div class="field"><label>Production</label><input name="tProduction" type="number" min="1" value="4"></div>
         <div class="field"><label>Decay</label><input name="tDecay" type="number" min="1" value="4"></div>
         <div class="field"><label>Photons</label><input name="tPhotons" type="number" min="1" value="4"></div>
         <div class="field"><label>Half-life</label><input name="tHalfLife" type="number" min="1" value="4"></div>
+        <div class="field"><label>Other Facts</label><input name="tOtherFacts" type="number" min="1" value="5"></div>
       </div>
       <div class="field"><label>Auto accent</label>
         <select name="autoAccent"><option value="on">On</option><option value="off">Off</option></select>
       </div>
       <div class="row" style="justify-content:space-between">
-        <strong>Today's playlist</strong>
-        <span class="pill" id="selCount">0/5</span>
+        <strong>Today's Repertoire</strong>
+        <span class="pill" id="selCount">0/10</span>
       </div>
       <div class="field"><label>Search</label><input type="text" id="search" placeholder="Filter by radionuclide name..."></div>
       <div class="list" id="deckList" aria-label="Deck list"></div>
@@ -152,20 +151,20 @@
       </div>
     </form>
   </dialog>
-  
+
   <div class="lightbox" id="imgPreview"><img alt="Preview" id="previewImg"></div>
-  
+
   <script>
     /* ===== Config & State ===== */
-    const CONFIG_KEY = 'radSRS_config_v1';
-    const STATE_KEY  = 'radSRS_state_v1';
-    const TODAY_KEY  = 'radSRS_today_v1';
+    const CONFIG_KEY = 'radSRS_config_v2';
+    const STATE_KEY  = 'radSRS_state_v2';
+    const TODAY_KEY  = 'radSRS_today_v2';
     const DEFAULTS = { 
-        dailyCount: 10, 
-        tImage: 4, tName: 3, tProduction: 4, tDecay: 4, tPhotons: 4, tHalfLife: 4,
-        imageBase: './', 
-        autoAccent: 'on', 
-        easeDefault: 2.5 
+      dailyCount: 10,
+      imageBase: './', 
+      autoAccent: 'on', 
+      easeDefault: 2.5,
+      tImage: 4, tName: 3, tProduction: 4, tDecay: 4, tPhotons: 4, tHalfLife: 4, tOtherFacts: 5,
     };
 
     const el = {
@@ -173,14 +172,7 @@
       img: document.getElementById('artImg'),
       tint: document.getElementById('tint'),
       clock: document.getElementById('clock'), ampm: document.getElementById('ampm'),
-      // Fact elements
-      factName: document.getElementById('factName'),
-      factProduction: document.getElementById('factProduction'),
-      factDecay: document.getElementById('factDecay'),
-      factPhotons: document.getElementById('factPhotons'),
-      factHalfLife: document.getElementById('factHalfLife'),
-      factOther: document.getElementById('factOther'),
-
+      kicker: document.getElementById('kicker'), title: document.getElementById('title'), details: document.getElementById('details'),
       hitL: document.getElementById('hitLeft'), hitR: document.getElementById('hitRight'), hits: document.getElementById('hits'),
       btnGood: document.getElementById('btnGood'), btnBad: document.getElementById('btnBad'), btnSettings: document.getElementById('btnSettings'),
       mark: document.getElementById('mark'), chip: document.getElementById('chip'),
@@ -198,6 +190,16 @@
     let todaySel = loadToday();
     let session = { index:0, phase:0, timers:[], today: dayISO(new Date()) };
     let suppressNextClick = false;
+
+    // The order and properties of facts to be displayed.
+    const FACT_ORDER = [
+      { key: 'name',       label: 'Radionuclide', element: 'title' },
+      { key: 'production', label: 'Production',   element: 'details' },
+      { key: 'decay',      label: 'Decay Mode',   element: 'details' },
+      { key: 'photons',    label: 'Principal Photons', element: 'details' },
+      { key: 'halfLife',   label: 'Half-Life',    element: 'details' },
+      { key: 'otherFacts', label: 'Other Facts',  element: 'details' },
+    ];
 
     function loadConfig(){ const raw=localStorage.getItem(CONFIG_KEY); return raw?{...DEFAULTS, ...JSON.parse(raw)}:{...DEFAULTS}; }
     function saveConfig(){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
@@ -222,8 +224,7 @@
       updateChip(); }
 
     function autoAccentFromImage(img){ try{ const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d',{willReadFrequently:true}); const w=canvas.width=80, h=canvas.height=80; ctx.drawImage(img,0,0,w,h); const data=ctx.getImageData(0,0,w,h).data; let r=0,g=0,b=0,c=0; for(let i=0;i<data.length;i+=4){ const a=data[i+3]; if(a<30) continue; r+=data[i]; g+=data[i+1]; b+=data[i+2]; c++; } if(c){ r=Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c); const accent=`rgb(${r},${g},${b})`; document.documentElement.style.setProperty('--accent', accent); } }catch(e){}
-      const url = img.currentSrc || img.src; el.backdrop.style.backgroundImage = `url('${url}')`; el.backdrop.style.backgroundSize = 'cover'; el.backdrop.style.backgroundPosition = 'center'; el.backdrop.style.filter = 'blur(40px) brightness(.35) saturate(.9)'; el.backdrop.style.transform = 'scale(1.1)';
-    }
+      const url = img.currentSrc || img.src; el.backdrop.style.backgroundImage = `url('${url}')`; el.backdrop.style.backgroundSize = 'cover'; el.backdrop.style.backgroundPosition = 'center'; el.backdrop.style.filter = 'blur(40px) brightness(.35) saturate(.9)'; el.backdrop.style.transform = 'scale(1.1)'; }
 
     function fmtTime(d){ let h=d.getHours(); const m=d.getMinutes().toString().padStart(2,'0'); const ampm = h>=12? 'PM':'AM'; h = h%12 || 12; return {h, m, ampm}; }
     function startClock(){ const tick=()=>{ const d=new Date(); const {h,m,ampm}=fmtTime(d); el.clock.textContent = `${h}:${m}`; el.ampm.textContent=ampm; }; tick(); setInterval(tick, 15000); }
@@ -244,76 +245,127 @@
       }
     }
 
-    function buildPlaylist(){ ensureToday(); const map=new Map(deck.map(c=>[c.id,c])); playlist=todaySel.ids.map(id=>map.get(id)).filter(Boolean); if(!playlist.length && deck.length){ playlist=deck.slice(0, cfg.dailyCount); todaySel.ids=playlist.map(c=>c.id); saveToday(); } session.index=0; updateChip(); }
+    function buildPlaylist(){ ensureToday(); const map=new Map(deck.map(c=>[c.id,c])); playlist=todaySel.ids.map(id=>map.get(id)).filter(Boolean); if(!playlist.length && deck.length > 0){ playlist=deck.slice(0, cfg.dailyCount); todaySel.ids=playlist.map(c=>c.id); saveToday(); } session.index=0; updateChip(); }
     
-    function hideMeta(){ [el.factName, el.factProduction, el.factDecay, el.factPhotons, el.factHalfLife, el.factOther].forEach(n => { n.classList.remove('reveal'); n.style.opacity=0; n.style.transform='translateY(8px)'; n.textContent=''; }); }
-    
+    function hideMeta(){ [el.kicker, el.title, el.details].forEach(n => { n.classList.remove('reveal'); n.style.opacity=0; n.style.transform='translateY(8px)'; }); }
+    function setMeta(kicker, title, details){ el.kicker.textContent=kicker||''; el.title.textContent=title||''; el.details.textContent=details||''; }
+
     function loadImageFor(card){ return new Promise((resolve)=>{ const src = isHttp(card.image)? card.image : (cfg.imageBase||'./') + card.image; el.img.onload=()=>resolve(); el.img.onerror=()=>resolve(); el.img.src=src; }); }
 
     function updateChip(){ const n=playlist.length||0; const i=Math.min(session.index+1, Math.max(n,1)); el.chip.textContent=`Today ${i}/${n}`; }
 
-    async function showCurrent(auto=true){ const card=playlist[session.index]; if(!card){ el.factName.textContent = 'No deck.json found or empty.'; el.factName.classList.add('reveal'); return; }
-      hideMeta(); await loadImageFor(card); if(cfg.autoAccent==='on') autoAccentFromImage(el.img); if(auto){ session.phase=0; runReveal(); } updateChip();
+    async function showCurrent(auto=true){ const card=playlist[session.index]; if(!card){ setMeta('No deck.json found or empty.', 'Please place deck.json next to this file.', ''); return; }
+      hideMeta(); setMeta('', '', ''); await loadImageFor(card); if(cfg.autoAccent==='on') autoAccentFromImage(el.img); if(auto){ session.phase=0; runReveal(); } updateChip();
     }
 
-    function revealStep(){
+    function revealStep() {
         const card = playlist[session.index];
         if (!card) return;
 
-        // Map of phases to the fact element and its data
-        const phaseMap = [
-            { el: el.factName,       data: card.name,                              prefix: '' },
-            { el: el.factProduction, data: card.production,                        prefix: 'Production: ' },
-            { el: el.factDecay,      data: card.decay,                             prefix: 'Decay: ' },
-            { el: el.factPhotons,    data: card.photons,                           prefix: 'Photons: ' },
-            { el: el.factHalfLife,   data: card.halfLife,                          prefix: 'Half-life: ' },
-            // Placeholder for new facts. Add a new object to this array.
-            // Make sure to also add a timer for it in DEFAULTS and the settings modal.
-            { el: el.factOther,      data: card.otherFacts,                        prefix: '' }
-        ];
+        // Phase 0 is image only
+        if (session.phase === 0) return;
 
-        // Phase 0 is image-only. Phase 1 reveals the first fact (index 0).
-        const currentPhaseIndex = session.phase - 1;
-        if (currentPhaseIndex >= 0 && currentPhaseIndex < phaseMap.length) {
-            const item = phaseMap[currentPhaseIndex];
-            if (item.data) { // Only reveal if data exists
-                item.el.textContent = `${item.prefix}${item.data}`;
-                item.el.classList.add('reveal');
-                item.el.removeAttribute('aria-hidden');
+        // Subsequent phases map to FACT_ORDER
+        const factIndex = session.phase - 1;
+        if (factIndex >= FACT_ORDER.length) return;
+
+        const factInfo = FACT_ORDER[factIndex];
+        const factValue = card[factInfo.key];
+
+        if (factValue) { // Only reveal if the fact has data
+            if (factInfo.element === 'title') {
+                el.title.textContent = factValue;
+                el.title.classList.add('reveal');
+            } else if (factInfo.element === 'details') {
+                el.kicker.textContent = factInfo.label;
+                el.details.textContent = factValue;
+                el.kicker.classList.add('reveal');
+                el.details.classList.add('reveal');
             }
         }
     }
+    
+    function getTimings() {
+        return [cfg.tImage, cfg.tName, cfg.tProduction, cfg.tDecay, cfg.tPhotons, cfg.tHalfLife, cfg.tOtherFacts].map(Number);
+    }
 
     function runReveal(){
-      const plan = [cfg.tImage, cfg.tName, cfg.tProduction, cfg.tDecay, cfg.tPhotons, cfg.tHalfLife].map(Number);
-      const MAX_PHASE = plan.length;
-
+      const plan = getTimings();
+      const maxPhase = FACT_ORDER.length; // Number of facts + 1 for image
+      
       function scheduleNext(){
-        if(session.phase < MAX_PHASE -1 ){
-          restartTimer(plan[session.phase] * 1000, () => {
+        if(session.phase < maxPhase){
+          const duration = plan[session.phase] * 1000;
+          restartTimer(duration, ()=>{
             session.phase++;
+            // Before revealing the next fact, hide previous kicker/details if needed
+            if (session.phase > 1) { // Don't hide the main title
+                const prevFact = FACT_ORDER[session.phase - 2];
+                if (prevFact.element === 'details') {
+                    el.kicker.classList.remove('reveal');
+                    el.details.classList.remove('reveal');
+                }
+            }
             revealStep();
             scheduleNext();
           });
         } else {
-          // After the last fact, wait its duration then move to the next card
-          restartTimer(plan[session.phase] * 1000, nextCard);
+          // Last fact has been shown, wait its duration then go to next card
+          const lastDuration = plan[maxPhase] * 1000;
+          restartTimer(lastDuration, nextCard);
         }
       }
-      session.phase=0; 
-      revealStep(); // Does nothing for phase 0
+      session.phase = 0;
+      revealStep();
       scheduleNext();
     }
 
     function nextCard(){ if(!playlist.length) return; session.index = (session.index+1)%playlist.length; showCurrent(true); }
 
     function stepBackward(){
-      // Not implemented for this version to keep it simple, focus on forward flow.
-      // A simple implementation could just go to the previous card.
-      session.index = (session.index - 1 + playlist.length) % playlist.length;
-      showCurrent(true);
+      const plan = getTimings();
+      if(session.phase > 0){
+        session.phase--;
+        hideMeta(); // Hide everything
+        // Re-reveal everything up to the current phase instantly
+        for (let i = 1; i <= session.phase; i++) {
+            const factInfo = FACT_ORDER[i - 1];
+            const factValue = playlist[session.index][factInfo.key];
+            if (factValue) {
+                if (factInfo.element === 'title') el.title.textContent = factValue;
+                else if (factInfo.element === 'details') {
+                    el.kicker.textContent = factInfo.label;
+                    el.details.textContent = factValue;
+                }
+            }
+        }
+        // Make the current step visible with animation
+        revealStep();
+        
+        const maxPhase = FACT_ORDER.length;
+        restartTimer(plan[session.phase]*1000, ()=>{
+          if(session.phase < maxPhase){ session.phase++; revealStep(); runReveal(); } else { nextCard(); }
+        });
+      } else {
+        session.index = (session.index - 1 + playlist.length) % playlist.length;
+        showCurrent(false);
+        session.phase = FACT_ORDER.length; // Go to last fact
+        for (let i = 1; i <= session.phase; i++) { // Instantly show all facts
+             const factInfo = FACT_ORDER[i-1];
+             const factValue = playlist[session.index][factInfo.key];
+             if(factValue) {
+                if(factInfo.element === 'title') el.title.textContent = factValue;
+                else {
+                    el.kicker.textContent = factInfo.label;
+                    el.details.textContent = factValue;
+                }
+             }
+        }
+        [el.kicker, el.title, el.details].forEach(e => e.classList.add('reveal'));
+        restartTimer((+plan[session.phase]||5)*1000, nextCard);
+      }
     }
-    
+
     function showGradeFeedback(kind){ el.mark.textContent = kind==='good' ? '✓' : '✕'; el.mark.style.color = kind==='good' ? 'var(--good)' : 'var(--bad)'; }
 
     function openSettings(){
@@ -321,21 +373,14 @@
       f.dailyCount.value = cfg.dailyCount; f.imageBase.value = cfg.imageBase; f.autoAccent.value = cfg.autoAccent;
       f.tImage.value = cfg.tImage; f.tName.value = cfg.tName; f.tProduction.value = cfg.tProduction;
       f.tDecay.value = cfg.tDecay; f.tPhotons.value = cfg.tPhotons; f.tHalfLife.value = cfg.tHalfLife;
-      buildDeckListFresh(); el.settings.showModal(); setTimeout(()=>{ document.activeElement && document.activeElement.blur(); el.settings.focus({preventScroll:true}); }, 0);
+      f.tOtherFacts.value = cfg.tOtherFacts;
+      buildDeckListFresh(); el.settings.showModal(); setTimeout(()=>{ el.settings.focus({preventScroll:true}); }, 0);
     }
-
+    
     let tempSel = new Set();
     function buildDeckListFresh(){
-      const term=(el.search.value||'').toLowerCase();
-      tempSel = new Set(todaySel.ids);
-      el.deckList.innerHTML='';
-      let selectedCount = tempSel.size;
-      const updateSelCount=()=>{ el.selCount.textContent = `${selectedCount}/${cfg.dailyCount}`; el.dailyCount.value = cfg.dailyCount; };
-      
-      for(const c of deck){
-        const name=cleanText(c.name);
-        if(term && !name.toLowerCase().includes(term)) continue;
-        const row=document.createElement('div'); row.className='row'; row.dataset.id=c.id;
+      const term=(el.search.value||'').toLowerCase(); tempSel = new Set(todaySel.ids); el.deckList.innerHTML=''; let selectedCount = tempSel.size; const updateSelCount=()=>{ el.selCount.textContent = `${selectedCount}/${cfg.dailyCount}`; el.dailyCount.value = cfg.dailyCount; };
+      for(const c of deck){ const name=cleanText(c.name); if(term && !name.toLowerCase().includes(term)) continue; const row=document.createElement('div'); row.className='row'; row.dataset.id=c.id;
         const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=tempSel.has(c.id);
         const label=document.createElement('div'); label.innerHTML=`<strong>${name}</strong>`;
         const jump=document.createElement('button'); jump.className='btn'; jump.textContent='Image';
@@ -359,30 +404,32 @@
         cfg.tImage = +f.tImage.value || 4; cfg.tName = +f.tName.value || 3;
         cfg.tProduction = +f.tProduction.value || 4; cfg.tDecay = +f.tDecay.value || 4;
         cfg.tPhotons = +f.tPhotons.value || 4; cfg.tHalfLife = +f.tHalfLife.value || 4;
-        saveConfig();
-        todaySel.ids = Array.from(tempSel).slice(0, cfg.dailyCount);
-        saveToday();
-        buildPlaylist();
-        showCurrent(true);
+        cfg.tOtherFacts = +f.tOtherFacts.value || 5;
+        saveConfig(); todaySel.ids = Array.from(tempSel).slice(0, cfg.dailyCount); saveToday(); buildPlaylist(); showCurrent(true);
       }
-      e.preventDefault();
-      el.settings.close();
+      e.preventDefault(); el.settings.close();
     });
 
     function onHitClick(e){
       if(suppressNextClick){ suppressNextClick=false; return; }
       const rect = e.currentTarget.getBoundingClientRect();
       const x = (e.clientX) - rect.left;
-      if(x < rect.width/2){
-        // Go to previous card
-        session.index = (session.index - 1 + playlist.length) % playlist.length;
-        showCurrent(true);
-      } else {
-        // Go to next card
-        nextCard();
+      const plan = getTimings();
+      const maxPhase = FACT_ORDER.length;
+      if (x < rect.width / 2) { // Click left
+        stepBackward();
+      } else { // Click right
+        if (session.phase < maxPhase) {
+          session.phase++;
+          revealStep();
+          // This is a manual step, so we need to restart the auto-advance timer chain
+          runReveal();
+        } else {
+          nextCard();
+        }
       }
     }
-    
+
     let lpTimer=null; let touchStartX=0, touchStartY=0; const LONG_PRESS_MS=550; const MOVE_TOL=12; 
     function onTouchStart(e){ const t=e.touches[0]; touchStartX=t.clientX; touchStartY=t.clientY; const artRect = el.artArea.getBoundingClientRect(); if(t.clientX<artRect.left || t.clientX>artRect.right || t.clientY<artRect.top || t.clientY>artRect.bottom){ return; }
       lpTimer=setTimeout(()=>{ el.hits.style.pointerEvents='none'; suppressNextClick=true; setTimeout(()=>{ el.hits.style.pointerEvents='auto'; }, 1200); }, LONG_PRESS_MS);
@@ -401,9 +448,9 @@
     el.btnSettings.addEventListener('click', ()=>{ openSettings(); });
 
     window.addEventListener('keydown', (e)=>{
-      if (e.target.tagName === 'INPUT') return;
-      if(e.key==='ArrowRight'){ nextCard(); }
-      else if(e.key==='ArrowLeft'){ session.index = (session.index - 1 + playlist.length) % playlist.length; showCurrent(true); }
+      if (e.target.tagName === 'INPUT') return; // Ignore keypresses in settings inputs
+      if(e.key==='ArrowRight'){ onHitClick({currentTarget:el.hits, clientX: el.hits.getBoundingClientRect().left + el.hits.offsetWidth*0.75}); }
+      else if(e.key==='ArrowLeft'){ onHitClick({currentTarget:el.hits, clientX: el.hits.getBoundingClientRect().left + el.hits.offsetWidth*0.25}); }
       else if(e.key.toLowerCase()==='g'){ if(playlist.length) grade(playlist[session.index],'good'); }
       else if(e.key.toLowerCase()==='b'){ if(playlist.length) grade(playlist[session.index],'bad'); }
       else if(e.key.toLowerCase()==='s'){ openSettings(); }
@@ -419,15 +466,16 @@
         console.error("Failed to load or parse deck.json", e);
       }
       deck = deck.map(card => ({
-        ...card,
         id: String(card.id || card.name),
+        image: card.image,
         name: cleanText(card.name),
         production: cleanText(card.production),
         decay: cleanText(card.decay),
         photons: cleanText(card.photons),
         halfLife: cleanText(card.halfLife),
+        otherFacts: cleanText(card.otherFacts),
       }));
-      if(!deck.length){ el.factName.textContent = 'Error: deck.json is missing or empty.'; el.factName.classList.add('reveal'); return; }
+      if(!deck.length){ setMeta('Error:', 'deck.json is missing or empty.', 'Please place it in the same folder as this HTML file.'); return; }
       ensureToday();
       buildPlaylist();
       showCurrent(true);
