@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radionuclide Slideshow</title>
+  <style>
+    :root{
+      --bg:#0b0b0f;           /* deep night */
+      --fg:#e9e9ef;           /* text */
+      --muted:#9aa0a6;        /* secondary text */
+      --accent:#00ff9c;       /* auto-tint from artwork */
+      --surface:#121218;      /* cards */
+      --btn:#1e1e27;
+      --good:#2bd576;
+      --bad:#ff6b6b;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --step-fade: 450ms;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{ margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; display:flex; min-height:100vh; }
+
+    .backdrop{ position:fixed; inset:0; z-index:-1; background:var(--bg); }
+    .backdrop::before{ content:""; position:absolute; inset:0; background-size:cover; background-position:center; filter: blur(40px) brightness(.35) saturate(.9); transform:scale(1.1); will-change:transform; }
+    .backdrop::after{ content:""; position:absolute; inset:0; background: radial-gradient(55% 45% at 60% 55%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%); pointer-events:none; }
+
+    .stage{ position:relative; display:grid; place-items:center; width:100%; height:100vh; padding:1rem; }
+    .frame{ position:relative; width:100%; height:100%; max-width:1600px; aspect-ratio:16/9; border-radius:var(--radius); overflow:hidden; background: radial-gradient(1200px 600px at 50% 110%, rgba(255,255,255,.05), transparent 60%); box-shadow: var(--shadow); display:grid; grid-template-columns: 34% 66%; user-select:none; }
+
+    .side{ display:flex; flex-direction:column; justify-content:flex-start; padding:1.2rem; gap:1rem; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0) 40%); grid-column:1; pointer-events:none; }
+    .clockWrap{ display:flex; flex-direction:column; align-items:flex-start; gap:.2rem; }
+    .clock{ font-variant-numeric:tabular-nums; font-weight:800; line-height:1; letter-spacing:.5px; color:var(--accent); text-shadow:0 0 24px color-mix(in srgb, var(--accent) 40%, transparent); }
+    .clock .ampm{ font-weight:600; color: color-mix(in srgb, var(--accent) 75%, white 10%); opacity:.9; margin-left:.25em; }
+
+    .meta{ display:flex; flex-direction:column; gap:.35rem; max-width: 95%; }
+    .fact-name{ font-size: clamp(1.2rem, 3.6vw, 2.2rem); font-weight:800; letter-spacing:.2px; line-height:1.1; opacity:0; transform: translateY(8px); }
+    .fact{ color:var(--muted); font-size: clamp(.95rem, 2.2vw, 1.05rem); opacity:0; transform: translateY(8px); }
+    
+    .reveal{ animation: fadeUp var(--step-fade) ease forwards; }
+    @keyframes fadeUp { to {opacity:1; transform: translateY(0)} }
+
+    .art{ position:relative; width:100%; height:100%; display:grid; place-items:center; grid-column:2; }
+    .art img{ max-width:100%; max-height:100%; object-fit:contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,.35)); }
+    .tint{ position:absolute; inset:-12%; background:radial-gradient(60% 50% at 50% 65%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%); filter: blur(60px); opacity:.6; pointer-events:none }
+
+    .hits{ position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; z-index:3; }
+    .hit{ cursor:pointer; }
+    
+    .footer{ position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; align-items:center; gap:.6rem; padding:.8rem 1rem; z-index:5; }
+    .leftGroup{ display:flex; gap:.6rem; align-items:center; }
+    .btn{ background:var(--btn); color:var(--fg); border:1px solid rgba(255,255,255,.08); padding:.8rem 1.1rem; border-radius:14px; cursor:pointer; user-select:none; transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease; overflow:hidden; }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn.good{ border-color: color-mix(in srgb, var(--good) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--good) 30%, transparent) inset; }
+    .btn.bad{ border-color: color-mix(in srgb, var(--bad) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 30%, transparent) inset; }
+    .btn.selected{ box-shadow: 0 0 0 2px currentColor inset; }
+
+    .mark{ position:absolute; right:1rem; bottom:1rem; font-size:2rem; opacity:.85; z-index:6; pointer-events:none; text-shadow:0 0 20px rgba(0,0,0,.45); }
+    .chip{ position:absolute; top:.6rem; right:.6rem; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:999px; padding:.25rem .6rem; color:var(--muted); font-size:.9rem; z-index:6; }
+    
+    dialog{ border:none; border-radius:16px; background:var(--surface); color:var(--fg); width:min(900px, 95vw); box-shadow: var(--shadow); }
+    dialog::backdrop{ background:rgba(0,0,0,.6); backdrop-filter: blur(3px); }
+    .modal{ padding:1rem; display:grid; gap:1rem; }
+    .grid3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.8rem; }
+    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+    .field label{ display:block; font-size:.9rem; color:var(--muted); margin-bottom:.25rem; }
+    .field input[type="number"], .field input[type="text"], .field select{ width:100%; background:#0f0f15; border:1px solid rgba(255,255,255,.1); color:var(--fg); padding:.55rem .6rem; border-radius:10px; }
+    .list{ max-height:45vh; overflow:auto; border:1px solid rgba(255,255,255,.08); border-radius:12px; }
+    .row{ display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center; padding:.5rem .6rem; border-bottom:1px solid rgba(255,255,255,.06); }
+    .row:last-child{ border-bottom:none; }
+    .row small{ color:var(--muted); }
+    .pill{ padding:.25rem .6rem; border-radius:999px; background:rgba(255,255,.06); border:1px solid rgba(255,255,255,.1); color:var(--muted); }
+    .actions{ display:flex; gap:.6rem; justify-content:flex-end; }
+    
+    .lightbox{ position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:9999; }
+    .lightbox.show{ display:flex; }
+    .lightbox img{ max-width:90vw; max-height:80vh; object-fit:contain; border-radius:12px; box-shadow: var(--shadow); }
+    
+    @media (orientation: landscape){ .clock{ font-size: clamp(2.6rem, 7vw, 5.2rem); } }
+    @media (orientation: portrait){ .clock{ font-size: clamp(2.2rem, 10vw, 4.2rem); } }
+  </style>
+</head>
+<body>
+  <div class="backdrop" id="backdrop"></div>
+  <main class="stage">
+    <section class="frame" id="frame">
+      <aside class="side" id="side">
+        <div class="clockWrap">
+          <div class="clock" id="clock">--:--<span class="ampm" id="ampm"></span></div>
+        </div>
+        <div class="meta">
+          <div id="factName" class="fact-name" aria-hidden="true"></div>
+          <div id="factProduction" class="fact" aria-hidden="true"></div>
+          <div id="factDecay" class="fact" aria-hidden="true"></div>
+          <div id="factPhotons" class="fact" aria-hidden="true"></div>
+          <div id="factHalfLife" class="fact" aria-hidden="true"></div>
+          <div id="factOther" class="fact" aria-hidden="true"></div>
+        </div>
+      </aside>
+      
+      <div class="art" id="artArea">
+        <div class="tint" id="tint"></div>
+        <img id="artImg" alt="Radionuclide Mnemonic" />
+        <div class="mark" id="mark">&nbsp;</div>
+      </div>
+      
+      <div class="hits" id="hits">
+        <div class="hit" id="hitLeft" aria-label="Back"></div>
+        <div class="hit" id="hitRight" aria-label="Forward"></div>
+      </div>
+      
+      <div class="footer">
+        <div class="leftGroup">
+          <button id="btnBad" class="btn bad">Not yet</button>
+          <button id="btnGood" class="btn good">Got it</button>
+          <button id="btnSettings" class="btn" title="Settings">⚙️</button>
+        </div>
+        <span class="chip" id="chip">—</span>
+      </div>
+    </section>
+  </main>
+  
+  <dialog id="settings" tabindex="-1">
+    <form method="dialog" class="modal" id="settingsForm">
+      <h3 style="margin:.2rem 0 .2rem">Settings</h3>
+      <div class="grid2">
+        <div class="field"><label>Daily count</label><input name="dailyCount" id="dailyCount" type="number" min="1" max="200" value="5"></div>
+        <div class="field"><label>Base image path</label><input name="imageBase" type="text" placeholder="./" value="./"></div>
+      </div>
+      <p style="color:var(--muted); font-size: .9rem; margin:.5rem 0 0;">Fact display duration (seconds)</p>
+      <div class="grid3">
+        <div class="field"><label>Image-only</label><input name="tImage" type="number" min="1" value="4"></div>
+        <div class="field"><label>Name</label><input name="tName" type="number" min="1" value="3"></div>
+        <div class="field"><label>Production</label><input name="tProduction" type="number" min="1" value="4"></div>
+        <div class="field"><label>Decay</label><input name="tDecay" type="number" min="1" value="4"></div>
+        <div class="field"><label>Photons</label><input name="tPhotons" type="number" min="1" value="4"></div>
+        <div class="field"><label>Half-life</label><input name="tHalfLife" type="number" min="1" value="4"></div>
+      </div>
+      <div class="field"><label>Auto accent</label>
+        <select name="autoAccent"><option value="on">On</option><option value="off">Off</option></select>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <strong>Today's playlist</strong>
+        <span class="pill" id="selCount">0/5</span>
+      </div>
+      <div class="field"><label>Search</label><input type="text" id="search" placeholder="Filter by radionuclide name..."></div>
+      <div class="list" id="deckList" aria-label="Deck list"></div>
+      <div class="actions">
+        <button class="btn" value="cancel">Close</button>
+        <button class="btn good" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+  
+  <div class="lightbox" id="imgPreview"><img alt="Preview" id="previewImg"></div>
+  
+  <script>
+    /* ===== Config & State ===== */
+    const CONFIG_KEY = 'radSRS_config_v1';
+    const STATE_KEY  = 'radSRS_state_v1';
+    const TODAY_KEY  = 'radSRS_today_v1';
+    const DEFAULTS = { 
+        dailyCount: 10, 
+        tImage: 4, tName: 3, tProduction: 4, tDecay: 4, tPhotons: 4, tHalfLife: 4,
+        imageBase: './', 
+        autoAccent: 'on', 
+        easeDefault: 2.5 
+    };
+
+    const el = {
+      frame: document.getElementById('frame'),
+      img: document.getElementById('artImg'),
+      tint: document.getElementById('tint'),
+      clock: document.getElementById('clock'), ampm: document.getElementById('ampm'),
+      // Fact elements
+      factName: document.getElementById('factName'),
+      factProduction: document.getElementById('factProduction'),
+      factDecay: document.getElementById('factDecay'),
+      factPhotons: document.getElementById('factPhotons'),
+      factHalfLife: document.getElementById('factHalfLife'),
+      factOther: document.getElementById('factOther'),
+
+      hitL: document.getElementById('hitLeft'), hitR: document.getElementById('hitRight'), hits: document.getElementById('hits'),
+      btnGood: document.getElementById('btnGood'), btnBad: document.getElementById('btnBad'), btnSettings: document.getElementById('btnSettings'),
+      mark: document.getElementById('mark'), chip: document.getElementById('chip'),
+      settings: document.getElementById('settings'), settingsForm: document.getElementById('settingsForm'),
+      deckList: document.getElementById('deckList'), selCount: document.getElementById('selCount'), search: document.getElementById('search'),
+      dailyCount: document.getElementById('dailyCount'),
+      artArea: document.getElementById('artArea'), backdrop: document.getElementById('backdrop'),
+      imgPreview: document.getElementById('imgPreview'), previewImg: document.getElementById('previewImg')
+    };
+
+    let cfg = loadConfig();
+    let deck = [];
+    let progress = loadState();
+    let playlist = [];
+    let todaySel = loadToday();
+    let session = { index:0, phase:0, timers:[], today: dayISO(new Date()) };
+    let suppressNextClick = false;
+
+    function loadConfig(){ const raw=localStorage.getItem(CONFIG_KEY); return raw?{...DEFAULTS, ...JSON.parse(raw)}:{...DEFAULTS}; }
+    function saveConfig(){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+    function loadState(){ const raw=localStorage.getItem(STATE_KEY); return raw?JSON.parse(raw):{}; }
+    function saveState(){ localStorage.setItem(STATE_KEY, JSON.stringify(progress)); }
+    function loadToday(){ const raw=localStorage.getItem(TODAY_KEY); return raw?JSON.parse(raw):{date: dayISO(new Date()), ids: []}; }
+    function saveToday(){ localStorage.setItem(TODAY_KEY, JSON.stringify(todaySel)); }
+
+    function dayISO(d){ const z= new Date(d.getFullYear(), d.getMonth(), d.getDate()); return z.toISOString().slice(0,10); }
+    function isHttp(url){ return /^https?:/i.test(url); }
+    function clearTimers(){ session.timers.forEach(t=>clearTimeout(t)); session.timers=[]; }
+    function restartTimer(ms, fn){ clearTimers(); const t=setTimeout(fn, ms); session.timers=[t]; }
+
+    function cleanText(val){ if(val==null) return ''; const s=String(val); const tmp=document.createElement('div'); tmp.innerHTML=s; const text=tmp.textContent||tmp.innerText||''; return text.split(/\s+/).join(' ').trim(); }
+
+    function ensureProgress(card){ if(!progress[card.id]) progress[card.id]={ ease: cfg.easeDefault, intervalDays:0, dueISO: session.today, reps:0, lapses:0, state:'new', learningStep:0, lastGrade:null }; return progress[card.id]; }
+
+    function grade(card, kind){ const p=ensureProgress(card); if(kind==='good'){ if(p.state==='new'){ p.state='learning'; p.learningStep=1; p.intervalDays=1; p.dueISO=dayISO(new Date(Date.now()+86400000)); } else if(p.state==='learning'){ if(p.learningStep===1){ p.learningStep=2; p.intervalDays=3; p.dueISO=dayISO(new Date(Date.now()+3*86400000)); } else { p.state='review'; p.learningStep=0; p.intervalDays=Math.max(5, p.intervalDays||5); p.dueISO=dayISO(new Date(Date.now()+p.intervalDays*86400000)); } } else { const next=Math.round(Math.max(1, p.intervalDays * p.ease)); p.intervalDays=next; p.dueISO=dayISO(new Date(Date.now()+next*86400000)); } p.reps++; }
+      else { p.lapses++; p.state='learning'; p.learningStep=1; p.intervalDays=1; p.dueISO=dayISO(new Date(Date.now()+86400000)); }
+      p.lastGrade = kind; saveState();
+      showGradeFeedback(kind);
+      updateChip(); }
+
+    function autoAccentFromImage(img){ try{ const canvas=document.createElement('canvas'); const ctx=canvas.getContext('2d',{willReadFrequently:true}); const w=canvas.width=80, h=canvas.height=80; ctx.drawImage(img,0,0,w,h); const data=ctx.getImageData(0,0,w,h).data; let r=0,g=0,b=0,c=0; for(let i=0;i<data.length;i+=4){ const a=data[i+3]; if(a<30) continue; r+=data[i]; g+=data[i+1]; b+=data[i+2]; c++; } if(c){ r=Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c); const accent=`rgb(${r},${g},${b})`; document.documentElement.style.setProperty('--accent', accent); } }catch(e){}
+      const url = img.currentSrc || img.src; el.backdrop.style.backgroundImage = `url('${url}')`; el.backdrop.style.backgroundSize = 'cover'; el.backdrop.style.backgroundPosition = 'center'; el.backdrop.style.filter = 'blur(40px) brightness(.35) saturate(.9)'; el.backdrop.style.transform = 'scale(1.1)';
+    }
+
+    function fmtTime(d){ let h=d.getHours(); const m=d.getMinutes().toString().padStart(2,'0'); const ampm = h>=12? 'PM':'AM'; h = h%12 || 12; return {h, m, ampm}; }
+    function startClock(){ const tick=()=>{ const d=new Date(); const {h,m,ampm}=fmtTime(d); el.clock.textContent = `${h}:${m}`; el.ampm.textContent=ampm; }; tick(); setInterval(tick, 15000); }
+
+    function ensureToday(){
+      const today = dayISO(new Date());
+      if(todaySel.date !== today){ todaySel = { date: today, ids: [] }; }
+      if(!todaySel.ids.length){
+        const due = []; const fresh = [];
+        for(const c of deck){ const p=ensureProgress(c); if(p.state!=='new' && p.dueISO<=today){ due.push(c.id); } else if(p.state==='new'){ fresh.push(c.id); } }
+        const chosen = [...due.slice(0, cfg.dailyCount)];
+        for(const id of fresh){ if(chosen.length>=cfg.dailyCount) break; if(!chosen.includes(id)) chosen.push(id); }
+        if(chosen.length<Math.min(cfg.dailyCount, deck.length)){
+          for(const c of deck){ if(chosen.length>=cfg.dailyCount) break; if(!chosen.includes(c.id)) chosen.push(c.id); }
+        }
+        todaySel.ids = chosen.slice(0, cfg.dailyCount);
+        saveToday();
+      }
+    }
+
+    function buildPlaylist(){ ensureToday(); const map=new Map(deck.map(c=>[c.id,c])); playlist=todaySel.ids.map(id=>map.get(id)).filter(Boolean); if(!playlist.length && deck.length){ playlist=deck.slice(0, cfg.dailyCount); todaySel.ids=playlist.map(c=>c.id); saveToday(); } session.index=0; updateChip(); }
+    
+    function hideMeta(){ [el.factName, el.factProduction, el.factDecay, el.factPhotons, el.factHalfLife, el.factOther].forEach(n => { n.classList.remove('reveal'); n.style.opacity=0; n.style.transform='translateY(8px)'; n.textContent=''; }); }
+    
+    function loadImageFor(card){ return new Promise((resolve)=>{ const src = isHttp(card.image)? card.image : (cfg.imageBase||'./') + card.image; el.img.onload=()=>resolve(); el.img.onerror=()=>resolve(); el.img.src=src; }); }
+
+    function updateChip(){ const n=playlist.length||0; const i=Math.min(session.index+1, Math.max(n,1)); el.chip.textContent=`Today ${i}/${n}`; }
+
+    async function showCurrent(auto=true){ const card=playlist[session.index]; if(!card){ el.factName.textContent = 'No deck.json found or empty.'; el.factName.classList.add('reveal'); return; }
+      hideMeta(); await loadImageFor(card); if(cfg.autoAccent==='on') autoAccentFromImage(el.img); if(auto){ session.phase=0; runReveal(); } updateChip();
+    }
+
+    function revealStep(){
+        const card = playlist[session.index];
+        if (!card) return;
+
+        // Map of phases to the fact element and its data
+        const phaseMap = [
+            { el: el.factName,       data: card.name,                              prefix: '' },
+            { el: el.factProduction, data: card.production,                        prefix: 'Production: ' },
+            { el: el.factDecay,      data: card.decay,                             prefix: 'Decay: ' },
+            { el: el.factPhotons,    data: card.photons,                           prefix: 'Photons: ' },
+            { el: el.factHalfLife,   data: card.halfLife,                          prefix: 'Half-life: ' },
+            // Placeholder for new facts. Add a new object to this array.
+            // Make sure to also add a timer for it in DEFAULTS and the settings modal.
+            { el: el.factOther,      data: card.otherFacts,                        prefix: '' }
+        ];
+
+        // Phase 0 is image-only. Phase 1 reveals the first fact (index 0).
+        const currentPhaseIndex = session.phase - 1;
+        if (currentPhaseIndex >= 0 && currentPhaseIndex < phaseMap.length) {
+            const item = phaseMap[currentPhaseIndex];
+            if (item.data) { // Only reveal if data exists
+                item.el.textContent = `${item.prefix}${item.data}`;
+                item.el.classList.add('reveal');
+                item.el.removeAttribute('aria-hidden');
+            }
+        }
+    }
+
+    function runReveal(){
+      const plan = [cfg.tImage, cfg.tName, cfg.tProduction, cfg.tDecay, cfg.tPhotons, cfg.tHalfLife].map(Number);
+      const MAX_PHASE = plan.length;
+
+      function scheduleNext(){
+        if(session.phase < MAX_PHASE -1 ){
+          restartTimer(plan[session.phase] * 1000, () => {
+            session.phase++;
+            revealStep();
+            scheduleNext();
+          });
+        } else {
+          // After the last fact, wait its duration then move to the next card
+          restartTimer(plan[session.phase] * 1000, nextCard);
+        }
+      }
+      session.phase=0; 
+      revealStep(); // Does nothing for phase 0
+      scheduleNext();
+    }
+
+    function nextCard(){ if(!playlist.length) return; session.index = (session.index+1)%playlist.length; showCurrent(true); }
+
+    function stepBackward(){
+      // Not implemented for this version to keep it simple, focus on forward flow.
+      // A simple implementation could just go to the previous card.
+      session.index = (session.index - 1 + playlist.length) % playlist.length;
+      showCurrent(true);
+    }
+    
+    function showGradeFeedback(kind){ el.mark.textContent = kind==='good' ? '✓' : '✕'; el.mark.style.color = kind==='good' ? 'var(--good)' : 'var(--bad)'; }
+
+    function openSettings(){
+      const f=el.settingsForm;
+      f.dailyCount.value = cfg.dailyCount; f.imageBase.value = cfg.imageBase; f.autoAccent.value = cfg.autoAccent;
+      f.tImage.value = cfg.tImage; f.tName.value = cfg.tName; f.tProduction.value = cfg.tProduction;
+      f.tDecay.value = cfg.tDecay; f.tPhotons.value = cfg.tPhotons; f.tHalfLife.value = cfg.tHalfLife;
+      buildDeckListFresh(); el.settings.showModal(); setTimeout(()=>{ document.activeElement && document.activeElement.blur(); el.settings.focus({preventScroll:true}); }, 0);
+    }
+
+    let tempSel = new Set();
+    function buildDeckListFresh(){
+      const term=(el.search.value||'').toLowerCase();
+      tempSel = new Set(todaySel.ids);
+      el.deckList.innerHTML='';
+      let selectedCount = tempSel.size;
+      const updateSelCount=()=>{ el.selCount.textContent = `${selectedCount}/${cfg.dailyCount}`; el.dailyCount.value = cfg.dailyCount; };
+      
+      for(const c of deck){
+        const name=cleanText(c.name);
+        if(term && !name.toLowerCase().includes(term)) continue;
+        const row=document.createElement('div'); row.className='row'; row.dataset.id=c.id;
+        const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=tempSel.has(c.id);
+        const label=document.createElement('div'); label.innerHTML=`<strong>${name}</strong>`;
+        const jump=document.createElement('button'); jump.className='btn'; jump.textContent='Image';
+        cb.addEventListener('change',()=>{ if(cb.checked){ if(selectedCount>=cfg.dailyCount){ cfg.dailyCount = selectedCount + 1; } tempSel.add(c.id); } else { tempSel.delete(c.id); } selectedCount=tempSel.size; updateSelCount(); });
+        jump.addEventListener('click',(e)=>{ e.preventDefault(); const src = isHttp(c.image)? c.image : (cfg.imageBase||'./') + c.image; el.previewImg.src = src; el.imgPreview.classList.add('show'); });
+        row.appendChild(cb); row.appendChild(label); row.appendChild(jump); el.deckList.appendChild(row);
+      }
+      updateSelCount();
+    }
+
+    el.imgPreview.addEventListener('click', ()=>{ el.imgPreview.classList.remove('show'); el.previewImg.src=''; });
+    el.search.addEventListener('input', buildDeckListFresh);
+
+    el.settingsForm.addEventListener('submit', (e)=>{
+      const action = e.submitter && e.submitter.value;
+      if(action==='save'){
+        const f = el.settingsForm;
+        cfg.dailyCount = Math.max(1, Math.min(200, +f.dailyCount.value || cfg.dailyCount));
+        cfg.imageBase = f.imageBase.value.trim() || './';
+        cfg.autoAccent = f.autoAccent.value;
+        cfg.tImage = +f.tImage.value || 4; cfg.tName = +f.tName.value || 3;
+        cfg.tProduction = +f.tProduction.value || 4; cfg.tDecay = +f.tDecay.value || 4;
+        cfg.tPhotons = +f.tPhotons.value || 4; cfg.tHalfLife = +f.tHalfLife.value || 4;
+        saveConfig();
+        todaySel.ids = Array.from(tempSel).slice(0, cfg.dailyCount);
+        saveToday();
+        buildPlaylist();
+        showCurrent(true);
+      }
+      e.preventDefault();
+      el.settings.close();
+    });
+
+    function onHitClick(e){
+      if(suppressNextClick){ suppressNextClick=false; return; }
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX) - rect.left;
+      if(x < rect.width/2){
+        // Go to previous card
+        session.index = (session.index - 1 + playlist.length) % playlist.length;
+        showCurrent(true);
+      } else {
+        // Go to next card
+        nextCard();
+      }
+    }
+    
+    let lpTimer=null; let touchStartX=0, touchStartY=0; const LONG_PRESS_MS=550; const MOVE_TOL=12; 
+    function onTouchStart(e){ const t=e.touches[0]; touchStartX=t.clientX; touchStartY=t.clientY; const artRect = el.artArea.getBoundingClientRect(); if(t.clientX<artRect.left || t.clientX>artRect.right || t.clientY<artRect.top || t.clientY>artRect.bottom){ return; }
+      lpTimer=setTimeout(()=>{ el.hits.style.pointerEvents='none'; suppressNextClick=true; setTimeout(()=>{ el.hits.style.pointerEvents='auto'; }, 1200); }, LONG_PRESS_MS);
+    }
+    function onTouchMove(e){ if(!lpTimer) return; const t=e.touches[0]; if(Math.abs(t.clientX-touchStartX)>MOVE_TOL || Math.abs(t.clientY-touchStartY)>MOVE_TOL){ clearTimeout(lpTimer); lpTimer=null; } }
+    function onTouchEnd(e){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } }
+
+    el.hits.addEventListener('click', onHitClick);
+    el.hits.addEventListener('touchstart', onTouchStart, {passive:true});
+    el.hits.addEventListener('touchmove', onTouchMove, {passive:true});
+    el.hits.addEventListener('touchend', onTouchEnd, {passive:true});
+    el.hits.addEventListener('touchcancel', onTouchEnd, {passive:true});
+    
+    el.btnGood.addEventListener('click', ()=>{ if(!playlist.length) return; grade(playlist[session.index], 'good'); el.btnGood.classList.add('selected'); setTimeout(()=>el.btnGood.classList.remove('selected'), 400); });
+    el.btnBad.addEventListener('click', ()=>{ if(!playlist.length) return; grade(playlist[session.index], 'bad'); el.btnBad.classList.add('selected'); setTimeout(()=>el.btnBad.classList.remove('selected'), 400); });
+    el.btnSettings.addEventListener('click', ()=>{ openSettings(); });
+
+    window.addEventListener('keydown', (e)=>{
+      if (e.target.tagName === 'INPUT') return;
+      if(e.key==='ArrowRight'){ nextCard(); }
+      else if(e.key==='ArrowLeft'){ session.index = (session.index - 1 + playlist.length) % playlist.length; showCurrent(true); }
+      else if(e.key.toLowerCase()==='g'){ if(playlist.length) grade(playlist[session.index],'good'); }
+      else if(e.key.toLowerCase()==='b'){ if(playlist.length) grade(playlist[session.index],'bad'); }
+      else if(e.key.toLowerCase()==='s'){ openSettings(); }
+    });
+
+    async function init(){
+      startClock();
+      try{
+        const res= await fetch('deck.json');
+        deck = await res.json();
+      } catch(e){
+        deck = [];
+        console.error("Failed to load or parse deck.json", e);
+      }
+      deck = deck.map(card => ({
+        ...card,
+        id: String(card.id || card.name),
+        name: cleanText(card.name),
+        production: cleanText(card.production),
+        decay: cleanText(card.decay),
+        photons: cleanText(card.photons),
+        halfLife: cleanText(card.halfLife),
+      }));
+      if(!deck.length){ el.factName.textContent = 'Error: deck.json is missing or empty.'; el.factName.classList.add('reveal'); return; }
+      ensureToday();
+      buildPlaylist();
+      showCurrent(true);
+    }
+    init();
+  </script>
+</body>
+</html>

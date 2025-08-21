@@ -1,0 +1,106 @@
+Question: How does this work? My thought is that I want this to, when I upload my repository or update my repository, if I just add these in there, if I add new image files into the folder, I want them to automatically appear there without me having to go in and change the actual code. Is that possible with this current setup? Will I just be able to drop the new files in there and then they'd appear in the new program? Or would I have to go in and edit the code to make sure that the file is shown?
+
+
+Short answer: **yes, with a caveat.**
+You won’t need to touch the HTML/JS *if* you either (a) follow a predictable file-naming scheme **or** (b) keep a tiny JSON “manifest” in the folder. On plain static hosting (e.g., GitHub Pages), the browser **cannot list a directory**, so the page can’t “discover” arbitrary new filenames unless we help it.
+
+Here’s how the version I gave you works:
+
+1. **Automatic with predictable names (no edits)**
+
+* It derives a slug from the hint image (e.g., `co-57` from `co-57.png`), then looks in:
+  `./additional images/co-57/`
+* It tries a bunch of **guessed filenames**: `1.jpg/.jpeg/.png`, `01.jpg/.jpeg/.png`, `img1.*`, `image1.*`, `co-57-1.*`, up to `PROBE_MAX` (default 24).
+* If your new files follow one of those patterns (e.g., `1.jpg`, `02.png`, `co-57-3.png`), they’ll **appear automatically** after you push—no code change.
+
+Trade-offs:
+
+* If you add a 25th image and keep `PROBE_MAX = 24`, the 25th won’t be found. You can bump `PROBE_MAX` higher once (e.g., 200) to future-proof it, at the cost of more tiny 404 probes when folders are empty.
+
+2. **Automatic with a manifest (recommended)**
+
+* Put a file beside your images:
+  `./additional images/co-57/manifest.json`
+
+  ```json
+  ["phantom-1.jpg", "older-label.png", "anything-you-like.jpeg"]
+  ```
+* Or keep a single global index:
+  `./additional images/index.json`
+
+  ```json
+  {
+    "co-57": ["phantom-1.jpg", "older-label.png"],
+    "f-18":  ["exampleA.png", "exampleB.jpg"]
+  }
+  ```
+* Then you can add **any new filenames** you want; the page reads the JSON and shows them—**no code changes**.
+
+Why a manifest?
+Static sites don’t expose directory listings to the browser. A manifest is a tiny “table of contents” the page can fetch.
+
+---
+
+## What should you do?
+
+* **If you want truly zero ongoing edits:**
+  Use a **manifest**. When you drop new files, just add their names to the JSON (copy-paste). No need to touch HTML/JS.
+* **If you want zero JSON edits too:**
+  Name files with the **supported patterns** (`1.jpg`, `02.png`, `img3.png`, `co-57-4.jpg`, etc.). They’ll be picked up automatically within the `PROBE_MAX` range.
+* **If you want both arbitrary filenames and zero manual JSON edits:**
+  Add a super-small build step that generates the manifest for you when you push.
+
+Here’s a one-file GitHub Action that auto-builds `additional images/index.json` every push to `main`:
+
+```yaml
+name: Build additional-images index
+on:
+  push:
+    branches: [ main ]
+permissions:
+  contents: write
+jobs:
+  build-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate index.json
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const root = path.join(process.cwd(), "additional images");
+            const out = {};
+            if (!fs.existsSync(root)) process.exit(0);
+            for (const slug of fs.readdirSync(root)) {
+              const dir = path.join(root, slug);
+              if (!fs.statSync(dir).isDirectory()) continue;
+              const files = fs.readdirSync(dir).filter(f =>
+                /\.(png|jpg|jpeg)$/i.test(f) && f !== "manifest.json" && f !== "index.json"
+              );
+              if (files.length) out[slug] = files;
+            }
+            fs.writeFileSync(path.join(root, "index.json"), JSON.stringify(out, null, 2));
+          '
+      - name: Commit index.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "additional images/index.json"
+          git commit -m "Update additional images index.json" || echo "No changes"
+          git push
+```
+
+Drop this in `.github/workflows/build-index.yml`. Now, whenever you add images anywhere under `additional images/`, the action regenerates `index.json`. The web page will pick up the new files automatically—no manual edits, no naming constraints.
+
+---
+
+### Optional tiny tweak (if you stick to guessing)
+
+If you prefer guessing and might exceed 24 images, change one line in your JS:
+
+```js
+const PROBE_MAX = 200; // was 24
+```
+
+That’s it.
