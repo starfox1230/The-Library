@@ -89,8 +89,25 @@
     .clock .ampm{ font-weight:600; color: color-mix(in srgb, var(--accent) 75%, white 10%); opacity:.9; margin-left:.25em; }
 
     .meta{ display:flex; flex-direction:column; gap:.35rem; max-width: 95%; }
-    .kicker{ color:var(--accent); text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:1rem; opacity:0; transform: translateY(8px); }
-    .title{ font-size: clamp(1.2rem, 3.6vw, 2.2rem); font-weight:800; letter-spacing:.2px; line-height:1.1; opacity:0; transform: translateY(8px); }
+    /* --- STYLES SWAPPED AS REQUESTED --- */
+    .kicker { /* This is now for the Radionuclide Name */
+      font-size: clamp(1.2rem, 3.6vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: .2px;
+      line-height: 1.1;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    
+    .title { /* This is now for the Fact Category */
+      color: var(--accent); /* Has the accent color */
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      font-weight: 700;
+      font-size: 1rem;
+      opacity: 0;
+      transform: translateY(8px);
+    }    
     .sub{ color:var(--muted); font-size: clamp(.95rem, 2.2vw, 1.05rem); opacity:0; transform: translateY(8px); }
 
     .reveal{ animation: fadeUp var(--step-fade) ease forwards; }
@@ -508,34 +525,35 @@
     function revealStep(){
       const card = playlist[session.index]; if(!card) return;
       const ph = PHASES[session.phase]; if(!ph) return;
-
+    
       hideMeta();
-
-      // Keep title visible once revealed
-      const titleIndex = PHASES.findIndex(p => p.type === "title");
-      if (titleIndex >= 0 && session.phase >= titleIndex) {
-        el.title.textContent = card.name || "";
-        el.title.classList.add("reveal");
+    
+      /* --- NEW LOGIC AS REQUESTED --- */
+    
+      // Keep the Radionuclide Name (in el.kicker) visible once it has been revealed.
+      const nameRevealPhaseIndex = PHASES.findIndex(p => p.type === "title");
+      if (nameRevealPhaseIndex >= 0 && session.phase >= nameRevealPhaseIndex) {
+        el.kicker.textContent = card.name || "";
+        el.kicker.classList.add("reveal");
       }
-
+    
       switch(ph.type){
         case "image":
-          // image only
+          // Image only, nothing in the meta panel.
           break;
         case "title":
-          el.title.textContent = card.name || "";
-          el.title.classList.add("reveal");
+          // This is the first time we reveal the name. It's already handled above.
           break;
         case "question":
-          el.kicker.textContent = ph.fact.label;
-          el.kicker.classList.add("reveal");
-          // hide answer
-          el.details.textContent = "";
+          // Show the fact category in el.title (now styled with the accent color).
+          el.title.textContent = ph.fact.label;
+          el.title.classList.add("reveal");
           break;
         case "answer":
-          el.kicker.textContent = ph.fact.label;
+          // Show the fact category (el.title) and the answer (el.details).
+          el.title.textContent = ph.fact.label;
           el.details.textContent = card[ph.fact.key] || "N/A";
-          el.kicker.classList.add("reveal");
+          el.title.classList.add("reveal");
           el.details.classList.add("reveal");
           break;
       }
