@@ -281,7 +281,7 @@
   <!-- Lightbox -->
   <div class="lightbox" id="imgPreview"><img alt="Preview" id="previewImg"></div>
 
-  <script>
+    <script>
     /* ===== Config & State ===== */
     const CONFIG_KEY = "radSRS_config_v4";
     const STATE_KEY  = "radSRS_state_v3";
@@ -299,7 +299,7 @@
       tProductionQ: 3, tProductionA: 4,
       tDecayQ: 3,      tDecayA: 4,
       tPhotonsQ: 3,    tPhotonsA: 4,
-      tHalfLifeQ: 3,   tHalfLifeA: 4
+      tHalfLifeQ: 3,   tHalfLifeA: 4,
       tOtherFactsQ: 3, tOtherFactsA: 6 // Q for question, A for answer (longer)
     };
 
@@ -345,7 +345,7 @@
       { key: "production", label: "Production",           isQuestion: true,  timerKeyQ: "tProductionQ", timerKeyA: "tProductionA" },
       { key: "decay",      label: "Decay Mode",           isQuestion: true,  timerKeyQ: "tDecayQ",      timerKeyA: "tDecayA" },
       { key: "photons",    label: "Principal Photons",    isQuestion: true,  timerKeyQ: "tPhotonsQ",    timerKeyA: "tPhotonsA" },
-      { key: "halfLife",   label: "Half-Life",            isQuestion: true,  timerKeyQ: "tHalfLifeQ",   timerKeyA: "tHalfLifeA" }
+      { key: "halfLife",   label: "Half-Life",            isQuestion: true,  timerKeyQ: "tHalfLifeQ",   timerKeyA: "tHalfLifeA" },
       { key: "otherFacts", label: "Note",                 isQuestion: true,  timerKeyQ: "tOtherFactsQ", timerKeyA: "tOtherFactsA" }
     ];
 
@@ -541,8 +541,6 @@
     
       hideMeta();
     
-      /* --- NEW LOGIC AS REQUESTED --- */
-    
       // Keep the Radionuclide Name (in el.kicker) visible once it has been revealed.
       const nameRevealPhaseIndex = PHASES.findIndex(p => p.type === "title");
       if (nameRevealPhaseIndex >= 0 && session.phase >= nameRevealPhaseIndex) {
@@ -558,7 +556,7 @@
           // This is the first time we reveal the name. It's already handled above.
           break;
         case "question":
-          // Show the fact category in el.title (now styled with the accent color).
+          // Show the fact category in el.title.
           el.title.textContent = ph.fact.label;
           el.title.classList.add("reveal");
           break;
@@ -572,7 +570,6 @@
       }
     }
 
-    /* --- ADD THIS ENTIRE NEW FUNCTION --- */
     function advanceToNextValidPhase() {
       const card = playlist[session.index];
       if (!card) {
@@ -583,11 +580,7 @@
       do {
         session.phase++;
         const nextPhase = PHASES[session.phase];
-        // If we are at the end, or the next phase is not a fact, it's always valid.
         if (!nextPhase || !nextPhase.fact) break;
-        
-        // If the next phase is a fact, check if the card has data for it.
-        // If it does, break the loop. If not, the loop will continue to the next phase.
         if (card[nextPhase.fact.key]) break;
     
       } while (session.phase < PHASES.length -1);
@@ -599,8 +592,7 @@
       const dur = current.duration();
       restartTimer(dur, ()=>{
         if(session.phase < PHASES.length - 1){
-          // --- CHANGE THIS BLOCK ---
-          advanceToNextValidPhase(); // Use the new smart function
+          advanceToNextValidPhase();
           revealStep();
           scheduleFromCurrent();
         }else{
@@ -619,7 +611,6 @@
       if(session.phase > 0){
         session.phase--;
         revealStep();
-        // after stepping back, wait the current phase duration before auto-advancing again
         const dur = PHASES[session.phase].duration();
         restartTimer(dur, ()=>{
           if(session.phase < PHASES.length - 1){
@@ -631,7 +622,6 @@
           }
         });
       } else {
-        // previous card, last phase
         session.index = (session.index - 1 + playlist.length) % playlist.length;
         showCurrent(false);
         session.phase = PHASES.length - 1;
@@ -648,7 +638,6 @@
     /* ===== Settings modal ===== */
     function openSettings(){
       const f=el.settingsForm;
-      // populate form from cfg
       Object.keys(DEFAULTS).forEach(key => {
         if (f[key]) f[key].value = cfg[key];
       });
@@ -657,7 +646,6 @@
       setTimeout(()=>{ el.settings.focus({preventScroll:true}); }, 0);
     }
 
-    // selection list
     let tempSel = new Set();
     function buildDeckListFresh(){
       const term=(el.search.value||"").toLowerCase();
@@ -682,7 +670,6 @@
           if(cb.checked){
             const limit = totalTarget() || 10;
             if(selectedCount >= limit){
-              // bump newCount to fit selection (keeps reviewCount constant)
               cfg.newCount = Math.max(0, (selectedCount + 1) - (+cfg.reviewCount||0));
             }
             tempSel.add(c.id);
@@ -713,20 +700,17 @@
       const action = e.submitter && e.submitter.value;
       if(action==="save"){
         const f = el.settingsForm;
-        // write back config
         Object.keys(DEFAULTS).forEach(key => {
           if (f[key]) {
             const val = (f[key].type === "number") ? +f[key].value : f[key].value;
             cfg[key] = (val ?? DEFAULTS[key]);
           }
         });
-        // clamp & sanity
         cfg.newCount = Math.max(0, Math.min(200, +cfg.newCount||0));
         cfg.reviewCount = Math.max(0, Math.min(200, +cfg.reviewCount||0));
 
         saveConfig();
 
-        // respect manual picks; trim to total target
         const target = totalTarget() || 10;
         todaySel.ids = Array.from(tempSel).slice(0, target);
         saveToday();
@@ -747,8 +731,7 @@
         stepBackward();
       } else {
         if (session.phase < PHASES.length - 1){
-          // --- CHANGE THIS BLOCK ---
-          advanceToNextValidPhase(); // Use the new smart function
+          advanceToNextValidPhase();
           revealStep();
           scheduleFromCurrent();
         } else {
@@ -757,7 +740,6 @@
       }
     }
 
-    // Long-press to let native image actions through
     let lpTimer=null; let touchStartX=0, touchStartY=0; const LONG_PRESS_MS=550; const MOVE_TOL=12;
     function onTouchStart(e){
       const t=e.touches[0]; touchStartX=t.clientX; touchStartY=t.clientY;
@@ -814,7 +796,7 @@
         production: cleanText(card.production),
         decay: cleanText(card.decay),
         photons: cleanText(card.photons),
-        halfLife: cleanText(card.halfLife)
+        halfLife: cleanText(card.halfLife),
         otherFacts: cleanText(card.otherFacts) 
       }));
       if(!deck.length){ setMeta("Error:", "deck.json is missing or empty."); return; }
