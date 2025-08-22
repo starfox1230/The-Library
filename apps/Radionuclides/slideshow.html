@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -30,25 +31,56 @@
 
     /* Frame */
   
-.stage {
-  position: fixed;
-  inset: 0;
+/* Make the stage track the visible viewport, with fallbacks */
+.stage{
+  position: fixed; inset: 0;
   width: 100vw;
-  height: 100svh;            /* use svh, not vh */
-  padding: 0;                /* remove the 1rem; add inner padding elsewhere if needed */
-  display: grid;
-  place-items: center;
+
+  /* fallback order: old -> new -> visible */
+  height: 100vh;
+  height: 100dvh;
+  height: 100svh;
+
+  padding: 0;
+  display: grid; place-items: center;
 }
-.frame {
+/* Letterboxed 16:9 frame that never exceeds the viewport */
+.frame{
   position: relative;
-  width: min(100vw, calc(100svh * (16/9)));
+
+  /* fallback order: old -> new -> visible */
+  width:  min(100vw, calc(100vh  * (16/9)));
+  height: min(100vh,  calc(100vw * (9/16)));
+
+  width:  min(100vw, calc(100dvh * (16/9)));
+  height: min(100dvh, calc(100vw * (9/16)));
+
+  width:  min(100vw, calc(100svh * (16/9)));
   height: min(100svh, calc(100vw * (9/16)));
-  aspect-ratio: 16 / 9;
+
+  aspect-ratio: 16/9;
   border-radius: var(--radius);
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 34% 66%;
+  display: grid; grid-template-columns: 34% 66%;
 }
+
+/* Important in CSS Grid: allow the image column to shrink */
+.art{
+  position: relative;
+  width: 100%; height: 100%;
+  display: grid; place-items: center; grid-column: 2;
+  min-width: 0;            /* <- critical */
+  min-height: 0;           /* <- critical */
+}
+
+/* Keep the image contained */
+.art img{
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* P
     /* Left column */
     .side{ display:flex; flex-direction:column; justify-content:flex-start; padding:1.2rem; gap:1rem; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0) 40%); grid-column:1; pointer-events:none; }
     .clockWrap{ display:flex; flex-direction:column; align-items:flex-start; gap:.2rem; }
