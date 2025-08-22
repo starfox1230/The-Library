@@ -256,6 +256,7 @@
         <div class="field"><label>Photons (A)</label><input name="tPhotonsA" type="number" min="1" value="4"></div>
         <div class="field"><label>Half-Life (Q)</label><input name="tHalfLifeQ" type="number" min="1" value="3"></div>
         <div class="field"><label>Half-Life (A)</label><input name="tHalfLifeA" type="number" min="1" value="4"></div>
+        <div class="field"><label>Note (A)</label><input name="tOtherFactsA" type="number" min="1" value="6"></div>
       </div>
 
       <div class="field"><label>Auto accent</label>
@@ -299,6 +300,7 @@
       tDecayQ: 3,      tDecayA: 4,
       tPhotonsQ: 3,    tPhotonsA: 4,
       tHalfLifeQ: 3,   tHalfLifeA: 4
+      tOtherFactsQ: 3, tOtherFactsA: 6 // Q for question, A for answer (longer)
     };
 
     const el = {
@@ -344,6 +346,7 @@
       { key: "decay",      label: "Decay Mode",           isQuestion: true,  timerKeyQ: "tDecayQ",      timerKeyA: "tDecayA" },
       { key: "photons",    label: "Principal Photons",    isQuestion: true,  timerKeyQ: "tPhotonsQ",    timerKeyA: "tPhotonsA" },
       { key: "halfLife",   label: "Half-Life",            isQuestion: true,  timerKeyQ: "tHalfLifeQ",   timerKeyA: "tHalfLifeA" }
+      { key: "otherFacts", label: "Note",                 isQuestion: true,  timerKeyQ: "tOtherFactsQ", timerKeyA: "tOtherFactsA" }
     ];
 
     const PHASES = [{ type: "image", duration: () => cfg.tImage * 1000 }];
@@ -569,13 +572,35 @@
       }
     }
 
+    /* --- ADD THIS ENTIRE NEW FUNCTION --- */
+    function advanceToNextValidPhase() {
+      const card = playlist[session.index];
+      if (!card) {
+        session.phase++;
+        return;
+      }
+      
+      do {
+        session.phase++;
+        const nextPhase = PHASES[session.phase];
+        // If we are at the end, or the next phase is not a fact, it's always valid.
+        if (!nextPhase || !nextPhase.fact) break;
+        
+        // If the next phase is a fact, check if the card has data for it.
+        // If it does, break the loop. If not, the loop will continue to the next phase.
+        if (card[nextPhase.fact.key]) break;
+    
+      } while (session.phase < PHASES.length -1);
+    }
+    
     function scheduleFromCurrent(){
       const current = PHASES[session.phase];
       if(!current) return;
       const dur = current.duration();
       restartTimer(dur, ()=>{
         if(session.phase < PHASES.length - 1){
-          session.phase++;
+          // --- CHANGE THIS BLOCK ---
+          advanceToNextValidPhase(); // Use the new smart function
           revealStep();
           scheduleFromCurrent();
         }else{
@@ -717,15 +742,14 @@
     function onHitClick(e){
       if(suppressNextClick){ suppressNextClick=false; return; }
       const rect = el.hits.getBoundingClientRect();
-      // prefer event's clientX if provided; fall back to center-right heuristic
       const x = (typeof e.clientX === "number" ? e.clientX : rect.left + rect.width*0.75) - rect.left;
       if (x < rect.width/2){
         stepBackward();
       } else {
         if (session.phase < PHASES.length - 1){
-          session.phase++;
+          // --- CHANGE THIS BLOCK ---
+          advanceToNextValidPhase(); // Use the new smart function
           revealStep();
-          // IMPORTANT: do NOT reset to phase 0; continue from here
           scheduleFromCurrent();
         } else {
           nextCard();
@@ -791,6 +815,7 @@
         decay: cleanText(card.decay),
         photons: cleanText(card.photons),
         halfLife: cleanText(card.halfLife)
+        otherFacts: cleanText(card.otherFacts) 
       }));
       if(!deck.length){ setMeta("Error:", "deck.json is missing or empty."); return; }
       ensureToday(); buildPlaylist(); showCurrent(true);
