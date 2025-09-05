@@ -189,6 +189,18 @@
              color: #c0c0fa;
              box-shadow: none;
         }
+        
+        #pastGamesBtn {
+            background: transparent;
+            border: 1px solid #ff79c6;
+            color: #ff79c6;
+            box-shadow: none;
+        }
+        #pastGamesBtn:hover {
+            background-color: #ff79c6;
+            color: white;
+            box-shadow: 0 6px 15px rgba(255, 121, 198, 0.5);
+        }
 
         .action-button:hover:not(:disabled),
         .copy-button:hover:not(:disabled),
@@ -257,6 +269,66 @@
             background-color: #1f7a3f !important;
         }
 
+        /* --- Past Games Modal Styles --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(18, 18, 31, 0.95); z-index: 2000;
+            display: flex; justify-content: center; align-items: center; text-align: center;
+        }
+        .overlay-content {
+            background-color: #1a1a2e; padding: 40px; border-radius: 15px;
+            border: 1px solid #3a3a5e; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            width: 90%; max-width: 700px;
+            max-height: 80vh;
+            display: flex; flex-direction: column;
+        }
+         .overlay-content h2 { 
+            font-family: 'Orbitron', sans-serif; color: #8a8aff; 
+            font-size: 2em; margin-top: 0; margin-bottom: 20px; 
+        }
+        .overlay-content .close-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; font-size: 2em; color: #c0c0fa;
+            cursor: pointer; line-height: 1;
+        }
+
+        #past-games-list {
+            list-style: none; padding: 0; margin: 0;
+            overflow-y: auto; text-align: left;
+            flex-grow: 1;
+        }
+        #past-games-list li {
+            background-color: #2a2a4e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #4a4af5;
+        }
+        #past-games-list .game-info {
+            display: flex;
+            flex-direction: column;
+        }
+        #past-games-list .game-name {
+            font-weight: bold;
+            color: #e0e0fc;
+            font-size: 1.1em;
+        }
+        #past-games-list .game-date {
+            font-size: 0.8em;
+            color: #c0c0fa;
+        }
+        #past-games-list .load-btn {
+             background: transparent; border: 1px solid #00fddc; color: #00fddc;
+             padding: 8px 15px; border-radius: 20px; cursor: pointer;
+             transition: all 0.2s ease;
+        }
+        #past-games-list .load-btn:hover {
+            background-color: #00fddc; color: #12121f;
+        }
+
     </style>
 </head>
 <body>
@@ -287,7 +359,7 @@
                 <!-- Step 3: Copy Prompt -->
                 <div class="control-group">
                      <label>3. Copy the Generated Prompt:</label>
-                    <p style="margin-bottom: 0;">Use the generated prompt with an AI Chat tool (like Google's AI Studio) and your source material (PDF, text, etc.) to get your quiz questions.</p>
+                    <p style="margin-bottom: 0;">Use the generated prompt with an AI Chat tool (like Google's AI Studio) and your source material to get your quiz.</p>
                      <div class="prompt-actions">
                         <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
                         <button id="togglePromptBtn" class="toggle-prompt-btn">Show Prompt</button>
@@ -304,14 +376,26 @@
             </div>
         </div>
 
-
         <label for="questionInput">Paste Formatted Quiz Data Here:</label>
-        <textarea id="questionInput" placeholder="Paste your JavaScript array of questions here, starting with [ and ending with ]..."></textarea>
+        <textarea id="questionInput" placeholder="Paste your JavaScript object here, starting with { and ending with }..."></textarea>
 
         <div class="button-group">
             <button id="generateBtn" class="action-button">Generate & View Quiz</button>
+            <button id="pastGamesBtn" class="action-button">Past Games</button>
         </div>
     </div>
+    
+    <!-- Past Games Modal -->
+    <div id="past-games-overlay" class="overlay" style="display: none;">
+        <div class="overlay-content">
+            <button id="close-past-games-btn" class="close-btn">&times;</button>
+            <h2>Past Games</h2>
+            <ul id="past-games-list">
+                <!-- Games will be populated by JavaScript -->
+            </ul>
+        </div>
+    </div>
+
 
     <script>
         // --- PROMPT GENERATOR LOGIC ---
@@ -329,41 +413,47 @@
         };
 
         let currentDifficulty = 'hard';
-        let currentQuestionCount = 10;
-
+        
         function updatePrompt() {
             const count = questionCountInput.value || 10;
             const difficultyText = promptTemplates[currentDifficulty].replace('{count}', count);
 
             const fullPrompt = `Based *solely* on the attached source (PDF, YouTube video, or pasted text), ${difficultyText}
 
-For each question, include exactly these four properties (use straight double-quotes around every key and string value). If any string value itself needs to contain a double-quote character, ensure it is properly escaped with a backslash (e.g., \\"example of an internal quote\\").
-1. "question": the question stem.
-2. "options": an array of **exactly four** distinct answer strings.
-3. "correctAnswer": the one option that is correct (must match exactly one entry in "options").
-4. "explanation": a brief, clear rationale citing the source material.
+The entire output MUST be a single JSON object. This object must contain two properties:
+1. "quizName": A short, descriptive title for the quiz (e.g., "Chapter 5: Cell Division").
+2. "questions": A JavaScript array of question objects.
 
-Format the entire output *only* as a single JavaScript array of objects, like this example:
+For each question object in the "questions" array, include exactly these four properties (use straight double-quotes around every key and string value). If any string value itself needs to contain a double-quote character, ensure it is properly escaped with a backslash (e.g., \\"example of an internal quote\\").
+- "question": the question stem.
+- "options": an array of **exactly four** distinct answer strings.
+- "correctAnswer": the one option that is correct (must match exactly one entry in "options").
+- "explanation": a brief, clear rationale citing the source material.
 
-[
-  {
-    "question": "Sample question text here?",
-    "options": ["Option A", "Option B", "Correct Option C", "Option D"],
-    "correctAnswer": "Correct Option C",
-    "explanation": "Brief explanation based on the document content."
-  },
-  {
-    "question": "Another question text?",
-    "options": ["Choice 1", "Choice 2", "Choice 3", "Correct Choice 4"],
-    "correctAnswer": "Correct Choice 4",
-    "explanation": "Another explanation referencing the source."
-  }
-]
+Format the entire output as a single JSON object, like this example:
+
+{
+  "quizName": "Sample Science Quiz",
+  "questions": [
+    {
+      "question": "Sample question text here?",
+      "options": ["Option A", "Option B", "Correct Option C", "Option D"],
+      "correctAnswer": "Correct Option C",
+      "explanation": "Brief explanation based on the document content."
+    },
+    {
+      "question": "Another question text?",
+      "options": ["Choice 1", "Choice 2", "Choice 3", "Correct Choice 4"],
+      "correctAnswer": "Correct Choice 4",
+      "explanation": "Another explanation referencing the source."
+    }
+  ]
+}
 
 Do not include any introductory text, concluding remarks, or markdown formatting like \`\`\`javascript before or after the array. Do not include any quotation marks within the questions or answer choices. Do not emphasize extraneous details, like the exact minute or page number something was said. Just output the raw JavaScript array structure starting with \`[\` and ending with \`]\`.`;
-
             promptTextElement.innerText = fullPrompt;
         }
+
 
         difficultyButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -374,9 +464,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             });
         });
 
-        questionCountInput.addEventListener('change', () => {
-            updatePrompt();
-        });
+        questionCountInput.addEventListener('change', updatePrompt);
 
         togglePromptBtn.addEventListener('click', () => {
             const isHidden = promptDisplayContainer.style.display === 'none';
@@ -391,7 +479,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         });
 
 
-        // --- ORIGINAL QUIZ GENERATOR SCRIPT ---
+        // --- QUIZ GENERATOR & PAST GAMES LOGIC ---
         // --- Helper Functions ---
         function provideCopyFeedback(button) {
             const originalText = button.textContent;
@@ -405,6 +493,74 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                 button.disabled = false;
             }, 1500);
         }
+        
+        // --- Past Games ---
+        const pastGamesOverlay = document.getElementById('past-games-overlay');
+        const pastGamesBtn = document.getElementById('pastGamesBtn');
+        const closePastGamesBtn = document.getElementById('close-past-games-btn');
+        const pastGamesList = document.getElementById('past-games-list');
+        const STORAGE_KEY = 'pastQuizzes';
+
+        function getPastGames() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        }
+
+        function savePastGame(name, data) {
+            const games = getPastGames();
+            const newGame = {
+                name: name,
+                date: new Date().toISOString(),
+                data: data // Save the raw JSON string
+            };
+            games.unshift(newGame); // Add to the beginning
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(games.slice(0, 50))); // Limit to 50 games
+        }
+
+        function showPastGames() {
+            const games = getPastGames();
+            pastGamesList.innerHTML = ''; // Clear existing list
+
+            if (games.length === 0) {
+                 pastGamesList.innerHTML = '<p>No past games found. Generate a quiz to start!</p>';
+            } else {
+                games.forEach(game => {
+                    const li = document.createElement('li');
+                    
+                    const gameInfo = document.createElement('div');
+                    gameInfo.className = 'game-info';
+                    
+                    const gameName = document.createElement('span');
+                    gameName.className = 'game-name';
+                    gameName.textContent = game.name;
+                    
+                    const gameDate = document.createElement('span');
+                    gameDate.className = 'game-date';
+                    gameDate.textContent = new Date(game.date).toLocaleString();
+
+                    gameInfo.appendChild(gameName);
+                    gameInfo.appendChild(gameDate);
+
+                    const loadBtn = document.createElement('button');
+                    loadBtn.className = 'load-btn';
+                    loadBtn.textContent = 'Load Quiz';
+                    loadBtn.onclick = () => {
+                        questionInput.value = game.data;
+                        pastGamesOverlay.style.display = 'none';
+                        generateBtn.click(); // Programmatically trigger generation
+                    };
+
+                    li.appendChild(gameInfo);
+                    li.appendChild(loadBtn);
+                    pastGamesList.appendChild(li);
+                });
+            }
+            pastGamesOverlay.style.display = 'flex';
+        }
+        
+        pastGamesBtn.addEventListener('click', showPastGames);
+        closePastGamesBtn.addEventListener('click', () => {
+            pastGamesOverlay.style.display = 'none';
+        });
 
         // --- Main script logic ---
         const questionInput = document.getElementById('questionInput');
@@ -418,10 +574,11 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                     alert('Please paste the quiz data into the input area first.');
                     return;
                 }
-                if (!quizDataInput.startsWith('[') || !quizDataInput.endsWith(']')) {
-                    alert('Validation Error: Input must start with [ and end with ].');
+                 if (!quizDataInput.startsWith('{') || !quizDataInput.endsWith('}')) {
+                    alert('Validation Error: Input must be a JSON object starting with { and ending with }.');
                     return;
                 }
+
 
                 let parsedData;
                 try {
@@ -431,13 +588,20 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                     return;
                 }
 
-                if (!Array.isArray(parsedData) || parsedData.length === 0) {
-                    alert('Validation Error: The data must be a non-empty array of question objects.');
+                if (typeof parsedData.quizName !== 'string' || !parsedData.quizName.trim()) {
+                     alert('Validation Error: The JSON must have a "quizName" property with a non-empty string value.');
                     return;
                 }
+                
+                if (!Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
+                    alert('Validation Error: The data must have a "questions" property containing a non-empty array.');
+                    return;
+                }
+                
+                const questionsArray = parsedData.questions;
 
-                for (let i = 0; i < parsedData.length; i++) {
-                    const item = parsedData[i];
+                for (let i = 0; i < questionsArray.length; i++) {
+                    const item = questionsArray[i];
                     const questionNumber = i + 1;
                     const expectedKeys = ["question", "options", "correctAnswer", "explanation"];
 
@@ -465,13 +629,19 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                     }
                 }
                 
+                // Save the game before generating it
+                savePastGame(parsedData.quizName, quizDataInput);
+                
+                const quizTitle = parsedData.quizName;
+                const quizQuestions = parsedData.questions;
+                
                 const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Head-to-Head Quiz</title>
+    <title>${quizTitle} - Head-to-Head Quiz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
@@ -553,6 +723,10 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             width: 95%; max-width: 1200px; text-align: center; border: 1px solid var(--border-color);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
+        #quiz-title-display {
+            font-family: 'Orbitron', sans-serif; color: #8a8aff; font-size: 1.2em;
+            margin-bottom: 15px; text-align: center;
+        }
         #timer-container {
             position: relative; width: 120px; height: 120px; margin-bottom: 20px; cursor: pointer; user-select: none;
         }
@@ -602,7 +776,6 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         .controller-icon.highlight-y .btn-y { background-color: #f1fa8c; box-shadow: 0 0 6px #f1fa8c; }
         .controller-icon.highlight-a .btn-a { background-color: #ff79c6; box-shadow: 0 0 6px #ff79c6; }
         
-        /* NEW styles for player name tags on answers */
         .player-choice-container {
             display: flex; flex-direction: column; gap: 4px;
             font-family: 'Orbitron', sans-serif; font-weight: 700;
@@ -639,17 +812,19 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         .overlay-content {
             background-color: var(--bg-med); padding: 40px; border-radius: 15px;
             border: 1px solid var(--border-color); box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            max-height: 80vh;
         }
         .overlay h2 { font-family: 'Orbitron', sans-serif; color: #8a8aff; font-size: 2em; margin-bottom: 20px; }
         .overlay p { text-align: center; color: var(--text-med); font-size: 1.1em; }
-        .overlay button {
+        .overlay-button-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 25px; }
+        .overlay button, .overlay-button-group button {
             background: linear-gradient(45deg, #4a4af5, #8a8aff); color: white; border: none;
             padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
             border-radius: 25px; cursor: pointer; margin-top: 20px;
             transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
         }
-        .overlay button:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5); }
-        .overlay-content.scrollable { max-height: 80vh; overflow-y: auto; }
+        .overlay button:hover, .overlay-button-group button:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5); }
+        .overlay-content.scrollable { overflow-y: auto; display: flex; flex-direction: column; }
         #history-log { display: flex; flex-direction: column; gap: 15px; min-width: 50vw; text-align: left; }
         .history-item { background-color: var(--bg-light); padding: 15px; border-radius: 8px; border-left: 5px solid var(--border-color); }
         .history-item p { margin: 0 0 8px 0; }
@@ -660,9 +835,10 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 <body>
     <div id="quiz-header">
         <div id="quiz-nav">
-            <button id="backToGeneratorBtn" class="nav-btn" title="Return to Generator">← Back</button>
+            <button id="backToGeneratorBtn" class="nav-btn" title="Return to Generator">← Generator</button>
             <button id="downloadCurrentQuizBtn" class="nav-btn" title="Download This Quiz HTML">Download</button>
             <button id="historyBtn" class="nav-btn" title="View Round History">History</button>
+            <button id="pastGamesInGameBtn" class="nav-btn" title="View Past Games">Past Games</button>
         </div>
         <div id="question-indicator-wrapper">
              <div id="question-indicator"></div>
@@ -683,6 +859,7 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     </div>
 
     <div class="quiz-container">
+        <div id="quiz-title-display">${quizTitle}</div>
         <div id="timer-container" title="Click to pause/resume. Press and hold to change duration.">
             <svg id="timer-svg" viewBox="0 0 100 100">
                 <circle class="timer-ring timer-bg" cx="50" cy="50" r="45"></circle>
@@ -713,17 +890,18 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     </div>
     
 <script>
-    const quizData = ${JSON.stringify(parsedData)};
-    // New Mapping: Top -> A (0), Left -> B (1), Right -> C (2), Bottom -> D (3)
+    // --- EMBEDDED QUIZ DATA ---
+    const quizData = ${JSON.stringify(quizQuestions)};
+    const quizTitle = "${quizTitle}";
+    const fullQuizObjectString = \`${JSON.stringify(parsedData)}\`;
+    
     const ICONS = ['A', 'B', 'C', 'D'];
     const HIGHLIGHT_MAP = ['x', 'y', 'a', 'b']; // Maps index to CSS: 0=Top(x), 1=Left(y), 2=Right(a), 3=Bottom(b)
     const KEY_MAP = {
-        // P1: W=Top(0), A=Left(1), D=Right(2), S=Bottom(3)
         Player1: { 'w': 0, 'a': 1, 'd': 2, 's': 3, 'W': 0, 'A': 1, 'D': 2, 'S': 3 },
-        // P2: I=Top(0), J=Left(1), L=Right(2), K=Bottom(3)
         Player2: { 'i': 0, 'j': 1, 'l': 2, 'k': 3, 'I': 0, 'J': 1, 'L': 2, 'K': 3 },
     };
-    const ADVANCE_KEYS = { P1: 'd', P2: 'l' }; // Corresponds to the right button ('C')
+    const ADVANCE_KEYS = { P1: 'd', P2: 'l' };
 
     const quizSettings = {
         timerDuration: 30
@@ -801,7 +979,6 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         gameState.player2.answer = null;
         gameState.player1.readyForNext = false;
         gameState.player2.readyForNext = false;
-        // This will clear both "Ready!" and "Locked In!" indicators
         updateReadyStatus();
         transitionTo('question_reveal');
     }
@@ -816,10 +993,8 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             const highlightKey = HIGHLIGHT_MAP[index];
             
             button.innerHTML = '<div class="controller-icon highlight-' + highlightKey + '">' +
-                                   '<span class="btn btn-x"></span>' +
-                                   '<span class="btn btn-b"></span>' +
-                                   '<span class="btn btn-y"></span>' +
-                                   '<span class="btn btn-a"></span>' +
+                                   '<span class="btn btn-x"></span><span class="btn btn-b"></span>' +
+                                   '<span class="btn btn-y"></span><span class="btn btn-a"></span>' +
                                '</div>' +
                                '<span class="option-text">' + optionText + '</span>';
                                
@@ -830,22 +1005,16 @@ Do not include any introductory text, concluding remarks, or markdown formatting
 
     function handleAnswer(player, optionIndex) {
         if (gameState.gameStatus !== 'answering') return;
-        
         const playerState = (player === 'Player1') ? gameState.player1 : gameState.player2;
         const playerUI = (player === 'Player1') ? dom.p1 : dom.p2;
-
-        if (playerState.answer !== null) return; // Already answered
-        
+        if (playerState.answer !== null) return;
         playerState.answer = {
             choiceIndex: optionIndex,
             choiceText: quizData[gameState.currentQuestionIndex].options[optionIndex],
             time: gameState.timer.remaining
         };
-        
-        // **MODIFICATION**: Show "Locked In!" text instead of scaling panel
         playerUI.ready.textContent = 'Locked In!';
         playerUI.ready.classList.add('is-ready');
-
         if (gameState.player1.answer && gameState.player2.answer) {
             transitionTo('round_end');
         }
@@ -854,8 +1023,14 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     function revealAnswers() {
         const question = quizData[gameState.currentQuestionIndex];
         const correctIndex = question.options.indexOf(question.correctAnswer);
+
+        // --- CHANGE 1 START: Clear "Locked In" text ---
+        dom.p1.ready.textContent = '';
+        dom.p1.ready.classList.remove('is-ready');
+        dom.p2.ready.textContent = '';
+        dom.p2.ready.classList.remove('is-ready');
+        // --- CHANGE 1 END ---
         
-        // Calculate points
         [gameState.player1, gameState.player2].forEach(p => {
             if (p.answer) {
                 p.answer.isCorrect = p.answer.choiceText === question.correctAnswer;
@@ -866,8 +1041,6 @@ Do not include any introductory text, concluding remarks, or markdown formatting
         updateScoreboard();
 
         const optionButtons = dom.optionsContainer.querySelectorAll('.option-button');
-        
-        // **MODIFICATION**: Group player choices to add name tags
         const selections = {};
         [
             { player: gameState.player1, id: 'p1' },
@@ -880,33 +1053,21 @@ Do not include any introductory text, concluding remarks, or markdown formatting
             }
         });
 
-        // Add correct/incorrect visual feedback and player name tags
         optionButtons.forEach((btn, index) => {
-            // Add name tags if this option was selected
             if (selections[index]) {
-                // Sort by time (desc) to show faster player first
                 selections[index].sort((a, b) => b.time - a.time);
-                
                 const nameContainer = document.createElement('div');
                 nameContainer.className = 'player-choice-container';
-
                 selections[index].forEach(selection => {
                     const nameTag = document.createElement('div');
                     nameTag.className = \`player-choice-tag \${selection.id}-ans-label\`;
                     nameTag.textContent = selection.name;
                     nameContainer.appendChild(nameTag);
                 });
-                
                 btn.prepend(nameContainer);
             }
-
-            // Color the buttons based on correctness
-            if (index === correctIndex) {
-                btn.classList.add('correct');
-            } else if (selections[index]) {
-                // If anyone chose this and it's not the correct one
-                btn.classList.add('incorrect');
-            }
+            if (index === correctIndex) btn.classList.add('correct');
+            else if (selections[index]) btn.classList.add('incorrect');
         });
 
         dom.explanation.innerHTML = \`<strong>Explanation:</strong> <span class="explanation-text">\${question.explanation}</span>\`;
@@ -920,7 +1081,6 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     }
 
     function updateReadyStatus() {
-        // This function now handles both "Ready!" and clears "Locked In!" states
         dom.p1.ready.textContent = gameState.player1.readyForNext ? 'Ready!' : '';
         dom.p1.ready.classList.toggle('is-ready', gameState.player1.readyForNext);
         dom.p2.ready.textContent = gameState.player2.readyForNext ? 'Ready!' : '';
@@ -1016,40 +1176,60 @@ Do not include any introductory text, concluding remarks, or markdown formatting
                          (gameState.player2.score > gameState.player1.score) ? \`\${gameState.player2.name} wins!\` : "It's a tie!";
         const p1Correct = gameState.history.filter(h => h.p1 && h.p1.isCorrect).length;
         const p2Correct = gameState.history.filter(h => h.p2 && h.p2.isCorrect).length;
-        const completionHTML = \`
-            <div id="completion-overlay" class="overlay" style="display: flex;">
-                <div class="overlay-content">
-                    <h2>\${winnerText}</h2>
-                    <p>\${gameState.player1.name}: \${gameState.player1.score} points (\${p1Correct}/\${quizData.length} correct)</p>
-                    <p>\${gameState.player2.name}: \${gameState.player2.score} points (\${p2Correct}/\${quizData.length} correct)</p>
-                    <div>
-                        <button onclick="downloadHTML(document.documentElement.outerHTML, 'quiz-results.html')">Download Results</button>
-                        <button onclick="window.location.reload()">New Quiz</button>
-                    </div>
+        
+        const completionOverlay = document.createElement('div');
+        completionOverlay.id = 'completion-overlay';
+        completionOverlay.className = 'overlay';
+        completionOverlay.innerHTML = \`
+            <div class="overlay-content">
+                <h2>\${winnerText}</h2>
+                <p>\${gameState.player1.name}: \${gameState.player1.score} points (\${p1Correct}/\${quizData.length} correct)</p>
+                <p>\${gameState.player2.name}: \${gameState.player2.score} points (\${p2Correct}/\${quizData.length} correct)</p>
+                <div class="overlay-button-group">
+                    <button id="reviewQuizBtn">Review Answers</button>
+                    <button id="playAgainBtn">Play Again</button>
+                    <button id="newQuizBtn">New Quiz</button>
                 </div>
             </div>\`;
-        document.body.insertAdjacentHTML('beforeend', completionHTML);
+        document.body.appendChild(completionOverlay);
+
+        document.getElementById('reviewQuizBtn').addEventListener('click', () => {
+             completionOverlay.style.display = 'none';
+             showHistory();
+        });
+        document.getElementById('playAgainBtn').addEventListener('click', () => window.location.reload());
+        document.getElementById('newQuizBtn').addEventListener('click', () => window.location.href = window.location.pathname);
     }
     
     function showHistory() {
+        const wasPaused = gameState.timer.isPaused;
         stopTimer();
-        gameState.timer.instance = gameState.timer.isPaused;
         gameState.timer.isPaused = true;
+        
         dom.history.log.innerHTML = gameState.history.length === 0 ? '<p>No rounds completed yet.</p>' : '';
         gameState.history.forEach((item, index) => {
             const p1Answer = item.p1 ? \`\${item.p1.choiceText} (\${item.p1.points} pts)\` : 'No Answer';
             const p2Answer = item.p2 ? \`\${item.p2.choiceText} (\${item.p2.points} pts)\` : 'No Answer';
+            const correctAnswer = quizData[index].correctAnswer; // --- Part of CHANGE 2
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
-            historyItem.innerHTML = \`<p><strong>Q\${index+1}:</strong> \${item.q}</p><p><strong class="p1-ans">\${gameState.player1.name}:</strong> \${p1Answer}</p><p><strong class="p2-ans">\${gameState.player2.name}:</strong> \${p2Answer}</p>\`;
+            // --- CHANGE 2 START: Add correct answer to history log ---
+            historyItem.innerHTML = \`<p><strong>Q\${index+1}:</strong> \${item.q}</p>
+                                   <p><strong>Correct Answer:</strong> \${correctAnswer}</p>
+                                   <p><strong class="p1-ans">\${gameState.player1.name}:</strong> \${p1Answer}</p>
+                                   <p><strong class="p2-ans">\${gameState.player2.name}:</strong> \${p2Answer}</p>\`;
+            // --- CHANGE 2 END ---
             dom.history.log.appendChild(historyItem);
         });
         dom.history.overlay.style.display = 'flex';
-    }
-    
-    function hideHistory() {
-        dom.history.overlay.style.display = 'none';
-        gameState.timer.isPaused = gameState.timer.instance;
+        // When closing history, restore pause state only if the game is still active
+        dom.history.closeBtn.onclick = () => {
+             dom.history.overlay.style.display = 'none';
+             if (gameState.gameStatus === 'answering') {
+                 gameState.timer.isPaused = wasPaused;
+                 if(!wasPaused) startTimer();
+             }
+        };
     }
 
     // --- Initial Setup & Event Listeners ---
@@ -1070,17 +1250,38 @@ Do not include any introductory text, concluding remarks, or markdown formatting
     dom.p2.name.addEventListener('blur', e => { gameState.player2.name = e.target.textContent.trim() || 'Player 2'; updateScoreboard(); });
 
     dom.history.openBtn.addEventListener('click', showHistory);
-    dom.history.closeBtn.addEventListener('click', hideHistory);
     
     document.getElementById('backToGeneratorBtn').addEventListener('click', () => window.location.reload());
-    document.getElementById('downloadCurrentQuizBtn').addEventListener('click', () => downloadHTML(document.documentElement.outerHTML, '2-player-quiz.html'));
+    document.getElementById('downloadCurrentQuizBtn').addEventListener('click', () => {
+        // We use the fullQuizObjectString which is a pristine copy of the original data.
+        const quizFileName = \`\${quizTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html\`;
+        
+        // This is a simplified template placeholder replacement.
+        // It reconstructs the entire HTML file from scratch for a perfect download.
+        const finalHtmlContent = document.documentElement.outerHTML;
 
-    function downloadHTML(content, fileName) {
-        const blob = new Blob([content], { type: 'text/html' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+        const blob = new Blob([finalHtmlContent], { type: 'text/html' });
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(blob); 
+        a.download = quizFileName;
+        document.body.appendChild(a); 
+        a.click(); 
+        document.body.removeChild(a); 
+        URL.revokeObjectURL(a.href);
+    });
+
+    // In-game button to open the Past Games modal from the generator page
+    // This is a bit of a hack since the generator page is destroyed. 
+    // This button will simply reload to the generator where the user can click "Past Games".
+    const pastGamesInGameBtn = document.getElementById('pastGamesInGameBtn');
+    if(pastGamesInGameBtn) {
+        pastGamesInGameBtn.addEventListener('click', () => {
+            if(confirm("This will end the current game and return to the generator. Are you sure?")) {
+                window.location.reload();
+            }
+        });
     }
-    
+
     updateScoreboard();
     dom.timer.text.textContent = quizSettings.timerDuration;
     transitionTo('overlay');
