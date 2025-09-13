@@ -291,7 +291,7 @@ Example format:
             URL.revokeObjectURL(a.href);
         }
 
-        // --- View Switching Logic ---
+        // --- View Switching & Core Logic ---
         function showGeneratorView() {
             document.body.classList.remove('screensaver-active');
             if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
@@ -312,12 +312,15 @@ Example format:
             renderFact(currentFactIndex);
         }
         
-        function handleGeneration(sessionData) {
+        function handleGenerationAndLaunch(sessionData) {
             try {
                 let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
                 const existingIndex = pastSessions.findIndex(s => s.title === sessionData.title);
-                if (existingIndex > -1) pastSessions[existingIndex] = sessionData;
-                else pastSessions.push(sessionData);
+                if (existingIndex > -1) {
+                    pastSessions[existingIndex] = sessionData;
+                } else {
+                    pastSessions.push(sessionData);
+                }
                 localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
             } catch (e) { console.error("Could not save to localStorage:", e); }
             launchScreensaver(sessionData);
@@ -363,6 +366,28 @@ Example format:
             dom.favoriteIndicator.classList.toggle('is-favorite', indexInFavorites === -1);
             allFavorites[activeSessionData.title] = sessionFavorites;
             localStorage.setItem('factFavorites', JSON.stringify(allFavorites));
+        }
+
+        function showContextPanel() {
+            dom.contextTextPanel.textContent = activeSessionData.facts[currentFactIndex].context || "No context available.";
+            showPanel(dom.contextPanel);
+        }
+        
+        function showFavoritesPanel() {
+            const allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
+            const sessionFavorites = allFavorites[activeSessionData.title] || [];
+            dom.favoritesList.innerHTML = sessionFavorites.length === 0 ? '<li>You haven\\'t favorited any facts yet.</li>' : 
+                sessionFavorites.sort((a,b) => a-b).map(index => `<li>${activeSessionData.facts[index].fact}</li>`).join('');
+            showPanel(dom.favoritesPanel);
+        }
+
+        function downloadSessionFavorites() {
+            const allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
+            const sessionFavorites = allFavorites[activeSessionData.title] || [];
+            if (sessionFavorites.length === 0) { alert('No favorites to download.'); return; }
+            let textContent = `Favorite Facts from: ${activeSessionData.title}\n===================\n\n`;
+            sessionFavorites.sort((a,b) => a-b).forEach((index, i) => { textContent += `${i + 1}. ${activeSessionData.facts[index].fact}\n(Context: ${activeSessionData.facts[index].context})\n\n`; });
+            downloadFile(textContent, 'my_favorite_facts.txt', 'text/plain');
         }
 
         function populateAndShowPastSessions() {
@@ -426,7 +451,7 @@ Example format:
                 if (!Array.isArray(parsedData.facts) || parsedData.facts.length === 0) throw new Error('Missing "facts" array.');
                 const today = new Date();
                 const formattedTitle = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} ${parsedData.title}`;
-                handleGeneration({ title: formattedTitle, facts: parsedData.facts });
+                handleGenerationAndLaunch({ title: formattedTitle, facts: parsedData.facts });
             } catch (e) { alert(`Error parsing data: ${e.message}`); }
         });
         dom.viewPastSessionsBtn.addEventListener('click', () => {
@@ -435,7 +460,7 @@ Example format:
             pastSessions.forEach(session => {
                 const li = document.createElement('li');
                 li.textContent = session.title;
-                li.addEventListener('click', () => { dom.mainSessionsModal.style.display = 'none'; handleGeneration(session); });
+                li.addEventListener('click', () => { dom.mainSessionsModal.style.display = 'none'; handleGenerationAndLaunch(session); });
                 dom.sessionsList.appendChild(li);
             });
             dom.mainSessionsModal.style.display = 'flex';
@@ -449,22 +474,10 @@ Example format:
         dom.navLeft.addEventListener('click', prevFact);
         dom.navRight.addEventListener('click', nextFact);
         dom.favoriteZone.addEventListener('click', toggleFavorite);
-        dom.infoBtn.addEventListener('click', () => { dom.contextTextPanel.textContent = activeSessionData.facts[currentFactIndex].context || "No context available."; showPanel(dom.contextPanel); });
+        dom.infoBtn.addEventListener('click', showContextPanel);
         dom.profileBtn.addEventListener('click', () => showPanel(dom.profilePanel));
-        dom.downloadFavoritesBtn.addEventListener('click', () => {
-            const allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
-            const sessionFavorites = allFavorites[activeSessionData.title] || [];
-            if (sessionFavorites.length === 0) { alert('No favorites to download.'); return; }
-            let textContent = `Favorite Facts from: ${activeSessionData.title}\n===================\n\n`;
-            sessionFavorites.sort((a,b) => a-b).forEach((index, i) => { textContent += `${i + 1}. ${activeSessionData.facts[index].fact}\n(Context: ${activeSessionData.facts[index].context})\n\n`; });
-            downloadFile(textContent, 'my_favorite_facts.txt', 'text/plain');
-        });
-        dom.viewSessionFavoritesBtn.addEventListener('click', () => {
-            const allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
-            const sessionFavorites = allFavorites[activeSessionData.title] || [];
-            dom.favoritesList.innerHTML = sessionFavorites.length === 0 ? '<li>You haven\\'t favorited any facts yet.</li>' : sessionFavorites.sort((a,b) => a-b).map(index => `<li>${activeSessionData.facts[index].fact}</li>`).join('');
-            hidePanel(dom.profilePanel); showPanel(dom.favoritesPanel);
-        });
+        dom.downloadFavoritesBtn.addEventListener('click', downloadSessionFavorites);
+        dom.viewSessionFavoritesBtn.addEventListener('click', () => { hidePanel(dom.profilePanel); showFavoritesPanel(); });
         dom.viewPastSessionsBtnSS.addEventListener('click', () => { hidePanel(dom.profilePanel); populateAndShowPastSessions(); });
         dom.downloadCurrentSessionBtn.addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), `${activeSessionData.title.replace(/[.\\s]/g, '_')}.json`, 'application/json'));
         dom.downloadAllSessionsBtn.addEventListener('click', () => downloadFile(localStorage.getItem('pastSessions') || '[]', 'all_past_sessions.json', 'application/json'));
@@ -483,8 +496,8 @@ Example format:
                 }
                 if (e.key === 'ArrowLeft') prevFact();
                 if (e.key === 'ArrowRight') nextFact();
-                if (e.key === 'i' || e.key === 'I') dom.infoBtn.click();
-                if (e.key === 'p' || e.key === 'P') dom.profileBtn.click();
+                if (e.key === 'i' || e.key === 'I') showContextPanel();
+                if (e.key === 'p' || e.key === 'P') showPanel(dom.profilePanel);
                 if (e.key === ' ') { e.preventDefault(); toggleFavorite(); }
             }
         });
