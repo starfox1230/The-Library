@@ -333,18 +333,29 @@
   });
 
   saveJsonBtn.addEventListener('click', () => {
-    try{
-      const input = JSON.parse(jsonArea.value || '[]');
-      const normalized = normalizeAndValidate(input);
+    // 1) Parse JSON first
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonArea.value || '[]');
+    } catch (e) {
+      errEl.textContent = 'Invalid JSON syntax: ' + e.message;
+      return;
+    }
+
+    // 2) Validate & normalize separately
+    try {
+      const normalized = normalizeAndValidate(parsed);
       state.data = normalized;
-      saveData(state.data);
+      try { saveData(state.data); } catch (e) { /* localStorage might fail in some contexts */ }
       render();
-      flash(saveStatus, 'Saved ✓');
+      setView('all'); // show everything right after saving so it "feels" saved
+      flash(saveStatus, `Saved ${state.data.length} birthdays ✓`);
       errEl.textContent = '';
-    }catch(err){
-      errEl.textContent = 'Invalid JSON: ' + err.message;
+    } catch (e) {
+      errEl.textContent = 'Data error: ' + e.message; // not a JSON parse problem
     }
   });
+
 
   defaultViewSel.addEventListener('change', () => {
     prefs.defaultView = defaultViewSel.value;
@@ -575,36 +586,52 @@
     });
   }
 
-  function normalizeAndValidate(input){
-    if(!Array.isArray(input)) throw new Error('Root must be an array');
-    const out = [];
-    for(const [i, row] of input.entries++){
-      if(typeof row !== 'object' || row==null) throw new Error(`Item ${i+1} must be an object`);
-      let {name, month, day, year, date} = row;
-      if(!name || typeof name !== 'string') throw new Error(`Item ${i+1}: "name" required`);
-      if(date){
-        // accept YYYY-MM-DD, --MM-DD, MM-DD
-        let m = String(date).trim();
-        let monthS, dayS, yearS = null;
-        if(m.startsWith('--')){ [monthS, dayS] = m.slice(2).split('-'); }
-        else {
-          const parts = m.split('-');
-          if(parts.length === 3){ [yearS, monthS, dayS] = parts; }
-          else if(parts.length === 2){ [monthS, dayS] = parts; }
-          else throw new Error(`Item ${i+1}: bad "date" format`);
-        }
-        month = toInt(monthS); day = toInt(dayS); year = yearS ? toInt(yearS) : (year||undefined);
-      } else {
-        month = toInt(month); day = toInt(day); year = year ? toInt(year) : undefined;
-      }
-      if(!(month>=1 && month<=12)) throw new Error(`Item ${i+1}: month 1-12`);
-      if(!(day>=1 && day<=31)) throw new Error(`Item ${i+1}: day 1-31`);
-      if(year && (year<1900 || year> 3000)) throw new Error(`Item ${i+1}: year out of range`);
-      out.push({name, month, day, ...(year?{year}:{} )});
-    }
-    return out;
-  }
+function normalizeAndValidate(arr){
+  if(!Array.isArray(arr)) throw new Error('Root must be an array');
 
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    const row = arr[i];
+    if (typeof row !== 'object' || row == null) {
+      throw new Error(`Item ${i+1} must be an object`);
+    }
+
+    let {name, month, day, year, date} = row;
+    if (!name || typeof name !== 'string') {
+      throw new Error(`Item ${i+1}: "name" required`);
+    }
+
+    // Accept: YYYY-MM-DD, --MM-DD, MM-DD, or separate fields month/day/year
+    if (date) {
+      const m = String(date).trim();
+      let monthS, dayS, yearS = null;
+
+      if (m.startsWith('--')) {
+        [monthS, dayS] = m.slice(2).split('-');
+      } else {
+        const parts = m.split('-');
+        if (parts.length === 3) { [yearS, monthS, dayS] = parts; }
+        else if (parts.length === 2) { [monthS, dayS] = parts; }
+        else throw new Error(`Item ${i+1}: bad "date" format`);
+      }
+
+      month = toInt(monthS);
+      day = toInt(dayS);
+      year = yearS ? toInt(yearS) : (year || undefined);
+    } else {
+      month = toInt(month);
+      day = toInt(day);
+      year = year ? toInt(year) : undefined;
+    }
+
+    if (!(month >= 1 && month <= 12)) throw new Error(`Item ${i+1}: month 1-12`);
+    if (!(day >= 1 && day <= 31)) throw new Error(`Item ${i+1}: day 1-31`);
+    if (year && (year < 1900 || year > 3000)) throw new Error(`Item ${i+1}: year out of range`);
+
+    out.push({ name, month, day, ...(year ? { year } : {}) });
+  }
+  return out;
+}
   // --- Date/time helpers
   function nowLocal(){ return new Date(); }
   function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
