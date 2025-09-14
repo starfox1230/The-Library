@@ -424,11 +424,10 @@
       cd.className = 'countdown';
 
       const badge = document.createElement('span');
-      const days = item.until.days;
-      if(days === 0){
+      if(item.isToday){
         badge.className = 'badge today';
         badge.textContent = 'Today 🎉';
-      } else if(days <= 7){
+      } else if(item.until.days <= 7){
         badge.className = 'badge soon';
         badge.textContent = 'Soon';
       } else {
@@ -474,7 +473,7 @@
     }, 1000);
   }
 
-  // --- Data helpers
+  // --- Data helpers (FIXED to be calendar-day correct)
   function enrich(entry){
     // Normalize structure
     let {name, month, day, year, date} = entry;
@@ -495,15 +494,45 @@
     }
     month = toInt(month); day = toInt(day); year = year ? toInt(year) : undefined;
 
-    const next = nextOccurrence(month, day, prefs.feb29AsMar1);
-    const until = diff(nowLocal(), next);
-    const nextAge = year ? (next.getFullYear() - year) : null;
+    const now = nowLocal();
+    const todayStart = stripTime(now);
+
+    // Observed birthday date for this year (respects Feb-29 rule)
+    const observedThisYear = stripTime(makeDate(now.getFullYear(), month, day, prefs.feb29AsMar1));
+
+    // Is the birthday literally today (calendar date match)?
+    const isToday = observedThisYear.getTime() === todayStart.getTime();
+
+    // Next occurrence START (start-of-day) for the birthday (today or future)
+    // If today has already started, we still consider today as the occurrence date.
+    const nextOccurrenceStart = (observedThisYear.getTime() >= todayStart.getTime())
+      ? observedThisYear
+      : stripTime(makeDate(now.getFullYear()+1, month, day, prefs.feb29AsMar1));
+
+    // Countdown target:
+    // - If TODAY: count down to end of today (tomorrow 00:00)
+    // - Else: count down to the next occurrence START (that birthday's 00:00)
+    const target = isToday
+      ? new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate()+1) // end of today
+      : nextOccurrenceStart;
+
+    const until = diff(now, target);
+
+    // Year used to compute "Turning N"
+    const occurrenceYear = isToday ? now.getFullYear() : nextOccurrenceStart.getFullYear();
+    const nextAge = year ? (occurrenceYear - year) : null;
+
+    // For display ("Next: ..."), show the actual occurrence date (today if today, else the next observed date)
+    const displayDate = isToday ? todayStart : nextOccurrenceStart;
 
     return {
       key: keyOf({name, month, day, year}),
       name, month, day, year,
-      next, nextStr: next.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}),
-      until, nextAge
+      isToday,
+      next: displayDate,
+      nextStr: displayDate.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}),
+      until,
+      nextAge
     };
   }
 
@@ -549,7 +578,7 @@
   function normalizeAndValidate(input){
     if(!Array.isArray(input)) throw new Error('Root must be an array');
     const out = [];
-    for(const [i, row] of input.entries()){
+    for(const [i, row] of input.entries++){
       if(typeof row !== 'object' || row==null) throw new Error(`Item ${i+1} must be an object`);
       let {name, month, day, year, date} = row;
       if(!name || typeof name !== 'string') throw new Error(`Item ${i+1}: "name" required`);
@@ -579,17 +608,10 @@
   // --- Date/time helpers
   function nowLocal(){ return new Date(); }
   function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-  function nextOccurrence(month, day, feb29AsMar1){
-    const now = nowLocal();
-    const y = now.getFullYear();
-    const candidate = makeDate(y, month, day, feb29AsMar1);
-    if(candidate >= now) return candidate;
-    return makeDate(y+1, month, day, feb29AsMar1);
-  }
   function makeDate(y,m,d,feb29AsMar1){
     // Handle Feb 29 preference in non-leap years
     if(m===2 && d===29 && !isLeap(y)){
-      if(feb29AsMar1) return new Date(y, 2-1, 1+ (29-28)); // Mar 1
+      if(feb29AsMar1) return new Date(y, 2-1, 1+ (29-28)); // Mar 1 (i.e., Mar 1)
       else return new Date(y, 2-1, 28); // Feb 28
     }
     return new Date(y, m-1, d);
@@ -611,18 +633,23 @@
     return new Date(2000, m-1, d).toLocaleDateString(undefined, {month:'short', day:'numeric'});
   }
 
+  // --- Countdown text (use calendar-day aware flag)
   function liveCountdownText(item){
     const u = item.until;
-    if(u.days===0){
-      // show hours:minutes:seconds to midnight end (next day 00:00)
+    if(item.isToday){
       return `Today • ${pad(u.hours)}:${pad(u.minutes)}:${pad(u.seconds)}`;
+    }
+    // If less than 1 day but not today, show hours/min
+    if(u.days === 0){
+      return `in ${u.hours}h ${pad(u.minutes)}m`;
     }
     return `in ${u.days}d ${u.hours}h ${pad(u.minutes)}m`;
   }
   function staticCountdownText(item){
     const u = item.until;
-    if(u.days===0) return 'Today';
+    if(item.isToday) return 'Today';
     if(u.days===1) return 'in 1 day';
+    if(u.days===0) return 'in less than a day';
     return `in ${u.days} days`;
   }
   function pad(n){ return String(n).padStart(2,'0'); }
@@ -644,5 +671,6 @@
 
 })();
 </script>
+
 </body>
 </html>
