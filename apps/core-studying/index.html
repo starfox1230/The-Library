@@ -107,215 +107,227 @@
     <textarea id="text-content" readonly placeholder="Your selection will appear here…"></textarea>
   </div>
 
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // --- Cookie Helper Functions ---
-    const setCookie = (name, value, days = 365) => {
-        let expires = "";
-        if (days) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
-    };
-
-    const getCookie = (name) => {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    };
-    
-    // --- Get Saved Selections from Cookies ---
-    const savedSelections = {
-        book: getCookie('selectedBook'),
-        chapter: getCookie('selectedChapter'),
-        start: getCookie('selectedStart'),
-        end: getCookie('selectedEnd'),
-    };
-
-    let booksData, currentBookManifest, currentBookPath, currentSections = [];
-
-    const bookEl = document.getElementById('book'),
-          chapterEl = document.getElementById('chapter'),
-          startEl   = document.getElementById('start-section'),
-          endEl     = document.getElementById('end-section'),
-          fetchBtn  = document.getElementById('fetch-btn'),
-          copyBtn   = document.getElementById('copy-btn'),
-          outTA     = document.getElementById('text-content');
-    
-    // Helper to reset dropdowns
-    const resetDropdowns = (startFrom) => {
-        const dropdowns = [chapterEl, startEl, endEl];
-        const startIdx = ['book', 'chapter', 'start'].indexOf(startFrom);
-        for(let i = startIdx; i < dropdowns.length; i++){
-            dropdowns[i].innerHTML = '<option value="">--</option>';
-            dropdowns[i].disabled = true;
-        }
-        fetchBtn.disabled = true;
-        copyBtn.disabled = true;
-        outTA.value = '';
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- Cookie helpers ---
+  const setCookie = (name, value, days = 365) => {
+    let expires = "";
+    if (days) {
+      const d = new Date();
+      d.setTime(d.getTime() + days*24*60*60*1000);
+      expires = "; expires=" + d.toUTCString();
     }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+  };
+  const getCookie = (name) => {
+    const nameEQ = name + "=";
+    return document.cookie.split(';').map(c => c.trim()).find(c => c.indexOf(nameEQ) === 0)?.substring(nameEQ.length) || null;
+  };
 
-    // Load the list of all books
-    fetch('books.json')
+  // Restore selections
+  const saved = {
+    book: getCookie('selectedBook'),
+    chapter: getCookie('selectedChapter'),
+    start: getCookie('selectedStart'),
+    end: getCookie('selectedEnd'),
+  };
+
+  let booksData, currentBookManifest, currentBookPath;
+  /** @type {Array<[string, {title:string, file:string}]>} */
+  let currentSections = [];
+
+  const bookEl   = document.getElementById('book');
+  const chapterEl= document.getElementById('chapter');
+  const startEl  = document.getElementById('start-section');
+  const endEl    = document.getElementById('end-section');
+  const fetchBtn = document.getElementById('fetch-btn');
+  const copyBtn  = document.getElementById('copy-btn');
+  const outTA    = document.getElementById('text-content');
+
+  const resetDropdowns = (from) => {
+    const order = ['book','chapter','start'];
+    const idx = order.indexOf(from);
+    const targets = [chapterEl, startEl, endEl];
+    for (let i = idx; i < targets.length; i++) {
+      targets[i].innerHTML = '<option value="">--</option>';
+      targets[i].disabled = true;
+    }
+    fetchBtn.disabled = true;
+    copyBtn.disabled = true;
+    outTA.value = '';
+  };
+
+  // Natural compare helpers
+  const natCompare = (a,b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+  const compareSectionKeys = (a,b) => {
+    const toNums = k => k.split('.').map(x => parseInt(x,10)).filter(Number.isFinite);
+    const A = toNums(a), B = toNums(b), n = Math.max(A.length,B.length);
+    for (let i=0;i<n;i++){ const da=A[i]||0, db=B[i]||0; if (da!==db) return da-db; }
+    return natCompare(a,b);
+  };
+
+  // Load books.json
+  fetch('books.json')
+    .then(r => r.json())
+    .then(data => {
+      booksData = data;
+      Object.keys(booksData).forEach(name => {
+        const o = document.createElement('option');
+        o.value = name; o.textContent = name;
+        bookEl.appendChild(o);
+      });
+      if (saved.book && bookEl.querySelector(`option[value="${saved.book}"]`)) {
+        bookEl.value = saved.book;
+        bookEl.dispatchEvent(new Event('change'));
+      }
+    })
+    .catch(err => alert('Error loading books.json: ' + err));
+
+  // Book change
+  bookEl.addEventListener('change', (ev) => {
+    if (ev.isTrusted) {
+      setCookie('selectedBook', bookEl.value);
+      setCookie('selectedChapter','',-1);
+      setCookie('selectedStart','',-1);
+      setCookie('selectedEnd','',-1);
+    }
+    resetDropdowns('book');
+    if (!bookEl.value) return;
+
+    const info = booksData[bookEl.value];
+    currentBookPath = info.basePath;
+
+    fetch(info.manifest)
       .then(r => r.json())
-      .then(data => {
-        booksData = data;
-        Object.keys(booksData).forEach(bookTitle => {
-          const o = document.createElement('option');
-          o.value = bookTitle;
-          o.textContent = bookTitle;
-          bookEl.appendChild(o);
-        });
-        
-        // Restore saved book selection if it exists
-        if (savedSelections.book && bookEl.querySelector(`option[value="${savedSelections.book}"]`)) {
-            bookEl.value = savedSelections.book;
-            bookEl.dispatchEvent(new Event('change'));
+      .then(manifest => {
+        currentBookManifest = manifest;
+
+        // Populate chapters with natural sorting; support arbitrary keys
+        Object.entries(manifest)
+          .sort(([ka],[kb]) => natCompare(ka,kb))
+          .forEach(([key, ch]) => {
+            const o = document.createElement('option');
+            o.value = key;
+            // Label: try to show "Chapter <digits>" when present, else raw key
+            const num = (key.match(/\d+/)||[])[0];
+            const labelLeft = num ? `Chapter ${num}` : key;
+            o.textContent = `${labelLeft} – ${ch.title || ''}`.replace(/ – $/,'');
+            chapterEl.appendChild(o);
+          });
+
+        chapterEl.disabled = true; // will be enabled only if at least one chapter
+        if (chapterEl.options.length > 1) chapterEl.disabled = false;
+
+        if (saved.chapter && chapterEl.querySelector(`option[value="${saved.chapter}"]`)) {
+          chapterEl.value = saved.chapter;
+          chapterEl.dispatchEvent(new Event('change'));
         }
       })
-      .catch(err => alert('Error loading books.json: ' + err));
-
-    // When a book is selected
-    bookEl.addEventListener('change', (event) => {
-      // On user interaction, save selection and clear dependent cookies
-      if (event.isTrusted) {
-        setCookie('selectedBook', bookEl.value);
-        setCookie('selectedChapter', '', -1);
-        setCookie('selectedStart', '', -1);
-        setCookie('selectedEnd', '', -1);
-      }
-      
-      resetDropdowns('book');
-      const selectedBook = bookEl.value;
-      if (!selectedBook) return;
-
-      const bookInfo = booksData[selectedBook];
-      currentBookPath = bookInfo.basePath;
-      
-      fetch(bookInfo.manifest)
-        .then(r => r.json())
-        .then(manifest => {
-          currentBookManifest = manifest;
-          Object.entries(manifest)
-            .sort((a,b) => parseInt(a[0].replace(/\D/g,'')) - parseInt(b[0].replace(/\D/g,'')))
-            .forEach(([chKey, chData]) => {
-              const o = document.createElement('option');
-              o.value = chKey;
-              o.textContent = `${chKey.replace(/^Chapter0*/, 'Chapter ')} – ${chData.title}`;
-              chapterEl.appendChild(o);
-            });
-          chapterEl.disabled = false;
-
-          // Restore saved chapter selection if it exists
-          if (savedSelections.chapter && chapterEl.querySelector(`option[value="${savedSelections.chapter}"]`)) {
-              chapterEl.value = savedSelections.chapter;
-              chapterEl.dispatchEvent(new Event('change'));
-          }
-        })
-        .catch(err => alert(`Error loading manifest for ${selectedBook}: ` + err));
-    });
-
-    // When chapter changes
-    chapterEl.addEventListener('change', (event) => {
-      if (event.isTrusted) {
-        setCookie('selectedChapter', chapterEl.value);
-        setCookie('selectedStart', '', -1);
-        setCookie('selectedEnd', '', -1);
-      }
-
-      resetDropdowns('chapter');
-      if (!chapterEl.value) return;
-
-      currentSections = Object.entries(currentBookManifest[chapterEl.value])
-        .filter(([key]) => key !== 'title')
-        .sort(([a],[b]) => parseFloat(a) - parseFloat(b));
-
-      currentSections.forEach(([secKey,{title}])=>{
-        const o = document.createElement('option');
-        o.value = secKey;
-        o.textContent = `${secKey} – ${title}`;
-        startEl.appendChild(o);
-      });
-      startEl.disabled = false;
-
-      // Restore saved start section if it exists
-      if (savedSelections.start && startEl.querySelector(`option[value="${savedSelections.start}"]`)) {
-        startEl.value = savedSelections.start;
-        startEl.dispatchEvent(new Event('change'));
-      }
-    });
-
-    // When start section changes
-    startEl.addEventListener('change', (event) => {
-      if (event.isTrusted) {
-        setCookie('selectedStart', startEl.value);
-        setCookie('selectedEnd', '', -1);
-      }
-
-      resetDropdowns('start');
-      const startKey = startEl.value;
-      if (!startKey) return;
-
-      const idx = currentSections.findIndex(([k]) => k === startKey);
-      for (let i = idx; i < currentSections.length; i++) {
-        const [secKey, {title}] = currentSections[i];
-        const o = document.createElement('option');
-        o.value = secKey;
-        o.textContent = `${secKey} – ${title}`;
-        endEl.appendChild(o);
-      }
-      endEl.disabled = false;
-      fetchBtn.disabled = false;
-      
-      // Restore saved end section if it exists
-      if (savedSelections.end && endEl.querySelector(`option[value="${savedSelections.end}"]`)) {
-          endEl.value = savedSelections.end;
-      }
-    });
-
-    // When end section changes, save to cookie
-    endEl.addEventListener('change', (event) => {
-        if (event.isTrusted) {
-            setCookie('selectedEnd', endEl.value);
-        }
-    });
-
-    // Fetch & concatenate text files
-    fetchBtn.addEventListener('click', async () => {
-      const chapKey = chapterEl.value;
-      const startKey = startEl.value;
-      const endKey = endEl.value || startKey;
-      const keys = currentSections.map(([k])=>k);
-      const slice = keys.slice(keys.indexOf(startKey), keys.indexOf(endKey) + 1);
-
-      outTA.value = 'Loading…';
-      try {
-        const texts = await Promise.all(slice.map(k => {
-          const fp = currentBookManifest[chapKey][k].file;
-          // Use the dynamic path for the current book
-          return fetch(`${currentBookPath}/${fp}`).then(r => r.text());
-        }));
-        outTA.value = texts.join('\n\n');
-        copyBtn.disabled = false;
-      } catch (err) {
-        outTA.value = 'Error: ' + err.message;
-      }
-    });
-
-    // Copy to clipboard
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(outTA.value)
-        .then(() => alert('Copied!'))
-        .catch(e => alert('Copy failed: ' + e));
-    });
+      .catch(err => alert('Error loading manifest: ' + err));
   });
-  </script>
+
+  // Chapter change
+  chapterEl.addEventListener('change', (ev) => {
+    if (ev.isTrusted) {
+      setCookie('selectedChapter', chapterEl.value);
+      setCookie('selectedStart','',-1);
+      setCookie('selectedEnd','',-1);
+    }
+    resetDropdowns('chapter');
+    if (!chapterEl.value) return;
+
+    const ch = currentBookManifest[chapterEl.value];
+
+    // Build a normalized [key, {title,file}] list from either:
+    // - nested "sections" style (recommended), with optional "introFile"
+    // - flat style where numeric keys live alongside "title"
+    const intro = ch.introFile ? [['00', { title: ch.introTitle || 'Chapter intro', file: ch.introFile }]] : [];
+    const source = ch.sections ? ch.sections : ch;
+
+    const entries = Object.entries(source)
+      .filter(([k,v]) => !['title','introFile','introTitle','sections'].includes(k) && v && typeof v === 'object' && v.file)
+      .sort(([a],[b]) => compareSectionKeys(a,b));
+
+    currentSections = [...intro, ...entries];
+
+    // Populate start dropdown
+    currentSections.forEach(([secKey, sec]) => {
+      const o = document.createElement('option');
+      o.value = secKey;
+      o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/,'');
+      startEl.appendChild(o);
+    });
+    startEl.disabled = currentSections.length === 0;
+
+    if (saved.start && startEl.querySelector(`option[value="${saved.start}"]`)) {
+      startEl.value = saved.start;
+      startEl.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // Start section change
+  startEl.addEventListener('change', (ev) => {
+    if (ev.isTrusted) {
+      setCookie('selectedStart', startEl.value);
+      setCookie('selectedEnd','',-1);
+    }
+    resetDropdowns('start');
+    if (!startEl.value) return;
+
+    const idx = currentSections.findIndex(([k]) => k === startEl.value);
+    for (let i = idx; i < currentSections.length; i++) {
+      const [secKey, sec] = currentSections[i];
+      const o = document.createElement('option');
+      o.value = secKey;
+      o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/,'');
+      endEl.appendChild(o);
+    }
+    endEl.disabled = false;
+    fetchBtn.disabled = false;
+
+    if (saved.end && endEl.querySelector(`option[value="${saved.end}"]`)) {
+      endEl.value = saved.end;
+    }
+  });
+
+  // End section change -> save cookie
+  endEl.addEventListener('change', (ev) => {
+    if (ev.isTrusted) setCookie('selectedEnd', endEl.value);
+  });
+
+  // Fetch
+  fetchBtn.addEventListener('click', async () => {
+    const startKey = startEl.value;
+    const endKey = endEl.value || startKey;
+
+    const keys = currentSections.map(([k]) => k);
+    const slice = keys.slice(keys.indexOf(startKey), keys.indexOf(endKey) + 1);
+
+    outTA.value = 'Loading…';
+    try {
+      const texts = await Promise.all(slice.map(k => {
+        const [, secObj] = currentSections.find(([key]) => key === k);
+        return fetch(`${currentBookPath}/${secObj.file}`).then(r => {
+          if (!r.ok) throw new Error(`${r.status} ${r.statusText} while fetching ${secObj.file}`);
+          return r.text();
+        });
+      }));
+      outTA.value = texts.join('\n\n');
+      copyBtn.disabled = false;
+    } catch (e) {
+      outTA.value = 'Error: ' + e.message;
+      copyBtn.disabled = true;
+    }
+  });
+
+  // Copy
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(outTA.value)
+      .then(() => alert('Copied!'))
+      .catch(e => alert('Copy failed: ' + e));
+  });
+});
+</script>
+
 </body>
 </html>
