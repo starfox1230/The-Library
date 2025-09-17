@@ -1,0 +1,783 @@
+# tactiq.io free youtube transcript
+# Iterative Reconstruction, MRI Image Reconstruction | Computed Tomography Radiology Physics Course #9
+# https://www.youtube.com/watch/KPoYnCVA8Rg
+
+00:00:00.080 hello everybody and welcome to the third
+00:00:01.560 and final part in this series looking at
+00:00:03.360 imagery Construction in CT we started
+00:00:06.080 with simple back projection moved on to
+00:00:08.080 filtered back projection and now we're
+00:00:09.679 going to end off by looking at a final
+00:00:11.440 process known as iterative
+00:00:12.920 reconstruction it's the most commonly
+00:00:14.839 used process in modern CT scanners and
+00:00:17.800 this diagram is showing you what we're
+00:00:19.520 going to go through today the steps
+00:00:21.000 we're going to take to generate an image
+00:00:23.439 and output image that's of better
+00:00:25.039 quality than filtered back projection
+00:00:27.039 and requires a lower dose more
+00:00:28.960 importantly now remember all of these
+00:00:30.920 image reconstruction methods are
+00:00:32.719 mathematical processes we're using
+00:00:35.040 projection data to calculate a final
+00:00:37.840 image and in iterative reconstruction
+00:00:40.239 we're going to take input data enter
+00:00:42.640 that data into what's known as an
+00:00:43.960 iterative Loop and continually update
+00:00:46.520 that input data until we reach our
+00:00:48.680 output value now this process is
+00:00:51.360 computationally demanding and it takes
+00:00:53.640 longer time than filtered back
+00:00:55.120 projection so we need a reason to do it
+00:00:57.520 over filtered back projection now if
+00:00:59.680 you're your mind back to filtered back
+00:01:01.359 projection I said there were a couple of
+00:01:02.719 shortfalls with fbp the first is what I
+00:01:05.600 focused on the most which is noise
+00:01:07.560 filter back projection doesn't deal well
+00:01:09.720 with inherent Noise Within our
+00:01:11.320 projection data whether that's Quantum
+00:01:13.200 noise from the photons or the detector
+00:01:16.000 noise it also doesn't account for the
+00:01:18.759 system geometry that's actually involved
+00:01:21.560 in acquiring the projection data the fan
+00:01:24.119 beam geometry the size of the focal spot
+00:01:26.720 all of which we're going to look at
+00:01:27.840 today and I've said it doesn't deal de
+00:01:30.119 well with artifacts we're going to focus
+00:01:31.840 these on these specifically in a future
+00:01:33.799 talk where we're looking at artifacts in
+00:01:35.520 isolation but here we can see a ring
+00:01:37.159 artifact and beam hardening artifact
+00:01:39.600 which are much more prone to occur in
+00:01:41.560 filtered back projection over iterative
+00:01:44.040 reconstruction now I want to take you
+00:01:46.119 through some of these processes in
+00:01:48.040 filtered back projection and then when
+00:01:49.960 we go through iterative reconstruction
+00:01:52.000 you'll see how that accounts for these
+00:01:53.880 shortfalls in filtered back projection
+00:01:56.680 so if we look at how we go about
+00:01:58.240 acquiring the data the projection data
+00:02:00.280 for a c image using filtered back
+00:02:02.920 projection we need to make some false
+00:02:04.600 assumptions in order to create that
+00:02:06.600 filtered back projection image when we
+00:02:09.160 use filtered back projection we are
+00:02:10.919 creating what's called a closed form
+00:02:12.840 solution we've got projection data we
+00:02:15.640 take that projection data and we have a
+00:02:17.360 final output where we've got linear
+00:02:19.319 attenuation coefficient values for each
+00:02:21.879 and every one of the pixels within our
+00:02:23.519 image and we apply houndsfield units to
+00:02:26.080 those linear tenation coefficient values
+00:02:28.959 now in order to do we need to make these
+00:02:30.879 false assumptions and we're not
+00:02:32.480 accounting for these during filtered
+00:02:34.480 back projection the first assumption
+00:02:35.879 that we make is that x-rays originate
+00:02:38.200 from a point source and we know when we
+00:02:40.760 look at the focal spot we rotate this
+00:02:42.560 heating machine around here we can see
+00:02:44.680 that the focal spot has some width all
+00:02:46.760 the x-rays aren't coming from some
+00:02:48.519 infinitely small point now why is that
+00:02:51.080 important well in filtered back
+00:02:52.360 projection if we were to assume X-rays
+00:02:54.760 were coming from a point source they
+00:02:56.560 would cast a shadow on our detector that
+00:02:58.640 was some form of magn ification from our
+00:03:01.440 patient here and see how crisp that
+00:03:03.680 shadow is because it's coming from a
+00:03:05.280 point source now we know in reality the
+00:03:07.519 focal spot has some width and we know
+00:03:10.319 that x-rays would head from the focal
+00:03:11.920 spot towards our patient and cast a
+00:03:13.680 shadow the problem comes is that x-rays
+00:03:16.720 are released in an isotropic manner
+00:03:18.360 they're released in all 360° from the
+00:03:21.000 focal spot so x-rays coming from this
+00:03:23.840 point on the focal spot are going to
+00:03:25.799 cast a shadow on our detector based on
+00:03:28.519 the patient here the same is going to
+00:03:30.920 happen from x-rays coming from the other
+00:03:32.760 side of the focal spot and all the
+00:03:35.120 variations in between what we've got
+00:03:38.159 here is what's called a panra blurring
+00:03:40.920 on the edges of the Shadow that's cast
+00:03:42.959 on the detector here this is what's
+00:03:44.640 known as geometric blurring now because
+00:03:47.480 we get this geometric blurring based on
+00:03:49.439 the fact that x-rays aren't coming from
+00:03:51.000 a point source we go and take that data
+00:03:53.560 and and filtered back projection we
+00:03:55.560 propagate that data back over the slice
+00:03:57.560 remember we're averaging data back over
+00:03:59.319 the slice as we smear that data out
+00:04:01.680 we're not accounting for the penumbra or
+00:04:03.959 the geometric blurring that's caused in
+00:04:05.959 the image and you'll see in itative
+00:04:08.120 reconstruction we are going to account
+00:04:10.280 for this geometry here the second
+00:04:12.720 assumption that we make when we create a
+00:04:14.200 filtered back projection image is that
+00:04:16.160 the line integral that's the linear
+00:04:18.358 tenation coefficients that are summed
+00:04:20.959 together in line with one detector all
+00:04:23.960 of those linear tenation coefficients we
+00:04:26.160 assume that x-rays are passing that
+00:04:28.000 through that in a pencil beam geometry
+00:04:30.360 parallel beams to one another we know
+00:04:32.600 what we've got here is fan beam geometry
+00:04:35.600 a single detector is receiving x-rays
+00:04:38.039 from a fan beam here notice how that
+00:04:40.720 beam gets wider and wider as it reaches
+00:04:43.000 the detector so we're not sampling equal
+00:04:46.000 voxal widths here as we head through the
+00:04:48.479 patient that width is getting larger and
+00:04:50.400 larger again in filtered back projection
+00:04:53.120 we assume that each voxal is an
+00:04:54.840 infinitely small point along this line
+00:04:57.000 integral here and we add up those linear
+00:04:59.240 tenation coefficient values when we go
+00:05:01.440 about generating our image we don't
+00:05:03.639 account for the changing geometry the
+00:05:05.960 third assumption that we make is that
+00:05:07.360 the differences in signal that we
+00:05:08.759 measure on our detectors in filtered
+00:05:10.800 back projection we say is only due to
+00:05:12.680 differences in tissue density we know
+00:05:15.160 that's not true we know that there is
+00:05:17.039 noise generated in the image for one
+00:05:19.000 that's going to account for random
+00:05:20.880 variations in Signal intensity whether
+00:05:23.280 it be detector noise or Quantum noise
+00:05:25.280 coming from the photon interactions with
+00:05:26.880 the patient here if we were to look at
+00:05:29.400 noise that we looked at before in
+00:05:30.720 filtered back projection there's one way
+00:05:33.080 of reducing that noise to do that in
+00:05:35.080 filtered back projection we can actually
+00:05:36.600 increase the dose we can increase the
+00:05:38.639 number of photons that are heading
+00:05:40.560 towards the patient and we do that by
+00:05:43.039 increasing the filament current in the
+00:05:45.520 cathode increasing the filament current
+00:05:47.720 in the cathode is going to cause more
+00:05:49.080 thermionic emission more electrons
+00:05:51.199 available at the surface of the filament
+00:05:52.800 that we can accelerate towards the anoid
+00:05:54.919 and ultimately produce a larger quantity
+00:05:57.199 of x-rays we're going to increase the
+00:05:58.960 quantity of the the X-ray beam the
+00:06:00.840 average energy of that beam is the same
+00:06:02.800 but we've got many more x-ray photons
+00:06:04.840 heading towards our patient that's going
+00:06:06.319 to increase the dose with that increase
+00:06:08.960 in x-ray photons we're going to get an
+00:06:10.680 increase in signal and an improvement in
+00:06:12.560 our signal to noise ratio watch how that
+00:06:15.160 happens here I'm going to increase dose
+00:06:17.440 linearly here see how the noise is
+00:06:19.919 reduced out of our sinogram here and see
+00:06:22.199 how that changes the signal to noise
+00:06:24.319 ratio in the image that we ultimately
+00:06:25.960 produce here now obviously we're
+00:06:28.160 creating a better image we reducing the
+00:06:30.319 amount of noise relative to signal but
+00:06:33.120 that comes at the expense of dose and we
+00:06:34.759 know with the allara principle if we can
+00:06:37.000 avoid increas in patient dose especially
+00:06:39.160 in say pediatric populations or if we're
+00:06:41.440 Imaging smaller body parts if we can
+00:06:44.720 prevent this increase in dose then we
+00:06:46.360 need to do that and that's what
+00:06:47.479 iterative reconstruction allows us to do
+00:06:50.240 now you may be wondering you see the
+00:06:51.520 noise in our original data here can't we
+00:06:53.479 just have some algorithm to remove the
+00:06:55.960 noise from the projection Data before we
+00:06:58.639 perform the filter back projection and
+00:07:00.240 that's a good idea the issue comes in
+00:07:03.240 when we use low doses like we're using
+00:07:05.360 here noise distribution doesn't follow
+00:07:08.039 normal distribution curves like a Galan
+00:07:10.240 curve it follows what's known as Pon
+00:07:12.520 noise
+00:07:13.440 distribution where we get skewing of
+00:07:15.879 noise or the intensity of noise at lower
+00:07:18.560 doses we get a really poor signal to
+00:07:20.919 noise ratio at lower doses here as we
+00:07:23.720 increase x-ray Photon doses we get a
+00:07:26.240 more normal distribution of noise that
+00:07:28.160 we could then remove from this
+00:07:29.759 projection data much more easily and
+00:07:32.039 it's this that's the Crux of iterative
+00:07:34.639 reconstruction where we go about
+00:07:36.479 figuring out attenuation data whilst
+00:07:38.840 accounting for this noise distribution
+00:07:41.000 Pon noise distribution now the way I
+00:07:43.360 like to think of Pon noise versus Galan
+00:07:45.639 noise if you're in a house like mine
+00:07:47.599 that has a tin roof actually over my
+00:07:49.440 bedroom I've got a tree that's over the
+00:07:51.759 tin roof and when it rains very lightly
+00:07:54.240 rain hits the tree and some of the rain
+00:07:55.840 falls through the tree and if I'm
+00:07:57.919 listening to The Raindrops hitting the
+00:07:59.199 roof at very low doses that very light
+00:08:01.400 rain that noise is quite random it's not
+00:08:04.159 uniform we haven't got that low har that
+00:08:05.960 if we were having loads of rain coming
+00:08:07.759 down it's very random noise and if I had
+00:08:09.520 to place a bucket out there and I was
+00:08:11.560 catching the rain it'd be very hard for
+00:08:13.800 me to predict how much rain I would
+00:08:15.400 catch depending on where I place that
+00:08:17.000 bucket when it's pouring with rain that
+00:08:19.720 noise that uh on top of the roof is very
+00:08:22.639 much more symmetrical it's very much
+00:08:23.919 more predictable we've got this
+00:08:25.000 continuous noise going on the roof and
+00:08:26.840 if I was to place a bucket no matter
+00:08:28.240 where I place it on the roof going to
+00:08:29.840 catch about the same amount of Rin it's
+00:08:31.639 a good way of thinking about it's not a
+00:08:32.919 perfectly accurate analogy but it shows
+00:08:35.000 you that at these lower doses noise
+00:08:37.080 distribution is much more difficult to
+00:08:38.839 calculate and we actually don't have a
+00:08:40.240 closed form solution like we have in
+00:08:42.279 filtered back projection or like we have
+00:08:44.200 with Gan distribution of noise at higher
+00:08:46.279 Doses and we need to use an iterative
+00:08:48.600 method where we get closer and closer to
+00:08:50.720 the right answer and that's what I'm
+00:08:51.800 going to take you through today now
+00:08:53.560 there are two more false assumptions
+00:08:54.920 that we make in filtered back projection
+00:08:56.640 all of which are going to be addressed
+00:08:57.959 by iterative reconstruction
+00:09:00.120 the fourth is that it assumes the beam
+00:09:01.800 is monoenergetic we know that the X-ray
+00:09:04.720 beam that's heading towards the patient
+00:09:06.200 is polyenergetic it has many different
+00:09:08.760 Photon energies there's a range or a
+00:09:10.720 spectrum of energies and if we place
+00:09:13.200 anything between our anode here and the
+00:09:16.360 detectors here we're going to get
+00:09:18.720 preferential attenuation of the lower
+00:09:21.399 energy X-rays I shouldn't say
+00:09:22.920 preferential no one's choosing to
+00:09:25.279 attenuate these lower energy x-rays it's
+00:09:26.920 just more likely that these x-rays will
+00:09:29.040 be ATT uated due to the photoelectric
+00:09:31.079 effect so as x-rays photons are passing
+00:09:33.720 through a greater and greater thickness
+00:09:35.560 of patient we're getting more and more
+00:09:38.000 lower energy x-ray photons being
+00:09:39.760 attenuated relative to higher energy
+00:09:42.079 x-ray photons so as the beam passes
+00:09:44.839 through the patient the average Photon
+00:09:46.920 energy of the beam gets higher and
+00:09:48.720 higher the beam becomes hardened it's
+00:09:51.160 called beam hardening here and that's
+00:09:52.959 responsible for one of the artifacts
+00:09:54.279 that we're going to look at in a later
+00:09:55.839 talk in iterative reconstruction we can
+00:09:58.640 make some compens ens ation for the beam
+00:10:00.800 hardening that occurs as the x-rays pass
+00:10:03.240 through a patient and the final
+00:10:05.360 incorrect or false assumption that we
+00:10:06.880 make during filtered back projection
+00:10:08.360 Imaging is we assume that there's an
+00:10:10.120 equal exposure throughout the image if I
+00:10:12.519 was to plot the area or the region of
+00:10:15.440 the patient that was being imaged by
+00:10:17.320 this x-ray beam here so you've got a y
+00:10:19.640 AIS here and an x- axis here this is
+00:10:21.399 spatial locations and then I to rotate
+00:10:23.800 the CT machine around that patient we're
+00:10:26.079 going to get differential or differing
+00:10:28.440 exposure based on the location within
+00:10:30.800 the CT machine these Central regions are
+00:10:32.959 going to have a higher relative exposure
+00:10:35.600 than the peripheral regions here and in
+00:10:38.360 iterative reconstruction we can account
+00:10:40.680 for this differing exposure here this
+00:10:42.839 exposure variation this is what's known
+00:10:44.560 as a sensitivity image
+00:10:46.720 here so now that we've gone through the
+00:10:48.920 problems that are occurred in filtered
+00:10:50.639 back projection now let's look at the
+00:10:52.399 process of iterative reconstruction and
+00:10:54.320 how that goes about addressing those
+00:10:55.880 problems how do we ultimately get a
+00:10:57.320 better image in iterative reconstruction
+00:10:59.360 C well the first thing we need to do is
+00:11:01.800 input some data into our system the
+00:11:04.600 first piece of data that we're going to
+00:11:06.000 acquire is what's known as our measured
+00:11:08.079 data now remember the CT machine doesn't
+00:11:10.040 know what the patient Anatomy is within
+00:11:11.839 it it only detects x-ray photons that
+00:11:15.000 are being transmitted through the
+00:11:16.279 patient so we rotate around the patient
+00:11:18.600 we gather data we digitize that data and
+00:11:21.200 place it in a cogram remember each line
+00:11:23.480 in the cogram here is a different
+00:11:25.200 projection representing a different
+00:11:27.160 angle around the patient here digitized
+00:11:29.519 here digitized detection data and we
+00:11:31.440 call that measured data that's M
+00:11:33.600 measured data for I meaning every
+00:11:36.360 detector I is the I detector each one of
+00:11:38.600 those detectors is going to measure
+00:11:40.480 differing Photon intensities based on
+00:11:42.680 the path that the x-rays have traveled
+00:11:45.079 and these x-rays intensities are
+00:11:46.760 independent of one another they don't
+00:11:48.800 relate to one another it's only related
+00:11:51.160 to the line integral to the attenuation
+00:11:53.839 that's occurred along that specific line
+00:11:55.720 here so this data never changes in
+00:11:58.680 iterative reconstruction we keep our Mi
+00:12:01.639 or our measured data the same we've
+00:12:03.360 measured that once with the CT machine
+00:12:06.040 this data is going to contain true
+00:12:07.560 attenuation data but it's also going to
+00:12:09.399 contain noise and at low doses that
+00:12:11.920 noise is distributed in Plus on
+00:12:13.560 distribution now the second input that
+00:12:15.560 we require in this iterative
+00:12:17.360 reconstruction system is what's known as
+00:12:19.560 an estimated image we can place any
+00:12:21.760 image in this initial estimate here here
+00:12:24.320 I've created a random image that I know
+00:12:26.120 is going to vaguely correspond to the
+00:12:28.399 image that we're trying to to
+00:12:29.279 reconstruct but this could just be a
+00:12:30.880 blank image it could be an empty array
+00:12:32.800 an empty data set that matches the
+00:12:34.880 dimensions of the image that we're
+00:12:36.000 trying to create if we look at this more
+00:12:38.800 closely what we could do is theorize if
+00:12:41.839 we were to place this image within our
+00:12:43.680 CT machine what projection data would we
+00:12:46.880 get this is called forward projecting
+00:12:49.480 and now this comes an important part
+00:12:51.240 with iterative reconstruction is we can
+00:12:53.680 model the data based on the specific CT
+00:12:56.320 machine that we're using we know the
+00:12:58.040 width of the focal spot we know the
+00:13:00.279 geometry of the fan beam we know the
+00:13:03.079 differing x-ray attenuation as it passes
+00:13:05.800 through different lengths of our
+00:13:07.560 estimated image here this is calculated
+00:13:09.959 mathematically what we're doing is
+00:13:11.839 modeling what the forward projection
+00:13:13.880 would be we're also not getting noise
+00:13:16.480 here we don't have actual detectors we
+00:13:18.480 don't have actual x-ray photons passing
+00:13:20.240 through our image here what we've done
+00:13:21.680 is mathematically modeled it so the
+00:13:23.880 X-ray machine or the C machine is not
+00:13:26.199 actually rotating around our image but
+00:13:27.720 it's a good way to think about how we we
+00:13:29.279 creating that data what we're actually
+00:13:31.760 doing is applying what's known as a
+00:13:33.440 system Matrix and we're going to mention
+00:13:35.040 that by the letter A here the system
+00:13:37.760 Matrix accounts for all of those
+00:13:39.399 geometry inconsistencies that we saw in
+00:13:41.680 filtered back projection and it's
+00:13:44.040 specific to a specific manufacturers
+00:13:46.040 what they want to include in this Matrix
+00:13:48.040 as well as a specific CT machine that
+00:13:49.720 we're using as the CT machine changes
+00:13:51.480 its parameters we need to change this
+00:13:53.399 Matrix we can think of that Matrix going
+00:13:55.880 around and creating or generating a
+00:13:58.040 sinogram here a cogram that's free from
+00:14:00.839 noise we don't have any noise in this
+00:14:02.519 image and it accounts for some of those
+00:14:04.720 geometric problems that we were looking
+00:14:06.199 at in filtered back projection now we're
+00:14:08.560 not actually rotating a matrix around
+00:14:10.720 this what we're actually doing is taking
+00:14:12.720 an array our Matrix our system Matrix in
+00:14:15.079 Array and we are multiplying it to this
+00:14:17.920 vector image that we've created here and
+00:14:20.399 we're getting what's known as our
+00:14:22.279 predicted data set here's our predicted
+00:14:24.560 data set and we write that as a of x to
+00:14:27.720 the I detector this predicted data set
+00:14:30.199 over all of the detectors here and
+00:14:32.720 that's basically a sum of our Matrix
+00:14:36.399 applied to our Vector it's our Matrix
+00:14:38.360 Vector multiplication here over all the
+00:14:40.720 detectors over all the voxal that
+00:14:43.480 contribute to signal in one detector
+00:14:46.079 through our estimate image here and
+00:14:48.519 we're going to add up all of those
+00:14:50.480 predicted values through all the voxal
+00:14:52.079 in the image maybe a little bit out of
+00:14:53.920 the scope of the talk but you'll see
+00:14:55.199 this come up later so we've created a
+00:14:57.720 second cogram that is a predicted uh
+00:15:00.639 cogram based on the estimated image that
+00:15:02.839 we've
+00:15:03.800 created now what we need to do is take
+00:15:06.160 this input data and somehow apply that
+00:15:08.639 data into what's known as an iterative
+00:15:10.240 Loop and we want to improve on that
+00:15:12.639 initial image estimate and try and
+00:15:14.720 closely match it to what type of patient
+00:15:17.800 Anatomy would ultimately produce this
+00:15:20.079 projection data here that we've measured
+00:15:21.600 in our CT machine and to do that what
+00:15:24.120 we're going to do is get a ratio between
+00:15:25.839 our measured data and the predicted data
+00:15:28.480 that we our system Matrix to we want to
+00:15:30.880 see where do these two images differ
+00:15:32.920 from one another the ratio here is going
+00:15:35.120 to provide us that difference the closer
+00:15:37.240 these values are together the closer
+00:15:39.279 this number is going to become to one
+00:15:40.920 and the further they're apart the
+00:15:42.720 further away from one it's going to get
+00:15:44.800 we creating a ratio of differences here
+00:15:47.639 now to do that we actually apply these
+00:15:49.519 data sets over one another we take these
+00:15:51.480 data sets they match in size and we
+00:15:53.519 divide the measured data by our
+00:15:55.800 predicted data here and we've got a new
+00:15:58.079 sinogram this sinogram represents the
+00:16:01.360 ratio of differences between these two
+00:16:03.560 data sets now we can take that and enter
+00:16:06.800 this data into our iterative Loop what
+00:16:09.560 we want to do is take this new data and
+00:16:11.240 essentially create a spatial image again
+00:16:13.240 in X and Y coordinates as to where the
+00:16:15.519 differences are between these two images
+00:16:17.639 we could back project effectively and
+00:16:19.880 create a back projected image of these
+00:16:21.759 differences here now instead of back
+00:16:23.880 projecting what we can do is what's
+00:16:25.600 known as a transpose of this image we're
+00:16:27.880 essentially mathem atically back
+00:16:29.839 projecting this cogram but accounting
+00:16:32.560 for those system geometries we are
+00:16:34.600 transposing through that initial Matrix
+00:16:36.720 that we have applied to our initial
+00:16:38.880 estimated image what that's going to
+00:16:41.560 give us is a spatial domain here image
+00:16:44.959 that represents a essentially back
+00:16:47.560 projected image of the ratio between our
+00:16:49.600 measured and our predicted uh
+00:16:52.199 sinograms now I said to you before that
+00:16:54.800 depending on spatial location we're
+00:16:57.160 going to get differing exposures because
+00:16:59.120 of the rotation of the C Machine around
+00:17:01.199 the patient and we can create what's
+00:17:02.920 known as a sensitivity image and we want
+00:17:05.480 to take out those differ exposures from
+00:17:08.640 this image that we've created we only
+00:17:10.280 want to see true differences not
+00:17:12.199 differences based on exposure this is
+00:17:14.000 what's known as the sensitivity image
+00:17:16.160 Now to create the sensitivity image we
+00:17:17.799 can basically fill an array let's say
+00:17:19.799 the number one in all of the array and
+00:17:22.280 then create a transpose or back
+00:17:24.959 projection of that array and that will
+00:17:27.359 represent differences purely based on
+00:17:29.960 the uh system Matrix that we've chosen
+00:17:32.760 here and the varying exposure based on
+00:17:36.000 location what we've created here by
+00:17:38.520 taking this image and subtracting this
+00:17:40.440 image from it is what's known as a
+00:17:42.520 gradient image this gradient image is
+00:17:45.600 essentially showing us where are the
+00:17:47.679 largest differences between our measured
+00:17:49.880 data set and our predicted data set
+00:17:52.640 based on spatial locations if you look
+00:17:54.520 closely here you can see that underlying
+00:17:56.760 image here this is what's known as a
+00:17:58.679 great gradient image and the formula for
+00:18:00.159 this gradient image is this formula here
+00:18:03.000 our ratio between measured and predicted
+00:18:05.120 data transposed or back projected minus
+00:18:08.039 our sensitivity image we can then take
+00:18:10.760 this gradient image and add it to our
+00:18:13.480 initial image estimate once we add it to
+00:18:16.679 our initial image estimate that's going
+00:18:18.919 to update the input that we are
+00:18:21.480 supplying the iterative loop and I call
+00:18:23.760 it x +1 XK was our first input now XK +
+00:18:27.720 1 is the second iterative input that
+00:18:29.840 we're going to place into the input part
+00:18:31.840 of this iterative reconstruction Loop
+00:18:34.039 remember where that's come from this
+00:18:35.400 gradient image that we've generated by
+00:18:37.360 creating a ratio between the sinograms
+00:18:39.600 transposing that ratio taking away the
+00:18:42.360 sensitivity image ultimately creating
+00:18:44.600 our gradient image and we're adding that
+00:18:46.080 to our initial image
+00:18:47.960 estimate what that does then is allows
+00:18:50.600 us to update our input here we can again
+00:18:53.520 pass this new updated iteration through
+00:18:56.840 the system Matrix ax now what it's a k+1
+00:19:00.320 our new iteration over all the detectors
+00:19:02.640 and we can repeat this process here
+00:19:05.120 updating the iterative loop and each
+00:19:07.000 time we're seeing what are the
+00:19:07.880 differences between the two data sets
+00:19:10.280 we're going to account for the
+00:19:11.360 sensitivity IM image and then update the
+00:19:14.080 new image by those differences now I
+00:19:17.159 know for some of you using the visual
+00:19:18.960 explanations here you can kind of see
+00:19:21.080 that this new image is getting closer to
+00:19:23.520 what we predict our initial image to be
+00:19:25.720 but it's very difficult one to see how
+00:19:27.720 we accounting for noise in here I
+00:19:29.559 haven't seen any step that's taking out
+00:19:31.280 the noise in the image surely if we just
+00:19:33.200 start fitting the data closer and closer
+00:19:35.520 to one another we're going to include
+00:19:37.120 the noise data here and secondly how do
+00:19:39.840 we know that this mathematics is sound
+00:19:42.760 what is the basis for say taking away
+00:19:44.799 the sensitivity image here what's the
+00:19:46.679 basis for adding the gradient image onto
+00:19:48.480 our initial estimate and very rarely do
+00:19:50.840 I actually go through the mathematics
+00:19:52.440 but in this case I think it's helpful to
+00:19:54.440 look at how we start thinking about
+00:19:56.840 modeling the data how we account for
+00:19:59.240 and how we ultimately get to this
+00:20:01.000 formula here where we're adding a
+00:20:02.640 gradient image onto our initial estimate
+00:20:05.559 and hopefully this will make sense don't
+00:20:07.360 worry if the math gets a little bit
+00:20:09.280 confusing especially if you haven't done
+00:20:11.159 some higher grade math but it's the gist
+00:20:13.559 that I want to get here we're going to
+00:20:15.120 see the end point of this equation it's
+00:20:17.080 going to lead to the same mattive Loop
+00:20:19.159 that we looked at first what we've got
+00:20:21.600 here is what's known as a likelihood
+00:20:24.520 formula it's the pon likelihood formula
+00:20:27.960 and it describes the likelihood of our
+00:20:30.120 estimate our input image here the
+00:20:33.120 likelihood that that actually matches
+00:20:35.400 the projection data that we're sampling
+00:20:37.679 here what this equation mentions this
+00:20:40.480 part of the equation here models how
+00:20:42.720 pron noise distribution occurs in an
+00:20:45.559 image when we are comparing the two data
+00:20:48.039 sets this is just a standard formula for
+00:20:50.360 the pron noise distribution in an image
+00:20:53.880 and this takes the product of those
+00:20:55.960 likelihoods and gives us a likelihood
+00:20:58.320 figure a likelihood ratio as to whether
+00:21:00.799 our data actually matches the data that
+00:21:03.200 we've measured in the CT machine the
+00:21:05.159 whole goal of iterative reconstruction
+00:21:07.440 is to find an image prediction that has
+00:21:10.159 the LI highest likelihood or the highest
+00:21:12.760 probability of matching our projected
+00:21:16.240 data that we've measured with the CT
+00:21:17.559 machine I hope that makes sense this
+00:21:20.120 just adds up the product of those
+00:21:22.240 likelihoods over all of our detector
+00:21:25.720 elements now this is computationally
+00:21:28.039 quite difficult we've got products here
+00:21:29.760 we've got exponents and what we normally
+00:21:31.400 do is we take this PR un likelihood
+00:21:33.279 distribution and we take a log of both
+00:21:35.600 sides we convert this formula into
+00:21:37.799 what's known as the log likelihood
+00:21:39.440 formula now you may be wondering what
+00:21:41.520 this term is here the projection data
+00:21:43.720 factorial this is just a normalization
+00:21:45.919 factor that ensures that these
+00:21:47.200 probabilities add up to one when we take
+00:21:49.880 the log of both sides we get rid of the
+00:21:52.039 exponent here and we get our projection
+00:21:55.440 data log our predicted data minus our
+00:21:59.360 predicted data over all of the detectors
+00:22:01.520 and we get minus some constant here
+00:22:03.080 which is a function of this Mi factorial
+00:22:05.919 we get a log of the likelihood on this
+00:22:07.480 side that's why this is called the log
+00:22:08.840 likelihood ratio and it's no longer a
+00:22:11.240 product of all those likelihoods but
+00:22:12.640 it's a sum of all those likelihoods over
+00:22:15.039 all the detectors now because this is a
+00:22:17.640 constant and it's not reliant on X
+00:22:19.600 itself we can exclude that from the
+00:22:22.039 equation and this is the log likelihood
+00:22:24.200 equation that you might see again don't
+00:22:26.159 get caught up the reason we got log of
+00:22:28.720 our projected data here this is a
+00:22:30.240 function of pron noise distribution this
+00:22:32.559 is how we're accounting for noise within
+00:22:34.440 our image again our goal here is to
+00:22:37.480 maximize the likelihood of these two
+00:22:39.600 data sets
+00:22:40.760 matching so what we can do is we can
+00:22:42.799 actually plot this function on a graph
+00:22:45.919 here we can say our predicted data
+00:22:48.159 that's the data that we've estimated or
+00:22:50.279 put into the system what's the
+00:22:52.480 likelihood that that matches our
+00:22:55.080 projection data that we've measured in
+00:22:56.360 the CT machine and we can plot it here
+00:22:59.279 now if we look at this graph it's very
+00:23:00.760 easy to see where that maximum is and
+00:23:02.840 this is the formula for finding that
+00:23:04.960 maximum we want to say what's the x
+00:23:06.679 value that will provide the maximum sum
+00:23:09.320 of the log likelihoods here the maximum
+00:23:11.640 of this equation and we know that that
+00:23:14.120 point is going to be this point on our
+00:23:16.360 graph where the gradient of that graph
+00:23:18.480 equals zero and that's actually the clue
+00:23:20.480 here how we go about finding where the
+00:23:23.480 maximum is is by using the gradient of
+00:23:26.679 this log likelihood graph remember said
+00:23:28.720 this is not a closed form solution we
+00:23:30.360 don't have a finite answer these are
+00:23:32.720 likelihoods of probabilities we need to
+00:23:35.120 iterate as we get closer and closer to
+00:23:37.080 this maximum log likelihood uh estimate
+00:23:40.240 here an mle you may have heard it before
+00:23:43.360 so what we can do is find the gradient
+00:23:46.159 of this log likelihood graph here and we
+00:23:48.279 know that if we want to find the
+00:23:49.279 gradient of the graph we take a partial
+00:23:51.520 derivative of the function itself I know
+00:23:54.159 this is getting complex but what we're
+00:23:55.799 doing is we're finding the gradient of
+00:23:57.360 this graph here for those of you who
+00:23:58.799 actually want to work out this partial
+00:24:00.360 derivative here's the formula for a of X
+00:24:03.480 our system Matrix multiplied by our X
+00:24:06.120 Vector here where we've got the system
+00:24:09.880 Matrix for every detector through all
+00:24:11.640 the voxal on that line integral
+00:24:13.440 multiplied by the X Vector over all of
+00:24:16.320 the voxal in the image this is the
+00:24:19.279 partial derivative here where we get our
+00:24:22.440 system
+00:24:23.400 Matrix multiplied by the ratio between
+00:24:26.279 our measured data and predicted data you
+00:24:28.200 might be thinking wait I can see that
+00:24:30.120 here that's what we did initially minus
+00:24:33.000 our projection matrix multipli by one
+00:24:35.159 you'll see that why that becomes
+00:24:36.159 important again we can plot this on our
+00:24:38.600 graph here where the gradient is
+00:24:41.520 positive this plot is going to be
+00:24:43.760 positive where the gradient is negative
+00:24:46.279 this plot is going to be
+00:24:47.960 negative what we've essentially done
+00:24:50.200 here is created our gradient image we
+00:24:52.760 can write this in different terms we can
+00:24:54.960 say the transpose of the ratio between
+00:24:58.360 between our measured data and predicted
+00:25:00.799 data transpose here minus a sensitivity
+00:25:04.039 image minus the transpose of one we've
+00:25:07.120 got an invisible one here this graph
+00:25:10.320 here is representing the exact same
+00:25:12.320 thing as a gradient image that we
+00:25:13.720 created earlier so if we were to enter
+00:25:16.640 some image in and say it fell here on
+00:25:18.679 the predicted data remember this is for
+00:25:20.159 all the different voxal within the image
+00:25:22.799 we can say that that x value at this
+00:25:25.080 point here in the predicted data has a
+00:25:27.080 positive gradient what we want to do is
+00:25:29.720 then add that gradient onto our initial
+00:25:33.679 estimate and that's going to move us
+00:25:35.600 along this graph here it's going to move
+00:25:37.039 us closer to this maximum uh likelihood
+00:25:40.600 estimate here if the gradient was of the
+00:25:43.720 predicted data was here we'd see the
+00:25:45.440 gradient is negative if we to add a
+00:25:48.760 negative onto our initial estimate add a
+00:25:50.960 negative it's going to bring us closer
+00:25:52.440 to this mle you can see how adding this
+00:25:56.080 gradient adding this gradient image to
+00:25:58.960 our initial estimate is going to bring
+00:26:00.760 that predicted estimate that predicted
+00:26:02.520 data closer to the maximum likelihood
+00:26:05.640 estimate on our log likelihood graph
+00:26:08.120 here for some of you I may have lost you
+00:26:10.440 there I get that this is complex it
+00:26:12.159 might be a video that you want to go
+00:26:13.679 over and revisit some of the steps in
+00:26:16.360 iterative reconstruction we account for
+00:26:18.760 Noise by using the pon noise
+00:26:21.080 distribution the likelihood ratio
+00:26:23.320 between our predicted and our measured
+00:26:25.279 data that we saw in that initial
+00:26:26.799 equation here we take the log of both
+00:26:28.960 sides to make it computationally more
+00:26:30.799 effective and then we can find the
+00:26:32.760 gradient of this log graph the gradient
+00:26:35.399 image here the same as what we were
+00:26:36.919 doing in this process and add that to
+00:26:39.200 initial estimate that's going to bring
+00:26:41.159 us closer and closer to the True Image
+00:26:43.679 that would give us this projection data
+00:26:46.200 once the noise has been accounted for
+00:26:48.559 we're not going to overfit the data
+00:26:50.520 these formulas prevent us from
+00:26:51.960 overfitting the data and introducing
+00:26:54.120 noise into our estimated image because
+00:26:57.120 we're applying a system Matrix that
+00:26:58.919 accounts for that geometry we're also
+00:27:00.880 not going to get that geometric blur
+00:27:02.520 we're also not going to get partial
+00:27:04.360 volume averaging because of the fan beam
+00:27:06.559 that heads out towards that detector all
+00:27:08.440 of that is accounted for in the system
+00:27:11.000 Matrix here each update on the iterative
+00:27:14.360 loop updates that initial estimate and
+00:27:16.159 gets us closer and closer to the true
+00:27:17.799 Anatomy that's causing attenuation in
+00:27:19.760 our measured data now either we go
+00:27:22.440 through that cycle a set number of times
+00:27:24.640 say we go through 100 iterations and
+00:27:26.679 then split out an output image or once
+00:27:29.320 the difference the likelihood difference
+00:27:31.279 here is small enough between our
+00:27:33.320 measured data and our estimated data we
+00:27:36.600 can reach a threshold where we're going
+00:27:38.159 to Output the final image that we're
+00:27:39.919 actually going to see on our computer so
+00:27:42.039 I hope that made sense to you we're
+00:27:43.399 tying off now image reconstruction in
+00:27:45.799 CTE remember they're all mathematical
+00:27:47.799 processes next we're going to move on to
+00:27:49.919 image dose the most commonly asked
+00:27:52.240 question when it comes to exams the
+00:27:54.279 examiners love to ask about do because
+00:27:56.200 it's very much clinically important
+00:27:58.240 don't want to expose patients to undue
+00:28:00.519 radiation now if you're studying for a
+00:28:02.440 specific exam and you want to prep for
+00:28:04.039 those questions I've linked a question
+00:28:05.640 Bank in the description box below go and
+00:28:07.519 check out that question Bank we also
+00:28:08.919 cover x-ray MRI ultrasound physics
+00:28:11.960 otherwise I'll see you all in that next
+00:28:13.440 talk where we're going to look at dose
+00:28:14.720 in CT Imaging until then goodbye
+00:28:16.720 everybody

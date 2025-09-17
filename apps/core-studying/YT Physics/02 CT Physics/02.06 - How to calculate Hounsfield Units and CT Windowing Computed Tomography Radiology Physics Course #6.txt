@@ -1,0 +1,743 @@
+# tactiq.io free youtube transcript
+# No title found
+# https://www.youtube.com/watch/E9AFfgcjPjo
+
+00:00:00.000 No text
+00:00:00.040 hello everybody and welcome back today I
+00:00:01.839 want to show you how we can generate
+00:00:03.399 these two seemingly very different
+00:00:04.880 images from the same data set that we've
+00:00:07.200 acquired during one single CT
+00:00:09.320 acquisition specifically I want to
+00:00:11.240 introduce the concept of postprocessing
+00:00:13.839 how we can take each and every pixel
+00:00:15.559 within this image and allocate a
+00:00:17.320 numerical value to that pixel that value
+00:00:19.680 is what's known as a CT number or a
+00:00:21.519 houndsfield unit and I'm going to show
+00:00:23.519 you how we go about calculating those
+00:00:25.560 houndsfield units we then can take the
+00:00:28.039 houndsfield units for each and every
+00:00:29.560 pixel in in this image and match those
+00:00:31.759 units to a grayscale value the matching
+00:00:34.719 process allows us to turn a numerical
+00:00:36.840 data set into an image that we can
+00:00:38.600 actually interpret and the grayscale
+00:00:41.120 value the way in which we match that
+00:00:42.840 grayscale to specific hfield units is
+00:00:45.440 what's known as windowing and I'm going
+00:00:46.920 to show you how manipulating that
+00:00:48.960 grayscale window can make these
+00:00:50.719 different images here now before we've
+00:00:53.199 gone about postprocessing and making
+00:00:55.120 these images a couple of steps have to
+00:00:57.000 have occurred before this process and I
+00:00:58.920 want to touch on those now
+00:01:00.440 those steps are what we're going to
+00:01:01.640 concentrate on after we've gone through
+00:01:03.519 this talk now we know that in this
+00:01:06.000 specific slice we're looking at a brain
+00:01:07.479 here a 3D model of the brain we're
+00:01:09.159 looking at a specific axial slice a
+00:01:11.280 volume of tissue within the patient this
+00:01:13.520 2D image that we're seeing on our screen
+00:01:15.640 represents a volume a 3D Volume through
+00:01:17.960 the brain and each pixel corresponds to
+00:01:20.439 a specific voxel a volume element in the
+00:01:23.079 patient now we know in order to acquire
+00:01:25.439 the data for this specific slice the CT
+00:01:27.720 machine has to rotate at least 360
+00:01:29.920 degrees around the patient and generate
+00:01:31.960 different projections and it's the data
+00:01:34.479 that we are reading through the
+00:01:35.600 detectors here that we're going to use
+00:01:37.640 to mathematically calculate the image
+00:01:40.640 here now when the CT machine is
+00:01:43.520 acquiring the data it's getting an
+00:01:45.119 analog signal that needs to be converted
+00:01:47.159 into a digital signal and then we need
+00:01:49.280 to pre-process some of that data we've
+00:01:51.159 talked about interpolation we might want
+00:01:53.280 to account for faulty detectors there's
+00:01:54.840 a lot of pre-processing that happens
+00:01:56.640 that then gives us raw data that raw
+00:01:59.119 data can be reconstructed and it's that
+00:02:01.439 reconstructed data that we're going to
+00:02:03.280 use to ultimately convert into
+00:02:05.240 houndsfield units and that process of
+00:02:07.240 reconstruction is going to be the topic
+00:02:08.840 of the next three talks now there two
+00:02:11.239 key data measures that the C machine
+00:02:12.959 needs to acquire we've talked about
+00:02:14.920 transmitted x-rays x-rays that have
+00:02:17.000 passed through the patient been
+00:02:18.640 attenuated as they pass through the
+00:02:20.040 patient and then hit our detectors we
+00:02:22.400 also need a reference intensity of the
+00:02:24.519 X-ray beam what is the intensity that we
+00:02:26.879 are projecting towards our patient and
+00:02:28.680 we can measure that on detected where
+00:02:30.319 that x-ray beam hasn't passed through a
+00:02:31.959 patient and it's the difference in the
+00:02:34.360 intensity that we're projecting towards
+00:02:35.959 the patient and the intensity that's
+00:02:37.720 actually being measured on our detectors
+00:02:39.560 that's going to help us determine the
+00:02:41.280 degree of attenuation as x-rays are
+00:02:43.480 passing through a specific line through
+00:02:45.319 the patient let's look at specific
+00:02:47.159 voxels here we've got a red voxel here
+00:02:49.040 that's on the insul cortex we can see it
+00:02:51.400 here in alati and we can see a separate
+00:02:54.000 purple vole here that's going to be in
+00:02:56.239 the white matter of the forceps minor
+00:02:58.720 here let's look at the this specific
+00:03:00.440 slice here and I'm going to look at this
+00:03:02.159 pixel here the purple pixel ultimately
+00:03:04.599 we need to figure out how much
+00:03:06.480 attenuation of the X-ray was due to the
+00:03:08.840 tissue within that specific voxel here
+00:03:11.360 and that process occurs during
+00:03:13.680 Reconstruction let's take a fictitious
+00:03:14.000 No text
+00:03:15.760 example here where we've only got this
+00:03:17.560 voxal of tissue with x-rays passing
+00:03:19.560 through it it hasn't passed through
+00:03:20.959 tissue beforehand and it hasn't passed
+00:03:22.720 through tissue afterwards the incident
+00:03:24.640 x-rays will hit this specific voxel and
+00:03:26.959 then head off towards our detector in
+00:03:29.280 this example say we've got 100 x-ray
+00:03:31.439 photons all of the same energy then
+00:03:33.480 hitting Al Vox of tissue a degree of
+00:03:36.400 attenuation is going to occur and that
+00:03:38.480 attenuation is either through the photo
+00:03:40.200 El electric effect or it's through
+00:03:42.040 scatter scattered x-rays aren't going to
+00:03:44.040 reach that detector in that line of the
+00:03:46.120 x-rays and that scatter can be Compton
+00:03:48.360 or R scatter a certain fraction of those
+00:03:51.760 x-rays will be attenuated and the rest
+00:03:53.560 will be transmitted in this example 10%
+00:03:56.280 of the photons have been
+00:03:58.439 attenuated the fraction of attenuation
+00:04:01.680 for a monochromatic beam over a known
+00:04:04.319 distance is what's known as the linear
+00:04:06.280 attenuation coefficient the linear
+00:04:08.599 attenuation coefficient is represented
+00:04:10.280 by this sign mu here I put a subscript P
+00:04:12.840 because we're talking about the purple
+00:04:14.120 pixel in our example so the linear
+00:04:16.440 attenuation coefficient tells us what
+00:04:18.320 fraction of these x-rays will be removed
+00:04:20.079 from a monoenergetic beam over a known
+00:04:22.680 distance so we know the pixel width here
+00:04:26.040 now the linear attenuation takes the
+00:04:27.639 combination of both the attenuation due
+00:04:29.520 to the the photoelectric effect the
+00:04:31.120 compon scatter and ra scatter we add up
+00:04:33.479 all that attenuation to get this linear
+00:04:35.560 attenuation coefficient value now the
+00:04:38.080 linear attenuation coefficient is
+00:04:39.800 dependent on a couple of things the
+00:04:41.320 first it's dependent on the energy of
+00:04:43.320 the X-ray beam that's heading towards
+00:04:44.840 our
+00:04:45.680 tissue higher energies will result in
+00:04:48.320 less attenuation it's more likely that
+00:04:50.560 x-rays will pass through that tissue
+00:04:52.240 because of those higher energies we've
+00:04:53.680 looked at the likelihood of the
+00:04:55.000 photoelectric effect it drops off
+00:04:56.880 rapidly as we increase incident x-ray
+00:04:59.240 energy
+00:05:00.520 so an increase in incident x-ray energy
+00:05:02.680 is going to result in a decrease in the
+00:05:04.280 linear attenuation coefficient in this
+00:05:06.360 tissue despite the tissue remaining the
+00:05:08.199 same it's also dependent on the density
+00:05:10.800 of the tissue here the more atoms that
+00:05:13.199 we have per cubic cimer the more
+00:05:15.199 likelihood there is going to be of
+00:05:17.039 having photoelectric or compon scatter
+00:05:19.360 interactions the same goes with the
+00:05:21.199 atomic number of the tissue the higher
+00:05:22.960 the atomic number of the tissue or the
+00:05:24.400 material the more likely there's going
+00:05:26.160 to be attenuation if we take iated
+00:05:28.440 contrast for instance that's got a much
+00:05:30.160 higher atomic number than the average
+00:05:32.080 atomic number of tissue and the last
+00:05:34.759 factor that is dependent on is electron
+00:05:37.360 density now when we're looking at
+00:05:39.319 tissues and CT Imaging this doesn't
+00:05:41.240 actually come into play as much as it
+00:05:43.039 would say in experimental studies the
+00:05:45.280 tissue density and the atomic number of
+00:05:46.919 the tissue play a large role in what
+00:05:49.000 linear attenuation coefficient is going
+00:05:50.720 to be ascribed to each pixel or each
+00:05:53.240 voxel within our image if we were to
+00:05:55.479 look at our red pixel for example here
+00:05:57.880 that attenuation could be different even
+00:05:59.639 even though we've got the same
+00:06:00.560 monochromatic x-ray beam heading towards
+00:06:02.800 that tissue that's based on the
+00:06:04.479 different tissue density and different
+00:06:06.240 atomic number of that tissue here we've
+00:06:08.280 got 20% of the X-ray photons being
+00:06:10.639 removed now we know that attenuation is
+00:06:13.560 not happening in a single Pixel it's
+00:06:16.240 happening in multiple pixels more
+00:06:18.080 specifically happening in multiple
+00:06:19.639 adjacent voxels as those x-rays are
+00:06:22.000 passing through the patient let's look
+00:06:24.039 at this example here and I want to show
+00:06:25.560 you why the term linear here can be
+00:06:28.000 quite confusing in this example after
+00:06:30.319 the x-rays have traveled a set distance
+00:06:32.160 here we've lost 20 x-rays or 20% of the
+00:06:35.639 X-ray photons here if we were to place
+00:06:38.120 the exact same voxal of tissue here
+00:06:40.039 adjacent to our previous voxal we will
+00:06:42.759 get a 20% reduction in the intensity of
+00:06:45.840 the X-ray photons here but the absolute
+00:06:48.520 number difference is now 16 not
+00:06:51.319 20 we can repeat this process by placing
+00:06:54.560 the same voxel adjacent to the next
+00:06:56.599 voxel and you'll see that each time that
+00:06:59.800 voxal of tissue is attenuating the X-ray
+00:07:02.120 Beam by 20% but our absolute number of
+00:07:05.120 X-ray photons that are being reduced is
+00:07:07.240 smaller and smaller as we move on here
+00:07:10.280 we're getting a reduction at 13 x-ray
+00:07:12.120 photons and 10 x-ray photons and we can
+00:07:14.560 see that represented on the graph here
+00:07:16.840 this graph is showing us how the
+00:07:18.639 absolute number of X-ray photons as
+00:07:20.800 they're passing through a set volume of
+00:07:22.560 tissue reduces in an exponential fashion
+00:07:25.520 or negative exponential fashion rather
+00:07:27.840 than a linear fashion the the linear
+00:07:30.199 part here means that the fraction
+00:07:31.879 removed is the same now we can represent
+00:07:34.639 this Photon loss using this formula here
+00:07:38.479 n not here with the subscript note is
+00:07:40.879 the X-ray intensity or the number of
+00:07:42.479 X-ray photons that are being released
+00:07:44.440 from the anode of the CT machine heading
+00:07:47.360 towards our patient and here is the
+00:07:50.199 intensity or number of X-ray photons
+00:07:51.919 that are actually measured by our
+00:07:54.080 detector this part of the equation here
+00:07:56.560 is showing us what fraction of these
+00:07:58.800 incident protons are being removed from
+00:08:00.680 the beam and that will allow us to see
+00:08:03.159 what the remainder that is being
+00:08:04.759 transmitted towards our
+00:08:06.400 detector the linear attenuation as that
+00:08:09.520 increases it's going to decrease the
+00:08:11.520 value of this fraction we're going to
+00:08:13.199 get a smaller percentage of xray photons
+00:08:16.000 being transmitted through the same with
+00:08:18.159 increasing the distance the further we
+00:08:20.199 travel through a tissue the more
+00:08:21.599 attenuation there's going to be
+00:08:22.960 ultimately the number of X-ray photons
+00:08:25.039 reaching our detector is going to be
+00:08:26.360 lower so in this example I can calculate
+00:08:28.919 a linear attenuation coefficient for
+00:08:31.120 these specific voxul of tissue this is
+00:08:33.080 assuming that these are 1 cm wide it's
+00:08:35.320 just easy for my calculations here now
+00:08:37.519 importantly we can take this exact same
+00:08:39.360 voxal of tissue it's got the same tissue
+00:08:41.279 density and it's got the same average
+00:08:43.479 atomic number but we can change the
+00:08:45.760 linear attenuation coefficient by
+00:08:47.760 reducing or increasing the incident
+00:08:49.720 x-ray Photon energy if we were to send a
+00:08:52.760 much lower intensity beam towards these
+00:08:55.160 voxel here we could get a linear
+00:08:57.440 attenuation coefficient that's much
+00:08:58.880 different for the the same tissue that
+00:09:01.040 difference here is purely based on the
+00:09:02.560 differences in photon energy with lower
+00:09:04.959 Photon energies we're much more likely
+00:09:06.680 to get the photo electric effect
+00:09:08.200 specifically but also more likely to get
+00:09:10.120 Compton and ra scatter and that results
+00:09:13.000 in more x-rays being removed from the
+00:09:14.640 beam in this example we're getting 50%
+00:09:16.760 of the x-rays being removed through each
+00:09:18.800 volume of tissue here now importantly
+00:09:21.560 when we're looking at clinical examples
+00:09:23.720 we haven't got the same voxal of tissue
+00:09:25.519 adjacent to one another we've got
+00:09:27.440 multiple voxul of tissues all with
+00:09:29.399 differing tissues differing tissue
+00:09:31.120 densities and different average atomic
+00:09:33.120 numbers so we're passing through a
+00:09:35.000 volume of tissue with adjacent voxels
+00:09:38.000 here and we know that this volume of
+00:09:40.560 tissue ideally will be within the field
+00:09:42.320 of view of our CT machine we talked
+00:09:44.079 about how we calculate that field of
+00:09:45.640 view we' got x-rays of a certain
+00:09:47.920 intensity reaching that volume of tissue
+00:09:50.640 and then exiting towards our
+00:09:52.640 detector now these linear attenuation
+00:09:55.200 coefficients of adjacent voxal are
+00:09:57.200 different from one another and we need
+00:09:59.519 to manipulate this formula because now
+00:10:01.440 we don't have a single linear tenation
+00:10:03.640 coefficient but we've got multiple
+00:10:05.480 linear tenation
+00:10:06.920 coefficients now this is a known value
+00:10:09.279 we know the incident x-ray intensity and
+00:10:12.320 we know the transmitted x-ray intensity
+00:10:14.120 that's being detected by our detectors
+00:10:16.360 we also know this distance here the
+00:10:18.720 field of view that we've calculated
+00:10:20.519 before this is the distance that we're
+00:10:22.279 trying to accurately calculate linear
+00:10:23.959 attenuation coefficient values for and
+00:10:26.360 this we can represent by the term X here
+00:10:28.279 x being the width of each individual
+00:10:30.160 voxal that we're trying to calculate and
+00:10:31.959 N being the number of voxal within that
+00:10:34.200 total width so we can now rewrite this
+00:10:36.639 equation like this we know these values
+00:10:39.320 here we know the pixel width and now we
+00:10:42.040 can add up all these linear attenuation
+00:10:44.000 coefficients we can rearrange this
+00:10:45.760 formula I don't want to get too much
+00:10:46.920 into it but here we've rearranged the
+00:10:48.480 formula and we've got our variables on
+00:10:51.000 one side of the formula and we've got
+00:10:52.800 our known values on the other side of
+00:10:54.320 the for formula this is going to be a
+00:10:56.160 numerical value that we can actually use
+00:10:57.760 to reconstruct these images
+00:10:59.880 the goal of reconstruction is again to
+00:11:02.560 make multiple simultaneous equations
+00:11:04.760 from all the different projections that
+00:11:06.320 we've generated around 360° around the
+00:11:08.920 patient and then solve for these
+00:11:11.240 variables using the simultaneous
+00:11:13.200 equations now for now I'm not going to
+00:11:15.279 talk about how we go about solving those
+00:11:16.920 variables but say that we can say that
+00:11:19.399 for each voxel within our image we can
+00:11:22.040 accurately calculate the linear
+00:11:23.680 attenuation coefficient in that voxel
+00:11:25.959 I'm going to show you some examples here
+00:11:27.959 now remember these linear generation
+00:11:29.720 coefficients are specific for the scan
+00:11:32.360 that we're doing specific for the energy
+00:11:34.600 of the beam that we're sending towards
+00:11:36.120 our patient if that energy of the beam
+00:11:37.959 the average energy of the beam were to
+00:11:39.279 change these linear attenuation values
+00:11:41.399 will change also it's important to note
+00:11:43.760 that these linear attenuation values not
+00:11:45.600 going to be the same for all fat within
+00:11:47.240 the body visceral fats or subcutaneous
+00:11:49.720 fats are going to have different
+00:11:50.800 densities and between patients we're
+00:11:52.920 going to get different densities we know
+00:11:54.320 that people have different bone
+00:11:55.560 densities depending on their age or
+00:11:57.000 depending on their sex so these are just
+00:11:59.240 just examples here you don't need to
+00:12:00.519 learn these here now what if we take
+00:12:02.920 these linear attenuation coefficient
+00:12:04.519 values we've made an array say a 512 by
+00:12:07.000 512 pixel array and we've placed the
+00:12:09.639 linear attenuation coefficient in each
+00:12:11.320 one of these pixels can't we then
+00:12:13.000 convert those to a gray scale and make
+00:12:14.560 an image well let's do that let's get a
+00:12:16.680 gray scale from black to white here and
+00:12:18.959 all the Grays in between we make our
+00:12:21.399 lowest linear attenuation coefficient
+00:12:23.199 air we make that black and we make our
+00:12:25.160 highest bone we make that white if we
+00:12:27.959 were to place all of these these tissues
+00:12:29.920 here on the scale that' all be very
+00:12:31.639 close to one another the difference
+00:12:33.440 between fat and between uh gray matter
+00:12:36.240 sorry this is white matter and gray
+00:12:37.720 matter is only
+00:12:39.639 0.022 here there's a problem when it
+00:12:42.920 comes to the scale if we were to try and
+00:12:44.279 generate this image it would end up
+00:12:45.639 looking like this very little useful
+00:12:48.480 clinical information here our bone is
+00:12:50.720 all blown out we haven't got much
+00:12:52.320 differentiation in our bone we can't see
+00:12:54.440 the outer table or the inner table of
+00:12:56.279 the skull bone here we can't even see
+00:12:57.920 the sutures we've got no useful
+00:12:59.639 information there and we can't tell
+00:13:01.480 really anything about the gray and white
+00:13:03.839 matter that's sitting within the
+00:13:04.880 cerebrum here there's another issue here
+00:13:07.880 is that the difference between the
+00:13:09.399 linear attenuation coefficient of air
+00:13:11.360 and compared to say water is about a
+00:13:13.440 thousandfold difference it's a
+00:13:14.880 thousandfold difference here the
+00:13:16.760 difference between water and bone is
+00:13:18.680 about a 2 and 1/2 fold difference so the
+00:13:21.160 scale is all off here but that's not our
+00:13:23.560 biggest issue here the biggest issue
+00:13:25.680 when it comes to using linear
+00:13:27.160 attenuation coefficient values and
+00:13:29.120 translating them directly into an image
+00:13:31.320 is that these values are going to change
+00:13:33.519 depending on the X-ray intensities that
+00:13:35.320 are incident on the patient I've said
+00:13:36.680 that a couple of times now now why is
+00:13:39.040 that important well the linear
+00:13:40.839 attenuation value change is different
+00:13:42.760 for different tissues in bone we get a
+00:13:45.160 lot more photoelectric effect than we do
+00:13:46.880 in say soft tissue so if we increase
+00:13:49.199 x-ray intensities we're going to get a
+00:13:50.639 rapid drop off in attenuation through
+00:13:52.360 bone and that's not proportional to the
+00:13:54.519 drop off in attenuation in soft tissue
+00:13:57.320 what we want to do is somehow stand
+00:13:59.120 standardize these values to a single
+00:14:01.199 value and that's exactly what we're
+00:14:02.320 going to do so we're going to change the
+00:14:04.199 scale and we're going to standardize
+00:14:05.560 these values how do we go about doing
+00:14:06.959 that well we want to convert linear
+00:14:09.040 tenation coefficient values into C
+00:14:11.000 No text
+00:14:11.839 numbers or houndsfield units now in
+00:14:14.279 order to convert these numbers we use
+00:14:16.519 this formula here and it's simple if you
+00:14:18.160 go through it the houndsfield unit for a
+00:14:20.600 specific voxal of tissue we take the
+00:14:23.279 calculated linear attenuation
+00:14:25.040 coefficient of that voxel and we
+00:14:27.360 subtract the linear attenu coefficient
+00:14:29.920 of water dividing that value by the
+00:14:32.519 linear tenation coefficient of water
+00:14:35.000 what this does is it standardizes the
+00:14:37.320 linear attenuation to water so
+00:14:40.079 everything is in reference to water now
+00:14:43.160 why is this important well we can do an
+00:14:46.000 experiment where we place water within
+00:14:47.839 the CT machine and we measure the
+00:14:49.720 attenuation values now we've got a
+00:14:51.079 reference value it's a way of
+00:14:52.120 calibrating our CT machine we can then
+00:14:55.079 take the calculated value here say of
+00:14:58.519 white matter and enter it into this
+00:15:00.519 formula getting a hfield unit value if
+00:15:02.880 we were to only use this part of the
+00:15:04.440 formula we would again be dealing with
+00:15:06.440 decimals to the third or fourth decimal
+00:15:08.600 place and that's why we multiply this by
+00:15:10.720 a constant we multiply it by a thousand
+00:15:12.680 so we're dealing with whole numbers here
+00:15:14.040 it's much more usable it's much more
+00:15:15.839 user friendly that's the value of this
+00:15:17.920 constant here we standardize that linear
+00:15:21.000 attenuation to water now what if there
+00:15:23.440 was water in that voxal itself well
+00:15:26.279 water's linear attenuation will be the
+00:15:28.240 same here the top our numerator of this
+00:15:30.639 equation would be zero our hounds field
+00:15:33.000 unit for water will always be zero now
+00:15:36.240 that's really handy because anything
+00:15:38.000 that has a positive Hound field unit
+00:15:40.199 value is going to be more attenuating
+00:15:42.440 than water and everything that has a
+00:15:44.440 negative houndsfield unit value is going
+00:15:46.319 to be less attenuating than water so
+00:15:48.519 we've got a standard Point water's
+00:15:50.279 houndsfield unit value is always going
+00:15:51.959 to be zero we can then plot those hfield
+00:15:55.120 unit values on a scale now remember if
+00:15:58.040 the X-ray intens changes water's
+00:16:00.319 houndsfield unit value is not going to
+00:16:02.399 change the houndsfield unit values for
+00:16:04.319 the other tissues are going to change
+00:16:06.279 ever so slightly less drastically than
+00:16:08.319 our linear attenuation coefficients
+00:16:10.199 because we've now referenced them or
+00:16:11.600 standardized them to water air is also a
+00:16:14.560 value that changes very minimally
+00:16:16.279 because Air's linear attenuation is so
+00:16:18.560 low this here this part of the equation
+00:16:21.560 is very close to minus one okay so now
+00:16:24.120 we've converted our linear attenuation
+00:16:26.160 coefficient values into CT numbers or
+00:16:28.519 Hound field units you can see these
+00:16:30.319 round numbers they're much easier to
+00:16:31.920 deal with than these multiple decimals
+00:16:33.839 here and we can see that the changing of
+00:16:36.240 houndsfield units just a couple of
+00:16:37.759 houndsfield units is going to represent
+00:16:39.639 a very small change in the actual
+00:16:41.800 density or linear attenuation
+00:16:43.279 coefficient here and that small change
+00:16:45.399 we can link to a grayscale value and see
+00:16:47.480 those differences so let's try and do
+00:16:49.440 that let's bracket the tissues that we
+00:16:51.360 actually want to see in our image let's
+00:16:52.600 go from air to Bone now importantly if
+00:16:55.839 you used the bone calculation here
+00:16:57.519 you're going to get a value that's
+00:16:58.440 higher than th000 I've just used a th000
+00:17:00.639 here because that's of a often a
+00:17:02.079 reference standard for bone and remember
+00:17:03.800 these are always going to change these
+00:17:05.400 linear tenation coefficient values we
+00:17:07.720 also want to set a midpoint what's the
+00:17:09.400 middle of that range that we've selected
+00:17:11.400 here and the middle of this range is
+00:17:12.439 going to be zero you'll see why that
+00:17:13.720 becomes important later and let's apply
+00:17:15.720 a grayscale value to these Hound field
+00:17:18.000 No text
+00:17:18.240 units now the process of applying this
+00:17:20.839 grayscale value to the Hound field units
+00:17:23.439 is what's known as windowing windowing
+00:17:26.319 is what's going to manipulate or
+00:17:27.640 postprocess our image
+00:17:29.799 there's two key points when it comes to
+00:17:31.280 windowing the first is what's known as
+00:17:32.679 window width what's the range of hfield
+00:17:35.799 units that we want to represent within
+00:17:37.520 our image within the grayscale part of
+00:17:39.280 our image the second is what's known as
+00:17:41.840 window level what's the midpoint of that
+00:17:44.280 window width that we've selected here
+00:17:46.360 the example zero now we can take those
+00:17:49.160 houndsfield units that we have in an
+00:17:50.679 array of our image and convert them to
+00:17:53.120 actual grayscale values that we display
+00:17:55.000 on the screen and generates our image
+00:17:57.120 here again this image is slightly better
+00:17:59.679 we can see some more contrast within the
+00:18:01.720 bone here but there's still very little
+00:18:03.799 contrast within the cerebrum here now
+00:18:06.280 what happens if we want to see the
+00:18:07.880 differences in the cerebrum what if we
+00:18:09.520 want to see where the CSF is in relation
+00:18:12.039 to the brain or what if we want to see
+00:18:13.559 differences between white matter and
+00:18:14.919 gray matter we're going to need to
+00:18:16.400 change this window now why do we need to
+00:18:18.480 change this window can't we zoom in here
+00:18:20.720 and maybe click on it and see what the
+00:18:22.360 differences are while the human eye can
+00:18:24.880 only really interpret 30 to 50 Shades of
+00:18:27.720 Gray different and here we're dealing in
+00:18:29.720 an 8bit system with 256 different Shades
+00:18:32.760 of Gray 256 Shades of Gray spread out
+00:18:36.240 over 2,000 houndsfield units only every
+00:18:39.240 seven or eight houndsfield units are we
+00:18:40.960 going to get a change in a shade of gray
+00:18:43.200 and we can see here that these
+00:18:44.200 houndsfield units are very close to each
+00:18:45.720 other the human eye is not going to be
+00:18:47.600 able to interpret these differences so
+00:18:50.320 to get around this what we do is we
+00:18:52.200 narrow our window we want the contrast
+00:18:55.720 to occur over a smaller range of
+00:18:58.000 houndsfield units this comes at a
+00:18:59.799 compromise though everything in this
+00:19:01.600 example above 80 hfield units is going
+00:19:04.039 to appear white in our image everything
+00:19:06.799 below zero hfield units is going to
+00:19:09.080 appear black fat and air are going to
+00:19:11.559 look exactly the same they're going to
+00:19:12.880 be black water is going to be black now
+00:19:15.799 what's happened to our window width and
+00:19:17.120 our window level our window width now is
+00:19:19.039 80 Hound field units and our window
+00:19:21.240 level is going to be 40 Hound field unit
+00:19:23.799 you can see how the level describes
+00:19:25.679 where we are along this scale and the
+00:19:27.640 width describes how wide wide we are
+00:19:29.280 covering how many hfield units we're
+00:19:31.520 covering this is what's known as a brain
+00:19:33.760 window and look what happens to our
+00:19:35.000 image when we apply that brain window
+00:19:37.400 there's a drastic difference now let's
+00:19:39.600 look at what's actually happened our
+00:19:42.000 bone has been blown out it's white we
+00:19:43.840 can't tell the difference between the
+00:19:45.039 outer table and the inner table and the
+00:19:47.240 spongy bone between them we've got much
+00:19:49.679 more contrast detail between our white
+00:19:52.039 matter and our gray matter because of
+00:19:54.840 this narrowed down window look at the
+00:19:57.440 difference in the grayscale values even
+00:19:59.480 between such small changes in
+00:20:01.039 houndsfield
+00:20:01.960 units the fat we can no longer see the
+00:20:04.480 subcutaneous fat here look how it just
+00:20:06.200 looks like the patient's head ends in
+00:20:07.919 bone and then it just goes out to air if
+00:20:09.880 you look at our previous image you can
+00:20:11.679 see that subcutaneous fat there because
+00:20:13.679 fat was included in our grayscale it's
+00:20:16.039 now no longer included we can still see
+00:20:18.360 the temporalis muscle because that's
+00:20:19.960 sitting within the soundfield unit uh
+00:20:22.000 window here and depending on the
+00:20:23.760 clinical question we're trying to ask we
+00:20:25.400 can change this window in multiple
+00:20:26.799 different ways in the abdomen we're
+00:20:28.240 going to be using very different Windows
+00:20:29.760 to what we're using in the brain now in
+00:20:31.640 the question bank that I'll link below
+00:20:32.960 this talk I'm going to leave for you
+00:20:34.799 reference slides showing the different
+00:20:36.679 window that we use and I'm going to link
+00:20:38.799 these cases so you can play around with
+00:20:40.440 the window yourself this window that
+00:20:42.440 I've changed to now you see we've got a
+00:20:43.880 wider window everything below 400 is
+00:20:45.919 going to be black our window width is
+00:20:47.799 now 1,400 and our window level is going
+00:20:50.600 to be 300 700 above 700 below look what
+00:20:54.240 that does to our image we've now created
+00:20:55.720 a bone window CT we want to keep air
+00:20:59.480 black because it's important in bone
+00:21:00.960 window CT to see if we've got numac
+00:21:02.520 Cranium we want to be able to see air
+00:21:04.440 within the cranium if we've got
+00:21:05.679 fractures within the bone see how we can
+00:21:07.600 see the sutures now better we can see
+00:21:09.120 the landroid suture here so the window
+00:21:12.039 allows us to answer different questions
+00:21:13.600 allows us to get contrast in the tissues
+00:21:15.760 that we're interested in so hopefully
+00:21:18.159 you can see how we go from that raw data
+00:21:20.120 acquisition there's some form of
+00:21:21.880 calculation that happens that it gives
+00:21:23.320 us linear attenuation coefficient values
+00:21:25.760 and we now know what those linear
+00:21:27.080 attenuation coefficient values rep
+00:21:28.640 present we also know how to convert
+00:21:31.159 those using this formula here into C
+00:21:33.880 numbers or houndsfield units say the
+00:21:35.400 same thing we can then take those Hound
+00:21:37.720 houndsfield units place them on a scale
+00:21:40.279 and then put a gray scale that matches
+00:21:42.640 those houndsfield units and where we
+00:21:45.000 place those gray scales and how wide
+00:21:47.080 that gray scale is is what's known as
+00:21:48.400 winding and will manipulate our
+00:21:50.679 image now why have I talked about this
+00:21:53.240 prior to talking about the
+00:21:54.400 pre-processing and the Reconstruction
+00:21:56.000 No text
+00:21:56.320 well the calculations that going to
+00:21:58.080 actually figuring out what the linear
+00:22:00.039 attenuation coefficient in a voxal is is
+00:22:02.360 a little bit more complicated than I may
+00:22:03.840 have suggested in theory the answer
+00:22:06.000 seems simple we generate multiple
+00:22:08.200 attenuation data points from different
+00:22:10.360 angles around the patient we got
+00:22:12.000 projection data from all those different
+00:22:13.559 angles and then we back calculate we
+00:22:16.240 calculate those simultaneous equations
+00:22:17.880 we figure out those unknown variables
+00:22:20.000 and then we use those to do what we've
+00:22:22.159 done in this talk it's a little bit more
+00:22:24.039 difficult than that in practice this was
+00:22:25.840 the example that we looked at first now
+00:22:28.320 they two key differences in real life we
+00:22:31.080 don't create a monoenergetic beam say
+00:22:33.679 this one that we were looking at all
+00:22:34.960 those x-ray photons had the same energy
+00:22:37.200 we create a poly chromatic a
+00:22:38.720 polyenergetic beam that has an average
+00:22:41.240 intensity this is the quality of the
+00:22:43.799 X-ray beam the number of photons in the
+00:22:46.000 X-ray beam is the quantity of the X-ray
+00:22:48.200 beam now if our linear tenation
+00:22:50.440 coefficient was the same as what we
+00:22:51.600 looked at before we would see that we'
+00:22:54.039 get 80 photons coming through but what's
+00:22:55.960 happened here we preferentially
+00:22:58.520 attenuated lower energy x-rays we know
+00:23:00.960 that attenuation happens more at lower
+00:23:03.520 energies therefore the average energy of
+00:23:05.919 our beam has increased if we were to
+00:23:08.440 place another voxel of tissue here
+00:23:10.960 what's changed the average energy has
+00:23:13.400 changed we know that with higher
+00:23:15.400 incident x-ray energies we're going to
+00:23:17.559 get a lower linear attenuation
+00:23:19.600 coefficient we're going to reduce the
+00:23:21.360 fraction of x-rays that we are removing
+00:23:23.240 from this beam the beam then as a result
+00:23:25.960 has a higher x-ray energy a higher
+00:23:28.120 average energy and as this process
+00:23:30.240 continues we proportionately remove a
+00:23:33.000 smaller and smaller fraction of x-rays
+00:23:35.240 whilst our beam is simultaneously having
+00:23:37.480 an higher average energy and if you
+00:23:39.640 think about this across the entire
+00:23:40.960 length of a patient the average energy
+00:23:42.840 of the beam can change quite a lot this
+00:23:44.320 is what's known as x-ray beam hardening
+00:23:46.880 the absolute number of x-rays as well as
+00:23:48.799 change that reaches our detector so that
+00:23:51.640 value that we are that's reaching our
+00:23:53.640 detector is not perfect for the linear
+00:23:56.400 attenuation that's happened through our
+00:23:57.760 patient it's quite quite hard now to
+00:23:59.480 solve that simultaneous equation with an
+00:24:01.440 incorrect answer not only that but we
+00:24:03.960 can have scattered x-ray photons that
+00:24:05.840 are coming from different areas but are
+00:24:08.080 contributing to the linear tenation that
+00:24:10.080 we're calculating in this specific line
+00:24:12.360 across our image so scatter in
+00:24:14.919 combination with beam hardening of a
+00:24:16.679 polychromatic beam is going to make the
+00:24:18.799 calculation much more difficult you know
+00:24:21.200 that in order to solve simultaneous
+00:24:22.840 equations we need very accurate answers
+00:24:25.360 when we're using this formula here or
+00:24:27.399 rearranging this formula here our
+00:24:29.559 answers are going to vary as we rotate
+00:24:32.200 around the patient the degree of beam
+00:24:34.360 hardening is going to be different we're
+00:24:35.840 going to pass through different lengths
+00:24:37.320 of bone different widths of tissue and
+00:24:39.840 that really muddles the data now this is
+00:24:42.440 one point where I'm really grateful for
+00:24:44.760 the physicists that have come up with CT
+00:24:46.679 Imaging with reconstruction of data
+00:24:49.240 they've somehow managed to design
+00:24:51.200 systems that can still culate or at
+00:24:53.279 least very accurately estimate the
+00:24:55.320 linear attenuation coefficient in pixels
+00:24:57.960 without needing extremely accurate data
+00:25:01.200 and those are the processes that we're
+00:25:02.520 going to look at in future talks the
+00:25:04.200 Reconstruction processes we're going to
+00:25:06.159 look at simple back projection and
+00:25:07.720 filtered or convolution back projection
+00:25:10.399 we're going to look at iterative
+00:25:11.480 reconstruction and fua based methods and
+00:25:14.000 how physicists have got around this
+00:25:16.159 point how they've managed to use really
+00:25:18.440 messy data but still create accurate
+00:25:20.520 images so if you're interested in that
+00:25:22.360 join me in the next talk until then
+00:25:24.200 goodbye everybody
