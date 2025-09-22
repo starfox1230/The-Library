@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,201 +7,293 @@
 <title>APKG → Fun Viewer (Local)</title>
 <style>
   html,body { margin:0; height:100%; background:#0b0f14; color:#eee; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-  header { padding:16px; border-bottom:1px solid #222; display:flex; gap:12px; align-items:center; }
+  header { padding:16px; border-bottom:1px solid #222; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
   input[type=file] { background:#111; color:#eee; padding:8px; border:1px solid #333; border-radius:6px; }
-  #log { opacity:.8; font-size:12px }
+  #log { opacity:.85; font-size:12px }
+  #error {
+    display:none; width:100%;
+    background:#241317; border:1px solid #5b1d28; color:#ffd7de;
+    padding:12px; border-radius:8px; line-height:1.35;
+  }
+  #error h3 { margin:0 0 6px 0; font-size:14px }
+  #error pre { white-space:pre-wrap; margin:6px 0 0 0; font-size:12px; opacity:.9 }
   main { padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
   .card {
     background:#121826; border:1px solid #243042; border-radius:12px; padding:16px; min-height:160px;
     box-shadow:0 10px 25px rgba(0,0,0,.25); display:flex; flex-direction:column; justify-content:space-between;
   }
   .front, .back { font-size:16px; line-height:1.4; }
-  .front { opacity:.95; }
-  .back  { display:none; opacity:.95; }
+  .back  { display:none; }
   .meta { font-size:12px; opacity:.65; margin-top:10px }
   button.flip {
     margin-top:12px; border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
     color:white; cursor:pointer; font-weight:600;
   }
-  button.flip:active { transform:translateY(1px) }
-  a.media { color:#7dd3fc; text-decoration:underline; }
 </style>
 </head>
 <body>
 <header>
   <input id="file" type="file" accept=".apkg" />
   <span id="log"></span>
+  <div id="error" role="alert" aria-live="polite"></div>
 </header>
 <main id="grid"></main>
 
 <!-- fflate (zip) -->
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <!-- sql.js (SQLite in WebAssembly) -->
+<script>
+  // Surface ANY stray errors to the on-page error panel
+  window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
+  window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
+</script>
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
 
 <script>
+const grid = document.getElementById('grid');
+const log  = document.getElementById('log');
+const errEl= document.getElementById('error');
+
+function setLog(msg){ log.textContent = msg; }
+function clearError(){ errEl.style.display='none'; errEl.innerHTML=''; }
+function showError(title, details='', tips=''){
+  errEl.style.display='block';
+  errEl.innerHTML =
+    `<h3>⚠️ ${escapeHtml(title)}</h3>` +
+    (tips ? `<div>${escapeHtml(tips)}</div>` : '') +
+    (details ? `<pre>${escapeHtml(details)}</pre>` : '');
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+let SQL;
 (async () => {
-  const fileInput = document.getElementById('file');
-  const grid = document.getElementById('grid');
-  const log = document.getElementById('log');
+  try {
+    SQL = await initSqlJs({
+      locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
+    });
+  } catch (e) {
+    showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e),
+      'Check your connection and try refreshing the page.');
+  }
+})();
 
-  const SQL = await initSqlJs({
-    locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
+// Async unzip with watchdog so we never get “stuck on unzipping”
+function unzipWithWatchdog(buf, timeoutMs=20000){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const to = setTimeout(() => {
+      if (done) return;
+      done = true;
+      reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg (ZIP).'));
+    }, timeoutMs);
+
+    try {
+      // Use async API so the UI can update and the watchdog can fire if needed
+      fflate.unzip(buf, { consume: true }, (err, obj) => {
+        if (done) return;
+        clearTimeout(to);
+        if (err) {
+          done = true;
+          reject(err);
+        } else {
+          done = true;
+          resolve(obj);
+        }
+      });
+    } catch (e) {
+      clearTimeout(to);
+      reject(e);
+    }
   });
+}
 
-  function setLog(msg){ log.textContent = msg; }
+// Minimal cloze & template helpers from before
+function renderCloze(text){
+  return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m,idx,inner,_m2,hint) => {
+    return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`;
+  });
+}
+function applyTemplate(tpl, fields, fieldNames){
+  return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
+    const name = token.split(':')[0].trim();
+    const idx = fieldNames.indexOf(name);
+    return idx >= 0 ? (fields[idx] ?? '') : '';
+  });
+}
+function sanitize(html){ return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,''); }
+function mediaURL(idx, mediaMap, files){
+  const name = mediaMap[idx];
+  const f = files[idx] || files[name];
+  if (!f) return null;
+  return URL.createObjectURL(new Blob([f], {type:'application/octet-stream'}));
+}
 
-  // Very small helper: turn a plain string with minimal cloze {{c1::text}} into masked version
-  function renderCloze(text){
-    // Replace {{cN::X}} with <span data-cloze="N" class="cloze">[...]</span>
-    return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m,idx,inner,_m2,hint) => {
-      return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`;
-    });
+document.getElementById('file').addEventListener('change', async (e) => {
+  clearError();
+  grid.innerHTML = '';
+  setLog('');
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  // Friendly heads-up for very large uploads (iOS Safari can struggle)
+  if (file.size > 250 * 1024 * 1024) {
+    showError('Large file warning',
+      `This deck is ${(file.size/1024/1024).toFixed(1)} MB.`,
+      'Very large decks can be slow or run out of memory in mobile browsers. If it stalls, try on desktop or split the deck.');
   }
 
-  // Basic field substitution: replace {{Field}} with fields[index]
-  function applyTemplate(tpl, fields, fieldNames){
-    // Anki templates can include filters and conditionals; we start simple:
-    return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
-      // handle cloze-templates later; for now try plain field name
-      const name = token.split(':')[0].trim(); // ignore filters like text:
-      const idx = fieldNames.indexOf(name);
-      if (idx >= 0) return fields[idx] ?? '';
-      // crude fallback: if it's the cloze field name, pass content through (cloze markup renderer later)
-      return '';
-    });
-  }
-
-  // Simple HTML sanitizer-ish (very minimal; expand with a real sanitizer if needed)
-  function sanitize(html){
-    // Allow only a small subset; you can swap this for DOMPurify if you want.
-    // For now, we trust Anki content modestly and only strip script tags:
-    return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
-  }
-
-  // Utilities: create object URL for media file by index
-  function mediaURL(idx, mediaMap, files){
-    const name = mediaMap[idx]; // filename (may include extension)
-    // Some APKGs rely on numeric indices; we use the numeric file directly if present.
-    const f = files[idx] || files[name];
-    if (!f) return null;
-    const blob = new Blob([f], {type: 'application/octet-stream'});
-    return URL.createObjectURL(blob);
-  }
-
-  fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLog('Reading .apkg...');
+  try {
+    setLog('Reading file…');
     const buf = new Uint8Array(await file.arrayBuffer());
 
-    setLog('Unzipping...');
-    const entries = fflate.unzipSync(buf);
-
-    // Find DB and media map
-    const dbEntry = entries['collection.anki21'] || entries['collection.anki2'];
-    if (!dbEntry) {
-      setLog('Could not find collection.anki21 / .anki2 in this package.');
+    // Quick ZIP magic check (PK\x03\x04)
+    if (!(buf[0]===0x50 && buf[1]===0x4b)) {
+      showError('This doesn’t look like a .apkg (ZIP).',
+        'Expected ZIP header (PK).',
+        'Make sure you selected a .apkg exported from Anki.');
       return;
     }
-    const mediaJson = entries['media'] ? new TextDecoder().decode(entries['media']) : null;
-    const mediaMap = mediaJson ? JSON.parse(mediaJson) : {};
 
-    // Keep a handy dictionary of all unzipped files as Uint8Array
+    setLog('Unzipping…');
+    let entries;
+    try {
+      entries = await unzipWithWatchdog(buf, 20000);
+    } catch (unzErr) {
+      showError('Failed while unzipping the file.',
+        unzErr?.stack || String(unzErr),
+        'The deck might be corrupted or not an .apkg. Try re-exporting it from Anki without encryption.');
+      return;
+    }
+
+    // Find DB and media
+    const dbEntry = entries['collection.anki21'] || entries['collection.anki2'];
+    if (!dbEntry) {
+      const present = Object.keys(entries).slice(0,20).join(', ') + (Object.keys(entries).length>20 ? ', …' : '');
+      showError('Could not find collection.anki21/.anki2 in this package.',
+        `Entries seen: ${present}`,
+        'Export the deck as a modern .apkg. If it’s an older format, re-export from Anki to regenerate the database.');
+      return;
+    }
+
+    let mediaMap = {};
+    if (entries['media']) {
+      try {
+        mediaMap = JSON.parse(new TextDecoder().decode(entries['media']));
+      } catch (mErr) {
+        showError('media file is not valid JSON.',
+          mErr?.stack || String(mErr),
+          'Try re-exporting the deck. We’ll proceed without media map, but some images/sounds may not load.');
+        // continue with empty map
+        mediaMap = {};
+      }
+    }
+
+    if (!SQL) {
+      showError('SQLite engine not ready.',
+        'sql.js failed to load earlier.',
+        'Reload the page and try again (network hiccup).');
+      return;
+    }
+
+    setLog('Opening SQLite…');
+    let db;
+    try {
+      db = new SQL.Database(dbEntry);
+    } catch (dbOpenErr) {
+      showError('Failed to open the Anki SQLite database.',
+        dbOpenErr?.stack || String(dbOpenErr),
+        'The deck may be corrupted or from an unsupported Anki version. Try re-exporting.');
+      return;
+    }
+
+    let models = {}, decks = {}, notes = [], cards = [];
+    try {
+      const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
+      if (!col) throw new Error('No rows in col table');
+      const row = Object.fromEntries(col.columns.map((c,i)=>[c,col.values[0][i]]));
+      try { models = JSON.parse(row.models); } catch { throw new Error('Could not parse col.models JSON'); }
+      try { decks  = JSON.parse(row.decks);  } catch { throw new Error('Could not parse col.decks JSON'); }
+    } catch (colErr) {
+      showError('Could not read core collection metadata (col table).',
+        colErr?.stack || String(colErr),
+        'The deck schema may be incompatible. Try re-exporting the deck.');
+      return;
+    }
+
+    try {
+      const nRes = db.exec(`SELECT id, guid, mid, flds, sfld, tags FROM notes`);
+      if (nRes[0]) {
+        const { columns, values } = nRes[0];
+        for (const row of values) notes.push(Object.fromEntries(columns.map((c,i)=>[c,row[i]])));
+      } else {
+        throw new Error('Notes table returned no columns/rows');
+      }
+    } catch (nErr) {
+      showError('Failed querying notes.',
+        nErr?.stack || String(nErr),
+        'The deck may be from a newer schema. Try re-exporting.');
+      return;
+    }
+
+    try {
+      const cRes = db.exec(`SELECT id, nid, did, ord FROM cards`);
+      if (cRes[0]) {
+        const { columns, values } = cRes[0];
+        for (const row of values) cards.push(Object.fromEntries(columns.map((c,i)=>[c,row[i]])));
+      } else {
+        throw new Error('Cards table returned no columns/rows');
+      }
+    } catch (cErr) {
+      showError('Failed querying cards.',
+        cErr?.stack || String(cErr),
+        'The deck may be from a newer schema. Try re-exporting.');
+      return;
+    }
+
+    // Render a small demo set
+    setLog('Rendering preview…');
+    grid.innerHTML = '';
     const fileTable = {};
     for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
 
-    setLog('Opening SQLite…');
-    const db = new SQL.Database(dbEntry);
-
-    // Read col (models, decks)
-    let models = {}, decks = {};
-    try {
-      const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
-      if (col) {
-        const row = Object.fromEntries(col.columns.map((c,i)=>[c,col.values[0][i]]));
-        models = JSON.parse(row.models);
-        decks  = JSON.parse(row.decks);
-      }
-    } catch (err) { console.warn('col read failed', err); }
-
-    // notes: id, guid, mid, flds (pipe-separated), tags, sfld…
-    // cards: id, nid, did, ord (template index)…
-    const notesRes = db.exec(`SELECT id, guid, mid, flds, sfld, tags FROM notes`);
-    const cardsRes = db.exec(`SELECT id, nid, did, ord FROM cards`);
-
-    const notes = [];
-    if (notesRes[0]) {
-      const { columns, values } = notesRes[0];
-      for (const row of values) {
-        const obj = Object.fromEntries(columns.map((c,i)=>[c,row[i]]));
-        notes.push(obj);
-      }
-    }
-
-    const cards = [];
-    if (cardsRes[0]) {
-      const { columns, values } = cardsRes[0];
-      for (const row of values) {
-        const obj = Object.fromEntries(columns.map((c,i)=>[c,row[i]]));
-        cards.push(obj);
-      }
-    }
-
-    // Join cards→notes→model templates
-    // Build a small preview (first 24 cards) for demo
-    grid.innerHTML = '';
     let shown = 0;
     for (const card of cards) {
       if (shown >= 24) break;
       const note = notes.find(n => n.id === card.nid);
       if (!note) continue;
-
       const model = models[String(note.mid)];
       if (!model) continue;
 
-      // Fields
       const fieldNames = (model?.flds || []).map(f => f.name);
-      const fields = (note.flds || '').split('\x1f'); // 0x1f separator in Anki
-
-      // Template for this card ord
+      const fields = (note.flds || '').split('\x1f');
       const tmpl = model?.tmpls?.[card.ord];
       if (!tmpl) continue;
 
-      // Apply template
       let front = applyTemplate(tmpl.qfmt || '', fields, fieldNames);
       let back  = applyTemplate(tmpl.afmt || '', fields, fieldNames);
 
-      // Render cloze for quick demo (if the model is cloze type)
       if ((model?.type === 1) || /{{c\d+::/i.test(fields.join(' '))) {
-        // Cloze templates usually use {{cloze:Text}} in qfmt/afmt; we’re being simple here:
         front = renderCloze(front);
         back  = renderCloze(back);
       }
 
-      // Replace media tags like <img src="X"> where X is an index or filename
       const imgIdxRE = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
       const replaceMedia = (html) => html.replace(imgIdxRE, (m, src) => {
-        // src might be a numeric key or a name; try both
         let url = null;
         if (/^\d+$/.test(src)) url = mediaURL(src, mediaMap, fileTable);
         if (!url && src in fileTable) url = mediaURL(src, mediaMap, fileTable);
-        if (!url) return m;
-        return m.replace(src, url);
+        return url ? m.replace(src, url) : m;
       });
 
       front = replaceMedia(sanitize(front));
       back  = replaceMedia(sanitize(back));
 
-      // Build UI card
       const el = document.createElement('div');
       el.className = 'card';
       el.innerHTML = `
         <div class="front">${front || '(empty front)'}</div>
         <div class="back">${back || '(empty back)'}</div>
-        <div class="meta">
-          Deck: ${decks[card.did]?.name || card.did} • NoteType: ${model.name} • ord: ${card.ord}
-        </div>
+        <div class="meta">Deck: ${escapeHtml(decks[card.did]?.name || String(card.did))} • NoteType: ${escapeHtml(model.name||'')} • ord: ${card.ord}</div>
         <button class="flip">Flip</button>
       `;
       el.querySelector('.flip').addEventListener('click', () => {
@@ -208,7 +301,6 @@
         if (b.style.display === 'block') { b.style.display='none'; f.style.display='block'; }
         else { f.style.display='none'; b.style.display='block'; }
       });
-      // Simple cloze reveal on tap
       el.addEventListener('click', (ev) => {
         const c = ev.target.closest('.cloze');
         if (c) {
@@ -226,8 +318,10 @@
     }
 
     setLog(`Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). Showing ${Math.min(24, cards.length)} as a demo.`);
-  });
-})();
+  } catch (e2) {
+    showError('Something went wrong while processing the file.', e2?.stack || String(e2));
+  }
+});
 </script>
 </body>
 </html>
