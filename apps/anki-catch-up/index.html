@@ -32,10 +32,6 @@
   }
   button.small { padding:6px 10px; font-size:12px; background:#2b6cb0 }
   button.flip:active, button.small:active { transform:translateY(1px) }
-  .muted { opacity:.75; font-size:12px }
-  .ok { color:#9ae6b4 }
-  .warn { color:#fbd38d }
-  .bad { color:#feb2b2 }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
 </style>
 </head>
@@ -52,12 +48,9 @@
 
 <main id="grid"></main>
 
+<!-- fflate (zip + gzip) -->
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-<script>
-  // Surface ANY stray errors to the on-page panels
-  window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
-  window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
-</script>
+<!-- sql.js (SQLite in WebAssembly) -->
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
 
 <script>
@@ -77,55 +70,18 @@ function showError(title, details='', tips=''){
     (tips ? `<div>${escapeHtml(tips)}</div>` : '') +
     (details ? `<pre>${escapeHtml(details)}</pre>` : '');
 }
-function showDebug(html){
-  dbgEl.style.display='block';
-  dbgEl.innerHTML = html;
-}
+function showDebug(html){ dbgEl.style.display='block'; dbgEl.innerHTML = html; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* ---------- Engine load ---------- */
-let SQL;
-(async () => {
-  try {
-    SQL = await initSqlJs({
-      locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
-    });
-  } catch (e) {
-    showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e),
-      'Check your connection and refresh the page.');
-  }
-})();
+/* Bubble any stray errors to the page */
+window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
+window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
 
-/* ---------- Resilient media.json parser + peek ---------- */
-function tryParseMediaWithPeek(bytes) {
-  const td = new TextDecoder('utf-8', { fatal: false });
-  let raw = td.decode(bytes);
-  // Debug preview
-  const peek = escapeHtml(raw.slice(0, 600));
-  // Strip BOM
-  if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
-  // Keep only the largest {...}
-  const firstBrace = raw.indexOf('{');
-  const lastBrace  = raw.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-    const err = new Error('media file contains no JSON object');
-    err.peek = peek;
-    throw err;
-  }
-  let txt = raw.slice(firstBrace, lastBrace + 1);
-  // Remove trailing commas & illegal control chars
-  txt = txt.replace(/,\s*([}\]])/g, '$1')
-           .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
-           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3'); // quote numeric keys
-  let parsed;
-  try {
-    parsed = JSON.parse(txt);
-  } catch (e) {
-    e.peek = peek;
-    throw e;
-  }
-  return { map: parsed, peek };
-}
+/* ---------- Engine load ---------- */
+let SQLReady = false, SQL;
+initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` })
+  .then(db => { SQL = db; SQLReady = true; })
+  .catch(e => showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e), 'Check your connection and refresh the page.'));
 
 /* ---------- Unzip watchdog ---------- */
 function unzipWithWatchdog(buf, timeoutMs=20000){
@@ -136,7 +92,6 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
       done = true;
       reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).'));
     }, timeoutMs);
-
     try {
       fflate.unzip(buf, { consume: true }, (err, obj) => {
         if (done) return;
@@ -149,6 +104,91 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
       reject(e);
     }
   });
+}
+
+/* ---------- Media parsing: JSON / ZSTD / GZIP ---------- */
+function hasPrefix(b, ...bytes){ return bytes.every((v,i)=>b[i]===v); }
+function looksZstd(b){
+  // Zstd frame magic: 0xFD 2F B5 28; sometimes observed as 28 B5 2F FD in peek (endianness in display)
+  return (b.length>4) && (hasPrefix(b,0xFD,0x2F,0xB5,0x28) || hasPrefix(b,0x28,0xB5,0x2F,0xFD));
+}
+function looksGzip(b){ return b.length>2 && hasPrefix(b,0x1F,0x8B); }
+
+function loadScript(url){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(new Error('Failed to load ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function maybeDecompressMedia(bytes){
+  // Plain JSON?
+  if (bytes[0] === 0x7B /* '{' */) return { bytes, encoding:'json' };
+  // Gzip?
+  if (looksGzip(bytes)) {
+    try {
+      const out = fflate.gunzipSync(bytes);
+      return { bytes: out, encoding:'gzip' };
+    } catch(e){ throw new Error('Failed to gunzip media: ' + e.message); }
+  }
+  // Zstd?
+  if (looksZstd(bytes)) {
+    // Lazy-load zstd codec
+    if (!window.ZstdCodec) {
+      await loadScript('https://cdn.jsdelivr.net/npm/zstd-codec@0.1.4/dist/zstd-codec.min.js');
+    }
+    return await new Promise((resolve, reject) => {
+      try {
+        window.ZstdCodec.run((zstd) => {
+          try {
+            const simple = new zstd.Simple();
+            const out = simple.decompress(bytes);
+            resolve({ bytes: out, encoding:'zstd' });
+          } catch(e) {
+            reject(new Error('Zstd decompression failed: ' + e.message));
+          }
+        });
+      } catch(e) {
+        reject(new Error('Zstd runtime failed to initialize: ' + e.message));
+      }
+    });
+  }
+  // Unknown - return as-is and let salvage parser try
+  return { bytes, encoding:'unknown' };
+}
+
+function tryParseMediaTextToMap(txt){
+  // Strip BOM
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+  // Keep largest {...}
+  const firstBrace = txt.indexOf('{');
+  const lastBrace  = txt.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('media file contains no JSON object');
+  }
+  txt = txt.slice(firstBrace, lastBrace + 1);
+  // Cleanups
+  txt = txt.replace(/,\s*([}\]])/g, '$1')
+           .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
+           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3'); // quote numeric keys
+  return JSON.parse(txt);
+}
+
+async function parseMediaEntry(entryBytes){
+  const td = new TextDecoder('utf-8', { fatal:false });
+  const peek = escapeHtml(td.decode(entryBytes.slice(0, 600)));
+  const { bytes, encoding } = await maybeDecompressMedia(entryBytes);
+  let map, usedEncoding = encoding;
+  try {
+    map = tryParseMediaTextToMap(td.decode(bytes));
+  } catch (e) {
+    e.peek = peek;
+    throw e;
+  }
+  return { map, encoding: usedEncoding, peek };
 }
 
 /* ---------- Template & sanitization ---------- */
@@ -166,134 +206,75 @@ function applyTemplate(tpl, fields, fieldNames){
 }
 function sanitize(html){ return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,''); }
 
-/* ---------- Media heuristics ---------- */
-// Identify likely file type by magic bytes (very small set)
+/* ---------- Media heuristics & replacer ---------- */
 function sniffExt(bytes){
   const b = bytes;
-  const starts = (...seq) => seq.every((v,i)=>b[i]===v);
-  const ascii = (i, s) => s.split('').every((ch, k) => b[i+k]===ch.charCodeAt(0));
+  const s = (...seq) => seq.every((v,i)=>b[i]===v);
+  const a = (i, t) => t.split('').every((ch,k)=>b[i+k]===ch.charCodeAt(0));
   try {
-    if (starts(0xFF,0xD8,0xFF)) return 'jpg';
-    if (starts(0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A)) return 'png';
-    if (ascii(0, 'GIF87a') || ascii(0, 'GIF89a')) return 'gif';
-    if (ascii(0, 'RIFF') && ascii(8,'WEBP')) return 'webp';
-    if (ascii(0, '<svg')) return 'svg';
-    if (ascii(0, 'ID3') || (b[0]===0xFF && (b[1]&0xE0)===0xE0)) return 'mp3';
-    if (ascii(0, 'OggS')) return 'ogg';
-    if (ascii(0, 'RIFF') && ascii(8,'WAVE')) return 'wav';
-    if (ascii(4, 'ftyp')) return 'mp4'; // m4a/mp4
+    if (s(0xFF,0xD8,0xFF)) return 'jpg';
+    if (s(0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A)) return 'png';
+    if (a(0,'GIF87a')||a(0,'GIF89a')) return 'gif';
+    if (a(0,'RIFF')&&a(8,'WEBP')) return 'webp';
+    if (a(0,'<svg')) return 'svg';
+    if (a(0,'ID3') || (b[0]===0xFF && (b[1]&0xE0)===0xE0)) return 'mp3';
+    if (a(0,'OggS')) return 'ogg';
+    if (a(0,'RIFF')&&a(8,'WAVE')) return 'wav';
+    if (a(4,'ftyp')) return 'mp4';
   } catch {}
   return 'bin';
 }
-
-// Build indices for heuristics: ext → [fileKeys]
 function buildHeuristicIndex(entries){
   const extIndex = {};
-  const keyIsMedia = k => /^\d+(\.[A-Za-z0-9]+)?$/.test(k) || /^[^/]+\.[A-Za-z0-9]+$/.test(k);
+  const isMediaKey = k => /^\d+(\.[A-Za-z0-9]+)?$/.test(k) || /^[^/]+\.[A-Za-z0-9]+$/.test(k);
   for (const [name, bytes] of Object.entries(entries)) {
-    if (!keyIsMedia(name)) continue;
-    // Prefer explicit extension in filename; else sniff
-    let ext = '';
+    if (!isMediaKey(name)) continue;
     const m = name.match(/\.([A-Za-z0-9]+)$/);
-    if (m) ext = m[1].toLowerCase();
-    else ext = sniffExt(bytes);
+    const ext = m ? m[1].toLowerCase() : sniffExt(bytes);
     (extIndex[ext] ||= []).push(name);
   }
   return extIndex;
 }
-
-/* ---------- Media resolution ---------- */
 function mediaURLForKey(key, files){
   const bytes = files[key];
   if (!bytes) return null;
   return URL.createObjectURL(new Blob([bytes], {type:'application/octet-stream'}));
 }
-
 function buildMediaReplacer(mediaMap, files, diagnostics){
-  // reverse map (name → indexKey)
   const reverseMap = {};
   for (const [k,v] of Object.entries(mediaMap)) reverseMap[v] = k;
-
-  // Heuristic index for when media map is missing/broken
   const extIndex = buildHeuristicIndex(files);
-
   const unresolvedNames = new Set();
 
   const imgIdxRE   = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const audioIdxRE = /<audio[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const soundTagRE = /\[sound:([^\]]+)\]/gi;
 
-  function resolveByNameOrIndex(src){
-    // 1) numeric index (e.g., "42")
-    if (/^\d+$/.test(src)) {
-      const u = mediaURLForKey(src, files);
-      if (u) return u;
-    }
-    // 2) direct filename present in zip
-    let u = mediaURLForKey(src, files);
-    if (u) return u;
-
-    // 3) map via media.json if available
-    const idx = reverseMap[src];
-    if (idx !== undefined) {
-      u = mediaURLForKey(idx, files);
-      if (u) return u;
-    }
-
-    // 4) heuristic by extension (only if unique)
+  function resolve(src){
+    if (/^\d+$/.test(src)) { const u = mediaURLForKey(src, files); if (u) return u; }
+    let u = mediaURLForKey(src, files); if (u) return u;
+    const idx = reverseMap[src]; if (idx!==undefined) { u = mediaURLForKey(idx, files); if (u) return u; }
     const extMatch = src.toLowerCase().match(/\.([a-z0-9]+)$/);
     if (extMatch) {
-      const ext = extMatch[1];
-      const candidates = extIndex[ext] || [];
-      if (candidates.length === 1) {
-        u = mediaURLForKey(candidates[0], files);
-        if (u) return u;
-      }
+      const ext = extMatch[1], candidates = extIndex[ext] || [];
+      if (candidates.length === 1) { u = mediaURLForKey(candidates[0], files); if (u) return u; }
     }
-
     unresolvedNames.add(src);
     return null;
   }
-
-  function replaceAll(html) {
-    html = html.replace(imgIdxRE, (m, src) => {
-      diagnostics.total++;
-      const url = resolveByNameOrIndex(src);
-      if (!url) return m;
-      diagnostics.resolved++;
-      return m.replace(src, url);
-    });
-    html = html.replace(audioIdxRE, (m, src) => {
-      diagnostics.total++;
-      const url = resolveByNameOrIndex(src);
-      if (!url) return m;
-      diagnostics.resolved++;
-      return m.replace(src, url);
-    });
-    html = html.replace(soundTagRE, (m, name) => {
-      diagnostics.total++;
-      const url = resolveByNameOrIndex(name);
-      if (!url) return m;
-      diagnostics.resolved++;
-      return `<audio controls preload="metadata" src="${url}"></audio>`;
-    });
+  function replaceAll(html){
+    html = html.replace(imgIdxRE, (m, src) => { diagnostics.total++; const u = resolve(src); if (!u) return m; diagnostics.resolved++; return m.replace(src, u); });
+    html = html.replace(audioIdxRE, (m, src) => { diagnostics.total++; const u = resolve(src); if (!u) return m; diagnostics.resolved++; return m.replace(src, u); });
+    html = html.replace(soundTagRE, (m, name) => { diagnostics.total++; const u = resolve(name); if (!u) return m; diagnostics.resolved++; return `<audio controls preload="metadata" src="${u}"></audio>`; });
     return html;
   }
-
   return { replaceAll, unresolvedNames };
 }
 
 /* ---------- Main ---------- */
-let SQLReady = false;
-initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` }).then(db => { SQL = db; SQLReady = true; });
-
 document.getElementById('file').addEventListener('change', async (e) => {
-  clearError();
-  dbgEl.style.display='none'; dbgEl.innerHTML='';
-  grid.innerHTML = '';
-  setLog('');
-  const file = e.target.files?.[0];
-  if (!file) return;
+  clearError(); dbgEl.style.display='none'; dbgEl.innerHTML=''; grid.innerHTML = ''; setLog('');
+  const file = e.target.files?.[0]; if (!file) return;
 
   if (file.size > 250 * 1024 * 1024) {
     showError('Large file warning',
@@ -305,7 +286,6 @@ document.getElementById('file').addEventListener('change', async (e) => {
     setLog('Reading file…');
     const buf = new Uint8Array(await file.arrayBuffer());
 
-    // ZIP magic check
     if (!(buf[0]===0x50 && buf[1]===0x4b)) {
       showError('This doesn’t look like a .apkg/.colpkg (ZIP).',
         'Expected ZIP header (PK).',
@@ -315,16 +295,14 @@ document.getElementById('file').addEventListener('change', async (e) => {
 
     setLog('Unzipping…');
     let entries;
-    try {
-      entries = await unzipWithWatchdog(buf, 20000);
-    } catch (unzErr) {
+    try { entries = await unzipWithWatchdog(buf, 20000); }
+    catch (unzErr) {
       showError('Failed while unzipping the file.',
         unzErr?.stack || String(unzErr),
         'The deck might be corrupted or not an .apkg/.colpkg. Try re-exporting without encryption.');
       return;
     }
 
-    // Locate DB
     const dbEntry = entries['collection.anki21'] || entries['collection.anki2'];
     if (!dbEntry) {
       const present = Object.keys(entries).slice(0,20).join(', ') + (Object.keys(entries).length>20 ? ', …' : '');
@@ -334,21 +312,21 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    // Parse media mapping (with peek)
-    let mediaMap = {};
-    let mediaPeek = '';
+    // Parse media (JSON / ZSTD / GZIP), with debug
+    let mediaMap = {}, mediaPeek = '', mediaEncoding = 'none';
     if (entries['media']) {
       try {
-        const res = tryParseMediaWithPeek(entries['media']);
-        mediaMap = res.map;
-        mediaPeek = res.peek;
+        const parsed = await parseMediaEntry(entries['media']);
+        mediaMap = parsed.map;
+        mediaPeek = parsed.peek;
+        mediaEncoding = parsed.encoding;
       } catch (mErr) {
         const peekNote = mErr.peek ? `\n\nFirst 600 chars of media file:\n${mErr.peek}` : '';
-        showError('media file is not valid JSON (salvage failed).',
-          (mErr?.stack || String(mErr)) + peekNote,
+        showError('media file could not be parsed.', (mErr?.stack || String(mErr)) + peekNote,
           'We’ll continue without media mapping; images/sounds referenced by filename may still load. Try re-exporting the deck.');
+        mediaEncoding = 'unparsed';
       }
-    } // else: no media map is fine
+    }
 
     if (!SQLReady) {
       showError('SQLite engine not ready.',
@@ -359,9 +337,8 @@ document.getElementById('file').addEventListener('change', async (e) => {
 
     setLog('Opening SQLite…');
     let db;
-    try {
-      db = new SQL.Database(dbEntry);
-    } catch (dbOpenErr) {
+    try { db = new SQL.Database(dbEntry); }
+    catch (dbOpenErr) {
       showError('Failed to open the Anki SQLite database.',
         dbOpenErr?.stack || String(dbOpenErr),
         'The deck may be corrupted or from an unsupported Anki version. Try re-exporting.');
@@ -389,13 +366,9 @@ document.getElementById('file').addEventListener('change', async (e) => {
       if (nRes[0]) {
         const { columns, values } = nRes[0];
         for (const row of values) notes.push(Object.fromEntries(columns.map((c,i)=>[c,row[i]])));
-      } else {
-        throw new Error('Notes table returned no columns/rows');
-      }
+      } else throw new Error('Notes table returned no columns/rows');
     } catch (nErr) {
-      showError('Failed querying notes.',
-        nErr?.stack || String(nErr),
-        'The deck may be from a newer schema. Try re-exporting.');
+      showError('Failed querying notes.', nErr?.stack || String(nErr), 'The deck may be from a newer schema. Try re-exporting.');
       return;
     }
 
@@ -404,41 +377,31 @@ document.getElementById('file').addEventListener('change', async (e) => {
       if (cRes[0]) {
         const { columns, values } = cRes[0];
         for (const row of values) cards.push(Object.fromEntries(columns.map((c,i)=>[c,row[i]])));
-      } else {
-        throw new Error('Cards table returned no columns/rows');
-      }
+      } else throw new Error('Cards table returned no columns/rows');
     } catch (cErr) {
-      showError('Failed querying cards.',
-        cErr?.stack || String(cErr),
-        'The deck may be from a newer schema. Try re-exporting.');
+      showError('Failed querying cards.', cErr?.stack || String(cErr), 'The deck may be from a newer schema. Try re-exporting.');
       return;
     }
 
-    // Build file table & diagnostics
+    // Files table & media replacer
     const fileTable = {};
     for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
 
     const mediaLookups = { total: 0, resolved: 0 };
     const { replaceAll, unresolvedNames } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
 
-    // Render a small demo set
+    // Render preview
     setLog('Rendering preview…');
     grid.innerHTML = '';
 
     let shown = 0;
     for (const card of cards) {
       if (shown >= 24) break;
-
-      const note = notes.find(n => n.id === card.nid);
-      if (!note) continue;
-
-      const model = models[String(note.mid)];
-      if (!model) continue;
-
+      const note = notes.find(n => n.id === card.nid); if (!note) continue;
+      const model = models[String(note.mid)]; if (!model) continue;
       const fieldNames = (model?.flds || []).map(f => f.name);
       const fields = (note.flds || '').split('\x1f');
-      const tmpl = model?.tmpls?.[card.ord];
-      if (!tmpl) continue;
+      const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) continue;
 
       let front = applyTemplate(tmpl.qfmt || '', fields, fieldNames);
       let back  = applyTemplate(tmpl.afmt || '', fields, fieldNames);
@@ -480,7 +443,7 @@ document.getElementById('file').addEventListener('change', async (e) => {
       shown++;
     }
 
-    // Final status + optional debug block
+    // Status + debug
     const unresolvedList = Array.from(unresolvedNames);
     setLog(
       `Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). ` +
@@ -491,19 +454,19 @@ document.getElementById('file').addEventListener('change', async (e) => {
     toggleDebugBtn.onclick = () => {
       const isVisible = dbgEl.style.display === 'block';
       if (isVisible) { dbgEl.style.display='none'; dbgEl.innerHTML=''; toggleDebugBtn.textContent='Show debug'; return; }
-
       const hasMedia = !!entries['media'];
       const mediaSize = hasMedia ? `${entries['media'].length} bytes` : '—';
       const dbg =
 `<h3>Debug</h3>
 <div class="mono">
 Zip entries: ${Object.keys(entries).length}
-<br>Has media file: ${hasMedia ? '<span class="ok">yes</span>' : '<span class="warn">no</span>'}
+<br>Has media file: ${hasMedia ? 'yes' : 'no'}
 <br>Media size: ${escapeHtml(mediaSize)}
+<br>Media encoding detected: ${escapeHtml(mediaEncoding)}
 <br>Resolved media: ${mediaLookups.resolved}/${mediaLookups.total}
 <br>Unresolved refs (${unresolvedList.length}): ${escapeHtml(unresolvedList.slice(0,12).join(', ') + (unresolvedList.length>12?' …':''))}
 </div>
-${mediaPeek ? `<pre>${escapeHtml('media peek (first 600 chars):\n' + mediaPeek)}</pre>` : ''}`;
+${mediaPeek && mediaEncoding!=='zstd' && mediaEncoding!=='gzip' ? `<pre>${escapeHtml('media peek (first 600 chars):\n' + mediaPeek)}</pre>` : ''}`;
       showDebug(dbg);
       toggleDebugBtn.textContent = 'Hide debug';
     };
@@ -512,29 +475,6 @@ ${mediaPeek ? `<pre>${escapeHtml('media peek (first 600 chars):\n' + mediaPeek)}
     showError('Something went wrong while processing the file.', e2?.stack || String(e2));
   }
 });
-
-/* ---------- Small helpers ---------- */
-function unzipWithWatchdog(buf, timeoutMs=20000){
-  return new Promise((resolve, reject) => {
-    let done = false;
-    const to = setTimeout(() => {
-      if (done) return;
-      done = true;
-      reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).'));
-    }, timeoutMs);
-    try {
-      fflate.unzip(buf, { consume: true }, (err, obj) => {
-        if (done) return;
-        clearTimeout(to);
-        if (err) { done = true; reject(err); }
-        else { done = true; resolve(obj); }
-      });
-    } catch (e) {
-      clearTimeout(to);
-      reject(e);
-    }
-  });
-}
 </script>
 </body>
 </html>
