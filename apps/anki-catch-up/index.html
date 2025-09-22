@@ -9,13 +9,15 @@
   header { padding:16px; border-bottom:1px solid #222; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
   input[type=file] { background:#111; color:#eee; padding:8px; border:1px solid #333; border-radius:6px; }
   #log { opacity:.85; font-size:12px }
-  #error {
+  #error, #debug {
     display:none; width:100%;
     background:#241317; border:1px solid #5b1d28; color:#ffd7de;
-    padding:12px; border-radius:8px; line-height:1.35;
+    padding:12px; border-radius:8px; line-height:1.35; margin-top:8px;
   }
-  #error h3 { margin:0 0 6px 0; font-size:14px }
-  #error pre { white-space:pre-wrap; margin:6px 0 0 0; font-size:12px; opacity:.9 }
+  #debug { background:#112130; border-color:#1e3a5f; color:#cae8ff; }
+  #error h3, #debug h3 { margin:0 0 6px 0; font-size:14px }
+  #error pre, #debug pre { white-space:pre-wrap; margin:6px 0 0 0; font-size:12px; opacity:.9 }
+  .row { width:100%; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
   main { padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
   .card {
     background:#121826; border:1px solid #243042; border-radius:12px; padding:16px; min-height:160px;
@@ -24,32 +26,38 @@
   .front, .back { font-size:16px; line-height:1.4; }
   .back  { display:none; }
   .meta { font-size:12px; opacity:.65; margin-top:10px }
-  button.flip {
-    margin-top:12px; border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
+  button.flip, button.small {
+    border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
     color:white; cursor:pointer; font-weight:600;
   }
-  button.flip:active { transform:translateY(1px) }
-  a.media { color:#7dd3fc; text-decoration:underline; }
+  button.small { padding:6px 10px; font-size:12px; background:#2b6cb0 }
+  button.flip:active, button.small:active { transform:translateY(1px) }
+  .muted { opacity:.75; font-size:12px }
+  .ok { color:#9ae6b4 }
+  .warn { color:#fbd38d }
+  .bad { color:#feb2b2 }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
 </style>
 </head>
 <body>
 <header>
-  <input id="file" type="file" accept=".apkg,.colpkg" />
-  <span id="log"></span>
+  <div class="row">
+    <input id="file" type="file" accept=".apkg,.colpkg" />
+    <button id="toggleDebug" class="small">Show debug</button>
+    <span id="log"></span>
+  </div>
   <div id="error" role="alert" aria-live="polite"></div>
+  <div id="debug" aria-live="polite"></div>
 </header>
+
 <main id="grid"></main>
 
-<!-- fflate (zip) -->
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-
-<!-- Bubble up ANY stray errors to the on-page panel -->
 <script>
+  // Surface ANY stray errors to the on-page panels
   window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
   window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
 </script>
-
-<!-- sql.js (SQLite in WebAssembly) -->
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
 
 <script>
@@ -57,6 +65,8 @@
 const grid = document.getElementById('grid');
 const log  = document.getElementById('log');
 const errEl= document.getElementById('error');
+const dbgEl= document.getElementById('debug');
+const toggleDebugBtn = document.getElementById('toggleDebug');
 
 function setLog(msg){ log.textContent = msg; }
 function clearError(){ errEl.style.display='none'; errEl.innerHTML=''; }
@@ -66,6 +76,10 @@ function showError(title, details='', tips=''){
     `<h3>⚠️ ${escapeHtml(title)}</h3>` +
     (tips ? `<div>${escapeHtml(tips)}</div>` : '') +
     (details ? `<pre>${escapeHtml(details)}</pre>` : '');
+}
+function showDebug(html){
+  dbgEl.style.display='block';
+  dbgEl.innerHTML = html;
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -82,35 +96,38 @@ let SQL;
   }
 })();
 
-/* ---------- Resilient media.json parser ---------- */
-function tryParseMedia(bytes) {
+/* ---------- Resilient media.json parser + peek ---------- */
+function tryParseMediaWithPeek(bytes) {
   const td = new TextDecoder('utf-8', { fatal: false });
-  let txt = td.decode(bytes);
-
+  let raw = td.decode(bytes);
+  // Debug preview
+  const peek = escapeHtml(raw.slice(0, 600));
   // Strip BOM
-  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
-
-  // Keep only the largest {...} span (some decks have stray bytes)
-  const firstBrace = txt.indexOf('{');
-  const lastBrace  = txt.lastIndexOf('}');
+  if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+  // Keep only the largest {...}
+  const firstBrace = raw.indexOf('{');
+  const lastBrace  = raw.lastIndexOf('}');
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-    throw new Error('media file contains no JSON object');
+    const err = new Error('media file contains no JSON object');
+    err.peek = peek;
+    throw err;
   }
-  txt = txt.slice(firstBrace, lastBrace + 1);
-
-  // Remove trailing commas before } or ]
-  txt = txt.replace(/,\s*([}\]])/g, '$1');
-
-  // Remove illegal control chars (except tab/newline)
-  txt = txt.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '');
-
-  // Ensure numeric keys are quoted
-  txt = txt.replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
-
-  return JSON.parse(txt);
+  let txt = raw.slice(firstBrace, lastBrace + 1);
+  // Remove trailing commas & illegal control chars
+  txt = txt.replace(/,\s*([}\]])/g, '$1')
+           .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
+           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3'); // quote numeric keys
+  let parsed;
+  try {
+    parsed = JSON.parse(txt);
+  } catch (e) {
+    e.peek = peek;
+    throw e;
+  }
+  return { map: parsed, peek };
 }
 
-/* ---------- Unzip watchdog so we never "hang" ---------- */
+/* ---------- Unzip watchdog ---------- */
 function unzipWithWatchdog(buf, timeoutMs=20000){
   return new Promise((resolve, reject) => {
     let done = false;
@@ -134,7 +151,7 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
   });
 }
 
-/* ---------- Minimal templating & sanitization ---------- */
+/* ---------- Template & sanitization ---------- */
 function renderCloze(text){
   return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m,idx,inner,_m2,hint) => {
     return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`;
@@ -142,86 +159,137 @@ function renderCloze(text){
 }
 function applyTemplate(tpl, fields, fieldNames){
   return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
-    const name = token.split(':')[0].trim();     // ignore filters for now
+    const name = token.split(':')[0].trim(); // ignore filters for now
     const idx = fieldNames.indexOf(name);
     return idx >= 0 ? (fields[idx] ?? '') : '';
   });
 }
 function sanitize(html){ return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,''); }
 
-/* ---------- Media resolution helpers ---------- */
-function mediaURLByIndex(idx, mediaMap, files){
-  const name = mediaMap[idx];
-  const f = files[idx] || files[name];
-  if (!f) return null;
-  return URL.createObjectURL(new Blob([f], {type:'application/octet-stream'}));
-}
-function mediaURLByName(name, reverseMap, files){
-  // Direct file present?
-  if (files[name]) {
-    return URL.createObjectURL(new Blob([files[name]], {type:'application/octet-stream'}));
-  }
-  // If we have reverse map name->index
-  const idx = reverseMap[name];
-  if (idx !== undefined && files[idx]) {
-    return URL.createObjectURL(new Blob([files[idx]], {type:'application/octet-stream'}));
-  }
-  return null;
+/* ---------- Media heuristics ---------- */
+// Identify likely file type by magic bytes (very small set)
+function sniffExt(bytes){
+  const b = bytes;
+  const starts = (...seq) => seq.every((v,i)=>b[i]===v);
+  const ascii = (i, s) => s.split('').every((ch, k) => b[i+k]===ch.charCodeAt(0));
+  try {
+    if (starts(0xFF,0xD8,0xFF)) return 'jpg';
+    if (starts(0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A)) return 'png';
+    if (ascii(0, 'GIF87a') || ascii(0, 'GIF89a')) return 'gif';
+    if (ascii(0, 'RIFF') && ascii(8,'WEBP')) return 'webp';
+    if (ascii(0, '<svg')) return 'svg';
+    if (ascii(0, 'ID3') || (b[0]===0xFF && (b[1]&0xE0)===0xE0)) return 'mp3';
+    if (ascii(0, 'OggS')) return 'ogg';
+    if (ascii(0, 'RIFF') && ascii(8,'WAVE')) return 'wav';
+    if (ascii(4, 'ftyp')) return 'mp4'; // m4a/mp4
+  } catch {}
+  return 'bin';
 }
 
-/* ---------- Replace media in HTML (img, audio, [sound:]) ---------- */
+// Build indices for heuristics: ext → [fileKeys]
+function buildHeuristicIndex(entries){
+  const extIndex = {};
+  const keyIsMedia = k => /^\d+(\.[A-Za-z0-9]+)?$/.test(k) || /^[^/]+\.[A-Za-z0-9]+$/.test(k);
+  for (const [name, bytes] of Object.entries(entries)) {
+    if (!keyIsMedia(name)) continue;
+    // Prefer explicit extension in filename; else sniff
+    let ext = '';
+    const m = name.match(/\.([A-Za-z0-9]+)$/);
+    if (m) ext = m[1].toLowerCase();
+    else ext = sniffExt(bytes);
+    (extIndex[ext] ||= []).push(name);
+  }
+  return extIndex;
+}
+
+/* ---------- Media resolution ---------- */
+function mediaURLForKey(key, files){
+  const bytes = files[key];
+  if (!bytes) return null;
+  return URL.createObjectURL(new Blob([bytes], {type:'application/octet-stream'}));
+}
+
 function buildMediaReplacer(mediaMap, files, diagnostics){
-  // Build reverse name→index map for robustness
+  // reverse map (name → indexKey)
   const reverseMap = {};
   for (const [k,v] of Object.entries(mediaMap)) reverseMap[v] = k;
+
+  // Heuristic index for when media map is missing/broken
+  const extIndex = buildHeuristicIndex(files);
+
+  const unresolvedNames = new Set();
 
   const imgIdxRE   = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const audioIdxRE = /<audio[^>]+src=["']([^"']+)["'][^>]*>/gi;
   const soundTagRE = /\[sound:([^\]]+)\]/gi;
 
-  return function replaceMedia(html) {
-    // IMG
+  function resolveByNameOrIndex(src){
+    // 1) numeric index (e.g., "42")
+    if (/^\d+$/.test(src)) {
+      const u = mediaURLForKey(src, files);
+      if (u) return u;
+    }
+    // 2) direct filename present in zip
+    let u = mediaURLForKey(src, files);
+    if (u) return u;
+
+    // 3) map via media.json if available
+    const idx = reverseMap[src];
+    if (idx !== undefined) {
+      u = mediaURLForKey(idx, files);
+      if (u) return u;
+    }
+
+    // 4) heuristic by extension (only if unique)
+    const extMatch = src.toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (extMatch) {
+      const ext = extMatch[1];
+      const candidates = extIndex[ext] || [];
+      if (candidates.length === 1) {
+        u = mediaURLForKey(candidates[0], files);
+        if (u) return u;
+      }
+    }
+
+    unresolvedNames.add(src);
+    return null;
+  }
+
+  function replaceAll(html) {
     html = html.replace(imgIdxRE, (m, src) => {
       diagnostics.total++;
-      let url = null;
-      if (/^\d+$/.test(src)) url = mediaURLByIndex(src, mediaMap, files);
-      if (!url) url = mediaURLByName(src, reverseMap, files);
+      const url = resolveByNameOrIndex(src);
       if (!url) return m;
       diagnostics.resolved++;
       return m.replace(src, url);
     });
-
-    // AUDIO tag with src
     html = html.replace(audioIdxRE, (m, src) => {
       diagnostics.total++;
-      let url = null;
-      if (/^\d+$/.test(src)) url = mediaURLByIndex(src, mediaMap, files);
-      if (!url) url = mediaURLByName(src, reverseMap, files);
+      const url = resolveByNameOrIndex(src);
       if (!url) return m;
       diagnostics.resolved++;
       return m.replace(src, url);
     });
-
-    // [sound:foo.mp3] → <audio controls>
     html = html.replace(soundTagRE, (m, name) => {
       diagnostics.total++;
-      let url = mediaURLByName(name, reverseMap, files);
-      if (!url) {
-        // Some decks reference numeric names in [sound:42]
-        if (/^\d+$/.test(name)) url = mediaURLByIndex(name, mediaMap, files);
-      }
-      if (!url) return m; // keep original if we can't map
+      const url = resolveByNameOrIndex(name);
+      if (!url) return m;
       diagnostics.resolved++;
       return `<audio controls preload="metadata" src="${url}"></audio>`;
     });
-
     return html;
-  };
+  }
+
+  return { replaceAll, unresolvedNames };
 }
 
-/* ---------- File handler ---------- */
+/* ---------- Main ---------- */
+let SQLReady = false;
+initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` }).then(db => { SQL = db; SQLReady = true; });
+
 document.getElementById('file').addEventListener('change', async (e) => {
   clearError();
+  dbgEl.style.display='none'; dbgEl.innerHTML='';
   grid.innerHTML = '';
   setLog('');
   const file = e.target.files?.[0];
@@ -266,20 +334,23 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    // Parse media mapping
+    // Parse media mapping (with peek)
     let mediaMap = {};
+    let mediaPeek = '';
     if (entries['media']) {
       try {
-        mediaMap = tryParseMedia(entries['media']);
+        const res = tryParseMediaWithPeek(entries['media']);
+        mediaMap = res.map;
+        mediaPeek = res.peek;
       } catch (mErr) {
+        const peekNote = mErr.peek ? `\n\nFirst 600 chars of media file:\n${mErr.peek}` : '';
         showError('media file is not valid JSON (salvage failed).',
-          mErr?.stack || String(mErr),
-          'We’ll continue without media mapping; images/sounds referenced by filename may not load. Try re-exporting the deck.');
-        mediaMap = {};
+          (mErr?.stack || String(mErr)) + peekNote,
+          'We’ll continue without media mapping; images/sounds referenced by filename may still load. Try re-exporting the deck.');
       }
     } // else: no media map is fine
 
-    if (!SQL) {
+    if (!SQLReady) {
       showError('SQLite engine not ready.',
         'sql.js failed to load earlier.',
         'Reload the page and try again (network hiccup).');
@@ -348,7 +419,7 @@ document.getElementById('file').addEventListener('change', async (e) => {
     for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
 
     const mediaLookups = { total: 0, resolved: 0 };
-    const replaceMedia = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
+    const { replaceAll, unresolvedNames } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
 
     // Render a small demo set
     setLog('Rendering preview…');
@@ -372,14 +443,13 @@ document.getElementById('file').addEventListener('change', async (e) => {
       let front = applyTemplate(tmpl.qfmt || '', fields, fieldNames);
       let back  = applyTemplate(tmpl.afmt || '', fields, fieldNames);
 
-      // Cloze hinting if detected
       if ((model?.type === 1) || /{{c\d+::/i.test(fields.join(' '))) {
         front = renderCloze(front);
         back  = renderCloze(back);
       }
 
-      front = replaceMedia(sanitize(front));
-      back  = replaceMedia(sanitize(back));
+      front = replaceAll(sanitize(front));
+      back  = replaceAll(sanitize(back));
 
       const el = document.createElement('div');
       el.className = 'card';
@@ -410,15 +480,61 @@ document.getElementById('file').addEventListener('change', async (e) => {
       shown++;
     }
 
+    // Final status + optional debug block
+    const unresolvedList = Array.from(unresolvedNames);
     setLog(
       `Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). ` +
       `Showing ${Math.min(24, cards.length)} as a demo.` +
       (mediaLookups.total ? ` Media: resolved ${mediaLookups.resolved}/${mediaLookups.total}.` : '')
     );
+
+    toggleDebugBtn.onclick = () => {
+      const isVisible = dbgEl.style.display === 'block';
+      if (isVisible) { dbgEl.style.display='none'; dbgEl.innerHTML=''; toggleDebugBtn.textContent='Show debug'; return; }
+
+      const hasMedia = !!entries['media'];
+      const mediaSize = hasMedia ? `${entries['media'].length} bytes` : '—';
+      const dbg =
+`<h3>Debug</h3>
+<div class="mono">
+Zip entries: ${Object.keys(entries).length}
+<br>Has media file: ${hasMedia ? '<span class="ok">yes</span>' : '<span class="warn">no</span>'}
+<br>Media size: ${escapeHtml(mediaSize)}
+<br>Resolved media: ${mediaLookups.resolved}/${mediaLookups.total}
+<br>Unresolved refs (${unresolvedList.length}): ${escapeHtml(unresolvedList.slice(0,12).join(', ') + (unresolvedList.length>12?' …':''))}
+</div>
+${mediaPeek ? `<pre>${escapeHtml('media peek (first 600 chars):\n' + mediaPeek)}</pre>` : ''}`;
+      showDebug(dbg);
+      toggleDebugBtn.textContent = 'Hide debug';
+    };
+
   } catch (e2) {
     showError('Something went wrong while processing the file.', e2?.stack || String(e2));
   }
 });
+
+/* ---------- Small helpers ---------- */
+function unzipWithWatchdog(buf, timeoutMs=20000){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const to = setTimeout(() => {
+      if (done) return;
+      done = true;
+      reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).'));
+    }, timeoutMs);
+    try {
+      fflate.unzip(buf, { consume: true }, (err, obj) => {
+        if (done) return;
+        clearTimeout(to);
+        if (err) { done = true; reject(err); }
+        else { done = true; resolve(obj); }
+      });
+    } catch (e) {
+      clearTimeout(to);
+      reject(e);
+    }
+  });
+}
 </script>
 </body>
 </html>
