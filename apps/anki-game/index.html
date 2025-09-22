@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>APKG → Lightning Drill</title>
+<title>APKG → Lightning Drill (Mirror Mode)</title>
 <style>
   :root{
     --bg:#0b0f14; --fg:#e8f0ff; --muted:#9bb0d0; --accent:#4ea1ff;
-    --good:#25d366; --bad:#ff4d6d; --panel:#121826; --panel2:#0f1522; --stroke:#243042;
+    --purple:#6c5ce7; --good:#25d366; --bad:#ff4d6d; --panel:#121826; --panel2:#0f1522; --stroke:#243042;
   }
   *{ box-sizing:border-box }
   html,body{height:100%}
   body{
     margin:0; background:#000; color:var(--fg);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    overflow:hidden; /* prevent horizontal wiggle on mobile */
+    overflow:hidden;
   }
 
   /* Animated background */
@@ -60,53 +60,61 @@
   #stats small{ font-weight:600; color:var(--muted) }
 
   main{
-    position:fixed;
-    top:64px;
-    left:0; right:0; bottom:0;
+    position:fixed; top:64px; left:0; right:0; bottom:0;
     display:grid; place-items:center;
     padding:18px max(12px, env(safe-area-inset-right)) 18px max(12px, env(safe-area-inset-left));
   }
 
-  #cardWrap{
-    width:100%;
-    display:flex; justify-content:center;
-  }
+  #cardWrap{ width:100%; display:flex; justify-content:center; }
 
   #card{
-    width: min(900px, calc(100vw - 32px)); /* tighter for mobile */
+    width: min(900px, calc(100vw - 24px)); /* tighter for mobile */
     min-height:48vh;
     background:linear-gradient(180deg, var(--panel), var(--panel2));
     border:1px solid var(--stroke); border-radius:18px; padding:22px;
     box-shadow:0 30px 80px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.02);
-    display:flex; flex-direction:column; justify-content:space-between; gap:16px;
-    position:relative; overflow:hidden;
+    display:flex; flex-direction:column; gap:16px;
+    position:relative; overflow:hidden; /* lock box shape */
   }
 
-  /* Timer bar at top of card (per-side) */
+  /* Per-side timer bar (shrinks + changes color) */
   #timerBarWrap{ height:8px; background:#102035; border-radius:999px; overflow:hidden; border:1px solid #22324d }
   #timerBar{ height:100%; width:100%; background:#27d3ff; }
 
-  /* full-card color flash */
-  #flash{
-    position:absolute; inset:0; border-radius:18px; pointer-events:none; opacity:0;
-  }
+  #flash{ position:absolute; inset:0; border-radius:18px; pointer-events:none; opacity:0; }
   .flash-anim{ animation:flash .35s ease }
-  @keyframes flash{
-    0%{opacity:0}
-    25%{opacity:.45}
-    100%{opacity:0}
-  }
-
-  #front, #back{ font-size:22px; line-height:1.45; }
-  #back{ display:none }
-  .cloze{ cursor:pointer; border-bottom:1px dashed #6aa9ff }
-  #controls{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center }
-  #reveal{ background:#6c5ce7 }
+  @keyframes flash{ 0%{opacity:0} 25%{opacity:.45} 100%{opacity:0} }
 
   #subhud{ display:flex; justify-content:space-between; align-items:center; gap:10px }
   #title{ font-weight:700; color:#cfe2ff; opacity:.9; letter-spacing:.3px }
 
-  /* Drawer (shared for Missed / Correct) */
+  /* Content areas scroll to preserve card box; media is constrained */
+  #front, #back{
+    flex:1 1 auto; min-height:0; /* allow children to scroll inside fixed box */
+    overflow:auto; font-size:22px; line-height:1.45;
+  }
+  #back{ display:none }
+
+  #front img, #back img,
+  #front video, #back video,
+  #front iframe, #back iframe,
+  #front audio, #back audio {
+    max-width:100%; height:auto; display:block;
+    max-height:60vh; /* hard cap so media never expands the box */
+    object-fit:contain;
+  }
+  #front table, #back table{ max-width:100%; overflow:auto; display:block }
+
+  /* Cloze styling (purple & bold before AND after reveal) */
+  .cloze, .cloze-reveal, .cloze .cloze-mask, .cloze .cloze-answer{
+    color:var(--purple); font-weight:700;
+  }
+  .cloze{ cursor:pointer; border-bottom:1px dashed var(--purple) }
+
+  #controls{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center }
+  #reveal{ background:var(--purple) }
+
+  /* Drawer for Missed/Correct (no pause overlay shown; session silently paused) */
   #drawer{
     position:fixed; top:64px; right:0; width:min(560px, 94vw); height:calc(100% - 64px);
     background:linear-gradient(180deg, #0f1522, #0c1220); border-left:1px solid #22324d;
@@ -124,13 +132,13 @@
   .listItem .front{ font-weight:700; color:#d7e7ff; margin-bottom:6px }
   .listItem .back{ color:#b9c9e4 }
 
-  /* Start Modal + Pause overlay + Summary */
+  /* Start modal + Summary */
   .overlay{
     position:fixed; inset:0; backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center;
     background:rgba(5,10,18,.6); z-index:4;
   }
   .sheet{
-    width:min(700px, 94vw); background:linear-gradient(180deg, #10182a, #0b1324);
+    width:min(760px, 94vw); background:linear-gradient(180deg, #10182a, #0b1324);
     border:1px solid #22324d; border-radius:16px; padding:18px; box-shadow:0 30px 80px rgba(0,0,0,.45);
   }
   .optRow{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 6px }
@@ -139,14 +147,13 @@
   .sheet h2{ margin:0 0 8px 0 }
   .sheet p{ margin:6px 0 10px 0; color:#b9c9e4 }
 
-  #pausedBanner{
+  #pausedBanner{ /* only shown when the user hits Pause button, not for drawer */
     position:fixed; inset:0; z-index:5; display:none; align-items:center; justify-content:center; color:#fff;
     background:rgba(10,14,24,.6); backdrop-filter:blur(6px);
   }
   #pausedBanner .tag{ font-size:18px }
   #pausedBanner .big{ font-size:42px; font-weight:900; margin-top:4px }
 
-  /* Logs */
   #debug{ display:none; position:fixed; left:12px; bottom:38px; font-size:12px; white-space:pre-wrap; background:#0d1626; border:1px solid #1e2c44; color:#cae8ff; padding:10px; border-radius:10px; max-width:min(70ch,92vw); z-index:5 }
   #log{ position:fixed; left:12px; bottom:10px; font-size:12px; opacity:.8; z-index:5 }
 
@@ -191,7 +198,7 @@
   </div>
 </main>
 
-<!-- Drawer (shared for Missed / Correct) -->
+<!-- Drawer (Missed / Correct) — silently pauses in background; no overlay -->
 <aside id="drawer" aria-label="Items list">
   <header>
     <div style="display:flex;align-items:center;gap:10px;padding-left:8px">
@@ -214,7 +221,7 @@
 <div id="startOverlay" class="overlay" style="display:none">
   <div class="sheet">
     <h2>Lightning Drill — Per-Card Timers</h2>
-    <p>Choose how long to allow per side. Front auto-reveals at 0; Back auto-advances (as Missed) at 0.</p>
+    <p>Front auto-reveals at 0; Back auto-advances (as Missed) at 0. “Mirror Anki order” builds an Anki-like daily queue (only due + limits + new order + bury siblings).</p>
     <div class="field">
       <label for="frontSec"><b>Front time</b></label>
       <input id="frontSec" type="number" min="1" value="12" /> <span class="tag">seconds</span>
@@ -222,6 +229,10 @@
     <div class="field">
       <label for="backSec"><b>Back time</b></label>
       <input id="backSec" type="number" min="1" value="8" /> <span class="tag">seconds</span>
+    </div>
+    <div class="field">
+      <input id="mirrorToggle" type="checkbox" checked />
+      <label for="mirrorToggle"><b>Mirror Anki order (recommended)</b></label>
     </div>
     <div class="optRow" style="margin-top:12px">
       <button id="startBtn">Start</button>
@@ -231,7 +242,7 @@
   </div>
 </div>
 
-<!-- Paused Overlay -->
+<!-- Paused Overlay (only when user explicitly clicks Pause) -->
 <div id="pausedBanner" class="overlay">
   <div style="text-align:center">
     <div class="tag">Session paused</div>
@@ -242,7 +253,7 @@
   </div>
 </div>
 
-<!-- Summary Overlay -->
+<!-- Summary -->
 <div id="summary" class="overlay" style="display:none">
   <div class="sheet">
     <h2>All Cards Complete</h2>
@@ -268,15 +279,11 @@
 const $ = sel => document.querySelector(sel);
 const logEl=$('#log'), dbgEl=$('#debug');
 function log(s){ logEl.textContent=s }
-function sanitize(html){ return String(html).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'') }
-function stripHtml(s){ const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||'' }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)) }
-
-/* color from remaining fraction (1 -> teal, 0 -> red) */
-function colorFor(p){
-  const start = 170; /* teal/green */
-  const end   = 0;   /* red */
-  const h = end + (start - end) * p;
+function stripHtml(s){ const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||'' }
+function sanitize(html){ return String(html).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'') }
+function colorFor(p){ // 1 -> teal/green, 0 -> red
+  const start=170, end=0; const h = end + (start - end) * p;
   return `hsl(${h}, 95%, 55%)`;
 }
 
@@ -286,22 +293,22 @@ let G = {
   entries:null, fileTable:{}, mediaMap:{}, replaceMedia:(h)=>h,
   decks:{}, models:{}, notes:[], cards:[],
   queue:[], idx:0, seen:0, got:0, missed:[], correct:[],
-  frontMs: 12000, backMs: 8000, /* configurable */
-  side: 'front', sideMsLeft: 0, running:false, paused:false,
-  lastTick:0, rafId:0, isClozeByMid:{}
+  frontMs:12000, backMs:8000, side:'front', sideMsLeft:0, running:false, paused:false,
+  lastTick:0, rafId:0, isClozeByMid:{}, useMirror:true,
+  // mirror-time context
+  nowSec:0, crt:0, today:0, dayCutoffSec:4*3600
 };
 
 /* elements */
 const els={
   file:$('#file'), showStart:$('#showStart'), startOverlay:$('#startOverlay'),
-  frontSec:$('#frontSec'), backSec:$('#backSec'), startBtn:$('#startBtn'), cancelStart:$('#cancelStart'),
-  deckInfo:$('#deckInfo'),
+  frontSec:$('#frontSec'), backSec:$('#backSec'), mirrorToggle:$('#mirrorToggle'),
+  startBtn:$('#startBtn'), cancelStart:$('#cancelStart'), deckInfo:$('#deckInfo'),
   card:$('#card'), flash:$('#flash'),
   front:$('#front'), back:$('#back'),
   reveal:$('#reveal'), goodBtn:$('#goodBtn'), badBtn:$('#badBtn'),
-  title:$('#title'), timerLabel:$('#timerLabel'),
+  title:$('#title'), timerLabel:$('#timerLabel'), timerBar:$('#timerBar'),
   seen:$('#seen'), got:$('#got'), miss:$('#miss'),
-  timerBar:$('#timerBar'),
   pauseBtn:$('#pauseBtn'), pausedBanner:$('#pausedBanner'), resumeBtn:$('#resumeBtn'),
   drawer:$('#drawer'), tabMiss:$('#tabMiss'), tabGot:$('#tabGot'),
   toggleMiss:$('#toggleMiss'), toggleGot:$('#toggleGot'),
@@ -311,12 +318,12 @@ const els={
 };
 let drawerMode='miss'; // 'miss' | 'got'
 
-/* ========== Load sql.js ========== */
+/* ========== sql.js ========== */
 initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` })
 .then(db => { SQL=db; SQLReady=true })
 .catch(e => alert('Failed to load SQLite (sql.js). Refresh and try again.\n'+e?.message));
 
-/* ========== ZIP + media parsing (same as before) ========== */
+/* ========== Unzip + media parsing (best effort) ========== */
 function unzipWithWatchdog(buf, timeoutMs=20000){
   return new Promise((resolve, reject) => {
     let done=false; const to=setTimeout(()=>{ if(!done){done=true; reject(new Error('Unzip timeout'))}}, timeoutMs);
@@ -396,7 +403,26 @@ function buildMediaReplacer(mediaMap, files){
   }
 }
 
-/* ========== Template + Cloze ========== */
+/* ========== Cloze templating ========== */
+// Front (target cloze): show bold purple mask "[...]" or "[hint]" until revealed
+function processClozeForOrd(text, targetIndex, side){
+  return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g,(m,n,inner,hint)=>{
+    const idx=parseInt(n,10);
+    const safeInner = (inner||'').replace(/</g,'&lt;');
+    const safeHint  = (hint||'').replace(/</g,'&lt;');
+    if(idx===targetIndex){
+      if(side==='front'){
+        const mask = safeHint ? `[${safeHint}]` : `[...]`;
+        return `<span class="cloze"><span class="cloze-mask">${mask}</span><span class="cloze-answer" style="display:none">${safeInner}</span></span>`;
+      }else{
+        // back side shows the actual answer (bold purple)
+        return `<span class="cloze-reveal">${safeInner}</span>`;
+      }
+    }
+    // Non-target clozes print their inner text (no masking)
+    return safeInner;
+  });
+}
 function applyConditionals(tpl, fields, fieldNames){
   tpl=tpl.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,(m,name,inner)=>{
     const idx=fieldNames.indexOf(name.trim()); const val=idx>=0?fields[idx]:'';
@@ -408,25 +434,13 @@ function applyConditionals(tpl, fields, fieldNames){
   });
   return tpl;
 }
+function stripClozeMarkup(s){ return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g,'$1') }
 function collectClozeFieldsFromTemplate(tpl){
   const set=new Set(); tpl.replace(/\{\{([^}]+)\}\}/g,(_m,token)=>{
     const parts=token.trim().split(':'); const field=parts.pop().trim();
     const chain=parts.map(p=>p.trim().toLowerCase());
     if(chain.includes('cloze')) set.add(field);
   }); return set;
-}
-function processClozeForOrd(text, targetIndex, side){
-  return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g,(m,n,inner,hint)=>{
-    const idx=parseInt(n,10);
-    if(idx===targetIndex){
-      if(side==='front'){ return `<span class="cloze" title="${(hint||'').replace(/"/g,'&quot;')}">[ tap to reveal ]<span style="display:none">${(inner||'').replace(/</g,'&lt;')}</span></span>` }
-      else{ return `<span class="cloze-reveal">${(inner||'').replace(/</g,'&lt;')}</span>` }
-    }
-    return (inner||'').replace(/</g,'&lt;');
-  });
-}
-function stripClozeMarkup(s){
-  return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g,'$1');
 }
 function substituteTokens(tpl, fields, fieldNames, { side, targetCloze, templateForScan }){
   const clozeFields=collectClozeFieldsFromTemplate(templateForScan||tpl);
@@ -451,18 +465,17 @@ function collapseExactDuplicate(html){
   return keep.join('<br>');
 }
 
-/* ========== Game Engine ========== */
-function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [arr[i],arr[j]]=[arr[j],arr[i]] } }
+/* ========== Game engine ========== */
 function updateCounts(){
   els.seen.textContent=G.seen; els.got.textContent=G.got; els.miss.textContent=G.missed.length;
-  $('#toggleMiss').textContent = `Missed (${G.missed.length})`;
-  $('#toggleGot').textContent  = `Correct (${G.correct.length})`;
+  els.toggleMiss.textContent = `Missed (${G.missed.length})`;
+  els.toggleGot.textContent  = `Correct (${G.correct.length})`;
 }
 function setTimerBarFrac(frac){
   const p = clamp(frac, 0, 1);
   els.timerBar.style.width = (p*100).toFixed(2)+'%';
   const c = colorFor(p);
-  els.timerBar.style.background = `linear-gradient(90deg, ${c}, ${c})`;
+  els.timerBar.style.background = c; /* solid color that shifts with time */
 }
 function setSideLabel(){
   const secLeft = Math.ceil(G.sideMsLeft/1000);
@@ -470,12 +483,56 @@ function setSideLabel(){
 }
 function flash(color){
   els.flash.style.background = color;
-  els.flash.classList.remove('flash-anim'); /* restart animation */
-  void els.flash.offsetWidth;
+  els.flash.classList.remove('flash-anim'); void els.flash.offsetWidth;
   els.flash.classList.add('flash-anim');
 }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [arr[i],arr[j]]=[arr[j],arr[i]] } }
 
-function buildQueue(cards){ G.queue=cards.slice(); shuffle(G.queue); G.idx=0 }
+/* ===== Mirror Mode: approximate Anki queue building ===== */
+function computeToday(nowSec, crt, cutoffSec){
+  const DAY=86400;
+  return Math.floor((nowSec - cutoffSec)/DAY) - Math.floor((crt - cutoffSec)/DAY);
+}
+function buildAnkiLikeQueue(cards, decksById){
+  const nowSec = G.nowSec, today = G.today;
+
+  // Buckets by queue/type
+  const learnNow   = cards.filter(c => c.queue===1 && c.due <= nowSec).sort((a,b)=>a.due-b.due || a.id-b.id);
+  const learnToday = cards.filter(c => c.queue===3 && c.due <= today).sort((a,b)=>a.due-b.due || a.id-b.id);
+  let reviews      = cards.filter(c => c.queue===2 && c.due <= today);
+  let news         = cards.filter(c => c.queue===0 || c.type===0);
+
+  // Reviews: due date then random within same due
+  if (reviews.length){
+    const groups = new Map();
+    for (const c of reviews){ (groups.get(c.due)||groups.set(c.due,[]).get(c.due)).push(c); }
+    reviews = Array.from([...groups.keys()].sort((a,b)=>a-b))
+      .flatMap(k => { const g=groups.get(k); shuffle(g); return g });
+  }
+
+  // News: gather across subdecks alphabetically, then by position (due asc)
+  news.sort((a,b)=>{
+    const da=(decksById[a.did]||'').localeCompare(decksById[b.did]||''); if(da) return da;
+    return (a.due - b.due) || (a.id - b.id);
+  });
+
+  // Simple daily caps (fallback when presets unavailable)
+  const newPerDay=20, revPerDay=200;
+  news = news.slice(0,newPerDay);
+  reviews = reviews.slice(0,revPerDay);
+
+  // Bury siblings for new/review (same nid only once)
+  const seenNote=new Set();
+  const bury = arr => arr.filter(c => seenNote.has(c.nid)? false : (seenNote.add(c.nid), true));
+  const ReviewsQ = bury(reviews);
+  const NewsQ    = bury(news);
+
+  // Interleave: learning-now first, then reviews, interday learn, then new
+  const queue = [...learnNow, ...ReviewsQ, ...learnToday, ...NewsQ];
+  return queue;
+}
+
+/* ===== Render current card ===== */
 function renderCurrent(){
   if(!G.queue.length){ finishSession(); return }
   const card = G.queue[G.idx];
@@ -505,15 +562,13 @@ function renderCurrent(){
   G.side='front'; G.sideMsLeft=G.frontMs; setSideLabel(); setTimerBarFrac(1);
 }
 
+/* ===== Transitions & timing ===== */
 function reveal(){
-  if(els.back.style.display==='block'){ // already revealed -> no-op
-    return;
-  }
+  if(els.back.style.display==='block') return;
   els.front.style.display='none';
   els.back.style.display='block';
   G.side='back'; G.sideMsLeft=G.backMs; setSideLabel(); setTimerBarFrac(1);
 }
-
 function nextCard(incrementSeen=true){
   if(incrementSeen) G.seen++;
   updateCounts();
@@ -521,8 +576,7 @@ function nextCard(incrementSeen=true){
   if(G.idx>=G.queue.length){ finishSession(); return }
   renderCurrent();
 }
-
-function handleAnswer(ok, clientXY=null){
+function handleAnswer(ok){
   if(ok){
     G.got++;
     G.correct.push({ id:G.queue[G.idx].id, front:els.front.innerHTML, back:els.back.innerHTML });
@@ -534,48 +588,42 @@ function handleAnswer(ok, clientXY=null){
   updateCounts();
   nextCard(true);
 }
-
-/* timeout behavior */
 function handleTimeout(){
-  if(G.side==='front'){
-    reveal(); // flip automatically
-  }else{
-    // treat as missed on back timeout
-    handleAnswer(false);
-  }
+  if(G.side==='front'){ reveal() } else { handleAnswer(false) }
 }
 
-/* main loop with rAF */
+/* rAF loop */
 function loop(ts){
-  if(!G.running){ return }
+  if(!G.running) return;
   if(!G.paused){
     if(!G.lastTick) G.lastTick = ts;
-    const dt = ts - G.lastTick;
-    G.lastTick = ts;
-    G.sideMsLeft -= dt;
-    setSideLabel();
+    const dt = ts - G.lastTick; G.lastTick = ts;
+    G.sideMsLeft -= dt; setSideLabel();
     setTimerBarFrac(G.sideMsLeft / (G.side==='front' ? G.frontMs : G.backMs));
-    if(G.sideMsLeft <= 0){
-      handleTimeout();
-      // reset lastTick so next frame doesn't double subtract
-      G.lastTick = ts;
-    }
+    if(G.sideMsLeft <= 0){ handleTimeout(); G.lastTick = ts; }
   }
   G.rafId = requestAnimationFrame(loop);
 }
 
-/* pause/resume */
-function pause(){ if(!G.running || G.paused) return; G.paused=true; els.pausedBanner.style.display='flex' }
-function resume(){ if(!G.running || !G.paused) return; G.paused=false; els.pausedBanner.style.display='none'; G.lastTick=0 }
+/* Pause/resume: optional overlay */
+function pause(showOverlay=true){
+  if(!G.running || G.paused) return;
+  G.paused=true;
+  if(showOverlay) els.pausedBanner.style.display='flex';
+}
+function resume(){
+  if(!G.running || !G.paused) return;
+  G.paused=false; els.pausedBanner.style.display='none'; G.lastTick=0;
+}
 
-/* drawer (pause on open, resume on close) */
+/* Drawer (no overlay; silently paused) */
 function openDrawer(mode){
-  drawerMode = mode;
+  drawerMode=mode;
   els.tabMiss.classList.toggle('sel', mode==='miss');
   els.tabGot.classList.toggle('sel',  mode==='got');
   renderDrawer();
   els.drawer.classList.add('open');
-  pause();
+  pause(false); // pause silently, no overlay
 }
 function closeDrawer(){ els.drawer.classList.remove('open'); resume() }
 function renderDrawer(){
@@ -603,13 +651,23 @@ function exportActiveListCSV(){
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
-/* session controls */
-function startSession(){
+/* Session lifecycle */
+function buildQueueFromSettings(baseCards){
+  if(!G.useMirror){
+    const arr=baseCards.slice(); shuffle(arr); return arr;
+  }
+  // Prepare deck name map
+  const decksById={}; for(const [id,d] of Object.entries(G.decks)){ decksById[id] = d?.name || d?.nm || String(id) }
+  // Build an Anki-like queue from the provided set
+  return buildAnkiLikeQueue(baseCards, decksById);
+}
+function startSession(cardsSubset=null){
   G.running=true; G.paused=false; G.lastTick=0;
+  const base = cardsSubset || G.cards;
+  G.queue = buildQueueFromSettings(base);
+  G.idx=0; renderCurrent();
+  cancelAnimationFrame(G.rafId); G.rafId = requestAnimationFrame(loop);
   els.pauseBtn.disabled=false;
-  renderCurrent();
-  cancelAnimationFrame(G.rafId);
-  G.rafId = requestAnimationFrame(loop);
 }
 function finishSession(){
   G.running=false;
@@ -641,13 +699,14 @@ els.file.addEventListener('change', async (e)=>{
   log('Opening SQLite…');
   let db; try{ db = new SQL.Database(dbEntry) }catch(e){ alert('SQLite open failed: '+e?.message); return }
 
-  // load col metadata
-  let models={}, decks={};
+  // Load col (for models, decks, crt)
+  let models={}, decks={}, crt=0;
   try{
     const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
     if(!col) throw new Error('no col rows');
     const row = Object.fromEntries(col.columns.map((c,i)=>[c,col.values[0][i]]));
     models = JSON.parse(row.models); decks = JSON.parse(row.decks);
+    crt = Number(row.crt)||0;
   }catch(e){ alert('Failed to read collection metadata.'); return }
 
   // notes
@@ -656,19 +715,23 @@ els.file.addEventListener('change', async (e)=>{
     if(r){ for(const v of r.values){ notes.push(Object.fromEntries(r.columns.map((c,i)=>[c,v[i]]))) } }
   }catch(e){ alert('Failed to read notes table.'); return }
 
-  // cards
+  // cards (include scheduler columns)
   const cards=[]; try{
-    const r=db.exec(`SELECT id,nid,did,ord FROM cards`)[0];
+    const r=db.exec(`SELECT id,nid,did,ord,type,queue,due,ivl FROM cards`)[0];
     if(r){ for(const v of r.values){ cards.push(Object.fromEntries(r.columns.map((c,i)=>[c,v[i]]))) } }
   }catch(e){ alert('Failed to read cards table.'); return }
 
   // Prepare globals
   G.entries=entries; G.fileTable=fileTable; G.mediaMap=mediaMap; G.replaceMedia=replaceMedia;
-  G.decks=decks; G.models=models; G.notes=notes; G.cards=cards;
+  G.decks=decks; G.models=models; G.notes=notes; G.cards=cards; G.crt=crt;
   G.isClozeByMid={}; for(const [mid, m] of Object.entries(models)){ G.isClozeByMid[mid] = (m?.type===1) }
 
+  // Mirror timing anchors
+  G.nowSec = Math.floor(Date.now()/1000);
+  G.today  = computeToday(G.nowSec, G.crt || G.nowSec, G.dayCutoffSec);
+
+  // Reset counters
   G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
-  buildQueue(G.cards);
 
   els.showStart.disabled=false;
   els.deckInfo.textContent=`Decks: ${Object.values(decks).length} · Cards: ${cards.length} · Notes: ${notes.length}`;
@@ -682,26 +745,27 @@ els.cancelStart.addEventListener('click', ()=>{ els.startOverlay.style.display='
 els.startBtn.addEventListener('click', ()=>{
   G.frontMs = Math.max(1, parseInt(els.frontSec.value||'12',10)) * 1000;
   G.backMs  = Math.max(1, parseInt(els.backSec.value||'8',10))  * 1000;
+  G.useMirror = !!els.mirrorToggle.checked;
   els.startOverlay.style.display='none';
   startSession();
 });
-els.pauseBtn.addEventListener('click', ()=>{ G.paused? resume() : pause() });
+els.pauseBtn.addEventListener('click', ()=>{ G.paused? resume() : pause(true) });
 els.resumeBtn.addEventListener('click', ()=>{ resume() });
 
-/* Drawer buttons pause automatically */
+/* Drawer buttons (silent pause) */
 els.toggleMiss.addEventListener('click', ()=>{ openDrawer('miss') });
 els.toggleGot.addEventListener('click',  ()=>{ openDrawer('got')  });
 els.tabMiss.addEventListener('click', ()=>{ openDrawer('miss') });
 els.tabGot.addEventListener('click',  ()=>{ openDrawer('got')  });
 els.exportList.addEventListener('click', exportActiveListCSV);
 els.studyList.addEventListener('click', ()=>{
-  const ids = new Set( (drawerMode==='miss' ? G.missed : G.correct).map(m=>m.id) );
+  const items = (drawerMode==='miss') ? G.missed : G.correct;
+  const ids = new Set(items.map(m=>m.id));
   if(!ids.size){ alert('Nothing to study here.'); return }
   const subset = G.cards.filter(c=>ids.has(c.id));
   closeDrawer();
   G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
-  buildQueue(subset);
-  startSession();
+  startSession(subset);
 });
 els.closeDrawer.addEventListener('click', closeDrawer);
 
@@ -709,7 +773,6 @@ els.closeDrawer.addEventListener('click', closeDrawer);
 els.restartBtn.addEventListener('click', ()=>{
   els.summary.style.display='none';
   G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
-  buildQueue(G.cards);
   startSession();
 });
 els.missOnlyBtn.addEventListener('click', ()=>{
@@ -718,8 +781,7 @@ els.missOnlyBtn.addEventListener('click', ()=>{
   const subset = G.cards.filter(c=>ids.has(c.id));
   if(!subset.length){ alert('No missed items.'); return }
   G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
-  buildQueue(subset);
-  startSession();
+  startSession(subset);
 });
 els.closeSummary.addEventListener('click', ()=>{ els.summary.style.display='none' });
 
@@ -728,20 +790,29 @@ els.reveal.addEventListener('click', ()=>reveal());
 els.goodBtn.addEventListener('click', ()=>{ if(G.side==='front') reveal(); else handleAnswer(true) });
 els.badBtn.addEventListener('click',  ()=>{ if(G.side==='front') reveal(); else handleAnswer(false) });
 
-/* Tap anywhere behavior:
-   - On front: tap = reveal
-   - On back: left half = Missed, right half = Got it
+/* Tap anywhere:
+   - Front: tap = reveal
+   - Back: left half = Missed, right half = Got it, with flash color
 */
 els.card.addEventListener('click', (e)=>{
-  // ignore clicks on buttons inside card
-  if(e.target.closest('button')) return;
-  if(G.side==='front'){
-    reveal();
-  }else{
+  if(e.target.closest('button')) return; // ignore button clicks
+  if(G.side==='front'){ reveal() }
+  else{
     const r = els.card.getBoundingClientRect();
-    const x = e.clientX;
-    if(x < r.left + r.width/2){ handleAnswer(false) } else { handleAnswer(true) }
+    if(e.clientX < r.left + r.width/2){ handleAnswer(false) } else { handleAnswer(true) }
   }
+});
+
+/* Cloze tap-to-reveal inside FRONT content */
+$('#card').addEventListener('click', (ev)=>{
+  const c = ev.target.closest('.cloze'); if(!c) return;
+  if(G.side!=='front') return; // only interactive on front
+  const mask = c.querySelector('.cloze-mask');
+  const ans  = c.querySelector('.cloze-answer');
+  if(!mask || !ans) return;
+  const hidden = ans.style.display==='none';
+  ans.style.display = hidden ? 'inline' : 'none';
+  mask.style.display = hidden ? 'none' : 'inline';
 });
 
 /* Keyboard shortcuts */
@@ -749,12 +820,12 @@ window.addEventListener('keydown', (e)=>{
   if(e.key===' '){ e.preventDefault(); reveal(); return }
   if(e.key==='ArrowLeft'){ e.preventDefault(); if(G.side==='front') reveal(); else handleAnswer(false); return }
   if(e.key==='ArrowRight'){ e.preventDefault(); if(G.side==='front') reveal(); else handleAnswer(true);  return }
-  if(e.key==='p' || e.key==='P'){ e.preventDefault(); G.paused? resume() : pause(); return }
+  if(e.key==='p' || e.key==='P'){ e.preventDefault(); G.paused? resume() : pause(true); return }
   if(e.key==='m' || e.key==='M'){ e.preventDefault(); openDrawer('miss'); return }
   if(e.key==='g' || e.key==='G'){ e.preventDefault(); openDrawer('got');  return }
 });
 
-/* Init UI */
+/* Init */
 els.reveal.disabled=false; els.goodBtn.disabled=false; els.badBtn.disabled=false;
 </script>
 </body>
