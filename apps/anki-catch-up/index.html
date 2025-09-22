@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -29,11 +28,13 @@
     margin-top:12px; border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
     color:white; cursor:pointer; font-weight:600;
   }
+  button.flip:active { transform:translateY(1px) }
+  a.media { color:#7dd3fc; text-decoration:underline; }
 </style>
 </head>
 <body>
 <header>
-  <input id="file" type="file" accept=".apkg" />
+  <input id="file" type="file" accept=".apkg,.colpkg" />
   <span id="log"></span>
   <div id="error" role="alert" aria-live="polite"></div>
 </header>
@@ -41,15 +42,18 @@
 
 <!-- fflate (zip) -->
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-<!-- sql.js (SQLite in WebAssembly) -->
+
+<!-- Bubble up ANY stray errors to the on-page panel -->
 <script>
-  // Surface ANY stray errors to the on-page error panel
   window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
   window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
 </script>
+
+<!-- sql.js (SQLite in WebAssembly) -->
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
 
 <script>
+/* ---------- UI helpers ---------- */
 const grid = document.getElementById('grid');
 const log  = document.getElementById('log');
 const errEl= document.getElementById('error');
@@ -65,6 +69,7 @@ function showError(title, details='', tips=''){
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+/* ---------- Engine load ---------- */
 let SQL;
 (async () => {
   try {
@@ -73,32 +78,54 @@ let SQL;
     });
   } catch (e) {
     showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e),
-      'Check your connection and try refreshing the page.');
+      'Check your connection and refresh the page.');
   }
 })();
 
-// Async unzip with watchdog so we never get “stuck on unzipping”
+/* ---------- Resilient media.json parser ---------- */
+function tryParseMedia(bytes) {
+  const td = new TextDecoder('utf-8', { fatal: false });
+  let txt = td.decode(bytes);
+
+  // Strip BOM
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+
+  // Keep only the largest {...} span (some decks have stray bytes)
+  const firstBrace = txt.indexOf('{');
+  const lastBrace  = txt.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('media file contains no JSON object');
+  }
+  txt = txt.slice(firstBrace, lastBrace + 1);
+
+  // Remove trailing commas before } or ]
+  txt = txt.replace(/,\s*([}\]])/g, '$1');
+
+  // Remove illegal control chars (except tab/newline)
+  txt = txt.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '');
+
+  // Ensure numeric keys are quoted
+  txt = txt.replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
+
+  return JSON.parse(txt);
+}
+
+/* ---------- Unzip watchdog so we never "hang" ---------- */
 function unzipWithWatchdog(buf, timeoutMs=20000){
   return new Promise((resolve, reject) => {
     let done = false;
     const to = setTimeout(() => {
       if (done) return;
       done = true;
-      reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg (ZIP).'));
+      reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).'));
     }, timeoutMs);
 
     try {
-      // Use async API so the UI can update and the watchdog can fire if needed
       fflate.unzip(buf, { consume: true }, (err, obj) => {
         if (done) return;
         clearTimeout(to);
-        if (err) {
-          done = true;
-          reject(err);
-        } else {
-          done = true;
-          resolve(obj);
-        }
+        if (err) { done = true; reject(err); }
+        else { done = true; resolve(obj); }
       });
     } catch (e) {
       clearTimeout(to);
@@ -107,7 +134,7 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
   });
 }
 
-// Minimal cloze & template helpers from before
+/* ---------- Minimal templating & sanitization ---------- */
 function renderCloze(text){
   return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m,idx,inner,_m2,hint) => {
     return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`;
@@ -115,19 +142,84 @@ function renderCloze(text){
 }
 function applyTemplate(tpl, fields, fieldNames){
   return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
-    const name = token.split(':')[0].trim();
+    const name = token.split(':')[0].trim();     // ignore filters for now
     const idx = fieldNames.indexOf(name);
     return idx >= 0 ? (fields[idx] ?? '') : '';
   });
 }
 function sanitize(html){ return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,''); }
-function mediaURL(idx, mediaMap, files){
+
+/* ---------- Media resolution helpers ---------- */
+function mediaURLByIndex(idx, mediaMap, files){
   const name = mediaMap[idx];
   const f = files[idx] || files[name];
   if (!f) return null;
   return URL.createObjectURL(new Blob([f], {type:'application/octet-stream'}));
 }
+function mediaURLByName(name, reverseMap, files){
+  // Direct file present?
+  if (files[name]) {
+    return URL.createObjectURL(new Blob([files[name]], {type:'application/octet-stream'}));
+  }
+  // If we have reverse map name->index
+  const idx = reverseMap[name];
+  if (idx !== undefined && files[idx]) {
+    return URL.createObjectURL(new Blob([files[idx]], {type:'application/octet-stream'}));
+  }
+  return null;
+}
 
+/* ---------- Replace media in HTML (img, audio, [sound:]) ---------- */
+function buildMediaReplacer(mediaMap, files, diagnostics){
+  // Build reverse name→index map for robustness
+  const reverseMap = {};
+  for (const [k,v] of Object.entries(mediaMap)) reverseMap[v] = k;
+
+  const imgIdxRE   = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const audioIdxRE = /<audio[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const soundTagRE = /\[sound:([^\]]+)\]/gi;
+
+  return function replaceMedia(html) {
+    // IMG
+    html = html.replace(imgIdxRE, (m, src) => {
+      diagnostics.total++;
+      let url = null;
+      if (/^\d+$/.test(src)) url = mediaURLByIndex(src, mediaMap, files);
+      if (!url) url = mediaURLByName(src, reverseMap, files);
+      if (!url) return m;
+      diagnostics.resolved++;
+      return m.replace(src, url);
+    });
+
+    // AUDIO tag with src
+    html = html.replace(audioIdxRE, (m, src) => {
+      diagnostics.total++;
+      let url = null;
+      if (/^\d+$/.test(src)) url = mediaURLByIndex(src, mediaMap, files);
+      if (!url) url = mediaURLByName(src, reverseMap, files);
+      if (!url) return m;
+      diagnostics.resolved++;
+      return m.replace(src, url);
+    });
+
+    // [sound:foo.mp3] → <audio controls>
+    html = html.replace(soundTagRE, (m, name) => {
+      diagnostics.total++;
+      let url = mediaURLByName(name, reverseMap, files);
+      if (!url) {
+        // Some decks reference numeric names in [sound:42]
+        if (/^\d+$/.test(name)) url = mediaURLByIndex(name, mediaMap, files);
+      }
+      if (!url) return m; // keep original if we can't map
+      diagnostics.resolved++;
+      return `<audio controls preload="metadata" src="${url}"></audio>`;
+    });
+
+    return html;
+  };
+}
+
+/* ---------- File handler ---------- */
 document.getElementById('file').addEventListener('change', async (e) => {
   clearError();
   grid.innerHTML = '';
@@ -135,7 +227,6 @@ document.getElementById('file').addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  // Friendly heads-up for very large uploads (iOS Safari can struggle)
   if (file.size > 250 * 1024 * 1024) {
     showError('Large file warning',
       `This deck is ${(file.size/1024/1024).toFixed(1)} MB.`,
@@ -146,11 +237,11 @@ document.getElementById('file').addEventListener('change', async (e) => {
     setLog('Reading file…');
     const buf = new Uint8Array(await file.arrayBuffer());
 
-    // Quick ZIP magic check (PK\x03\x04)
+    // ZIP magic check
     if (!(buf[0]===0x50 && buf[1]===0x4b)) {
-      showError('This doesn’t look like a .apkg (ZIP).',
+      showError('This doesn’t look like a .apkg/.colpkg (ZIP).',
         'Expected ZIP header (PK).',
-        'Make sure you selected a .apkg exported from Anki.');
+        'Make sure you selected a .apkg/.colpkg exported from Anki.');
       return;
     }
 
@@ -161,11 +252,11 @@ document.getElementById('file').addEventListener('change', async (e) => {
     } catch (unzErr) {
       showError('Failed while unzipping the file.',
         unzErr?.stack || String(unzErr),
-        'The deck might be corrupted or not an .apkg. Try re-exporting it from Anki without encryption.');
+        'The deck might be corrupted or not an .apkg/.colpkg. Try re-exporting without encryption.');
       return;
     }
 
-    // Find DB and media
+    // Locate DB
     const dbEntry = entries['collection.anki21'] || entries['collection.anki2'];
     if (!dbEntry) {
       const present = Object.keys(entries).slice(0,20).join(', ') + (Object.keys(entries).length>20 ? ', …' : '');
@@ -175,18 +266,18 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
+    // Parse media mapping
     let mediaMap = {};
     if (entries['media']) {
       try {
-        mediaMap = JSON.parse(new TextDecoder().decode(entries['media']));
+        mediaMap = tryParseMedia(entries['media']);
       } catch (mErr) {
-        showError('media file is not valid JSON.',
+        showError('media file is not valid JSON (salvage failed).',
           mErr?.stack || String(mErr),
-          'Try re-exporting the deck. We’ll proceed without media map, but some images/sounds may not load.');
-        // continue with empty map
+          'We’ll continue without media mapping; images/sounds referenced by filename may not load. Try re-exporting the deck.');
         mediaMap = {};
       }
-    }
+    } // else: no media map is fine
 
     if (!SQL) {
       showError('SQLite engine not ready.',
@@ -206,6 +297,7 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
+    // Read col (models, decks)
     let models = {}, decks = {}, notes = [], cards = [];
     try {
       const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
@@ -220,6 +312,7 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
+    // Query notes/cards
     try {
       const nRes = db.exec(`SELECT id, guid, mid, flds, sfld, tags FROM notes`);
       if (nRes[0]) {
@@ -250,17 +343,24 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
+    // Build file table & diagnostics
+    const fileTable = {};
+    for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
+
+    const mediaLookups = { total: 0, resolved: 0 };
+    const replaceMedia = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
+
     // Render a small demo set
     setLog('Rendering preview…');
     grid.innerHTML = '';
-    const fileTable = {};
-    for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
 
     let shown = 0;
     for (const card of cards) {
       if (shown >= 24) break;
+
       const note = notes.find(n => n.id === card.nid);
       if (!note) continue;
+
       const model = models[String(note.mid)];
       if (!model) continue;
 
@@ -272,18 +372,11 @@ document.getElementById('file').addEventListener('change', async (e) => {
       let front = applyTemplate(tmpl.qfmt || '', fields, fieldNames);
       let back  = applyTemplate(tmpl.afmt || '', fields, fieldNames);
 
+      // Cloze hinting if detected
       if ((model?.type === 1) || /{{c\d+::/i.test(fields.join(' '))) {
         front = renderCloze(front);
         back  = renderCloze(back);
       }
-
-      const imgIdxRE = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-      const replaceMedia = (html) => html.replace(imgIdxRE, (m, src) => {
-        let url = null;
-        if (/^\d+$/.test(src)) url = mediaURL(src, mediaMap, fileTable);
-        if (!url && src in fileTable) url = mediaURL(src, mediaMap, fileTable);
-        return url ? m.replace(src, url) : m;
-      });
 
       front = replaceMedia(sanitize(front));
       back  = replaceMedia(sanitize(back));
@@ -317,7 +410,11 @@ document.getElementById('file').addEventListener('change', async (e) => {
       shown++;
     }
 
-    setLog(`Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). Showing ${Math.min(24, cards.length)} as a demo.`);
+    setLog(
+      `Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). ` +
+      `Showing ${Math.min(24, cards.length)} as a demo.` +
+      (mediaLookups.total ? ` Media: resolved ${mediaLookups.resolved}/${mediaLookups.total}.` : '')
+    );
   } catch (e2) {
     showError('Something went wrong while processing the file.', e2?.stack || String(e2));
   }
