@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>$1,100 Shift — Live Earnings (8a–4p CT)</title>
+<title>$1,100 Shift — Live Earnings (8:30a–4:30p CT)</title>
 <style>
   :root{
     --bg:#080b12;
@@ -121,7 +121,7 @@
 </head>
 <body>
   <div class="wrap" aria-live="polite">
-    <div id="odometer" aria-label="Live earnings for today's 8 a.m. to 4 p.m. Central Time shift">
+    <div id="odometer" aria-label="Live earnings for today's 8:30 a.m. to 4:30 p.m. Central Time shift">
       <span class="sym" aria-hidden="true">$</span>
 
       <div class="digit" data-role="thousands" aria-hidden="true"></div>
@@ -142,8 +142,13 @@
 
   // -------- CONFIG --------
   const SHIFT_TZ = 'America/Chicago'; // Central Time
-  const SHIFT_START_H = 8;            // 8 a.m.
-  const SHIFT_END_H   = 16;           // 4 p.m.
+
+  // UPDATED: explicit minutes for half-hour boundaries
+  const SHIFT_START_H = 8;   // 8 a.m.
+  const SHIFT_START_M = 30;  // :30
+  const SHIFT_END_H   = 16;  // 4 p.m.
+  const SHIFT_END_M   = 30;  // :30
+
   const SHIFT_TOTAL_DOLLARS = 1100;   // $1,100
   const TICK_MS = 1000;               // update every second
 
@@ -238,20 +243,19 @@
     };
   }
 
-  // Compute earned cents for "today" (Central) between 8a–4p
-  const DURATION_SEC = (SHIFT_END_H - SHIFT_START_H) * 3600; // 8 hours -> 28800 sec
+  // --- UPDATED math: second-accurate start/end and duration ---
+  const START_SEC = SHIFT_START_H * 3600 + SHIFT_START_M * 60;
+  const END_SEC   = SHIFT_END_H   * 3600 + SHIFT_END_M   * 60;
+  const DURATION_SEC = Math.max(END_SEC - START_SEC, 1); // 8 hours (28800 sec) for 8:30–4:30
   const TOTAL_CENTS  = SHIFT_TOTAL_DOLLARS * 100;
 
   function computeEarnedCents(){
     const now = chicagoNowParts();
     const nowSec = now.hour * 3600 + now.minute * 60 + now.second;
 
-    const startSec = SHIFT_START_H * 3600;
-    const endSec   = SHIFT_END_H   * 3600;
-
-    let progress = nowSec - startSec;
+    let progress = nowSec - START_SEC;
     if(progress < 0) progress = 0;
-    if(progress > (endSec - startSec)) progress = (endSec - startSec);
+    if(progress > (END_SEC - START_SEC)) progress = (END_SEC - START_SEC);
 
     // exact proportional cents; round to nearest cent for clean display
     const earned = Math.round(TOTAL_CENTS * (progress / DURATION_SEC));
