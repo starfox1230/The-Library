@@ -262,32 +262,72 @@ function applyConditionals(tpl, fields, fieldNames){
   return tpl;
 }
 
-// Substitute fields; take last segment after ":" so {{cloze:Text}} → field "Text"
-function substituteFields(tpl, fields, fieldNames){
-  return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
-    const key = token.trim();
-    if (key === 'FrontSide') return '{{FrontSide}}'; // leave for later
-    const parts = key.split(':');
-    const name  = parts[parts.length - 1].trim();
-    const idx   = fieldNames.indexOf(name);
-    return idx >= 0 ? (fields[idx] ?? '') : '';
+// Identify which fields are used with a cloze filter anywhere in this template
+function collectClozeFieldsFromTemplate(tpl){
+  const set = new Set();
+  tpl.replace(/\{\{([^}]+)\}\}/g, (_m, token) => {
+    const parts = token.trim().split(':');
+    const field = parts.pop().trim();
+    const chain = parts.map(p => p.trim().toLowerCase());
+    if (chain.includes('cloze')) set.add(field);
   });
+  return set;
 }
 
-// Cloze processor: only mask the cloze that matches this card's ord (ord+1)
-function processClozeForOrd(text, targetIndex, mode /* 'front' | 'back' */){
-  return text.replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g, (m, n, inner, hint) => {
+// Cloze: only mask the cloze that matches this card's ord (ord+1)
+function processClozeForOrd(text, targetIndex, side /* 'front' | 'back' */){
+  return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g, (m, n, inner, hint) => {
     const idx = parseInt(n,10);
     if (idx === targetIndex) {
-      if (mode === 'front') {
+      if (side === 'front') {
         return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none">${inner}</span></span>`;
       } else {
         return `<span class="cloze-reveal">${inner}</span>`;
       }
-    } else {
-      // other cloze deletions are shown normally (no masking)
-      return inner;
     }
+    return inner; // other clozes show normally
+  });
+}
+
+// Strip cloze markup completely (for non-cloze echoes like {{text:Field}})
+function stripClozeMarkup(s){
+  return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g, '$1');
+}
+
+// Substitute tokens with filter-aware logic that prevents duplicates
+function substituteTokens(tpl, fields, fieldNames, { side, targetCloze, templateForScan }){
+  const clozeFields = collectClozeFieldsFromTemplate(templateForScan || tpl);
+
+  return tpl.replace(/\{\{([^}]+)\}\}/g, (m, raw) => {
+    const token = raw.trim();
+    if (token === 'FrontSide') return '{{FrontSide}}'; // handle later
+
+    const parts = token.split(':');
+    const fieldName = parts.pop().trim();
+    const chain = parts.map(p => p.trim().toLowerCase());
+
+    const idx = fieldNames.indexOf(fieldName);
+    const val = idx >= 0 ? (fields[idx] ?? '') : '';
+
+    const hasCloze = chain.includes('cloze');
+    const hasType  = chain.includes('type');
+    const hasText  = chain.includes('text') || chain.includes('hint');
+
+    if (hasCloze) {
+      return processClozeForOrd(val, targetCloze, side);
+    }
+
+    if (hasType) {
+      return `<input class="type-answer" aria-label="type your answer" style="padding:6px 8px;border:1px solid #334;border-radius:6px;background:#0e1522;color:#eee" />`;
+    }
+
+    if (hasText) {
+      if (clozeFields.has(fieldName)) return '';
+      return stripClozeMarkup(val);
+    }
+
+    if (clozeFields.has(fieldName)) return '';
+    return val;
   });
 }
 
@@ -295,18 +335,16 @@ function sanitize(html){
   return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
 }
 
-// If a template accidentally prints the exact same content twice, collapse it.
+// Collapse obvious exact duplicate lines on the same side
 function collapseExactDuplicate(html){
-  const compact = html.replace(/\s+/g, ' ').trim();
-  if (!compact) return html;
-  const halfLen = Math.floor(compact.length/2);
-  const first = compact.slice(0, halfLen);
-  const second = compact.slice(halfLen);
-  if (first && first === second) {
-    // naïve—but handles the common "printed twice" case
-    return html.slice(0, Math.floor(html.length/2));
+  const lines = String(html).split(/(?:\r?\n|<br\s*\/?>)+/i).map(s => s.trim()).filter(Boolean);
+  const seen = new Set();
+  const keep = [];
+  for (const line of lines) {
+    const key = line.replace(/\s+/g,' ');
+    if (!seen.has(key)) { seen.add(key); keep.push(line); }
   }
-  return html;
+  return keep.join('<br>');
 }
 
 /* ===================== MEDIA REPLACER ===================== */
@@ -531,7 +569,6 @@ async function onFileChange(e){
       if (isVisible) { dbgEl.style.display='none'; dbgEl.innerHTML=''; toggleDebugBtn.textContent='Show debug'; return; }
       const hasMedia = !!entries['media'];
       const mediaSize = hasMedia ? `${entries['media'].length} bytes` : '—';
-      const unresolvedList = []; // we only show names if we recorded them; keeping simple
       const dbg =
 `<h3>Debug</h3>
 <div class="mono">
@@ -564,17 +601,16 @@ function renderNextBatch(){
     const fields = (note.flds || '').split('\x1f');
     const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) continue;
 
+    const target = card.ord + 1; // ord 0 => c1, etc.
+
     // FRONT
     let front = tmpl.qfmt || '';
     front = applyConditionals(front, fields, fieldNames);
-    front = substituteFields(front, fields, fieldNames);
-
-    const isClozeModel = !!global.isClozeModelByMid[String(note.mid)];
-    const hasClozeMarkup = /{{c\d+::/i.test(fields.join(' '));
-    if (isClozeModel || hasClozeMarkup) {
-      const target = card.ord + 1; // Anki cloze cards: ord 0 => c1, etc.
-      front = processClozeForOrd(front, target, 'front');
-    }
+    front = substituteTokens(front, fields, fieldNames, {
+      side: 'front',
+      targetCloze: target,
+      templateForScan: tmpl.qfmt
+    });
     front = replaceMedia(sanitize(front));
     front = collapseExactDuplicate(front);
 
@@ -582,11 +618,11 @@ function renderNextBatch(){
     let back = tmpl.afmt || '';
     back = back.replace(/\{\{FrontSide\}\}/g, front);
     back = applyConditionals(back, fields, fieldNames);
-    back = substituteFields(back, fields, fieldNames);
-    if (isClozeModel || hasClozeMarkup) {
-      const target = card.ord + 1;
-      back = processClozeForOrd(back, target, 'back');
-    }
+    back = substituteTokens(back, fields, fieldNames, {
+      side: 'back',
+      targetCloze: target,
+      templateForScan: tmpl.afmt
+    });
     back = replaceMedia(sanitize(back));
     back = collapseExactDuplicate(back);
 
@@ -609,7 +645,7 @@ function renderNextBatch(){
       if (b.style.display === 'block') { b.style.display='none'; f.style.display='block'; }
       else { f.style.display='none'; b.style.display='block'; }
     });
-    // Per-span reveal (already only the target cloze is masked)
+    // Per-span reveal (only the target cloze is masked)
     el.addEventListener('click', (ev) => {
       const c = ev.target.closest('.cloze');
       if (c) {
