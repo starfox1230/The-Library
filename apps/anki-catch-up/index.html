@@ -18,7 +18,7 @@
   #error h3, #debug h3 { margin:0 0 6px 0; font-size:14px }
   #error pre, #debug pre { white-space:pre-wrap; margin:6px 0 0 0; font-size:12px; opacity:.9 }
   .row { width:100%; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  main { padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+  main { padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; }
   .card {
     background:#121826; border:1px solid #243042; border-radius:12px; padding:16px; min-height:160px;
     box-shadow:0 10px 25px rgba(0,0,0,.25); display:flex; flex-direction:column; justify-content:space-between;
@@ -33,13 +33,14 @@
   button.small { padding:6px 10px; font-size:12px; background:#2b6cb0 }
   button.flip:active, button.small:active { transform:translateY(1px) }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  .cloze { cursor:pointer; border-bottom:1px dashed #6aa9ff; }
 </style>
 </head>
 <body>
 <header>
   <div class="row">
     <input id="file" type="file" accept=".apkg,.colpkg" />
-    <button id="toggleDebug" class="small">Show debug</button>
+    <button id="toggleDebug" class="small" type="button">Show debug</button>
     <span id="log"></span>
   </div>
   <div id="error" role="alert" aria-live="polite"></div>
@@ -52,16 +53,18 @@
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <!-- sql.js (SQLite in WebAssembly) -->
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
+<!-- protobufjs (for modern media maps) -->
+<script src="https://cdn.jsdelivr.net/npm/protobufjs@7.3.0/dist/protobuf.min.js"></script>
 
 <script>
-/* ---------- UI helpers ---------- */
+/* ===================== UI + GLOBAL ERRORS ===================== */
 const grid = document.getElementById('grid');
-const log  = document.getElementById('log');
-const errEl= document.getElementById('error');
-const dbgEl= document.getElementById('debug');
+const logEl  = document.getElementById('log');
+const errEl  = document.getElementById('error');
+const dbgEl  = document.getElementById('debug');
 const toggleDebugBtn = document.getElementById('toggleDebug');
 
-function setLog(msg){ log.textContent = msg; }
+function setLog(msg){ logEl.textContent = msg; }
 function clearError(){ errEl.style.display='none'; errEl.innerHTML=''; }
 function showError(title, details='', tips=''){
   errEl.style.display='block';
@@ -73,25 +76,20 @@ function showError(title, details='', tips=''){
 function showDebug(html){ dbgEl.style.display='block'; dbgEl.innerHTML = html; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* Bubble any stray errors to the page */
 window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
 window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
 
-/* ---------- Engine load ---------- */
+/* ===================== ENGINE LOAD ===================== */
 let SQLReady = false, SQL;
 initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` })
   .then(db => { SQL = db; SQLReady = true; })
   .catch(e => showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e), 'Check your connection and refresh the page.'));
 
-/* ---------- Unzip watchdog ---------- */
+/* ===================== UTIL: UNZIP WITH WATCHDOG ===================== */
 function unzipWithWatchdog(buf, timeoutMs=20000){
   return new Promise((resolve, reject) => {
     let done = false;
-    const to = setTimeout(() => {
-      if (done) return;
-      done = true;
-      reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).'));
-    }, timeoutMs);
+    const to = setTimeout(() => { if (!done){ done = true; reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).')); }}, timeoutMs);
     try {
       fflate.unzip(buf, { consume: true }, (err, obj) => {
         if (done) return;
@@ -99,47 +97,33 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
         if (err) { done = true; reject(err); }
         else { done = true; resolve(obj); }
       });
-    } catch (e) {
-      clearTimeout(to);
-      reject(e);
-    }
+    } catch (e) { clearTimeout(to); reject(e); }
   });
 }
 
-/* ---------- Media parsing: JSON / ZSTD / GZIP ---------- */
+/* ===================== MEDIA: DETECT & DECOMPRESS ===================== */
 function hasPrefix(b, ...bytes){ return bytes.every((v,i)=>b[i]===v); }
-function looksZstd(b){
-  // Zstd frame magic: 0xFD 2F B5 28; sometimes observed as 28 B5 2F FD in peek (endianness in display)
-  return (b.length>4) && (hasPrefix(b,0xFD,0x2F,0xB5,0x28) || hasPrefix(b,0x28,0xB5,0x2F,0xFD));
-}
 function looksGzip(b){ return b.length>2 && hasPrefix(b,0x1F,0x8B); }
+function looksZstd(b){ return (b.length>4) && (hasPrefix(b,0xFD,0x2F,0xB5,0x28) || hasPrefix(b,0x28,0xB5,0x2F,0xFD)); }
 
 function loadScript(url){
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
     s.src = url; s.async = true;
     s.onload = () => resolve();
-    s.onerror = (e) => reject(new Error('Failed to load ' + url));
+    s.onerror = () => reject(new Error('Failed to load ' + url));
     document.head.appendChild(s);
   });
 }
 
 async function maybeDecompressMedia(bytes){
-  // Plain JSON?
-  if (bytes[0] === 0x7B /* '{' */) return { bytes, encoding:'json' };
-  // Gzip?
+  if (bytes[0] === 0x7B /* '{' */) return { bytes, encoding:'json' }; // already JSON
   if (looksGzip(bytes)) {
-    try {
-      const out = fflate.gunzipSync(bytes);
-      return { bytes: out, encoding:'gzip' };
-    } catch(e){ throw new Error('Failed to gunzip media: ' + e.message); }
+    try { return { bytes: fflate.gunzipSync(bytes), encoding:'gzip' }; }
+    catch(e){ throw new Error('Failed to gunzip media: ' + e.message); }
   }
-  // Zstd?
   if (looksZstd(bytes)) {
-    // Lazy-load zstd codec
-    if (!window.ZstdCodec) {
-      await loadScript('https://cdn.jsdelivr.net/npm/zstd-codec@0.1.4/dist/zstd-codec.min.js');
-    }
+    if (!window.ZstdCodec) await loadScript('https://cdn.jsdelivr.net/npm/zstd-codec@0.1.4/dist/zstd-codec.min.js');
     return await new Promise((resolve, reject) => {
       try {
         window.ZstdCodec.run((zstd) => {
@@ -147,66 +131,160 @@ async function maybeDecompressMedia(bytes){
             const simple = new zstd.Simple();
             const out = simple.decompress(bytes);
             resolve({ bytes: out, encoding:'zstd' });
-          } catch(e) {
-            reject(new Error('Zstd decompression failed: ' + e.message));
-          }
+          } catch(e) { reject(new Error('Zstd decompression failed: ' + e.message)); }
         });
-      } catch(e) {
-        reject(new Error('Zstd runtime failed to initialize: ' + e.message));
-      }
+      } catch(e) { reject(new Error('Zstd runtime failed to initialize: ' + e.message)); }
     });
   }
-  // Unknown - return as-is and let salvage parser try
   return { bytes, encoding:'unknown' };
 }
 
+/* ===================== MEDIA: JSON + PROTO PARSING ===================== */
 function tryParseMediaTextToMap(txt){
-  // Strip BOM
   if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
-  // Keep largest {...}
   const firstBrace = txt.indexOf('{');
   const lastBrace  = txt.lastIndexOf('}');
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
     throw new Error('media file contains no JSON object');
   }
   txt = txt.slice(firstBrace, lastBrace + 1);
-  // Cleanups
   txt = txt.replace(/,\s*([}\]])/g, '$1')
            .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
-           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3'); // quote numeric keys
+           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
   return JSON.parse(txt);
+}
+
+async function decodeProtoMedia(bytes) {
+  const urls = [
+    "https://cdn.jsdelivr.net/gh/ankitects/anki@stable/proto/anki/import_export.proto",
+    "https://cdn.jsdelivr.net/gh/ankitects/anki@main/proto/anki/import_export.proto"
+  ];
+  let root = null, lastErr = null;
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { cache: "force-cache" });
+      if (!r.ok) continue;
+      const text = await r.text();
+      root = protobuf.parse(text).root;
+      break;
+    } catch (e) { lastErr = e; }
+  }
+  if (!root) throw new Error("Couldn’t load Anki proto (" + (lastErr?.message||"") + ")");
+
+  const likely = ["anki.import_export.MediaMap", "anki.import_export.MediaEntries", "anki.import_export.Media"]
+    .map(t => root.lookupTypeOrEnum(t)).filter(Boolean);
+
+  const all = [];
+  (function walk(ns) {
+    for (const k of Object.keys(ns.nested||{})) {
+      const v = ns.nested[k];
+      if (v.fields) all.push(v);
+      if (v.nested) walk(v);
+    }
+  })(root);
+
+  const candidates = [...new Set([...likely.map(t => root.lookupType(t)), ...all])];
+
+  const toMap = (obj) => {
+    // direct { files: { "0": "name.jpg", ... } }
+    for (const [k,v] of Object.entries(obj||{})) {
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        const vals = Object.values(v);
+        if (vals.length && vals.every(x => typeof x === "string")) return v;
+      }
+    }
+    // repeated entries [{index|id, filename|name}, ...]
+    const scan = (o) => {
+      for (const v of Object.values(o||{})) {
+        if (Array.isArray(v) && v.length && typeof v[0] === "object") {
+          const hasIdx = ("index" in v[0]) || ("id" in v[0]);
+          const hasNm  = ("filename" in v[0]) || ("name" in v[0]);
+          if (hasIdx && hasNm) {
+            const map = {};
+            for (const it of v) {
+              const key = (it.index ?? it.id);
+              const name = (it.filename ?? it.name);
+              if (key != null && typeof name === "string") map[String(key)] = name;
+            }
+            if (Object.keys(map).length) return map;
+          }
+        }
+      }
+      return null;
+    };
+    return scan(obj);
+  };
+
+  for (const T of candidates) {
+    try {
+      const msg = T.decode(bytes);
+      const map = toMap(msg);
+      if (map) return map;
+    } catch { /* try next */ }
+  }
+  throw new Error("Decoded protobuf, but couldn’t recognize media map layout.");
 }
 
 async function parseMediaEntry(entryBytes){
   const td = new TextDecoder('utf-8', { fatal:false });
-  const peek = escapeHtml(td.decode(entryBytes.slice(0, 600)));
-  const { bytes, encoding } = await maybeDecompressMedia(entryBytes);
-  let map, usedEncoding = encoding;
+  const peek = escapeHtml(td.decode(entryBytes.slice(0, 80)));
+  let { bytes, encoding } = await maybeDecompressMedia(entryBytes);
+
+  // JSON after decompression?
+  if (bytes[0] === 0x7B /* '{' */) {
+    return { map: tryParseMediaTextToMap(td.decode(bytes)), encoding: encoding || 'json', peek };
+  }
+  // Try protobuf (modern exports)
   try {
-    map = tryParseMediaTextToMap(td.decode(bytes));
+    const map = await decodeProtoMedia(bytes);
+    return { map, encoding: (encoding ? encoding + "/protobuf" : "protobuf"), peek };
   } catch (e) {
     e.peek = peek;
     throw e;
   }
-  return { map, encoding: usedEncoding, peek };
 }
 
-/* ---------- Template & sanitization ---------- */
-function renderCloze(text){
-  return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m,idx,inner,_m2,hint) => {
-    return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`;
+/* ===================== TEMPLATING + SANITIZE ===================== */
+// Conditionals: {{#Field}}...{{/Field}} (show if non-empty), {{^Field}}...{{/Field}} (show if empty)
+function applyConditionals(tpl, fields, fieldNames){
+  tpl = tpl.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, inner) => {
+    const idx = fieldNames.indexOf(name.trim());
+    const val = idx >= 0 ? fields[idx] : '';
+    return String(val).trim() ? inner : '';
   });
+  tpl = tpl.replace(/\{\{\^([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, inner) => {
+    const idx = fieldNames.indexOf(name.trim());
+    const val = idx >= 0 ? fields[idx] : '';
+    return String(val).trim() ? '' : inner;
+  });
+  return tpl;
 }
-function applyTemplate(tpl, fields, fieldNames){
+
+// Substitute fields; take the last segment after ":" so {{cloze:Text}} → field "Text"
+function substituteFields(tpl, fields, fieldNames){
   return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
-    const name = token.split(':')[0].trim(); // ignore filters for now
-    const idx = fieldNames.indexOf(name);
+    const key = token.trim();
+    if (key === 'FrontSide') return '{{FrontSide}}'; // leave; we will inject computed front later
+    const parts = key.split(':');
+    const name  = parts[parts.length - 1].trim();
+    const idx   = fieldNames.indexOf(name);
     return idx >= 0 ? (fields[idx] ?? '') : '';
   });
 }
-function sanitize(html){ return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,''); }
 
-/* ---------- Media heuristics & replacer ---------- */
+// Very simple cloze visual
+function renderCloze(text){
+  return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m, idx, inner, _rest, hint) =>
+    `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`
+  );
+}
+
+function sanitize(html){
+  // Strip script tags only (swap for DOMPurify in production)
+  return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
+}
+
+/* ===================== MEDIA REPLACER ===================== */
 function sniffExt(bytes){
   const b = bytes;
   const s = (...seq) => seq.every((v,i)=>b[i]===v);
@@ -224,6 +302,7 @@ function sniffExt(bytes){
   } catch {}
   return 'bin';
 }
+
 function buildHeuristicIndex(entries){
   const extIndex = {};
   const isMediaKey = k => /^\d+(\.[A-Za-z0-9]+)?$/.test(k) || /^[^/]+\.[A-Za-z0-9]+$/.test(k);
@@ -235,11 +314,13 @@ function buildHeuristicIndex(entries){
   }
   return extIndex;
 }
+
 function mediaURLForKey(key, files){
   const bytes = files[key];
   if (!bytes) return null;
   return URL.createObjectURL(new Blob([bytes], {type:'application/octet-stream'}));
 }
+
 function buildMediaReplacer(mediaMap, files, diagnostics){
   const reverseMap = {};
   for (const [k,v] of Object.entries(mediaMap)) reverseMap[v] = k;
@@ -254,9 +335,9 @@ function buildMediaReplacer(mediaMap, files, diagnostics){
     if (/^\d+$/.test(src)) { const u = mediaURLForKey(src, files); if (u) return u; }
     let u = mediaURLForKey(src, files); if (u) return u;
     const idx = reverseMap[src]; if (idx!==undefined) { u = mediaURLForKey(idx, files); if (u) return u; }
-    const extMatch = src.toLowerCase().match(/\.([a-z0-9]+)$/);
-    if (extMatch) {
-      const ext = extMatch[1], candidates = extIndex[ext] || [];
+    const em = src.toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (em) {
+      const ext = em[1], candidates = extIndex[ext] || [];
       if (candidates.length === 1) { u = mediaURLForKey(candidates[0], files); if (u) return u; }
     }
     unresolvedNames.add(src);
@@ -271,7 +352,7 @@ function buildMediaReplacer(mediaMap, files, diagnostics){
   return { replaceAll, unresolvedNames };
 }
 
-/* ---------- Main ---------- */
+/* ===================== MAIN ===================== */
 document.getElementById('file').addEventListener('change', async (e) => {
   clearError(); dbgEl.style.display='none'; dbgEl.innerHTML=''; grid.innerHTML = ''; setLog('');
   const file = e.target.files?.[0]; if (!file) return;
@@ -303,7 +384,8 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    const dbEntry = entries['collection.anki21'] || entries['collection.anki2'];
+    // Find DB (also accept .anki21b variants in some bundles)
+    const dbEntry = entries['collection.anki21'] || entries['collection.anki21b'] || entries['collection.anki2'];
     if (!dbEntry) {
       const present = Object.keys(entries).slice(0,20).join(', ') + (Object.keys(entries).length>20 ? ', …' : '');
       showError('Could not find collection.anki21/.anki2 in this package.',
@@ -312,17 +394,18 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    // Parse media (JSON / ZSTD / GZIP), with debug
+    // Parse media mapping (JSON / ZSTD / GZIP / Protobuf)
     let mediaMap = {}, mediaPeek = '', mediaEncoding = 'none';
     if (entries['media']) {
       try {
         const parsed = await parseMediaEntry(entries['media']);
         mediaMap = parsed.map;
-        mediaPeek = parsed.peek;
-        mediaEncoding = parsed.encoding;
+        mediaPeek = parsed.peek || '';
+        mediaEncoding = parsed.encoding || 'json';
       } catch (mErr) {
-        const peekNote = mErr.peek ? `\n\nFirst 600 chars of media file:\n${mErr.peek}` : '';
-        showError('media file could not be parsed.', (mErr?.stack || String(mErr)) + peekNote,
+        const td = new TextDecoder('utf-8', { fatal:false });
+        const peek = mErr.peek || escapeHtml(td.decode(entries['media'].slice(0,80)));
+        showError('media file could not be parsed.', (mErr?.stack || String(mErr)) + `\n\nFirst bytes:\n${peek}`,
           'We’ll continue without media mapping; images/sounds referenced by filename may still load. Try re-exporting the deck.');
         mediaEncoding = 'unparsed';
       }
@@ -386,7 +469,6 @@ document.getElementById('file').addEventListener('change', async (e) => {
     // Files table & media replacer
     const fileTable = {};
     for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
-
     const mediaLookups = { total: 0, resolved: 0 };
     const { replaceAll, unresolvedNames } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
 
@@ -397,26 +479,39 @@ document.getElementById('file').addEventListener('change', async (e) => {
     let shown = 0;
     for (const card of cards) {
       if (shown >= 24) break;
+
       const note = notes.find(n => n.id === card.nid); if (!note) continue;
       const model = models[String(note.mid)]; if (!model) continue;
+
       const fieldNames = (model?.flds || []).map(f => f.name);
       const fields = (note.flds || '').split('\x1f');
       const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) continue;
 
-      let front = applyTemplate(tmpl.qfmt || '', fields, fieldNames);
-      let back  = applyTemplate(tmpl.afmt || '', fields, fieldNames);
-
-      if ((model?.type === 1) || /{{c\d+::/i.test(fields.join(' '))) {
-        front = renderCloze(front);
-        back  = renderCloze(back);
-      }
-
+      // FRONT
+      let front = tmpl.qfmt || '';
+      front = applyConditionals(front, fields, fieldNames);
+      front = substituteFields(front, fields, fieldNames);
+      const isCloze = (model?.type === 1) || /{{c\d+::/i.test(fields.join(' '));
+      if (isCloze) front = renderCloze(front);
       front = replaceAll(sanitize(front));
-      back  = replaceAll(sanitize(back));
 
+      // BACK (with {{FrontSide}})
+      let back = tmpl.afmt || '';
+      back = back.replace(/\{\{FrontSide\}\}/g, front);
+      back = applyConditionals(back, fields, fieldNames);
+      back = substituteFields(back, fields, fieldNames);
+      if (isCloze) back = renderCloze(back);
+      back = replaceAll(sanitize(back));
+
+      // Model CSS
+      const modelCss = model?.css || '';
+      const styleTag = modelCss ? `<style>${modelCss}</style>` : '';
+
+      // Build card
       const el = document.createElement('div');
       el.className = 'card';
       el.innerHTML = `
+        ${styleTag}
         <div class="front">${front || '(empty front)'}</div>
         <div class="back">${back || '(empty back)'}</div>
         <div class="meta">Deck: ${escapeHtml(decks[card.did]?.name || String(card.did))} • NoteType: ${escapeHtml(model.name||'')} • ord: ${card.ord}</div>
@@ -465,8 +560,7 @@ Zip entries: ${Object.keys(entries).length}
 <br>Media encoding detected: ${escapeHtml(mediaEncoding)}
 <br>Resolved media: ${mediaLookups.resolved}/${mediaLookups.total}
 <br>Unresolved refs (${unresolvedList.length}): ${escapeHtml(unresolvedList.slice(0,12).join(', ') + (unresolvedList.length>12?' …':''))}
-</div>
-${mediaPeek && mediaEncoding!=='zstd' && mediaEncoding!=='gzip' ? `<pre>${escapeHtml('media peek (first 600 chars):\n' + mediaPeek)}</pre>` : ''}`;
+</div>`;
       showDebug(dbg);
       toggleDebugBtn.textContent = 'Hide debug';
     };
