@@ -9,11 +9,12 @@
     --bg:#0b0f14; --fg:#e8f0ff; --muted:#9bb0d0; --accent:#4ea1ff;
     --good:#25d366; --bad:#ff4d6d; --panel:#121826; --panel2:#0f1522; --stroke:#243042;
   }
+  *{ box-sizing:border-box }
   html,body{height:100%}
   body{
-    margin:0; background:#000;
-    color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    overflow:hidden;
+    margin:0; background:#000; color:var(--fg);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden; /* prevent horizontal wiggle on mobile */
   }
 
   /* Animated background */
@@ -37,7 +38,8 @@
 
   header{
     position:relative; z-index:2; display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-    padding:12px 14px; border-bottom:1px solid #0f1a2a; background:linear-gradient(180deg, rgba(10,16,28,.7), rgba(10,16,28,.25));
+    padding:12px 14px; border-bottom:1px solid #0f1a2a;
+    background:linear-gradient(180deg, rgba(10,16,28,.7), rgba(10,16,28,.25));
     backdrop-filter:blur(8px);
   }
   input[type=file]{ background:#0e1522; border:1px solid #1c2a3f; color:var(--fg); padding:8px; border-radius:10px }
@@ -49,52 +51,80 @@
   button.ghost{ background:#0f1522; color:var(--fg); border:1px solid #263246; box-shadow:none }
   button.good{ background:var(--good) } button.bad{ background:var(--bad) }
   button:active{ transform:translateY(1px) }
-
   .tag{ font-size:12px; opacity:.85; color:var(--muted) }
   .sep{ width:1px; height:28px; background:#1b283d; margin:0 6px }
 
-  #hud{
-    position:relative; z-index:1; display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-left:auto;
-  }
-  #timer, #stats{ padding:6px 10px; border-radius:10px; background:#0f1522; border:1px solid #1f2b40; font-weight:700 }
+  #hud{ margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  #timerLabel{ padding:6px 10px; border-radius:10px; background:#0f1522; border:1px solid #1f2b40; font-weight:700 }
+  #stats{ padding:6px 10px; border-radius:10px; background:#0f1522; border:1px solid #1f2b40; font-weight:700 }
   #stats small{ font-weight:600; color:var(--muted) }
 
   main{
-    position:fixed; inset:64px 0 0 0; display:grid; place-items:center; padding:18px;
+    position:fixed;
+    top:64px;
+    left:0; right:0; bottom:0;
+    display:grid; place-items:center;
+    padding:18px max(12px, env(safe-area-inset-right)) 18px max(12px, env(safe-area-inset-left));
   }
+
+  #cardWrap{
+    width:100%;
+    display:flex; justify-content:center;
+  }
+
   #card{
-    width:min(900px, 92vw); min-height:48vh;
+    width: min(900px, calc(100vw - 32px)); /* tighter for mobile */
+    min-height:48vh;
     background:linear-gradient(180deg, var(--panel), var(--panel2));
     border:1px solid var(--stroke); border-radius:18px; padding:22px;
     box-shadow:0 30px 80px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.02);
     display:flex; flex-direction:column; justify-content:space-between; gap:16px;
+    position:relative; overflow:hidden;
   }
+
+  /* Timer bar at top of card (per-side) */
+  #timerBarWrap{ height:8px; background:#102035; border-radius:999px; overflow:hidden; border:1px solid #22324d }
+  #timerBar{ height:100%; width:100%; background:#27d3ff; }
+
+  /* full-card color flash */
+  #flash{
+    position:absolute; inset:0; border-radius:18px; pointer-events:none; opacity:0;
+  }
+  .flash-anim{ animation:flash .35s ease }
+  @keyframes flash{
+    0%{opacity:0}
+    25%{opacity:.45}
+    100%{opacity:0}
+  }
+
   #front, #back{ font-size:22px; line-height:1.45; }
   #back{ display:none }
   .cloze{ cursor:pointer; border-bottom:1px dashed #6aa9ff }
   #controls{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center }
   #reveal{ background:#6c5ce7 }
-  #progressWrap{ height:6px; background:#102035; border-radius:999px; overflow:hidden; border:1px solid #22324d }
-  #progress{ height:100%; width:0%; background:linear-gradient(90deg, #00d8ff, #6a5cff); transition:width .2s ease }
+
   #subhud{ display:flex; justify-content:space-between; align-items:center; gap:10px }
   #title{ font-weight:700; color:#cfe2ff; opacity:.9; letter-spacing:.3px }
 
-  /* Missed drawer */
+  /* Drawer (shared for Missed / Correct) */
   #drawer{
-    position:fixed; top:64px; right:0; width:min(540px, 92vw); height:calc(100% - 64px);
-    background:linear-gradient(180deg, #0f1522, #0c1220); border-left:1px solid #22324d; transform:translateX(100%);
-    transition:transform .25s ease; z-index:3; display:flex; flex-direction:column;
+    position:fixed; top:64px; right:0; width:min(560px, 94vw); height:calc(100% - 64px);
+    background:linear-gradient(180deg, #0f1522, #0c1220); border-left:1px solid #22324d;
+    transform:translateX(100%); transition:transform .25s ease; z-index:3; display:flex; flex-direction:column;
   }
   #drawer.open{ transform:none }
-  #drawer header{ border-bottom:1px solid #22324d }
-  #missList{ padding:12px; overflow:auto; display:grid; gap:10px }
-  .missItem{
+  #drawer header{ border-bottom:1px solid #22324d; display:flex; gap:10px; align-items:center; justify-content:space-between }
+  #drawer .tabs{ display:flex; gap:6px; padding-left:6px }
+  #drawer .tabs button{ background:#172037 }
+  #drawer .tabs button.sel{ outline:2px solid #4ea1ff }
+  #list{ padding:12px; overflow:auto; display:grid; gap:10px }
+  .listItem{
     background:#0f1627; border:1px solid #22324d; border-radius:12px; padding:12px; font-size:14px; line-height:1.35
   }
-  .missItem .front{ font-weight:700; color:#d7e7ff; margin-bottom:6px }
-  .missItem .back{ color:#b9c9e4 }
+  .listItem .front{ font-weight:700; color:#d7e7ff; margin-bottom:6px }
+  .listItem .back{ color:#b9c9e4 }
 
-  /* Start modal + pause overlay + summary */
+  /* Start Modal + Pause overlay + Summary */
   .overlay{
     position:fixed; inset:0; backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center;
     background:rgba(5,10,18,.6); z-index:4;
@@ -104,10 +134,8 @@
     border:1px solid #22324d; border-radius:16px; padding:18px; box-shadow:0 30px 80px rgba(0,0,0,.45);
   }
   .optRow{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 6px }
-  .optRow button{ background:#172037 }
-  .optRow button.sel{ outline:2px solid #4ea1ff }
-  .field{ display:flex; gap:8px; align-items:center }
-  .field input{ width:80px; background:#0e1522; border:1px solid #22324d; color:var(--fg); padding:8px; border-radius:10px }
+  .field{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .field input{ width:86px; background:#0e1522; border:1px solid #22324d; color:var(--fg); padding:8px; border-radius:10px }
   .sheet h2{ margin:0 0 8px 0 }
   .sheet p{ margin:6px 0 10px 0; color:#b9c9e4 }
 
@@ -118,21 +146,10 @@
   #pausedBanner .tag{ font-size:18px }
   #pausedBanner .big{ font-size:42px; font-weight:900; margin-top:4px }
 
-  /* Bursts */
-  .burst{
-    position:fixed; width:20px; height:20px; border-radius:50%; pointer-events:none; opacity:.85; z-index:2;
-    transform:translate(-50%,-50%); animation:pop .6s ease forwards;
-  }
-  @keyframes pop{
-    0%{ transform:translate(-50%,-50%) scale(.6); opacity:.9 }
-    100%{ transform:translate(-50%,-50%) scale(18); opacity:0 }
-  }
+  /* Logs */
+  #debug{ display:none; position:fixed; left:12px; bottom:38px; font-size:12px; white-space:pre-wrap; background:#0d1626; border:1px solid #1e2c44; color:#cae8ff; padding:10px; border-radius:10px; max-width:min(70ch,92vw); z-index:5 }
+  #log{ position:fixed; left:12px; bottom:10px; font-size:12px; opacity:.8; z-index:5 }
 
-  /* Log + debug (toggleable) */
-  #log{ position:fixed; left:12px; bottom:10px; font-size:12px; opacity:.8 }
-  #debug{ display:none; position:fixed; left:12px; bottom:30px; font-size:12px; white-space:pre-wrap; background:#0d1626; border:1px solid #1e2c44; color:#cae8ff; padding:10px; border-radius:10px; max-width:min(70ch,92vw) }
-
-  /* Responsive tweaks */
   @media (max-width:700px){
     #front,#back{ font-size:18px }
     #card{ min-height:50vh }
@@ -145,60 +162,69 @@
 <header>
   <input id="file" type="file" accept=".apkg,.colpkg" />
   <button id="showStart" class="ghost" disabled>Configure & Start</button>
-  <button id="toggleDrawer" class="ghost">Missed (0)</button>
+  <button id="toggleMiss" class="ghost">Missed (0)</button>
+  <button id="toggleGot" class="ghost">Correct (0)</button>
   <div class="sep"></div>
   <button id="pauseBtn" class="ghost" disabled>Pause</button>
   <div id="hud">
-    <div id="timer" aria-live="polite">⏱️ —</div>
+    <div id="timerLabel" aria-live="polite">⏱️ —</div>
     <div id="stats"><small>Seen</small> <b id="seen">0</b> · <small>Got</small> <b id="got">0</b> · <small>Missed</small> <b id="miss">0</b></div>
   </div>
 </header>
 
 <main>
-  <div id="card" aria-live="polite" aria-atomic="true">
-    <div id="subhud">
-      <div id="title">Load a deck to begin</div>
-      <div id="progressWrap" style="flex:1"><div id="progress"></div></div>
-    </div>
-    <div id="front">(front)</div>
-    <div id="back">(back)</div>
-    <div id="controls">
-      <button id="reveal" class="btn">Reveal (Space)</button>
-      <button id="badBtn" class="btn bad">Missed (←)</button>
-      <button id="goodBtn" class="btn good">Got it (→)</button>
+  <div id="cardWrap">
+    <div id="card" aria-live="polite" aria-atomic="true">
+      <div id="flash"></div>
+      <div id="subhud">
+        <div id="title">Load a deck to begin</div>
+        <div id="timerBarWrap" style="flex:1"><div id="timerBar"></div></div>
+      </div>
+      <div id="front">(front)</div>
+      <div id="back">(back)</div>
+      <div id="controls">
+        <button id="reveal" class="btn">Reveal (Space)</button>
+        <button id="badBtn" class="btn bad">Missed (←)</button>
+        <button id="goodBtn" class="btn good">Got it (→)</button>
+      </div>
     </div>
   </div>
 </main>
 
-<!-- Missed Drawer -->
-<aside id="drawer" aria-label="Missed list">
-  <header style="display:flex;gap:10px;align-items:center;justify-content:space-between;">
-    <div style="display:flex;align-items:center;gap:10px">
-      <strong>Missed</strong><span class="tag" id="missCountTop">0 items</span>
+<!-- Drawer (shared for Missed / Correct) -->
+<aside id="drawer" aria-label="Items list">
+  <header>
+    <div style="display:flex;align-items:center;gap:10px;padding-left:8px">
+      <div class="tabs">
+        <button id="tabMiss" class="small sel">Missed</button>
+        <button id="tabGot" class="small">Correct</button>
+      </div>
+      <span class="tag" id="listCount">0 items</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center;padding-right:8px">
-      <button id="exportMiss" class="ghost small">Export CSV</button>
-      <button id="studyMissed" class="small">Study Missed Only</button>
+      <button id="exportList" class="ghost small">Export CSV</button>
+      <button id="studyList" class="small">Study This Only</button>
+      <button id="closeDrawer" class="ghost small">Close</button>
     </div>
   </header>
-  <div id="missList"></div>
+  <div id="list"></div>
 </aside>
 
 <!-- Start Modal -->
 <div id="startOverlay" class="overlay" style="display:none">
   <div class="sheet">
-    <h2>Lightning Drill</h2>
-    <p>Choose a session length. You can pause anytime (P). This won’t modify Anki scheduling.</p>
-    <div class="optRow" id="presets">
-      <button data-min="2">2 min</button>
-      <button data-min="5" class="sel">5 min</button>
-      <button data-min="10">10 min</button>
-      <button data-min="15">15 min</button>
-      <button data-min="0">Untimed</button>
+    <h2>Lightning Drill — Per-Card Timers</h2>
+    <p>Choose how long to allow per side. Front auto-reveals at 0; Back auto-advances (as Missed) at 0.</p>
+    <div class="field">
+      <label for="frontSec"><b>Front time</b></label>
+      <input id="frontSec" type="number" min="1" value="12" /> <span class="tag">seconds</span>
     </div>
-    <div class="field"><label for="customMin">Custom:</label> <input id="customMin" type="number" min="0" value="0" /> <span class="tag">minutes (0 = untimed)</span></div>
+    <div class="field">
+      <label for="backSec"><b>Back time</b></label>
+      <input id="backSec" type="number" min="1" value="8" /> <span class="tag">seconds</span>
+    </div>
     <div class="optRow" style="margin-top:12px">
-      <button id="startBtn">Start Session</button>
+      <button id="startBtn">Start</button>
       <button id="cancelStart" class="ghost">Cancel</button>
     </div>
     <div class="tag" id="deckInfo">No deck loaded</div>
@@ -219,7 +245,7 @@
 <!-- Summary Overlay -->
 <div id="summary" class="overlay" style="display:none">
   <div class="sheet">
-    <h2>Session Complete</h2>
+    <h2>All Cards Complete</h2>
     <p><b><span id="sumSeen">0</span></b> seen · <b><span id="sumGot">0</span></b> got · <b><span id="sumMiss">0</span></b> missed</p>
     <div class="optRow">
       <button id="restartBtn">Restart</button>
@@ -240,30 +266,57 @@
 <script>
 /* ========== Helpers / UI ========== */
 const $ = sel => document.querySelector(sel);
-const logEl = $('#log'), dbgEl = $('#debug');
-function log(s){ logEl.textContent = s }
-function showDebug(text){ dbgEl.style.display='block'; dbgEl.textContent = text }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g, '&#39;') }
+const logEl=$('#log'), dbgEl=$('#debug');
+function log(s){ logEl.textContent=s }
 function sanitize(html){ return String(html).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'') }
 function stripHtml(s){ const d=document.createElement('div'); d.innerHTML=s; return d.textContent||d.innerText||'' }
-function pulseBurst(x,y,color){ const b=document.createElement('div'); b.className='burst'; b.style.left=x+'px'; b.style.top=y+'px'; b.style.background=color; document.body.appendChild(b); setTimeout(()=>b.remove(),600) }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)) }
+
+/* color from remaining fraction (1 -> teal, 0 -> red) */
+function colorFor(p){
+  const start = 170; /* teal/green */
+  const end   = 0;   /* red */
+  const h = end + (start - end) * p;
+  return `hsl(${h}, 95%, 55%)`;
+}
 
 /* ========== Global state ========== */
 let SQLReady=false, SQL;
 let G = {
   entries:null, fileTable:{}, mediaMap:{}, replaceMedia:(h)=>h,
   decks:{}, models:{}, notes:[], cards:[],
-  queue:[], idx:0, seen:0, got:0, missed:[],
-  sessionMs: 5*60*1000, untimed:false, endAt:0, paused:false, timerHandle:null,
-  isClozeByMid:{}
+  queue:[], idx:0, seen:0, got:0, missed:[], correct:[],
+  frontMs: 12000, backMs: 8000, /* configurable */
+  side: 'front', sideMsLeft: 0, running:false, paused:false,
+  lastTick:0, rafId:0, isClozeByMid:{}
 };
+
+/* elements */
+const els={
+  file:$('#file'), showStart:$('#showStart'), startOverlay:$('#startOverlay'),
+  frontSec:$('#frontSec'), backSec:$('#backSec'), startBtn:$('#startBtn'), cancelStart:$('#cancelStart'),
+  deckInfo:$('#deckInfo'),
+  card:$('#card'), flash:$('#flash'),
+  front:$('#front'), back:$('#back'),
+  reveal:$('#reveal'), goodBtn:$('#goodBtn'), badBtn:$('#badBtn'),
+  title:$('#title'), timerLabel:$('#timerLabel'),
+  seen:$('#seen'), got:$('#got'), miss:$('#miss'),
+  timerBar:$('#timerBar'),
+  pauseBtn:$('#pauseBtn'), pausedBanner:$('#pausedBanner'), resumeBtn:$('#resumeBtn'),
+  drawer:$('#drawer'), tabMiss:$('#tabMiss'), tabGot:$('#tabGot'),
+  toggleMiss:$('#toggleMiss'), toggleGot:$('#toggleGot'),
+  list:$('#list'), listCount:$('#listCount'), exportList:$('#exportList'), studyList:$('#studyList'), closeDrawer:$('#closeDrawer'),
+  summary:$('#summary'), sumSeen:$('#sumSeen'), sumGot:$('#sumGot'), sumMiss:$('#sumMiss'),
+  restartBtn:$('#restartBtn'), missOnlyBtn:$('#missOnlyBtn'), closeSummary:$('#closeSummary')
+};
+let drawerMode='miss'; // 'miss' | 'got'
 
 /* ========== Load sql.js ========== */
 initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` })
 .then(db => { SQL=db; SQLReady=true })
 .catch(e => alert('Failed to load SQLite (sql.js). Refresh and try again.\n'+e?.message));
 
-/* ========== ZIP read ========== */
+/* ========== ZIP + media parsing (same as before) ========== */
 function unzipWithWatchdog(buf, timeoutMs=20000){
   return new Promise((resolve, reject) => {
     let done=false; const to=setTimeout(()=>{ if(!done){done=true; reject(new Error('Unzip timeout'))}}, timeoutMs);
@@ -275,8 +328,6 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
     }catch(e){ clearTimeout(to); reject(e) }
   });
 }
-
-/* ========== Media parsing (JSON or protobuf; zstd lazy) ========== */
 function looksGzip(b){ return b.length>2 && b[0]===0x1F && b[1]===0x8B }
 function looksZstd(b){ return b.length>4 && ((b[0]===0xFD&&b[1]===0x2F&&b[2]===0xB5&&b[3]===0x28)||(b[0]===0x28&&b[1]===0xB5&&b[2]===0x2F&&b[3]===0xFD)) }
 function loadScript(url){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=url; s.onload=res; s.onerror=()=>rej(new Error('Failed '+url)); document.head.appendChild(s) }) }
@@ -306,12 +357,8 @@ async function decodeProtoMedia(bytes){
     "https://cdn.jsdelivr.net/gh/ankitects/anki@stable/proto/anki/import_export.proto",
     "https://cdn.jsdelivr.net/gh/ankitects/anki@main/proto/anki/import_export.proto"
   ];
-  let root=null;
-  for(const u of urls){
-    try{ const r=await fetch(u,{cache:'force-cache'}); if(!r.ok) continue; root=protobuf.parse(await r.text()).root; break }catch{}
-  }
+  let root=null; for(const u of urls){ try{ const r=await fetch(u,{cache:'force-cache'}); if(!r.ok) continue; root=protobuf.parse(await r.text()).root; break }catch{} }
   if(!root) throw new Error('proto load failed');
-  // heuristic scan for entries with index+filename
   function toMap(obj){
     for(const v of Object.values(obj||{})){
       if(Array.isArray(v)&&v.length&&typeof v[0]==='object'){
@@ -323,7 +370,7 @@ async function decodeProtoMedia(bytes){
   }
   const all=[];(function walk(ns){ for(const k of Object.keys(ns.nested||{})){ const v=ns.nested[k]; if(v.fields) all.push(v); if(v.nested) walk(v) } })(root);
   for(const T of all){ try{ const msg=T.decode(bytes); const map=toMap(msg); if(map) return map }catch{} }
-  throw new Error('unknown media map in protobuf');
+  throw new Error('unknown media map');
 }
 async function parseMediaEntry(entryBytes){
   const td=new TextDecoder('utf-8',{fatal:false});
@@ -331,10 +378,7 @@ async function parseMediaEntry(entryBytes){
   if(bytes[0]===0x7B){ return parseMediaJSON(td.decode(bytes)) }
   try{ return await decodeProtoMedia(bytes) }catch(e){ console.warn('media map parse failed',e); return {} }
 }
-function mediaURLForKey(key, files){
-  const bytes=files[key]; if(!bytes) return null;
-  return URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
-}
+function mediaURLForKey(key, files){ const bytes=files[key]; if(!bytes) return null; return URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})) }
 function buildMediaReplacer(mediaMap, files){
   const reverse={}; for(const [k,v] of Object.entries(mediaMap)) reverse[v]=k;
   const imgRE=/<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
@@ -375,10 +419,10 @@ function processClozeForOrd(text, targetIndex, side){
   return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g,(m,n,inner,hint)=>{
     const idx=parseInt(n,10);
     if(idx===targetIndex){
-      if(side==='front'){ return `<span class="cloze" title="${escapeHtml(hint||'')}">[ tap to reveal ]<span style="display:none">${escapeHtml(inner)}</span></span>` }
-      else{ return `<span class="cloze-reveal">${escapeHtml(inner)}</span>` }
+      if(side==='front'){ return `<span class="cloze" title="${(hint||'').replace(/"/g,'&quot;')}">[ tap to reveal ]<span style="display:none">${(inner||'').replace(/</g,'&lt;')}</span></span>` }
+      else{ return `<span class="cloze-reveal">${(inner||'').replace(/</g,'&lt;')}</span>` }
     }
-    return escapeHtml(inner);
+    return (inner||'').replace(/</g,'&lt;');
   });
 }
 function stripClozeMarkup(s){
@@ -408,133 +452,170 @@ function collapseExactDuplicate(html){
 }
 
 /* ========== Game Engine ========== */
-const els = {
-  file: $('#file'), showStart: $('#showStart'), startOverlay: $('#startOverlay'),
-  presets: $('#presets'), customMin: $('#customMin'), startBtn: $('#startBtn'), cancelStart: $('#cancelStart'),
-  deckInfo: $('#deckInfo'),
-  front: $('#front'), back: $('#back'),
-  reveal: $('#reveal'), goodBtn: $('#goodBtn'), badBtn: $('#badBtn'),
-  title: $('#title'), timer: $('#timer'),
-  seen: $('#seen'), got: $('#got'), miss: $('#miss'),
-  progress: $('#progress'), pauseBtn: $('#pauseBtn'), pausedBanner: $('#pausedBanner'), resumeBtn: $('#resumeBtn'),
-  drawer: $('#drawer'), toggleDrawer: $('#toggleDrawer'), missList: $('#missList'), missCountTop: $('#missCountTop'),
-  exportMiss: $('#exportMiss'), studyMissed: $('#studyMissed'),
-  summary: $('#summary'), sumSeen: $('#sumSeen'), sumGot: $('#sumGot'), sumMiss: $('#sumMiss'),
-  restartBtn: $('#restartBtn'), missOnlyBtn: $('#missOnlyBtn'), closeSummary: $('#closeSummary')
-};
-
-function setCounts(){
-  els.seen.textContent=G.seen; els.got.textContent=G.got; els.miss.textContent=G.missed.length;
-  els.toggleDrawer.textContent=`Missed (${G.missed.length})`; els.missCountTop.textContent=`${G.missed.length} items`;
-}
-function setProgress(){
-  const pct = G.queue.length ? (G.idx/G.queue.length)*100 : 0;
-  els.progress.style.width = `${Math.min(100, pct)}%`;
-}
-function renderMissed(){
-  els.missList.innerHTML='';
-  for(const m of G.missed){
-    const div=document.createElement('div'); div.className='missItem';
-    div.innerHTML=`<div class="front">${m.front}</div><div class="back">${m.back}</div>`;
-    els.missList.appendChild(div);
-  }
-}
-function toggleDrawer(){ els.drawer.classList.toggle('open') }
-function openStart(){ els.startOverlay.style.display='flex' }
-function closeStart(){ els.startOverlay.style.display='none' }
-function showPaused(v){ els.pausedBanner.style.display = v?'flex':'none' }
-
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [arr[i],arr[j]]=[arr[j],arr[i]] } }
-function nowMs(){ return Date.now() }
+function updateCounts(){
+  els.seen.textContent=G.seen; els.got.textContent=G.got; els.miss.textContent=G.missed.length;
+  $('#toggleMiss').textContent = `Missed (${G.missed.length})`;
+  $('#toggleGot').textContent  = `Correct (${G.correct.length})`;
+}
+function setTimerBarFrac(frac){
+  const p = clamp(frac, 0, 1);
+  els.timerBar.style.width = (p*100).toFixed(2)+'%';
+  const c = colorFor(p);
+  els.timerBar.style.background = `linear-gradient(90deg, ${c}, ${c})`;
+}
+function setSideLabel(){
+  const secLeft = Math.ceil(G.sideMsLeft/1000);
+  els.timerLabel.textContent = `⏱️ ${G.side==='front' ? 'Front' : 'Back'} ${String(secLeft).padStart(2,'0')}s`;
+}
+function flash(color){
+  els.flash.style.background = color;
+  els.flash.classList.remove('flash-anim'); /* restart animation */
+  void els.flash.offsetWidth;
+  els.flash.classList.add('flash-anim');
+}
 
-/* build queue from G.cards (array of card rows) */
-function buildQueue(cards){ G.queue = cards.slice(); shuffle(G.queue); G.idx=0; setProgress() }
-
-/* render current card */
+function buildQueue(cards){ G.queue=cards.slice(); shuffle(G.queue); G.idx=0 }
 function renderCurrent(){
   if(!G.queue.length){ finishSession(); return }
   const card = G.queue[G.idx];
-  const note = G.notes.find(n => n.id===card.nid); if(!note){ nextCard(); return }
-  const model = G.models[String(note.mid)]; if(!model){ nextCard(); return }
-  const fieldNames = (model?.flds||[]).map(f=>f.name);
-  const fields = (note.flds||'').split('\x1f');
-  const tmpl = model?.tmpls?.[card.ord]; if(!tmpl){ nextCard(); return }
-  const target = card.ord+1;
+  const note = G.notes.find(n=>n.id===card.nid); if(!note){ nextCard(false); return }
+  const model = G.models[String(note.mid)]; if(!model){ nextCard(false); return }
+  const fieldNames=(model?.flds||[]).map(f=>f.name);
+  const fields=(note.flds||'').split('\x1f');
+  const tmpl=model?.tmpls?.[card.ord]; if(!tmpl){ nextCard(false); return }
+  const target=card.ord+1;
 
-  let front = tmpl.qfmt || '';
-  front = applyConditionals(front, fields, fieldNames);
-  front = substituteTokens(front, fields, fieldNames, { side:'front', targetCloze:target, templateForScan:tmpl.qfmt });
-  front = sanitize(front); front = G.replaceMedia(front); front = collapseExactDuplicate(front);
+  let front=tmpl.qfmt||'';
+  front=applyConditionals(front,fields,fieldNames);
+  front=substituteTokens(front,fields,fieldNames,{side:'front',targetCloze:target,templateForScan:tmpl.qfmt});
+  front=sanitize(front); front=G.replaceMedia(front); front=collapseExactDuplicate(front);
 
-  let back  = tmpl.afmt || '';
-  back = back.replace(/\{\{FrontSide\}\}/g, front);
-  back = applyConditionals(back, fields, fieldNames);
-  back = substituteTokens(back, fields, fieldNames, { side:'back', targetCloze:target, templateForScan:tmpl.afmt });
-  back = sanitize(back); back = G.replaceMedia(back); back = collapseExactDuplicate(back);
+  let back=tmpl.afmt||'';
+  back=back.replace(/\{\{FrontSide\}\}/g, front);
+  back=applyConditionals(back,fields,fieldNames);
+  back=substituteTokens(back,fields,fieldNames,{side:'back',targetCloze:target,templateForScan:tmpl.afmt});
+  back=sanitize(back); back=G.replaceMedia(back); back=collapseExactDuplicate(back);
 
-  els.front.innerHTML = front || '<span class="tag">(empty front)</span>';
-  els.back.innerHTML  = back  || '<span class="tag">(empty back)</span>';
+  els.front.innerHTML=front || '<span class="tag">(empty front)</span>';
+  els.back.innerHTML =back  || '<span class="tag">(empty back)</span>';
   els.front.style.display='block'; els.back.style.display='none';
-  els.title.textContent = `${G.idx+1} / ${G.queue.length}`;
+
+  els.title.textContent=`${G.idx+1} / ${G.queue.length}`;
+  G.side='front'; G.sideMsLeft=G.frontMs; setSideLabel(); setTimerBarFrac(1);
 }
 
-/* transitions */
 function reveal(){
-  const f=els.front, b=els.back;
-  if(b.style.display==='block'){ f.style.display='block'; b.style.display='none' }
-  else { f.style.display='none'; b.style.display='block' }
+  if(els.back.style.display==='block'){ // already revealed -> no-op
+    return;
+  }
+  els.front.style.display='none';
+  els.back.style.display='block';
+  G.side='back'; G.sideMsLeft=G.backMs; setSideLabel(); setTimerBarFrac(1);
 }
-function nextCard(){
+
+function nextCard(incrementSeen=true){
+  if(incrementSeen) G.seen++;
+  updateCounts();
   G.idx++;
   if(G.idx>=G.queue.length){ finishSession(); return }
-  setProgress(); renderCurrent();
+  renderCurrent();
 }
 
-/* session control */
-function startSession(){
-  G.seen=0; G.got=0; G.missed.length=0; setCounts();
-  G.idx=0; setProgress(); renderCurrent();
-  els.pauseBtn.disabled=false;
-  if(!G.untimed){ G.endAt=nowMs()+G.sessionMs; tickTimer(); G.timerHandle=setInterval(tickTimer, 250) }
-  els.title.textContent='Go!';
-}
-function finishSession(){
-  clearInterval(G.timerHandle); G.timerHandle=null;
-  els.sumSeen.textContent=G.seen; els.sumGot.textContent=G.got; els.sumMiss.textContent=G.missed.length;
-  els.summary.style.display='flex';
-}
-
-function tickTimer(){
-  if(G.untimed){ els.timer.textContent='⏱️ Untimed'; return }
-  const rem = Math.max(0, G.endAt - nowMs());
-  const mm = Math.floor(rem/60000), ss = Math.floor((rem%60000)/1000);
-  els.timer.textContent = `⏱️ ${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-  if(rem<=0){ finishSession() }
+function handleAnswer(ok, clientXY=null){
+  if(ok){
+    G.got++;
+    G.correct.push({ id:G.queue[G.idx].id, front:els.front.innerHTML, back:els.back.innerHTML });
+    flash('rgba(37,211,102,.35)');
+  }else{
+    G.missed.push({ id:G.queue[G.idx].id, front:els.front.innerHTML, back:els.back.innerHTML });
+    flash('rgba(255,77,109,.35)');
+  }
+  updateCounts();
+  nextCard(true);
 }
 
-/* answer handlers */
-function handleAnswer(ok, evt){
-  G.seen++; ok? G.got++ : G.missed.push({ id:G.queue[G.idx].id, front:els.front.innerHTML, back:els.back.innerHTML });
-  setCounts(); renderMissed();
-  if(evt){ pulseBurst(evt.clientX, evt.clientY, ok? 'rgba(37,211,102,.25)': 'rgba(255,77,109,.25)') }
-  nextCard();
+/* timeout behavior */
+function handleTimeout(){
+  if(G.side==='front'){
+    reveal(); // flip automatically
+  }else{
+    // treat as missed on back timeout
+    handleAnswer(false);
+  }
 }
 
-/* export missed */
-function download(filename, bytes){
-  const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
-  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+/* main loop with rAF */
+function loop(ts){
+  if(!G.running){ return }
+  if(!G.paused){
+    if(!G.lastTick) G.lastTick = ts;
+    const dt = ts - G.lastTick;
+    G.lastTick = ts;
+    G.sideMsLeft -= dt;
+    setSideLabel();
+    setTimerBarFrac(G.sideMsLeft / (G.side==='front' ? G.frontMs : G.backMs));
+    if(G.sideMsLeft <= 0){
+      handleTimeout();
+      // reset lastTick so next frame doesn't double subtract
+      G.lastTick = ts;
+    }
+  }
+  G.rafId = requestAnimationFrame(loop);
 }
-function exportMissedCSV(){
+
+/* pause/resume */
+function pause(){ if(!G.running || G.paused) return; G.paused=true; els.pausedBanner.style.display='flex' }
+function resume(){ if(!G.running || !G.paused) return; G.paused=false; els.pausedBanner.style.display='none'; G.lastTick=0 }
+
+/* drawer (pause on open, resume on close) */
+function openDrawer(mode){
+  drawerMode = mode;
+  els.tabMiss.classList.toggle('sel', mode==='miss');
+  els.tabGot.classList.toggle('sel',  mode==='got');
+  renderDrawer();
+  els.drawer.classList.add('open');
+  pause();
+}
+function closeDrawer(){ els.drawer.classList.remove('open'); resume() }
+function renderDrawer(){
+  const items = (drawerMode==='miss') ? G.missed : G.correct;
+  els.list.innerHTML='';
+  for(const m of items){
+    const div=document.createElement('div'); div.className='listItem';
+    div.innerHTML=`<div class="front">${m.front}</div><div class="back">${m.back}</div>`;
+    els.list.appendChild(div);
+  }
+  els.listCount.textContent = `${items.length} item${items.length===1?'':'s'}`;
+  els.studyList.textContent = `Study ${drawerMode==='miss'?'Missed':'Correct'} Only`;
+}
+function exportActiveListCSV(){
+  const items = (drawerMode==='miss') ? G.missed : G.correct;
   const rows = [['card_id','front_text','back_text']];
-  for(const m of G.missed){
+  for(const m of items){
     rows.push([m.id, stripHtml(m.front).replace(/\s+/g,' ').trim(), stripHtml(m.back).replace(/\s+/g,' ').trim()]);
   }
   const csv = rows.map(r => r.map(v=>{
     const s=String(v??''); if(s.includes('"')||s.includes(',')||s.includes('\n')) return `"${s.replace(/"/g,'""')}"`; return s;
   }).join(',')).join('\n');
-  download('missed.csv', new TextEncoder().encode(csv));
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a=document.createElement('a'); a.href=url; a.download=`${drawerMode}-cards.csv`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+/* session controls */
+function startSession(){
+  G.running=true; G.paused=false; G.lastTick=0;
+  els.pauseBtn.disabled=false;
+  renderCurrent();
+  cancelAnimationFrame(G.rafId);
+  G.rafId = requestAnimationFrame(loop);
+}
+function finishSession(){
+  G.running=false;
+  cancelAnimationFrame(G.rafId);
+  els.sumSeen.textContent=G.seen; els.sumGot.textContent=G.got; els.sumMiss.textContent=G.missed.length;
+  els.summary.style.display='flex';
 }
 
 /* ========== File handling ========== */
@@ -586,6 +667,7 @@ els.file.addEventListener('change', async (e)=>{
   G.decks=decks; G.models=models; G.notes=notes; G.cards=cards;
   G.isClozeByMid={}; for(const [mid, m] of Object.entries(models)){ G.isClozeByMid[mid] = (m?.type===1) }
 
+  G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
   buildQueue(G.cards);
 
   els.showStart.disabled=false;
@@ -594,78 +676,85 @@ els.file.addEventListener('change', async (e)=>{
   log('Ready');
 });
 
-/* ========== Start / Pause / Summary ========== */
-els.showStart.addEventListener('click', openStart);
-els.cancelStart.addEventListener('click', closeStart);
-els.presets.addEventListener('click', (e)=>{
-  const b=e.target.closest('button'); if(!b) return;
-  els.presets.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));
-  b.classList.add('sel'); els.customMin.value = b.dataset.min || '0';
-});
+/* ========== Start / Pause / Drawer / Summary ========== */
+$('#showStart').addEventListener('click', ()=>{ els.startOverlay.style.display='flex' });
+els.cancelStart.addEventListener('click', ()=>{ els.startOverlay.style.display='none' });
 els.startBtn.addEventListener('click', ()=>{
-  const m = Math.max(0, parseInt(els.customMin.value||'0',10));
-  G.untimed = (m===0); G.sessionMs = m*60*1000;
-  closeStart(); startSession();
+  G.frontMs = Math.max(1, parseInt(els.frontSec.value||'12',10)) * 1000;
+  G.backMs  = Math.max(1, parseInt(els.backSec.value||'8',10))  * 1000;
+  els.startOverlay.style.display='none';
+  startSession();
 });
-els.pauseBtn.addEventListener('click', ()=>{
-  if(G.paused){ // resume
-    G.paused=false; showPaused(false);
-    if(!G.untimed){ G.endAt = nowMs() + G.remaining; G.timerHandle=setInterval(tickTimer, 250) }
-  }else{ // pause
-    G.paused=true; showPaused(true);
-    if(G.timerHandle){ clearInterval(G.timerHandle); G.timerHandle=null }
-    if(!G.untimed) G.remaining = Math.max(0, G.endAt - nowMs());
-  }
-});
-$('#resumeBtn').addEventListener('click', ()=>els.pauseBtn.click());
+els.pauseBtn.addEventListener('click', ()=>{ G.paused? resume() : pause() });
+els.resumeBtn.addEventListener('click', ()=>{ resume() });
 
-/* ========== Controls ========== */
-els.reveal.addEventListener('click', ()=>reveal());
-els.goodBtn.addEventListener('click', (ev)=>handleAnswer(true, ev));
-els.badBtn.addEventListener('click', (ev)=>handleAnswer(false, ev));
-els.toggleDrawer.addEventListener('click', toggleDrawer);
-els.exportMiss.addEventListener('click', exportMissedCSV);
-els.studyMissed.addEventListener('click', ()=>{
-  if(!G.missed.length){ alert('No missed items yet.'); return }
-  // rebuild queue from missed
-  const missIds = new Set(G.missed.map(m=>m.id));
-  const missCards = G.cards.filter(c=>missIds.has(c.id));
-  buildQueue(missCards); G.seen=0; G.got=0; G.missed.length=0; setCounts(); renderMissed();
-  els.drawer.classList.remove('open'); renderCurrent();
+/* Drawer buttons pause automatically */
+els.toggleMiss.addEventListener('click', ()=>{ openDrawer('miss') });
+els.toggleGot.addEventListener('click',  ()=>{ openDrawer('got')  });
+els.tabMiss.addEventListener('click', ()=>{ openDrawer('miss') });
+els.tabGot.addEventListener('click',  ()=>{ openDrawer('got')  });
+els.exportList.addEventListener('click', exportActiveListCSV);
+els.studyList.addEventListener('click', ()=>{
+  const ids = new Set( (drawerMode==='miss' ? G.missed : G.correct).map(m=>m.id) );
+  if(!ids.size){ alert('Nothing to study here.'); return }
+  const subset = G.cards.filter(c=>ids.has(c.id));
+  closeDrawer();
+  G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
+  buildQueue(subset);
+  startSession();
 });
+els.closeDrawer.addEventListener('click', closeDrawer);
 
+/* Summary */
 els.restartBtn.addEventListener('click', ()=>{
   els.summary.style.display='none';
-  buildQueue(G.cards); startSession();
+  G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
+  buildQueue(G.cards);
+  startSession();
 });
 els.missOnlyBtn.addEventListener('click', ()=>{
   els.summary.style.display='none';
-  const missIds = new Set(G.missed.map(m=>m.id));
-  const missCards = G.cards.filter(c=>missIds.has(c.id));
-  if(!missCards.length){ alert('No missed items to study.'); return }
-  buildQueue(missCards); startSession();
+  const ids = new Set(G.missed.map(m=>m.id));
+  const subset = G.cards.filter(c=>ids.has(c.id));
+  if(!subset.length){ alert('No missed items.'); return }
+  G.seen=0; G.got=0; G.missed.length=0; G.correct.length=0; updateCounts();
+  buildQueue(subset);
+  startSession();
 });
 els.closeSummary.addEventListener('click', ()=>{ els.summary.style.display='none' });
+
+/* Controls */
+els.reveal.addEventListener('click', ()=>reveal());
+els.goodBtn.addEventListener('click', ()=>{ if(G.side==='front') reveal(); else handleAnswer(true) });
+els.badBtn.addEventListener('click',  ()=>{ if(G.side==='front') reveal(); else handleAnswer(false) });
+
+/* Tap anywhere behavior:
+   - On front: tap = reveal
+   - On back: left half = Missed, right half = Got it
+*/
+els.card.addEventListener('click', (e)=>{
+  // ignore clicks on buttons inside card
+  if(e.target.closest('button')) return;
+  if(G.side==='front'){
+    reveal();
+  }else{
+    const r = els.card.getBoundingClientRect();
+    const x = e.clientX;
+    if(x < r.left + r.width/2){ handleAnswer(false) } else { handleAnswer(true) }
+  }
+});
 
 /* Keyboard shortcuts */
 window.addEventListener('keydown', (e)=>{
   if(e.key===' '){ e.preventDefault(); reveal(); return }
-  if(e.key==='ArrowLeft'){ e.preventDefault(); els.badBtn.click(); return }
-  if(e.key==='ArrowRight'){ e.preventDefault(); els.goodBtn.click(); return }
-  if(e.key==='p' || e.key==='P'){ e.preventDefault(); els.pauseBtn.click(); return }
-  if(e.key==='m' || e.key==='M'){ e.preventDefault(); toggleDrawer(); return }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); if(G.side==='front') reveal(); else handleAnswer(false); return }
+  if(e.key==='ArrowRight'){ e.preventDefault(); if(G.side==='front') reveal(); else handleAnswer(true);  return }
+  if(e.key==='p' || e.key==='P'){ e.preventDefault(); G.paused? resume() : pause(); return }
+  if(e.key==='m' || e.key==='M'){ e.preventDefault(); openDrawer('miss'); return }
+  if(e.key==='g' || e.key==='G'){ e.preventDefault(); openDrawer('got');  return }
 });
 
-/* Cloze tap-to-reveal inside front */
-$('#card').addEventListener('click', (ev)=>{
-  const c = ev.target.closest('.cloze'); if(!c) return;
-  const inner = c.querySelector('span'); if(!inner) return;
-  const hidden = inner.style.display==='none';
-  inner.style.display = hidden ? 'inline' : 'none';
-  c.firstChild.textContent = hidden ? '' : '[ tap to reveal ]';
-});
-
-/* Initial state */
+/* Init UI */
 els.reveal.disabled=false; els.goodBtn.disabled=false; els.badBtn.disabled=false;
 </script>
 </body>
