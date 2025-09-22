@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Anki Deck Arcade Mode</title>
+<style>
+  :root {
+    --bg-main: #0b0f14;
+    --bg-card: #121826;
+    --border-color: #243042;
+    --text-main: #eee;
+    --text-subtle: #aab;
+    --accent-blue: #1e90ff;
+    --accent-green: #28a745;
+    --accent-red: #dc3545;
+  }
+  html,body { margin:0; height:100%; background:var(--bg-main); color:var(--text-main); font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  .anki-styles { all:revert; } /* For scoping Anki's CSS */
+
+  /* --- Layout & Containers --- */
+  header { padding:16px; border-bottom:1px solid #222; display:flex; flex-direction:column; gap:12px; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  main { padding:16px; text-align:center; }
+  #game-setup { display:none; padding:24px; background:var(--bg-card); border-radius:12px; max-width:500px; margin:20px auto; }
+  #game-ui, #game-results { display:none; }
+
+  /* --- Header & Logs --- */
+  input[type=file] { background:#111; color:#eee; padding:8px; border:1px solid #333; border-radius:6px; }
+  #log { opacity:.85; font-size:14px; }
+  #error, #debug {
+    width:calc(100% - 24px); background:#241317; border:1px solid #5b1d28; color:#ffd7de;
+    padding:12px; border-radius:8px; line-height:1.35; margin-top:8px;
+  }
+  #debug { background:#112130; border-color:#1e3a5f; color:#cae8ff; }
+  #error h3, #debug h3 { margin:0 0 6px 0; font-size:14px }
+  #error pre, #debug pre { white-space:pre-wrap; margin:6px 0 0 0; font-size:12px; opacity:.9 }
+
+  /* --- Game UI --- */
+  #game-stats { display:flex; justify-content:space-around; align-items:center; flex-wrap:wrap; gap:16px; padding:8px 16px; background:#11151c; border-radius:8px; margin-bottom:24px; font-variant-numeric:tabular-nums; }
+  #timer { font-size:24px; font-weight:700; color:var(--accent-blue); }
+  .stat-item { text-align:center; }
+  .stat-label { font-size:12px; color:var(--text-subtle); }
+  #game-card-container { min-height:300px; display:flex; justify-content:center; align-items:center; perspective:1000px; }
+  .card {
+    background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:24px;
+    box-shadow:0 10px 25px rgba(0,0,0,.25); text-align:left; width:100%; max-width:600px;
+    opacity:0; animation:fadeIn 0.4s forwards;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .front, .back { font-size:18px; line-height:1.5; }
+  .back  { display:none; }
+  #game-controls { margin-top:24px; display:flex; gap:12px; justify-content:center; }
+  #answer-options { display:none; gap:12px; }
+
+  /* --- Game Results & Missed List --- */
+  #game-results { animation:fadeIn 0.5s; }
+  #results-summary { font-size: 1.2em; margin-bottom: 24px; }
+  #missed-cards-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-top:16px; text-align:left; }
+  .missed-card { background:#1a0f12; border:1px solid #4d232a; padding:12px; border-radius:8px; cursor:pointer; }
+  .missed-card .back { border-top:1px solid #4d232a; margin-top:8px; padding-top:8px; font-size:14px; display:none; }
+  #missed-list-view { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100; backdrop-filter:blur(5px); }
+  #missed-list-container { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--bg-card); padding:24px; border-radius:12px; width:90%; max-width:700px; max-height:80vh; overflow-y:auto; }
+
+  /* --- Buttons & Inputs --- */
+  button, input[type=number] { border:0; padding:12px 18px; border-radius:8px; background:var(--accent-blue); color:white; cursor:pointer; font-weight:600; font-size:16px; }
+  button:active, input[type=number]:active { transform:translateY(1px) }
+  button.small { padding:6px 10px; font-size:12px; background:#2b6cb0; }
+  button#gotItBtn { background:var(--accent-green); }
+  button#missedItBtn { background:var(--accent-red); }
+  button#pauseBtn.paused { background:#f0ad4e; }
+  input[type=number] { padding:10px; text-align:center; max-width:80px; background:#0e1522; }
+
+  /* --- Anki Content --- */
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  .cloze { cursor:pointer; border-bottom:1px dashed #6aa9ff; color:#6aa9ff; font-weight:bold; }
+  .cloze-reveal { color:#ffc107; font-weight:bold; }
+  .type-answer { padding:6px 8px;border:1px solid #334;border-radius:6px;background:#0e1522;color:#eee; }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <input id="file" type="file" accept=".apkg,.colpkg" />
+    <span id="log">Select an Anki deck (.apkg) to start.</span>
+  </div>
+  <div id="error" role="alert" aria-live="polite"></div>
+</header>
+
+<main>
+    <div id="game-setup">
+        <h2 id="deck-ready-title">Deck Ready!</h2>
+        <p>Set a time limit for your rapid review session.</p>
+        <div class="row" style="justify-content:center; gap: 20px;">
+            <label for="time-input">Time (minutes):</label>
+            <input id="time-input" type="number" value="5" min="1" max="120">
+            <button id="startGameBtn">Start Game</button>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="game-stats">
+            <div class="stat-item">
+                <div id="timer">00:00</div>
+                <div class="stat-label">Time Left</div>
+            </div>
+            <div class="stat-item">
+                <div id="progress-display">0 / 0</div>
+                <div class="stat-label">Card Progress</div>
+            </div>
+            <div class="stat-item">
+                <div id="score-display">✅ 0 | ❌ 0</div>
+                <div class="stat-label">Score</div>
+            </div>
+            <div>
+                 <button id="pauseBtn" class="small">Pause</button>
+                 <button id="viewMissedBtn" class="small">View Missed</button>
+            </div>
+        </div>
+        <div id="game-card-container"></div>
+        <div id="game-controls">
+            <button id="showAnswerBtn">Show Answer</button>
+            <div id="answer-options">
+                <button id="missedItBtn">❌ Missed It</button>
+                <button id="gotItBtn">✅ Got It</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-results">
+        <h2>Session Complete!</h2>
+        <div id="results-summary"></div>
+        <h3>Missed Cards:</h3>
+        <div id="missed-cards-grid"></div>
+        <button id="restartBtn" style="margin-top:24px;">Play Again with a New Deck</button>
+    </div>
+</main>
+
+<div id="missed-list-view">
+    <div id="missed-list-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="margin:0;">Missed Cards</h3>
+            <button id="closeMissedBtn" class="small">Close</button>
+        </div>
+        <div id="missed-cards-modal-content"></div>
+    </div>
+</div>
+
+
+<!-- fflate (zip + gzip) -->
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<!-- sql.js (SQLite in WebAssembly) -->
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
+<!-- protobufjs (for modern media maps) -->
+<script src="https://cdn.jsdelivr.net/npm/protobufjs@7.3.0/dist/protobuf.min.js"></script>
+
+<script>
+/* ===================== UI + GLOBAL STATE ===================== */
+const logEl  = document.getElementById('log');
+const errEl  = document.getElementById('error');
+const fileInput = document.getElementById('file');
+const gameSetupEl = document.getElementById('game-setup');
+const gameUiEl = document.getElementById('game-ui');
+const gameResultsEl = document.getElementById('game-results');
+const cardContainer = document.getElementById('game-card-container');
+
+let globalDeck = {
+  entries: null, decks: {}, models: {}, notes: [], cards: [],
+  fileTable: {}, replaceMedia: (html)=>html, mediaStats: {total:0,resolved:0}
+};
+
+let gameState = {
+  isActive: false, isPaused: false, timerId: null, timeLeft: 0,
+  currentCardIdx: -1, shuffledIndices: [],
+  correctCount: 0, missedIndices: new Set()
+};
+
+function setLog(msg){ logEl.textContent = msg; }
+function clearError(){ errEl.style.display='none'; errEl.innerHTML=''; }
+function showError(title, details='', tips=''){
+  errEl.style.display='block';
+  errEl.innerHTML = `<h3>⚠️ ${escapeHtml(title)}</h3>` +
+    (tips ? `<div>${escapeHtml(tips)}</div>` : '') +
+    (details ? `<pre>${escapeHtml(details)}</pre>` : '');
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[c])); }
+
+window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
+window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
+
+/* ===================== ENGINE LOAD ===================== */
+let SQLReady = false, SQL;
+initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` })
+  .then(db => { SQL = db; SQLReady = true; })
+  .catch(e => showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e), 'Check your connection and refresh the page.'));
+
+/* ===================== UTIL: UNZIP WITH WATCHDOG ===================== */
+function unzipWithWatchdog(buf, timeoutMs=20000){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const to = setTimeout(() => { if (!done){ done = true; reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).')); }}, timeoutMs);
+    try {
+      fflate.unzip(buf, { consume: true }, (err, obj) => {
+        if (done) return;
+        clearTimeout(to);
+        if (err) { done = true; reject(err); }
+        else { done = true; resolve(obj); }
+      });
+    } catch (e) { clearTimeout(to); reject(e); }
+  });
+}
+
+/* ===================== MEDIA PARSING (UNCHANGED) ===================== */
+function hasPrefix(b, ...bytes){ return bytes.every((v,i)=>b[i]===v); }
+function looksGzip(b){ return b.length>2 && hasPrefix(b,0x1F,0x8B); }
+function looksZstd(b){ return (b.length>4) && (hasPrefix(b,0xFD,0x2F,0xB5,0x28) || hasPrefix(b,0x28,0xB5,0x2F,0xFD)); }
+function loadScript(url){ return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = url; s.async = true; s.onload = () => resolve(); s.onerror = () => reject(new Error('Failed to load ' + url)); document.head.appendChild(s); }); }
+async function maybeDecompressMedia(bytes){ if (bytes[0] === 0x7B) return { bytes, encoding:'json' }; if (looksGzip(bytes)) { try { return { bytes: fflate.gunzipSync(bytes), encoding:'gzip' }; } catch(e){ throw new Error('Failed to gunzip media: ' + e.message); } } if (looksZstd(bytes)) { if (!window.ZstdCodec) await loadScript('https://cdn.jsdelivr.net/npm/zstd-codec@0.1.4/dist/zstd-codec.min.js'); return await new Promise((resolve, reject) => { try { window.ZstdCodec.run((zstd) => { try { const simple = new zstd.Simple(); const out = simple.decompress(bytes); resolve({ bytes: out, encoding:'zstd' }); } catch(e) { reject(new Error('Zstd decompression failed: ' + e.message)); } }); } catch(e) { reject(new Error('Zstd runtime failed to initialize: ' + e.message)); } }); } return { bytes, encoding:'unknown' }; }
+function tryParseMediaTextToMap(txt){ if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1); const firstBrace = txt.indexOf('{'); const lastBrace  = txt.lastIndexOf('}'); if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) { throw new Error('media file contains no JSON object'); } txt = txt.slice(firstBrace, lastBrace + 1); txt = txt.replace(/,\s*([}\]])/g, '$1').replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '').replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3'); return JSON.parse(txt); }
+async function decodeProtoMedia(bytes) { const urls = ["https://cdn.jsdelivr.net/gh/ankitects/anki@stable/proto/anki/import_export.proto","https://cdn.jsdelivr.net/gh/ankitects/anki@main/proto/anki/import_export.proto"]; let root = null, lastErr = null; for (const url of urls) { try { const r = await fetch(url, { cache: "force-cache" }); if (!r.ok) continue; const text = await r.text(); root = protobuf.parse(text).root; break; } catch (e) { lastErr = e; } } if (!root) throw new Error("Couldn’t load Anki proto (" + (lastErr?.message||"") + ")"); const likely = ["anki.import_export.MediaMap", "anki.import_export.MediaEntries", "anki.import_export.Media"].map(t => root.lookupTypeOrEnum(t)).filter(Boolean); const all = []; (function walk(ns) { for (const k of Object.keys(ns.nested||{})) { const v = ns.nested[k]; if (v.fields) all.push(v); if (v.nested) walk(v); } })(root); const candidates = [...new Set([...likely.map(t => root.lookupType(t)), ...all])]; const toMap = (obj) => { for (const [k,v] of Object.entries(obj||{})) { if (v && typeof v === "object" && !Array.isArray(v)) { const vals = Object.values(v); if (vals.length && vals.every(x => typeof x === "string")) return v; } } const scan = (o) => { for (const v of Object.values(o||{})) { if (Array.isArray(v) && v.length && typeof v[0] === "object") { const hasIdx = ("index" in v[0]) || ("id" in v[0]); const hasNm  = ("filename" in v[0]) || ("name" in v[0]); if (hasIdx && hasNm) { const map = {}; for (const it of v) { const key = (it.index ?? it.id); const name = (it.filename ?? it.name); if (key != null && typeof name === "string") map[String(key)] = name; } if (Object.keys(map).length) return map; } } } return null; }; return scan(obj); }; for (const T of candidates) { try { const msg = T.decode(bytes); const map = toMap(msg); if (map) return map; } catch { /* try next */ } } throw new Error("Decoded protobuf, but couldn’t recognize media map layout."); }
+async function parseMediaEntry(entryBytes){ const td = new TextDecoder('utf-8', { fatal:false }); const peek = escapeHtml(td.decode(entryBytes.slice(0, 80))); let { bytes, encoding } = await maybeDecompressMedia(entryBytes); if (bytes[0] === 0x7B) { return { map: tryParseMediaTextToMap(td.decode(bytes)), encoding: encoding || 'json', peek }; } try { const map = await decodeProtoMedia(bytes); return { map, encoding: (encoding ? encoding + "/protobuf" : "protobuf"), peek }; } catch (e) { e.peek = peek; throw e; } }
+
+/* ===================== TEMPLATING & MEDIA (UNCHANGED) ===================== */
+function applyConditionals(tpl, fields, fieldNames){ tpl = tpl.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, inner) => { const idx = fieldNames.indexOf(name.trim()); const val = idx >= 0 ? fields[idx] : ''; return String(val).trim() ? inner : ''; }); tpl = tpl.replace(/\{\{\^([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, inner) => { const idx = fieldNames.indexOf(name.trim()); const val = idx >= 0 ? fields[idx] : ''; return String(val).trim() ? '' : inner; }); return tpl; }
+function collectClozeFieldsFromTemplate(tpl){ const set = new Set(); tpl.replace(/\{\{([^}]+)\}\}/g, (_m, token) => { const parts = token.trim().split(':'); const field = parts.pop().trim(); const chain = parts.map(p => p.trim().toLowerCase()); if (chain.includes('cloze')) set.add(field); }); return set; }
+function processClozeForOrd(text, targetIndex, side){ return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g, (m, n, inner, hint) => { const idx = parseInt(n,10); if (idx === targetIndex) { if (side === 'front') { return `<span class="cloze" title="${hint||''}">[...]</span>`; } else { return `<span class="cloze-reveal">${inner}</span>`; } } return inner; }); }
+function stripClozeMarkup(s){ return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g, '$1'); }
+function substituteTokens(tpl, fields, fieldNames, { side, targetCloze, templateForScan }){ const clozeFields = collectClozeFieldsFromTemplate(templateForScan || tpl); return tpl.replace(/\{\{([^}]+)\}\}/g, (m, raw) => { const token = raw.trim(); if (token === 'FrontSide') return '{{FrontSide}}'; const parts = token.split(':'); const fieldName = parts.pop().trim(); const chain = parts.map(p => p.trim().toLowerCase()); const idx = fieldNames.indexOf(fieldName); const val = idx >= 0 ? (fields[idx] ?? '') : ''; const hasCloze = chain.includes('cloze'); const hasType = chain.includes('type'); const hasText = chain.includes('text') || chain.includes('hint'); if (hasCloze) { return processClozeForOrd(val, targetCloze, side); } if (hasType) { return `<input class="type-answer" aria-label="type your answer" />`; } if (hasText) { if (clozeFields.has(fieldName)) return ''; return stripClozeMarkup(val); } if (clozeFields.has(fieldName)) return ''; return val; }); }
+function sanitize(html){ return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,''); }
+function sniffExt(bytes){ const b = bytes; const s = (...seq) => seq.every((v,i)=>b[i]===v); const a = (i, t) => t.split('').every((ch,k)=>b[i+k]===ch.charCodeAt(0)); try { if (s(0xFF,0xD8,0xFF)) return 'jpg'; if (s(0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A)) return 'png'; if (a(0,'GIF87a')||a(0,'GIF89a')) return 'gif'; if (a(0,'RIFF')&&a(8,'WEBP')) return 'webp'; if (a(0,'<svg')) return 'svg'; if (a(0,'ID3') || (b[0]===0xFF && (b[1]&0xE0)===0xE0)) return 'mp3'; if (a(0,'OggS')) return 'ogg'; if (a(0,'RIFF')&&a(8,'WAVE')) return 'wav'; if (a(4,'ftyp')) return 'mp4'; } catch {} return 'bin'; }
+function buildHeuristicIndex(entries){ const extIndex = {}; const isMediaKey = k => /^\d+(\.[A-Za-z0-9]+)?$/.test(k) || /^[^/]+\.[A-Za-z0-9]+$/.test(k); for (const [name, bytes] of Object.entries(entries)) { if (!isMediaKey(name)) continue; const m = name.match(/\.([A-Za-z0-9]+)$/); const ext = m ? m[1].toLowerCase() : sniffExt(bytes); (extIndex[ext] ||= []).push(name); } return extIndex; }
+function mediaURLForKey(key, files){ const bytes = files[key]; if (!bytes) return null; return URL.createObjectURL(new Blob([bytes], {type:'application/octet-stream'})); }
+function buildMediaReplacer(mediaMap, files, diagnostics){ const reverseMap = {}; for (const [k,v] of Object.entries(mediaMap)) reverseMap[v] = k; const extIndex = buildHeuristicIndex(files); const unresolvedNames = new Set(); const imgIdxRE   = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi; const audioIdxRE = /<audio[^>]+src=["']([^"']+)["'][^>]*>/gi; const soundTagRE = /\[sound:([^\]]+)\]/gi; function resolve(src){ if (/^\d+$/.test(src)) { const u = mediaURLForKey(src, files); if (u) return u; } let u = mediaURLForKey(src, files); if (u) return u; const idx = reverseMap[src]; if (idx!==undefined) { u = mediaURLForKey(idx, files); if (u) return u; } const em = src.toLowerCase().match(/\.([a-z0-9]+)$/); if (em) { const ext = em[1], candidates = extIndex[ext] || []; if (candidates.length === 1) { u = mediaURLForKey(candidates[0], files); if (u) return u; } } unresolvedNames.add(src); return null; } function replaceAll(html){ html = html.replace(imgIdxRE, (m, src) => { diagnostics.total++; const u = resolve(src); if (!u) return m; diagnostics.resolved++; return m.replace(src, u); }); html = html.replace(audioIdxRE, (m, src) => { diagnostics.total++; const u = resolve(src); if (!u) return m; diagnostics.resolved++; return m.replace(src, u); }); html = html.replace(soundTagRE, (m, name) => { diagnostics.total++; const u = resolve(name); if (!u) return m; diagnostics.resolved++; return `<audio controls preload="metadata" src="${u}"></audio>`; }); return html; } return { replaceAll, unresolvedNames }; }
+
+/* ===================== DECK PARSING ===================== */
+fileInput.addEventListener('change', onFileChange);
+
+async function onFileChange(e){
+  clearError();
+  gameSetupEl.style.display = 'none';
+  gameUiEl.style.display = 'none';
+  gameResultsEl.style.display = 'none';
+
+  const file = e.target.files?.[0]; if (!file) return;
+
+  if (file.size > 250 * 1024 * 1024) {
+    showError('Large file warning', `This deck is ${(file.size/1024/1024).toFixed(1)} MB.`, 'Very large decks can be slow or run out of memory. If it stalls, try on a desktop browser.');
+  }
+
+  try {
+    setLog('Reading file…');
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (!(buf[0]===0x50 && buf[1]===0x4b)) { showError('This doesn’t look like a .apkg file.', 'Expected ZIP header (PK).', 'Make sure you selected a .apkg file exported from Anki.'); return; }
+
+    setLog('Unzipping…');
+    let entries = await unzipWithWatchdog(buf, 20000);
+    const dbEntry = entries['collection.anki21'] || entries['collection.anki21b'] || entries['collection.anki2'];
+    if (!dbEntry) { showError('Could not find collection database in this package.', `Entries seen: ${Object.keys(entries).slice(0,10).join(', ')}...`, 'Please export the deck as a modern .apkg file.'); return; }
+
+    let mediaMap = {};
+    if (entries['media']) { try { const parsed = await parseMediaEntry(entries['media']); mediaMap = parsed.map; } catch (mErr) { showError('Media file could not be parsed.', mErr.stack, 'We’ll continue without media mapping; images/sounds might not load.'); } }
+
+    if (!SQLReady) { showError('SQLite engine not ready.', '', 'Reload the page and try again.'); return; }
+
+    setLog('Opening SQLite database…');
+    let db = new SQL.Database(dbEntry);
+
+    let models = {}, decks = {}, notes = [], cards = [];
+    const col = db.exec(`SELECT models, decks FROM col LIMIT 1`)[0];
+    models = JSON.parse(col.values[0][0]);
+    decks  = JSON.parse(col.values[0][1]);
+
+    const nRes = db.exec(`SELECT id, mid, flds FROM notes`);
+    if (nRes[0]) notes = nRes[0].values.map(r => ({id: r[0], mid: r[1], flds: r[2]}));
+    const cRes = db.exec(`SELECT nid, ord FROM cards`);
+    if (cRes[0]) cards = cRes[0].values.map(r => ({nid: r[0], ord: r[1]}));
+
+    const fileTable = {};
+    for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
+    const mediaLookups = { total: 0, resolved: 0 };
+    const { replaceAll } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
+
+    globalDeck = { entries, decks, models, notes, cards, fileTable, replaceMedia, mediaStats: mediaLookups };
+    
+    setLog(`Deck loaded: ${cards.length} cards found.`);
+    document.getElementById('deck-ready-title').textContent = `Deck Loaded: ${cards.length} Cards`;
+    document.querySelector('header .row').style.display = 'none';
+    gameSetupEl.style.display = 'block';
+
+  } catch (err) {
+    showError('Something went wrong while processing the file.', err?.stack || String(err));
+  }
+}
+
+/* ===================== GAME LOGIC ===================== */
+
+document.getElementById('startGameBtn').addEventListener('click', startGame);
+
+function startGame() {
+    const timeInMinutes = parseInt(document.getElementById('time-input').value, 10);
+    if (isNaN(timeInMinutes) || timeInMinutes <= 0) {
+        alert("Please enter a valid time in minutes.");
+        return;
+    }
+
+    gameState = {
+        isActive: true,
+        isPaused: false,
+        timerId: null,
+        timeLeft: timeInMinutes * 60,
+        currentCardIdx: -1,
+        shuffledIndices: shuffleArray([...globalDeck.cards.keys()]),
+        correctCount: 0,
+        missedIndices: new Set()
+    };
+
+    gameSetupEl.style.display = 'none';
+    gameResultsEl.style.display = 'none';
+    gameUiEl.style.display = 'block';
+
+    gameState.timerId = setInterval(updateTimer, 1000);
+    updateTimer();
+    nextCard();
+}
+
+function updateTimer() {
+    if (!gameState.isActive || gameState.isPaused) return;
+
+    gameState.timeLeft--;
+    const minutes = Math.floor(gameState.timeLeft / 60);
+    const seconds = gameState.timeLeft % 60;
+    document.getElementById('timer').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+    if (gameState.timeLeft <= 0) {
+        endGame("Time's up!");
+    }
+}
+
+function nextCard() {
+    gameState.currentCardIdx++;
+    if (gameState.currentCardIdx >= gameState.shuffledIndices.length) {
+        endGame("You've completed the deck!");
+        return;
+    }
+    
+    const cardRealIndex = gameState.shuffledIndices[gameState.currentCardIdx];
+    renderCard(cardRealIndex);
+    updateStats();
+
+    // Reset button visibility
+    document.getElementById('showAnswerBtn').style.display = 'inline-block';
+    document.getElementById('answer-options').style.display = 'none';
+}
+
+function updateStats() {
+    document.getElementById('progress-display').textContent = `${gameState.currentCardIdx + 1} / ${gameState.shuffledIndices.length}`;
+    document.getElementById('score-display').textContent = `✅ ${gameState.correctCount} | ❌ ${gameState.missedIndices.size}`;
+}
+
+function endGame(reason) {
+    clearInterval(gameState.timerId);
+    gameState.isActive = false;
+
+    gameUiEl.style.display = 'none';
+    gameResultsEl.style.display = 'block';
+
+    const totalReviewed = gameState.currentCardIdx;
+    const summary = `
+        <strong>${reason}</strong><br>
+        Reviewed: ${totalReviewed} cards<br>
+        Correct: ${gameState.correctCount}<br>
+        Missed: ${gameState.missedIndices.size}
+    `;
+    document.getElementById('results-summary').innerHTML = summary;
+    renderMissedCards(document.getElementById('missed-cards-grid'), [...gameState.missedIndices]);
+}
+
+document.getElementById('showAnswerBtn').addEventListener('click', () => {
+    document.querySelector('.card .front').style.display = 'none';
+    document.querySelector('.card .back').style.display = 'block';
+    document.getElementById('showAnswerBtn').style.display = 'none';
+    document.getElementById('answer-options').style.display = 'flex';
+});
+
+document.getElementById('gotItBtn').addEventListener('click', () => {
+    gameState.correctCount++;
+    nextCard();
+});
+
+document.getElementById('missedItBtn').addEventListener('click', () => {
+    const cardRealIndex = gameState.shuffledIndices[gameState.currentCardIdx];
+    gameState.missedIndices.add(cardRealIndex);
+    nextCard();
+});
+
+document.getElementById('pauseBtn').addEventListener('click', () => {
+    gameState.isPaused = !gameState.isPaused;
+    const btn = document.getElementById('pauseBtn');
+    if (gameState.isPaused) {
+        btn.textContent = 'Resume';
+        btn.classList.add('paused');
+    } else {
+        btn.textContent = 'Pause';
+        btn.classList.remove('paused');
+    }
+});
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+    location.reload();
+});
+
+
+/* ===================== DYNAMIC CARD RENDERING ===================== */
+
+function renderCard(cardIndex) {
+    const { cards, notes, models, replaceMedia } = globalDeck;
+    const card = cards[cardIndex];
+    if (!card) return;
+
+    const note = notes.find(n => n.id === card.nid); if (!note) return;
+    const model = models[String(note.mid)]; if (!model) return;
+
+    const fieldNames = (model?.flds || []).map(f => f.name);
+    const fields = (note.flds || '').split('\x1f');
+    const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) return;
+
+    const targetCloze = card.ord + 1;
+
+    // FRONT
+    let front = applyConditionals(tmpl.qfmt || '', fields, fieldNames);
+    front = substituteTokens(front, fields, fieldNames, { side: 'front', targetCloze, templateForScan: tmpl.qfmt });
+    front = replaceMedia(sanitize(front));
+
+    // BACK (with {{FrontSide}})
+    let back = applyConditionals(tmpl.afmt || '', fields, fieldNames);
+    back = substituteTokens(back, fields, fieldNames, { side: 'back', targetCloze, templateForScan: tmpl.afmt });
+    back = back.replace(/\{\{FrontSide\}\}/g, front);
+    back = replaceMedia(sanitize(back));
+
+    const modelCss = model?.css || '';
+
+    const cardHTML = `
+        <div class="card">
+            <style scoped>${modelCss}</style>
+            <div class="anki-styles">
+              <div class="front">${front || '(empty front)'}</div>
+              <div class="back">${back || '(empty back)'}</div>
+            </div>
+        </div>
+    `;
+    cardContainer.innerHTML = cardHTML;
+}
+
+function getCardHTML(cardIndex) {
+    // A lighter version of renderCard for lists, returns {front, back} strings
+    const { cards, notes, models, replaceMedia } = globalDeck;
+    const card = cards[cardIndex];
+    if (!card) return {front:'', back:''};
+    const note = notes.find(n => n.id === card.nid); if (!note) return {front:'', back:''};
+    const model = models[String(note.mid)]; if (!model) return {front:'', back:''};
+    const fieldNames = (model?.flds || []).map(f => f.name);
+    const fields = (note.flds || '').split('\x1f');
+    const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) return {front:'', back:''};
+    const targetCloze = card.ord + 1;
+    let front = applyConditionals(tmpl.qfmt || '', fields, fieldNames);
+    front = substituteTokens(front, fields, fieldNames, { side: 'front', targetCloze, templateForScan: tmpl.qfmt });
+    front = replaceMedia(sanitize(front));
+    let back = applyConditionals(tmpl.afmt || '', fields, fieldNames);
+    back = substituteTokens(back, fields, fieldNames, { side: 'back', targetCloze, templateForScan: tmpl.afmt });
+    back = back.replace(/\{\{FrontSide\}\}/g, front);
+    back = replaceMedia(sanitize(back));
+    return { front, back };
+}
+
+function renderMissedCards(container, missedIndicesArray) {
+    container.innerHTML = '';
+    if (missedIndicesArray.length === 0) {
+        container.innerHTML = '<p>No missed cards. Great job!</p>';
+        return;
+    }
+    for (const cardIndex of missedIndicesArray) {
+        const { front, back } = getCardHTML(cardIndex);
+        const el = document.createElement('div');
+        el.className = 'missed-card';
+        el.innerHTML = `
+            <div class="front">${front || '(empty front)'}</div>
+            <div class="back">${back || '(empty back)'}</div>
+        `;
+        el.addEventListener('click', () => {
+            const backEl = el.querySelector('.back');
+            backEl.style.display = backEl.style.display === 'block' ? 'none' : 'block';
+        });
+        container.appendChild(el);
+    }
+}
+
+// Missed List Modal
+const missedModal = document.getElementById('missed-list-view');
+document.getElementById('viewMissedBtn').addEventListener('click', () => {
+    renderMissedCards(document.getElementById('missed-cards-modal-content'), [...gameState.missedIndices]);
+    missedModal.style.display = 'block';
+});
+document.getElementById('closeMissedBtn').addEventListener('click', () => {
+    missedModal.style.display = 'none';
+});
+
+/* ===================== UTILITY ===================== */
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+</script>
+</body>
+</html>
