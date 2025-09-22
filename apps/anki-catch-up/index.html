@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>APKG → Fun Viewer (Local)</title>
+<style>
+  html,body { margin:0; height:100%; background:#0b0f14; color:#eee; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  header { padding:16px; border-bottom:1px solid #222; display:flex; gap:12px; align-items:center; }
+  input[type=file] { background:#111; color:#eee; padding:8px; border:1px solid #333; border-radius:6px; }
+  #log { opacity:.8; font-size:12px }
+  main { padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+  .card {
+    background:#121826; border:1px solid #243042; border-radius:12px; padding:16px; min-height:160px;
+    box-shadow:0 10px 25px rgba(0,0,0,.25); display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .front, .back { font-size:16px; line-height:1.4; }
+  .front { opacity:.95; }
+  .back  { display:none; opacity:.95; }
+  .meta { font-size:12px; opacity:.65; margin-top:10px }
+  button.flip {
+    margin-top:12px; border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
+    color:white; cursor:pointer; font-weight:600;
+  }
+  button.flip:active { transform:translateY(1px) }
+  a.media { color:#7dd3fc; text-decoration:underline; }
+</style>
+</head>
+<body>
+<header>
+  <input id="file" type="file" accept=".apkg" />
+  <span id="log"></span>
+</header>
+<main id="grid"></main>
+
+<!-- fflate (zip) -->
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<!-- sql.js (SQLite in WebAssembly) -->
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
+
+<script>
+(async () => {
+  const fileInput = document.getElementById('file');
+  const grid = document.getElementById('grid');
+  const log = document.getElementById('log');
+
+  const SQL = await initSqlJs({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
+  });
+
+  function setLog(msg){ log.textContent = msg; }
+
+  // Very small helper: turn a plain string with minimal cloze {{c1::text}} into masked version
+  function renderCloze(text){
+    // Replace {{cN::X}} with <span data-cloze="N" class="cloze">[...]</span>
+    return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m,idx,inner,_m2,hint) => {
+      return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`;
+    });
+  }
+
+  // Basic field substitution: replace {{Field}} with fields[index]
+  function applyTemplate(tpl, fields, fieldNames){
+    // Anki templates can include filters and conditionals; we start simple:
+    return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
+      // handle cloze-templates later; for now try plain field name
+      const name = token.split(':')[0].trim(); // ignore filters like text:
+      const idx = fieldNames.indexOf(name);
+      if (idx >= 0) return fields[idx] ?? '';
+      // crude fallback: if it's the cloze field name, pass content through (cloze markup renderer later)
+      return '';
+    });
+  }
+
+  // Simple HTML sanitizer-ish (very minimal; expand with a real sanitizer if needed)
+  function sanitize(html){
+    // Allow only a small subset; you can swap this for DOMPurify if you want.
+    // For now, we trust Anki content modestly and only strip script tags:
+    return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
+  }
+
+  // Utilities: create object URL for media file by index
+  function mediaURL(idx, mediaMap, files){
+    const name = mediaMap[idx]; // filename (may include extension)
+    // Some APKGs rely on numeric indices; we use the numeric file directly if present.
+    const f = files[idx] || files[name];
+    if (!f) return null;
+    const blob = new Blob([f], {type: 'application/octet-stream'});
+    return URL.createObjectURL(blob);
+  }
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLog('Reading .apkg...');
+    const buf = new Uint8Array(await file.arrayBuffer());
+
+    setLog('Unzipping...');
+    const entries = fflate.unzipSync(buf);
+
+    // Find DB and media map
+    const dbEntry = entries['collection.anki21'] || entries['collection.anki2'];
+    if (!dbEntry) {
+      setLog('Could not find collection.anki21 / .anki2 in this package.');
+      return;
+    }
+    const mediaJson = entries['media'] ? new TextDecoder().decode(entries['media']) : null;
+    const mediaMap = mediaJson ? JSON.parse(mediaJson) : {};
+
+    // Keep a handy dictionary of all unzipped files as Uint8Array
+    const fileTable = {};
+    for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
+
+    setLog('Opening SQLite…');
+    const db = new SQL.Database(dbEntry);
+
+    // Read col (models, decks)
+    let models = {}, decks = {};
+    try {
+      const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
+      if (col) {
+        const row = Object.fromEntries(col.columns.map((c,i)=>[c,col.values[0][i]]));
+        models = JSON.parse(row.models);
+        decks  = JSON.parse(row.decks);
+      }
+    } catch (err) { console.warn('col read failed', err); }
+
+    // notes: id, guid, mid, flds (pipe-separated), tags, sfld…
+    // cards: id, nid, did, ord (template index)…
+    const notesRes = db.exec(`SELECT id, guid, mid, flds, sfld, tags FROM notes`);
+    const cardsRes = db.exec(`SELECT id, nid, did, ord FROM cards`);
+
+    const notes = [];
+    if (notesRes[0]) {
+      const { columns, values } = notesRes[0];
+      for (const row of values) {
+        const obj = Object.fromEntries(columns.map((c,i)=>[c,row[i]]));
+        notes.push(obj);
+      }
+    }
+
+    const cards = [];
+    if (cardsRes[0]) {
+      const { columns, values } = cardsRes[0];
+      for (const row of values) {
+        const obj = Object.fromEntries(columns.map((c,i)=>[c,row[i]]));
+        cards.push(obj);
+      }
+    }
+
+    // Join cards→notes→model templates
+    // Build a small preview (first 24 cards) for demo
+    grid.innerHTML = '';
+    let shown = 0;
+    for (const card of cards) {
+      if (shown >= 24) break;
+      const note = notes.find(n => n.id === card.nid);
+      if (!note) continue;
+
+      const model = models[String(note.mid)];
+      if (!model) continue;
+
+      // Fields
+      const fieldNames = (model?.flds || []).map(f => f.name);
+      const fields = (note.flds || '').split('\x1f'); // 0x1f separator in Anki
+
+      // Template for this card ord
+      const tmpl = model?.tmpls?.[card.ord];
+      if (!tmpl) continue;
+
+      // Apply template
+      let front = applyTemplate(tmpl.qfmt || '', fields, fieldNames);
+      let back  = applyTemplate(tmpl.afmt || '', fields, fieldNames);
+
+      // Render cloze for quick demo (if the model is cloze type)
+      if ((model?.type === 1) || /{{c\d+::/i.test(fields.join(' '))) {
+        // Cloze templates usually use {{cloze:Text}} in qfmt/afmt; we’re being simple here:
+        front = renderCloze(front);
+        back  = renderCloze(back);
+      }
+
+      // Replace media tags like <img src="X"> where X is an index or filename
+      const imgIdxRE = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+      const replaceMedia = (html) => html.replace(imgIdxRE, (m, src) => {
+        // src might be a numeric key or a name; try both
+        let url = null;
+        if (/^\d+$/.test(src)) url = mediaURL(src, mediaMap, fileTable);
+        if (!url && src in fileTable) url = mediaURL(src, mediaMap, fileTable);
+        if (!url) return m;
+        return m.replace(src, url);
+      });
+
+      front = replaceMedia(sanitize(front));
+      back  = replaceMedia(sanitize(back));
+
+      // Build UI card
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `
+        <div class="front">${front || '(empty front)'}</div>
+        <div class="back">${back || '(empty back)'}</div>
+        <div class="meta">
+          Deck: ${decks[card.did]?.name || card.did} • NoteType: ${model.name} • ord: ${card.ord}
+        </div>
+        <button class="flip">Flip</button>
+      `;
+      el.querySelector('.flip').addEventListener('click', () => {
+        const f = el.querySelector('.front'), b = el.querySelector('.back');
+        if (b.style.display === 'block') { b.style.display='none'; f.style.display='block'; }
+        else { f.style.display='none'; b.style.display='block'; }
+      });
+      // Simple cloze reveal on tap
+      el.addEventListener('click', (ev) => {
+        const c = ev.target.closest('.cloze');
+        if (c) {
+          const inner = c.querySelector('span');
+          if (inner) {
+            const hidden = inner.style.display === 'none';
+            inner.style.display = hidden ? 'inline' : 'none';
+            c.firstChild.textContent = hidden ? '' : '[ tap to reveal ]';
+          }
+        }
+      });
+
+      grid.appendChild(el);
+      shown++;
+    }
+
+    setLog(`Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). Showing ${Math.min(24, cards.length)} as a demo.`);
+  });
+})();
+</script>
+</body>
+</html>
