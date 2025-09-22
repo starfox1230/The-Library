@@ -25,7 +25,6 @@
   }
   .front, .back { font-size:16px; line-height:1.4; }
   .back  { display:none; }
-  .meta { font-size:12px; opacity:.65; margin-top:10px }
   button.flip, button.small, #loadMore {
     border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
     color:white; cursor:pointer; font-weight:600;
@@ -80,7 +79,7 @@ function showError(title, details='', tips=''){
     (details ? `<pre>${escapeHtml(details)}</pre>` : '');
 }
 function showDebug(html){ dbgEl.style.display='block'; dbgEl.innerHTML = html; }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[c])); }
 
 window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
 window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
@@ -544,7 +543,7 @@ async function onFileChange(e){
     const fileTable = {};
     for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
     const mediaLookups = { total: 0, resolved: 0 };
-    const { replaceAll, unresolvedNames } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
+    const { replaceAll } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
 
     // Cache globals for pagination
     global.entries = entries;
@@ -588,7 +587,7 @@ Zip entries: ${Object.keys(entries).length}
 
 /* Render next PAGE_SIZE cards */
 function renderNextBatch(){
-  const { cards, notes, models, decks, replaceMedia, mediaStats } = global;
+  const { cards, notes, models, replaceMedia, mediaStats } = global;
   const start = global.startIndex;
   const end = Math.min(cards.length, start + PAGE_SIZE);
 
@@ -630,14 +629,13 @@ function renderNextBatch(){
     const modelCss = model?.css || '';
     const styleTag = modelCss ? `<style>${modelCss}</style>` : '';
 
-    // Build card
+    // Build card (meta removed)
     const el = document.createElement('div');
     el.className = 'card';
     el.innerHTML = `
       ${styleTag}
       <div class="front">${front || '(empty front)'}</div>
       <div class="back">${back || '(empty back)'}</div>
-      <div class="meta">Deck: ${escapeHtml(decks[card.did]?.name || String(card.did))} • NoteType: ${escapeHtml(model.name||'')} • ord: ${card.ord}</div>
       <button class="flip">Flip</button>
     `;
     el.querySelector('.flip').addEventListener('click', () => {
@@ -666,8 +664,7 @@ function renderNextBatch(){
   // Pager UI
   const showing = global.startIndex;
   setLog(
-    `Loaded ${cards.length} cards from ${Object.keys(global.decks).length} deck(s). ` +
-    `Showing ${showing} of ${cards.length}.` +
+    `Loaded ${cards.length} cards. Showing ${showing} of ${cards.length}.` +
     (mediaStats.total ? ` Media: resolved ${mediaStats.resolved}/${mediaStats.total}.` : '')
   );
 
