@@ -26,14 +26,16 @@
   .front, .back { font-size:16px; line-height:1.4; }
   .back  { display:none; }
   .meta { font-size:12px; opacity:.65; margin-top:10px }
-  button.flip, button.small {
+  button.flip, button.small, #loadMore {
     border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
     color:white; cursor:pointer; font-weight:600;
   }
   button.small { padding:6px 10px; font-size:12px; background:#2b6cb0 }
-  button.flip:active, button.small:active { transform:translateY(1px) }
+  #loadMore { display:none; margin:16px auto 24px; }
+  button:active { transform:translateY(1px) }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
   .cloze { cursor:pointer; border-bottom:1px dashed #6aa9ff; }
+  footer { padding:8px 16px 24px; text-align:center; color:#aab; }
 </style>
 </head>
 <body>
@@ -48,6 +50,9 @@
 </header>
 
 <main id="grid"></main>
+<footer>
+  <button id="loadMore" type="button">Load 24 more</button>
+</footer>
 
 <!-- fflate (zip + gzip) -->
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
@@ -63,6 +68,7 @@ const logEl  = document.getElementById('log');
 const errEl  = document.getElementById('error');
 const dbgEl  = document.getElementById('debug');
 const toggleDebugBtn = document.getElementById('toggleDebug');
+const loadMoreBtn = document.getElementById('loadMore');
 
 function setLog(msg){ logEl.textContent = msg; }
 function clearError(){ errEl.style.display='none'; errEl.innerHTML=''; }
@@ -186,14 +192,12 @@ async function decodeProtoMedia(bytes) {
   const candidates = [...new Set([...likely.map(t => root.lookupType(t)), ...all])];
 
   const toMap = (obj) => {
-    // direct { files: { "0": "name.jpg", ... } }
     for (const [k,v] of Object.entries(obj||{})) {
       if (v && typeof v === "object" && !Array.isArray(v)) {
         const vals = Object.values(v);
         if (vals.length && vals.every(x => typeof x === "string")) return v;
       }
     }
-    // repeated entries [{index|id, filename|name}, ...]
     const scan = (o) => {
       for (const v of Object.values(o||{})) {
         if (Array.isArray(v) && v.length && typeof v[0] === "object") {
@@ -230,11 +234,9 @@ async function parseMediaEntry(entryBytes){
   const peek = escapeHtml(td.decode(entryBytes.slice(0, 80)));
   let { bytes, encoding } = await maybeDecompressMedia(entryBytes);
 
-  // JSON after decompression?
   if (bytes[0] === 0x7B /* '{' */) {
     return { map: tryParseMediaTextToMap(td.decode(bytes)), encoding: encoding || 'json', peek };
   }
-  // Try protobuf (modern exports)
   try {
     const map = await decodeProtoMedia(bytes);
     return { map, encoding: (encoding ? encoding + "/protobuf" : "protobuf"), peek };
@@ -260,11 +262,11 @@ function applyConditionals(tpl, fields, fieldNames){
   return tpl;
 }
 
-// Substitute fields; take the last segment after ":" so {{cloze:Text}} → field "Text"
+// Substitute fields; take last segment after ":" so {{cloze:Text}} → field "Text"
 function substituteFields(tpl, fields, fieldNames){
   return tpl.replace(/\{\{([^}]+)\}\}/g, (m, token) => {
     const key = token.trim();
-    if (key === 'FrontSide') return '{{FrontSide}}'; // leave; we will inject computed front later
+    if (key === 'FrontSide') return '{{FrontSide}}'; // leave for later
     const parts = key.split(':');
     const name  = parts[parts.length - 1].trim();
     const idx   = fieldNames.indexOf(name);
@@ -272,16 +274,39 @@ function substituteFields(tpl, fields, fieldNames){
   });
 }
 
-// Very simple cloze visual
-function renderCloze(text){
-  return text.replace(/\{\{c(\d+)::(.*?)(::(.*?))?\}\}/g, (m, idx, inner, _rest, hint) =>
-    `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none"> ${inner} </span></span>`
-  );
+// Cloze processor: only mask the cloze that matches this card's ord (ord+1)
+function processClozeForOrd(text, targetIndex, mode /* 'front' | 'back' */){
+  return text.replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g, (m, n, inner, hint) => {
+    const idx = parseInt(n,10);
+    if (idx === targetIndex) {
+      if (mode === 'front') {
+        return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none">${inner}</span></span>`;
+      } else {
+        return `<span class="cloze-reveal">${inner}</span>`;
+      }
+    } else {
+      // other cloze deletions are shown normally (no masking)
+      return inner;
+    }
+  });
 }
 
 function sanitize(html){
-  // Strip script tags only (swap for DOMPurify in production)
   return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
+}
+
+// If a template accidentally prints the exact same content twice, collapse it.
+function collapseExactDuplicate(html){
+  const compact = html.replace(/\s+/g, ' ').trim();
+  if (!compact) return html;
+  const halfLen = Math.floor(compact.length/2);
+  const first = compact.slice(0, halfLen);
+  const second = compact.slice(halfLen);
+  if (first && first === second) {
+    // naïve—but handles the common "printed twice" case
+    return html.slice(0, Math.floor(html.length/2));
+  }
+  return html;
 }
 
 /* ===================== MEDIA REPLACER ===================== */
@@ -352,9 +377,22 @@ function buildMediaReplacer(mediaMap, files, diagnostics){
   return { replaceAll, unresolvedNames };
 }
 
-/* ===================== MAIN ===================== */
-document.getElementById('file').addEventListener('change', async (e) => {
+/* ===================== MAIN (with pagination) ===================== */
+const PAGE_SIZE = 24;
+let global = {
+  entries: null, decks: {}, models: {}, notes: [], cards: [],
+  fileTable: {}, replaceMedia: (html)=>html, mediaStats: {total:0,resolved:0},
+  startIndex: 0, isClozeModelByMid: {}
+};
+
+document.getElementById('file').addEventListener('change', onFileChange);
+loadMoreBtn.addEventListener('click', () => renderNextBatch());
+
+async function onFileChange(e){
   clearError(); dbgEl.style.display='none'; dbgEl.innerHTML=''; grid.innerHTML = ''; setLog('');
+  loadMoreBtn.style.display='none';
+  global.startIndex = 0;
+
   const file = e.target.files?.[0]; if (!file) return;
 
   if (file.size > 250 * 1024 * 1024) {
@@ -384,7 +422,6 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    // Find DB (also accept .anki21b variants in some bundles)
     const dbEntry = entries['collection.anki21'] || entries['collection.anki21b'] || entries['collection.anki2'];
     if (!dbEntry) {
       const present = Object.keys(entries).slice(0,20).join(', ') + (Object.keys(entries).length>20 ? ', …' : '');
@@ -394,13 +431,12 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    // Parse media mapping (JSON / ZSTD / GZIP / Protobuf)
-    let mediaMap = {}, mediaPeek = '', mediaEncoding = 'none';
+    // Parse media mapping
+    let mediaMap = {}, mediaEncoding = 'none';
     if (entries['media']) {
       try {
         const parsed = await parseMediaEntry(entries['media']);
         mediaMap = parsed.map;
-        mediaPeek = parsed.peek || '';
         mediaEncoding = parsed.encoding || 'json';
       } catch (mErr) {
         const td = new TextDecoder('utf-8', { fatal:false });
@@ -466,100 +502,43 @@ document.getElementById('file').addEventListener('change', async (e) => {
       return;
     }
 
-    // Files table & media replacer
+    // Build files + media replacer
     const fileTable = {};
     for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
     const mediaLookups = { total: 0, resolved: 0 };
     const { replaceAll, unresolvedNames } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
 
-    // Render preview
-    setLog('Rendering preview…');
-    grid.innerHTML = '';
-
-    let shown = 0;
-    for (const card of cards) {
-      if (shown >= 24) break;
-
-      const note = notes.find(n => n.id === card.nid); if (!note) continue;
-      const model = models[String(note.mid)]; if (!model) continue;
-
-      const fieldNames = (model?.flds || []).map(f => f.name);
-      const fields = (note.flds || '').split('\x1f');
-      const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) continue;
-
-      // FRONT
-      let front = tmpl.qfmt || '';
-      front = applyConditionals(front, fields, fieldNames);
-      front = substituteFields(front, fields, fieldNames);
-      const isCloze = (model?.type === 1) || /{{c\d+::/i.test(fields.join(' '));
-      if (isCloze) front = renderCloze(front);
-      front = replaceAll(sanitize(front));
-
-      // BACK (with {{FrontSide}})
-      let back = tmpl.afmt || '';
-      back = back.replace(/\{\{FrontSide\}\}/g, front);
-      back = applyConditionals(back, fields, fieldNames);
-      back = substituteFields(back, fields, fieldNames);
-      if (isCloze) back = renderCloze(back);
-      back = replaceAll(sanitize(back));
-
-      // Model CSS
-      const modelCss = model?.css || '';
-      const styleTag = modelCss ? `<style>${modelCss}</style>` : '';
-
-      // Build card
-      const el = document.createElement('div');
-      el.className = 'card';
-      el.innerHTML = `
-        ${styleTag}
-        <div class="front">${front || '(empty front)'}</div>
-        <div class="back">${back || '(empty back)'}</div>
-        <div class="meta">Deck: ${escapeHtml(decks[card.did]?.name || String(card.did))} • NoteType: ${escapeHtml(model.name||'')} • ord: ${card.ord}</div>
-        <button class="flip">Flip</button>
-      `;
-      el.querySelector('.flip').addEventListener('click', () => {
-        const f = el.querySelector('.front'), b = el.querySelector('.back');
-        if (b.style.display === 'block') { b.style.display='none'; f.style.display='block'; }
-        else { f.style.display='none'; b.style.display='block'; }
-      });
-      el.addEventListener('click', (ev) => {
-        const c = ev.target.closest('.cloze');
-        if (c) {
-          const inner = c.querySelector('span');
-          if (inner) {
-            const hidden = inner.style.display === 'none';
-            inner.style.display = hidden ? 'inline' : 'none';
-            c.firstChild.textContent = hidden ? '' : '[ tap to reveal ]';
-          }
-        }
-      });
-
-      grid.appendChild(el);
-      shown++;
+    // Cache globals for pagination
+    global.entries = entries;
+    global.decks = decks;
+    global.models = models;
+    global.notes = notes;
+    global.cards = cards;
+    global.fileTable = fileTable;
+    global.replaceMedia = replaceAll;
+    global.mediaStats = mediaLookups;
+    global.isClozeModelByMid = {};
+    for (const [mid, model] of Object.entries(models)) {
+      global.isClozeModelByMid[mid] = (model?.type === 1);
     }
 
-    // Status + debug
-    const unresolvedList = Array.from(unresolvedNames);
-    setLog(
-      `Loaded ${cards.length} cards from ${Object.keys(decks).length} deck(s). ` +
-      `Showing ${Math.min(24, cards.length)} as a demo.` +
-      (mediaLookups.total ? ` Media: resolved ${mediaLookups.resolved}/${mediaLookups.total}.` : '')
-    );
+    grid.innerHTML = '';
+    renderNextBatch(); // first page
 
+    // Debug button
     toggleDebugBtn.onclick = () => {
       const isVisible = dbgEl.style.display === 'block';
       if (isVisible) { dbgEl.style.display='none'; dbgEl.innerHTML=''; toggleDebugBtn.textContent='Show debug'; return; }
       const hasMedia = !!entries['media'];
       const mediaSize = hasMedia ? `${entries['media'].length} bytes` : '—';
+      const unresolvedList = []; // we only show names if we recorded them; keeping simple
       const dbg =
 `<h3>Debug</h3>
 <div class="mono">
 Zip entries: ${Object.keys(entries).length}
 <br>Has media file: ${hasMedia ? 'yes' : 'no'}
 <br>Media size: ${escapeHtml(mediaSize)}
-<br>Media encoding detected: ${escapeHtml(mediaEncoding)}
 <br>Resolved media: ${mediaLookups.resolved}/${mediaLookups.total}
-<br>Unresolved refs (${unresolvedList.length}): ${escapeHtml(unresolvedList.slice(0,12).join(', ') + (unresolvedList.length>12?' …':''))}
 </div>`;
       showDebug(dbg);
       toggleDebugBtn.textContent = 'Hide debug';
@@ -568,7 +547,96 @@ Zip entries: ${Object.keys(entries).length}
   } catch (e2) {
     showError('Something went wrong while processing the file.', e2?.stack || String(e2));
   }
-});
+}
+
+/* Render next PAGE_SIZE cards */
+function renderNextBatch(){
+  const { cards, notes, models, decks, replaceMedia, mediaStats } = global;
+  const start = global.startIndex;
+  const end = Math.min(cards.length, start + PAGE_SIZE);
+
+  for (let i = start; i < end; i++) {
+    const card = cards[i];
+    const note = notes.find(n => n.id === card.nid); if (!note) continue;
+    const model = models[String(note.mid)]; if (!model) continue;
+
+    const fieldNames = (model?.flds || []).map(f => f.name);
+    const fields = (note.flds || '').split('\x1f');
+    const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) continue;
+
+    // FRONT
+    let front = tmpl.qfmt || '';
+    front = applyConditionals(front, fields, fieldNames);
+    front = substituteFields(front, fields, fieldNames);
+
+    const isClozeModel = !!global.isClozeModelByMid[String(note.mid)];
+    const hasClozeMarkup = /{{c\d+::/i.test(fields.join(' '));
+    if (isClozeModel || hasClozeMarkup) {
+      const target = card.ord + 1; // Anki cloze cards: ord 0 => c1, etc.
+      front = processClozeForOrd(front, target, 'front');
+    }
+    front = replaceMedia(sanitize(front));
+    front = collapseExactDuplicate(front);
+
+    // BACK (with {{FrontSide}})
+    let back = tmpl.afmt || '';
+    back = back.replace(/\{\{FrontSide\}\}/g, front);
+    back = applyConditionals(back, fields, fieldNames);
+    back = substituteFields(back, fields, fieldNames);
+    if (isClozeModel || hasClozeMarkup) {
+      const target = card.ord + 1;
+      back = processClozeForOrd(back, target, 'back');
+    }
+    back = replaceMedia(sanitize(back));
+    back = collapseExactDuplicate(back);
+
+    // Model CSS
+    const modelCss = model?.css || '';
+    const styleTag = modelCss ? `<style>${modelCss}</style>` : '';
+
+    // Build card
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      ${styleTag}
+      <div class="front">${front || '(empty front)'}</div>
+      <div class="back">${back || '(empty back)'}</div>
+      <div class="meta">Deck: ${escapeHtml(decks[card.did]?.name || String(card.did))} • NoteType: ${escapeHtml(model.name||'')} • ord: ${card.ord}</div>
+      <button class="flip">Flip</button>
+    `;
+    el.querySelector('.flip').addEventListener('click', () => {
+      const f = el.querySelector('.front'), b = el.querySelector('.back');
+      if (b.style.display === 'block') { b.style.display='none'; f.style.display='block'; }
+      else { f.style.display='none'; b.style.display='block'; }
+    });
+    // Per-span reveal (already only the target cloze is masked)
+    el.addEventListener('click', (ev) => {
+      const c = ev.target.closest('.cloze');
+      if (c) {
+        const inner = c.querySelector('span');
+        if (inner) {
+          const hidden = inner.style.display === 'none';
+          inner.style.display = hidden ? 'inline' : 'none';
+          c.firstChild.textContent = hidden ? '' : '[ tap to reveal ]';
+        }
+      }
+    });
+
+    grid.appendChild(el);
+  }
+
+  global.startIndex = end;
+
+  // Pager UI
+  const showing = global.startIndex;
+  setLog(
+    `Loaded ${cards.length} cards from ${Object.keys(global.decks).length} deck(s). ` +
+    `Showing ${showing} of ${cards.length}.` +
+    (mediaStats.total ? ` Media: resolved ${mediaStats.resolved}/${mediaStats.total}.` : '')
+  );
+
+  loadMoreBtn.style.display = (showing < cards.length) ? 'inline-block' : 'none';
+}
 </script>
 </body>
 </html>
