@@ -127,7 +127,9 @@
 
   @media (max-width: 900px){
     main{grid-template-columns: 1fr}
-    header{ grid-template-columns: 1fr; }
+    header{ grid-template-columns: 1fr; gap: 16px; }
+    .controls { justify-content: center; }
+    .hud { justify-self: center; }
   }
 
   /* SVG pointer UX */
@@ -135,7 +137,7 @@
   svg .glow{filter: drop-shadow(0px 0px 6px rgba(139,92,246,.8)) drop-shadow(0 0 18px rgba(139,92,246,.6))}
   /* Make text unclickable to pass events to shapes below */
   svg text { pointer-events: none; }
-  svg text.hint{opacity:.4; pointer-events: auto; } /* Re-enable for hint text if needed */
+  svg text.hint{opacity:.4; }
 
 </style>
 </head>
@@ -150,14 +152,14 @@
                   <label><input type="checkbox" name="mode" value="click" checked><span>Click Segment</span></label>
                   <label><input type="checkbox" name="mode" value="name" checked><span>Name Segment</span></label>
                   <label><input type="checkbox" name="mode" value="territory"><span>Select Territory</span></label>
-                  <label><input type="checkbox" name="mode" value="infarct"><span>Name Infarct</span></label>
+                  <label><input type="checkbox" name="mode" value="vascular_territory"><span>Vascular Territory</span></label>
               </div>
           </div>
           <div class="settings-block">
               <div class="tiny" style="margin-bottom: 2px;">In-Game Display</div>
               <div id="game-settings" class="game-settings">
-                  <label><input type="checkbox" name="setting" value="orientation" checked><span>Orientations</span></label>
-                  <label><input type="checkbox" name="setting" value="arteries" checked><span>Arteries</span></label>
+                  <label><input type="checkbox" name="setting" value="orientation"><span>Orientations</span></label>
+                  <label><input type="checkbox" name="setting" value="arteries"><span>Arteries</span></label>
               </div>
           </div>
       </div>
@@ -171,7 +173,7 @@
     <main>
       <div class="stage">
         <div class="svgbox">
-          <!-- ======= YOUR SVG (with added ids seg1..seg17) ======= -->
+          <!-- ======= SVG with corrected path for segment 16 ======= -->
           <?xml version="1.0" encoding="UTF-8"?>
           <svg id="heartSVG" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
             <defs>
@@ -229,7 +231,8 @@
             <text class="st6" transform="translate(252.94 405.31)">14</text>
             <path id="seg15" class="st10" d="M507.26,518.66c-62.5,62.6-163.83,62.6-226.34,0h0s49.51-49.59,49.51-49.59c35.16,35.21,92.16,35.21,127.31,0h0s49.51,49.59,49.51,49.59Z"/>
             <text class="st6" transform="translate(377.98 530.54)">15</text>
-            <path id="seg16" class="st8" d="M507.26,291.97c62.5,62.59,62.51,164.08,0,226.68h0s-49.51-49.58-49.51-49.58c35.16-35.21,35.16-92.3,0-127.51h0s49.51-49.59,49.51,49.59Z"/>
+            <!-- CORRECTED PATH FOR SEGMENT 16 -->
+            <path id="seg16" class="st8" d="M507.26,291.97 c62.5,62.59,62.51,164.08,0,226.68 l-49.51-49.58 c35.16-35.21,35.16-92.3,0-127.51 l49.51-49.59 Z"/>
             <text class="st6" transform="translate(503.01 405.31)">16</text>
 
             <!-- Apex (17) -->
@@ -313,6 +316,7 @@
       { name: "Inferior", segments: [3, 4, 9, 10, 15], arteries: ["RCA"] },
       { name: "Lateral", segments: [5, 6, 11, 12, 16], arteries: ["LCX"] },
       { name: "Anterior", segments: [1, 7, 13, 17], arteries: ["LAD"] },
+      { name: "Inferolateral", segments: [4, 5, 10, 11, 15], arteries: ["RCA", "LCX"] }
   ];
 
 
@@ -363,14 +367,15 @@
     const showArteries = $('input[name="setting"][value="arteries"]').checked;
 
     $$('#label-anterior, #label-inferior, #label-septal, #label-lateral').forEach(el => {
-        el.style.opacity = (visible || !playing && showOrientation) ? '0.4' : '0';
+        el.style.opacity = (visible || (playing && showOrientation)) ? '0.4' : '0';
     });
     $$('#artery-lad, #artery-lcx, #artery-rca').forEach(el => {
-        el.style.opacity = (visible || !playing && showArteries) ? '1' : '0';
+        el.style.opacity = (visible || (playing && showArteries)) ? '1' : '0';
     });
     $$('#heartSVG text').forEach(t => {
         const val = (t.textContent||'').trim();
-        if(/^\d{1,2}$/.test(val)) t.style.opacity = visible ? '1' : '0';
+        // This regex ensures only the segment numbers (1-17) are affected
+        if(/^\d{1,2}$/.test(val) && t.id === '') t.style.opacity = visible ? '1' : '0';
     });
   }
 
@@ -385,7 +390,12 @@
 
   function pickKind(){
     const selectedModes = $$('input[name="mode"]:checked').map(el => el.value);
-    if(selectedModes.length === 0) return 'click'; // Default mode
+    if(selectedModes.length === 0) {
+        // If user unchecks all, default to "Click Segment" and re-check it for them
+        const defaultCheck = $('input[name="mode"][value="click"]');
+        if(defaultCheck) defaultCheck.checked = true;
+        return 'click';
+    }
     return selectedModes[Math.floor(Math.random() * selectedModes.length)];
   }
 
@@ -447,9 +457,9 @@
         currentArtery = Object.keys(ARTERIES)[Math.floor(Math.random() * Object.keys(ARTERIES).length)];
         qEl.innerHTML = `Select all segments in the <b>${currentArtery}</b> territory`;
         buildSubmitUI('Submit Territory');
-    } else if (currentKind === 'infarct') {
+    } else if (currentKind === 'vascular_territory') {
         currentInfarct = INFARCTS[Math.floor(Math.random() * INFARCTS.length)];
-        qEl.innerHTML = `An infarct involves the highlighted segments. Select the involved arteries.`;
+        qEl.innerHTML = `An infarct involves the highlighted segments. Select the involved artery/arteries.`;
         currentInfarct.segments.forEach(segNum => {
             const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
             highlight(segs[segNum - 1], color, true);
@@ -558,7 +568,10 @@
       btn.onclick = () => {
           if (lock) return;
           lock = true;
-          const selectedArteries = new Set($$('input[type="checkbox"]:checked').map(cb => cb.value));
+
+          // BUG FIX: Scoped the query selector to the 'form' element.
+          const selectedCheckboxes = form.querySelectorAll('input[type="checkbox"]:checked');
+          const selectedArteries = new Set(Array.from(selectedCheckboxes).map(cb => cb.value));
           const correctArteries = new Set(currentInfarct.arteries);
 
           const correct = selectedArteries.size === correctArteries.size && [...selectedArteries].every(a => correctArteries.has(a));
@@ -603,24 +616,31 @@
 
       let selection = { level: null, walls: new Set() };
       const updateDisplay = () => {
-          const parts = [];
+          let parts = [];
           if(selection.level) parts.push(selection.level);
-          // A more natural ordering for wall segments
-          if(selection.walls.has('Anterior')) parts.push('Anterior');
-          if(selection.walls.has('Inferior')) parts.push('Inferior');
-          if(selection.walls.has('Septal')) parts.push('Septal');
-          if(selection.walls.has('Lateral')) parts.push('Lateral');
+          
+          let wallParts = [];
+          if (selection.walls.has('Anterior')) wallParts.push('Antero');
+          if (selection.walls.has('Inferior')) wallParts.push('Infero');
+          if (selection.walls.has('Septal')) wallParts.push('septal');
+          if (selection.walls.has('Lateral')) wallParts.push('lateral');
 
-          let text = parts.join(' ');
-          // Handle combined names like "Anteroseptal"
-          if(selection.walls.has('Anterior') && selection.walls.has('Septal')) text = text.replace('Anterior Septal', 'Anteroseptal');
-          if(selection.walls.has('Inferior') && selection.walls.has('Septal')) text = text.replace('Inferior Septal', 'Inferoseptal');
-          if(selection.walls.has('Anterior') && selection.walls.has('Lateral')) text = text.replace('Anterior Lateral', 'Anterolateral');
-          if(selection.walls.has('Inferior') && selection.walls.has('Lateral')) text = text.replace('Inferior Lateral', 'Inferolateral');
-          if(selection.level) text = selection.level + ' ' + text.replace(selection.level, '').trim();
+          let wallStr = wallParts.join('');
+          // Simple replacements for more natural names
+          if (wallStr === "Anteroseptal") wallStr = "Anteroseptal";
+          if (wallStr === "Inferoseptal") wallStr = "Inferoseptal";
+          if (wallStr === "Anterolateral") wallStr = "Anterolateral";
+          if (wallStr === "Inferolateral") wallStr = "Inferolateral";
+          if (wallStr.endsWith('o')) wallStr = wallStr.slice(0, -1); // "Antero" -> "Anterior"
+          if (wallStr === 'septal') wallStr = 'Septal';
+          if (wallStr === 'lateral') wallStr = 'Lateral';
 
+          if(wallStr) parts.push(wallStr);
+          
+          let finalText = parts.join(' ');
+          if (selection.level === 'Apex') finalText = "Apex";
 
-          $('#builder-text').textContent = text.trim();
+          $('#builder-text').textContent = finalText;
       };
 
       $('#builder-level').addEventListener('click', e => {
@@ -629,12 +649,16 @@
           $$('#builder-level .builder-btn').forEach(b => b.classList.remove('selected'));
           e.target.classList.add('selected');
           selection.level = part;
-          if (part === 'Apex') selection.walls.clear();
+          if (part === 'Apex') {
+            selection.walls.clear();
+            $$('#builder-walls .builder-btn').forEach(b => b.classList.remove('selected'));
+          }
           updateDisplay();
       });
 
       $('#builder-walls').addEventListener('click', e => {
           if(!e.target.matches('.builder-btn')) return;
+          if(selection.level === 'Apex') return;
           const part = e.target.dataset.part;
           e.target.classList.toggle('selected');
           if(selection.walls.has(part)) {
