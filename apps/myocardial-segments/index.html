@@ -199,11 +199,11 @@
             <!-- Outer ring (1–6) -->
             <path id="seg1" class="st9" d="M244.05,145.04c92.85-53.69,207.24-53.69,300.08,0l-35.01,60.73c-71.18-41.16-158.88-41.16-230.06,0l-35.01-60.73Z"/>
             <text class="st6" transform="translate(386.03 139.84)">1</text>
-            <path id="seg2" class="st9" d="M94.01,405.31c0-107.37,57.19-206.59,150.04-260.27l35.01,60.73c-71.18,41.16-115.03,117.23-115.03,199.55h-70.02Z"/>
+            <path id="seg2" class="st9" d="M94.01,405.31c0-107.37,57.19-206.59,150.04-260.27l35.01,60.73c-71.18-41.16-115.03,117.23-115.03,199.55h-70.02Z"/>
             <text class="st6" transform="translate(156.47 272.58)">2</text>
             <path id="seg3" class="st10" d="M244.05,665.59c-92.85-53.69-150.04-152.9-150.04-260.27h70.02c0,82.32,43.85,158.39,115.03,199.55l-35.01,60.73Z"/>
             <text class="st6" transform="translate(156.47 538.05)">3</text>
-            <path id="seg4" class="st10" d="M544.13,665.59c-92.85,53.69-207.24,53.69-300.08,0l35.01-60.73c71.18,41.16,158.88,41.16,230.06,0l35.01,60.73Z"/>
+            <path id="seg4" class="st10" d="M544.13,665.59c-92.85,53.69-207.24,53.69-300.08,0l35.01-60.73c71.18-41.16,158.88-41.16,230.06,0l35.01,60.73Z"/>
             <text class="st6" transform="translate(386.03 670.79)">4</text>
             <path id="seg5" class="st8" d="M694.17,405.31c0,107.37-57.2,206.59-150.04,260.27l-35.01-60.73c71.18-41.16,115.03-117.23,115.03-199.55h70.02Z"/>
             <text class="st6" transform="translate(615.6 538.05)">5</text>
@@ -351,6 +351,7 @@
 
   // ----- Helpers -----
   function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  
   function setNeutral(seg){
     seg.style.fill = getComputedStyle(document.documentElement).getPropertyValue('--neutral').trim();
     seg.style.stroke = getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim();
@@ -358,27 +359,51 @@
     seg.classList.remove('glow');
     seg.style.opacity = '1';
   }
+
   function allNeutral(){
     segs.forEach(setNeutral);
+  }
+
+  function showTerritoryColors() {
+    const territoryColors = {
+        LAD: '#3aa1ff', // blue
+        LCX: '#ffe34a', // yellow
+        RCA: '#ff4a4a'  // red
+    };
+
+    segs.forEach(s => s.classList.remove('clickable'));
+
+    for (const artery in ARTERIES) {
+        const color = territoryColors[artery];
+        ARTERIES[artery].forEach(segNum => {
+            const segEl = segs[segNum - 1];
+            if (segEl) {
+                segEl.style.fill = color;
+                segEl.style.stroke = '#1f2937';
+            }
+        });
+    }
   }
 
   function toggleLabels(visible) {
     const showOrientation = $('input[name="setting"][value="orientation"]').checked;
     const showArteries = $('input[name="setting"][value="arteries"]').checked;
 
-    $$('#label-anterior, #label-inferior, #label-septal, #label-lateral').forEach(el => {
-        el.style.opacity = (visible || (playing && showOrientation)) ? '0.4' : '0';
-    });
-    $$('#artery-lad, #artery-lcx, #artery-rca').forEach(el => {
-        el.style.opacity = (visible || (playing && showArteries)) ? '1' : '0';
-    });
+    // Control visibility based on game state and settings
+    const orientationOpacity = (!playing || showOrientation) ? '0.4' : '0';
+    const arteryOpacity = (!playing || showArteries) ? '1' : '0';
+
+    $$('#label-anterior, #label-inferior, #label-septal, #label-lateral').forEach(el => el.style.opacity = orientationOpacity);
+    $$('#artery-lad, #artery-lcx, #artery-rca').forEach(el => el.style.opacity = arteryOpacity);
+    
+    // Show/hide segment numbers (1-17)
     $$('#heartSVG text').forEach(t => {
-        const val = (t.textContent||'').trim();
-        // This regex ensures only the segment numbers (1-17) are affected
-        if(/^\d{1,2}$/.test(val) && t.id === '') t.style.opacity = visible ? '1' : '0';
+        const isSegmentNumber = /^\d{1,2}$/.test((t.textContent||'').trim()) && !t.id;
+        if (isSegmentNumber) {
+            t.style.opacity = visible ? '1' : '0';
+        }
     });
   }
-
 
   function highlight(seg, color, glow=false){
     seg.style.fill = color;
@@ -386,12 +411,12 @@
     seg.style.opacity = '1';
     seg.classList.toggle('glow', !!glow);
   }
+
   function pickRandomSeg(){ return 1 + Math.floor(Math.random()*TOTAL); }
 
   function pickKind(){
     const selectedModes = $$('input[name="mode"]:checked').map(el => el.value);
     if(selectedModes.length === 0) {
-        // If user unchecks all, default to "Click Segment" and re-check it for them
         const defaultCheck = $('input[name="mode"][value="click"]');
         if(defaultCheck) defaultCheck.checked = true;
         return 'click';
@@ -405,7 +430,11 @@
     barFill.style.transform = 'scaleX(1)';
     feedbackEl.textContent = '';
     qEl.textContent = 'Good luck! Questions incoming...';
-    allNeutral(); toggleLabels(false); attachClickHandlers(true);
+    
+    allNeutral(); // Set to game mode
+    toggleLabels(false); 
+    attachClickHandlers(true);
+    
     nextQuestion();
 
     clearInterval(timer);
@@ -416,11 +445,19 @@
       if(timeLeft<=0){ endRound(); }
     },1000);
   }
+
   function endRound(){
-    clearInterval(timer); playing=false; attachClickHandlers(false); toggleLabels(true);
+    clearInterval(timer); 
+    playing=false; 
+    attachClickHandlers(false); 
+    
+    showTerritoryColors(); // Restore default view
+    toggleLabels(true);
+    
     overlay.classList.add('show');
     finalScoreEl.textContent = score;
   }
+
   function attachClickHandlers(on){
     segs.forEach((seg, idx)=>{
         const handler = ()=>onSegClick(idx+1);
@@ -441,6 +478,7 @@
     choicesEl.innerHTML = '';
     feedbackEl.textContent = '';
     selectedSegs.clear();
+    toggleLabels(false); // Hide labels at the start of each question
 
 
     if(currentKind==='click'){
@@ -531,7 +569,6 @@
             selectedSegs.forEach(n => highlight(segs[n - 1], getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), true));
         } else {
             feedbackEl.textContent = `Incorrect. Highlighting the ${currentArtery} territory.`;
-            // Red for wrong selections, green for correct ones, grey for missed ones
             segs.forEach((seg, i) => {
                 const segNum = i + 1;
                 if (correctSegs.has(segNum)) {
@@ -549,6 +586,7 @@
   function buildInfarctChoices() {
       const arteries = ["LAD", "RCA", "LCX"];
       const form = document.createElement('div');
+      form.id = 'infarct-choices-form';
       form.style.display = 'grid';
       form.style.gap = '8px';
 
@@ -568,9 +606,8 @@
       btn.onclick = () => {
           if (lock) return;
           lock = true;
-
-          // BUG FIX: Scoped the query selector to the 'form' element.
-          const selectedCheckboxes = form.querySelectorAll('input[type="checkbox"]:checked');
+          
+          const selectedCheckboxes = $('#infarct-choices-form').querySelectorAll('input[type="checkbox"]:checked');
           const selectedArteries = new Set(Array.from(selectedCheckboxes).map(cb => cb.value));
           const correctArteries = new Set(currentInfarct.arteries);
 
@@ -616,22 +653,21 @@
 
       let selection = { level: null, walls: new Set() };
       const updateDisplay = () => {
-          let parts = [];
+          const parts = [];
           if(selection.level) parts.push(selection.level);
           
-          let wallParts = [];
-          if (selection.walls.has('Anterior')) wallParts.push('Antero');
-          if (selection.walls.has('Inferior')) wallParts.push('Infero');
-          if (selection.walls.has('Septal')) wallParts.push('septal');
-          if (selection.walls.has('Lateral')) wallParts.push('lateral');
+          let wallStr = '';
+          if (selection.walls.has('Anterior')) wallStr += 'Antero';
+          if (selection.walls.has('Inferior')) wallStr += 'Infero';
+          if (selection.walls.has('Septal')) wallStr += 'septal';
+          if (selection.walls.has('Lateral')) wallStr += 'lateral';
 
-          let wallStr = wallParts.join('');
-          // Simple replacements for more natural names
-          if (wallStr === "Anteroseptal") wallStr = "Anteroseptal";
-          if (wallStr === "Inferoseptal") wallStr = "Inferoseptal";
-          if (wallStr === "Anterolateral") wallStr = "Anterolateral";
-          if (wallStr === "Inferolateral") wallStr = "Inferolateral";
-          if (wallStr.endsWith('o')) wallStr = wallStr.slice(0, -1); // "Antero" -> "Anterior"
+          // Combine wall names logically
+          wallStr = wallStr.replace('Anteroseptal', 'Anteroseptal')
+                           .replace('Inferoseptal', 'Inferoseptal')
+                           .replace('Anterolateral', 'Anterolateral')
+                           .replace('Inferolateral', 'Inferolateral');
+          if (wallStr.endsWith('o')) wallStr = wallStr.slice(0, -1) + 'ior';
           if (wallStr === 'septal') wallStr = 'Septal';
           if (wallStr === 'lateral') wallStr = 'Lateral';
 
@@ -640,7 +676,7 @@
           let finalText = parts.join(' ');
           if (selection.level === 'Apex') finalText = "Apex";
 
-          $('#builder-text').textContent = finalText;
+          $('#builder-text').textContent = finalText.replace('iorr', 'ior'); // Small fix for edge cases
       };
 
       $('#builder-level').addEventListener('click', e => {
@@ -699,9 +735,10 @@
   });
   closeOvBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
 
-  // Initial neutral state
-  allNeutral();
-  toggleLabels(true); // Show all labels by default
+  // Initial Page Load State
+  showTerritoryColors();
+  toggleLabels(true); 
+
 })();
 </script>
 </body>
