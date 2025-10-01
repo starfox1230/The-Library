@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Question Bank (Local)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#38bdf8; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --chip:#1f2937;
+      --border:#243044;
+    }
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;}
+    header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+    header h1{font-size:18px;margin:0 8px 0 0;}
+    header .badge{background:var(--chip);border:1px solid var(--border);padding:4px 8px;border-radius:999px;color:var(--muted)}
+    main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px;}
+    @media (max-width: 1100px){ main{grid-template-columns:1fr} }
+    section{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    section h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px;color:var(--muted)}
+    .pad{padding:12px 14px}
+    textarea{width:100%;min-height:160px;background:#0b1220;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+    button.primary{background:linear-gradient(180deg,#39c6ff,#2aa9da);color:#031525;border:none}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    input[type="text"],select{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .list{max-height:70vh;overflow:auto;border-top:1px solid var(--border)}
+    .item{border-bottom:1px solid var(--border);padding:12px 14px}
+    .item h3{margin:0 0 6px 0;font-size:15px}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    .chip{background:var(--chip);border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:999px;font-size:12px}
+    .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+    .choices{margin:6px 0 8px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+    .correct{border:1px dashed var(--good);border-radius:6px;padding:0 6px}
+    .muted{color:var(--muted)}
+    .noitems{padding:18px;color:var(--muted)}
+    .kbr{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0b1220;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Question Bank</h1>
+  <span class="badge" id="countBadge">0 items</span>
+  <div class="row">
+    <button id="downloadNdjson" title="Download all as NDJSON">Download .ndjson</button>
+    <button id="downloadJson" title="Download all as JSON array">Download .json</button>
+    <button id="shareAll" title="Share NDJSON via system share (mobile)">Share…</button>
+    <button id="clearAll" class="warn" title="Erase local data">Clear All</button>
+  </div>
+</header>
+
+<main>
+  <section id="ingest">
+    <h2>Paste NDJSON → Ingest</h2>
+    <div class="pad">
+      <textarea id="ndjsonInput" placeholder='Paste 2–3 NDJSON lines here (one JSON per line)'></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="previewBtn">Preview</button>
+        <button id="ingestBtn" class="primary" disabled>Ingest</button>
+        <input type="file" id="fileInput" accept=".ndjson,.json,text/plain" />
+      </div>
+      <div id="previewArea" class="muted" style="margin-top:10px"></div>
+      <div class="muted" style="margin-top:10px">
+        Tip: On ingest, the app auto-adds <span class="kbr">created_at</span> (ISO) to each object for sorting/filtering. Expected image file for an image-based original: <span class="kbr">&lt;original id&gt;.jpg</span> or <span class="kbr">&lt;original id&gt;.png</span>.
+      </div>
+    </div>
+  </section>
+
+  <section id="browse">
+    <h2>Browse / Filter</h2>
+    <div class="pad">
+      <div class="toolbar" style="margin-bottom:10px">
+        <input type="text" id="searchBox" placeholder="Search stem / process_key…" />
+        <select id="roleFilter">
+          <option value="">Role: All</option>
+          <option value="original">original</option>
+          <option value="variant_text1">variant_text1</option>
+          <option value="variant_text2">variant_text2</option>
+        </select>
+        <select id="imgFilter">
+          <option value="">Image: All</option>
+          <option value="true">Requires Image</option>
+          <option value="false">Text Only</option>
+        </select>
+        <select id="errFilter">
+          <option value="">Error: All</option>
+          <option value="true">Flagged</option>
+          <option value="false">Clean</option>
+        </select>
+        <select id="sortBy">
+          <option value="created_at_desc">Sort: Newest</option>
+          <option value="created_at_asc">Sort: Oldest</option>
+          <option value="process_key_asc">Sort: Process ↑</option>
+          <option value="process_key_desc">Sort: Process ↓</option>
+        </select>
+        <label><input type="checkbox" id="groupMode" /> Group by group_id</label>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+      <div id="list" class="list"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ========= IndexedDB minimal helper ========= */
+const DB_NAME = 'qb_local_v1';
+const STORE = 'questions';
+let db;
+
+function openDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e)=>{
+      const db = req.result;
+      if(!db.objectStoreNames.contains(STORE)){
+        const store = db.createObjectStore(STORE, { keyPath: 'id' });
+        store.createIndex('group_id', 'group_id', { unique: false });
+        store.createIndex('process_key', 'process_key', { unique: false });
+        store.createIndex('role', 'role', { unique: false });
+        store.createIndex('requires_image', 'requires_image', { unique: false });
+        store.createIndex('error_identified', 'error.identified', { unique: false });
+        store.createIndex('created_at', 'created_at', { unique: false });
+      }
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+function txStore(mode='readonly'){
+  const tx = db.transaction(STORE, mode);
+  return tx.objectStore(STORE);
+}
+
+async function putMany(objs){
+  return new Promise((resolve,reject)=>{
+    const store = txStore('readwrite');
+    let done=0, total=objs.length, errors=[];
+    objs.forEach(obj=>{
+      const req = store.put(obj);
+      req.onsuccess = ()=>{ if(++done===total) resolve({errors}); };
+      req.onerror = ()=>{ errors.push({id:obj.id, error:req.error}); if(++done===total) resolve({errors}); };
+    });
+  });
+}
+
+async function getAll(){
+  return new Promise((resolve,reject)=>{
+    const store = txStore('readonly');
+    const req = store.getAll();
+    req.onsuccess = ()=> resolve(req.result||[]);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+async function clearAll(){
+  return new Promise((resolve,reject)=>{
+    const store = txStore('readwrite');
+    const req = store.clear();
+    req.onsuccess = ()=> resolve();
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+/* ========= NDJSON ingest & validation ========= */
+function parseNDJSON(txt){
+  const lines = txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const objs=[], errs=[];
+  lines.forEach((line,i)=>{
+    try{
+      const obj = JSON.parse(line);
+      objs.push(obj);
+    }catch(e){
+      errs.push({line:i+1, error:String(e), text:line.slice(0,120)});
+    }
+  });
+  return {objs, errs, lines};
+}
+
+function validateAndAugment(objs){
+  const problems=[];
+  const augmented = objs.map((o,idx)=>{
+    // Basic schema checks (soft; we only warn)
+    const must = ['id','group_id','role','process_key','stem','choices','answer_index','explanation','requires_image','principle','image_descriptor','error'];
+    must.forEach(k=>{
+      if(!(k in o)) problems.push({id:o.id, issue:`Missing field "${k}"`});
+    });
+    if(!Array.isArray(o.choices)) problems.push({id:o.id, issue:`"choices" must be an array`});
+    if(typeof o.answer_index!=='number') problems.push({id:o.id, issue:`"answer_index" must be a number`});
+    if(o.error && typeof o.error.identified!=='boolean') problems.push({id:o.id, issue:`"error.identified" must be boolean`});
+
+    // Auto-add created_at if absent
+    if(!o.created_at){
+      o.created_at = new Date().toISOString();
+    }
+    // Ensure error fields exist
+    o.error = o.error || {identified:false, explanation:'', proposed_correction:''};
+    return o;
+  });
+  return {augmented, problems};
+}
+
+/* ========= UI rendering ========= */
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+
+function renderList(items){
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  if(items.length===0){ list.appendChild(el(`<div class="noitems">No items match your filters.</div>`)); return; }
+
+  const groupMode = document.getElementById('groupMode').checked;
+  if(groupMode){
+    const byGroup = new Map();
+    items.forEach(it=>{
+      if(!byGroup.has(it.group_id)) byGroup.set(it.group_id, []);
+      byGroup.get(it.group_id).push(it);
+    });
+    [...byGroup.entries()].forEach(([gid, arr])=>{
+      // group header
+      const hdr = el(`<div class="item"><h3>Group <span class="kbr">${gid}</span> <span class="muted">(${arr.length} items)</span></h3></div>`);
+      list.appendChild(hdr);
+      arr.forEach(q=> list.appendChild(renderItem(q)));
+    });
+  }else{
+    items.forEach(q=> list.appendChild(renderItem(q)));
+  }
+}
+
+function renderItem(q){
+  const requires = q.requires_image ? `<span class="chip">image</span>` : `<span class="chip">text</span>`;
+  const err = q.error?.identified ? `<span class="chip bad">error</span>` : '';
+  const created = q.created_at ? new Date(q.created_at).toLocaleString() : '';
+  const imgHint = q.requires_image ? `<div class="muted">Expected image file: <span class="kbr">${q.id}.jpg</span> or <span class="kbr">${q.id}.png</span>${q.image_descriptor?` — ${q.image_descriptor}`:''}</div>` : '';
+
+  const box = el(`<div class="item">
+    <h3>${escapeHTML(q.stem)}</h3>
+    <div class="meta">
+      <span class="chip">${q.role}</span>
+      <span class="chip">${escapeHTML(q.process_key)}</span>
+      ${requires} ${err}
+      <span class="chip">${created}</span>
+    </div>
+    <div class="choices"></div>
+    <div class="muted">Explanation:</div>
+    <div style="margin:4px 0 6px 0">${escapeHTML(q.explanation)}</div>
+    ${imgHint}
+  </div>`);
+
+  const choicesDiv = box.querySelector('.choices');
+  if(Array.isArray(q.choices)){
+    q.choices.forEach((c,i)=>{
+      const isCorrect = (i===q.answer_index);
+      const cellLabel = el(`<div class="${isCorrect?'correct':''}">${String.fromCharCode(65+i)}</div>`);
+      const cellChoice = el(`<div class="${isCorrect?'correct':''}">${escapeHTML(String(c))}</div>`);
+      choicesDiv.appendChild(cellLabel); choicesDiv.appendChild(cellChoice);
+    });
+  }
+  if(q.error?.identified){
+    box.appendChild(el(`<div class="muted" style="margin-top:8px">
+      <span class="bad">Flagged:</span> ${escapeHTML(q.error.explanation)}<br>
+      <span class="good">Proposed fix:</span> ${escapeHTML(q.error.proposed_correction)}
+    </div>`));
+  }
+  return box;
+}
+
+function escapeHTML(s){
+  return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
+}
+
+/* ========= Filters & sorting ========= */
+function applyFilters(all){
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  const role = document.getElementById('roleFilter').value;
+  const img = document.getElementById('imgFilter').value;
+  const err = document.getElementById('errFilter').value;
+  let items = all.slice();
+
+  if(q){
+    items = items.filter(o=> (o.stem||'').toLowerCase().includes(q) || (o.process_key||'').toLowerCase().includes(q));
+  }
+  if(role){ items = items.filter(o=> o.role===role); }
+  if(img){ items = items.filter(o=> String(!!o.requires_image)===img); }
+  if(err){ items = items.filter(o=> String(!!(o.error && o.error.identified))===err); }
+
+  const sort = document.getElementById('sortBy').value;
+  if(sort==='created_at_desc') items.sort((a,b)=> (b.created_at||'').localeCompare(a.created_at||''));
+  if(sort==='created_at_asc')  items.sort((a,b)=> (a.created_at||'').localeCompare(b.created_at||''));
+  if(sort==='process_key_asc') items.sort((a,b)=> (a.process_key||'').localeCompare(b.process_key||''));
+  if(sort==='process_key_desc')items.sort((a,b)=> (b.process_key||'').localeCompare(a.process_key||''));
+
+  return items;
+}
+
+/* ========= Export / share ========= */
+async function downloadAllNdjson(){
+  const all = await getAll();
+  const lines = all.map(o=> JSON.stringify(o));
+  const blob = new Blob([lines.join('\n')+'\n'], {type:'text/plain'});
+  triggerDownload(blob, 'question_bank.ndjson');
+}
+async function downloadAllJson(){
+  const all = await getAll();
+  const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
+  triggerDownload(blob, 'question_bank.json');
+}
+function triggerDownload(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+async function shareAll(){
+  const all = await getAll();
+  const nd = all.map(o=> JSON.stringify(o)).join('\n')+'\n';
+  const file = new File([nd], 'question_bank.ndjson', {type:'text/plain'});
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({ title:'Question Bank', text:'NDJSON export', files:[file] });
+    }catch(e){ /* user canceled or not available */ }
+  }else{
+    // Fallback: mailto with body (for small datasets)
+    const mailto = `mailto:?subject=${encodeURIComponent('Question Bank NDJSON')}&body=${encodeURIComponent(nd.slice(0,120000))}`;
+    window.location.href = mailto;
+  }
+}
+
+/* ========= Wiring ========= */
+let previewParsed = null;
+
+async function refresh(){
+  const all = await getAll();
+  document.getElementById('countBadge').textContent = `${all.length} items`;
+  renderList(applyFilters(all));
+}
+
+document.getElementById('previewBtn').addEventListener('click', ()=>{
+  const txt = document.getElementById('ndjsonInput').value;
+  const {objs, errs, lines} = parseNDJSON(txt);
+  const {augmented, problems} = validateAndAugment(objs);
+  previewParsed = augmented;
+  const area = document.getElementById('previewArea');
+
+  if(errs.length){
+    area.innerHTML = `<span class="bad">Parse errors on ${errs.length} line(s):</span><br>` +
+      errs.slice(0,5).map(e=>`Line ${e.line}: ${escapeHTML(e.error)} <span class="muted">(${escapeHTML(e.text)})</span>`).join('<br>') +
+      (errs.length>5?`<br>…and ${errs.length-5} more.`:'');
+    document.getElementById('ingestBtn').disabled = true;
+    return;
+  }
+  let msg = `<span class="good">Parsed ${augmented.length} object(s).</span>`;
+  if(problems.length){
+    msg += `<br><span class="warn">${problems.length} warning(s):</span><br>` + problems.slice(0,8).map(p=>`• ${p.id||'?'} – ${escapeHTML(p.issue)}`).join('<br>') + (problems.length>8?`<br>…and ${problems.length-8} more.`:'');
+  }
+  area.innerHTML = msg;
+  document.getElementById('ingestBtn').disabled = augmented.length===0;
+});
+
+document.getElementById('ingestBtn').addEventListener('click', async ()=>{
+  if(!previewParsed || !previewParsed.length) return;
+  // Upsert all with created_at already added
+  await putMany(previewParsed);
+  document.getElementById('ndjsonInput').value='';
+  document.getElementById('previewArea').textContent='Ingested ✅';
+  document.getElementById('ingestBtn').disabled = true;
+  previewParsed = null;
+  refresh();
+});
+
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const txt = await file.text();
+  document.getElementById('ndjsonInput').value = txt;
+  document.getElementById('previewBtn').click();
+  e.target.value='';
+});
+
+['searchBox','roleFilter','imgFilter','errFilter','sortBy','groupMode'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', refresh);
+  document.getElementById(id).addEventListener('change', refresh);
+});
+
+document.getElementById('refreshBtn').addEventListener('click', refresh);
+document.getElementById('downloadNdjson').addEventListener('click', downloadAllNdjson);
+document.getElementById('downloadJson').addEventListener('click', downloadAllJson);
+document.getElementById('shareAll').addEventListener('click', shareAll);
+document.getElementById('clearAll').addEventListener('click', async ()=>{
+  if(confirm('This will erase all locally stored questions. Continue?')){ await clearAll(); refresh(); }
+});
+
+openDB().then(r=>{ db=r; refresh(); });
+</script>
+</body>
+</html>
