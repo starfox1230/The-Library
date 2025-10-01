@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Question Bank (Local)</title>
+  <title>Question Bank (Local) + Quiz Mode</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root{
@@ -10,20 +10,20 @@
       --border:#243044;
     }
     html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;}
-    header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
-    header h1{font-size:18px;margin:0 8px 0 0;}
+    header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+    header h1{font-size:18px;margin:0 8px 0 0}
     header .badge{background:var(--chip);border:1px solid var(--border);padding:4px 8px;border-radius:999px;color:var(--muted)}
-    main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px;}
-    @media (max-width: 1100px){ main{grid-template-columns:1fr} }
+    main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px}
+    @media (max-width:1100px){ main{grid-template-columns:1fr} }
     section{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
     section h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px;color:var(--muted)}
     .pad{padding:12px 14px}
-    textarea{width:100%;min-height:160px;background:#0b1220;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    textarea{width:100%;min-height:160px;background:#0b1220;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     button{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
     button.primary{background:linear-gradient(180deg,#39c6ff,#2aa9da);color:#031525;border:none}
     button:disabled{opacity:.5;cursor:not-allowed}
-    input[type="text"],select{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px}
+    input[type="text"],input[type="number"],select{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px}
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
     .list{max-height:70vh;overflow:auto;border-top:1px solid var(--border)}
     .item{border-bottom:1px solid var(--border);padding:12px 14px}
@@ -35,7 +35,20 @@
     .correct{border:1px dashed var(--good);border-radius:6px;padding:0 6px}
     .muted{color:var(--muted)}
     .noitems{padding:18px;color:var(--muted)}
-    .kbr{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0b1220;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+    .kbr{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0b1220;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+    /* Quiz */
+    #quizPlay .qcard{border:1px solid var(--border);border-radius:12px;padding:14px;background:#0b1220}
+    #quizPlay .qstem{font-size:16px;margin:0 0 12px 0}
+    #quizPlay .qimg{max-width:100%;max-height:45vh;border:1px solid var(--border);border-radius:8px;display:block;margin:8px 0}
+    #quizPlay .qchoices{display:grid;gap:8px}
+    #quizPlay .qchoices button{ text-align:left }
+    #quizPlay .qchoices .is-correct{outline:2px solid var(--good)}
+    #quizPlay .qchoices .is-wrong{outline:2px solid var(--bad)}
+    #quizPlay .qexp{margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:#0b1425}
+    #quizTop{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .pill{padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:var(--chip);color:var(--muted);font-size:12px}
+    progress{width:200px;height:12px}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
@@ -51,10 +64,11 @@
 </header>
 
 <main>
+  <!-- Ingest -->
   <section id="ingest">
     <h2>Paste NDJSON → Ingest</h2>
     <div class="pad">
-      <textarea id="ndjsonInput" placeholder='Paste 2–3 NDJSON lines here (one JSON per line)'></textarea>
+      <textarea id="ndjsonInput" placeholder='Paste NDJSON here (one JSON object per line)'></textarea>
       <div class="row" style="margin-top:10px">
         <button id="previewBtn">Preview</button>
         <button id="ingestBtn" class="primary" disabled>Ingest</button>
@@ -62,11 +76,12 @@
       </div>
       <div id="previewArea" class="muted" style="margin-top:10px"></div>
       <div class="muted" style="margin-top:10px">
-        Tip: On ingest, the app auto-adds <span class="kbr">created_at</span> (ISO) to each object for sorting/filtering. Expected image file for an image-based original: <span class="kbr">&lt;original id&gt;.jpg</span> or <span class="kbr">&lt;original id&gt;.png</span>.
+        Tip: On ingest, the app auto-adds <span class="kbr">created_at</span> (ISO). Expected image for an image-based item: <span class="kbr">&lt;id&gt;.jpg</span> or <span class="kbr">&lt;id&gt;.png</span>.
       </div>
     </div>
   </section>
 
+  <!-- Browse -->
   <section id="browse">
     <h2>Browse / Filter</h2>
     <div class="pad">
@@ -77,6 +92,7 @@
           <option value="original">original</option>
           <option value="variant_text1">variant_text1</option>
           <option value="variant_text2">variant_text2</option>
+          <option value="variant_image">variant_image</option>
         </select>
         <select id="imgFilter">
           <option value="">Image: All</option>
@@ -100,74 +116,149 @@
       <div id="list" class="list"></div>
     </div>
   </section>
+
+  <!-- Quiz -->
+  <section id="quiz">
+    <h2>Quiz Mode</h2>
+    <div class="pad">
+      <!-- Controls -->
+      <div class="toolbar" style="margin-bottom:10px">
+        <div>
+          <label class="muted">Process keys</label><br/>
+          <select id="quizProcessKeys" multiple size="4" style="min-width:220px"></select>
+        </div>
+        <div>
+          <label class="muted">Include roles</label><br/>
+          <label><input type="checkbox" class="qr" value="original" checked/> original</label>
+          <label><input type="checkbox" class="qr" value="variant_text1" checked/> variant_text1</label>
+          <label><input type="checkbox" class="qr" value="variant_text2" checked/> variant_text2</label>
+          <label><input type="checkbox" class="qr" value="variant_image" checked/> variant_image</label>
+        </div>
+        <div>
+          <label class="muted">Types</label><br/>
+          <label><input type="checkbox" id="qIncludeText" checked/> Text-only</label>
+          <label><input type="checkbox" id="qIncludeImage" checked/> Image-based</label>
+        </div>
+        <div>
+          <label class="muted">Errors</label><br/>
+          <select id="qErrPolicy">
+            <option value="exclude">Exclude flagged</option>
+            <option value="include">Include all</option>
+            <option value="only">Only flagged</option>
+          </select>
+        </div>
+        <div>
+          <label class="muted">One per group</label><br/>
+          <label><input type="checkbox" id="qOnePerGroup" checked/> Deduplicate by group_id</label>
+        </div>
+        <div>
+          <label class="muted">Image folder base</label><br/>
+          <input type="text" id="qImgBase" value="." placeholder="./ or ./images"/>
+        </div>
+        <div>
+          <label class="muted"># Questions</label><br/>
+          <input type="number" id="qCount" min="1" max="200" value="15" style="width:80px"/>
+        </div>
+        <div>
+          <label class="muted">Randomize</label><br/>
+          <label><input type="checkbox" id="qShuffle" checked/> Shuffle selection</label>
+        </div>
+        <div>
+          <button id="startQuiz" class="primary">Start Quiz</button>
+        </div>
+      </div>
+
+      <!-- Play area -->
+      <div id="quizTop" class="hidden">
+        <div class="row">
+          <span id="quizMeta" class="pill">0 / 0</span>
+          <span id="quizScore" class="pill">0 correct</span>
+          <span id="quizKey" class="pill">process: —</span>
+          <span id="quizRole" class="pill">role: —</span>
+        </div>
+        <div class="row">
+          <progress id="quizProgress" max="100" value="0"></progress>
+          <button id="endQuiz">End</button>
+          <button id="skipQuiz">Skip</button>
+        </div>
+      </div>
+
+      <div id="quizPlay" class="hidden">
+        <div class="qcard">
+          <h3 id="qStem" class="qstem"></h3>
+          <img id="qImage" class="qimg hidden" alt="Question image"/>
+          <div id="qImgDesc" class="muted hidden" style="margin:6px 0"></div>
+          <div id="qChoices" class="qchoices"></div>
+          <div id="qExplain" class="qexp hidden"></div>
+          <div class="row" style="margin-top:10px">
+            <button id="nextQuiz" class="primary hidden">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="quizResults" class="hidden">
+        <div class="qcard">
+          <h3>Results</h3>
+          <div id="quizSummary"></div>
+          <div class="row" style="margin-top:10px">
+            <button id="downloadResults">Download results (.json)</button>
+            <button id="retakeQuiz" class="primary">Retake with same filters</button>
+          </div>
+          <div id="quizReview" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
 /* ========= Unicode & encoding helpers ========= */
 function fixMojibake(s){
   return s
-    // dashes, quotes
-    .replace(/â€”/g,'—')
-    .replace(/â€“/g,'–')
-    .replace(/â€˜/g,'‘')
-    .replace(/â€™/g,'’')
-    .replace(/â€œ/g,'“')
-    .replace(/â€\x9d/g,'”')
-    .replace(/â€/g,'”')
-    .replace(/â€¦/g,'…')
-    // bullets & symbols
-    .replace(/â€¢/g,'•')
-    .replace(/Ã—/g,'×')
-    .replace(/Â©/g,'©')
-    .replace(/Â®/g,'®')
-    .replace(/â„¢/g,'™')
-    // stray NBSP bytes
-    .replace(/Â /g,' ')
-    .replace(/Â/g,'');
+    .replace(/â€”/g,'—').replace(/â€“/g,'–')
+    .replace(/â€˜/g,'‘').replace(/â€™/g,'’')
+    .replace(/â€œ/g,'“').replace(/â€\x9d/g,'”').replace(/â€/g,'”')
+    .replace(/â€¦/g,'…').replace(/â€¢/g,'•')
+    .replace(/Ã—/g,'×').replace(/Â©/g,'©').replace(/Â®/g,'®').replace(/â„¢/g,'™')
+    .replace(/Â /g,' ').replace(/Â/g,'');
 }
+function fixSmartQuotesJSONDelimiters(s){ return s.replace(/[\u201C\u201D]/g,'"'); }
+function sanitizeIncomingText(raw){ return fixMojibake(fixSmartQuotesJSONDelimiters(raw.normalize('NFC'))); }
 
-function fixSmartQuotesJSONDelimiters(s){
-  // JSON keys/strings must use straight double quotes
-  return s.replace(/[\u201C\u201D]/g,'"');
-}
-
-function sanitizeIncomingText(raw){
-  return fixMojibake(fixSmartQuotesJSONDelimiters(raw.normalize('NFC')));
-}
-
-/* ========= IndexedDB minimal helper ========= */
-const DB_NAME = 'qb_local_v1';
+/* ========= IndexedDB ========= */
+const DB_NAME = 'qb_local_v2'; // bumped to v2 to add stats store
 const STORE = 'questions';
+const STATS = 'stats';
 let db;
 
 function openDB(){
   return new Promise((resolve, reject)=>{
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = ()=>{
+    const req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = (e)=>{
       const db = req.result;
-      if(!db.objectStoreNames.contains(STORE)){
+      if(e.oldVersion < 1){
         const store = db.createObjectStore(STORE, { keyPath: 'id' });
-        store.createIndex('group_id', 'group_id', { unique: false });
-        store.createIndex('process_key', 'process_key', { unique: false });
-        store.createIndex('role', 'role', { unique: false });
-        store.createIndex('requires_image', 'requires_image', { unique: false });
-        store.createIndex('error_identified', 'error.identified', { unique: false });
-        store.createIndex('created_at', 'created_at', { unique: false });
+        store.createIndex('group_id', 'group_id', { unique:false });
+        store.createIndex('process_key', 'process_key', { unique:false });
+        store.createIndex('role', 'role', { unique:false });
+        store.createIndex('requires_image', 'requires_image', { unique:false });
+        store.createIndex('error_identified', 'error.identified', { unique:false });
+        store.createIndex('created_at', 'created_at', { unique:false });
+      }
+      if(e.oldVersion < 2){
+        db.createObjectStore(STATS, { keyPath: 'id' }); // {id, attempts, correct, last_seen_iso}
       }
     };
     req.onsuccess = ()=> resolve(req.result);
     req.onerror = ()=> reject(req.error);
   });
 }
-
-function txStore(mode='readonly'){
-  const tx = db.transaction(STORE, mode);
-  return tx.objectStore(STORE);
-}
+function txStore(name,mode='readonly'){ return db.transaction(name,mode).objectStore(name); }
 
 async function putMany(objs){
   return new Promise((resolve)=>{
-    const store = txStore('readwrite');
+    const store = txStore(STORE,'readwrite');
     let done=0, total=objs.length, errors=[];
     objs.forEach(obj=>{
       const req = store.put(obj);
@@ -176,77 +267,89 @@ async function putMany(objs){
     });
   });
 }
-
 async function getAll(){
   return new Promise((resolve,reject)=>{
-    const store = txStore('readonly');
-    const req = store.getAll();
+    const req = txStore(STORE,'readonly').getAll();
     req.onsuccess = ()=> resolve(req.result||[]);
     req.onerror = ()=> reject(req.error);
   });
 }
-
 async function clearAll(){
   return new Promise((resolve,reject)=>{
-    const store = txStore('readwrite');
-    const req = store.clear();
+    const req = txStore(STORE,'readwrite').clear();
     req.onsuccess = ()=> resolve();
     req.onerror = ()=> reject(req.error);
+  });
+}
+async function updateStat(id, wasCorrect){
+  const store = txStore(STATS,'readwrite');
+  const getReq = store.get(id);
+  return new Promise((resolve)=>{
+    getReq.onsuccess = ()=>{
+      const now = new Date().toISOString();
+      const cur = getReq.result || {id, attempts:0, correct:0, last_seen_iso:null};
+      cur.attempts += 1;
+      if(wasCorrect) cur.correct += 1;
+      cur.last_seen_iso = now;
+      const putReq = store.put(cur);
+      putReq.onsuccess = ()=> resolve(cur);
+      putReq.onerror = ()=> resolve(cur);
+    };
+    getReq.onerror = ()=> resolve(null);
+  });
+}
+async function getStatsFor(ids){
+  return new Promise((resolve)=>{
+    const store = txStore(STATS,'readonly');
+    const result = {};
+    let remaining = ids.length;
+    if(remaining===0) return resolve(result);
+    ids.forEach(id=>{
+      const r = store.get(id);
+      r.onsuccess = ()=>{ result[id]=r.result||null; if(--remaining===0) resolve(result); };
+      r.onerror = ()=>{ result[id]=null; if(--remaining===0) resolve(result); };
+    });
   });
 }
 
 /* ========= NDJSON ingest & validation ========= */
 function parseNDJSON(txt){
-  // Clean up paste/share artifacts first
   txt = sanitizeIncomingText(txt);
-
   const lines = txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   const objs=[], errs=[];
-
   lines.forEach((line,i)=>{
     try{
       objs.push(JSON.parse(line));
     }catch(e1){
       const repaired = sanitizeIncomingText(line);
-      try{
-        objs.push(JSON.parse(repaired));
-      }catch(e2){
-        errs.push({line:i+1, error:String(e2), text:line.slice(0,120)});
-      }
+      try{ objs.push(JSON.parse(repaired)); }
+      catch(e2){ errs.push({line:i+1, error:String(e2), text:line.slice(0,120)}); }
     }
   });
-
   return {objs, errs, lines};
 }
-
 function validateAndAugment(objs){
   const problems=[];
   const augmented = objs.map((o)=>{
     const must = ['id','group_id','role','process_key','stem','choices','answer_index','explanation','requires_image','principle','image_descriptor','error'];
-    must.forEach(k=>{
-      if(!(k in o)) problems.push({id:o.id, issue:`Missing field "${k}"`});
-    });
+    must.forEach(k=>{ if(!(k in o)) problems.push({id:o.id, issue:`Missing field "${k}"`}); });
     if(!Array.isArray(o.choices)) problems.push({id:o.id, issue:`"choices" must be an array`});
     if(typeof o.answer_index!=='number') problems.push({id:o.id, issue:`"answer_index" must be a number`});
     if(o.error && typeof o.error.identified!=='boolean') problems.push({id:o.id, issue:`"error.identified" must be boolean`});
-
-    if(!o.created_at){
-      o.created_at = new Date().toISOString();
-    }
+    if(!o.created_at) o.created_at = new Date().toISOString();
     o.error = o.error || {identified:false, explanation:'', proposed_correction:''};
     return o;
   });
   return {augmented, problems};
 }
 
-/* ========= UI rendering ========= */
+/* ========= UI rendering (browse) ========= */
 function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
 
 function renderList(items){
   const list = document.getElementById('list');
   list.innerHTML='';
   if(items.length===0){ list.appendChild(el(`<div class="noitems">No items match your filters.</div>`)); return; }
-
   const groupMode = document.getElementById('groupMode').checked;
   if(groupMode){
     const byGroup = new Map();
@@ -268,8 +371,7 @@ function renderItem(q){
   const requires = q.requires_image ? `<span class="chip">image</span>` : `<span class="chip">text</span>`;
   const err = q.error?.identified ? `<span class="chip bad">error</span>` : '';
   const created = q.created_at ? new Date(q.created_at).toLocaleString() : '';
-  const imgHint = q.requires_image ? `<div class="muted">Expected image file: <span class="kbr">${q.id}.jpg</span> or <span class="kbr">${q.id}.png</span>${q.image_descriptor?` — ${q.image_descriptor}`:''}</div>` : '';
-
+  const imgHint = q.requires_image ? `<div class="muted">Expected image: <span class="kbr">${q.id}.jpg</span> or <span class="kbr">${q.id}.png</span>${q.image_descriptor?` — ${escapeHTML(q.image_descriptor)}`:''}</div>` : '';
   const box = el(`<div class="item">
     <h3>${escapeHTML(q.stem)}</h3>
     <div class="meta">
@@ -283,7 +385,6 @@ function renderItem(q){
     <div style="margin:4px 0 6px 0">${escapeHTML(q.explanation)}</div>
     ${imgHint}
   </div>`);
-
   const choicesDiv = box.querySelector('.choices');
   if(Array.isArray(q.choices)){
     q.choices.forEach((c,i)=>{
@@ -301,32 +402,23 @@ function renderItem(q){
   }
   return box;
 }
+function escapeHTML(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
 
-function escapeHTML(s){
-  return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
-}
-
-/* ========= Filters & sorting ========= */
 function applyFilters(all){
   const q = document.getElementById('searchBox').value.trim().toLowerCase();
   const role = document.getElementById('roleFilter').value;
   const img = document.getElementById('imgFilter').value;
   const err = document.getElementById('errFilter').value;
   let items = all.slice();
-
-  if(q){
-    items = items.filter(o=> (o.stem||'').toLowerCase().includes(q) || (o.process_key||'').toLowerCase().includes(q));
-  }
+  if(q){ items = items.filter(o=> (o.stem||'').toLowerCase().includes(q) || (o.process_key||'').toLowerCase().includes(q)); }
   if(role){ items = items.filter(o=> o.role===role); }
   if(img){ items = items.filter(o=> String(!!o.requires_image)===img); }
   if(err){ items = items.filter(o=> String(!!(o.error && o.error.identified))===err); }
-
   const sort = document.getElementById('sortBy').value;
   if(sort==='created_at_desc') items.sort((a,b)=> (b.created_at||'').localeCompare(a.created_at||''));
   if(sort==='created_at_asc')  items.sort((a,b)=> (a.created_at||'').localeCompare(b.created_at||''));
   if(sort==='process_key_asc') items.sort((a,b)=> (a.process_key||'').localeCompare(b.process_key||''));
   if(sort==='process_key_desc')items.sort((a,b)=> (b.process_key||'').localeCompare(a.process_key||''));
-
   return items;
 }
 
@@ -343,26 +435,256 @@ async function downloadAllJson(){
   triggerDownload(blob, 'question_bank.json');
 }
 function triggerDownload(blob, filename){
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
-
 async function shareAll(){
   const all = await getAll();
   const nd = all.map(o=> JSON.stringify(o)).join('\n')+'\n';
   const file = new File([nd], 'question_bank.ndjson', { type: 'application/x-ndjson;charset=utf-8' });
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    try{
-      await navigator.share({ title:'Question Bank', text:'NDJSON export', files:[file] });
-    }catch(e){ /* user canceled or not available */ }
+    try{ await navigator.share({ title:'Question Bank', text:'NDJSON export', files:[file] }); }catch(e){}
   }else{
     const mailto = `mailto:?subject=${encodeURIComponent('Question Bank NDJSON')}&body=${encodeURIComponent(nd.slice(0,120000))}`;
     window.location.href = mailto;
   }
+}
+
+/* ========= Quiz Mode ========= */
+let quiz = {
+  pool: [], order: [], idx: 0, correct: 0, imageBase: '.',
+  responses: [], filters: null
+};
+
+function uniqueProcessKeys(items){
+  const s = new Set(items.map(x=> x.process_key).filter(Boolean));
+  return [...s].sort((a,b)=> a.localeCompare(b));
+}
+function fillProcessKeySelect(keys){
+  const sel = document.getElementById('quizProcessKeys');
+  sel.innerHTML = '';
+  if(keys.length===0){ sel.appendChild(el('<option value="" disabled>(none)</option>')); return; }
+  keys.forEach(k=> sel.appendChild(el(`<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`)));
+}
+function getSelectedValues(sel){ return Array.from(sel.selectedOptions||[]).map(o=> o.value); }
+function shuffleInPlace(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function selectQuizItems(all){
+  // Read filters
+  const keys = getSelectedValues(document.getElementById('quizProcessKeys'));
+  const includeRoles = Array.from(document.querySelectorAll('.qr:checked')).map(cb=> cb.value);
+  const includeText = document.getElementById('qIncludeText').checked;
+  const includeImage = document.getElementById('qIncludeImage').checked;
+  const errPolicy = document.getElementById('qErrPolicy').value; // exclude | include | only
+  const onePerGroup = document.getElementById('qOnePerGroup').checked;
+  const count = Math.max(1, Math.min(200, Number(document.getElementById('qCount').value||15)));
+  const doShuffle = document.getElementById('qShuffle').checked;
+  const imgBase = document.getElementById('qImgBase').value.trim() || '.';
+
+  let pool = all.slice();
+
+  // Filter by process_key
+  if(keys.length>0){ pool = pool.filter(x=> keys.includes(x.process_key)); }
+  // Filter by roles
+  pool = pool.filter(x=> includeRoles.includes(x.role));
+  // Filter by requires_image
+  pool = pool.filter(x=> (x.requires_image && includeImage) || (!x.requires_image && includeText));
+  // Filter by error policy
+  if(errPolicy==='exclude') pool = pool.filter(x=> !(x.error && x.error.identified));
+  if(errPolicy==='only')    pool = pool.filter(x=> x.error && x.error.identified);
+
+  // Optionally reduce to one per group_id (choose a preferred role order)
+  if(onePerGroup){
+    const pref = new Map([['variant_text1',1],['variant_text2',2],['variant_image',3],['original',4]]);
+    const bestByGroup = new Map();
+    for(const q of pool){
+      const key = q.group_id;
+      const score = pref.get(q.role) || 99;
+      if(!bestByGroup.has(key)){ bestByGroup.set(key, q); }
+      else{
+        const cur = bestByGroup.get(key);
+        const curScore = pref.get(cur.role) || 99;
+        if(score < curScore) bestByGroup.set(key, q);
+      }
+    }
+    pool = [...bestByGroup.values()];
+  }
+
+  // Shuffle and trim
+  if(doShuffle) shuffleInPlace(pool);
+  pool = pool.slice(0,count);
+
+  // Build order (indexes)
+  const order = pool.map((_,i)=> i);
+
+  quiz.pool = pool;
+  quiz.order = order;
+  quiz.idx = 0;
+  quiz.correct = 0;
+  quiz.imageBase = imgBase;
+  quiz.responses = [];
+  quiz.filters = {keys, includeRoles, includeText, includeImage, errPolicy, onePerGroup, count, doShuffle, imgBase};
+  return pool;
+}
+
+function showQuizUI(active){
+  document.getElementById('quizTop').classList.toggle('hidden', !active);
+  document.getElementById('quizPlay').classList.toggle('hidden', !active);
+  document.getElementById('quizResults').classList.add('hidden');
+}
+function renderQuizMeta(){
+  const n = quiz.order.length, i = quiz.idx;
+  document.getElementById('quizMeta').textContent = `${Math.min(i+1,n)} / ${n}`;
+  document.getElementById('quizScore').textContent = `${quiz.correct} correct`;
+  const cur = quiz.pool[quiz.order[i]];
+  document.getElementById('quizKey').textContent = `process: ${cur?cur.process_key:'—'}`;
+  document.getElementById('quizRole').textContent = `role: ${cur?cur.role:'—'}`;
+  const p = document.getElementById('quizProgress'); p.max = n; p.value = i;
+}
+
+async function tryLoadImage(id, base){
+  const img = document.getElementById('qImage');
+  const desc = document.getElementById('qImgDesc');
+  const sources = [`${base}/${id}.jpg`, `${base}/${id}.png`];
+  for(const src of sources){
+    try{
+      const ok = await fetch(src, {method:'HEAD'}); // lightweight check
+      if(ok.ok){
+        img.src = src;
+        img.classList.remove('hidden');
+        return true;
+      }
+    }catch(_){}
+  }
+  img.classList.add('hidden');
+  img.removeAttribute('src');
+  return false;
+}
+
+function renderCurrentQuestion(){
+  renderQuizMeta();
+  const n = quiz.order.length;
+  if(n===0){ endQuiz(); return; }
+  if(quiz.idx >= n){ endQuiz(); return; }
+
+  const q = quiz.pool[quiz.order[quiz.idx]];
+
+  // Fill stem & image
+  document.getElementById('qStem').textContent = q.stem || '';
+  const explain = document.getElementById('qExplain');
+  explain.classList.add('hidden');
+  explain.innerHTML = `<div class="muted">Explanation:</div>${escapeHTML(q.explanation||'')}`;
+  document.getElementById('nextQuiz').classList.add('hidden');
+
+  const imgDesc = document.getElementById('qImgDesc');
+  imgDesc.textContent = q.requires_image && q.image_descriptor ? q.image_descriptor : '';
+  imgDesc.classList.toggle('hidden', !(q.requires_image && q.image_descriptor));
+
+  if(q.requires_image){
+    tryLoadImage(q.id, quiz.imageBase).then(found=>{
+      if(!found){
+        imgDesc.classList.remove('hidden');
+        imgDesc.innerHTML = `<span class="warn">Image not found:</span> try <span class="kbr">${quiz.imageBase}/${q.id}.jpg</span> or <span class="kbr">${quiz.imageBase}/${q.id}.png</span>. ${q.image_descriptor?`<span class="muted">(${escapeHTML(q.image_descriptor)})</span>`:''}`;
+      }
+    });
+  }else{
+    const img = document.getElementById('qImage');
+    img.classList.add('hidden'); img.removeAttribute('src');
+  }
+
+  // Choices
+  const wrap = document.getElementById('qChoices');
+  wrap.innerHTML = '';
+  const label = i=> String.fromCharCode(65+i);
+  q.choices.forEach((choice,i)=>{
+    const btn = el(`<button>${label(i)}. ${escapeHTML(String(choice))}</button>`);
+    btn.addEventListener('click', ()=>{
+      // lock
+      Array.from(wrap.querySelectorAll('button')).forEach(b=> b.disabled = true);
+      const correctIndex = q.answer_index;
+      if(i===correctIndex){
+        btn.classList.add('is-correct');
+        quiz.correct += 1;
+        updateStat(q.id, true);
+      }else{
+        btn.classList.add('is-wrong');
+        // highlight correct
+        const btnC = wrap.querySelectorAll('button')[correctIndex];
+        if(btnC) btnC.classList.add('is-correct');
+        updateStat(q.id, false);
+      }
+      renderQuizMeta();
+      document.getElementById('nextQuiz').classList.remove('hidden');
+      document.getElementById('qExplain').classList.remove('hidden');
+      quiz.responses.push({
+        id:q.id, group_id:q.group_id, process_key:q.process_key, role:q.role,
+        picked:i, correct_index:correctIndex, was_correct:(i===correctIndex)
+      });
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function nextQuestion(){
+  quiz.idx += 1;
+  renderCurrentQuestion();
+}
+
+function endQuiz(){
+  document.getElementById('quizPlay').classList.add('hidden');
+  document.getElementById('quizTop').classList.add('hidden');
+  const res = document.getElementById('quizResults');
+  res.classList.remove('hidden');
+
+  const total = quiz.order.length;
+  const pct = total ? Math.round(100 * quiz.correct / total) : 0;
+  const summary = document.getElementById('quizSummary');
+  summary.innerHTML = `<div class="row">
+    <span class="pill">Total: ${total}</span>
+    <span class="pill good">Correct: ${quiz.correct}</span>
+    <span class="pill">Score: ${pct}%</span>
+  </div>`;
+
+  // Review list
+  const review = document.getElementById('quizReview');
+  review.innerHTML = '';
+  if(quiz.responses.length){
+    const by = quiz.responses;
+    by.forEach((r,idx)=>{
+      const q = quiz.pool.find(x=> x.id===r.id);
+      if(!q) return;
+      const node = el(`<div class="item">
+        <h3>${idx+1}. ${escapeHTML(q.stem)}</h3>
+        <div class="meta">
+          <span class="chip">${r.was_correct ? '✅ correct' : '❌ wrong'}</span>
+          <span class="chip">${escapeHTML(q.process_key)}</span>
+          <span class="chip">role: ${q.role}</span>
+        </div>
+        <div class="choices"></div>
+        <div class="muted">Explanation:</div>
+        <div>${escapeHTML(q.explanation)}</div>
+      </div>`);
+      const cDiv = node.querySelector('.choices');
+      q.choices.forEach((c,i)=>{
+        const isC = (i===q.answer_index);
+        const mark = isC ? '✅' : (i===r.picked ? '➡️' : '•');
+        cDiv.appendChild(el(`<div>${mark} ${String.fromCharCode(65+i)}. ${escapeHTML(String(c))}</div>`));
+      });
+      review.appendChild(node);
+    });
+  }
+
+  // Hook download
+  document.getElementById('downloadResults').onclick = ()=>{
+    const payload = {
+      generated_at: new Date().toISOString(),
+      filters: quiz.filters,
+      total, correct: quiz.correct, percent: pct,
+      responses: quiz.responses
+    };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json;charset=utf-8'});
+    triggerDownload(blob, 'quiz_results.json');
+  };
 }
 
 /* ========= Wiring ========= */
@@ -372,6 +694,8 @@ async function refresh(){
   const all = await getAll();
   document.getElementById('countBadge').textContent = `${all.length} items`;
   renderList(applyFilters(all));
+  // Populate process key select for quiz
+  fillProcessKeySelect(uniqueProcessKeys(all));
 }
 
 document.getElementById('previewBtn').addEventListener('click', ()=>{
@@ -410,26 +734,17 @@ document.getElementById('ingestBtn').addEventListener('click', async ()=>{
 });
 
 document.getElementById('fileInput').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-
-  // Read as raw bytes
+  const file = e.target.files[0]; if(!file) return;
   const buf = await file.arrayBuffer();
-
-  // Try UTF-8 decode
-  let txt = new TextDecoder('utf-8', { fatal: false }).decode(buf);
-
-  // Heuristic: try Windows-1252 if mojibake markers found
-  if (/[â€ÂÃ]/.test(txt)) {
+  let txt = new TextDecoder('utf-8',{fatal:false}).decode(buf);
+  if(/[â€ÂÃ]/.test(txt)){
     try{
-      const txt1252 = new TextDecoder('windows-1252', { fatal: false }).decode(buf);
+      const txt1252 = new TextDecoder('windows-1252',{fatal:false}).decode(buf);
       const badCount = s => (s.match(/[â€ÂÃ]/g)||[]).length;
-      if (badCount(txt1252) < badCount(txt)) txt = txt1252;
-    }catch(_) { /* decoder may not exist in very old browsers */ }
+      if(badCount(txt1252) < badCount(txt)) txt = txt1252;
+    }catch(_){}
   }
-
   txt = sanitizeIncomingText(txt);
-
   document.getElementById('ndjsonInput').value = txt;
   document.getElementById('previewBtn').click();
   e.target.value='';
@@ -439,7 +754,6 @@ document.getElementById('fileInput').addEventListener('change', async (e)=>{
   document.getElementById(id).addEventListener('input', refresh);
   document.getElementById(id).addEventListener('change', refresh);
 });
-
 document.getElementById('refreshBtn').addEventListener('click', refresh);
 document.getElementById('downloadNdjson').addEventListener('click', downloadAllNdjson);
 document.getElementById('downloadJson').addEventListener('click', downloadAllJson);
@@ -448,6 +762,31 @@ document.getElementById('clearAll').addEventListener('click', async ()=>{
   if(confirm('This will erase all locally stored questions. Continue?')){ await clearAll(); refresh(); }
 });
 
+/* Quiz controls */
+document.getElementById('startQuiz').addEventListener('click', async ()=>{
+  const all = await getAll();
+  const selected = selectQuizItems(all);
+  if(selected.length===0){
+    alert('No questions match your filters.');
+    return;
+  }
+  showQuizUI(true);
+  renderCurrentQuestion();
+});
+document.getElementById('nextQuiz').addEventListener('click', nextQuestion);
+document.getElementById('skipQuiz').addEventListener('click', ()=>{
+  // push current to end (optional)
+  const curIndex = quiz.order[quiz.idx];
+  quiz.order.push(curIndex);
+  nextQuestion();
+});
+document.getElementById('endQuiz').addEventListener('click', endQuiz);
+document.getElementById('retakeQuiz').addEventListener('click', async ()=>{
+  showQuizUI(true);
+  renderCurrentQuestion();
+});
+
+/* Init */
 openDB().then(r=>{ db=r; refresh(); });
 </script>
 </body>
