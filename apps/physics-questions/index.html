@@ -103,6 +103,38 @@
 </main>
 
 <script>
+/* ========= Unicode & encoding helpers ========= */
+function fixMojibake(s){
+  return s
+    // dashes, quotes
+    .replace(/â€”/g,'—')
+    .replace(/â€“/g,'–')
+    .replace(/â€˜/g,'‘')
+    .replace(/â€™/g,'’')
+    .replace(/â€œ/g,'“')
+    .replace(/â€\x9d/g,'”')
+    .replace(/â€/g,'”')
+    .replace(/â€¦/g,'…')
+    // bullets & symbols
+    .replace(/â€¢/g,'•')
+    .replace(/Ã—/g,'×')
+    .replace(/Â©/g,'©')
+    .replace(/Â®/g,'®')
+    .replace(/â„¢/g,'™')
+    // stray NBSP bytes
+    .replace(/Â /g,' ')
+    .replace(/Â/g,'');
+}
+
+function fixSmartQuotesJSONDelimiters(s){
+  // JSON keys/strings must use straight double quotes
+  return s.replace(/[\u201C\u201D]/g,'"');
+}
+
+function sanitizeIncomingText(raw){
+  return fixMojibake(fixSmartQuotesJSONDelimiters(raw.normalize('NFC')));
+}
+
 /* ========= IndexedDB minimal helper ========= */
 const DB_NAME = 'qb_local_v1';
 const STORE = 'questions';
@@ -111,7 +143,7 @@ let db;
 function openDB(){
   return new Promise((resolve, reject)=>{
     const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = (e)=>{
+    req.onupgradeneeded = ()=>{
       const db = req.result;
       if(!db.objectStoreNames.contains(STORE)){
         const store = db.createObjectStore(STORE, { keyPath: 'id' });
@@ -134,7 +166,7 @@ function txStore(mode='readonly'){
 }
 
 async function putMany(objs){
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve)=>{
     const store = txStore('readwrite');
     let done=0, total=objs.length, errors=[];
     objs.forEach(obj=>{
@@ -165,23 +197,31 @@ async function clearAll(){
 
 /* ========= NDJSON ingest & validation ========= */
 function parseNDJSON(txt){
+  // Clean up paste/share artifacts first
+  txt = sanitizeIncomingText(txt);
+
   const lines = txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   const objs=[], errs=[];
+
   lines.forEach((line,i)=>{
     try{
-      const obj = JSON.parse(line);
-      objs.push(obj);
-    }catch(e){
-      errs.push({line:i+1, error:String(e), text:line.slice(0,120)});
+      objs.push(JSON.parse(line));
+    }catch(e1){
+      const repaired = sanitizeIncomingText(line);
+      try{
+        objs.push(JSON.parse(repaired));
+      }catch(e2){
+        errs.push({line:i+1, error:String(e2), text:line.slice(0,120)});
+      }
     }
   });
+
   return {objs, errs, lines};
 }
 
 function validateAndAugment(objs){
   const problems=[];
-  const augmented = objs.map((o,idx)=>{
-    // Basic schema checks (soft; we only warn)
+  const augmented = objs.map((o)=>{
     const must = ['id','group_id','role','process_key','stem','choices','answer_index','explanation','requires_image','principle','image_descriptor','error'];
     must.forEach(k=>{
       if(!(k in o)) problems.push({id:o.id, issue:`Missing field "${k}"`});
@@ -190,11 +230,9 @@ function validateAndAugment(objs){
     if(typeof o.answer_index!=='number') problems.push({id:o.id, issue:`"answer_index" must be a number`});
     if(o.error && typeof o.error.identified!=='boolean') problems.push({id:o.id, issue:`"error.identified" must be boolean`});
 
-    // Auto-add created_at if absent
     if(!o.created_at){
       o.created_at = new Date().toISOString();
     }
-    // Ensure error fields exist
     o.error = o.error || {identified:false, explanation:'', proposed_correction:''};
     return o;
   });
@@ -217,7 +255,6 @@ function renderList(items){
       byGroup.get(it.group_id).push(it);
     });
     [...byGroup.entries()].forEach(([gid, arr])=>{
-      // group header
       const hdr = el(`<div class="item"><h3>Group <span class="kbr">${gid}</span> <span class="muted">(${arr.length} items)</span></h3></div>`);
       list.appendChild(hdr);
       arr.forEach(q=> list.appendChild(renderItem(q)));
@@ -297,12 +334,12 @@ function applyFilters(all){
 async function downloadAllNdjson(){
   const all = await getAll();
   const lines = all.map(o=> JSON.stringify(o));
-  const blob = new Blob([lines.join('\n')+'\n'], {type:'text/plain'});
+  const blob = new Blob([lines.join('\n')+'\n'], { type: 'application/x-ndjson;charset=utf-8' });
   triggerDownload(blob, 'question_bank.ndjson');
 }
 async function downloadAllJson(){
   const all = await getAll();
-  const blob = new Blob([JSON.stringify(all,null,2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(all,null,2)], { type: 'application/json;charset=utf-8' });
   triggerDownload(blob, 'question_bank.json');
 }
 function triggerDownload(blob, filename){
@@ -317,13 +354,12 @@ function triggerDownload(blob, filename){
 async function shareAll(){
   const all = await getAll();
   const nd = all.map(o=> JSON.stringify(o)).join('\n')+'\n';
-  const file = new File([nd], 'question_bank.ndjson', {type:'text/plain'});
+  const file = new File([nd], 'question_bank.ndjson', { type: 'application/x-ndjson;charset=utf-8' });
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     try{
       await navigator.share({ title:'Question Bank', text:'NDJSON export', files:[file] });
     }catch(e){ /* user canceled or not available */ }
   }else{
-    // Fallback: mailto with body (for small datasets)
     const mailto = `mailto:?subject=${encodeURIComponent('Question Bank NDJSON')}&body=${encodeURIComponent(nd.slice(0,120000))}`;
     window.location.href = mailto;
   }
@@ -339,8 +375,9 @@ async function refresh(){
 }
 
 document.getElementById('previewBtn').addEventListener('click', ()=>{
-  const txt = document.getElementById('ndjsonInput').value;
-  const {objs, errs, lines} = parseNDJSON(txt);
+  const raw = document.getElementById('ndjsonInput').value;
+  const txt = sanitizeIncomingText(raw);
+  const {objs, errs} = parseNDJSON(txt);
   const {augmented, problems} = validateAndAugment(objs);
   previewParsed = augmented;
   const area = document.getElementById('previewArea');
@@ -354,7 +391,9 @@ document.getElementById('previewBtn').addEventListener('click', ()=>{
   }
   let msg = `<span class="good">Parsed ${augmented.length} object(s).</span>`;
   if(problems.length){
-    msg += `<br><span class="warn">${problems.length} warning(s):</span><br>` + problems.slice(0,8).map(p=>`• ${p.id||'?'} – ${escapeHTML(p.issue)}`).join('<br>') + (problems.length>8?`<br>…and ${problems.length-8} more.`:'');
+    msg += `<br><span class="warn">${problems.length} warning(s):</span><br>` +
+      problems.slice(0,8).map(p=>`• ${p.id||'?'} – ${escapeHTML(p.issue)}`).join('<br>') +
+      (problems.length>8?`<br>…and ${problems.length-8} more.`:'');
   }
   area.innerHTML = msg;
   document.getElementById('ingestBtn').disabled = augmented.length===0;
@@ -362,7 +401,6 @@ document.getElementById('previewBtn').addEventListener('click', ()=>{
 
 document.getElementById('ingestBtn').addEventListener('click', async ()=>{
   if(!previewParsed || !previewParsed.length) return;
-  // Upsert all with created_at already added
   await putMany(previewParsed);
   document.getElementById('ndjsonInput').value='';
   document.getElementById('previewArea').textContent='Ingested ✅';
@@ -374,7 +412,24 @@ document.getElementById('ingestBtn').addEventListener('click', async ()=>{
 document.getElementById('fileInput').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-  const txt = await file.text();
+
+  // Read as raw bytes
+  const buf = await file.arrayBuffer();
+
+  // Try UTF-8 decode
+  let txt = new TextDecoder('utf-8', { fatal: false }).decode(buf);
+
+  // Heuristic: try Windows-1252 if mojibake markers found
+  if (/[â€ÂÃ]/.test(txt)) {
+    try{
+      const txt1252 = new TextDecoder('windows-1252', { fatal: false }).decode(buf);
+      const badCount = s => (s.match(/[â€ÂÃ]/g)||[]).length;
+      if (badCount(txt1252) < badCount(txt)) txt = txt1252;
+    }catch(_) { /* decoder may not exist in very old browsers */ }
+  }
+
+  txt = sanitizeIncomingText(txt);
+
   document.getElementById('ndjsonInput').value = txt;
   document.getElementById('previewBtn').click();
   e.target.value='';
