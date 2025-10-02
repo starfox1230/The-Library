@@ -22,6 +22,8 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     button{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
     button.primary{background:linear-gradient(180deg,#39c6ff,#2aa9da);color:#031525;border:none}
+    button.warn{background:var(--warn); color: var(--panel); border: none}
+    button.bad{background:var(--bad); color:var(--text); border:none;}
     button:disabled{opacity:.5;cursor:not-allowed}
     input[type="text"],input[type="number"],select{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px}
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -36,6 +38,24 @@
     .muted{color:var(--muted)}
     .noitems{padding:18px;color:var(--muted)}
     .kbr{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0b1220;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+
+    /* New Grouped View Styles */
+    .list details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; background: #0b1220; }
+    .list summary { padding: 10px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .list summary::-webkit-details-marker { display: none; }
+    .list summary::before { content: '▶'; margin-right: 8px; font-size: 10px; transition: transform 0.2s; flex-shrink: 0; }
+    .list details[open] > summary { border-bottom: 1px solid var(--border); }
+    .list details[open] > summary::before { transform: rotate(90deg); }
+    .summary-content { flex-grow: 1; }
+    .summary-content .group-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--chip); padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+    .summary-content .stem-preview { margin-left: 8px; color: var(--muted); }
+    .delete-group-btn { background: var(--bad); color: var(--text); border: none; padding: 4px 8px; font-size: 12px; flex-shrink: 0; }
+    .group-items-container .item { border-bottom: 1px solid var(--border); &:last-child{ border-bottom: none; } }
+    
+    /* New Quiz Overlay Styles */
+    #quizOverlay { position: fixed; inset: 0; z-index: 100; background: var(--bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+    .quiz-container { width: 100%; max-width: 900px; }
+
     /* Quiz */
     #quizPlay .qcard{border:1px solid var(--border);border-radius:12px;padding:14px;background:#0b1220}
     #quizPlay .qstem{font-size:16px;margin:0 0 12px 0}
@@ -59,7 +79,7 @@
     <button id="downloadNdjson" title="Download all as NDJSON">Download .ndjson</button>
     <button id="downloadJson" title="Download all as JSON array">Download .json</button>
     <button id="shareAll" title="Share NDJSON via system share (mobile)">Share…</button>
-    <button id="clearAll" class="warn" title="Erase local data">Clear All</button>
+    <button id="clearAll" class="bad" title="Erase local data">Clear All</button>
   </div>
 </header>
 
@@ -110,7 +130,7 @@
           <option value="process_key_asc">Sort: Process ↑</option>
           <option value="process_key_desc">Sort: Process ↓</option>
         </select>
-        <label><input type="checkbox" id="groupMode" /> Group by group_id</label>
+        <label><input type="checkbox" id="groupMode" checked /> Group by group_id</label>
         <button id="refreshBtn">Refresh</button>
       </div>
       <div id="list" class="list"></div>
@@ -167,50 +187,54 @@
           <button id="startQuiz" class="primary">Start Quiz</button>
         </div>
       </div>
-
-      <!-- Play area -->
-      <div id="quizTop" class="hidden">
-        <div class="row">
-          <span id="quizMeta" class="pill">0 / 0</span>
-          <span id="quizScore" class="pill">0 correct</span>
-          <span id="quizKey" class="pill">process: —</span>
-          <span id="quizRole" class="pill">role: —</span>
-        </div>
-        <div class="row">
-          <progress id="quizProgress" max="100" value="0"></progress>
-          <button id="endQuiz">End</button>
-          <button id="skipQuiz">Skip</button>
-        </div>
-      </div>
-
-      <div id="quizPlay" class="hidden">
-        <div class="qcard">
-          <h3 id="qStem" class="qstem"></h3>
-          <img id="qImage" class="qimg hidden" alt="Question image"/>
-          <div id="qImgDesc" class="muted hidden" style="margin:6px 0"></div>
-          <div id="qChoices" class="qchoices"></div>
-          <div id="qExplain" class="qexp hidden"></div>
-          <div class="row" style="margin-top:10px">
-            <button id="nextQuiz" class="primary hidden">Next</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Results -->
-      <div id="quizResults" class="hidden">
-        <div class="qcard">
-          <h3>Results</h3>
-          <div id="quizSummary"></div>
-          <div class="row" style="margin-top:10px">
-            <button id="downloadResults">Download results (.json)</button>
-            <button id="retakeQuiz" class="primary">Retake with same filters</button>
-          </div>
-          <div id="quizReview" style="margin-top:12px"></div>
-        </div>
-      </div>
     </div>
   </section>
 </main>
+
+<!-- Quiz Screen Overlay -->
+<div id="quizOverlay" class="hidden">
+  <div class="quiz-container">
+    <!-- Play area header -->
+    <div id="quizTop">
+      <div class="row">
+        <span id="quizMeta" class="pill">0 / 0</span>
+        <span id="quizScore" class="pill">0 correct</span>
+        <span id="quizKey" class="pill">process: —</span>
+        <span id="quizRole" class="pill">role: —</span>
+      </div>
+      <div class="row">
+        <progress id="quizProgress" max="100" value="0"></progress>
+        <button id="endQuiz">Exit Quiz</button>
+        <button id="skipQuiz">Skip</button>
+      </div>
+    </div>
+    <!-- Play area content -->
+    <div id="quizPlay">
+      <div class="qcard">
+        <h3 id="qStem" class="qstem"></h3>
+        <img id="qImage" class="qimg hidden" alt="Question image"/>
+        <div id="qImgDesc" class="muted hidden" style="margin:6px 0"></div>
+        <div id="qChoices" class="qchoices"></div>
+        <div id="qExplain" class="qexp hidden"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="nextQuiz" class="primary hidden">Next</button>
+        </div>
+      </div>
+    </div>
+    <!-- Results -->
+    <div id="quizResults" class="hidden">
+      <div class="qcard">
+        <h3>Results</h3>
+        <div id="quizSummary"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="downloadResults">Download results (.json)</button>
+          <button id="retakeQuiz" class="primary">Retake with same filters</button>
+        </div>
+        <div id="quizReview" style="margin-top:12px; max-height: 50vh; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ========= Unicode & encoding helpers ========= */
@@ -218,7 +242,7 @@ function fixMojibake(s){
   return s
     .replace(/â€”/g,'—').replace(/â€“/g,'–')
     .replace(/â€˜/g,'‘').replace(/â€™/g,'’')
-    .replace(/â€œ/g,'“').replace(/â€\x9d/g,'”').replace(/â€/g,'”')
+    .replace(/â€œ/g,'“').replace(/â€\x9d/g,'”').replace(/â€ /g,'”')
     .replace(/â€¦/g,'…').replace(/â€¢/g,'•')
     .replace(/Ã—/g,'×').replace(/Â©/g,'©').replace(/Â®/g,'®').replace(/â„¢/g,'™')
     .replace(/Â /g,' ').replace(/Â/g,'');
@@ -227,7 +251,7 @@ function fixSmartQuotesJSONDelimiters(s){ return s.replace(/[\u201C\u201D]/g,'"'
 function sanitizeIncomingText(raw){ return fixMojibake(fixSmartQuotesJSONDelimiters(raw.normalize('NFC'))); }
 
 /* ========= IndexedDB ========= */
-const DB_NAME = 'qb_local_v2'; // bumped to v2 to add stats store
+const DB_NAME = 'qb_local_v2';
 const STORE = 'questions';
 const STATS = 'stats';
 let db;
@@ -247,7 +271,7 @@ function openDB(){
         store.createIndex('created_at', 'created_at', { unique:false });
       }
       if(e.oldVersion < 2){
-        db.createObjectStore(STATS, { keyPath: 'id' }); // {id, attempts, correct, last_seen_iso}
+        db.createObjectStore(STATS, { keyPath: 'id' });
       }
     };
     req.onsuccess = ()=> resolve(req.result);
@@ -274,12 +298,29 @@ async function getAll(){
     req.onerror = ()=> reject(req.error);
   });
 }
-async function clearAll(){
+async function clearAllData(){
   return new Promise((resolve,reject)=>{
     const req = txStore(STORE,'readwrite').clear();
     req.onsuccess = ()=> resolve();
     req.onerror = ()=> reject(req.error);
   });
+}
+async function deleteByGroupId(groupId) {
+    return new Promise((resolve, reject) => {
+        const store = txStore(STORE, 'readwrite');
+        const index = store.index('group_id');
+        const req = index.openCursor(IDBKeyRange.only(groupId));
+        req.onsuccess = () => {
+            const cursor = req.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            } else {
+                resolve(); // All matching records deleted
+            }
+        };
+        req.onerror = () => reject(req.error);
+    });
 }
 async function updateStat(id, wasCorrect){
   const store = txStore(STATS,'readwrite');
@@ -351,18 +392,30 @@ function renderList(items){
   list.innerHTML='';
   if(items.length===0){ list.appendChild(el(`<div class="noitems">No items match your filters.</div>`)); return; }
   const groupMode = document.getElementById('groupMode').checked;
+
   if(groupMode){
     const byGroup = new Map();
     items.forEach(it=>{
       if(!byGroup.has(it.group_id)) byGroup.set(it.group_id, []);
       byGroup.get(it.group_id).push(it);
     });
-    [...byGroup.entries()].forEach(([gid, arr])=>{
-      const hdr = el(`<div class="item"><h3>Group <span class="kbr">${gid}</span> <span class="muted">(${arr.length} items)</span></h3></div>`);
-      list.appendChild(hdr);
-      arr.forEach(q=> list.appendChild(renderItem(q)));
+    [...byGroup.entries()].sort((a,b) => String(a[0]).localeCompare(String(b[0]))).forEach(([gid, arr])=>{
+      const original = arr.find(q => q.role === 'original') || arr[0];
+      const details = el(`<details>
+        <summary>
+          <div class="summary-content">
+            <span class="group-id">${escapeHTML(gid)}</span>
+            <span class="stem-preview">${escapeHTML(original.stem)}</span>
+          </div>
+          <button class="delete-group-btn" data-group-id="${escapeHTML(gid)}">Delete Group</button>
+        </summary>
+        <div class="group-items-container"></div>
+      </details>`);
+      const container = details.querySelector('.group-items-container');
+      arr.sort((a,b) => a.role.localeCompare(b.role)).forEach(q=> container.appendChild(renderItem(q)));
+      list.appendChild(details);
     });
-  }else{
+  } else {
     items.forEach(q=> list.appendChild(renderItem(q)));
   }
 }
@@ -470,30 +523,21 @@ function getSelectedValues(sel){ return Array.from(sel.selectedOptions||[]).map(
 function shuffleInPlace(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
 function selectQuizItems(all){
-  // Read filters
   const keys = getSelectedValues(document.getElementById('quizProcessKeys'));
   const includeRoles = Array.from(document.querySelectorAll('.qr:checked')).map(cb=> cb.value);
   const includeText = document.getElementById('qIncludeText').checked;
   const includeImage = document.getElementById('qIncludeImage').checked;
-  const errPolicy = document.getElementById('qErrPolicy').value; // exclude | include | only
+  const errPolicy = document.getElementById('qErrPolicy').value;
   const onePerGroup = document.getElementById('qOnePerGroup').checked;
   const count = Math.max(1, Math.min(200, Number(document.getElementById('qCount').value||15)));
   const doShuffle = document.getElementById('qShuffle').checked;
   const imgBase = document.getElementById('qImgBase').value.trim() || '.';
-
   let pool = all.slice();
-
-  // Filter by process_key
   if(keys.length>0){ pool = pool.filter(x=> keys.includes(x.process_key)); }
-  // Filter by roles
   pool = pool.filter(x=> includeRoles.includes(x.role));
-  // Filter by requires_image
   pool = pool.filter(x=> (x.requires_image && includeImage) || (!x.requires_image && includeText));
-  // Filter by error policy
   if(errPolicy==='exclude') pool = pool.filter(x=> !(x.error && x.error.identified));
   if(errPolicy==='only')    pool = pool.filter(x=> x.error && x.error.identified);
-
-  // Optionally reduce to one per group_id (choose a preferred role order)
   if(onePerGroup){
     const pref = new Map([['variant_text1',1],['variant_text2',2],['variant_image',3],['original',4]]);
     const bestByGroup = new Map();
@@ -509,28 +553,20 @@ function selectQuizItems(all){
     }
     pool = [...bestByGroup.values()];
   }
-
-  // Shuffle and trim
   if(doShuffle) shuffleInPlace(pool);
   pool = pool.slice(0,count);
-
-  // Build order (indexes)
   const order = pool.map((_,i)=> i);
 
-  quiz.pool = pool;
-  quiz.order = order;
-  quiz.idx = 0;
-  quiz.correct = 0;
-  quiz.imageBase = imgBase;
-  quiz.responses = [];
-  quiz.filters = {keys, includeRoles, includeText, includeImage, errPolicy, onePerGroup, count, doShuffle, imgBase};
+  quiz = {
+    pool, order, idx: 0, correct: 0, imageBase: imgBase,
+    responses: [],
+    filters: {keys, includeRoles, includeText, includeImage, errPolicy, onePerGroup, count, doShuffle, imgBase}
+  };
   return pool;
 }
 
 function showQuizUI(active){
-  document.getElementById('quizTop').classList.toggle('hidden', !active);
-  document.getElementById('quizPlay').classList.toggle('hidden', !active);
-  document.getElementById('quizResults').classList.add('hidden');
+  document.getElementById('quizOverlay').classList.toggle('hidden', !active);
 }
 function renderQuizMeta(){
   const n = quiz.order.length, i = quiz.idx;
@@ -541,14 +577,13 @@ function renderQuizMeta(){
   document.getElementById('quizRole').textContent = `role: ${cur?cur.role:'—'}`;
   const p = document.getElementById('quizProgress'); p.max = n; p.value = i;
 }
-
 async function tryLoadImage(id, base){
   const img = document.getElementById('qImage');
   const desc = document.getElementById('qImgDesc');
   const sources = [`${base}/${id}.jpg`, `${base}/${id}.png`];
   for(const src of sources){
     try{
-      const ok = await fetch(src, {method:'HEAD'}); // lightweight check
+      const ok = await fetch(src, {method:'HEAD'});
       if(ok.ok){
         img.src = src;
         img.classList.remove('hidden');
@@ -560,26 +595,19 @@ async function tryLoadImage(id, base){
   img.removeAttribute('src');
   return false;
 }
-
 function renderCurrentQuestion(){
   renderQuizMeta();
   const n = quiz.order.length;
-  if(n===0){ endQuiz(); return; }
-  if(quiz.idx >= n){ endQuiz(); return; }
-
+  if(n===0 || quiz.idx >= n){ showResults(); return; }
   const q = quiz.pool[quiz.order[quiz.idx]];
-
-  // Fill stem & image
   document.getElementById('qStem').textContent = q.stem || '';
   const explain = document.getElementById('qExplain');
   explain.classList.add('hidden');
   explain.innerHTML = `<div class="muted">Explanation:</div>${escapeHTML(q.explanation||'')}`;
   document.getElementById('nextQuiz').classList.add('hidden');
-
   const imgDesc = document.getElementById('qImgDesc');
   imgDesc.textContent = q.requires_image && q.image_descriptor ? q.image_descriptor : '';
   imgDesc.classList.toggle('hidden', !(q.requires_image && q.image_descriptor));
-
   if(q.requires_image){
     tryLoadImage(q.id, quiz.imageBase).then(found=>{
       if(!found){
@@ -591,15 +619,11 @@ function renderCurrentQuestion(){
     const img = document.getElementById('qImage');
     img.classList.add('hidden'); img.removeAttribute('src');
   }
-
-  // Choices
   const wrap = document.getElementById('qChoices');
   wrap.innerHTML = '';
-  const label = i=> String.fromCharCode(65+i);
   q.choices.forEach((choice,i)=>{
-    const btn = el(`<button>${label(i)}. ${escapeHTML(String(choice))}</button>`);
+    const btn = el(`<button>${String.fromCharCode(65+i)}. ${escapeHTML(String(choice))}</button>`);
     btn.addEventListener('click', ()=>{
-      // lock
       Array.from(wrap.querySelectorAll('button')).forEach(b=> b.disabled = true);
       const correctIndex = q.answer_index;
       if(i===correctIndex){
@@ -608,7 +632,6 @@ function renderCurrentQuestion(){
         updateStat(q.id, true);
       }else{
         btn.classList.add('is-wrong');
-        // highlight correct
         const btnC = wrap.querySelectorAll('button')[correctIndex];
         if(btnC) btnC.classList.add('is-correct');
         updateStat(q.id, false);
@@ -624,35 +647,26 @@ function renderCurrentQuestion(){
     wrap.appendChild(btn);
   });
 }
-
 function nextQuestion(){
   quiz.idx += 1;
   renderCurrentQuestion();
 }
-
-function endQuiz(){
+function showResults(){
   document.getElementById('quizPlay').classList.add('hidden');
   document.getElementById('quizTop').classList.add('hidden');
-  const res = document.getElementById('quizResults');
-  res.classList.remove('hidden');
-
+  document.getElementById('quizResults').classList.remove('hidden');
   const total = quiz.order.length;
   const pct = total ? Math.round(100 * quiz.correct / total) : 0;
-  const summary = document.getElementById('quizSummary');
-  summary.innerHTML = `<div class="row">
+  document.getElementById('quizSummary').innerHTML = `<div class="row">
     <span class="pill">Total: ${total}</span>
     <span class="pill good">Correct: ${quiz.correct}</span>
     <span class="pill">Score: ${pct}%</span>
   </div>`;
-
-  // Review list
   const review = document.getElementById('quizReview');
   review.innerHTML = '';
   if(quiz.responses.length){
-    const by = quiz.responses;
-    by.forEach((r,idx)=>{
-      const q = quiz.pool.find(x=> x.id===r.id);
-      if(!q) return;
+    quiz.responses.forEach((r,idx)=>{
+      const q = quiz.pool.find(x=> x.id===r.id); if(!q) return;
       const node = el(`<div class="item">
         <h3>${idx+1}. ${escapeHTML(q.stem)}</h3>
         <div class="meta">
@@ -666,24 +680,19 @@ function endQuiz(){
       </div>`);
       const cDiv = node.querySelector('.choices');
       q.choices.forEach((c,i)=>{
-        const isC = (i===q.answer_index);
-        const mark = isC ? '✅' : (i===r.picked ? '➡️' : '•');
-        cDiv.appendChild(el(`<div>${mark} ${String.fromCharCode(65+i)}. ${escapeHTML(String(c))}</div>`));
+        const isC = (i===q.answer_index), isP = (i===r.picked);
+        const mark = isC ? '✅' : (isP ? '❌' : '•');
+        cDiv.appendChild(el(`<div class="${isC?'good':(isP?'bad':'')}">${mark} ${String.fromCharCode(65+i)}. ${escapeHTML(String(c))}</div>`));
       });
       review.appendChild(node);
     });
   }
-
-  // Hook download
   document.getElementById('downloadResults').onclick = ()=>{
     const payload = {
       generated_at: new Date().toISOString(),
-      filters: quiz.filters,
-      total, correct: quiz.correct, percent: pct,
-      responses: quiz.responses
+      filters: quiz.filters, total, correct: quiz.correct, percent: pct, responses: quiz.responses
     };
-    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json;charset=utf-8'});
-    triggerDownload(blob, 'quiz_results.json');
+    triggerDownload(new Blob([JSON.stringify(payload,null,2)], {type:'application/json;charset=utf-8'}), 'quiz_results.json');
   };
 }
 
@@ -694,18 +703,15 @@ async function refresh(){
   const all = await getAll();
   document.getElementById('countBadge').textContent = `${all.length} items`;
   renderList(applyFilters(all));
-  // Populate process key select for quiz
   fillProcessKeySelect(uniqueProcessKeys(all));
 }
 
 document.getElementById('previewBtn').addEventListener('click', ()=>{
   const raw = document.getElementById('ndjsonInput').value;
-  const txt = sanitizeIncomingText(raw);
-  const {objs, errs} = parseNDJSON(txt);
+  const {objs, errs} = parseNDJSON(raw);
   const {augmented, problems} = validateAndAugment(objs);
   previewParsed = augmented;
   const area = document.getElementById('previewArea');
-
   if(errs.length){
     area.innerHTML = `<span class="bad">Parse errors on ${errs.length} line(s):</span><br>` +
       errs.slice(0,5).map(e=>`Line ${e.line}: ${escapeHTML(e.error)} <span class="muted">(${escapeHTML(e.text)})</span>`).join('<br>') +
@@ -740,12 +746,10 @@ document.getElementById('fileInput').addEventListener('change', async (e)=>{
   if(/[â€ÂÃ]/.test(txt)){
     try{
       const txt1252 = new TextDecoder('windows-1252',{fatal:false}).decode(buf);
-      const badCount = s => (s.match(/[â€ÂÃ]/g)||[]).length;
-      if(badCount(txt1252) < badCount(txt)) txt = txt1252;
+      if((txt1252.match(/[â€ÂÃ]/g)||[]).length < (txt.match(/[â€ÂÃ]/g)||[]).length) txt = txt1252;
     }catch(_){}
   }
-  txt = sanitizeIncomingText(txt);
-  document.getElementById('ndjsonInput').value = txt;
+  document.getElementById('ndjsonInput').value = sanitizeIncomingText(txt);
   document.getElementById('previewBtn').click();
   e.target.value='';
 });
@@ -759,7 +763,25 @@ document.getElementById('downloadNdjson').addEventListener('click', downloadAllN
 document.getElementById('downloadJson').addEventListener('click', downloadAllJson);
 document.getElementById('shareAll').addEventListener('click', shareAll);
 document.getElementById('clearAll').addEventListener('click', async ()=>{
-  if(confirm('This will erase all locally stored questions. Continue?')){ await clearAll(); refresh(); }
+  if(confirm('This will erase all locally stored questions. Continue?')){ await clearAllData(); refresh(); }
+});
+document.getElementById('list').addEventListener('click', async (e) => {
+    if (e.target.matches('.delete-group-btn')) {
+        const btn = e.target;
+        const groupId = btn.dataset.groupId;
+        if (confirm(`Delete all questions in group "${groupId}"? This cannot be undone.`)) {
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+            try {
+                await deleteByGroupId(groupId);
+                await refresh();
+            } catch (err) {
+                alert('Could not delete group. See console for details.');
+                btn.disabled = false;
+                btn.textContent = 'Delete Group';
+            }
+        }
+    }
 });
 
 /* Quiz controls */
@@ -770,19 +792,26 @@ document.getElementById('startQuiz').addEventListener('click', async ()=>{
     alert('No questions match your filters.');
     return;
   }
+  document.getElementById('quizPlay').classList.remove('hidden');
+  document.getElementById('quizResults').classList.add('hidden');
+  document.getElementById('quizTop').classList.remove('hidden');
   showQuizUI(true);
   renderCurrentQuestion();
 });
 document.getElementById('nextQuiz').addEventListener('click', nextQuestion);
-document.getElementById('skipQuiz').addEventListener('click', ()=>{
-  // push current to end (optional)
-  const curIndex = quiz.order[quiz.idx];
-  quiz.order.push(curIndex);
-  nextQuestion();
-});
-document.getElementById('endQuiz').addEventListener('click', endQuiz);
+document.getElementById('skipQuiz').addEventListener('click', ()=>{ quiz.order.push(quiz.order[quiz.idx]); nextQuestion(); });
+document.getElementById('endQuiz').addEventListener('click', ()=> showQuizUI(false));
 document.getElementById('retakeQuiz').addEventListener('click', async ()=>{
-  showQuizUI(true);
+  const all = await getAll();
+  const selected = selectQuizItems(all);
+  if(selected.length===0){
+    alert('No questions match filters for retake.');
+    showQuizUI(false);
+    return;
+  }
+  document.getElementById('quizResults').classList.add('hidden');
+  document.getElementById('quizPlay').classList.remove('hidden');
+  document.getElementById('quizTop').classList.remove('hidden');
   renderCurrentQuestion();
 });
 
