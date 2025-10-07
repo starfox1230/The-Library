@@ -210,6 +210,8 @@ const talks = [
   {title:"Dallin H. Oaks", videoId:"BfdoxwmJFdQ", youtubeUrl:"https://www.youtube.com/watch?v=BfdoxwmJFdQ&list=PLClOO0BdaFaP7-YfLVAd-qDCD5jnKwuM2&index=38&pp=iAQB", transcriptPath:"GC_Transcripts_October_2025/34 - Dallin H. Oaks October 2025 General Conference.txt"}
 ];
 
+const transcriptCache = {}; // Cache to hold pre-loaded transcript text
+
 // -----------------------------
 // State & Persistence
 // -----------------------------
@@ -427,54 +429,45 @@ function openYouTubeAppAndMark(t){
 }
 
 // -----------------------------
-// Clipboard / Transcript (MOBILE-SAFE)
+// Pre-load Transcripts
 // -----------------------------
-async function copyTranscript(path){
-  // Resolve relative → absolute for GitHub Pages and similar hosts
-  const url = new URL(path, location.href).toString();
-
-  let txt = '';
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if(!res.ok) {
-      throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+async function preloadTranscripts() {
+  // Use Promise.all to fetch all transcripts in parallel for speed
+  await Promise.all(talks.map(async (talk) => {
+    try {
+      const res = await fetch(encodeURI(talk.transcriptPath));
+      if (res.ok) {
+        const text = await res.text();
+        // Store the transcript text in our cache, keyed by its path
+        transcriptCache[talk.transcriptPath] = text;
+      } else {
+        console.warn(`Failed to preload transcript: ${talk.transcriptPath}`);
+      }
+    } catch (e) {
+      console.error(`Error fetching ${talk.transcriptPath}`, e);
     }
-    txt = await res.text();
-  } catch (e) {
-    console.error('Transcript fetch failed:', e);
-    toast('Could not load transcript file.');
-    return;
-  }
-
-  // Try async clipboard first; if blocked (common on iOS/in-app webviews), fallback to textarea.
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(txt);
-      toast('Transcript copied.');
-      return;
-    }
-    // No clipboard API -> fallback
-    fallbackCopyText(txt);
-    toast('Transcript copied (fallback).');
-  } catch (e) {
-    console.warn('navigator.clipboard.writeText failed; using fallback. Error:', e);
-    fallbackCopyText(txt);
-    toast('Transcript copied (fallback).');
-  }
+  }));
+  console.log('All transcripts preloaded and cached.');
 }
 
-function fallbackCopyText(text){
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.setAttribute('readonly', '');
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-  ta.style.left = '-9999px';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  try { document.execCommand('copy'); } catch (_) {}
-  document.body.removeChild(ta);
+// -----------------------------
+// Clipboard / Transcript
+// -----------------------------
+async function copyTranscript(path){
+  try {
+    // Read the transcript directly from the pre-loaded cache
+    const txt = transcriptCache[path];
+    if (typeof txt !== 'string') {
+      // This is a fallback in case preloading failed for a specific file
+      throw new Error(`Transcript not found in cache for path: ${path}`);
+    }
+    // This now happens instantly, so mobile browsers will allow it
+    await navigator.clipboard.writeText(txt);
+    toast('Transcript copied.');
+  } catch(e){
+    console.error('Copy failed:', e);
+    toast('Copy transcript failed.'); // Simplified error message for the user
+  }
 }
 
 // -----------------------------
@@ -573,12 +566,12 @@ function downloadNotes(){
 async function copyNotes(){
   const txt = notesOnlyText();
   if(!txt){ toast('No notes yet.'); return; }
-  try{
-    await navigator.clipboard.writeText(txt);
-    toast('Notes copied.');
-  } catch(_){
-    fallbackCopyText(txt);
-    toast('Notes copied (fallback).');
+  try{ await navigator.clipboard.writeText(txt); toast('Notes copied.'); }
+  catch(e){
+    // Fallback for copyNotes if needed
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); toast('Notes copied (fallback).'); }catch(_){toast('Copy failed.');}
+    document.body.removeChild(ta);
   }
 }
 
@@ -615,6 +608,7 @@ function toast(msg){
 // -----------------------------
 // Init
 // -----------------------------
+preloadTranscripts(); // Pre-fetch all transcript files on page load
 renderAll();
 </script>
 </body>
