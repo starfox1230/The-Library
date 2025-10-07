@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AHA LV Segments — Night Mode Quiz</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --panel:#0f1426;
+    --ink:#e5e7eb;
+    --muted:#94a3b8;
+    --accent:#8b5cf6;      /* purple highlight */
+    --good:#22c55e;        /* green correct */
+    --bad:#ef4444;         /* red wrong */
+    --neutral:#111827;     /* neutral wedge fill */
+    --stroke:#1f2937;      /* wedge stroke */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:radial-gradient(1200px 800px at 70% -10%, #152046 0%, var(--bg) 45%, #050713 100%);
+    color:var(--ink); font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  .app{max-width:1200px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:12px}
+  header{
+    display:grid; grid-template-columns: 1fr auto auto; gap:12px; align-items:center;
+    background:linear-gradient(180deg, rgba(139,92,246,.12), rgba(139,92,246,.04));
+    border:1px solid rgba(139,92,246,.25); border-radius:14px; padding:12px 14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 0 40px rgba(139,92,246,.08);
+  }
+  h1{margin:0; font-size:18px; letter-spacing:.04em; color:#d9d6ff}
+  .controls{
+    display:flex; flex-wrap: wrap; gap:8px; align-items:center; background:rgba(17,24,39,.6);
+    padding:6px 8px; border-radius:12px; border:1px solid rgba(148,163,184,.2);
+  }
+  select, button{
+    background:linear-gradient(180deg, #111827, #0b1020);
+    border:1px solid rgba(148,163,184,.3);
+    color:var(--ink); border-radius:10px; padding:8px 10px; font-weight:600;
+  }
+  button.accent{border-color:rgba(139,92,246,.55); box-shadow:0 0 0 2px rgba(139,92,246,.15) inset}
+  .hud{
+    display:flex; gap:12px; align-items:center; justify-self:end;
+  }
+  .pill{
+    min-width:82px; text-align:center; padding:8px 10px; border-radius:999px; font-weight:800; letter-spacing:.06em;
+    background:linear-gradient(180deg, #0f1426, #0b1020); border:1px solid rgba(148,163,184,.25); color:#e7e9ff;
+  }
+  main{
+    display:grid; grid-template-columns: 1.2fr .8fr; gap:16px;
+  }
+  .stage{
+    background:linear-gradient(180deg, rgba(17,24,39,.8), rgba(2,6,23,.9));
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:16px; padding:12px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 16px 40px rgba(0,0,0,.45);
+  }
+  .svgbox{width:100%; max-width:700px; aspect-ratio:1/1;}
+  .side{
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .card{
+    background:linear-gradient(180deg, #0f1426, #0b1020);
+    border:1px solid rgba(148,163,184,.2);
+    border-radius:16px; padding:14px; box-shadow:0 10px 28px rgba(0,0,0,.35);
+  }
+  #question{font-weight:800; letter-spacing:.04em; color:#c7c9ff}
+  .choices{display:grid; gap:8px; margin-top:6px}
+  .choice{
+    background:#0e1324; border:1px solid rgba(148,163,184,.22); color:#dbe2ff;
+    padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; letter-spacing:.02em;
+    transition:transform .06s ease, box-shadow .15s ease, border-color .15s ease;
+    user-select:none;
+  }
+  .choice:hover{transform:translateY(-1px); border-color:rgba(139,92,246,.6); box-shadow:0 6px 16px rgba(139,92,246,.18)}
+  .choice.correct{background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.65)}
+  .choice.wrong{background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.65)}
+    .feedback{min-height:22px; color:var(--muted); font-weight:700; letter-spacing:.04em; margin-top:4px}
+  .muted{opacity:.6}
+  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .tiny{font-size:12px; color:var(--muted)}
+  .overlay{
+    position:fixed; inset:0; backdrop-filter: blur(6px);
+    background:radial-gradient(600px 400px at 50% 20%, rgba(139,92,246,.16), rgba(2,6,23,.8));
+    display:none; align-items:center; justify-content:center; z-index:10;
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(560px, 92vw); background:#0d1230; border:1px solid rgba(139,92,246,.4);
+    border-radius:18px; padding:18px; text-align:center; box-shadow:0 30px 90px rgba(0,0,0,.6);
+  }
+  .modal h2{margin:.2rem 0 .6rem; color:#eaeaff}
+  .modal p{margin:.3rem 0; color:#c7c9ff}
+  .grid{display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px}
+  .bar{
+    height:8px; background:#141a33; border-radius:999px; overflow:hidden; border:1px solid rgba(148,163,184,.2)
+  }
+  .bar > span{display:block; height:100%; width:100%; background:linear-gradient(90deg, var(--accent), #60a5fa); transform-origin:left; transform:scaleX(1)}
+
+  /* New styles for settings and modes */
+  .settings-block { display: flex; flex-direction: column; gap: 6px; }
+  .mode-selection, .game-settings { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .mode-selection label, .game-settings label {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(17,24,39,.7); padding: 6px 10px;
+    border-radius: 8px; border: 1px solid rgba(148,163,184,.2);
+    cursor: pointer; user-select: none; font-size: 13px;
+  }
+  .mode-selection input:checked + span, .game-settings input:checked + span { color: var(--accent); font-weight: 700; }
+  .mode-selection input, .game-settings input { display: none; }
+
+  /* New builder UI */
+  #builder-ui .builder-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
+  #builder-ui .builder-btn {
+      background: #0e1324; border: 1px solid rgba(148,163,184,.22); color: #dbe2ff;
+      padding: 10px 8px; border-radius: 10px; cursor: pointer; text-align: center;
+  }
+  #builder-ui .builder-btn.selected { background: var(--accent); color: white; border-color: var(--accent); }
+  #builder-display {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; background: #0b1020; padding: 8px; border-radius: 8px;
+  }
+  #builder-text { font-weight: 700; }
+  #submit-btn { margin-left: 10px; }
+
+
+  @media (max-width: 900px){
+    main{grid-template-columns: 1fr}
+    header{ grid-template-columns: 1fr; gap: 16px; }
+    .controls { justify-content: center; }
+    .hud { justify-self: center; }
+  }
+
+  /* SVG pointer UX */
+  svg .clickable{cursor:pointer}
+  svg .glow{filter: drop-shadow(0px 0px 6px rgba(139,92,246,.8)) drop-shadow(0 0 18px rgba(139,92,246,.6))}
+  /* Make text unclickable to pass events to shapes below */
+  svg text { pointer-events: none; }
+  svg text.hint{opacity:.4; }
+
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>LV 17-Segment Quiz (AHA)</h1>
+      <div class="controls">
+          <div class="settings-block">
+              <div class="tiny" style="margin-bottom: 2px;">Modes (Select one or more)</div>
+              <div id="mode-selection" class="mode-selection">
+                  <label><input type="checkbox" name="mode" value="click" checked><span>Click Segment</span></label>
+                  <label><input type="checkbox" name="mode" value="name" checked><span>Name Segment</span></label>
+                  <label><input type="checkbox" name="mode" value="territory"><span>Select Territory</span></label>
+                  <label><input type="checkbox" name="mode" value="vascular_territory"><span>Vascular Territory</span></label>
+              </div>
+          </div>
+          <div class="settings-block">
+              <div class="tiny" style="margin-bottom: 2px;">In-Game Display</div>
+              <div id="game-settings" class="game-settings">
+                  <label><input type="checkbox" name="setting" value="orientation"><span>Orientations</span></label>
+                  <label><input type="checkbox" name="setting" value="arteries"><span>Arteries</span></label>
+              </div>
+          </div>
+      </div>
+       <div class="hud">
+        <button id="start" class="accent">Start (60s)</button>
+        <div class="pill">⏱ <span id="time">60</span>s</div>
+        <div class="pill">⭐ <span id="score">0</span></div>
+      </div>
+    </header>
+
+    <main>
+      <div class="stage">
+        <div class="svgbox">
+          <!-- ======= SVG with corrected path for segment 2 ======= -->
+          <?xml version="1.0" encoding="UTF-8"?>
+          <svg id="heartSVG" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 800">
+            <defs>
+              <style>
+                .st0 { letter-spacing: .07em; }
+                .st0, .st1, .st2, .st3, .st4, .st5, .st6, .st7 { font-family: SegoeUI-Bold, 'Segoe UI'; font-weight: 700; isolation: isolate; }
+                .st0, .st1, .st4, .st6, .st7 { fill: #fff; }
+                .st0, .st7 { font-size: 28.01px; }
+                .st1 { letter-spacing: .07em; }
+                .st1, .st6 { font-size: 28.05px; }
+                .st8, .st9, .st10 { stroke: #000; stroke-width: 2px; }
+                .st8, .st5 { fill: #ffe34a; }
+                .st2 { letter-spacing: .06em; }
+                .st2, .st3, .st4 { font-size: 32.06px; }
+                .st2, .st10 { fill: #ff4a4a; }
+                .st3 { letter-spacing: .06em; }
+                .st3, .st9 { fill: #3aa1ff; }
+                .st5 { font-size: 32.01px; letter-spacing: .06em; }
+                .st7 { letter-spacing: .07em; }
+              </style>
+            </defs>
+
+            <!-- Outer ring (1–6) -->
+            <path id="seg1" class="st9" d="M244.05,145.04c92.85-53.69,207.24-53.69,300.08,0l-35.01,60.73c-71.18-41.16-158.88-41.16-230.06,0l-35.01-60.73Z"/>
+            <text class="st6" transform="translate(386.03 139.84)">1</text>
+            <!-- CORRECTED PATH FOR SEGMENT 2 -->
+            <path id="seg2" class="st9" d="M94.01,405.31 c0-107.37,57.19-206.59,150.04-260.27 l35.01,60.73 c-71.18,41.16-115.03,117.23-115.03,199.55 H94.01 Z"/>
+            <text class="st6" transform="translate(156.47 272.58)">2</text>
+            <path id="seg3" class="st10" d="M244.05,665.59c-92.85-53.69-150.04-152.9-150.04-260.27h70.02c0,82.32,43.85,158.39,115.03,199.55l-35.01,60.73Z"/>
+            <text class="st6" transform="translate(156.47 538.05)">3</text>
+            <path id="seg4" class="st10" d="M544.13,665.59c-92.85,53.69-207.24,53.69-300.08,0l35.01-60.73c71.18,41.16,158.88,41.16,230.06,0l35.01,60.73Z"/>
+            <text class="st6" transform="translate(386.03 670.79)">4</text>
+            <path id="seg5" class="st8" d="M694.17,405.31c0,107.37-57.2,206.59-150.04,260.27l-35.01-60.73c71.18-41.16,115.03-117.23,115.03-199.55h70.02Z"/>
+            <text class="st6" transform="translate(615.6 538.05)">5</text>
+            <path id="seg6" class="st8" d="M544.13,145.04c92.85,53.69,150.04,152.9,150.04,260.27h-70.02c0-82.32-43.85-158.39-115.03-199.55l35.01-60.73Z"/>
+            <text class="st6" transform="translate(615.6 272.58)">6</text>
+
+            <!-- Mid ring (7–12) -->
+            <path id="seg7" class="st9" d="M279.06,205.77c71.18-41.16,158.88-41.16,230.06,0l-35.01,60.74c-49.52-28.63-110.53-28.63-160.04,0l-35.01-60.74Z"/>
+            <text class="st6" transform="translate(386.03 209.96)">7</text>
+            <path id="seg8" class="st9" d="M164.03,405.31c0-82.32,43.85-158.39,115.03-199.55l35.01,60.74c-49.52,28.63-80.02,81.54-80.02,138.81h-70.02Z"/>
+            <text class="st6" transform="translate(217.09 307.64)">8</text>
+            <path id="seg9" class="st10" d="M279.06,604.86c-71.18-41.16-115.03-117.23-115.03-199.55h70.02c0,57.26,30.51,110.18,80.02,138.81l-35.01,60.74Z"/>
+            <text class="st6" transform="translate(217.09 502.99)">9</text>
+            <path id="seg10" class="st10" d="M509.12,604.86c-71.18,41.16-158.88,41.16-230.06,0l35.01-60.74c49.52,28.63,110.53,28.63,160.04,0l35.01,60.74Z"/>
+            <text class="st6" transform="translate(377.98 600.66)">10</text>
+            <path id="seg11" class="st8" d="M624.15,405.31c0,82.32-43.85,158.39-115.03,199.55l-35.01-60.74c49.52-28.63,80.02-81.54,80.02-138.81h-70.02Z"/>
+            <text class="st6" transform="translate(546.93 502.99)">11</text>
+            <path id="seg12" class="st8" d="M509.12,205.77c71.18,41.16,115.03,117.23,115.03,199.55h-70.02c0-57.26-30.51-110.18-80.02-138.81l35.01-60.74Z"/>
+            <text class="st6" transform="translate(546.93 307.64)">12</text>
+
+            <!-- Apical ring (13–16) -->
+            <path id="seg13" class="st9" d="M280.92,291.97c62.5-62.6,163.83-62.6,226.34,0h0s-49.51,49.59-49.51,49.59c-35.16-35.21-92.16-35.21-127.31,0h0s-49.51-49.59-49.51-49.59Z"/>
+            <text class="st6" transform="translate(377.98 280.09)">13</text>
+            <path id="seg14" class="st9" d="M280.92,518.66c-62.5-62.59-62.51-164.08,0-226.68h0s49.51,49.58,49.51,49.58c-35.16,35.21-35.16,92.3,0,127.51h0s-49.51,49.59-49.51,49.59Z"/>
+            <text class="st6" transform="translate(252.94 405.31)">14</text>
+            <path id="seg15" class="st10" d="M507.26,518.66c-62.5,62.6-163.83,62.6-226.34,0h0s49.51-49.59,49.51-49.59c35.16,35.21,92.16,35.21,127.31,0h0s49.51,49.59,49.51,49.59Z"/>
+            <text class="st6" transform="translate(377.98 530.54)">15</text>
+            <path id="seg16" class="st8" d="M507.26,291.97 c62.5,62.59,62.51,164.08,0,226.68 l-49.51-49.58 c35.16-35.21,35.16-92.3,0-127.51 l49.51-49.59 Z"/>
+            <text class="st6" transform="translate(503.01 405.31)">16</text>
+
+            <!-- Apex (17) -->
+            <ellipse id="seg17" class="st9" cx="394.09" cy="405.31" rx="90.03" ry="90.16"/>
+            <text class="st4" transform="translate(375.68 416.01)">17</text>
+
+            <!-- Labels -->
+            <text id="label-anterior" class="st1 hint" transform="translate(316.18 74.72)">ANTERIOR</text>
+            <text id="label-inferior" class="st1 hint" transform="translate(322.51 745.92)">INFERIOR</text>
+            <text id="label-septal" class="st0 hint" transform="translate(38.99 459.54) rotate(-90)">SEPTAL</text>
+            <text id="label-lateral" class="st7 hint" transform="translate(749.19 340.07) rotate(90)">LATERAL</text>
+            <text id="artery-lad" class="st3 hint" transform="translate(84 181.62)">LAD</text>
+            <text id="artery-lcx" class="st5 hint" transform="translate(714 380.81) rotate(90)">LCX</text>
+            <text id="artery-rca" class="st2 hint" transform="translate(70 677.51)">RCA</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="card">
+          <div id="question">Press <b>Start</b> to begin a 60-second round.</div>
+          <div class="bar" style="margin:8px 0 4px;"><span id="barFill"></span></div>
+          <div class="row tiny"><span>Select modes & display options, then press Start.</span></div>
+        </div>
+
+        <div class="card">
+          <div class="row tiny" style="justify-content:space-between;">
+            <div>Choices</div><div class="muted">(+100 for correct)</div>
+          </div>
+          <div id="choices" class="choices"></div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <div class="modal">
+      <h2>Time!</h2>
+      <p>Your score: <b><span id="finalScore">0</span></b></p>
+      <div class="grid">
+        <button id="playAgain">Play Again</button>
+        <button id="closeOverlay" class="accent">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ----- Data -----
+  const LABELS = [
+    null,
+    "Basal Anterior",       // 1
+    "Basal Anteroseptal",   // 2
+    "Basal Inferoseptal",   // 3
+    "Basal Inferior",       // 4
+    "Basal Inferolateral",  // 5
+    "Basal Anterolateral",  // 6
+    "Mid Anterior",         // 7
+    "Mid Anteroseptal",     // 8
+    "Mid Inferoseptal",     // 9
+    "Mid Inferior",         // 10
+    "Mid Inferolateral",    // 11
+    "Mid Anterolateral",    // 12
+    "Apical Anterior",      // 13
+    "Apical Septal",        // 14
+    "Apical Inferior",      // 15
+    "Apical Lateral",       // 16
+    "Apex"                  // 17
+  ];
+
+  const ARTERIES = {
+      LAD: [1, 2, 7, 8, 13, 14, 17],
+      LCX: [5, 6, 11, 12, 16],
+      RCA: [3, 4, 9, 10, 15]
+  };
+
+  const INFARCTS = [
+      { name: "Anteroseptal", segments: [1, 2, 7, 8, 13, 14], arteries: ["LAD"] },
+      { name: "Inferior", segments: [3, 4, 9, 10, 15], arteries: ["RCA"] },
+      { name: "Lateral", segments: [5, 6, 11, 12, 16], arteries: ["LCX"] },
+      { name: "Anterior", segments: [1, 7, 13, 17], arteries: ["LAD"] },
+      { name: "Inferolateral", segments: [4, 5, 10, 11, 15], arteries: ["RCA", "LCX"] }
+  ];
+
+
+  const TOTAL = 17;
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  // UI refs
+  const svg = $('#heartSVG');
+  const segs = Array.from({length: TOTAL}, (_,i)=>$('#seg'+(i+1)));
+  const startBtn = $('#start');
+  const timeEl = $('#time');
+  const scoreEl = $('#score');
+  const barFill = $('#barFill');
+  const qEl = $('#question');
+  const choicesEl = $('#choices');
+  const feedbackEl = $('#feedback');
+  const overlay = $('#overlay');
+  const finalScoreEl = $('#finalScore');
+  const playAgainBtn = $('#playAgain');
+  const closeOvBtn = $('#closeOverlay');
+
+  // State
+  let playing=false, timer=null, timeLeft=60, score=0;
+  let currentSeg = null;
+  let currentKind = null;
+  let currentArtery = null;
+  let currentInfarct = null;
+  let lock=false;
+  let selectedSegs = new Set();
+
+
+  // ----- Helpers -----
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  
+  function setNeutral(seg){
+    seg.style.fill = getComputedStyle(document.documentElement).getPropertyValue('--neutral').trim();
+    seg.style.stroke = getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim();
+    seg.classList.add('clickable');
+    seg.classList.remove('glow');
+    seg.style.opacity = '1';
+  }
+
+  function allNeutral(){
+    segs.forEach(setNeutral);
+  }
+
+  function showTerritoryColors() {
+    const territoryColors = {
+        LAD: '#3aa1ff', // blue
+        LCX: '#ffe34a', // yellow
+        RCA: '#ff4a4a'  // red
+    };
+
+    segs.forEach(s => s.classList.remove('clickable'));
+
+    for (const artery in ARTERIES) {
+        const color = territoryColors[artery];
+        ARTERIES[artery].forEach(segNum => {
+            const segEl = segs[segNum - 1];
+            if (segEl) {
+                segEl.style.fill = color;
+                segEl.style.stroke = '#1f2937';
+            }
+        });
+    }
+  }
+
+  function toggleLabels(visible) {
+    const showOrientation = $('input[name="setting"][value="orientation"]').checked;
+    const showArteries = $('input[name="setting"][value="arteries"]').checked;
+
+    // Control visibility based on game state and settings
+    const orientationOpacity = (!playing || showOrientation) ? '0.4' : '0';
+    const arteryOpacity = (!playing || showArteries) ? '1' : '0';
+
+    $$('#label-anterior, #label-inferior, #label-septal, #label-lateral').forEach(el => el.style.opacity = orientationOpacity);
+    $$('#artery-lad, #artery-lcx, #artery-rca').forEach(el => el.style.opacity = arteryOpacity);
+    
+    // Show/hide segment numbers (1-17)
+    $$('#heartSVG text').forEach(t => {
+        const isSegmentNumber = /^\d{1,2}$/.test((t.textContent||'').trim()) && !t.id;
+        if (isSegmentNumber) {
+            t.style.opacity = visible ? '1' : '0';
+        }
+    });
+  }
+
+  function highlight(seg, color, glow=false){
+    seg.style.fill = color;
+    seg.style.stroke = 'rgba(255,255,255,.12)';
+    seg.style.opacity = '1';
+    seg.classList.toggle('glow', !!glow);
+  }
+
+  function pickRandomSeg(){ return 1 + Math.floor(Math.random()*TOTAL); }
+
+  function pickKind(){
+    const selectedModes = $$('input[name="mode"]:checked').map(el => el.value);
+    if(selectedModes.length === 0) {
+        const defaultCheck = $('input[name="mode"][value="click"]');
+        if(defaultCheck) defaultCheck.checked = true;
+        return 'click';
+    }
+    return selectedModes[Math.floor(Math.random() * selectedModes.length)];
+  }
+
+  function startRound(){
+    playing = true; lock=false; score=0; timeLeft=60;
+    scoreEl.textContent = score; timeEl.textContent = timeLeft;
+    barFill.style.transform = 'scaleX(1)';
+    feedbackEl.textContent = '';
+    qEl.textContent = 'Good luck! Questions incoming...';
+    
+    allNeutral(); // Set to game mode
+    toggleLabels(false); 
+    attachClickHandlers(true);
+    
+    nextQuestion();
+
+    clearInterval(timer);
+    timer = setInterval(()=>{
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      barFill.style.transform = `scaleX(${Math.max(0,timeLeft/60)})`;
+      if(timeLeft<=0){ endRound(); }
+    },1000);
+  }
+
+  function endRound(){
+    clearInterval(timer); 
+    playing=false; 
+    attachClickHandlers(false); 
+    
+    showTerritoryColors(); // Restore default view
+    toggleLabels(true);
+    
+    overlay.classList.add('show');
+    finalScoreEl.textContent = score;
+  }
+
+  function attachClickHandlers(on){
+    segs.forEach((seg, idx)=>{
+        const handler = ()=>onSegClick(idx+1);
+      if(on){
+        seg.addEventListener('click', handler);
+        seg._h = handler;
+      }else{
+        if(seg._h){ seg.removeEventListener('click', seg._h); seg._h = null; }
+      }
+    });
+  }
+
+  function nextQuestion(){
+    if(!playing) return;
+    lock=false;
+    currentKind = pickKind();
+    allNeutral();
+    choicesEl.innerHTML = '';
+    feedbackEl.textContent = '';
+    selectedSegs.clear();
+    toggleLabels(playing); // Hide labels at the start of each question unless toggled in settings
+
+
+    if(currentKind==='click'){
+      currentSeg = pickRandomSeg();
+      const label = LABELS[currentSeg];
+      qEl.innerHTML = `Click: <b>${label}</b>`;
+    }else if(currentKind === 'name'){
+       currentSeg = pickRandomSeg();
+       qEl.innerHTML = `Name the highlighted segment`;
+       const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+       highlight(segs[currentSeg-1], color, true);
+       buildNamerUI();
+    } else if(currentKind === 'territory') {
+        currentArtery = Object.keys(ARTERIES)[Math.floor(Math.random() * Object.keys(ARTERIES).length)];
+        qEl.innerHTML = `Select all segments in the <b>${currentArtery}</b> territory`;
+        buildSubmitUI('Submit Territory');
+    } else if (currentKind === 'vascular_territory') {
+        currentInfarct = INFARCTS[Math.floor(Math.random() * INFARCTS.length)];
+        qEl.innerHTML = `An infarct involves the highlighted segments. Select the involved artery/arteries.`;
+        currentInfarct.segments.forEach(segNum => {
+            const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+            highlight(segs[segNum - 1], color, true);
+        });
+        buildInfarctChoices();
+    }
+  }
+
+  function onSegClick(n){
+    if(!playing || lock) return;
+
+    if(currentKind === 'click') {
+        lock = true;
+        const good = (n===currentSeg);
+        if(good){
+          highlight(segs[n-1], getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), true);
+          feedbackEl.textContent = 'Correct!';
+          score += 100; scoreEl.textContent = score;
+        }else{
+          highlight(segs[n-1], getComputedStyle(document.documentElement).getPropertyValue('--bad').trim(), false);
+          highlight(segs[currentSeg-1], getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), true);
+          feedbackEl.textContent = `Answer: ${LABELS[currentSeg]}`;
+        }
+        setTimeout(()=> nextQuestion(), 850);
+
+    } else if(currentKind === 'territory') {
+        const segEl = segs[n-1];
+        if(selectedSegs.has(n)) {
+            selectedSegs.delete(n);
+            setNeutral(segEl);
+        } else {
+            selectedSegs.add(n);
+            highlight(segEl, getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), false);
+        }
+    }
+  }
+
+  function buildSubmitUI(btnText) {
+      const btn = document.createElement('button');
+      btn.id = 'submit-btn';
+      btn.className = 'accent';
+      btn.textContent = btnText;
+      btn.onclick = () => {
+          if(lock) return;
+          lock = true;
+          if(currentKind === 'territory') checkTerritoryAnswer();
+      };
+      choicesEl.appendChild(btn);
+  }
+
+   function checkTerritoryAnswer() {
+        const correctSegs = new Set(ARTERIES[currentArtery]);
+        let correct = true;
+        if (correctSegs.size !== selectedSegs.size) {
+            correct = false;
+        } else {
+            for (const seg of selectedSegs) {
+                if (!correctSegs.has(seg)) {
+                    correct = false;
+                    break;
+                }
+            }
+        }
+
+        if (correct) {
+            score += 100;
+            scoreEl.textContent = score;
+            feedbackEl.textContent = 'Correct!';
+            selectedSegs.forEach(n => highlight(segs[n - 1], getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), true));
+        } else {
+            feedbackEl.textContent = `Incorrect. Highlighting the ${currentArtery} territory.`;
+            segs.forEach((seg, i) => {
+                const segNum = i + 1;
+                if (correctSegs.has(segNum)) {
+                     highlight(seg, getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), false);
+                }
+                if(selectedSegs.has(segNum) && !correctSegs.has(segNum)) {
+                     highlight(seg, getComputedStyle(document.documentElement).getPropertyValue('--bad').trim(), false);
+                }
+            });
+        }
+        setTimeout(() => nextQuestion(), 2000);
+    }
+
+
+  function buildInfarctChoices() {
+      const arteries = ["LAD", "RCA", "LCX"];
+      const form = document.createElement('div');
+      form.id = 'infarct-choices-form';
+      form.style.display = 'grid';
+      form.style.gap = '8px';
+
+      arteries.forEach(artery => {
+          const label = document.createElement('label');
+          label.className = 'choice';
+          label.innerHTML = `<input type="checkbox" value="${artery}" style="margin-right: 8px;"> ${artery}`;
+          form.appendChild(label);
+      });
+      choicesEl.appendChild(form);
+
+      const btn = document.createElement('button');
+      btn.id = 'submit-btn';
+      btn.className = 'accent';
+      btn.textContent = 'Submit Arteries';
+      btn.style.marginTop = '8px';
+      btn.onclick = () => {
+          if (lock) return;
+          lock = true;
+          
+          const selectedCheckboxes = $('#infarct-choices-form').querySelectorAll('input[type="checkbox"]:checked');
+          const selectedArteries = new Set(Array.from(selectedCheckboxes).map(cb => cb.value));
+          const correctArteries = new Set(currentInfarct.arteries);
+
+          const correct = selectedArteries.size === correctArteries.size && [...selectedArteries].every(a => correctArteries.has(a));
+
+          if (correct) {
+              score += 100;
+              scoreEl.textContent = score;
+              feedbackEl.textContent = 'Correct!';
+              currentInfarct.segments.forEach(segNum => highlight(segs[segNum - 1], getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), true));
+          } else {
+              feedbackEl.textContent = `Incorrect. Answer: ${currentInfarct.arteries.join(', ')}`;
+              currentInfarct.segments.forEach(segNum => highlight(segs[segNum-1], getComputedStyle(document.documentElement).getPropertyValue('--bad').trim(), false));
+          }
+          setTimeout(() => nextQuestion(), 1500);
+      };
+      choicesEl.appendChild(btn);
+  }
+
+
+  function buildNamerUI() {
+      choicesEl.innerHTML = `
+          <div id="builder-ui">
+              <div class="tiny">Level</div>
+              <div class="builder-row" id="builder-level">
+                  <button class="builder-btn" data-part="Basal">Basal</button>
+                  <button class="builder-btn" data-part="Mid">Mid</button>
+                  <button class="builder-btn" data-part="Apical">Apical</button>
+                  <button class="builder-btn" data-part="Apex">Apex</button>
+              </div>
+              <div class="tiny" style="margin-top:8px;">Walls</div>
+              <div class="builder-row" id="builder-walls">
+                  <button class="builder-btn" data-part="Anterior">Anterior</button>
+                  <button class="builder-btn" data-part="Inferior">Inferior</button>
+                  <button class="builder-btn" data-part="Septal">Septal</button>
+                  <button class="builder-btn" data-part="Lateral">Lateral</button>
+              </div>
+               <div id="builder-display">
+                  <span id="builder-text"></span>
+                  <button id="submit-btn" class="accent">Submit</button>
+              </div>
+          </div>`;
+
+      let selection = { level: null, walls: new Set() };
+      const updateDisplay = () => {
+          const parts = [];
+          if(selection.level) parts.push(selection.level);
+          
+          let wallStr = '';
+          if (selection.walls.has('Anterior')) wallStr += 'Antero';
+          if (selection.walls.has('Inferior')) wallStr += 'Infero';
+          if (selection.walls.has('Septal')) wallStr += 'septal';
+          if (selection.walls.has('Lateral')) wallStr += 'lateral';
+
+          // Combine wall names logically
+          wallStr = wallStr.replace('Anteroseptal', 'Anteroseptal')
+                           .replace('Inferoseptal', 'Inferoseptal')
+                           .replace('Anterolateral', 'Anterolateral')
+                           .replace('Inferolateral', 'Inferolateral');
+          if (wallStr.endsWith('o')) wallStr = wallStr.slice(0, -1) + 'ior';
+          if (wallStr === 'septal') wallStr = 'Septal';
+          if (wallStr === 'lateral') wallStr = 'Lateral';
+
+          if(wallStr) parts.push(wallStr);
+          
+          let finalText = parts.join(' ');
+          if (selection.level === 'Apex') finalText = "Apex";
+
+          $('#builder-text').textContent = finalText.replace('iorr', 'ior'); // Small fix for edge cases
+      };
+
+      $('#builder-level').addEventListener('click', e => {
+          if(!e.target.matches('.builder-btn')) return;
+          const part = e.target.dataset.part;
+          $$('#builder-level .builder-btn').forEach(b => b.classList.remove('selected'));
+          e.target.classList.add('selected');
+          selection.level = part;
+          if (part === 'Apex') {
+            selection.walls.clear();
+            $$('#builder-walls .builder-btn').forEach(b => b.classList.remove('selected'));
+          }
+          updateDisplay();
+      });
+
+      $('#builder-walls').addEventListener('click', e => {
+          if(!e.target.matches('.builder-btn')) return;
+          if(selection.level === 'Apex') return;
+          const part = e.target.dataset.part;
+          e.target.classList.toggle('selected');
+          if(selection.walls.has(part)) {
+              selection.walls.delete(part);
+          } else {
+              selection.walls.add(part);
+          }
+          updateDisplay();
+      });
+
+      $('#submit-btn').onclick = () => {
+          if(lock) return;
+          lock = true;
+          const userAnswer = $('#builder-text').textContent.trim();
+          const correctAnswer = LABELS[currentSeg];
+          if(userAnswer === correctAnswer) {
+              score += 100;
+              scoreEl.textContent = score;
+              feedbackEl.textContent = 'Correct!';
+              highlight(segs[currentSeg-1], getComputedStyle(document.documentElement).getPropertyValue('--good').trim(), true);
+          } else {
+              feedbackEl.textContent = `Answer: ${correctAnswer}`;
+              highlight(segs[currentSeg-1], getComputedStyle(document.documentElement).getPropertyValue('--bad').trim(), false);
+          }
+          setTimeout(() => nextQuestion(), 1200);
+      };
+  }
+
+
+  // ----- Wire up -----
+  startBtn.addEventListener('click', ()=>{
+    overlay.classList.remove('show');
+    startRound();
+  });
+  playAgainBtn.addEventListener('click', ()=>{
+    overlay.classList.remove('show');
+    startRound();
+  });
+  closeOvBtn.addEventListener('click', ()=> {
+      overlay.classList.remove('show');
+      endRound(); // Restore the default state when closing the modal
+  });
+
+  // Initial Page Load State
+  showTerritoryColors();
+  toggleLabels(true); 
+
+})();
+</script>
+</body>
+</html>

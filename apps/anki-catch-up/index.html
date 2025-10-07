@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>APKG → Fun Viewer (Local)</title>
+<style>
+  html,body { margin:0; height:100%; background:#0b0f14; color:#eee; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  header { padding:16px; border-bottom:1px solid #222; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  input[type=file] { background:#111; color:#eee; padding:8px; border:1px solid #333; border-radius:6px; }
+  #log { opacity:.85; font-size:12px }
+  #error, #debug {
+    display:none; width:100%;
+    background:#241317; border:1px solid #5b1d28; color:#ffd7de;
+    padding:12px; border-radius:8px; line-height:1.35; margin-top:8px;
+  }
+  #debug { background:#112130; border-color:#1e3a5f; color:#cae8ff; }
+  #error h3, #debug h3 { margin:0 0 6px 0; font-size:14px }
+  #error pre, #debug pre { white-space:pre-wrap; margin:6px 0 0 0; font-size:12px; opacity:.9 }
+  .row { width:100%; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  main { padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; }
+  .card {
+    background:#121826; border:1px solid #243042; border-radius:12px; padding:16px; min-height:160px;
+    box-shadow:0 10px 25px rgba(0,0,0,.25); display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .front, .back { font-size:16px; line-height:1.4; }
+  .back  { display:none; }
+  button.flip, button.small, #loadMore {
+    border:0; padding:10px 12px; border-radius:8px; background:#1e90ff;
+    color:white; cursor:pointer; font-weight:600;
+  }
+  button.small { padding:6px 10px; font-size:12px; background:#2b6cb0 }
+  #loadMore { display:none; margin:16px auto 24px; }
+  button:active { transform:translateY(1px) }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  .cloze { cursor:pointer; border-bottom:1px dashed #6aa9ff; }
+  footer { padding:8px 16px 24px; text-align:center; color:#aab; }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <input id="file" type="file" accept=".apkg,.colpkg" />
+    <button id="toggleDebug" class="small" type="button">Show debug</button>
+    <span id="log"></span>
+  </div>
+  <div id="error" role="alert" aria-live="polite"></div>
+  <div id="debug" aria-live="polite"></div>
+</header>
+
+<main id="grid"></main>
+<footer>
+  <button id="loadMore" type="button">Load 24 more</button>
+</footer>
+
+<!-- fflate (zip + gzip) -->
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<!-- sql.js (SQLite in WebAssembly) -->
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
+<!-- protobufjs (for modern media maps) -->
+<script src="https://cdn.jsdelivr.net/npm/protobufjs@7.3.0/dist/protobuf.min.js"></script>
+
+<script>
+/* ===================== UI + GLOBAL ERRORS ===================== */
+const grid = document.getElementById('grid');
+const logEl  = document.getElementById('log');
+const errEl  = document.getElementById('error');
+const dbgEl  = document.getElementById('debug');
+const toggleDebugBtn = document.getElementById('toggleDebug');
+const loadMoreBtn = document.getElementById('loadMore');
+
+function setLog(msg){ logEl.textContent = msg; }
+function clearError(){ errEl.style.display='none'; errEl.innerHTML=''; }
+function showError(title, details='', tips=''){
+  errEl.style.display='block';
+  errEl.innerHTML =
+    `<h3>⚠️ ${escapeHtml(title)}</h3>` +
+    (tips ? `<div>${escapeHtml(tips)}</div>` : '') +
+    (details ? `<pre>${escapeHtml(details)}</pre>` : '');
+}
+function showDebug(html){ dbgEl.style.display='block'; dbgEl.innerHTML = html; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[c])); }
+
+window.addEventListener('error', (e) => showError('Unexpected error', e.error?.stack || String(e.message || e)));
+window.addEventListener('unhandledrejection', (e) => showError('Unhandled promise rejection', e.reason?.stack || String(e.reason || e)));
+
+/* ===================== ENGINE LOAD ===================== */
+let SQLReady = false, SQL;
+initSqlJs({ locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}` })
+  .then(db => { SQL = db; SQLReady = true; })
+  .catch(e => showError('Failed to load SQLite engine (sql.js).', e?.stack || String(e), 'Check your connection and refresh the page.'));
+
+/* ===================== UTIL: UNZIP WITH WATCHDOG ===================== */
+function unzipWithWatchdog(buf, timeoutMs=20000){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const to = setTimeout(() => { if (!done){ done = true; reject(new Error('Unzip timed out. The file may be extremely large or not a valid .apkg/.colpkg (ZIP).')); }}, timeoutMs);
+    try {
+      fflate.unzip(buf, { consume: true }, (err, obj) => {
+        if (done) return;
+        clearTimeout(to);
+        if (err) { done = true; reject(err); }
+        else { done = true; resolve(obj); }
+      });
+    } catch (e) { clearTimeout(to); reject(e); }
+  });
+}
+
+/* ===================== MEDIA: DETECT & DECOMPRESS ===================== */
+function hasPrefix(b, ...bytes){ return bytes.every((v,i)=>b[i]===v); }
+function looksGzip(b){ return b.length>2 && hasPrefix(b,0x1F,0x8B); }
+function looksZstd(b){ return (b.length>4) && (hasPrefix(b,0xFD,0x2F,0xB5,0x28) || hasPrefix(b,0x28,0xB5,0x2F,0xFD)); }
+
+function loadScript(url){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = url; s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load ' + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function maybeDecompressMedia(bytes){
+  if (bytes[0] === 0x7B /* '{' */) return { bytes, encoding:'json' }; // already JSON
+  if (looksGzip(bytes)) {
+    try { return { bytes: fflate.gunzipSync(bytes), encoding:'gzip' }; }
+    catch(e){ throw new Error('Failed to gunzip media: ' + e.message); }
+  }
+  if (looksZstd(bytes)) {
+    if (!window.ZstdCodec) await loadScript('https://cdn.jsdelivr.net/npm/zstd-codec@0.1.4/dist/zstd-codec.min.js');
+    return await new Promise((resolve, reject) => {
+      try {
+        window.ZstdCodec.run((zstd) => {
+          try {
+            const simple = new zstd.Simple();
+            const out = simple.decompress(bytes);
+            resolve({ bytes: out, encoding:'zstd' });
+          } catch(e) { reject(new Error('Zstd decompression failed: ' + e.message)); }
+        });
+      } catch(e) { reject(new Error('Zstd runtime failed to initialize: ' + e.message)); }
+    });
+  }
+  return { bytes, encoding:'unknown' };
+}
+
+/* ===================== MEDIA: JSON + PROTO PARSING ===================== */
+function tryParseMediaTextToMap(txt){
+  if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+  const firstBrace = txt.indexOf('{');
+  const lastBrace  = txt.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('media file contains no JSON object');
+  }
+  txt = txt.slice(firstBrace, lastBrace + 1);
+  txt = txt.replace(/,\s*([}\]])/g, '$1')
+           .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
+           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
+  return JSON.parse(txt);
+}
+
+async function decodeProtoMedia(bytes) {
+  const urls = [
+    "https://cdn.jsdelivr.net/gh/ankitects/anki@stable/proto/anki/import_export.proto",
+    "https://cdn.jsdelivr.net/gh/ankitects/anki@main/proto/anki/import_export.proto"
+  ];
+  let root = null, lastErr = null;
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { cache: "force-cache" });
+      if (!r.ok) continue;
+      const text = await r.text();
+      root = protobuf.parse(text).root;
+      break;
+    } catch (e) { lastErr = e; }
+  }
+  if (!root) throw new Error("Couldn’t load Anki proto (" + (lastErr?.message||"") + ")");
+
+  const likely = ["anki.import_export.MediaMap", "anki.import_export.MediaEntries", "anki.import_export.Media"]
+    .map(t => root.lookupTypeOrEnum(t)).filter(Boolean);
+
+  const all = [];
+  (function walk(ns) {
+    for (const k of Object.keys(ns.nested||{})) {
+      const v = ns.nested[k];
+      if (v.fields) all.push(v);
+      if (v.nested) walk(v);
+    }
+  })(root);
+
+  const candidates = [...new Set([...likely.map(t => root.lookupType(t)), ...all])];
+
+  const toMap = (obj) => {
+    for (const [k,v] of Object.entries(obj||{})) {
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        const vals = Object.values(v);
+        if (vals.length && vals.every(x => typeof x === "string")) return v;
+      }
+    }
+    const scan = (o) => {
+      for (const v of Object.values(o||{})) {
+        if (Array.isArray(v) && v.length && typeof v[0] === "object") {
+          const hasIdx = ("index" in v[0]) || ("id" in v[0]);
+          const hasNm  = ("filename" in v[0]) || ("name" in v[0]);
+          if (hasIdx && hasNm) {
+            const map = {};
+            for (const it of v) {
+              const key = (it.index ?? it.id);
+              const name = (it.filename ?? it.name);
+              if (key != null && typeof name === "string") map[String(key)] = name;
+            }
+            if (Object.keys(map).length) return map;
+          }
+        }
+      }
+      return null;
+    };
+    return scan(obj);
+  };
+
+  for (const T of candidates) {
+    try {
+      const msg = T.decode(bytes);
+      const map = toMap(msg);
+      if (map) return map;
+    } catch { /* try next */ }
+  }
+  throw new Error("Decoded protobuf, but couldn’t recognize media map layout.");
+}
+
+async function parseMediaEntry(entryBytes){
+  const td = new TextDecoder('utf-8', { fatal:false });
+  const peek = escapeHtml(td.decode(entryBytes.slice(0, 80)));
+  let { bytes, encoding } = await maybeDecompressMedia(entryBytes);
+
+  if (bytes[0] === 0x7B /* '{' */) {
+    return { map: tryParseMediaTextToMap(td.decode(bytes)), encoding: encoding || 'json', peek };
+  }
+  try {
+    const map = await decodeProtoMedia(bytes);
+    return { map, encoding: (encoding ? encoding + "/protobuf" : "protobuf"), peek };
+  } catch (e) {
+    e.peek = peek;
+    throw e;
+  }
+}
+
+/* ===================== TEMPLATING + SANITIZE ===================== */
+// Conditionals: {{#Field}}...{{/Field}} (show if non-empty), {{^Field}}...{{/Field}} (show if empty)
+function applyConditionals(tpl, fields, fieldNames){
+  tpl = tpl.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, inner) => {
+    const idx = fieldNames.indexOf(name.trim());
+    const val = idx >= 0 ? fields[idx] : '';
+    return String(val).trim() ? inner : '';
+  });
+  tpl = tpl.replace(/\{\{\^([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, inner) => {
+    const idx = fieldNames.indexOf(name.trim());
+    const val = idx >= 0 ? fields[idx] : '';
+    return String(val).trim() ? '' : inner;
+  });
+  return tpl;
+}
+
+// Identify which fields are used with a cloze filter anywhere in this template
+function collectClozeFieldsFromTemplate(tpl){
+  const set = new Set();
+  tpl.replace(/\{\{([^}]+)\}\}/g, (_m, token) => {
+    const parts = token.trim().split(':');
+    const field = parts.pop().trim();
+    const chain = parts.map(p => p.trim().toLowerCase());
+    if (chain.includes('cloze')) set.add(field);
+  });
+  return set;
+}
+
+// Cloze: only mask the cloze that matches this card's ord (ord+1)
+function processClozeForOrd(text, targetIndex, side /* 'front' | 'back' */){
+  return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g, (m, n, inner, hint) => {
+    const idx = parseInt(n,10);
+    if (idx === targetIndex) {
+      if (side === 'front') {
+        return `<span class="cloze" title="${hint||''}">[ tap to reveal ]<span style="display:none">${inner}</span></span>`;
+      } else {
+        return `<span class="cloze-reveal">${inner}</span>`;
+      }
+    }
+    return inner; // other clozes show normally
+  });
+}
+
+// Strip cloze markup completely (for non-cloze echoes like {{text:Field}})
+function stripClozeMarkup(s){
+  return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g, '$1');
+}
+
+// Substitute tokens with filter-aware logic that prevents duplicates
+function substituteTokens(tpl, fields, fieldNames, { side, targetCloze, templateForScan }){
+  const clozeFields = collectClozeFieldsFromTemplate(templateForScan || tpl);
+
+  return tpl.replace(/\{\{([^}]+)\}\}/g, (m, raw) => {
+    const token = raw.trim();
+    if (token === 'FrontSide') return '{{FrontSide}}'; // handle later
+
+    const parts = token.split(':');
+    const fieldName = parts.pop().trim();
+    const chain = parts.map(p => p.trim().toLowerCase());
+
+    const idx = fieldNames.indexOf(fieldName);
+    const val = idx >= 0 ? (fields[idx] ?? '') : '';
+
+    const hasCloze = chain.includes('cloze');
+    const hasType  = chain.includes('type');
+    const hasText  = chain.includes('text') || chain.includes('hint');
+
+    if (hasCloze) {
+      return processClozeForOrd(val, targetCloze, side);
+    }
+
+    if (hasType) {
+      return `<input class="type-answer" aria-label="type your answer" style="padding:6px 8px;border:1px solid #334;border-radius:6px;background:#0e1522;color:#eee" />`;
+    }
+
+    if (hasText) {
+      if (clozeFields.has(fieldName)) return '';
+      return stripClozeMarkup(val);
+    }
+
+    if (clozeFields.has(fieldName)) return '';
+    return val;
+  });
+}
+
+function sanitize(html){
+  return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
+}
+
+// Collapse obvious exact duplicate lines on the same side
+function collapseExactDuplicate(html){
+  const lines = String(html).split(/(?:\r?\n|<br\s*\/?>)+/i).map(s => s.trim()).filter(Boolean);
+  const seen = new Set();
+  const keep = [];
+  for (const line of lines) {
+    const key = line.replace(/\s+/g,' ');
+    if (!seen.has(key)) { seen.add(key); keep.push(line); }
+  }
+  return keep.join('<br>');
+}
+
+/* ===================== MEDIA REPLACER ===================== */
+function sniffExt(bytes){
+  const b = bytes;
+  const s = (...seq) => seq.every((v,i)=>b[i]===v);
+  const a = (i, t) => t.split('').every((ch,k)=>b[i+k]===ch.charCodeAt(0));
+  try {
+    if (s(0xFF,0xD8,0xFF)) return 'jpg';
+    if (s(0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A)) return 'png';
+    if (a(0,'GIF87a')||a(0,'GIF89a')) return 'gif';
+    if (a(0,'RIFF')&&a(8,'WEBP')) return 'webp';
+    if (a(0,'<svg')) return 'svg';
+    if (a(0,'ID3') || (b[0]===0xFF && (b[1]&0xE0)===0xE0)) return 'mp3';
+    if (a(0,'OggS')) return 'ogg';
+    if (a(0,'RIFF')&&a(8,'WAVE')) return 'wav';
+    if (a(4,'ftyp')) return 'mp4';
+  } catch {}
+  return 'bin';
+}
+
+function buildHeuristicIndex(entries){
+  const extIndex = {};
+  const isMediaKey = k => /^\d+(\.[A-Za-z0-9]+)?$/.test(k) || /^[^/]+\.[A-Za-z0-9]+$/.test(k);
+  for (const [name, bytes] of Object.entries(entries)) {
+    if (!isMediaKey(name)) continue;
+    const m = name.match(/\.([A-Za-z0-9]+)$/);
+    const ext = m ? m[1].toLowerCase() : sniffExt(bytes);
+    (extIndex[ext] ||= []).push(name);
+  }
+  return extIndex;
+}
+
+function mediaURLForKey(key, files){
+  const bytes = files[key];
+  if (!bytes) return null;
+  return URL.createObjectURL(new Blob([bytes], {type:'application/octet-stream'}));
+}
+
+function buildMediaReplacer(mediaMap, files, diagnostics){
+  const reverseMap = {};
+  for (const [k,v] of Object.entries(mediaMap)) reverseMap[v] = k;
+  const extIndex = buildHeuristicIndex(files);
+  const unresolvedNames = new Set();
+
+  const imgIdxRE   = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const audioIdxRE = /<audio[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const soundTagRE = /\[sound:([^\]]+)\]/gi;
+
+  function resolve(src){
+    if (/^\d+$/.test(src)) { const u = mediaURLForKey(src, files); if (u) return u; }
+    let u = mediaURLForKey(src, files); if (u) return u;
+    const idx = reverseMap[src]; if (idx!==undefined) { u = mediaURLForKey(idx, files); if (u) return u; }
+    const em = src.toLowerCase().match(/\.([a-z0-9]+)$/);
+    if (em) {
+      const ext = em[1], candidates = extIndex[ext] || [];
+      if (candidates.length === 1) { u = mediaURLForKey(candidates[0], files); if (u) return u; }
+    }
+    unresolvedNames.add(src);
+    return null;
+  }
+  function replaceAll(html){
+    html = html.replace(imgIdxRE, (m, src) => { diagnostics.total++; const u = resolve(src); if (!u) return m; diagnostics.resolved++; return m.replace(src, u); });
+    html = html.replace(audioIdxRE, (m, src) => { diagnostics.total++; const u = resolve(src); if (!u) return m; diagnostics.resolved++; return m.replace(src, u); });
+    html = html.replace(soundTagRE, (m, name) => { diagnostics.total++; const u = resolve(name); if (!u) return m; diagnostics.resolved++; return `<audio controls preload="metadata" src="${u}"></audio>`; });
+    return html;
+  }
+  return { replaceAll, unresolvedNames };
+}
+
+/* ===================== MAIN (with pagination) ===================== */
+const PAGE_SIZE = 24;
+let global = {
+  entries: null, decks: {}, models: {}, notes: [], cards: [],
+  fileTable: {}, replaceMedia: (html)=>html, mediaStats: {total:0,resolved:0},
+  startIndex: 0, isClozeModelByMid: {}
+};
+
+document.getElementById('file').addEventListener('change', onFileChange);
+loadMoreBtn.addEventListener('click', () => renderNextBatch());
+
+async function onFileChange(e){
+  clearError(); dbgEl.style.display='none'; dbgEl.innerHTML=''; grid.innerHTML = ''; setLog('');
+  loadMoreBtn.style.display='none';
+  global.startIndex = 0;
+
+  const file = e.target.files?.[0]; if (!file) return;
+
+  if (file.size > 250 * 1024 * 1024) {
+    showError('Large file warning',
+      `This deck is ${(file.size/1024/1024).toFixed(1)} MB.`,
+      'Very large decks can be slow or run out of memory in mobile browsers. If it stalls, try on desktop or split the deck.');
+  }
+
+  try {
+    setLog('Reading file…');
+    const buf = new Uint8Array(await file.arrayBuffer());
+
+    if (!(buf[0]===0x50 && buf[1]===0x4b)) {
+      showError('This doesn’t look like a .apkg/.colpkg (ZIP).',
+        'Expected ZIP header (PK).',
+        'Make sure you selected a .apkg/.colpkg exported from Anki.');
+      return;
+    }
+
+    setLog('Unzipping…');
+    let entries;
+    try { entries = await unzipWithWatchdog(buf, 20000); }
+    catch (unzErr) {
+      showError('Failed while unzipping the file.',
+        unzErr?.stack || String(unzErr),
+        'The deck might be corrupted or not an .apkg/.colpkg. Try re-exporting without encryption.');
+      return;
+    }
+
+    const dbEntry = entries['collection.anki21'] || entries['collection.anki21b'] || entries['collection.anki2'];
+    if (!dbEntry) {
+      const present = Object.keys(entries).slice(0,20).join(', ') + (Object.keys(entries).length>20 ? ', …' : '');
+      showError('Could not find collection.anki21/.anki2 in this package.',
+        `Entries seen: ${present}`,
+        'Export the deck as a modern .apkg. If it’s an older format, re-export from Anki to regenerate the database.');
+      return;
+    }
+
+    // Parse media mapping
+    let mediaMap = {}, mediaEncoding = 'none';
+    if (entries['media']) {
+      try {
+        const parsed = await parseMediaEntry(entries['media']);
+        mediaMap = parsed.map;
+        mediaEncoding = parsed.encoding || 'json';
+      } catch (mErr) {
+        const td = new TextDecoder('utf-8', { fatal:false });
+        const peek = mErr.peek || escapeHtml(td.decode(entries['media'].slice(0,80)));
+        showError('media file could not be parsed.', (mErr?.stack || String(mErr)) + `\n\nFirst bytes:\n${peek}`,
+          'We’ll continue without media mapping; images/sounds referenced by filename may still load. Try re-exporting the deck.');
+        mediaEncoding = 'unparsed';
+      }
+    }
+
+    if (!SQLReady) {
+      showError('SQLite engine not ready.',
+        'sql.js failed to load earlier.',
+        'Reload the page and try again (network hiccup).');
+      return;
+    }
+
+    setLog('Opening SQLite…');
+    let db;
+    try { db = new SQL.Database(dbEntry); }
+    catch (dbOpenErr) {
+      showError('Failed to open the Anki SQLite database.',
+        dbOpenErr?.stack || String(dbOpenErr),
+        'The deck may be corrupted or from an unsupported Anki version. Try re-exporting.');
+      return;
+    }
+
+    // Read col (models, decks)
+    let models = {}, decks = {}, notes = [], cards = [];
+    try {
+      const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
+      if (!col) throw new Error('No rows in col table');
+      const row = Object.fromEntries(col.columns.map((c,i)=>[c,col.values[0][i]]));
+      try { models = JSON.parse(row.models); } catch { throw new Error('Could not parse col.models JSON'); }
+      try { decks  = JSON.parse(row.decks);  } catch { throw new Error('Could not parse col.decks JSON'); }
+    } catch (colErr) {
+      showError('Could not read core collection metadata (col table).',
+        colErr?.stack || String(colErr),
+        'The deck schema may be incompatible. Try re-exporting the deck.');
+      return;
+    }
+
+    // Query notes/cards
+    try {
+      const nRes = db.exec(`SELECT id, guid, mid, flds, sfld, tags FROM notes`);
+      if (nRes[0]) {
+        const { columns, values } = nRes[0];
+        for (const row of values) notes.push(Object.fromEntries(columns.map((c,i)=>[c,row[i]])));
+      } else throw new Error('Notes table returned no columns/rows');
+    } catch (nErr) {
+      showError('Failed querying notes.', nErr?.stack || String(nErr), 'The deck may be from a newer schema. Try re-exporting.');
+      return;
+    }
+
+    try {
+      const cRes = db.exec(`SELECT id, nid, did, ord FROM cards`);
+      if (cRes[0]) {
+        const { columns, values } = cRes[0];
+        for (const row of values) cards.push(Object.fromEntries(columns.map((c,i)=>[c,row[i]])));
+      } else throw new Error('Cards table returned no columns/rows');
+    } catch (cErr) {
+      showError('Failed querying cards.', cErr?.stack || String(cErr), 'The deck may be from a newer schema. Try re-exporting.');
+      return;
+    }
+
+    // Build files + media replacer
+    const fileTable = {};
+    for (const [name, bytes] of Object.entries(entries)) fileTable[name] = bytes;
+    const mediaLookups = { total: 0, resolved: 0 };
+    const { replaceAll } = buildMediaReplacer(mediaMap, fileTable, mediaLookups);
+
+    // Cache globals for pagination
+    global.entries = entries;
+    global.decks = decks;
+    global.models = models;
+    global.notes = notes;
+    global.cards = cards;
+    global.fileTable = fileTable;
+    global.replaceMedia = replaceAll;
+    global.mediaStats = mediaLookups;
+    global.isClozeModelByMid = {};
+    for (const [mid, model] of Object.entries(models)) {
+      global.isClozeModelByMid[mid] = (model?.type === 1);
+    }
+
+    grid.innerHTML = '';
+    renderNextBatch(); // first page
+
+    // Debug button
+    toggleDebugBtn.onclick = () => {
+      const isVisible = dbgEl.style.display === 'block';
+      if (isVisible) { dbgEl.style.display='none'; dbgEl.innerHTML=''; toggleDebugBtn.textContent='Show debug'; return; }
+      const hasMedia = !!entries['media'];
+      const mediaSize = hasMedia ? `${entries['media'].length} bytes` : '—';
+      const dbg =
+`<h3>Debug</h3>
+<div class="mono">
+Zip entries: ${Object.keys(entries).length}
+<br>Has media file: ${hasMedia ? 'yes' : 'no'}
+<br>Media size: ${escapeHtml(mediaSize)}
+<br>Resolved media: ${mediaLookups.resolved}/${mediaLookups.total}
+</div>`;
+      showDebug(dbg);
+      toggleDebugBtn.textContent = 'Hide debug';
+    };
+
+  } catch (e2) {
+    showError('Something went wrong while processing the file.', e2?.stack || String(e2));
+  }
+}
+
+/* Render next PAGE_SIZE cards */
+function renderNextBatch(){
+  const { cards, notes, models, replaceMedia, mediaStats } = global;
+  const start = global.startIndex;
+  const end = Math.min(cards.length, start + PAGE_SIZE);
+
+  for (let i = start; i < end; i++) {
+    const card = cards[i];
+    const note = notes.find(n => n.id === card.nid); if (!note) continue;
+    const model = models[String(note.mid)]; if (!model) continue;
+
+    const fieldNames = (model?.flds || []).map(f => f.name);
+    const fields = (note.flds || '').split('\x1f');
+    const tmpl = model?.tmpls?.[card.ord]; if (!tmpl) continue;
+
+    const target = card.ord + 1; // ord 0 => c1, etc.
+
+    // FRONT
+    let front = tmpl.qfmt || '';
+    front = applyConditionals(front, fields, fieldNames);
+    front = substituteTokens(front, fields, fieldNames, {
+      side: 'front',
+      targetCloze: target,
+      templateForScan: tmpl.qfmt
+    });
+    front = replaceMedia(sanitize(front));
+    front = collapseExactDuplicate(front);
+
+    // BACK (with {{FrontSide}})
+    let back = tmpl.afmt || '';
+    back = back.replace(/\{\{FrontSide\}\}/g, front);
+    back = applyConditionals(back, fields, fieldNames);
+    back = substituteTokens(back, fields, fieldNames, {
+      side: 'back',
+      targetCloze: target,
+      templateForScan: tmpl.afmt
+    });
+    back = replaceMedia(sanitize(back));
+    back = collapseExactDuplicate(back);
+
+    // Model CSS
+    const modelCss = model?.css || '';
+    const styleTag = modelCss ? `<style>${modelCss}</style>` : '';
+
+    // Build card (meta removed)
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      ${styleTag}
+      <div class="front">${front || '(empty front)'}</div>
+      <div class="back">${back || '(empty back)'}</div>
+      <button class="flip">Flip</button>
+    `;
+    el.querySelector('.flip').addEventListener('click', () => {
+      const f = el.querySelector('.front'), b = el.querySelector('.back');
+      if (b.style.display === 'block') { b.style.display='none'; f.style.display='block'; }
+      else { f.style.display='none'; b.style.display='block'; }
+    });
+    // Per-span reveal (only the target cloze is masked)
+    el.addEventListener('click', (ev) => {
+      const c = ev.target.closest('.cloze');
+      if (c) {
+        const inner = c.querySelector('span');
+        if (inner) {
+          const hidden = inner.style.display === 'none';
+          inner.style.display = hidden ? 'inline' : 'none';
+          c.firstChild.textContent = hidden ? '' : '[ tap to reveal ]';
+        }
+      }
+    });
+
+    grid.appendChild(el);
+  }
+
+  global.startIndex = end;
+
+  // Pager UI
+  const showing = global.startIndex;
+  setLog(
+    `Loaded ${cards.length} cards. Showing ${showing} of ${cards.length}.` +
+    (mediaStats.total ? ` Media: resolved ${mediaStats.resolved}/${mediaStats.total}.` : '')
+  );
+
+  loadMoreBtn.style.display = (showing < cards.length) ? 'inline-block' : 'none';
+}
+</script>
+</body>
+</html>

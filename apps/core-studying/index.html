@@ -109,6 +109,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Encode each path segment so spaces, #, etc. are safe in URLs
+  const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
   // --- Cookie helpers ---
   const setCookie = (name, value, days = 365) => {
     let expires = "";
@@ -197,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const info = booksData[bookEl.value];
     currentBookPath = info.basePath;
 
-    fetch(info.manifest)
+    fetch(encodePath(info.manifest))
       .then(r => r.json())
       .then(manifest => {
         currentBookManifest = manifest;
@@ -307,7 +309,9 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const texts = await Promise.all(slice.map(k => {
         const [, secObj] = currentSections.find(([key]) => key === k);
-        return fetch(`${currentBookPath}/${secObj.file}`).then(r => {
+        const url = encodePath(`${currentBookPath}/${secObj.file}`);
+        console.debug('Fetching:', url);
+        return fetch(url).then(r => {
           if (!r.ok) throw new Error(`${r.status} ${r.statusText} while fetching ${secObj.file}`);
           return r.text();
         });

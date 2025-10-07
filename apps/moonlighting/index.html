@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>$1,100 Shift — Live Earnings (8:30a–4:30p CT)</title>
+<style>
+  :root{
+    --bg:#080b12;
+    --bg2:#0b1220;
+    --fg:#e9f1ff;
+    --fg-dim:#90a3c0;
+    --accent:#4ea1ff;
+  }
+  html,body{
+    height:100%;
+  }
+  body{
+    margin:0;
+    background:
+      radial-gradient(1600px 800px at 50% 10%, #0e1626 0%, transparent 60%),
+      radial-gradient(1200px 700px at 80% 80%, #0a1220 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    color:var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    display:flex; align-items:center; justify-content:center;
+  }
+  /* Center container */
+  .wrap{
+    width: min(92vw, 1400px);
+    margin:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 4vh 2vw;
+  }
+
+  /* The odometer row */
+  #odometer{
+    display:flex;
+    align-items:baseline;
+    gap: clamp(0.04em, 0.8vw, 0.25em);
+    /* Make it BIG but responsive */
+    font-size: clamp(42px, 14vw, 160px);
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 20px rgba(78,161,255,0.15), 0 0 50px rgba(78,161,255,0.08);
+    user-select:none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* $ symbol styling */
+  .sym{
+    font-size: 0.62em;
+    opacity:0.9;
+    margin-right: 0.2em;
+    color: var(--fg);
+  }
+
+  /* Punctuation */
+  .punct{
+    opacity:0.75;
+    transform: translateY(0.02em);
+  }
+  .comma.muted{ opacity: 0; }
+
+  /* Each digit "window" */
+  .digit{
+    position:relative;
+    height: 1em; /* the visible window equals 1 line-height */
+    overflow:hidden;
+    min-width: 0.62em; /* keeps layout steady for leading zeros */
+    display:inline-block;
+    border-radius: 0.08em;
+  }
+
+  /* Subtle glassy sheen behind digits (classy, not flashy) */
+  .digit::before{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.0) 35%, rgba(78,161,255,0.06) 60%, rgba(0,0,0,0) 100%);
+    pointer-events:none;
+    mix-blend-mode: screen;
+  }
+
+  /* The vertical reel of 0-9 (twice) */
+  .reel{
+    position:absolute; left:0; top:0;
+    will-change: transform;
+    transition: transform 320ms cubic-bezier(.2,.8,.15,1);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .reel{ transition: none; }
+  }
+
+  .reel span{
+    display:block;
+    height: 1em; line-height: 1em;
+    color: var(--fg);
+  }
+
+  /* Leading thousands zero and comma can fade softly */
+  .digit.muted span { color: var(--fg-dim); }
+  .digit.muted{ opacity:0.25; }
+
+  /* Gentle pulsing halo when value changes */
+  .pulse{
+    animation: pulse 900ms ease-out;
+  }
+  @keyframes pulse{
+    0%{ text-shadow: 0 0 0 rgba(78,161,255,0.0), 0 0 0 rgba(78,161,255,0.0); }
+    30%{ text-shadow: 0 0 20px rgba(78,161,255,0.25), 0 0 60px rgba(78,161,255,0.15); }
+    100%{ text-shadow: 0 0 20px rgba(78,161,255,0.15), 0 0 50px rgba(78,161,255,0.08); }
+  }
+
+  /* Tiny footer hint (kept off-screen for "only number" look, but present for a11y) */
+  .sr-only{
+    position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" aria-live="polite">
+    <div id="odometer" aria-label="Live earnings for today's 8:30 a.m. to 4:30 p.m. Central Time shift">
+      <span class="sym" aria-hidden="true">$</span>
+
+      <div class="digit" data-role="thousands" aria-hidden="true"></div>
+      <span class="punct comma" aria-hidden="true">,</span>
+      <div class="digit" data-role="hundreds" aria-hidden="true"></div>
+      <div class="digit" data-role="tens" aria-hidden="true"></div>
+      <div class="digit" data-role="ones" aria-hidden="true"></div>
+      <span class="punct" aria-hidden="true">.</span>
+      <div class="digit" data-role="tenths" aria-hidden="true"></div>
+      <div class="digit" data-role="hundredths" aria-hidden="true"></div>
+    </div>
+    <div class="sr-only" id="announcer"></div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  // -------- CONFIG --------
+  const SHIFT_TZ = 'America/Chicago'; // Central Time
+
+  // UPDATED: explicit minutes for half-hour boundaries
+  const SHIFT_START_H = 8;   // 8 a.m.
+  const SHIFT_START_M = 30;  // :30
+  const SHIFT_END_H   = 16;  // 4 p.m.
+  const SHIFT_END_M   = 30;  // :30
+
+  const SHIFT_TOTAL_DOLLARS = 1100;   // $1,100
+  const TICK_MS = 1000;               // update every second
+
+  // -------- ELEMENTS --------
+  const odo = document.getElementById('odometer');
+  const announcer = document.getElementById('announcer');
+
+  const digits = {
+    thousands: document.querySelector('.digit[data-role="thousands"]'),
+    hundreds : document.querySelector('.digit[data-role="hundreds"]'),
+    tens     : document.querySelector('.digit[data-role="tens"]'),
+    ones     : document.querySelector('.digit[data-role="ones"]'),
+    tenths   : document.querySelector('.digit[data-role="tenths"]'),
+    hundredths:document.querySelector('.digit[data-role="hundredths"]'),
+    comma    : document.querySelector('.comma')
+  };
+
+  // Build each reel: 0..9 twice for smooth wrap
+  function buildReel(el){
+    const reel = document.createElement('div');
+    reel.className = 'reel';
+    for(let r=0;r<2;r++){
+      for(let i=0;i<10;i++){
+        const s = document.createElement('span');
+        s.textContent = i;
+        reel.appendChild(s);
+      }
+    }
+    el.appendChild(reel);
+    el._pos = 0;     // position index in [0..19]
+    el._h   = 0;     // slot height (pixels), set later
+  }
+
+  // Initialize all digit windows
+  Object.keys(digits).forEach(k=>{
+    if(k==='comma') return;
+    buildReel(digits[k]);
+  });
+
+  // Measure slot heights (re-run on resize)
+  function measureHeights(){
+    // use hundreds as template (all same font-size)
+    const sample = digits.hundreds.querySelector('.reel span');
+    const h = sample.getBoundingClientRect().height || 0;
+    Object.keys(digits).forEach(k=>{
+      if(k==='comma') return;
+      digits[k]._h = h;
+      // Snap current position after resize
+      applyTransform(digits[k], digits[k]._pos);
+    });
+  }
+
+  function applyTransform(el, pos){
+    const reel = el.firstElementChild;
+    reel.style.transform = `translateY(${-pos * el._h}px)`;
+  }
+
+  // Update a single digit column with animated roll
+  function setDigit(el, targetDigit){
+    const prevPos = el._pos || 0;
+    const currentDigit = prevPos % 10;
+    let nextPos = prevPos;
+
+    if(targetDigit === currentDigit){
+      // no change
+    }else if(targetDigit > currentDigit){
+      nextPos += (targetDigit - currentDigit);
+    }else{
+      // wrap forward to the next occurrence of targetDigit
+      nextPos += (10 - (currentDigit - targetDigit));
+    }
+
+    // keep within [0..19] to avoid unbounded growth
+    nextPos = nextPos % 20;
+
+    el._pos = nextPos;
+    applyTransform(el, nextPos);
+  }
+
+  // Get "now" as date parts in Central Time (America/Chicago)
+  function chicagoNowParts(){
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: SHIFT_TZ,
+      hour12:false,
+      year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+    const parts = Object.fromEntries(dtf.formatToParts(new Date()).map(p=>[p.type,p.value]));
+    return {
+      year:+parts.year, month:+parts.month, day:+parts.day,
+      hour:+parts.hour, minute:+parts.minute, second:+parts.second
+    };
+  }
+
+  // --- UPDATED math: second-accurate start/end and duration ---
+  const START_SEC = SHIFT_START_H * 3600 + SHIFT_START_M * 60;
+  const END_SEC   = SHIFT_END_H   * 3600 + SHIFT_END_M   * 60;
+  const DURATION_SEC = Math.max(END_SEC - START_SEC, 1); // 8 hours (28800 sec) for 8:30–4:30
+  const TOTAL_CENTS  = SHIFT_TOTAL_DOLLARS * 100;
+
+  function computeEarnedCents(){
+    const now = chicagoNowParts();
+    const nowSec = now.hour * 3600 + now.minute * 60 + now.second;
+
+    let progress = nowSec - START_SEC;
+    if(progress < 0) progress = 0;
+    if(progress > (END_SEC - START_SEC)) progress = (END_SEC - START_SEC);
+
+    // exact proportional cents; round to nearest cent for clean display
+    const earned = Math.round(TOTAL_CENTS * (progress / DURATION_SEC));
+    return earned;
+  }
+
+  // Render the full amount to the reels
+  let lastAnnounced = -1;
+  function render(){
+    const cents = computeEarnedCents();
+    const dollars = Math.floor(cents / 100);
+    const cents2  = cents % 100;
+
+    // Split dollars into 4 digits (thousands, hundreds, tens, ones)
+    // Pad so layout is stable.
+    const dStr = dollars.toString().padStart(4,'0');
+    const tDigit = +dStr[0];
+    const hDigit = +dStr[1];
+    const teDigit= +dStr[2];
+    const oDigit = +dStr[3];
+
+    // Update reels
+    setDigit(digits.thousands, tDigit);
+    setDigit(digits.hundreds , hDigit);
+    setDigit(digits.tens     , teDigit);
+    setDigit(digits.ones     , oDigit);
+    setDigit(digits.tenths   , Math.floor(cents2/10));
+    setDigit(digits.hundredths, cents2 % 10);
+
+    // Fade leading thousand & comma if zero
+    if (tDigit === 0){
+      digits.thousands.classList.add('muted');
+      digits.comma.classList.add('muted');
+    }else{
+      digits.thousands.classList.remove('muted');
+      digits.comma.classList.remove('muted');
+    }
+
+    // Gentle pulse when number changes
+    if(cents !== lastAnnounced){
+      odo.classList.remove('pulse');
+      // force reflow to retrigger animation
+      void odo.offsetWidth;
+      odo.classList.add('pulse');
+      lastAnnounced = cents;
+
+      // Accessible live region (kept off-screen visually)
+      const dollarsTxt = dollars.toLocaleString('en-US');
+      const centsTxt = cents2.toString().padStart(2,'0');
+      announcer.textContent = `$${dollarsTxt}.${centsTxt}`;
+    }
+  }
+
+  // Init measurements & first paint
+  measureHeights();
+  render();
+
+  // Keep things responsive
+  window.addEventListener('resize', () => {
+    measureHeights();
+    // Re-apply current transforms after resize (no jumping)
+    Object.keys(digits).forEach(k=>{
+      if(k==='comma') return;
+      applyTransform(digits[k], digits[k]._pos);
+    });
+  });
+
+  // Tick every second
+  setInterval(render, TICK_MS);
+
+})();
+</script>
+</body>
+</html>

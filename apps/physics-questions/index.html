@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Question Bank (Local) + Quiz Mode</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#38bdf8; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --chip:#1f2937;
+      --border:#243044;
+    }
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;}
+    header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+    header h1{font-size:18px;margin:0 8px 0 0}
+    header .badge{background:var(--chip);border:1px solid var(--border);padding:4px 8px;border-radius:999px;color:var(--muted)}
+    main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px}
+    @media (max-width:1100px){ main{grid-template-columns:1fr} }
+    section{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    section h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px;color:var(--muted)}
+    .pad{padding:12px 14px}
+    textarea{width:100%;min-height:160px;background:#0b1220;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+    button.primary{background:linear-gradient(180deg,#39c6ff,#2aa9da);color:#031525;border:none}
+    button.warn{background:var(--warn); color: var(--panel); border: none}
+    button.bad{background:var(--bad); color:var(--text); border:none;}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    input[type="text"],input[type="number"],select{background:#0b1220;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .list{max-height:70vh;overflow:auto;border-top:1px solid var(--border)}
+    .item{border-bottom:1px solid var(--border);padding:12px 14px}
+    .item h3{margin:0 0 6px 0;font-size:15px}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    .chip{background:var(--chip);border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:999px;font-size:12px}
+    .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+    .choices{margin:6px 0 8px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+    .correct{border:1px dashed var(--good);border-radius:6px;padding:0 6px}
+    .muted{color:var(--muted)}
+    .noitems{padding:18px;color:var(--muted)}
+    .kbr{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0b1220;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+
+    /* New Grouped View Styles */
+    .list details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; background: #0b1220; }
+    .list summary { padding: 10px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .list summary::-webkit-details-marker { display: none; }
+    .list summary::before { content: '▶'; margin-right: 8px; font-size: 10px; transition: transform 0.2s; flex-shrink: 0; }
+    .list details[open] > summary { border-bottom: 1px solid var(--border); }
+    .list details[open] > summary::before { transform: rotate(90deg); }
+    .summary-content { flex-grow: 1; }
+    .summary-content .group-number { font-weight: bold; }
+    .summary-content .group-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--chip); padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+    .summary-content .stem-preview { margin-left: 8px; color: var(--muted); }
+    .delete-group-btn { background: var(--bad); color: var(--text); border: none; padding: 4px 8px; font-size: 12px; flex-shrink: 0; }
+    .group-items-container .item { border-bottom: 1px solid var(--border); &:last-child{ border-bottom: none; } }
+    
+    /* Quiz Filter Details */
+    .quiz-filter-details { border: 1px solid var(--border); border-radius: 8px; }
+    .quiz-filter-details summary { cursor: pointer; padding: 4px 8px; }
+    .quiz-filter-details .filter-body { padding: 8px; border-top: 1px solid var(--border); }
+
+    /* New Quiz Overlay Styles */
+    #quizOverlay { position: fixed; inset: 0; z-index: 100; background: var(--bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+    .quiz-container { width: 100%; max-width: 900px; }
+
+    /* Quiz */
+    #quizPlay .qcard{border:1px solid var(--border);border-radius:12px;padding:14px;background:#0b1220}
+    #quizPlay .qstem{font-size:16px;margin:0 0 12px 0}
+    #quizPlay .qimg{max-width:100%;max-height:45vh;border:1px solid var(--border);border-radius:8px;display:block;margin:8px 0}
+    #quizPlay .qchoices{display:grid;gap:8px}
+    #quizPlay .qchoices button{ text-align:left }
+    #quizPlay .qchoices .is-correct{outline:2px solid var(--good)}
+    #quizPlay .qchoices .is-wrong{outline:2px solid var(--bad)}
+    #quizPlay .qexp{margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:#0b1425}
+    #quizTop{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .pill{padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:var(--chip);color:var(--muted);font-size:12px}
+    progress{width:200px;height:12px}
+    .hidden{display:none !important}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Question Bank</h1>
+  <span class="badge" id="countBadge">0 items</span>
+  <div class="row">
+    <button id="downloadNdjson" title="Download all as NDJSON">Download .ndjson</button>
+    <button id="downloadJson" title="Download all as JSON array">Download .json</button>
+    <button id="shareAll" title="Share NDJSON via system share (mobile)">Share…</button>
+    <button id="clearAll" class="bad" title="Erase local data">Clear All</button>
+  </div>
+</header>
+
+<main>
+  <!-- Ingest -->
+  <section id="ingest">
+    <h2>Paste NDJSON → Ingest</h2>
+    <div class="pad">
+      <textarea id="ndjsonInput" placeholder='Paste NDJSON here (one JSON object per line)'></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="previewBtn">Preview</button>
+        <button id="ingestBtn" class="primary" disabled>Ingest</button>
+        <input type="file" id="fileInput" accept=".ndjson,.json,text/plain" />
+      </div>
+      <div id="previewArea" class="muted" style="margin-top:10px"></div>
+      <div class="muted" style="margin-top:10px">
+        Tip: On ingest, the app auto-adds <span class="kbr">created_at</span> (ISO). Expected image for an image-based item: <span class="kbr">&lt;id&gt;.jpg</span> or <span class="kbr">&lt;id&gt;.png</span>.
+      </div>
+    </div>
+  </section>
+
+  <!-- Browse -->
+  <section id="browse">
+    <h2>Browse / Filter</h2>
+    <div class="pad">
+      <div class="toolbar" style="margin-bottom:10px">
+        <input type="text" id="searchBox" placeholder="Search stem / process_key…" />
+        <select id="roleFilter">
+          <option value="">Role: All</option>
+          <option value="original">original</option>
+          <option value="variant_text1">variant_text1</option>
+          <option value="variant_text2">variant_text2</option>
+          <option value="variant_image">variant_image</option>
+        </select>
+        <select id="imgFilter">
+          <option value="">Image: All</option>
+          <option value="true">Requires Image</option>
+          <option value="false">Text Only</option>
+        </select>
+        <select id="errFilter">
+          <option value="">Error: All</option>
+          <option value="true">Flagged</option>
+          <option value="false">Clean</option>
+        </select>
+        <select id="sortBy">
+          <option value="created_at_desc">Sort: Newest</option>
+          <option value="created_at_asc">Sort: Oldest</option>
+          <option value="process_key_asc">Sort: Process ↑</option>
+          <option value="process_key_desc">Sort: Process ↓</option>
+        </select>
+        <label><input type="checkbox" id="groupMode" checked /> Group by group_id</label>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+      <div id="list" class="list"></div>
+    </div>
+  </section>
+
+  <!-- Quiz -->
+  <section id="quiz">
+    <h2>Quiz Mode</h2>
+    <div class="pad">
+      <!-- Controls -->
+      <div class="toolbar" style="margin-bottom:10px">
+        <div>
+          <label class="muted">Process keys</label><br/>
+          <select id="quizProcessKeys" multiple size="4" style="min-width:220px"></select>
+        </div>
+        <div>
+          <label class="muted">Include roles</label><br/>
+          <label><input type="checkbox" class="qr" value="original" checked/> original</label>
+          <label><input type="checkbox" class="qr" value="variant_text1" checked/> variant_text1</label>
+          <label><input type="checkbox" class="qr" value="variant_text2" checked/> variant_text2</label>
+          <label><input type="checkbox" class="qr" value="variant_image" checked/> variant_image</label>
+        </div>
+        <div>
+          <label class="muted">Types</label><br/>
+          <label><input type="checkbox" id="qIncludeText" checked/> Text-only</label>
+          <label><input type="checkbox" id="qIncludeImage" checked/> Image-based</label>
+        </div>
+        <div>
+          <label class="muted">Errors</label><br/>
+          <select id="qErrPolicy">
+            <option value="exclude">Exclude flagged</option>
+            <option value="include">Include all</option>
+            <option value="only">Only flagged</option>
+          </select>
+        </div>
+        <div>
+          <label class="muted">One per group</label><br/>
+          <label><input type="checkbox" id="qOnePerGroup" checked/> Deduplicate</label>
+        </div>
+        <div id="qGroupNumFilterContainer">
+            <label class="muted">Group Range</label><br/>
+            <details class="quiz-filter-details">
+                <summary>Filter by Group #</summary>
+                <div class="filter-body">
+                    <label><input type="checkbox" id="qEnableGroupNumFilter"> Enable</label>
+                    <div class="row" style="margin-top: 5px;">
+                        <label>From: <select id="qGroupNumStart"></select></label>
+                        <label>To: <select id="qGroupNumEnd"></select></label>
+                    </div>
+                </div>
+            </details>
+        </div>
+        <div>
+          <label class="muted">Image folder</label><br/>
+          <input type="text" id="qImgBase" value="." placeholder="./" style="width:80px"/>
+        </div>
+        <div>
+          <label class="muted"># Questions</label><br/>
+          <input type="number" id="qCount" min="1" max="200" value="15" style="width:80px"/>
+        </div>
+        <div>
+          <label class="muted">Randomize</label><br/>
+          <label><input type="checkbox" id="qShuffle" checked/> Shuffle</label>
+        </div>
+        <div>
+          <button id="startQuiz" class="primary">Start Quiz</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Quiz Screen Overlay -->
+<div id="quizOverlay" class="hidden">
+  <div class="quiz-container">
+    <!-- Play area header -->
+    <div id="quizTop">
+      <div class="row">
+        <span id="quizMeta" class="pill">0 / 0</span>
+        <span id="quizScore" class="pill">0 correct</span>
+        <span id="quizKey" class="pill">process: —</span>
+        <span id="quizRole" class="pill">role: —</span>
+      </div>
+      <div class="row">
+        <progress id="quizProgress" max="100" value="0"></progress>
+        <button id="endQuiz">Exit Quiz</button>
+        <button id="skipQuiz">Skip</button>
+      </div>
+    </div>
+    <!-- Play area content -->
+    <div id="quizPlay">
+      <div class="qcard">
+        <h3 id="qStem" class="qstem"></h3>
+        <img id="qImage" class="qimg hidden" alt="Question image"/>
+        <div id="qImgDesc" class="muted hidden" style="margin:6px 0"></div>
+        <div id="qChoices" class="qchoices"></div>
+        <div id="qExplain" class="qexp hidden"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="nextQuiz" class="primary hidden">Next</button>
+        </div>
+      </div>
+    </div>
+    <!-- Results -->
+    <div id="quizResults" class="hidden">
+      <div class="qcard">
+        <h3>Results</h3>
+        <div id="quizSummary"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="downloadResults">Download results (.json)</button>
+          <button id="retakeQuiz" class="primary">Retake with same filters</button>
+        </div>
+        <div id="quizReview" style="margin-top:12px; max-height: 50vh; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========= Unicode & encoding helpers ========= */
+function fixMojibake(s){
+  return s
+    .replace(/â€”/g,'—').replace(/â€“/g,'–')
+    .replace(/â€˜/g,'‘').replace(/â€™/g,'’')
+    .replace(/â€œ/g,'“').replace(/â€\x9d/g,'”').replace(/â€ /g,'”')
+    .replace(/â€¦/g,'…').replace(/â€¢/g,'•')
+    .replace(/Ã—/g,'×').replace(/Â©/g,'©').replace(/Â®/g,'®').replace(/â„¢/g,'™')
+    .replace(/Â /g,' ').replace(/Â/g,'');
+}
+function fixSmartQuotesJSONDelimiters(s){ return s.replace(/[\u201C\u201D]/g,'"'); }
+function sanitizeIncomingText(raw){ return fixMojibake(fixSmartQuotesJSONDelimiters(raw.normalize('NFC'))); }
+
+/* ========= IndexedDB ========= */
+const DB_NAME = 'qb_local_v2';
+const STORE = 'questions';
+const STATS = 'stats';
+let db;
+let ALL_ITEMS_CACHE = []; // Cache of all DB items
+
+function openDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = (e)=>{
+      const db = req.result;
+      if(e.oldVersion < 1){
+        const store = db.createObjectStore(STORE, { keyPath: 'id' });
+        store.createIndex('group_id', 'group_id', { unique:false });
+        store.createIndex('process_key', 'process_key', { unique:false });
+        store.createIndex('role', 'role', { unique:false });
+        store.createIndex('requires_image', 'requires_image', { unique:false });
+        store.createIndex('error_identified', 'error.identified', { unique:false });
+        store.createIndex('created_at', 'created_at', { unique:false });
+      }
+      if(e.oldVersion < 2){
+        db.createObjectStore(STATS, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+function txStore(name,mode='readonly'){ return db.transaction(name,mode).objectStore(name); }
+
+async function putMany(objs){
+  return new Promise((resolve)=>{
+    const store = txStore(STORE,'readwrite');
+    let done=0, total=objs.length, errors=[];
+    objs.forEach(obj=>{
+      const req = store.put(obj);
+      req.onsuccess = ()=>{ if(++done===total) resolve({errors}); };
+      req.onerror = ()=>{ errors.push({id:obj.id, error:req.error}); if(++done===total) resolve({errors}); };
+    });
+  });
+}
+async function getAll(){
+  return new Promise((resolve,reject)=>{
+    const req = txStore(STORE,'readonly').getAll();
+    req.onsuccess = ()=> resolve(req.result||[]);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function clearAllData(){
+  return new Promise((resolve,reject)=>{
+    const req = txStore(STORE,'readwrite').clear();
+    req.onsuccess = ()=> resolve();
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function deleteByGroupId(groupId) {
+    return new Promise((resolve, reject) => {
+        const store = txStore(STORE, 'readwrite');
+        const index = store.index('group_id');
+        const req = index.openCursor(IDBKeyRange.only(groupId));
+        req.onsuccess = () => {
+            const cursor = req.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            } else {
+                resolve();
+            }
+        };
+        req.onerror = () => reject(req.error);
+    });
+}
+async function updateStat(id, wasCorrect){
+  const store = txStore(STATS,'readwrite');
+  const getReq = store.get(id);
+  return new Promise((resolve)=>{
+    getReq.onsuccess = ()=>{
+      const now = new Date().toISOString();
+      const cur = getReq.result || {id, attempts:0, correct:0, last_seen_iso:null};
+      cur.attempts += 1;
+      if(wasCorrect) cur.correct += 1;
+      cur.last_seen_iso = now;
+      const putReq = store.put(cur);
+      putReq.onsuccess = ()=> resolve(cur);
+      putReq.onerror = ()=> resolve(cur);
+    };
+    getReq.onerror = ()=> resolve(null);
+  });
+}
+
+/* ========= NDJSON ingest & validation ========= */
+function parseNDJSON(txt){
+  txt = sanitizeIncomingText(txt);
+  const lines = txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const objs=[], errs=[];
+  lines.forEach((line,i)=>{
+    try{
+      objs.push(JSON.parse(line));
+    }catch(e1){
+      const repaired = sanitizeIncomingText(line);
+      try{ objs.push(JSON.parse(repaired)); }
+      catch(e2){ errs.push({line:i+1, error:String(e2), text:line.slice(0,120)}); }
+    }
+  });
+  return {objs, errs, lines};
+}
+function validateAndAugment(objs){
+  const problems=[];
+  const augmented = objs.map((o)=>{
+    const must = ['id','group_id','role','process_key','stem','choices','answer_index','explanation','requires_image','principle','image_descriptor','error'];
+    must.forEach(k=>{ if(!(k in o)) problems.push({id:o.id, issue:`Missing field "${k}"`}); });
+    if(!o.created_at) o.created_at = new Date().toISOString();
+    return o;
+  });
+  return {augmented, problems};
+}
+
+/* ========= UI rendering & Group Logic ========= */
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+
+function getNumberedGroups(items) {
+    const byGroup = new Map();
+    items.forEach(it => {
+        if (!byGroup.has(it.group_id)) byGroup.set(it.group_id, []);
+        byGroup.get(it.group_id).push(it);
+    });
+
+    let groups = [...byGroup.entries()].map(([gid, arr]) => {
+        const oldestItem = arr.reduce((oldest, current) => {
+            return (oldest.created_at || '') < (current.created_at || '') ? oldest : current;
+        });
+        return {
+            id: gid,
+            items: arr,
+            createdAt: oldestItem.created_at || '9999',
+            processKey: (arr.find(i => i.role === 'original') || arr[0]).process_key,
+        };
+    });
+    
+    // Assign stable numbers based on creation date
+    groups.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    groups.forEach((g, i) => g.number = i + 1);
+
+    return groups;
+}
+
+function renderList(items, allItems){
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  if(items.length===0){ list.appendChild(el(`<div class="noitems">No items match your filters.</div>`)); return; }
+  const groupMode = document.getElementById('groupMode').checked;
+
+  if(groupMode){
+    const numberedGroups = getNumberedGroups(allItems);
+    const visibleGroupIds = new Set(items.map(i => i.group_id));
+    let groupsToRender = numberedGroups.filter(g => visibleGroupIds.has(g.id));
+
+    const sort = document.getElementById('sortBy').value;
+    if (sort === 'created_at_desc') groupsToRender.sort((a, b) => b.number - a.number);
+    if (sort === 'created_at_asc') groupsToRender.sort((a, b) => a.number - b.number);
+    if (sort === 'process_key_asc') groupsToRender.sort((a, b) => (a.processKey || '').localeCompare(b.processKey || ''));
+    if (sort === 'process_key_desc') groupsToRender.sort((a, b) => (b.processKey || '').localeCompare(a.processKey || ''));
+
+    groupsToRender.forEach(g => {
+      const original = g.items.find(q => q.role === 'original') || g.items[0];
+      const details = el(`<details>
+        <summary>
+          <div class="summary-content">
+            <span class="group-number">${g.number}.</span>
+            <span class="group-id">${escapeHTML(g.id)}</span>
+            <span class="stem-preview">${escapeHTML(original.stem)}</span>
+          </div>
+          <button class="delete-group-btn" data-group-id="${escapeHTML(g.id)}">Delete Group</button>
+        </summary>
+        <div class="group-items-container"></div>
+      </details>`);
+      const container = details.querySelector('.group-items-container');
+      g.items.sort((a,b) => a.role.localeCompare(b.role)).forEach(q=> container.appendChild(renderItem(q)));
+      list.appendChild(details);
+    });
+  } else {
+    items.forEach(q=> list.appendChild(renderItem(q)));
+  }
+}
+
+function renderItem(q){
+  const requires = q.requires_image ? `<span class="chip">image</span>` : `<span class="chip">text</span>`;
+  const err = q.error?.identified ? `<span class="chip bad">error</span>` : '';
+  const created = q.created_at ? new Date(q.created_at).toLocaleString() : '';
+  const imgHint = q.requires_image ? `<div class="muted">Expected image: <span class="kbr">${q.id}.jpg</span> or <span class="kbr">${q.id}.png</span>${q.image_descriptor?` — ${escapeHTML(q.image_descriptor)}`:''}</div>` : '';
+  const box = el(`<div class="item">
+    <h3>${escapeHTML(q.stem)}</h3>
+    <div class="meta">
+      <span class="chip">${q.role}</span>
+      <span class="chip">${escapeHTML(q.process_key)}</span>
+      ${requires} ${err}
+      <span class="chip">${created}</span>
+    </div>
+    <div class="choices"></div>
+    <div class="muted">Explanation:</div>
+    <div style="margin:4px 0 6px 0">${escapeHTML(q.explanation)}</div>
+    ${imgHint}
+  </div>`);
+  const choicesDiv = box.querySelector('.choices');
+  if(Array.isArray(q.choices)){
+    q.choices.forEach((c,i)=>{
+      const isCorrect = (i===q.answer_index);
+      const cellLabel = el(`<div class="${isCorrect?'correct':''}">${String.fromCharCode(65+i)}</div>`);
+      const cellChoice = el(`<div class="${isCorrect?'correct':''}">${escapeHTML(String(c))}</div>`);
+      choicesDiv.appendChild(cellLabel); choicesDiv.appendChild(cellChoice);
+    });
+  }
+  return box;
+}
+function escapeHTML(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
+
+function applyFilters(all){
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  const role = document.getElementById('roleFilter').value;
+  const img = document.getElementById('imgFilter').value;
+  const err = document.getElementById('errFilter').value;
+  let items = all.slice();
+  if(q){ items = items.filter(o=> (o.stem||'').toLowerCase().includes(q) || (o.process_key||'').toLowerCase().includes(q)); }
+  if(role){ items = items.filter(o=> o.role===role); }
+  if(img){ items = items.filter(o=> String(!!o.requires_image)===img); }
+  if(err){ items = items.filter(o=> String(!!(o.error && o.error.identified))===err); }
+  
+  // Sorting for non-grouped view
+  if (!document.getElementById('groupMode').checked) {
+    const sort = document.getElementById('sortBy').value;
+    if(sort==='created_at_desc') items.sort((a,b)=> (b.created_at||'').localeCompare(a.created_at||''));
+    if(sort==='created_at_asc')  items.sort((a,b)=> (a.created_at||'').localeCompare(b.created_at||''));
+    if(sort==='process_key_asc') items.sort((a,b)=> (a.process_key||'').localeCompare(b.process_key||''));
+    if(sort==='process_key_desc')items.sort((a,b)=> (b.process_key||'').localeCompare(a.process_key||''));
+  }
+  return items;
+}
+
+/* ========= Export / share ========= */
+async function downloadAllNdjson(){
+  const all = await getAll();
+  const blob = new Blob([all.map(o=> JSON.stringify(o)).join('\n')+'\n'], { type: 'application/x-ndjson;charset=utf-8' });
+  triggerDownload(blob, 'question_bank.ndjson');
+}
+async function downloadAllJson(){
+  const all = await getAll();
+  const blob = new Blob([JSON.stringify(all,null,2)], { type: 'application/json;charset=utf-8' });
+  triggerDownload(blob, 'question_bank.json');
+}
+function triggerDownload(blob, filename){
+  const a = document.createElement('a'); a.href = URL.ObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+/* ========= Quiz Mode ========= */
+let quiz = {
+  pool: [], order: [], idx: 0, correct: 0, imageBase: '.',
+  responses: [], filters: null
+};
+
+function uniqueProcessKeys(items){
+  const s = new Set(items.map(x=> x.process_key).filter(Boolean));
+  return [...s].sort((a,b)=> a.localeCompare(b));
+}
+function fillProcessKeySelect(keys){
+  const sel = document.getElementById('quizProcessKeys');
+  sel.innerHTML = '';
+  if(keys.length===0){ sel.appendChild(el('<option value="" disabled>(none)</option>')); return; }
+  keys.forEach(k=> sel.appendChild(el(`<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`)));
+}
+function updateGroupNumberFilters(groups) {
+    const startSel = document.getElementById('qGroupNumStart');
+    const endSel = document.getElementById('qGroupNumEnd');
+    startSel.innerHTML = '';
+    endSel.innerHTML = '';
+
+    if (groups.length === 0) {
+        startSel.disabled = true;
+        endSel.disabled = true;
+        return;
+    }
+    startSel.disabled = false;
+    endSel.disabled = false;
+
+    groups.forEach(g => {
+        startSel.appendChild(el(`<option value="${g.number}">${g.number}</option>`));
+        endSel.appendChild(el(`<option value="${g.number}">${g.number}</option>`));
+    });
+    endSel.selectedIndex = groups.length - 1;
+}
+function getSelectedValues(sel){ return Array.from(sel.selectedOptions||[]).map(o=> o.value); }
+function shuffleInPlace(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function selectQuizItems(all){
+  let pool = all.slice();
+
+  // New: Filter by group number range
+  const enableGroupNumFilter = document.getElementById('qEnableGroupNumFilter').checked;
+  if(enableGroupNumFilter){
+    const startNum = parseInt(document.getElementById('qGroupNumStart').value, 10);
+    const endNum = parseInt(document.getElementById('qGroupNumEnd').value, 10);
+    const numberedGroups = getNumberedGroups(all);
+    const allowedGroupIds = new Set(
+        numberedGroups
+            .filter(g => g.number >= startNum && g.number <= endNum)
+            .map(g => g.id)
+    );
+    pool = pool.filter(item => allowedGroupIds.has(item.group_id));
+  }
+
+  const keys = getSelectedValues(document.getElementById('quizProcessKeys'));
+  const includeRoles = Array.from(document.querySelectorAll('.qr:checked')).map(cb=> cb.value);
+  const includeText = document.getElementById('qIncludeText').checked;
+  const includeImage = document.getElementById('qIncludeImage').checked;
+  const errPolicy = document.getElementById('qErrPolicy').value;
+  const onePerGroup = document.getElementById('qOnePerGroup').checked;
+  const count = Math.max(1, Math.min(200, Number(document.getElementById('qCount').value||15)));
+  const doShuffle = document.getElementById('qShuffle').checked;
+  const imgBase = document.getElementById('qImgBase').value.trim() || '.';
+  
+  if(keys.length>0){ pool = pool.filter(x=> keys.includes(x.process_key)); }
+  pool = pool.filter(x=> includeRoles.includes(x.role));
+  pool = pool.filter(x=> (x.requires_image && includeImage) || (!x.requires_image && includeText));
+  if(errPolicy==='exclude') pool = pool.filter(x=> !(x.error && x.error.identified));
+  if(errPolicy==='only')    pool = pool.filter(x=> x.error && x.error.identified);
+  if(onePerGroup){
+    const bestByGroup = new Map();
+    for(const q of pool){
+      if(!bestByGroup.has(q.group_id)) bestByGroup.set(q.group_id, q);
+    }
+    pool = [...bestByGroup.values()];
+  }
+  if(doShuffle) shuffleInPlace(pool);
+  pool = pool.slice(0,count);
+  const order = pool.map((_,i)=> i);
+
+  quiz = {
+    pool, order, idx: 0, correct: 0, imageBase: imgBase,
+    responses: [],
+    filters: {keys, includeRoles, includeText, includeImage, errPolicy, onePerGroup, count, doShuffle, imgBase}
+  };
+  return pool;
+}
+
+function showQuizUI(active){
+  document.getElementById('quizOverlay').classList.toggle('hidden', !active);
+}
+function renderQuizMeta(){
+  const n = quiz.order.length, i = quiz.idx;
+  document.getElementById('quizMeta').textContent = `${Math.min(i+1,n)} / ${n}`;
+  document.getElementById('quizScore').textContent = `${quiz.correct} correct`;
+  const cur = quiz.pool[quiz.order[i]];
+  document.getElementById('quizKey').textContent = `process: ${cur?cur.process_key:'—'}`;
+  document.getElementById('quizRole').textContent = `role: ${cur?cur.role:'—'}`;
+  const p = document.getElementById('quizProgress'); p.max = n; p.value = i;
+}
+async function tryLoadImage(id, base){
+  const img = document.getElementById('qImage');
+  const sources = [`${base}/${id}.jpg`, `${base}/${id}.png`];
+  for(const src of sources){
+    try{
+      const ok = await fetch(src, {method:'HEAD'});
+      if(ok.ok){ img.src = src; img.classList.remove('hidden'); return true; }
+    }catch(_){}
+  }
+  img.classList.add('hidden'); img.removeAttribute('src'); return false;
+}
+function renderCurrentQuestion(){
+  renderQuizMeta();
+  const n = quiz.order.length;
+  if(n===0 || quiz.idx >= n){ showResults(); return; }
+  const q = quiz.pool[quiz.order[quiz.idx]];
+  document.getElementById('qStem').textContent = q.stem || '';
+  const explain = document.getElementById('qExplain');
+  explain.classList.add('hidden');
+  explain.innerHTML = `<div class="muted">Explanation:</div>${escapeHTML(q.explanation||'')}`;
+  document.getElementById('nextQuiz').classList.add('hidden');
+  const imgDesc = document.getElementById('qImgDesc');
+  imgDesc.textContent = q.requires_image && q.image_descriptor ? q.image_descriptor : '';
+  imgDesc.classList.toggle('hidden', !(q.requires_image && q.image_descriptor));
+  if(q.requires_image){
+    tryLoadImage(q.id, quiz.imageBase).then(found=>{
+      if(!found){ imgDesc.classList.remove('hidden'); imgDesc.innerHTML = `<span class="warn">Image not found...</span>`; }
+    });
+  }else{
+    const img = document.getElementById('qImage');
+    img.classList.add('hidden'); img.removeAttribute('src');
+  }
+  const wrap = document.getElementById('qChoices');
+  wrap.innerHTML = '';
+  q.choices.forEach((choice,i)=>{
+    const btn = el(`<button>${String.fromCharCode(65+i)}. ${escapeHTML(String(choice))}</button>`);
+    btn.addEventListener('click', ()=>{
+      Array.from(wrap.querySelectorAll('button')).forEach(b=> b.disabled = true);
+      const correctIndex = q.answer_index;
+      if(i===correctIndex){
+        btn.classList.add('is-correct');
+        quiz.correct += 1;
+        updateStat(q.id, true);
+      }else{
+        btn.classList.add('is-wrong');
+        const btnC = wrap.querySelectorAll('button')[correctIndex];
+        if(btnC) btnC.classList.add('is-correct');
+        updateStat(q.id, false);
+      }
+      renderQuizMeta();
+      document.getElementById('nextQuiz').classList.remove('hidden');
+      document.getElementById('qExplain').classList.remove('hidden');
+      quiz.responses.push({ id:q.id, picked:i, correct_index:correctIndex, was_correct:(i===correctIndex) });
+    });
+    wrap.appendChild(btn);
+  });
+}
+function nextQuestion(){ quiz.idx += 1; renderCurrentQuestion(); }
+function showResults(){
+  document.getElementById('quizPlay').classList.add('hidden');
+  document.getElementById('quizTop').classList.add('hidden');
+  document.getElementById('quizResults').classList.remove('hidden');
+  const total = quiz.order.length;
+  const pct = total ? Math.round(100 * quiz.correct / total) : 0;
+  document.getElementById('quizSummary').innerHTML = `<div class="row">
+    <span class="pill">Total: ${total}</span><span class="pill good">Correct: ${quiz.correct}</span><span class="pill">Score: ${pct}%</span>
+  </div>`;
+  const review = document.getElementById('quizReview');
+  review.innerHTML = '';
+  quiz.responses.forEach((r,idx)=>{
+    const q = quiz.pool.find(x=> x.id===r.id); if(!q) return;
+    const node = el(`<div class="item"><h3>${idx+1}. ${escapeHTML(q.stem)}</h3>...</div>`);
+    review.appendChild(node);
+  });
+}
+
+/* ========= Wiring ========= */
+let previewParsed = null;
+
+async function refresh(){
+  ALL_ITEMS_CACHE = await getAll();
+  const filteredItems = applyFilters(ALL_ITEMS_CACHE);
+  document.getElementById('countBadge').textContent = `${ALL_ITEMS_CACHE.length} items`;
+  renderList(filteredItems, ALL_ITEMS_CACHE);
+  
+  // Populate quiz filters
+  fillProcessKeySelect(uniqueProcessKeys(ALL_ITEMS_CACHE));
+  const numberedGroups = getNumberedGroups(ALL_ITEMS_CACHE);
+  updateGroupNumberFilters(numberedGroups);
+}
+
+document.getElementById('previewBtn').addEventListener('click', ()=>{
+  const {objs, errs} = parseNDJSON(document.getElementById('ndjsonInput').value);
+  const {augmented} = validateAndAugment(objs);
+  previewParsed = augmented;
+  document.getElementById('previewArea').innerHTML = `<span class="good">Parsed ${augmented.length} object(s).</span>`;
+  document.getElementById('ingestBtn').disabled = augmented.length===0;
+});
+
+document.getElementById('ingestBtn').addEventListener('click', async ()=>{
+  if(!previewParsed) return;
+  await putMany(previewParsed);
+  document.getElementById('ndjsonInput').value='';
+  document.getElementById('previewArea').textContent='Ingested ✅';
+  document.getElementById('ingestBtn').disabled = true;
+  previewParsed = null;
+  refresh();
+});
+
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const txt = await file.text();
+  document.getElementById('ndjsonInput').value = sanitizeIncomingText(txt);
+  document.getElementById('previewBtn').click();
+  e.target.value='';
+});
+
+['searchBox','roleFilter','imgFilter','errFilter','sortBy','groupMode'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', refresh);
+});
+document.getElementById('refreshBtn').addEventListener('click', refresh);
+document.getElementById('downloadNdjson').addEventListener('click', downloadAllNdjson);
+document.getElementById('downloadJson').addEventListener('click', downloadAllJson);
+document.getElementById('clearAll').addEventListener('click', async ()=>{
+  if(confirm('This will erase all questions. Continue?')){ await clearAllData(); refresh(); }
+});
+document.getElementById('list').addEventListener('click', async (e) => {
+    if (e.target.matches('.delete-group-btn')) {
+        const btn = e.target;
+        if (confirm(`Delete group "${btn.dataset.groupId}"?`)) {
+            await deleteByGroupId(btn.dataset.groupId);
+            refresh();
+        }
+    }
+});
+document.getElementById('qGroupNumStart').addEventListener('change', (e) => {
+    const startVal = parseInt(e.target.value, 10);
+    const endSel = document.getElementById('qGroupNumEnd');
+    const endVal = parseInt(endSel.value, 10);
+    if (endVal < startVal) {
+        endSel.value = startVal;
+    }
+});
+
+/* Quiz controls */
+document.getElementById('startQuiz').addEventListener('click', async ()=>{
+  const selected = selectQuizItems(ALL_ITEMS_CACHE);
+  if(selected.length===0){ alert('No questions match your filters.'); return; }
+  document.getElementById('quizPlay').classList.remove('hidden');
+  document.getElementById('quizResults').classList.add('hidden');
+  document.getElementById('quizTop').classList.remove('hidden');
+  showQuizUI(true);
+  renderCurrentQuestion();
+});
+document.getElementById('nextQuiz').addEventListener('click', nextQuestion);
+document.getElementById('skipQuiz').addEventListener('click', ()=>{ quiz.order.push(quiz.order[quiz.idx]); nextQuestion(); });
+document.getElementById('endQuiz').addEventListener('click', ()=> showQuizUI(false));
+document.getElementById('retakeQuiz').addEventListener('click', async ()=>{
+  const selected = selectQuizItems(ALL_ITEMS_CACHE);
+  if(selected.length===0){ alert('No questions match.'); showQuizUI(false); return; }
+  document.getElementById('quizResults').classList.add('hidden');
+  document.getElementById('quizPlay').classList.remove('hidden');
+  document.getElementById('quizTop').classList.remove('hidden');
+  renderCurrentQuestion();
+});
+
+/* Init */
+openDB().then(r=>{ db=r; refresh(); });
+</script>
+</body>
+</html>
