@@ -291,8 +291,21 @@ const btnPlayNext = document.getElementById('btnPlayNext');
 
 function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
 
-function thumbUrl(videoId){ return `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`; }
-function thumbFallback(img){ img.onerror = null; img.src = img.src.replace('maxresdefault','hqdefault'); }
+// Robust thumbnail loader: tries multiple sizes + webp; sets no-referrer to avoid hotlink quirks
+function loadThumb(img, videoId){
+  const candidates = [
+    `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
+    `https://i.ytimg.com/vi_webp/${videoId}/maxresdefault.webp`,
+    `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`,
+    `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+    `https://i.ytimg.com/vi/${videoId}/default.jpg`
+  ];
+  img.setAttribute('referrerpolicy','no-referrer');
+  let i = 0;
+  img.onerror = () => { if(++i < candidates.length) img.src = candidates[i]; };
+  img.src = candidates[0];
+}
 
 function renderProgress(){
   const p = percent();
@@ -305,8 +318,7 @@ function renderNextUp(){
   if(!t){ nextUp.hidden = true; return; }
   nextUp.hidden = false;
   nextTitle.textContent = t.title;
-  nextThumb.src = thumbUrl(t.videoId);
-  nextThumb.onerror = () => thumbFallback(nextThumb);
+  loadThumb(nextThumb, t.videoId);
   btnPlayNext.onclick = () => openYouTubeAppAndMark(t);
   nextUp.querySelector('.thumb').onclick = () => openYouTubeAppAndMark(t);
 }
@@ -429,7 +441,7 @@ async function copyTranscript(path){
     const msg = 'Copy failed. If opening this file locally, run a small local server and retry.';
     console.warn(msg, e);
     fallbackCopy(msg);
-    toast('Copy failed (fallback text copied).');
+    toast('Copy failed (see console for details).');
   }
 }
 function fallbackCopy(text){
@@ -548,11 +560,8 @@ btnSettings.onclick = () => {
 };
 
 document.getElementById('btnDownload').onclick = downloadAll;
-
 document.getElementById('btnEmail').onclick = emailExport;
-
 document.getElementById('btnNotesDownload').onclick = downloadNotes;
-
 document.getElementById('btnNotesCopy').onclick = copyNotes;
 
 document.getElementById('fileRestore').addEventListener('change', (e)=>{
