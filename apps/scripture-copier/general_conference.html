@@ -293,20 +293,41 @@ const btnPlayNext = document.getElementById('btnPlayNext');
 
 function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
 
-// Robust thumbnail loader: tries multiple sizes + webp; sets no-referrer to avoid hotlink quirks
-function loadThumb(img, videoId){
-  const candidates = [
-    `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
-    `https://i.ytimg.com/vi_webp/${videoId}/maxresdefault.webp`,
-    `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`,
-    `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-    `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-    `https://i.ytimg.com/vi/${videoId}/default.jpg`
-  ];
-  img.setAttribute('referrerpolicy','no-referrer');
-  let i = 0;
-  img.onerror = () => { if(++i < candidates.length) img.src = candidates[i]; };
-  img.src = candidates[0];
+// Robust thumbnail loader: Checks the dimensions of the loaded image to verify
+// if the high-resolution version is real or a placeholder, then falls back if needed.
+function loadThumb(img, videoId) {
+  const reliableThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const highResThumb = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+
+  // Set no-referrer policy for better compatibility.
+  img.setAttribute('referrerpolicy', 'no-referrer');
+
+  // Create an in-memory image to test the high-resolution URL without
+  // affecting the on-screen image until we're sure.
+  const tester = new Image();
+
+  // This function runs when the image has successfully loaded.
+  tester.onload = () => {
+    // Check the intrinsic width of the loaded image.
+    // A real 'maxresdefault.jpg' is 1280px wide. The placeholder is much smaller.
+    // We use a threshold (e.g., < 300px) to be safe.
+    if (tester.naturalWidth < 300) {
+      // It's the placeholder image, so use the reliable thumbnail.
+      img.src = reliableThumb;
+    } else {
+      // It's the real, high-quality thumbnail.
+      img.src = highResThumb;
+    }
+  };
+
+  // This function runs if a true network error occurs (e.g., user is offline).
+  tester.onerror = () => {
+    // In case of a network failure, always fall back to the reliable one.
+    img.src = reliableThumb;
+  };
+
+  // Start the test by setting the tester's source.
+  tester.src = highResThumb;
 }
 
 function renderProgress(){
