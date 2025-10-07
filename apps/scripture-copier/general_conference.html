@@ -427,29 +427,53 @@ function openYouTubeAppAndMark(t){
 }
 
 // -----------------------------
-// Clipboard / Transcript
+// Clipboard / Transcript (MOBILE-SAFE)
 // -----------------------------
 async function copyTranscript(path){
+  // Resolve relative → absolute for GitHub Pages and similar hosts
+  const url = new URL(path, location.href).toString();
+
+  let txt = '';
   try {
-    // This uses the simple, relative path and URL-encodes it. This works everywhere.
-    const res = await fetch(encodeURI(path));
-    
+    const res = await fetch(url, { cache: 'no-store' });
     if(!res.ok) {
-        throw new Error(`Fetch failed with status ${res.status}: ${res.statusText}`);
+      throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
     }
-    const txt = await res.text();
-    await navigator.clipboard.writeText(txt);
-    toast('Transcript copied.');
-  } catch(e){
-    const msg = 'Copy failed. Check the file path and ensure files are uploaded.';
-    console.error(msg, e);
-    fallbackCopy(msg);
-    toast('Copy failed (see console).');
+    txt = await res.text();
+  } catch (e) {
+    console.error('Transcript fetch failed:', e);
+    toast('Could not load transcript file.');
+    return;
+  }
+
+  // Try async clipboard first; if blocked (common on iOS/in-app webviews), fallback to textarea.
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(txt);
+      toast('Transcript copied.');
+      return;
+    }
+    // No clipboard API -> fallback
+    fallbackCopyText(txt);
+    toast('Transcript copied (fallback).');
+  } catch (e) {
+    console.warn('navigator.clipboard.writeText failed; using fallback. Error:', e);
+    fallbackCopyText(txt);
+    toast('Transcript copied (fallback).');
   }
 }
-function fallbackCopy(text){
-  const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
-  ta.select(); try{ document.execCommand('copy'); }catch(_){}
+
+function fallbackCopyText(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (_) {}
   document.body.removeChild(ta);
 }
 
@@ -549,8 +573,13 @@ function downloadNotes(){
 async function copyNotes(){
   const txt = notesOnlyText();
   if(!txt){ toast('No notes yet.'); return; }
-  try{ await navigator.clipboard.writeText(txt); toast('Notes copied.'); }
-  catch(_){ fallbackCopy(txt); toast('Notes copied (fallback).'); }
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast('Notes copied.');
+  } catch(_){
+    fallbackCopyText(txt);
+    toast('Notes copied (fallback).');
+  }
 }
 
 // -----------------------------
