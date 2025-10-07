@@ -431,14 +431,15 @@ function openYouTubeAppAndMark(t){
 // -----------------------------
 async function copyTranscript(path){
   try {
-    const res = await fetch(path);
+    // FIX: Encode the path to handle spaces and special characters in URLs
+    const res = await fetch(encodeURI(path));
     if(!res.ok) throw new Error('Fetch failed');
     const txt = await res.text();
     await navigator.clipboard.writeText(txt);
     toast('Transcript copied.');
   } catch(e){
-    // Fallback: show tip if file protocol blocking
-    const msg = 'Copy failed. If opening this file locally, run a small local server and retry.';
+    // Fallback: show tip if file protocol blocking or 404 error
+    const msg = 'Copy failed. Check that the transcript files are in the correct folder on the server.';
     console.warn(msg, e);
     fallbackCopy(msg);
     toast('Copy failed (see console for details).');
