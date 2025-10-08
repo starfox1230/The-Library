@@ -66,23 +66,67 @@
       z-index: 1000;
       border-bottom: 1px solid var(--border-color);
     }
+    
+    /* --- NEW: Styles for View Controls --- */
+    .view-controls {
+      text-align: center;
+      padding: 10px 0;
+      background: rgba(44, 44, 44, 0.5);
+    }
 
+    .view-toggle {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-medium);
+      padding: 8px 16px;
+      margin: 0 5px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+
+    .view-toggle:hover {
+      background-color: var(--bg-light);
+      color: var(--text-light);
+    }
+
+    .view-toggle.active {
+      background-color: var(--accent-color);
+      color: var(--bg-dark);
+      border-color: var(--accent-color);
+    }
+
+    /* --- MODIFIED: For scrolling and drag functionality --- */
     .app-list {
       display: flex;
       overflow-x: auto;
       padding: 15px 25px;
       gap: 20px;
       list-style: none;
-      justify-content: center;
+      justify-content: flex-start; /* Changed from 'center' to allow full scroll */
+      cursor: grab;
+      user-select: none; /* Prevents text selection during drag */
+    }
+
+    .app-list.grabbing {
+        cursor: grabbing;
+    }
+
+    /* --- NEW: Hides non-favorite apps --- */
+    .app-list li.hidden {
+      display: none;
     }
 
     .app-list::-webkit-scrollbar { display: none; }
     .app-list { -ms-overflow-style: none; scrollbar-width: none; }
 
+    /* --- MODIFIED: For favorite star positioning --- */
     .app-link {
       background: var(--bg-light);
       border-radius: 10px;
-      padding: 15px 25px;
+      padding: 30px 25px 15px 25px; /* Adjusted top padding for the star */
       min-width: 140px;
       text-align: center;
       text-decoration: none;
@@ -95,6 +139,7 @@
       gap: 12px;
       white-space: nowrap;
       border: 1px solid transparent;
+      position: relative; /* Required for star positioning */
     }
 
     .app-link:hover,
@@ -113,6 +158,27 @@
       font-size: 1em;
       font-weight: 700;
     }
+
+    /* --- NEW: Styles for the Favorite Star --- */
+    .favorite-star {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 1.6em;
+      cursor: pointer;
+      color: var(--text-medium);
+      transition: color 0.2s, transform 0.2s;
+      z-index: 5;
+    }
+
+    .favorite-star:hover {
+      transform: scale(1.2);
+    }
+
+    .favorite-star.favorited {
+      color: #ffc107; /* Gold color for favorited star */
+    }
+
 
     /* Styles for the Collapsible Generator Section */
     #generator-details {
@@ -475,7 +541,7 @@
       header h1 { font-size: 2.2em; }
       header p { font-size: 1em; }
       .app-list { padding: 10px 15px; gap: 15px; }
-      .app-link { min-width: 120px; padding: 12px 20px; }
+      .app-link { min-width: 120px; padding: 25px 20px 12px 20px; } /* Adjusted padding for mobile */
       .iframe-container { height: 65vh; width: 95%; }
       .full-page-button { padding: 10px 20px; font-size: 0.9em; }
       .home-button { width: 35px; height: 35px; font-size: 18px; line-height: 33px; top: 10px; left: 10px;}
@@ -500,6 +566,11 @@
   </header>
 
   <nav>
+    <!-- NEW: View Controls -->
+    <div class="view-controls">
+      <button class="view-toggle active" data-view="all">All Apps</button>
+      <button class="view-toggle" data-view="favorites">Favorites ★</button>
+    </div>
     <ul class="app-list">
       <!-- ADD YOUR APPS HERE -->
       <li><a href="apps/ACR-Contrast-Reaction/index.html" class="app-link"><span class="emoji">💉</span><span class="text">ACR Contrast Reaction</span></a></li>
@@ -815,7 +886,6 @@
       <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
       <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
       <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
-      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
       <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->      
     </ul>
   </nav>
@@ -1038,6 +1108,121 @@
         });
     });
     // ========= End App Snippet Generator Script =========
+
+
+    // ========= NEW: Favorites, View Toggle, and Drag-to-Scroll Logic =========
+    document.addEventListener('DOMContentLoaded', () => {
+        const appListContainer = document.querySelector('.app-list');
+        const allAppListItems = document.querySelectorAll('.app-list li');
+        const viewToggles = document.querySelectorAll('.view-toggle');
+        let favorites = JSON.parse(localStorage.getItem('favoriteApps')) || [];
+
+        // 1. Initialize: Add stars and apply favorite status from localStorage
+        function initializeFavorites() {
+            allAppListItems.forEach(li => {
+                const link = li.querySelector('a');
+                if (!link) return;
+
+                const appIdentifier = link.getAttribute('href');
+                const star = document.createElement('span');
+                star.className = 'favorite-star';
+                star.title = 'Add to favorites';
+                star.innerHTML = '☆'; // Default: empty star
+                link.prepend(star);
+
+                if (favorites.includes(appIdentifier)) {
+                    star.classList.add('favorited');
+                    star.innerHTML = '★'; // Favorited: filled star
+                }
+
+                star.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent navigating to app
+                    e.stopPropagation(); // Stop click from reaching the link
+                    toggleFavorite(appIdentifier, star);
+                });
+            });
+        }
+
+        // 2. Toggle Favorite Status and Save
+        function toggleFavorite(appIdentifier, starElement) {
+            const isFavorited = favorites.includes(appIdentifier);
+            if (isFavorited) {
+                favorites = favorites.filter(id => id !== appIdentifier);
+                starElement.classList.remove('favorited');
+                starElement.innerHTML = '☆';
+            } else {
+                favorites.push(appIdentifier);
+                starElement.classList.add('favorited');
+                starElement.innerHTML = '★';
+            }
+            localStorage.setItem('favoriteApps', JSON.stringify(favorites));
+
+            // If user is in favorites view, immediately hide the unfavorited item
+            const favoritesViewActive = document.querySelector('.view-toggle[data-view="favorites"]').classList.contains('active');
+            if (favoritesViewActive && isFavorited) {
+                starElement.closest('li').classList.add('hidden');
+            }
+        }
+
+        // 3. Filter View Based on Selection
+        function filterView(view) {
+            if (view === 'favorites') {
+                allAppListItems.forEach(li => {
+                    const appIdentifier = li.querySelector('a')?.getAttribute('href');
+                    if (appIdentifier && !favorites.includes(appIdentifier)) {
+                        li.classList.add('hidden');
+                    } else {
+                        li.classList.remove('hidden');
+                    }
+                });
+            } else { // 'all' view
+                allAppListItems.forEach(li => {
+                    li.classList.remove('hidden');
+                });
+            }
+        }
+
+        viewToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                if (toggle.classList.contains('active')) return;
+                viewToggles.forEach(t => t.classList.remove('active'));
+                toggle.classList.add('active');
+                const view = toggle.getAttribute('data-view');
+                filterView(view);
+            });
+        });
+
+        // 4. Drag-to-Scroll for PC
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        appListContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            appListContainer.classList.add('grabbing');
+            startX = e.pageX - appListContainer.offsetLeft;
+            scrollLeft = appListContainer.scrollLeft;
+        });
+        appListContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+            appListContainer.classList.remove('grabbing');
+        });
+        appListContainer.addEventListener('mouseup', () => {
+            isDown = false;
+            appListContainer.classList.remove('grabbing');
+        });
+        appListContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - appListContainer.offsetLeft;
+            const walk = (x - startX) * 2; // Multiplier for faster scrolling
+            appListContainer.scrollLeft = scrollLeft - walk;
+        });
+
+        // Run initialization
+        initializeFavorites();
+    });
+    // ========= End New Logic =========
 
   </script>
 </body>
