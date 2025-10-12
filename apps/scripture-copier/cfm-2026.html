@@ -132,7 +132,7 @@
       border-radius:999px; padding:4px; gap:4px; justify-content:center; margin-bottom: 8px;
     }
     .seg-btn {
-      flex:1; padding:8px 10px; border:none; border-radius:999px; background:transparent; color:var(--text);
+      flex:1; padding:8px 10px; border:none; border-radius:999px; background:transparent; color: var(--text);
       font-weight:600; cursor:pointer;
     }
     .seg-btn[aria-selected="true"] { background: var(--accent); color: var(--bg); }
@@ -309,6 +309,11 @@
     const todayDateSpan = document.getElementById('today-date');
     const dateInput = document.getElementById('date-input');
 
+    /* ---- Place manual links above scripture links without changing markup ---- */
+    if (scriptureLinks && manualLinks && scriptureLinks.parentNode) {
+      scriptureLinks.parentNode.insertBefore(manualLinks, scriptureLinks);
+    }
+
     /* ===== Init ===== */
     todayDateSpan.textContent = fmtDate(currentDate);
     dateInput.value = toISODate(currentDate);
@@ -480,6 +485,15 @@
       return manualCache[i];
     }
 
+    /* ---- Manual link helper: compute CFM 2026 Old Testament manual URL for a week ---- */
+    function getManualUrlForWeek(i){
+      const wk = schedule[i] || {};
+      const override = wk.manualUrl || wk.manualLink;
+      if (override) return override;
+      const nn = String(i+1).padStart(2,'0');
+      return `https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-old-testament-2026/${nn}?lang=eng`;
+    }
+
     function buildHeaderRange(arr){
       const ranges = [];
       arr.forEach((it,i)=>{
@@ -557,6 +571,11 @@
         nextBtn.disabled = (cw===schedule.length-1);
       }
 
+      /* ---- Always show manual link above chapter links in Day/Week views ---- */
+      const weekNumLabel = String(cw+1).padStart(2,'0');
+      const manualUrlForCW = getManualUrlForWeek(cw);
+      const manualAnchor = `<a href="${manualUrlForCW}" target="_blank" rel="noopener">Open Manual (Week ${weekNumLabel})</a>`;
+
       if (viewMode==='day'){
         const arr = assigns[dayIdx] || [];
         const hasContent = arr.length>0;
@@ -564,8 +583,9 @@
         toggleBtn.textContent = (displayMode==='verses') ? 'Show Sections' : 'Show Verses';
         copyBtn.disabled = !hasContent;
 
+        manualLinks.style.display = '';
+        manualLinks.innerHTML = manualAnchor;
         scriptureLinks.style.display = '';
-        manualLinks.style.display = 'none';
         renderLinksForDay(arr);
 
         if (!hasContent){
@@ -600,8 +620,9 @@
         toggleBtn.textContent = 'Show Sections';
         copyBtn.disabled = !hasContent;
 
+        manualLinks.style.display = '';
+        manualLinks.innerHTML = manualAnchor;
         scriptureLinks.style.display = '';
-        manualLinks.style.display = 'none';
         renderLinksForWeek(sources);
 
         if (!hasContent){
@@ -627,8 +648,11 @@
         manualLinks.style.display = '';
 
         const man = await loadManual(cw);
+        const fallbackUrl = getManualUrlForWeek(cw);
         if (man.url){
           manualLinks.innerHTML = `<a href="${man.url}" target="_blank" rel="noopener">Open Manual (web)</a>`;
+        } else if (fallbackUrl){
+          manualLinks.innerHTML = `<a href="${fallbackUrl}" target="_blank" rel="noopener">Open Manual (Week ${weekNumLabel})</a>`;
         } else {
           manualLinks.innerHTML = `<span style="opacity:.8;">No manual URL set for this week.</span>`;
         }
