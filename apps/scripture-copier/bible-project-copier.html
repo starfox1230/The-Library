@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Bible Project Copier</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --input-bg: #272727;
+      --input-border: #333;
+      --radius: 8px;
+      --spacing: 16px;
+      --font: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, h1 { touch-action: manipulation; }
+    body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: var(--font)/1.5 system-ui, sans-serif;
+      height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .container {
+      display: flex; flex-direction: column;
+      padding: var(--spacing);
+      max-width: 600px; width: 100%; height: 100%;
+    }
+    .title-nav {
+      position: relative;
+      margin-bottom: var(--spacing);
+      text-align: center;
+    }
+    .title-nav h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: inline-block;
+      user-select: none;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      z-index: 10;
+      min-width: 160px;
+    }
+    .dropdown-menu a {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .dropdown-menu a:hover {
+      background: var(--input-border);
+    }
+    .form-group {
+      display: flex; flex-wrap: wrap;
+      gap: var(--spacing);
+      margin-bottom: var(--spacing);
+    }
+    .form-group > div {
+      flex: 1 1 45%; min-width: 120px;
+    }
+    label {
+      display: block; margin-bottom: 4px; font-weight: 500;
+    }
+    select {
+      width: 100%; padding: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    .actions {
+      display: flex; gap: 8px;
+      margin-bottom: var(--spacing);
+    }
+    .actions button {
+      flex: 1; padding: 12px;
+      font-size: 1rem; font-weight: 500;
+      color: var(--bg); background: var(--accent);
+      border: none; border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .actions button:disabled {
+      opacity: 0.4; cursor: not-allowed;
+    }
+    #scripture-text {
+      flex: 1; width: 100%;
+      padding: var(--spacing);
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      resize: none; overflow-y: auto;
+      font-size: 0.9rem; line-height: 1.4;
+    }
+    @media (min-width:600px) {
+      .form-group { flex-wrap: nowrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-nav">
+      <h1 id="dropdown-btn">Bible Project Copier ▾</h1>
+      <div id="dropdown-menu" class="dropdown-menu">
+        <a href="index.html">Scripture Copier</a>
+        <a href="cfm.html">Come Follow Me</a>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div>
+        <label for="volume">Volume</label>
+        <select id="volume"></select>
+      </div>
+      <div>
+        <label for="start-video">Start Video</label>
+        <select id="start-video"></select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div>
+        <label for="end-video">End Video (optional)</label>
+        <select id="end-video"></select>
+      </div>
+      <div aria-hidden="true"></div>
+    </div>
+
+    <div class="actions">
+      <button id="fetch-btn">Fetch Transcript</button>
+      <button id="copy-btn" disabled>Copy to Clipboard</button>
+    </div>
+
+    <textarea id="scripture-text" readonly placeholder="Your transcript will appear here…"></textarea>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ddTitle = document.getElementById('dropdown-btn');
+    const ddMenu  = document.getElementById('dropdown-menu');
+    ddTitle.addEventListener('click', e => {
+      e.stopPropagation();
+      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => {
+      ddMenu.style.display = 'none';
+    });
+
+    const transcripts = {
+      'old-testament': [
+        { display: '00 - Old Testament Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/00 - Old Testament Summary A Complete Animated Overview' },
+        { display: '01 - Book of Genesis Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/old-testament/01 - Book of Genesis Summary A Complete Animated Overview (Part 1)' },
+        { display: '02 - Book of Genesis Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/old-testament/02 - Book of Genesis Summary A Complete Animated Overview (Part 2)' },
+        { display: '03 - Book of Exodus Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/old-testament/03 - Book of Exodus Summary A Complete Animated Overview (Part 1)' },
+        { display: '04 - Book of Exodus Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/old-testament/04 - Book of Exodus Summary A Complete Animated Overview (Part 2)' },
+        { display: '05 - Book of Leviticus Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/05 - Book of Leviticus Summary A Complete Animated Overview' },
+        { display: '06 - Book of Numbers Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/06 - Book of Numbers Summary A Complete Animated Overview' },
+        { display: '07 - Book of Deuteronomy Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/07 - Book of Deuteronomy Summary A Complete Animated Overview' },
+        { display: '08 - Book of Joshua Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/08 - Book of Joshua Summary A Complete Animated Overview' },
+        { display: '09 - Book of Judges Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/09 - Book of Judges Summary A Complete Animated Overview' },
+        { display: '10 - Book of Ruth Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/10 - Book of Ruth Summary A Complete Animated Overview' },
+        { display: '11 - Book of 1 Samuel Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/11 - Book of 1 Samuel Summary A Complete Animated Overview' },
+        { display: '12 - Book of 2 Samuel Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/12 - Book of 2 Samuel Summary A Complete Animated Overview' },
+        { display: '13 - Books of 1-2 Kings Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/13 - Books of 1-2 Kings Summary A Complete Animated Overview' },
+        { display: '14 - Books of 1-2 Chronicles Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/14 - Books of 1-2 Chronicles Summary A Complete Animated Overview' },
+        { display: '15 - Books of Ezra-Nehemiah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/15 - Books of Ezra-Nehemiah Summary A Complete Animated Overview' },
+        { display: '16 - Book of Esther Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/16 - Book of Esther Summary A Complete Animated Overview' },
+        { display: '17 - Book of Job Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/17 - Book of Job Summary A Complete Animated Overview' },
+        { display: '18 - Book of Psalms Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/18 - Book of Psalms Summary A Complete Animated Overview' },
+        { display: '19 - Book of Proverbs Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/19 - Book of Proverbs Summary A Complete Animated Overview' },
+        { display: '20 - Book of Ecclesiastes Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/20 - Book of Ecclesiastes Summary A Complete Animated Overview' },
+        { display: '21 - Song of Songs Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/21 - Song of Songs Summary A Complete Animated Overview' },
+        { display: '22 - Book of Isaiah Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/old-testament/22 - Book of Isaiah Summary A Complete Animated Overview (Part 1)' },
+        { display: '23 - Book of Isaiah Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/old-testament/23 - Book of Isaiah Summary A Complete Animated Overview (Part 2)' },
+        { display: '24 - Book of Jeremiah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/24 - Book of Jeremiah Summary A Complete Animated Overview' },
+        { display: '25 - Book of Lamentations Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/25 - Book of Lamentations Summary A Complete Animated Overview' },
+        { display: '26 - Book of Ezekiel Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/old-testament/26 - Book of Ezekiel Summary A Complete Animated Overview (Part 1)' },
+        { display: '27 - Book of Ezekiel Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/old-testament/27 - Book of Ezekiel Summary A Complete Animated Overview (Part 2)' },
+        { display: '28 - Book of Daniel Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/28 - Book of Daniel Summary A Complete Animated Overview' },
+        { display: '29 - Book of Hosea Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/29 - Book of Hosea Summary A Complete Animated Overview' },
+        { display: '30 - Book of Joel Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/30 - Book of Joel Summary A Complete Animated Overview' },
+        { display: '31 - Book of Amos Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/31 - Book of Amos Summary A Complete Animated Overview' },
+        { display: '32 - Book of Obadiah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/32 - Book of Obadiah Summary A Complete Animated Overview' },
+        { display: '33 - Book of Jonah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/33 - Book of Jonah Summary A Complete Animated Overview' },
+        { display: '34 - Book of Micah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/34 - Book of Micah Summary A Complete Animated Overview' },
+        { display: '35 - Book of Nahum Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/35 - Book of Nahum Summary A Complete Animated Overview' },
+        { display: '36 - Book of Habakkuk Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/36 - Book of Habakkuk Summary A Complete Animated Overview' },
+        { display: '37 - Book of Zephaniah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/37 - Book of Zephaniah Summary A Complete Animated Overview' },
+        { display: '38 - Book of Haggai Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/38 - Book of Haggai Summary A Complete Animated Overview' },
+        { display: '39 - Book of Zechariah Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/39 - Book of Zechariah Summary A Complete Animated Overview' },
+        { display: '40 - Book of Malachi Summary A Complete Animated Overview', path: 'bible-project-transcripts/old-testament/40 - Book of Malachi Summary A Complete Animated Overview' }
+      ],
+      'new-testament': [
+        { display: '01 - New Testament Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/01 - New Testament Summary A Complete Animated Overview.txt' },
+        { display: '02 - Gospel of Matthew Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/new-testament/02 - Gospel of Matthew Summary A Complete Animated Overview (Part 1).txt' },
+        { display: '03 - Gospel of Matthew Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/new-testament/03 - Gospel of Matthew Summary A Complete Animated Overview (Part 2).txt' },
+        { display: '04 - Gospel of Mark Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/04 - Gospel of Mark Summary A Complete Animated Overview.txt' },
+        { display: '05 - Gospel of John Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/new-testament/05 - Gospel of John Summary A Complete Animated Overview (Part 1).txt' },
+        { display: '06 - Gospel of John Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/new-testament/06 - Gospel of John Summary A Complete Animated Overview (Part 2).txt' },
+        { display: '07 - Gospel of Luke Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/new-testament/07 - Gospel of Luke Summary A Complete Animated Overview (Part 1).txt' },
+        { display: '08 - Gospel of Luke Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/new-testament/08 - Gospel of Luke Summary A Complete Animated Overview (Part 2).txt' },
+        { display: '09 - Book of Acts Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/new-testament/09 - Book of Acts Summary A Complete Animated Overview (Part 1).txt' },
+        { display: '10 - Book of Acts Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/new-testament/10 - Book of Acts Summary A Complete Animated Overview (Part 2).txt' },
+        { display: '11 - Book of Romans Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/new-testament/11 - Book of Romans Summary A Complete Animated Overview (Part 1).txt' },
+        { display: '12 - Book of Romans Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/new-testament/12 - Book of Romans Summary A Complete Animated Overview (Part 2).txt' },
+        { display: '13 - Book of 1 Corinthians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/13 - Book of 1 Corinthians Summary A Complete Animated Overview.txt' },
+        { display: '14 - Book of 2 Corinthians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/14 - Book of 2 Corinthians Summary A Complete Animated Overview.txt' },
+        { display: '15 - Book of Galatians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/15 - Book of Galatians Summary A Complete Animated Overview.txt' },
+        { display: '16 - Book of Ephesians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/16 - Book of Ephesians Summary A Complete Animated Overview.txt' },
+        { display: '17 - Book of Philippians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/17 - Book of Philippians Summary A Complete Animated Overview.txt' },
+        { display: '18 - Book of Colossians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/18 - Book of Colossians Summary A Complete Animated Overview.txt' },
+        { display: '19 - Book of 1 Thessalonians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/19 - Book of 1 Thessalonians Summary A Complete Animated Overview.txt' },
+        { display: '20 - Book of 2 Thessalonians Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/20 - Book of 2 Thessalonians Summary A Complete Animated Overview.txt' },
+        { display: '21 - Book of 1 Timothy Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/21 - Book of 1 Timothy Summary A Complete Animated Overview.txt' },
+        { display: '22 - Book of 2 Timothy Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/22 - Book of 2 Timothy Summary A Complete Animated Overview.txt' },
+        { display: '23 - Book of Titus Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/23 - Book of Titus Summary A Complete Animated Overview.txt' },
+        { display: '24 - Book of Philemon Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/24 - Book of Philemon Summary A Complete Animated Overview.txt' },
+        { display: '25 - Book of Hebrews Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/25 - Book of Hebrews Summary A Complete Animated Overview.txt' },
+        { display: '26 - Book of James Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/26 - Book of James Summary A Complete Animated Overview.txt' },
+        { display: '27 - Book of 1 Peter Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/27 - Book of 1 Peter Summary A Complete Animated Overview.txt' },
+        { display: '28 - Book of 2 Peter Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/28 - Book of 2 Peter Summary A Complete Animated Overview.txt' },
+        { display: '29 - Books of 1-3 John Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/29 - Books of 1-3 John Summary A Complete Animated Overview.txt' },
+        { display: '30 - Book of Jude Summary A Complete Animated Overview', path: 'bible-project-transcripts/new-testament/30 - Book of Jude Summary A Complete Animated Overview.txt' },
+        { display: '31 - Book of Revelation Summary A Complete Animated Overview (Part 1)', path: 'bible-project-transcripts/new-testament/31 - Book of Revelation Summary A Complete Animated Overview (Part 1).txt' },
+        { display: '32 - Book of Revelation Summary A Complete Animated Overview (Part 2)', path: 'bible-project-transcripts/new-testament/32 - Book of Revelation Summary A Complete Animated Overview (Part 2).txt' }
+      ]
+    };
+
+    const volumeOrder = ['old-testament', 'new-testament'];
+
+    const volSel      = document.getElementById('volume');
+    const startVideo  = document.getElementById('start-video');
+    const endVideo    = document.getElementById('end-video');
+    const fetchBtn = document.getElementById('fetch-btn');
+    const copyBtn  = document.getElementById('copy-btn');
+    const outTA    = document.getElementById('scripture-text');
+
+    const textCache = new Map();
+
+    volumeOrder.forEach(v => volSel.add(new Option(v.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), v)));
+    volSel.value = 'old-testament';
+
+    volSel.addEventListener('change', () => {
+      populateStartVideos();
+    });
+
+    startVideo.addEventListener('change', updateEndOptions);
+    volSel.dispatchEvent(new Event('change'));
+
+    function populateStartVideos() {
+      const list = transcripts[volSel.value] || [];
+      startVideo.innerHTML = '';
+      endVideo.innerHTML = '';
+      copyBtn.disabled = true;
+      outTA.value = '';
+      list.forEach((item, index) => {
+        startVideo.add(new Option(item.display, index));
+      });
+      if (list.length) {
+        startVideo.value = '0';
+      }
+      updateEndOptions();
+    }
+
+    function updateEndOptions() {
+      const list = transcripts[volSel.value] || [];
+      const startIdx = parseInt(startVideo.value, 10);
+      endVideo.innerHTML = '';
+      endVideo.add(new Option('(optional)', ''));
+      if (isNaN(startIdx)) {
+        copyBtn.disabled = true;
+        return;
+      }
+      for (let i = startIdx; i < list.length; i++) {
+        endVideo.add(new Option(list[i].display, i));
+      }
+      endVideo.value = '';
+    }
+
+    fetchBtn.addEventListener('click', async () => {
+      const list = transcripts[volSel.value] || [];
+      const startIdx = parseInt(startVideo.value, 10);
+      if (isNaN(startIdx) || !list[startIdx]) {
+        outTA.value = 'Select a starting video first.';
+        copyBtn.disabled = true;
+        return;
+      }
+      let endIdx = parseInt(endVideo.value, 10);
+      if (isNaN(endIdx) || endIdx < startIdx) {
+        endIdx = startIdx;
+      }
+
+      copyBtn.disabled = true;
+      outTA.value = 'Loading transcripts…';
+
+      try {
+        const range = list.slice(startIdx, endIdx + 1);
+        const parts = [];
+        for (const item of range) {
+          let text = textCache.get(item.path);
+          if (!text) {
+            const response = await fetch(encodeURI(item.path));
+            if (!response.ok) {
+              throw new Error(`Failed to load ${item.display} (${response.status})`);
+            }
+            text = await response.text();
+            textCache.set(item.path, text);
+          }
+          parts.push(`${item.display}\n\n${text.trim()}`.trim());
+        }
+        outTA.value = parts.join('\n\n\n');
+        copyBtn.disabled = outTA.value.length === 0;
+      } catch (err) {
+        outTA.value = `Error loading transcripts: ${err.message}`;
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (!outTA.value) return;
+      outTA.select();
+      document.execCommand('copy');
+      alert('Copied to clipboard!');
+    });
+  });
+  </script>
+</body>
+</html>
