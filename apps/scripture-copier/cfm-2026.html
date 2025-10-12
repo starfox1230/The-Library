@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>Come Follow Me 2026</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #bb86fc;
+      --input-bg: #272727;
+      --input-border: #444; /* Slightly lighter for better contrast */
+      --radius: 8px;
+      --spacing: 16px;
+      --font: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, h1 { touch-action: manipulation; }
+    body {
+      margin:0; padding:0;
+      background: var(--bg);
+      color: var(--text);
+      font: var(--font)/1.5 system-ui, sans-serif;
+      min-height:100vh;
+      display:flex; justify-content:center; align-items:flex-start;
+      padding:var(--spacing);
+    }
+    .container {
+      width:100%; max-width:600px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: var(--spacing);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    .title-nav {
+      position: relative; text-align: center; margin-bottom: var(--spacing);
+    }
+    .title-nav h1 {
+      margin: 0; cursor: pointer; display: inline-block; font-size: 1.5rem;
+      user-select: none;
+    }
+
+    /* --- MODERNIZED ACCORDION MENU STYLES --- */
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      z-index: 10;
+      min-width: 250px;
+      text-align: left;
+      padding: 6px 0;
+      overflow: hidden; /* Ensures child border-radius is respected */
+    }
+    .dropdown-menu ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .dropdown-menu li {
+      border-bottom: 1px solid var(--input-border);
+    }
+    .dropdown-menu li:last-child {
+      border-bottom: none;
+    }
+    .dropdown-menu a, .dropdown-menu .submenu-trigger {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .dropdown-menu a:hover, .dropdown-menu .submenu-trigger:hover {
+      background: var(--input-bg);
+    }
+    .submenu-trigger::after {
+      content: '›'; /* Chevron right */
+      margin-left: auto;
+      font-weight: bold;
+      font-size: 1.2em;
+      color: var(--accent);
+      transition: transform 0.3s ease-in-out;
+    }
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.2);
+      transition: max-height 0.3s ease-in-out;
+    }
+    .submenu a {
+      padding-left: 35px; /* Indent submenu items */
+    }
+    /* Open State */
+    .menu-item-open > .submenu {
+      max-height: 500px; /* Animate to a large enough height */
+    }
+    .menu-item-open > .submenu-trigger::after {
+      transform: rotate(90deg); /* Point chevron down */
+    }
+    
+    /* --- FULLSCREEN EMBED STYLES --- */
+    .embed-modal {
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
+      z-index: 1000; padding: 40px;
+    }
+    .embed-modal iframe {
+      width: 100%; height: 100%; background-color: #fff;
+      border-radius: var(--radius); border: none;
+    }
+    .embed-close {
+      position: absolute; top: 5px; right: 15px; background: none; border: none;
+      color: #fff; font-size: 2.5rem; font-weight: bold; cursor: pointer; line-height: 1;
+    }
+
+    #week-info, #day-info {
+      white-space: pre-line; margin-bottom: var(--spacing);
+      font-size: 0.95rem; line-height: 1.4;
+    }
+    .actions {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: var(--spacing); justify-content:center;
+    }
+    .actions button {
+      flex: 1 1 120px; padding: 10px; font-size: .95rem; font-weight:500;
+      color: var(--bg); background: var(--accent); border:none; border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #content-text {
+      width: 100%; padding: var(--spacing); background: var(--input-bg); color: var(--text);
+      border: 1px solid var(--input-border); border-radius: var(--radius); resize: none;
+      font-size: 0.9rem; line-height: 1.4; white-space: pre-wrap; overflow: hidden; height: auto;
+    }
+    #scripture-links {
+      margin-bottom: var(--spacing); text-align: center; font-size: 0.95rem; line-height: 1.4;
+    }
+    #scripture-links a {
+      color: var(--accent); background: var(--input-bg); padding: 4px 8px;
+      border-radius: var(--radius); text-decoration: none; margin: 0 4px; font-weight: 500;
+    }
+    #scripture-links a:hover { background: var(--input-border); opacity: 0.9; }
+    @media (min-width:600px) { .actions { justify-content: space-between; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title-nav">
+      <h1 id="dropdown-btn">Come Follow Me 2026 ▾</h1>
+      <nav id="dropdown-menu" class="dropdown-menu">
+        <ul>
+          <li><a href="index.html">Scripture Copier</a></li>
+          <li class="has-submenu">
+            <span class="submenu-trigger">Learn It</span>
+            <ul class="submenu">
+              <li><a href="chatgpt://chat.openai.com/chat" target="_blank" rel="noopener">ChatGPT</a></li>
+              <li><a href="https://yt2anki.onrender.com/" target="_blank" rel="noopener">Anki / Short Quiz Generator</a></li>
+              <li><a href="https://starfox1230.github.io/The-Library/apps/quiz-generator/index.html" target="_blank" rel="noopener">Long Quiz Generator</a></li>
+              <li><a href="https://starfox1230.github.io/memorize/" target="_blank" rel="noopener">Memorize</a></li>
+            </ul>
+          </li>
+          <li class="has-submenu">
+            <span class="submenu-trigger">YouTube</span>
+            <ul class="submenu">
+              <li><a href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLekBXC8CBIQEysfrjee9ivY&si=lcm8wAjKnVFwkceJ">Church History Matters</a></li>
+              <li><a href="youtube://www.youtube.com/c/FollowHimOfficialChannel">Follow Him</a></li>
+              <li class="has-submenu">
+                <span class="submenu-trigger">Copy YouTube Transcript</span>
+                <ul class="submenu">
+                  <li><a href="#" class="embed-link" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a></li>
+                  <li><a href="https://tactiq.io/tools/youtube-transcript">Tactiq.io</a></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <div id="week-info">Loading week…</div>
+    <div id="day-info"></div>
+    <div class="actions">
+      <button id="prev-day-btn" disabled>← Previous Day</button>
+      <button id="next-day-btn" disabled>Next Day →</button>
+    </div>
+    <div class="actions">
+      <button id="toggle-btn" disabled>Show Sections</button>
+      <button id="copy-btn" disabled>Copy</button>
+    </div>
+    <div id="scripture-links"></div>
+    <textarea id="content-text" readonly placeholder="Content will appear here…"></textarea>
+  </div>
+  
+  <div id="embed-modal" class="embed-modal">
+    <button id="embed-close" class="embed-close">×</button>
+    <iframe id="embed-iframe" src="" allow="fullscreen"></iframe>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    // --- MENU LOGIC (with toggle-to-close) ---
+    const ddTitle = document.getElementById('dropdown-btn');
+    const ddMenu = document.getElementById('dropdown-menu');
+    
+    // Toggle main dropdown
+    ddTitle.addEventListener('click', e => {
+      e.stopPropagation();
+      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    
+    // Close dropdown if clicking outside
+    document.addEventListener('click', () => {
+      ddMenu.style.display = 'none';
+    });
+
+    // Accordion submenu logic with toggle-to-close
+    ddMenu.addEventListener('click', e => {
+      e.stopPropagation(); // Keep the main menu open
+      const trigger = e.target.closest('.submenu-trigger');
+      if (!trigger) return; // Exit if the click wasn't on a trigger
+
+      const parentLi = trigger.parentElement;
+
+      // Close sibling submenus to maintain accordion behavior
+      Array.from(parentLi.parentElement.children).forEach(sibling => {
+        if (sibling !== parentLi) {
+          sibling.classList.remove('menu-item-open');
+          // Also close any sub-sub-menus within the sibling
+          sibling.querySelector('.menu-item-open')?.classList.remove('menu-item-open');
+        }
+      });
+      
+      // Now, simply toggle the class on the clicked item
+      parentLi.classList.toggle('menu-item-open');
+    });
+
+    // --- FULLSCREEN EMBED LOGIC ---
+    const embedModal = document.getElementById('embed-modal');
+    const embedIframe = document.getElementById('embed-iframe');
+    const embedCloseBtn = document.getElementById('embed-close');
+    function openEmbed(url) {
+      embedIframe.src = url;
+      embedModal.style.display = 'block';
+      ddMenu.style.display = 'none';
+    }
+    function closeEmbed() {
+      embedIframe.src = 'about:blank';
+      embedModal.style.display = 'none';
+    }
+    document.querySelectorAll('.embed-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        openEmbed(link.dataset.url);
+      });
+    });
+    embedCloseBtn.addEventListener('click', closeEmbed);
+
+    // --- CORE APP LOGIC ---
+    const parseDate = s => {
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    };
+    const fmtDate = d => {
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${mm}/${dd}/${d.getFullYear()}`;
+    };
+    const defaultLinkBases = {
+      doctrineandcovenants: { doctrineandcovenants: 'dc-testament/dc' },
+      oldtestament: {
+        genesis: 'ot/gen', exodus: 'ot/ex', leviticus: 'ot/lev', numbers: 'ot/num',
+        deuteronomy: 'ot/deut', joshua: 'ot/josh', judges: 'ot/judg', ruth: 'ot/ruth',
+        '1samuel': 'ot/1-sam', '2samuel': 'ot/2-sam', '1kings': 'ot/1-kgs', '2kings': 'ot/2-kgs',
+        '1chronicles': 'ot/1-chr', '2chronicles': 'ot/2-chr', ezra: 'ot/ezra', nehemiah: 'ot/neh',
+        esther: 'ot/esth', job: 'ot/job', psalms: 'ot/ps', proverbs: 'ot/prov',
+        ecclesiastes: 'ot/eccl', songofsolomon: 'ot/song', isaiah: 'ot/isa', jeremiah: 'ot/jer',
+        lamentations: 'ot/lam', ezekiel: 'ot/ezek', daniel: 'ot/dan', hosea: 'ot/hosea',
+        joel: 'ot/joel', amos: 'ot/amos', obadiah: 'ot/obad', jonah: 'ot/jonah',
+        micah: 'ot/micah', nahum: 'ot/nahum', habakkuk: 'ot/hab', zephaniah: 'ot/zeph',
+        haggai: 'ot/hag', zechariah: 'ot/zech', malachi: 'ot/mal'
+      },
+      pearlofgreatprice: {
+        moses: 'pgp/moses', abraham: 'pgp/abr', josephsmithhistory: 'pgp/js-h',
+        josephsmithmatthew: 'pgp/js-m', articlesoffaith: 'pgp/a-of-f'
+      }
+    };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const schedule = await fetch('cfm-schedule-2026.json').then(r => r.json());
+    let cw = schedule.findIndex(wk => {
+      const s = parseDate(wk.start), e = parseDate(wk.end);
+      return today >= s && today <= e;
+    });
+    if (cw < 0) {
+      document.getElementById('week-info').textContent = 'No Come Follow Me this week.';
+      return;
+    }
+    let dayIdx = Math.floor((today - parseDate(schedule[cw].start)) / (1000 * 60 * 60 * 24));
+    dayIdx = Math.max(0, Math.min(6, dayIdx));
+    let displayMode = 'verses';
+    const cache = {};
+    const weekInfo = document.getElementById('week-info');
+    const dayInfo = document.getElementById('day-info');
+    const prevBtn = document.getElementById('prev-day-btn');
+    const nextBtn = document.getElementById('next-day-btn');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const contentTA = document.getElementById('content-text');
+
+    const buildReadings = wk => {
+      if (Array.isArray(wk.readings) && wk.readings.length) return wk.readings;
+      if (wk.book && wk.chapStart && wk.chapEnd) {
+        return [{
+          volume: wk.volume,
+          book: wk.book,
+          chapStart: wk.chapStart,
+          chapEnd: wk.chapEnd,
+          linkBase: wk.linkBase,
+          display: wk.bookDisplay
+        }];
+      }
+      return [];
+    };
+
+    async function loadWeek(i) {
+      if (cache[i]) return cache[i];
+      const wk = schedule[i];
+      const readings = buildReadings(wk);
+      const flat = [];
+      const sources = [];
+
+      async function addReading(reading) {
+        const { volume, book, chapStart, chapEnd } = reading;
+        if (!volume || !book || !chapStart || !chapEnd) return;
+        const data = await fetch(`data/${volume}/${book}.json`).then(r => r.json());
+        const display = reading.display || data.title || book;
+        const linkBase = reading.linkBase
+          || (defaultLinkBases[volume] && defaultLinkBases[volume][book])
+          || '';
+        sources.push({ display, start: chapStart, end: chapEnd, linkBase });
+        for (let c = chapStart; c <= chapEnd; c++) {
+          const ch = data.chapters.find(x => x.number === c);
+          if (!ch) continue;
+          ch.verses.forEach((v, j) => {
+            flat.push({
+              volume,
+              book,
+              bookDisplay: display,
+              linkBase,
+              chapter: c,
+              verse: j + 1,
+              text: v.text
+            });
+          });
+        }
+      }
+
+      for (const reading of readings) {
+        await addReading(reading);
+      }
+
+      const total = flat.length;
+      const assigns = Array.from({ length: 7 }, () => []);
+      if (total) {
+        const per = Math.floor(total / 7);
+        const ext = total % 7;
+        let pos = 0;
+        for (let d = 0; d < 7; d++) {
+          const cnt = per + (d < ext ? 1 : 0);
+          assigns[d] = flat.slice(pos, pos + cnt);
+          pos += cnt;
+        }
+      }
+
+      cache[i] = { wk, flat, assigns, sources };
+      return cache[i];
+    }
+
+    function autoResize() {
+      contentTA.style.height = 'auto';
+      contentTA.style.height = contentTA.scrollHeight + 'px';
+    }
+
+    async function renderDay() {
+      const { wk, assigns, flat, sources } = await loadWeek(cw);
+      const rangeLine = `Week we're in: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}`;
+      const extraLineParts = [];
+      if (wk.title) extraLineParts.push(wk.title);
+      if (wk.note) extraLineParts.push(wk.note);
+      if (sources.length) {
+        const srcText = sources.map(src => {
+          const span = src.end > src.start ? `${src.start}–${src.end}` : `${src.start}`;
+          return `${src.display} ${span}`;
+        }).join('; ');
+        extraLineParts.push(`Readings: ${srcText}`);
+      }
+      weekInfo.textContent = extraLineParts.length ? `${rangeLine}\n${extraLineParts.join('\n')}` : rangeLine;
+
+      const dt = new Date(parseDate(wk.start));
+      dt.setDate(dt.getDate() + dayIdx);
+      dayInfo.textContent = `Today's date: ${fmtDate(dt)}`;
+
+      prevBtn.disabled = (cw === 0 && dayIdx === 0);
+      nextBtn.disabled = (cw === schedule.length - 1 && dayIdx === 6);
+
+      const arr = assigns[dayIdx] || [];
+      const hasContent = arr.length > 0;
+      toggleBtn.disabled = !hasContent;
+      copyBtn.disabled = !hasContent;
+      toggleBtn.textContent = displayMode === 'verses' ? 'Show Sections' : 'Show Verses';
+      copyBtn.textContent = 'Copy';
+
+      const linkMap = new Map();
+      arr.forEach(({ bookDisplay, chapter, linkBase }) => {
+        if (!linkBase) return;
+        const key = `${linkBase}|${chapter}`;
+        if (!linkMap.has(key)) {
+          const href = `https://www.churchofjesuschrist.org/study/scriptures/${linkBase}/${chapter}?lang=eng`;
+          linkMap.set(key, `<a href="${href}" target="_blank" rel="noopener">${bookDisplay} ${chapter}</a>`);
+        }
+      });
+      document.getElementById('scripture-links').innerHTML = [...linkMap.values()].join(' | ');
+
+      if (!hasContent) {
+        contentTA.value = wk.title || 'No reading assignment for this week yet. Check back soon!';
+        autoResize();
+        return;
+      }
+
+      if (displayMode === 'verses') {
+        const ranges = [];
+        arr.forEach((it, i) => {
+          const prev = arr[i - 1];
+          if (!prev || it.bookDisplay !== prev.bookDisplay || it.chapter !== prev.chapter || it.verse !== prev.verse + 1) {
+            ranges.push({
+              book: it.bookDisplay,
+              chapter: it.chapter,
+              start: it.verse,
+              end: it.verse
+            });
+          } else {
+            ranges[ranges.length - 1].end = it.verse;
+          }
+        });
+        const hdr = ranges.map(r => `${r.book} ${r.chapter}:${r.start}` + (r.end > r.start ? `–${r.end}` : '')).join(', ');
+        const body = arr.map(it => `${it.verse}. ${it.text}`).join('\n');
+        contentTA.value = hdr ? `${hdr}\n\n${body}` : body;
+      } else {
+        const chapterKeys = [];
+        arr.forEach(it => {
+          const key = `${it.bookDisplay}|${it.chapter}`;
+          if (!chapterKeys.find(k => k.key === key)) {
+            chapterKeys.push({ key, bookDisplay: it.bookDisplay, chapter: it.chapter });
+          }
+        });
+        let out = '';
+        for (const { bookDisplay, chapter } of chapterKeys) {
+          const verseList = flat.filter(x => x.bookDisplay === bookDisplay && x.chapter === chapter);
+          out += `${bookDisplay} ${chapter}\n\n` + verseList.map(v => `${v.verse}. ${v.text}`).join('\n') + '\n\n';
+        }
+        contentTA.value = out.trim();
+      }
+      autoResize();
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (dayIdx > 0) dayIdx--;
+      else if (cw > 0) { cw--; dayIdx = 6; }
+      renderDay();
+    });
+    nextBtn.addEventListener('click', () => {
+      if (dayIdx < 6) dayIdx++;
+      else if (cw < schedule.length - 1) { cw++; dayIdx = 0; }
+      renderDay();
+    });
+    toggleBtn.addEventListener('click', () => {
+      if (toggleBtn.disabled) return;
+      displayMode = displayMode === 'verses' ? 'sections' : 'verses';
+      renderDay();
+    });
+    copyBtn.addEventListener('click', () => {
+      if (copyBtn.disabled) return;
+      contentTA.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+    });
+    renderDay();
+  });
+  </script>
+</body>
+</html>
