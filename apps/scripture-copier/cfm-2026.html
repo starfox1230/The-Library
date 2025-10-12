@@ -43,13 +43,25 @@
       display:flex; justify-content:space-between; align-items:center; gap:8px;
       margin-top: 6px; margin-bottom: var(--spacing);
     }
+
+    /* Pill with full-size transparent date input overlay */
     .pill {
+      position: relative;
       display:inline-flex; align-items:center; gap:8px;
       padding:8px 12px; border-radius:999px; border:1px solid var(--input-border);
-      background: var(--input-bg); color: var(--text); cursor:pointer; font-size:.95rem;
-      user-select: none;
+      background: var(--input-bg); color: var(--text); font-size:.95rem;
     }
-    .pill:hover { background:#2d2d2d; }
+    .pill-input-overlay {
+      position:absolute; inset:0; /* top/right/bottom/left = 0 */
+      width:100%; height:100%;
+      opacity:0; /* invisible, still clickable */
+      border:none; background:transparent;
+      -webkit-appearance:none; appearance:none;
+      cursor:pointer;
+      z-index: 2; /* above pill contents */
+      pointer-events:auto;
+    }
+    .pill strong { position: relative; z-index: 1; } /* stay above background */
 
     /* Dropdown / accordion */
     .dropdown-menu {
@@ -82,7 +94,6 @@
       transition: transform 0.3s ease-in-out;
     }
     .submenu { max-height: 0; overflow: hidden; background: rgba(0, 0, 0, 0.2); transition: max-height 0.3s ease-in-out; }
-    .submenu a { padding-left: 35px; }
     .menu-item-open > .submenu { max-height: 500px; }
     .menu-item-open > .submenu-trigger::after { transform: rotate(90deg); }
 
@@ -140,37 +151,6 @@
     }
     #scripture-links a:hover, #manual-links a:hover { background: var(--input-border); opacity: 0.9; }
 
-    /* Date popover (replaces the hidden 1x1 input) */
-    .date-pop {
-      position:absolute;
-      top: calc(100% + 6px);
-      left: 8px;
-      z-index: 20;
-      background: var(--card-bg);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius);
-      box-shadow: 0 8px 20px rgba(0,0,0,.55);
-      padding: 10px;
-      display: none;
-      min-width: 260px;
-    }
-    .date-pop-row {
-      display:flex; gap:8px; align-items:center; justify-content:space-between;
-    }
-    .date-pop input[type="date"]{
-      flex: 1 1 auto;
-      background: var(--input-bg);
-      color: var(--text);
-      border: 1px solid var(--input-border);
-      border-radius: var(--radius);
-      padding: 8px;
-      font-size: 0.95rem;
-    }
-    .date-pop .mini-btn {
-      border:none; border-radius: var(--radius); padding:8px 10px; cursor:pointer;
-      background: var(--accent); color: var(--bg); font-weight:600;
-      flex: 0 0 auto;
-    }
     @media (min-width:600px) { .actions { justify-content: space-between; } }
   </style>
 </head>
@@ -208,23 +188,17 @@
       </nav>
 
       <div class="top-row">
-        <button id="today-pill" class="pill" title="Tap to change date">
-          <span id="today-label">Today:</span>
+        <!-- The pill is now the visual shell; the date input overlays it fully and triggers the native picker -->
+        <div id="today-pill" class="pill" title="Tap to change date">
+          <input id="date-input" type="date" class="pill-input-overlay" aria-label="Choose date">
+          <span>Today:</span>
           <strong id="today-date">MM/DD/YYYY</strong> ▾
-        </button>
+        </div>
+
         <div class="segmented" role="tablist" aria-label="View mode">
           <button class="seg-btn" id="mode-day" role="tab" aria-selected="true" data-mode="day">Day</button>
           <button class="seg-btn" id="mode-week" role="tab" aria-selected="false" data-mode="week">Week</button>
           <button class="seg-btn" id="mode-manual" role="tab" aria-selected="false" data-mode="manual">Manual</button>
-        </div>
-      </div>
-
-      <!-- Visible popover date picker -->
-      <div id="date-pop" class="date-pop" aria-hidden="true">
-        <div class="date-pop-row">
-          <input id="date-input" type="date" aria-label="Choose date">
-          <button id="date-today" class="mini-btn" type="button">Today</button>
-          <button id="date-close" class="mini-btn" type="button">Close</button>
         </div>
       </div>
     </div>
@@ -326,25 +300,25 @@
     const scriptureLinks = document.getElementById('scripture-links');
     const manualLinks = document.getElementById('manual-links');
     const contentTA = document.getElementById('content-text');
-
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const toggleBtn = document.getElementById('toggle-btn');
     const copyBtn = document.getElementById('copy-btn');
 
     const segBtns = Array.from(document.querySelectorAll('.seg-btn'));
-    const todayPill = document.getElementById('today-pill');
     const todayDateSpan = document.getElementById('today-date');
-
-    // New popover elements
-    const datePop = document.getElementById('date-pop');
     const dateInput = document.getElementById('date-input');
-    const dateTodayBtn = document.getElementById('date-today');
-    const dateCloseBtn = document.getElementById('date-close');
 
     /* ===== Init ===== */
     todayDateSpan.textContent = fmtDate(currentDate);
     dateInput.value = toISODate(currentDate);
+
+    // IMPORTANT: clicking anywhere on the pill actually clicks the input (native picker).
+    // We only need to react to "change" events.
+    dateInput.addEventListener('change', () => {
+      if (!dateInput.value) return;
+      setCurrentDate(parseDate(dateInput.value));
+    });
 
     segBtns.forEach(btn=>{
       btn.addEventListener('click', ()=>{
@@ -355,58 +329,6 @@
         render();
       });
     });
-
-    // Open date popover with robust fallbacks
-    todayPill.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      // Try native picker APIs first (works on many Chromium browsers)
-      if (typeof dateInput.showPicker === 'function') {
-        try { dateInput.showPicker(); return; } catch(_) { /* continue to popover */ }
-      }
-      try { dateInput.click(); } catch(_) {}
-      openDatePop();
-    });
-
-    function openDatePop(){
-      positionDatePop();
-      datePop.style.display = 'block';
-      datePop.setAttribute('aria-hidden','false');
-      // Small timeout helps iOS focus the input reliably
-      setTimeout(()=>dateInput.focus(), 0);
-    }
-    function closeDatePop(){
-      datePop.style.display = 'none';
-      datePop.setAttribute('aria-hidden','true');
-    }
-    function positionDatePop(){
-      // Anchor to the pill (keeps it sensible on rotation/resize)
-      const rect = todayPill.getBoundingClientRect();
-      const top = rect.bottom + window.scrollY + 6;
-      const left = rect.left + window.scrollX;
-      datePop.style.top = `${top}px`;
-      datePop.style.left = `${left}px`;
-    }
-    window.addEventListener('resize', ()=>{ if (datePop.style.display==='block') positionDatePop(); });
-    window.addEventListener('scroll', ()=>{ if (datePop.style.display==='block') positionDatePop(); }, { passive:true });
-    document.addEventListener('click', (ev)=>{
-      if (datePop.style.display==='block' && !datePop.contains(ev.target) && ev.target!==todayPill){
-        closeDatePop();
-      }
-    });
-
-    dateInput.addEventListener('change', ()=>{
-      const picked = dateInput.value;
-      if (!picked) return;
-      setCurrentDate(parseDate(picked));
-      closeDatePop();
-    });
-    dateTodayBtn.addEventListener('click', ()=>{
-      const t = new Date(); t.setHours(0,0,0,0);
-      setCurrentDate(t);
-      dateInput.value = toISODate(t);
-      closeDatePop();
-    });
-    dateCloseBtn.addEventListener('click', closeDatePop);
 
     prevBtn.addEventListener('click', ()=>{
       if (viewMode === 'day') {
@@ -656,13 +578,13 @@
           const body = arr.map(it=>`${it.verse}. ${it.text}`).join('\n');
           contentTA.value = hdr ? `${hdr}\n\n${body}` : body;
         } else {
-          const chapKeys = [];
+          const chapMap = new Map();
           arr.forEach(it=>{
             const key = `${it.bookDisplay}|${it.chapter}`;
-            if (!chapKeys.find(k=>k.key===key)) chapKeys.push({ key, bookDisplay:it.bookDisplay, chapter:it.chapter });
+            if (!chapMap.has(key)) chapMap.set(key, { bookDisplay:it.bookDisplay, chapter:it.chapter });
           });
           let out = '';
-          for (const { bookDisplay, chapter } of chapKeys){
+          for (const { bookDisplay, chapter } of chapMap.values()){
             const verses = flat.filter(x=>x.bookDisplay===bookDisplay && x.chapter===chapter);
             out += `${bookDisplay} ${chapter}\n\n` + verses.map(v=>`${v.verse}. ${v.text}`).join('\n') + '\n\n';
           }
