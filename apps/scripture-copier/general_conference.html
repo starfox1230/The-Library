@@ -72,6 +72,11 @@
   .row {
     display: grid;
     grid-template-columns: clamp(110px, 18vw, 160px) 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "thumb main"
+      "thumb main"
+      "actions actions";
     gap:12px;
     align-items: stretch;
     padding: 10px;
@@ -80,21 +85,23 @@
     border-radius: 14px;
   }
   .thumb-sm {
+    grid-area: thumb;
     border-radius: 10px;
     overflow: hidden;
     background: #06111a;
     aspect-ratio: 16 / 9;
-    align-self: center;
+    align-self: start;
     cursor: pointer;
   }
   .thumb-sm img { width:100%; height:100%; object-fit: cover; display:block; }
 
-  .row-main { display: grid; grid-template-rows: auto auto auto; row-gap: 6px; min-width: 0; }
+  .row-main { grid-area: main; display: grid; grid-template-rows: auto auto; row-gap: 6px; min-width: 0; }
   .row-title { font-weight: 700; font-size: 16px; letter-spacing:.2px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row-title button { all: unset; color: var(--text); cursor: pointer; }
   .row-title button:hover { text-decoration: underline; }
   .row-speaker { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .row-actions { display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
+
+  .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
 
   .iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); }
   .iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
@@ -113,7 +120,7 @@
   .settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
 
   /* Modal */
-  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color:var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
+  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
   dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
   .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .modal-body { padding: 12px; }
@@ -328,17 +335,24 @@ function loadThumb(img, videoId) {
   const tester = new Image();
 
   tester.onload = () => {
+    // Check the intrinsic width of the loaded image.
+    // A real 'maxresdefault.jpg' is 1280px wide. The placeholder is much smaller.
+    // We use a threshold (e.g., < 300px) to be safe.
     if (tester.naturalWidth < 300) {
+      // It's the placeholder image, so use the reliable thumbnail.
       img.src = reliableThumb;
     } else {
+      // It's the real, high-quality thumbnail.
       img.src = highResThumb;
     }
   };
 
   tester.onerror = () => {
+    // In case of a network failure, always fall back to the reliable one.
     img.src = reliableThumb;
   };
 
+  // Start the test by setting the tester's source.
   tester.src = highResThumb;
 }
 
@@ -378,17 +392,17 @@ function rowHTML(t){
           <button class="link-open" data-id="${t.videoId}">${t.title}</button>
         </div>
         <div class="row-speaker">${t.speaker || ''}</div>
-        <div class="row-actions">
-          <div class="countpill" title="Times watched">
-            <button class="minus" aria-label="decrease">−</button>
-            <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
-            <button class="plus" aria-label="increase">+</button>
-          </div>
-          <button class="iconbtn copy" title="Copy transcript">📋</button>
-          <button class="iconbtn notes" title="Notes">📝</button>
-          <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">★</span></button>
-          <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'✓':''}</div>
+      </div>
+      <div class="row-actions">
+        <div class="countpill" title="Times watched">
+          <button class="minus" aria-label="decrease">−</button>
+          <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
+          <button class="plus" aria-label="increase">+</button>
         </div>
+        <button class="iconbtn copy" title="Copy transcript">📋</button>
+        <button class="iconbtn notes" title="Notes">📝</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">★</span></button>
+        <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'✓':''}</div>
       </div>
     </div>
   `;
@@ -481,6 +495,8 @@ function openYouTubeAppAndMark(t){
     appUrl = `vnd.youtube:${t.videoId}${start?`?t=${start}s`:``}`; 
   }
 
+  // Only attempt to open the link if an app-specific URL was created.
+  // Otherwise, do nothing.
   if(appUrl){
     window.location.href = appUrl;
   }
@@ -490,11 +506,13 @@ function openYouTubeAppAndMark(t){
 // Pre-load Transcripts
 // -----------------------------
 async function preloadTranscripts() {
+  // Use Promise.all to fetch all transcripts in parallel for speed
   await Promise.all(talks.map(async (talk) => {
     try {
       const res = await fetch(encodeURI(talk.transcriptPath));
       if (res.ok) {
         const text = await res.text();
+        // Store the transcript text in our cache, keyed by its path
         transcriptCache[talk.transcriptPath] = text;
       } else {
         console.warn(`Failed to preload transcript: ${talk.transcriptPath}`);
@@ -511,15 +529,18 @@ async function preloadTranscripts() {
 // -----------------------------
 async function copyTranscript(path){
   try {
+    // Read the transcript directly from the pre-loaded cache
     const txt = transcriptCache[path];
     if (typeof txt !== 'string') {
+      // This is a fallback in case preloading failed for a specific file
       throw new Error(`Transcript not found in cache for path: ${path}`);
     }
+    // This now happens instantly, so mobile browsers will allow it
     await navigator.clipboard.writeText(txt);
     toast('Transcript copied.');
   } catch(e){
     console.error('Copy failed:', e);
-    toast('Copy transcript failed.');
+    toast('Copy transcript failed.'); // Simplified error message for the user
   }
 }
 
@@ -565,6 +586,7 @@ function downloadAll(){
 }
 
 async function emailExport(){
+  // Prefer Web Share with file attachment
   try{
     const blob = new Blob([JSON.stringify(getFullState())], {type:'application/json'});
     const file = new File([blob], 'gc-tracker-oct-2025-backup.json', {type:'application/json'});
@@ -573,6 +595,7 @@ async function emailExport(){
       return;
     }
   }catch(_){ /* ignore */ }
+  // Fallback: mailto (inline body, no attachment possible)
   const body = encodeURIComponent(JSON.stringify(getFullState(), null, 2));
   window.location.href = `mailto:?subject=GC%20Backup&body=${body}`;
 }
@@ -584,6 +607,7 @@ function restoreFromFile(file){
       const data = JSON.parse(reader.result);
       if(data.version>=1 && data.conferenceId==='oct-2025'){
         state = data; // replace entire state
+        // Ensure new fields exist
         if(!state.watchCounts) state.watchCounts = {};
         if(!state.round) state.round = 1;
         saveState(state); renderAll(); toast('Restore complete.');
@@ -618,6 +642,7 @@ async function copyNotes(){
   if(!txt){ toast('No notes yet.'); return; }
   try{ await navigator.clipboard.writeText(txt); toast('Notes copied.'); }
   catch(e){
+    // Fallback for copyNotes if needed
     const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
     ta.select(); try{ document.execCommand('copy'); toast('Notes copied (fallback).'); }catch(_){toast('Copy failed.');}
     document.body.removeChild(ta);
@@ -629,6 +654,7 @@ async function copyNotes(){
 // -----------------------------
 const btnSettings = document.getElementById('btnSettings');
 btnSettings.onclick = () => {
+  // Tiny hint sheet
   toast('Tips: Long-press titles to open in app; use Settings for backup & notes export.');
 };
 
