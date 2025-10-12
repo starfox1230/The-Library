@@ -50,11 +50,8 @@
       user-select: none;
     }
     .pill:hover { background:#2d2d2d; }
-    .hidden-date {
-      position: absolute; width:1px; height:1px; opacity:0; pointer-events:none;
-    }
 
-    /* --- DROPDOWN MENU / ACCORDION --- */
+    /* Dropdown / accordion */
     .dropdown-menu {
       display: none;
       position: absolute;
@@ -89,7 +86,7 @@
     .menu-item-open > .submenu { max-height: 500px; }
     .menu-item-open > .submenu-trigger::after { transform: rotate(90deg); }
 
-    /* --- FULLSCREEN EMBED --- */
+    /* Fullscreen embed */
     .embed-modal {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background-color: rgba(0, 0, 0, 0.85); z-index: 1000; padding: 40px;
@@ -102,7 +99,7 @@
       color: #fff; font-size: 2.5rem; font-weight: bold; cursor: pointer; line-height: 1;
     }
 
-    /* --- INFO / ACTIONS --- */
+    /* Info / actions */
     #week-info, #day-info {
       white-space: pre-line; margin-bottom: var(--spacing);
       font-size: 0.95rem; line-height: 1.4;
@@ -118,7 +115,7 @@
     }
     .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* --- SEGMENTED TOGGLE --- */
+    /* Segmented toggle */
     .segmented {
       display:flex; background: var(--input-bg); border:1px solid var(--input-border);
       border-radius:999px; padding:4px; gap:4px; justify-content:center; margin-bottom: 8px;
@@ -142,6 +139,38 @@
       border-radius: var(--radius); text-decoration: none; margin: 0 4px; font-weight: 500;
     }
     #scripture-links a:hover, #manual-links a:hover { background: var(--input-border); opacity: 0.9; }
+
+    /* Date popover (replaces the hidden 1x1 input) */
+    .date-pop {
+      position:absolute;
+      top: calc(100% + 6px);
+      left: 8px;
+      z-index: 20;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 20px rgba(0,0,0,.55);
+      padding: 10px;
+      display: none;
+      min-width: 260px;
+    }
+    .date-pop-row {
+      display:flex; gap:8px; align-items:center; justify-content:space-between;
+    }
+    .date-pop input[type="date"]{
+      flex: 1 1 auto;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      padding: 8px;
+      font-size: 0.95rem;
+    }
+    .date-pop .mini-btn {
+      border:none; border-radius: var(--radius); padding:8px 10px; cursor:pointer;
+      background: var(--accent); color: var(--bg); font-weight:600;
+      flex: 0 0 auto;
+    }
     @media (min-width:600px) { .actions { justify-content: space-between; } }
   </style>
 </head>
@@ -183,14 +212,21 @@
           <span id="today-label">Today:</span>
           <strong id="today-date">MM/DD/YYYY</strong> ▾
         </button>
-        <!-- Segmented view switcher: Day / Week / Manual -->
         <div class="segmented" role="tablist" aria-label="View mode">
           <button class="seg-btn" id="mode-day" role="tab" aria-selected="true" data-mode="day">Day</button>
           <button class="seg-btn" id="mode-week" role="tab" aria-selected="false" data-mode="week">Week</button>
           <button class="seg-btn" id="mode-manual" role="tab" aria-selected="false" data-mode="manual">Manual</button>
         </div>
       </div>
-      <input id="date-picker" class="hidden-date" type="date" aria-label="Choose date">
+
+      <!-- Visible popover date picker -->
+      <div id="date-pop" class="date-pop" aria-hidden="true">
+        <div class="date-pop-row">
+          <input id="date-input" type="date" aria-label="Choose date">
+          <button id="date-today" class="mini-btn" type="button">Today</button>
+          <button id="date-close" class="mini-btn" type="button">Close</button>
+        </div>
+      </div>
     </div>
 
     <div id="week-info">Loading week…</div>
@@ -218,9 +254,7 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    /* =========================
-       MENU / EMBED UI
-    ========================= */
+    /* ===== Menu / embed ===== */
     const ddTitle = document.getElementById('dropdown-btn');
     const ddMenu = document.getElementById('dropdown-menu');
     ddTitle.addEventListener('click', e => {
@@ -249,9 +283,7 @@
     });
     embedCloseBtn.addEventListener('click', closeEmbed);
 
-    /* =========================
-       HELPERS
-    ========================= */
+    /* ===== Helpers ===== */
     const parseDate = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
     const toISODate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const fmtDate = d => `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
@@ -277,22 +309,18 @@
       }
     };
 
-    /* =========================
-       STATE
-    ========================= */
+    /* ===== State ===== */
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2026.json').then(r=>r.json());
     let currentDate = new Date(today);
     let cw = findWeekIndexForDate(currentDate);
     let dayIdx = computeDayIdx(currentDate, cw);
     let viewMode = 'day';            // 'day' | 'week' | 'manual'
-    let displayMode = 'verses';      // 'verses' | 'sections' (day-only)
+    let displayMode = 'verses';      // 'verses' | 'sections'
     const weekCache = {};
-    const manualCache = {};          // { [weekIndex]: { ok:boolean, text:string, path:string, url?:string } }
+    const manualCache = {};
 
-    /* =========================
-       ELEMENTS
-    ========================= */
+    /* ===== Elements ===== */
     const weekInfo = document.getElementById('week-info');
     const dayInfo = document.getElementById('day-info');
     const scriptureLinks = document.getElementById('scripture-links');
@@ -305,54 +333,80 @@
     const copyBtn = document.getElementById('copy-btn');
 
     const segBtns = Array.from(document.querySelectorAll('.seg-btn'));
-    const modeDayBtn = document.getElementById('mode-day');
-    const modeWeekBtn = document.getElementById('mode-week');
-    const modeManualBtn = document.getElementById('mode-manual');
-
     const todayPill = document.getElementById('today-pill');
     const todayDateSpan = document.getElementById('today-date');
-    const datePicker = document.getElementById('date-picker');
 
-    /* =========================
-       INIT
-    ========================= */
+    // New popover elements
+    const datePop = document.getElementById('date-pop');
+    const dateInput = document.getElementById('date-input');
+    const dateTodayBtn = document.getElementById('date-today');
+    const dateCloseBtn = document.getElementById('date-close');
+
+    /* ===== Init ===== */
     todayDateSpan.textContent = fmtDate(currentDate);
-    datePicker.value = toISODate(currentDate);
+    dateInput.value = toISODate(currentDate);
 
     segBtns.forEach(btn=>{
       btn.addEventListener('click', ()=>{
         segBtns.forEach(b=>b.setAttribute('aria-selected','false'));
         btn.setAttribute('aria-selected','true');
-        viewMode = btn.dataset.mode;            // update mode
+        viewMode = btn.dataset.mode;
         updateNavLabels();
         render();
       });
     });
 
-    // Click "Today" to change date (opens native picker if available)
-    todayPill.addEventListener('click', ()=>{
-      if (datePicker.showPicker) {
-        try { datePicker.showPicker(); return; } catch (_) {}
+    // Open date popover with robust fallbacks
+    todayPill.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      // Try native picker APIs first (works on many Chromium browsers)
+      if (typeof dateInput.showPicker === 'function') {
+        try { dateInput.showPicker(); return; } catch(_) { /* continue to popover */ }
       }
-      // Fallback: briefly show then focus
-      datePicker.style.position='static';
-      datePicker.style.opacity='1';
-      datePicker.style.pointerEvents='auto';
-      datePicker.focus();
-      // Hide again after picking or blur handled below
+      try { dateInput.click(); } catch(_) {}
+      openDatePop();
     });
 
-    datePicker.addEventListener('change', ()=>{
-      const picked = datePicker.value; // YYYY-MM-DD
+    function openDatePop(){
+      positionDatePop();
+      datePop.style.display = 'block';
+      datePop.setAttribute('aria-hidden','false');
+      // Small timeout helps iOS focus the input reliably
+      setTimeout(()=>dateInput.focus(), 0);
+    }
+    function closeDatePop(){
+      datePop.style.display = 'none';
+      datePop.setAttribute('aria-hidden','true');
+    }
+    function positionDatePop(){
+      // Anchor to the pill (keeps it sensible on rotation/resize)
+      const rect = todayPill.getBoundingClientRect();
+      const top = rect.bottom + window.scrollY + 6;
+      const left = rect.left + window.scrollX;
+      datePop.style.top = `${top}px`;
+      datePop.style.left = `${left}px`;
+    }
+    window.addEventListener('resize', ()=>{ if (datePop.style.display==='block') positionDatePop(); });
+    window.addEventListener('scroll', ()=>{ if (datePop.style.display==='block') positionDatePop(); }, { passive:true });
+    document.addEventListener('click', (ev)=>{
+      if (datePop.style.display==='block' && !datePop.contains(ev.target) && ev.target!==todayPill){
+        closeDatePop();
+      }
+    });
+
+    dateInput.addEventListener('change', ()=>{
+      const picked = dateInput.value;
       if (!picked) return;
-      const d = parseDate(picked);
-      setCurrentDate(d);
+      setCurrentDate(parseDate(picked));
+      closeDatePop();
     });
-    datePicker.addEventListener('blur', ()=>{ // hide fallback field
-      datePicker.style.position='absolute';
-      datePicker.style.opacity='0';
-      datePicker.style.pointerEvents='none';
+    dateTodayBtn.addEventListener('click', ()=>{
+      const t = new Date(); t.setHours(0,0,0,0);
+      setCurrentDate(t);
+      dateInput.value = toISODate(t);
+      closeDatePop();
     });
+    dateCloseBtn.addEventListener('click', closeDatePop);
 
     prevBtn.addEventListener('click', ()=>{
       if (viewMode === 'day') {
@@ -384,58 +438,46 @@
       const text = contentTA.value || '';
       if (!text.trim()) return;
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-        } else {
-          contentTA.select(); document.execCommand('copy'); contentTA.setSelectionRange(0,0);
-        }
-        copyBtn.textContent = 'Copied!';
-        setTimeout(()=>copyBtn.textContent='Copy', 1500);
-      } catch {
-        contentTA.select(); document.execCommand('copy');
-        copyBtn.textContent = 'Copied!';
-        setTimeout(()=>copyBtn.textContent='Copy', 1500);
-      }
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+        else { contentTA.select(); document.execCommand('copy'); contentTA.setSelectionRange(0,0); }
+        copyBtn.textContent = 'Copied!'; setTimeout(()=>copyBtn.textContent='Copy', 1500);
+      } catch { contentTA.select(); document.execCommand('copy'); copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent='Copy',1500); }
     });
 
     // Initial render
     updateNavLabels();
     render();
 
-    /* =========================
-       CORE FUNCTIONS
-    ========================= */
+    /* ===== Core ===== */
     function findWeekIndexForDate(d){
       const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       for (let i=0;i<schedule.length;i++){
         const s = parseDate(schedule[i].start), e = parseDate(schedule[i].end);
         if (day >= s && day <= e) return i;
       }
-      // If not in range, snap to closest
       if (day < parseDate(schedule[0].start)) return 0;
       return schedule.length - 1;
     }
-
     function computeDayIdx(d, weekIndex){
       const wk = schedule[weekIndex];
       const s = parseDate(wk.start);
       const diff = Math.floor((d - s)/(1000*60*60*24));
-      return clamp(diff, 0, 6);
+      return Math.max(0, Math.min(6, diff));
     }
-
     function setCurrentDate(d, opts={}){
       d.setHours(0,0,0,0);
       currentDate = d;
       todayDateSpan.textContent = fmtDate(currentDate);
-      datePicker.value = toISODate(currentDate);
+      dateInput.value = toISODate(currentDate);
       cw = findWeekIndexForDate(currentDate);
       dayIdx = computeDayIdx(currentDate, cw);
-      if (!opts.keepMode) viewMode = 'day';
-      segBtns.forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode===viewMode)));
+      if (!opts.keepMode) {
+        viewMode = 'day';
+        document.querySelectorAll('.seg-btn').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.mode==='day')));
+      }
       updateNavLabels();
       render();
     }
-
     function updateNavLabels(){
       if (viewMode === 'day') {
         prevBtn.textContent = '← Previous Day';
@@ -445,7 +487,6 @@
         nextBtn.textContent = 'Next Week →';
       }
     }
-
     function autoResizeTA(){
       contentTA.style.height = 'auto';
       contentTA.style.height = contentTA.scrollHeight + 'px';
@@ -470,21 +511,16 @@
         if (!volume || !book || !chapStart || !chapEnd) return;
         const data = await fetch(`data/${volume}/${book}.json`).then(r=>r.json());
         const display = reading.display || data.title || book;
-        const linkBase = reading.linkBase
-          || (defaultLinkBases[volume] && defaultLinkBases[volume][book])
-          || '';
+        const linkBase = reading.linkBase || (defaultLinkBases[volume] && defaultLinkBases[volume][book]) || '';
         sources.push({ display, start: chapStart, end: chapEnd, linkBase, volume, book });
         for (let c=chapStart; c<=chapEnd; c++){
           const ch = data.chapters.find(x=>x.number===c);
           if (!ch) continue;
-          ch.verses.forEach((v,j)=>{
-            flat.push({ volume, book, bookDisplay: display, linkBase, chapter:c, verse:j+1, text:v.text });
-          });
+          ch.verses.forEach((v,j)=> flat.push({ volume, book, bookDisplay: display, linkBase, chapter:c, verse:j+1, text:v.text }));
         }
       }
       for (const rd of readings) await addReading(rd);
 
-      // Split week's verses into daily assignment buckets (7 roughly equal parts)
       const total = flat.length;
       const assigns = Array.from({length:7}, ()=>[]);
       if (total){
@@ -504,7 +540,6 @@
     async function loadManual(i){
       if (manualCache[i]) return manualCache[i];
       const wk = schedule[i];
-      // Optional URL if you add `manualUrl` to the JSON; else undefined.
       const manualUrl = wk.manualUrl || wk.manualLink;
       const path = wk.manualPath || `manual/2026/week-${String(i+1).padStart(2,'0')}.txt`;
       try {
@@ -537,7 +572,7 @@
     }
 
     function groupByChapter(list){
-      const map = new Map(); // key: bookDisplay|chapter
+      const map = new Map();
       for (const v of list){
         const key = `${v.bookDisplay}|${v.chapter}`;
         if (!map.has(key)) map.set(key, { bookDisplay:v.bookDisplay, chapter:v.chapter, verses:[] });
@@ -563,7 +598,6 @@
     }
 
     function renderLinksForWeek(sources){
-      // Build chapter links for all chapters in the week's sources
       const links = [];
       for (const src of sources){
         if (!src.linkBase) continue;
@@ -578,7 +612,6 @@
     async function render(){
       const { wk, assigns, flat, sources } = await loadWeek(cw);
 
-      // Week header
       const rangeLine = `Week: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}`;
       const extra = [];
       if (wk.title) extra.push(wk.title);
@@ -589,13 +622,11 @@
       }
       weekInfo.textContent = extra.length ? `${rangeLine}\n${extra.join('\n')}` : rangeLine;
 
-      // Day/Date line
       const dt = new Date(parseDate(wk.start)); dt.setDate(dt.getDate()+dayIdx);
       dayInfo.textContent = (viewMode==='day')
         ? `Today's date: ${fmtDate(dt)}`
         : `Week view: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}`;
 
-      // Prev/Next enabled rules
       if (viewMode === 'day'){
         prevBtn.disabled = (cw===0 && dayIdx===0);
         nextBtn.disabled = (cw===schedule.length-1 && dayIdx===6);
@@ -604,7 +635,6 @@
         nextBtn.disabled = (cw===schedule.length-1);
       }
 
-      // Toggle/Copy controls per mode
       if (viewMode==='day'){
         const arr = assigns[dayIdx] || [];
         const hasContent = arr.length>0;
@@ -612,12 +642,10 @@
         toggleBtn.textContent = (displayMode==='verses') ? 'Show Sections' : 'Show Verses';
         copyBtn.disabled = !hasContent;
 
-        // Links for day
         scriptureLinks.style.display = '';
         manualLinks.style.display = 'none';
         renderLinksForDay(arr);
 
-        // Content
         if (!hasContent){
           contentTA.value = wk.title || 'No reading assignment for this week yet. Check back soon!';
           autoResizeTA();
@@ -628,7 +656,6 @@
           const body = arr.map(it=>`${it.verse}. ${it.text}`).join('\n');
           contentTA.value = hdr ? `${hdr}\n\n${body}` : body;
         } else {
-          // Full chapter sections for just the chapters that appear today
           const chapKeys = [];
           arr.forEach(it=>{
             const key = `${it.bookDisplay}|${it.chapter}`;
@@ -646,7 +673,6 @@
       }
 
       if (viewMode==='week'){
-        // Week mode: copy the entire set of scriptures (all verses for the week)
         const hasContent = flat.length>0;
         toggleBtn.disabled = true;
         toggleBtn.textContent = 'Show Sections';
@@ -662,7 +688,6 @@
           return;
         }
 
-        // Group by chapter and print all verses, chapter by chapter
         const groups = groupByChapter(flat);
         let out = '';
         for (const g of groups){
@@ -680,7 +705,6 @@
         manualLinks.style.display = '';
 
         const man = await loadManual(cw);
-        // If you include manualUrl/manualLink in the JSON for the week, it shows here.
         if (man.url){
           manualLinks.innerHTML = `<a href="${man.url}" target="_blank" rel="noopener">Open Manual (web)</a>`;
         } else {
