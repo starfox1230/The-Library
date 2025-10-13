@@ -9,81 +9,156 @@
       --bg: #121212;
       --card-bg: #1e1e1e;
       --text: #e0e0e0;
+      --muted: #a4a4a4;
       --accent: #bb86fc;
       --input-bg: #272727;
       --input-border: #333;
-      --radius: 8px;
+      --radius: 10px;
       --spacing: 16px;
       --font: 16px;
+      --shadow: 0 8px 24px rgba(0,0,0,.35);
+      --shadow-sm: 0 4px 12px rgba(0,0,0,.25);
+      --ring: 0 0 0 2px rgba(187,134,252,.4);
     }
-    *, *::before, *::after { box-sizing: border-box; }
 
-    /* Avoid iOS picker-closing due to layout recentering:
-       - No vertical flex centering on <body>
-       - Use dynamic viewport units instead of 100vh */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
     body {
-      margin: 0; padding: 0;
       background: var(--bg);
       color: var(--text);
-      font: var(--font)/1.5 system-ui, sans-serif;
-      min-height: 100svh;     /* stable against browser UI changes */
+      font: var(--font)/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100svh;
     }
-    @supports (height: 100dvh) {
-      body { min-height: 100dvh; }
-    }
+    @supports (height: 100dvh) { body { min-height: 100dvh; } }
 
     .container {
-      max-width: 800px;
+      max-width: 900px;
       width: 100%;
       padding: var(--spacing);
-      margin: 24px auto;      /* top spacing, centered horizontally only */
+      margin: 24px auto;
     }
 
+    h1 { margin: 0 0 var(--spacing) 0; font-size: 1.25rem; font-weight: 600; }
+
     .form-group {
-      display: flex; flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: var(--spacing);
       margin-bottom: var(--spacing);
     }
-    .form-group > div {
-      flex: 1 1 20%; min-width: 120px;
+    @media (max-width: 820px) {
+      .form-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    label {
-      display: block; margin-bottom: 4px; font-weight: 500;
+    @media (max-width: 480px) {
+      .form-group { grid-template-columns: 1fr; }
     }
-    select {
-      width: 100%; padding: 8px;
+
+    label { display: block; margin: 0 0 6px 2px; font-weight: 600; font-size: .95rem; color: var(--text); }
+
+    /* ---------- Custom Select (Headless) ---------- */
+    .xselect {
+      position: relative;
+    }
+    .xsel-toggle {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
       background: var(--input-bg);
       color: var(--text);
       border: 1px solid var(--input-border);
       border-radius: var(--radius);
       font-size: 1rem;
-      -webkit-appearance: menulist; /* keep native, avoid custom styling quirks */
+      line-height: 1.2;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .12s ease, border-color .12s ease;
     }
+    .xsel-toggle:focus-visible { outline: none; box-shadow: var(--ring), var(--shadow-sm); border-color: var(--accent); }
+    .xsel-toggle .placeholder { color: var(--muted); }
+    .xsel-chevron {
+      margin-left: auto;
+      width: 0; height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid var(--text);
+      opacity: .9;
+    }
+
+    .xselect[aria-disabled="true"] .xsel-toggle {
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    .xsel-menu {
+      position: absolute;
+      z-index: 1000;
+      left: 0; right: 0;
+      top: calc(100% + 6px);
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: calc(var(--radius) + 2px);
+      box-shadow: var(--shadow);
+      max-height: min(45vh, 360px);
+      overflow: auto;
+      padding: 6px;
+    }
+    .xsel-menu[hidden] { display: none; }
+
+    .xsel-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: .98rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .xsel-option:hover, .xsel-option[aria-current="true"] {
+      background: #2a2a2a;
+    }
+    .xsel-option[aria-selected="true"]::before {
+      content: "✓";
+      font-weight: 700;
+      opacity: .9;
+    }
+    .visually-hidden {
+      position: absolute !important;
+      height: 1px; width: 1px;
+      overflow: hidden;
+      clip: rect(1px,1px,1px,1px);
+      white-space: nowrap;
+      border: 0; padding: 0; margin: -1px;
+    }
+
     .actions {
       display: flex; gap: 8px;
       margin-bottom: var(--spacing);
     }
     .actions button {
       flex: 1; padding: 12px;
-      font-size: 1rem; font-weight: 500;
-      color: var(--bg); background: var(--accent);
+      font-size: 1rem; font-weight: 600;
+      color: #0b0b0b; background: var(--accent);
       border: none; border-radius: var(--radius);
       cursor: pointer;
+      box-shadow: var(--shadow-sm);
     }
-    .actions button:disabled {
-      opacity: 0.4; cursor: not-allowed;
-    }
+    .actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+
     #text-content {
       width: 100%;
-      min-height: 40vh;       /* give breathing room without forcing full-screen */
+      min-height: 40vh;
       padding: var(--spacing);
       background: var(--card-bg);
       color: var(--text);
       border: 1px solid var(--input-border);
       border-radius: var(--radius);
       resize: none; overflow-y: auto;
-      font-size: 0.9rem; line-height: 1.4;
+      font-size: 0.95rem; line-height: 1.5;
       white-space: pre-wrap;
+      box-shadow: var(--shadow-sm);
     }
   </style>
 </head>
@@ -93,20 +168,20 @@
 
     <div class="form-group">
       <div>
-        <label for="book">Book</label>
-        <select id="book"><option value="">-- Select Book --</option></select>
+        <label for="book-xsel">Book</label>
+        <div id="book-xsel" class="xselect" aria-disabled="false"></div>
       </div>
       <div>
-        <label for="chapter">Chapter</label>
-        <select id="chapter" disabled><option value="">--</option></select>
+        <label for="chapter-xsel">Chapter</label>
+        <div id="chapter-xsel" class="xselect" aria-disabled="true"></div>
       </div>
       <div>
-        <label for="start-section">Start Section</label>
-        <select id="start-section" disabled><option value="">--</option></select>
+        <label for="start-xsel">Start Section</label>
+        <div id="start-xsel" class="xselect" aria-disabled="true"></div>
       </div>
       <div>
-        <label for="end-section">End Section (optional)</label>
-        <select id="end-section" disabled><option value="">--</option></select>
+        <label for="end-xsel">End Section (optional)</label>
+        <div id="end-xsel" class="xselect" aria-disabled="true"></div>
       </div>
     </div>
 
@@ -116,12 +191,272 @@
     </div>
 
     <textarea id="text-content" readonly placeholder="Your selection will appear here…"></textarea>
+
+    <!-- Hidden live region for SR announcements -->
+    <div id="sr-live" class="visually-hidden" aria-live="polite"></div>
   </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ---------- Utilities ----------
+  /* ===========================
+     Headless Custom Select
+     =========================== */
+  let __uid = 0;
+  const uid = (p='id') => `${p}-${++__uid}`;
+
+  class SmartSelect {
+    /**
+     * @param {HTMLElement} root - container div for the select
+     * @param {Object} opts
+     * @param {string}   opts.placeholder
+     * @param {Function} opts.onChange (value)=>void
+     * @param {boolean}  opts.searchable (future use)
+     */
+    constructor(root, { placeholder='--', onChange=null } = {}) {
+      this.root = root;
+      this.placeholder = placeholder;
+      this.onChange = onChange;
+      this.items = []; // [{value, text}]
+      this._value = '';
+
+      // Build DOM
+      const labelId = uid('xsel-label');
+      const btnId   = uid('xsel-btn');
+      const listId  = uid('xsel-list');
+
+      this.button = document.createElement('button');
+      this.button.type = 'button';
+      this.button.className = 'xsel-toggle';
+      this.button.id = btnId;
+      this.button.setAttribute('aria-haspopup', 'listbox');
+      this.button.setAttribute('aria-expanded', 'false');
+      this.button.setAttribute('aria-controls', listId);
+      this.button.innerHTML = `<span class="xsel-text"><span class="placeholder">${this.placeholder}</span></span><span class="xsel-chevron" aria-hidden="true"></span>`;
+
+      this.menu = document.createElement('div');
+      this.menu.className = 'xsel-menu';
+      this.menu.id = listId;
+      this.menu.setAttribute('role', 'listbox');
+      this.menu.setAttribute('tabindex', '-1');
+      this.menu.hidden = true;
+
+      this.hidden = document.createElement('input');
+      this.hidden.type = 'hidden';
+
+      this.root.appendChild(this.button);
+      this.root.appendChild(this.menu);
+      this.root.appendChild(this.hidden);
+
+      // State
+      this.open = false;
+      this.activeIndex = -1;
+
+      // Events
+      this.button.addEventListener('click', (e) => {
+        if (this.isDisabled()) return;
+        this.toggle();
+      });
+
+      // Keyboard support
+      this.button.addEventListener('keydown', (e) => this._onButtonKeydown(e));
+      this.menu.addEventListener('keydown', (e) => this._onMenuKeydown(e));
+
+      // Outside click to close
+      document.addEventListener('pointerdown', (e) => {
+        if (!this.open) return;
+        if (!this.root.contains(e.target)) this.close();
+      }, { passive: true });
+
+      // Resize/scroll: keep menu in view (simple approach)
+      window.addEventListener('scroll', () => { if (this.open) this._reposition(); }, { passive: true });
+      window.addEventListener('resize', () => { if (this.open) this._reposition(); });
+    }
+
+    /* ---------- Public API ---------- */
+    setOptions(items) {
+      this.items = Array.isArray(items) ? items.slice() : [];
+      // Rebuild menu
+      this.menu.innerHTML = '';
+      this.items.forEach((item, i) => {
+        const opt = document.createElement('div');
+        opt.className = 'xsel-option';
+        opt.setAttribute('role', 'option');
+        opt.setAttribute('data-value', item.value);
+        opt.setAttribute('data-index', String(i));
+        opt.setAttribute('aria-selected', this._value === item.value ? 'true' : 'false');
+        opt.textContent = item.text;
+        opt.addEventListener('click', () => this._choose(i, true));
+        this.menu.appendChild(opt);
+      });
+
+      // Keep current selection if still present; else reset
+      const idx = this.items.findIndex(it => it.value === this._value);
+      if (idx === -1) {
+        this._value = '';
+        this._renderButtonLabel();
+      } else {
+        this.activeIndex = idx;
+        this._renderButtonLabel(this.items[idx].text);
+      }
+
+      // Enable/disable based on items availability
+      this.setDisabled(this.items.length === 0);
+    }
+
+    setDisabled(disabled) {
+      this.root.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      if (disabled) this.close();
+    }
+
+    isDisabled() {
+      return this.root.getAttribute('aria-disabled') === 'true';
+    }
+
+    setValue(value, fire=true) {
+      const idx = this.items.findIndex(it => it.value === value);
+      if (idx === -1) {
+        this._value = '';
+        this.activeIndex = -1;
+        this._renderButtonLabel();
+      } else {
+        this._value = this.items[idx].value;
+        this.activeIndex = idx;
+        this._renderButtonLabel(this.items[idx].text);
+      }
+      this.hidden.value = this._value;
+      this._syncAriaSelected();
+      if (fire && typeof this.onChange === 'function') this.onChange(this._value);
+    }
+
+    get value() { return this._value; }
+
+    clear() { this.setValue('', false); }
+
+    openMenu() {
+      if (this.open || this.isDisabled()) return;
+      this.open = true;
+      this.button.setAttribute('aria-expanded', 'true');
+      this.menu.hidden = false;
+      this._reposition();
+      // Focus the menu for keyboard navigation on desktop; on mobile this is harmless
+      this.menu.focus({ preventScroll: true });
+      this._scrollActiveIntoView();
+    }
+
+    close() {
+      if (!this.open) return;
+      this.open = false;
+      this.button.setAttribute('aria-expanded', 'false');
+      this.menu.hidden = true;
+    }
+
+    toggle() { this.open ? this.close() : this.openMenu(); }
+
+    /* ---------- Private ---------- */
+    _onButtonKeydown(e) {
+      if (this.isDisabled()) return;
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          this.openMenu();
+          if (this.activeIndex < 0 && this.items.length) this._setActive(0);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          this.openMenu();
+          if (this.activeIndex < 0 && this.items.length) this._setActive(this.items.length - 1);
+          break;
+      }
+    }
+
+    _onMenuKeydown(e) {
+      if (!this.open) return;
+      switch (e.key) {
+        case 'Escape':
+          e.preventDefault(); this.close(); this.button.focus(); break;
+        case 'ArrowDown':
+          e.preventDefault(); this._moveActive(1); break;
+        case 'ArrowUp':
+          e.preventDefault(); this._moveActive(-1); break;
+        case 'Home':
+          e.preventDefault(); this._setActive(0); break;
+        case 'End':
+          e.preventDefault(); this._setActive(this.items.length - 1); break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault(); if (this.activeIndex >= 0) this._choose(this.activeIndex, true); break;
+      }
+    }
+
+    _moveActive(delta) {
+      if (!this.items.length) return;
+      let idx = this.activeIndex;
+      idx = idx < 0 ? 0 : idx + delta;
+      if (idx < 0) idx = 0;
+      if (idx >= this.items.length) idx = this.items.length - 1;
+      this._setActive(idx);
+    }
+
+    _setActive(idx) {
+      this.activeIndex = idx;
+      [...this.menu.children].forEach(el => el.setAttribute('aria-current', 'false'));
+      const el = this.menu.children[idx];
+      if (el) el.setAttribute('aria-current', 'true');
+      this._scrollActiveIntoView();
+    }
+
+    _choose(idx, closeAfter=true) {
+      const it = this.items[idx];
+      if (!it) return;
+      this._value = it.value;
+      this.hidden.value = it.value;
+      this._renderButtonLabel(it.text);
+      this._syncAriaSelected();
+      if (typeof this.onChange === 'function') this.onChange(this._value);
+      if (closeAfter) this.close();
+      // Announce for SR
+      const live = document.getElementById('sr-live');
+      if (live) live.textContent = `Selected ${it.text}`;
+    }
+
+    _renderButtonLabel(text) {
+      const label = text && String(text).trim().length ? text : this.placeholder;
+      const isPlaceholder = !text || String(text).trim().length === 0;
+      this.button.querySelector('.xsel-text').innerHTML =
+        isPlaceholder ? `<span class="placeholder">${label}</span>` : label;
+    }
+
+    _syncAriaSelected() {
+      const kids = [...this.menu.children];
+      kids.forEach(el => el.setAttribute('aria-selected', String(el.getAttribute('data-value') === this._value)));
+    }
+
+    _scrollActiveIntoView() {
+      if (this.activeIndex < 0) return;
+      const el = this.menu.children[this.activeIndex];
+      if (el && typeof el.scrollIntoView === 'function') {
+        const top = el.offsetTop;
+        const bottom = top + el.offsetHeight;
+        const viewTop = this.menu.scrollTop;
+        const viewBottom = viewTop + this.menu.clientHeight;
+        if (top < viewTop) this.menu.scrollTop = top - 6;
+        else if (bottom > viewBottom) this.menu.scrollTop = bottom - this.menu.clientHeight + 6;
+      }
+    }
+
+    _reposition() {
+      // The menu is anchored with absolute positioning; no complex repositioning needed here.
+      // This function exists to keep parity if you later want to flip the menu when near viewport edge.
+    }
+  }
+
+  /* ===========================
+     App Logic (uses SmartSelect)
+     =========================== */
   const encodePath = p => p.split('/').map(encodeURIComponent).join('/');
+
   const setCookie = (name, value, days = 365) => {
     const d = new Date();
     d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
@@ -132,6 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nameEQ = name + "=";
     return document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(nameEQ))?.substring(nameEQ.length) || null;
   };
+
   const natCompare = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
   const compareSectionKeys = (a, b) => {
     const toNums = k => k.split('.').map(x => parseInt(x, 10)).filter(Number.isFinite);
@@ -143,62 +479,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return natCompare(a, b);
   };
 
-  // iOS detection (includes iPads in desktop mode)
-  const isIOS = () =>
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-  // Two-frame yield (lets WebKit finish opening/closing pickers)
-  const nextFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  // Safely replace options of a <select> without causing picker flakiness on iOS
-  async function replaceOptions(select, items) {
-    const wasFocused = (document.activeElement === select) && isIOS();
-    if (wasFocused) select.blur();          // Workaround per WebKit guidance
-
-    select.disabled = true;                 // batch: disable during rebuild
-    select.options.length = 0;              // clear via options API (no innerHTML)
-
-    for (const it of items) {
-      select.add(new Option(it.text, it.value));
-    }
-
-    if (wasFocused) await nextFrame();      // let WebKit settle focus bookkeeping
-    select.disabled = select.options.length <= 1;
-  }
-
-  // ---------- State ----------
-  let booksData, currentBookManifest, currentBookPath;
-  let currentSections = [];
-
-  const bookEl   = document.getElementById('book');
-  const chapterEl= document.getElementById('chapter');
-  const startEl  = document.getElementById('start-section');
-  const endEl    = document.getElementById('end-section');
+  // Elements
   const fetchBtn = document.getElementById('fetch-btn');
   const copyBtn  = document.getElementById('copy-btn');
   const outTA    = document.getElementById('text-content');
 
-  const resetDropdowns = (from) => {
-    const order = ['book', 'chapter', 'start'];
-    const idx = order.indexOf(from);
-    const targets = [chapterEl, startEl, endEl];
-    for (let i = idx; i < targets.length; i++) {
-      const sel = targets[i];
-      sel.options.length = 0;
-      sel.add(new Option('--', ''));
-      sel.disabled = true;
+  // Data
+  let booksData, currentBookManifest, currentBookPath;
+  let currentSections = [];
+
+  // SmartSelect instances
+  const bookSel    = new SmartSelect(document.getElementById('book-xsel'),    { placeholder: '-- Select Book --', onChange: handleBookChange });
+  const chapterSel = new SmartSelect(document.getElementById('chapter-xsel'), { placeholder: '--', onChange: handleChapterChange });
+  const startSel   = new SmartSelect(document.getElementById('start-xsel'),   { placeholder: '--', onChange: handleStartChange });
+  const endSel     = new SmartSelect(document.getElementById('end-xsel'),     { placeholder: '--', onChange: handleEndChange });
+
+  function resetBelow(level) {
+    if (level === 'book') {
+      chapterSel.setOptions([]);
+      startSel.setOptions([]);
+      endSel.setOptions([]);
+    } else if (level === 'chapter') {
+      startSel.setOptions([]);
+      endSel.setOptions([]);
+    } else if (level === 'start') {
+      endSel.setOptions([]);
     }
     fetchBtn.disabled = true;
     copyBtn.disabled = true;
     outTA.value = '';
-  };
+  }
 
-  // ---------- Data Loading and UI Population ----------
   async function updateChapters() {
-    resetDropdowns('book');
-
-    const bookValue = bookEl.value;
+    resetBelow('book');
+    const bookValue = bookSel.value;
     if (!bookValue) return;
 
     const info = booksData[bookValue];
@@ -207,130 +521,110 @@ document.addEventListener('DOMContentLoaded', () => {
     const manifest = await fetch(encodePath(info.manifest)).then(r => r.json());
     currentBookManifest = manifest;
 
-    const chapterItems = [{ value: '', text: '--' }].concat(
-      Object.entries(manifest)
-        .sort(([ka], [kb]) => natCompare(ka, kb))
-        .map(([key, ch]) => {
-          const num = (key.match(/\d+/) || [])[0];
-          const left = num ? `Chapter ${num}` : key;
-          return { value: key, text: `${left} – ${ch.title || ''}`.replace(/ – $/, '') };
-        })
-    );
+    const items = Object.entries(manifest)
+      .sort(([ka],[kb]) => natCompare(ka,kb))
+      .map(([key, ch]) => {
+        const num = (key.match(/\d+/) || [])[0];
+        const left = num ? `Chapter ${num}` : key;
+        return { value: key, text: `${left} – ${ch.title || ''}`.replace(/ – $/, '') };
+      });
 
-    await replaceOptions(chapterEl, chapterItems);
+    chapterSel.setOptions(items);
   }
 
-  function buildSectionList(chapterValue) {
-    const ch = currentBookManifest[chapterValue];
+  function buildSectionList(chKey) {
+    const ch = currentBookManifest[chKey];
     const intro = ch.introFile ? [['00', { title: ch.introTitle || 'Chapter intro', file: ch.introFile }]] : [];
     const source = ch.sections || ch;
     const entries = Object.entries(source)
-      .filter(([k, v]) =>
-        !['title', 'introFile', 'introTitle', 'sections'].includes(k) &&
-        v && typeof v === 'object' && v.file)
-      .sort(([a], [b]) => compareSectionKeys(a, b));
+      .filter(([k, v]) => !['title','introFile','introTitle','sections'].includes(k) && v && typeof v === 'object' && v.file)
+      .sort(([a],[b]) => compareSectionKeys(a,b));
     return [...intro, ...entries];
   }
 
-  async function updateSections() {
-    resetDropdowns('chapter');
+  function updateSections() {
+    resetBelow('chapter');
+    const chVal = chapterSel.value;
+    if (!chVal) return;
 
-    const chapterValue = chapterEl.value;
-    if (!chapterValue) return;
-
-    currentSections = buildSectionList(chapterValue);
-
-    const startItems = [{ value: '', text: '--' }].concat(
-      currentSections.map(([secKey, sec]) => ({
-        value: secKey,
-        text: `${secKey} – ${sec.title || ''}`.replace(/ – $/, '')
-      }))
-    );
-
-    await replaceOptions(startEl, startItems);
+    currentSections = buildSectionList(chVal);
+    const items = currentSections.map(([secKey, sec]) => ({
+      value: secKey,
+      text: `${secKey} – ${sec.title || ''}`.replace(/ – $/, '')
+    }));
+    startSel.setOptions(items);
   }
 
-  async function updateEndSections() {
-    resetDropdowns('start');
+  function updateEndSections() {
+    resetBelow('start');
+    const startVal = startSel.value;
+    if (!startVal) return;
 
-    const startValue = startEl.value;
-    if (!startValue) return;
-
-    const idx = currentSections.findIndex(([k]) => k === startValue);
-    const endItems = [{ value: '', text: '--' }].concat(
-      currentSections.slice(idx).map(([secKey, sec]) => ({
-        value: secKey,
-        text: `${secKey} – ${sec.title || ''}`.replace(/ – $/, '')
-      }))
-    );
-
-    await replaceOptions(endEl, endItems);
+    const idx = currentSections.findIndex(([k]) => k === startVal);
+    const items = currentSections.slice(idx).map(([secKey, sec]) => ({
+      value: secKey,
+      text: `${secKey} – ${sec.title || ''}`.replace(/ – $/, '')
+    }));
+    endSel.setOptions(items);
     fetchBtn.disabled = false;
   }
 
-  // ---------- Event Listeners (tiny defers; no tap blocking) ----------
-  bookEl.addEventListener('change', async () => {
-    setCookie('selectedBook', bookEl.value);
+  // Change handlers
+  function handleBookChange(val) {
+    setCookie('selectedBook', val || '');
     setCookie('selectedChapter', '', -1);
     setCookie('selectedStart', '', -1);
     setCookie('selectedEnd', '', -1);
-    await nextFrame();            // avoid same-tick DOM churn with native picker
-    await updateChapters();
-  });
+    updateChapters();
+  }
 
-  chapterEl.addEventListener('change', async () => {
-    setCookie('selectedChapter', chapterEl.value);
+  function handleChapterChange(val) {
+    setCookie('selectedChapter', val || '');
     setCookie('selectedStart', '', -1);
     setCookie('selectedEnd', '', -1);
-    await nextFrame();
-    await updateSections();
-  });
+    updateSections();
+  }
 
-  startEl.addEventListener('change', async () => {
-    setCookie('selectedStart', startEl.value);
+  function handleStartChange(val) {
+    setCookie('selectedStart', val || '');
     setCookie('selectedEnd', '', -1);
-    await nextFrame();
-    await updateEndSections();
-  });
+    updateEndSections();
+  }
 
-  endEl.addEventListener('change', () => {
-    setCookie('selectedEnd', endEl.value);
-  });
+  function handleEndChange(val) {
+    setCookie('selectedEnd', val || '');
+  }
 
-  // ---------- Initial Page Load and State Restoration ----------
+  // Initial load + restore
   (async () => {
     try {
-      const data = await fetch('books.json').then(r => r.json());
-      booksData = data;
+      booksData = await fetch('books.json').then(r => r.json());
+      const bookItems = Object.keys(booksData).map(name => ({ value: name, text: name }));
+      bookSel.setOptions(bookItems);
 
-      // Populate book list
-      const frag = document.createDocumentFragment();
-      Object.keys(booksData).forEach(name => {
-        const o = document.createElement('option');
-        o.value = name; o.textContent = name;
-        frag.appendChild(o);
-      });
-      bookEl.appendChild(frag);
-
-      // Sequential restore (no synthetic events)
+      // Restore
       const savedBook = getCookie('selectedBook');
-      if (savedBook && bookEl.querySelector(`option[value="${savedBook}"]`)) {
-        bookEl.value = savedBook;
+      if (savedBook && bookItems.find(it => it.value === savedBook)) {
+        bookSel.setValue(savedBook, false);
         await updateChapters();
 
         const savedChapter = getCookie('selectedChapter');
-        if (savedChapter && chapterEl.querySelector(`option[value="${savedChapter}"]`)) {
-          chapterEl.value = savedChapter;
-          await updateSections();
+        const chapItems = chapterSel.items || [];
+        if (savedChapter && chapItems.find(it => it.value === savedChapter)) {
+          chapterSel.setValue(savedChapter, false);
+          updateSections();
 
           const savedStart = getCookie('selectedStart');
-          if (savedStart && startEl.querySelector(`option[value="${savedStart}"]`)) {
-            startEl.value = savedStart;
-            await updateEndSections();
+          const startItems = startSel.items || [];
+          if (savedStart && startItems.find(it => it.value === savedStart)) {
+            startSel.setValue(savedStart, false);
+            updateEndSections();
 
             const savedEnd = getCookie('selectedEnd');
-            if (savedEnd && endEl.querySelector(`option[value="${savedEnd}"]`)) {
-              endEl.value = savedEnd;
+            const endItems = endSel.items || [];
+            if (savedEnd && endItems.find(it => it.value === savedEnd)) {
+              endSel.setValue(savedEnd, false);
+              fetchBtn.disabled = false;
             }
           }
         }
@@ -340,10 +634,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
-  // ---------- Actions ----------
+  // Actions
   fetchBtn.addEventListener('click', async () => {
-    const startKey = startEl.value;
-    const endKey = endEl.value || startKey;
+    const startKey = startSel.value;
+    const endKey   = endSel.value || startKey;
+    if (!startKey) return;
+
     const keys = currentSections.map(([k]) => k);
     const slice = keys.slice(keys.indexOf(startKey), keys.indexOf(endKey) + 1);
 
