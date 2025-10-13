@@ -30,10 +30,6 @@
       padding: var(--spacing);
       max-width: 800px; width: 100%; height: 100%;
     }
-    /* While mutating, momentarily disable taps to avoid racing the native picker */
-    .container.busy { cursor: progress; }
-    .container.busy .form-group { pointer-events: none; }
-
     .form-group {
       display: flex; flex-wrap: wrap;
       gap: var(--spacing);
@@ -81,7 +77,7 @@
   </style>
 </head>
 <body>
-  <div class="container" id="app">
+  <div class="container">
     <h1>Textbook Copier</h1>
 
     <div class="form-group">
@@ -113,8 +109,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const app = document.getElementById('app');
-
   // ---------- Utilities ----------
   const encodePath = p => p.split('/').map(encodeURIComponent).join('/');
   const setCookie = (name, value, days = 365) => {
@@ -138,42 +132,38 @@ document.addEventListener('DOMContentLoaded', () => {
     return natCompare(a, b);
   };
 
-  // Wait for the native picker to fully close before touching the DOM.
-  // Works by yielding ~2 frames and checking focus moved off the previous select.
-  function afterPickerClose(prevSelect) {
-    return new Promise(resolve => {
-      let frames = 0;
-      const step = () => {
-        frames++;
-        const closed = document.activeElement !== prevSelect; // body or another element
-        if ((closed && frames >= 2) || frames > 20) {
-          resolve();
-        } else {
-          requestAnimationFrame(step);
-        }
-      };
-      requestAnimationFrame(step);
-    });
-  }
+  // iOS detection: includes iPads in desktop mode
+  const isIOS = () =>
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  // Briefly lock UI taps while mutating dependent selects to avoid opening pickers mid-update
-  const uiLock = {
-    depth: 0,
-    begin() {
-      if (this.depth++ === 0) app.classList.add('busy');
-    },
-    end() {
-      // Let layout settle; keep guard a hair longer for iOS
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (--this.depth <= 0) {
-            this.depth = 0;
-            app.classList.remove('busy');
-          }
-        }, 120);
-      });
+  // Two-frame yield (lets WebKit finish opening/closing pickers)
+  const nextFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  // Safely replace options of a <select> without causing picker flakiness on iOS
+  async function replaceOptions(select, items) {
+    const wasFocused = (document.activeElement === select) && isIOS();
+
+    // If the picker is (about to be) open, blur first so WebKit doesn't cancel mid-update
+    if (wasFocused) select.blur();
+
+    // Disable while mutating to avoid user opening during rebuild
+    select.disabled = true;
+
+    // Clear via options API (less disruptive than innerHTML)
+    select.options.length = 0;
+
+    // Build new options
+    for (const it of items) {
+      select.add(new Option(it.text, it.value));
     }
-  };
+
+    // Let WebKit settle focus bookkeeping after option changes
+    if (wasFocused) await nextFrame();
+
+    // Re-enable if we have something besides a placeholder
+    select.disabled = select.options.length <= 1;
+  }
 
   // ---------- State ----------
   let booksData, currentBookManifest, currentBookPath;
@@ -187,23 +177,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyBtn = document.getElementById('copy-btn');
   const outTA = document.getElementById('text-content');
 
-  // Guard taps on selects while we’re mutating
-  [bookEl, chapterEl, startEl, endEl].forEach(sel => {
-    sel.addEventListener('pointerdown', (e) => {
-      if (uiLock.depth) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }, { passive: false });
-  });
-
   const resetDropdowns = (from) => {
     const order = ['book', 'chapter', 'start'];
     const idx = order.indexOf(from);
     const targets = [chapterEl, startEl, endEl];
     for (let i = idx; i < targets.length; i++) {
-      targets[i].innerHTML = '<option value="">--</option>';
-      targets[i].disabled = true;
+      const sel = targets[i];
+      sel.options.length = 0;
+      sel.add(new Option('--', ''));
+      sel.disabled = true;
     }
     fetchBtn.disabled = true;
     copyBtn.disabled = true;
@@ -212,99 +194,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---------- Data Loading and UI Population ----------
   async function updateChapters() {
-    uiLock.begin();
-    try {
-      resetDropdowns('book');
-      const bookValue = bookEl.value;
-      if (!bookValue) return;
+    resetDropdowns('book');
 
-      const info = booksData[bookValue];
-      currentBookPath = info.basePath;
+    const bookValue = bookEl.value;
+    if (!bookValue) return;
 
-      const manifest = await fetch(encodePath(info.manifest)).then(r => r.json());
-      currentBookManifest = manifest;
+    const info = booksData[bookValue];
+    currentBookPath = info.basePath;
 
-      // Build options into a fragment to avoid multiple reflows
-      const frag = document.createDocumentFragment();
+    const manifest = await fetch(encodePath(info.manifest)).then(r => r.json());
+    currentBookManifest = manifest;
+
+    const chapterItems = [{ value: '', text: '--' }].concat(
       Object.entries(manifest)
         .sort(([ka], [kb]) => natCompare(ka, kb))
-        .forEach(([key, ch]) => {
-          const o = document.createElement('option');
-          o.value = key;
+        .map(([key, ch]) => {
           const num = (key.match(/\d+/) || [])[0];
           const labelLeft = num ? `Chapter ${num}` : key;
-          o.textContent = `${labelLeft} – ${ch.title || ''}`.replace(/ – $/, '');
-          frag.appendChild(o);
-        });
-      chapterEl.appendChild(frag);
-      chapterEl.disabled = chapterEl.options.length <= 1;
-    } finally {
-      uiLock.end();
-    }
+          return { value: key, text: `${labelLeft} – ${ch.title || ''}`.replace(/ – $/, '') };
+        })
+    );
+
+    await replaceOptions(chapterEl, chapterItems);
   }
 
-  function updateSections() {
-    uiLock.begin();
-    try {
-      resetDropdowns('chapter');
-      const chapterValue = chapterEl.value;
-      if (!chapterValue) return;
-
-      const ch = currentBookManifest[chapterValue];
-      const intro = ch.introFile ? [['00', { title: ch.introTitle || 'Chapter intro', file: ch.introFile }]] : [];
-      const source = ch.sections || ch;
-      const entries = Object.entries(source)
-        .filter(([k, v]) => !['title', 'introFile', 'introTitle', 'sections'].includes(k) && v && typeof v === 'object' && v.file)
-        .sort(([a], [b]) => compareSectionKeys(a, b));
-      currentSections = [...intro, ...entries];
-
-      const frag = document.createDocumentFragment();
-      currentSections.forEach(([secKey, sec]) => {
-        const o = document.createElement('option');
-        o.value = secKey;
-        o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/, '');
-        frag.appendChild(o);
-      });
-      startEl.appendChild(frag);
-      startEl.disabled = currentSections.length === 0;
-    } finally {
-      uiLock.end();
-    }
+  function buildSectionList(chapterValue) {
+    const ch = currentBookManifest[chapterValue];
+    const intro = ch.introFile ? [['00', { title: ch.introTitle || 'Chapter intro', file: ch.introFile }]] : [];
+    const source = ch.sections || ch;
+    const entries = Object.entries(source)
+      .filter(([k, v]) =>
+        !['title', 'introFile', 'introTitle', 'sections'].includes(k) &&
+        v && typeof v === 'object' && v.file)
+      .sort(([a], [b]) => compareSectionKeys(a, b));
+    return [...intro, ...entries];
   }
 
-  function updateEndSections() {
-    uiLock.begin();
-    try {
-      resetDropdowns('start');
-      const startValue = startEl.value;
-      if (!startValue) return;
+  async function updateSections() {
+    resetDropdowns('chapter');
 
-      const idx = currentSections.findIndex(([k]) => k === startValue);
-      const frag = document.createDocumentFragment();
-      for (let i = idx; i < currentSections.length; i++) {
-        const [secKey, sec] = currentSections[i];
-        const o = document.createElement('option');
-        o.value = secKey;
-        o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/, '');
-        frag.appendChild(o);
-      }
-      endEl.appendChild(frag);
-      endEl.disabled = false;
-      fetchBtn.disabled = false;
-    } finally {
-      uiLock.end();
-    }
+    const chapterValue = chapterEl.value;
+    if (!chapterValue) return;
+
+    currentSections = buildSectionList(chapterValue);
+
+    const startItems = [{ value: '', text: '--' }].concat(
+      currentSections.map(([secKey, sec]) => ({
+        value: secKey,
+        text: `${secKey} – ${sec.title || ''}`.replace(/ – $/, '')
+      }))
+    );
+
+    await replaceOptions(startEl, startItems);
   }
 
-  // ---------- Event Listeners (with picker-close waits) ----------
+  async function updateEndSections() {
+    resetDropdowns('start');
+
+    const startValue = startEl.value;
+    if (!startValue) return;
+
+    const idx = currentSections.findIndex(([k]) => k === startValue);
+    const endItems = [{ value: '', text: '--' }].concat(
+      currentSections.slice(idx).map(([secKey, sec]) => ({
+        value: secKey,
+        text: `${secKey} – ${sec.title || ''}`.replace(/ – $/, '')
+      }))
+    );
+
+    await replaceOptions(endEl, endItems);
+    fetchBtn.disabled = false;
+  }
+
+  // ---------- Event Listeners (tiny defers; no tap blocking) ----------
   bookEl.addEventListener('change', async () => {
     setCookie('selectedBook', bookEl.value);
     setCookie('selectedChapter', '', -1);
     setCookie('selectedStart', '', -1);
     setCookie('selectedEnd', '', -1);
-
-    // Let the native picker fully close before mutating dependent selects
-    await afterPickerClose(bookEl);
+    await nextFrame();            // avoid same-tick DOM churn with native picker
     await updateChapters();
   });
 
@@ -312,28 +280,28 @@ document.addEventListener('DOMContentLoaded', () => {
     setCookie('selectedChapter', chapterEl.value);
     setCookie('selectedStart', '', -1);
     setCookie('selectedEnd', '', -1);
-
-    await afterPickerClose(chapterEl);
-    updateSections();
+    await nextFrame();
+    await updateSections();
   });
 
   startEl.addEventListener('change', async () => {
     setCookie('selectedStart', startEl.value);
     setCookie('selectedEnd', '', -1);
-
-    await afterPickerClose(startEl);
-    updateEndSections();
+    await nextFrame();
+    await updateEndSections();
   });
 
   endEl.addEventListener('change', () => {
     setCookie('selectedEnd', endEl.value);
   });
 
-  // ---------- Initial Load (sequential restore stays) ----------
+  // ---------- Initial Page Load and State Restoration ----------
   (async () => {
     try {
       const data = await fetch('books.json').then(r => r.json());
       booksData = data;
+
+      // Populate book list
       const frag = document.createDocumentFragment();
       Object.keys(booksData).forEach(name => {
         const o = document.createElement('option');
@@ -342,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       bookEl.appendChild(frag);
 
-      // Sequential state restoration (no synthetic events)
+      // Sequential restore (no synthetic events)
       const savedBook = getCookie('selectedBook');
       if (savedBook && bookEl.querySelector(`option[value="${savedBook}"]`)) {
         bookEl.value = savedBook;
@@ -351,12 +319,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedChapter = getCookie('selectedChapter');
         if (savedChapter && chapterEl.querySelector(`option[value="${savedChapter}"]`)) {
           chapterEl.value = savedChapter;
-          updateSections();
+          await updateSections();
 
           const savedStart = getCookie('selectedStart');
           if (savedStart && startEl.querySelector(`option[value="${savedStart}"]`)) {
             startEl.value = savedStart;
-            updateEndSections();
+            await updateEndSections();
 
             const savedEnd = getCookie('selectedEnd');
             if (savedEnd && endEl.querySelector(`option[value="${savedEnd}"]`)) {
