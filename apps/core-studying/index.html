@@ -146,23 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyBtn  = document.getElementById('copy-btn');
   const outTA    = document.getElementById('text-content');
 
-  let suppressUIWrites = false;
-  const selects = [bookEl, chapterEl, startEl, endEl];
-  selects.forEach(sel => {
-    sel.addEventListener('pointerdown', () => { suppressUIWrites = true; }, { passive: true });
-    sel.addEventListener('touchstart', () => { suppressUIWrites = true; }, { passive: true });
-    sel.addEventListener('change', () => { suppressUIWrites = false; }, { passive: true });
-    sel.addEventListener('blur', () => { suppressUIWrites = false; }, { passive: true });
-  });
-
-  const safeDOM = (fn) => {
-    if (!suppressUIWrites) {
-      fn();
-      return;
-    }
-    setTimeout(() => safeDOM(fn), 200);
-  };
-
   const resetDropdowns = (from) => {
     const order = ['book','chapter','start'];
     const idx = order.indexOf(from);
@@ -222,26 +205,24 @@ document.addEventListener('DOMContentLoaded', () => {
         currentBookManifest = manifest;
 
         // Populate chapters with natural sorting; support arbitrary keys
-        safeDOM(() => {
-          Object.entries(manifest)
-            .sort(([ka],[kb]) => natCompare(ka,kb))
-            .forEach(([key, ch]) => {
-              const o = document.createElement('option');
-              o.value = key;
-              // Label: try to show "Chapter <digits>" when present, else raw key
-              const num = (key.match(/\d+/)||[])[0];
-              const labelLeft = num ? `Chapter ${num}` : key;
-              o.textContent = `${labelLeft} – ${ch.title || ''}`.replace(/ – $/,'');
-              chapterEl.appendChild(o);
-            });
+        Object.entries(manifest)
+          .sort(([ka],[kb]) => natCompare(ka,kb))
+          .forEach(([key, ch]) => {
+            const o = document.createElement('option');
+            o.value = key;
+            // Label: try to show "Chapter <digits>" when present, else raw key
+            const num = (key.match(/\d+/)||[])[0];
+            const labelLeft = num ? `Chapter ${num}` : key;
+            o.textContent = `${labelLeft} – ${ch.title || ''}`.replace(/ – $/,'');
+            chapterEl.appendChild(o);
+          });
 
-          chapterEl.disabled = chapterEl.options.length <= 1;
+        chapterEl.disabled = chapterEl.options.length <= 1;
 
-          if (saved.chapter && chapterEl.querySelector(`option[value="${saved.chapter}"]`)) {
-            chapterEl.value = saved.chapter;
-            chapterEl.dispatchEvent(new Event('change'));
-          }
-        });
+        if (saved.chapter && chapterEl.querySelector(`option[value="${saved.chapter}"]`)) {
+          chapterEl.value = saved.chapter;
+          chapterEl.dispatchEvent(new Event('change'));
+        }
       })
       .catch(err => alert('Error loading manifest: ' + err));
   });
@@ -270,21 +251,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     currentSections = [...intro, ...entries];
 
-    safeDOM(() => {
-      // Populate start dropdown
-      currentSections.forEach(([secKey, sec]) => {
-        const o = document.createElement('option');
-        o.value = secKey;
-        o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/,'');
-        startEl.appendChild(o);
-      });
-      startEl.disabled = currentSections.length === 0;
-
-      if (saved.start && startEl.querySelector(`option[value="${saved.start}"]`)) {
-        startEl.value = saved.start;
-        startEl.dispatchEvent(new Event('change'));
-      }
+    // Populate start dropdown
+    currentSections.forEach(([secKey, sec]) => {
+      const o = document.createElement('option');
+      o.value = secKey;
+      o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/,'');
+      startEl.appendChild(o);
     });
+    startEl.disabled = currentSections.length === 0;
+
+    if (saved.start && startEl.querySelector(`option[value="${saved.start}"]`)) {
+      startEl.value = saved.start;
+      startEl.dispatchEvent(new Event('change'));
+    }
   });
 
   // Start section change
@@ -296,22 +275,20 @@ document.addEventListener('DOMContentLoaded', () => {
     resetDropdowns('start');
     if (!startEl.value) return;
 
-    safeDOM(() => {
-      const idx = currentSections.findIndex(([k]) => k === startEl.value);
-      for (let i = idx; i < currentSections.length; i++) {
-        const [secKey, sec] = currentSections[i];
-        const o = document.createElement('option');
-        o.value = secKey;
-        o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/,'');
-        endEl.appendChild(o);
-      }
-      endEl.disabled = false;
-      fetchBtn.disabled = false;
+    const idx = currentSections.findIndex(([k]) => k === startEl.value);
+    for (let i = idx; i < currentSections.length; i++) {
+      const [secKey, sec] = currentSections[i];
+      const o = document.createElement('option');
+      o.value = secKey;
+      o.textContent = `${secKey} – ${sec.title || ''}`.replace(/ – $/,'');
+      endEl.appendChild(o);
+    }
+    endEl.disabled = false;
+    fetchBtn.disabled = false;
 
-      if (saved.end && endEl.querySelector(`option[value="${saved.end}"]`)) {
-        endEl.value = saved.end;
-      }
-    });
+    if (saved.end && endEl.querySelector(`option[value="${saved.end}"]`)) {
+      endEl.value = saved.end;
+    }
   });
 
   // End section change -> save cookie
