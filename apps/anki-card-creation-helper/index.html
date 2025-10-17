@@ -120,8 +120,6 @@
       <input class="input" id="tagFilter" placeholder='Filter by tag (comma: e.g. "neuro, lymph")'>
     </div>
     <div class="row">
-      <button class="btn primary" id="loadBtn">Load JSON</button>
-      <button class="btn warn" id="pasteBtn">Paste / Replace</button>
       <button class="btn" id="copyAllBtn" title="Copy all visible">Copy Visible</button>
       <div class="seg" aria-label="Export">
         <button class="segbtn" id="expTxt">TXT</button>
@@ -147,6 +145,10 @@
   {"content": "The three branches are {{c1::executive}}, {{c1::legislative}}, and {{c1::judicial}}.", "tags":["civics"]},
   {"html":"{{c1::Jupiter}} is the largest planet.", "id":"note-42", "tags":["astro","giants"]}
 ]'></textarea>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn primary" id="loadBtn">Load JSON</button>
+      <button class="btn warn" id="pasteBtn">Paste / Replace</button>
+    </div>
   </section>
 
   <section id="listArea" class="hidden">
@@ -418,12 +420,11 @@
     `;
     document.body.appendChild(mount);
     document.body.classList.add("noScroll");           // lock background scroll
-    const ta = mount.querySelector("#editArea");
 
+    const ta = mount.querySelector("#editArea");
     const close = ()=>{ mount.remove(); document.body.classList.remove("noScroll"); };
     mount.querySelector("[data-x]").onclick = close;
 
-    // helpers
     function currentNums(text){ return getClozeNumbers(text); }
     function maxNum(text){ const ns=currentNums(text); return ns.length? ns[ns.length-1]:0; }
 
@@ -453,7 +454,6 @@
       refreshTools();
     }
 
-    // Dynamic toolbar (only buttons; no labels)
     function refreshTools(){
       const bar = mount.querySelector("#perClozeTools");
       const nums = currentNums(ta.value);
@@ -482,7 +482,7 @@
     }
     refreshTools();
 
-    // (Keep the keyboard shortcut working but not advertised)
+    // Keep Ctrl/⌘+Shift+C working (not advertised)
     mount.addEventListener("keydown", (e)=>{
       const key = e.key.toLowerCase();
       if ((e.ctrlKey||e.metaKey) && e.shiftKey && key==="c"){
@@ -492,10 +492,8 @@
       }
     });
 
-    // Update toolbar as user types
     ta.addEventListener("input", refreshTools);
 
-    // Preview
     mount.querySelector("[data-preview]").onclick = ()=>{
       const v = ta.value;
       const nums = getClozeNumbers(v);
@@ -507,10 +505,8 @@
         : (`<div class="notehtml">${trimHtml(v)}</div>`);
     };
 
-    // Remove All
     mount.querySelector("[data-removeAll]").onclick = removeAll;
 
-    // Save
     mount.querySelector("[data-save]").onclick = ()=>{
       const v = ta.value;
       note.html = v; save();
@@ -521,7 +517,7 @@
       toast("Saved");
     };
 
-    // Close when clicking dim area (but not the modal)
+    // Close when clicking dim area outside modal
     mount.addEventListener("click", (e)=>{ if (e.target === mount.firstElementChild) close(); });
   }
 
@@ -572,9 +568,6 @@
   function visibleNotes(){
     const ids = new Set(lastRendered);
     return notes.filter(n => ids.has(n.id));
-  }
-  function savedNotes(){
-    return notes.filter(n => n.status === "saved");
   }
   function download(name, text, type="text/plain"){
     const blob = new Blob([text], {type});
@@ -645,6 +638,7 @@
     renderList();
   });
 
+  // Load / Paste now live under the textarea
   el("#loadBtn").addEventListener("click", ()=>{
     let parsed;
     try { parsed = JSON.parse(el("#jsonInput").value); }
@@ -684,7 +678,6 @@
     download("crowdanki.json", toCrowdAnki(arr), "application/json");
   });
 
-  // APKG (server)
   el("#expApkg").addEventListener("click", ()=>{
     const arr = notes.filter(n => n.status==="saved");
     if (!arr.length) { alert("Save some cards first (⭐), then export."); return; }
@@ -715,53 +708,9 @@
     el("#ingest").classList.remove("hidden");
   });
 
-  // Solo view
-  const soloBack = el("#soloBack");
-  const soloCard = el("#soloCard");
-  let soloState = { idx:0, hidden:true, nums:[] };
-
-  function openSolo(index=0){
-    const cur = filtered();
-    if (!cur.length) return;
-    soloIndex = Math.max(0, Math.min(index, cur.length-1));
-    const n = cur[soloIndex];
-    soloState.nums = getClozeNumbers(n.html);
-    soloState.idx = 0; soloState.hidden = true;
-    drawSolo();
-    soloBack.style.display = "flex";
-    soloBack.setAttribute("aria-hidden","false");
-  }
-  function drawSolo(){
-    const cur = filtered(); const n = cur[soloIndex];
-    const nums = soloState.nums;
-    const target = nums[soloState.idx] || null;
-    const body = nums.length
-      ? renderClozeTarget(n.html, target, soloState.hidden)
-      : trimHtml(n.html);
-    soloCard.innerHTML = `
-      <div class="meta">
-        <span class="badge">${n.status.toUpperCase()}</span>
-        ${n.tags.length ? `<div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-        <span class="muted mini f1" style="text-align:right">Card ${soloIndex+1} / ${cur.length}</span>
-      </div>
-      <div class="notehtml" id="soloHtml">${body}</div>
-      <div class="clozeNav ${nums.length? "" : "hidden"}" style="position:static;margin-top:8px;align-self:flex-end">
-        <button class="miniBtn" id="soloClozePrev">◀</button>
-        <span class="indicator" id="soloIndicator">${nums.length? (soloState.idx+1)+"/"+nums.length : ""}</span>
-        <button class="miniBtn" id="soloClozeNext">▶</button>
-      </div>
-    `;
-    const prevBtn = soloCard.querySelector("#soloClozePrev");
-    const nextBtn = soloCard.querySelector("#soloClozeNext");
-    if (prevBtn) prevBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx-1+nums.length)%nums.length; soloState.hidden=true; drawSolo(); };
-    if (nextBtn) nextBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx+1)%nums.length; soloState.hidden=true; drawSolo(); };
-  }
-
-  // expose openSolo to header button
-  window.openSolo = openSolo;
-
+  // Solo view wiring
   el("#soloBtn").addEventListener("click", ()=> openSolo(0));
-  el("#soloClose").addEventListener("click", ()=>{ soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); });
+  el("#soloClose").addEventListener("click", closeSolo);
   el("#soloPrev").addEventListener("click", ()=> { if (soloIndex>0){ soloIndex--; openSolo(soloIndex); } });
   el("#soloNext").addEventListener("click", ()=> { const m=filtered().length-1; if (soloIndex<m){ soloIndex++; openSolo(soloIndex); } });
   el("#soloReveal").addEventListener("click", ()=>{ soloState.hidden = !soloState.hidden; drawSolo(); });
@@ -772,8 +721,8 @@
   el("#soloDiscard").addEventListener("click", ()=>{ const cur=filtered()[soloIndex]; cur.status="discarded"; cur.fav=false; save(); renderList(); drawSolo(); });
 
   window.addEventListener("keydown", (e)=>{
-    if (soloBack.style.display==="flex"){
-      if (e.key==="Escape"){ soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); }
+    if (el("#soloBack").style.display==="flex"){
+      if (e.key==="Escape"){ closeSolo(); }
       else if (e.key==="ArrowLeft"){ el("#soloPrev").click(); }
       else if (e.key==="ArrowRight"){ el("#soloNext").click(); }
       else if (e.key===" "){ e.preventDefault(); el("#soloReveal").click(); }
@@ -784,9 +733,7 @@
     }
   });
 
-  // Click outside modal to close
-  el("#soloBack").addEventListener("click", (e)=>{ if (e.target===el("#soloBack")) { soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); } });
-
+  el("#soloBack").addEventListener("click", (e)=>{ if (e.target===el("#soloBack")) closeSolo(); });
 })();
 </script>
 </body>
