@@ -9,8 +9,7 @@
     --bg:#0f1115; --panel:#171a21; --surface:#1e222b; --muted:#96a0af; --text:#e7eaf0;
     --accent:#9b87fd; --accent-weak:#b6a9ff; --good:#2ecc71; --bad:#e74c3c; --warn:#f39c12;
     --ring:0 0 0 2px rgba(155,135,253,.35);
-    --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.35);
-    --code:#0b0d12;
+    --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.35); --code:#0b0d12;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial}
@@ -48,8 +47,7 @@
   /* ONE column */
   .cardlist{display:flex;flex-direction:column;gap:14px;margin-top:14px}
   .card{
-    position:relative;
-    background:var(--surface);border:1px solid #2b3243;border-radius:var(--radius);padding:12px;
+    position:relative;background:var(--surface);border:1px solid #2b3243;border-radius:var(--radius);padding:12px;
     box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px
   }
   .meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
@@ -70,7 +68,7 @@
   }
   .hidden{display:none !important}
   .gridFooter{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted)}
-  /* Cloze navigator (bottom-right of card) */
+  /* Per-card cloze navigator */
   .clozeNav{
     position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:6px;
     background:#151925cc;border:1px solid #2b3243;border-radius:999px;padding:4px 8px
@@ -80,7 +78,7 @@
     padding:2px 6px;cursor:pointer;font-size:12px;line-height:1
   }
   .clozeNav .indicator{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;color:#c7d2e7}
-  /* Modal (one-by-one view) */
+  /* Modal */
   .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:20}
   .modal{width:min(760px,94vw);background:var(--panel);border:1px solid #2b3243;border-radius:16px;box-shadow:var(--shadow);padding:16px}
   .modal header{border:0;background:transparent}
@@ -119,7 +117,7 @@
         <button class="segbtn" id="expTxt">TXT</button>
         <button class="segbtn" id="expTsv">TSV</button>
         <button class="segbtn" id="expCrowdAnki">CrowdAnki</button>
-        <!-- <button class="segbtn" id="expApkg">APKG (server)</button> -->
+        <button class="segbtn" id="expApkg">APKG</button>
       </div>
       <button class="btn bad" id="nukeBtn" title="Clear local data">Reset</button>
     </div>
@@ -206,7 +204,7 @@
     while((m=re.exec(html))){ set.add(parseInt(m[1],10)); }
     return Array.from(set).sort((a,b)=>a-b);
   }
-  // Render with a single target cloze hidden/revealed; others always shown
+  // Render: hide only target cloze; others shown
   function renderClozeTarget(html, targetNum, hideTarget){
     if (!targetNum) return trimHtml(html);
     const re = /{{c(\d+)::(.*?)(?:::([^}]+))?}}/g;
@@ -224,7 +222,7 @@
     });
   }
 
-  // Parse flexible JSON into normalized notes[]
+  // Normalize input to notes[]
   function normalizeInput(input){
     const out = [];
     const tryStr = v => typeof v === "string" ? v : (v && typeof v.content === "string" ? v.content :
@@ -313,12 +311,13 @@
 
     function update(){
       const st = uiState[id];
-      const nums = st.nums;
+      const nums = st.nums = getClozeNumbers(note.html); // keep in sync
       const has = nums.length>0;
       if (!has){
         htmlBox.innerHTML = trimHtml(note.html);
         nav.classList.add('hidden');
       } else {
+        st.idx = Math.min(st.idx, nums.length-1);
         const targetNum = nums[st.idx] ?? nums[0];
         htmlBox.innerHTML = renderClozeTarget(note.html, targetNum, st.hidden);
         indicator.textContent = `${(st.idx+1)}/${nums.length}`;
@@ -330,9 +329,7 @@
     if (!uiState[id]) uiState[id] = { nums:getClozeNumbers(note.html), idx:0, hidden:true };
     update();
 
-    get("toggle").addEventListener("click", () => {
-      uiState[id].hidden = !uiState[id].hidden; update();
-    });
+    get("toggle").addEventListener("click", () => { uiState[id].hidden = !uiState[id].hidden; update(); });
 
     root.addEventListener("click", e=>{
       if (e.target.closest(".row") || e.target.closest(".btn") || e.target.closest(".clozeNav")) return;
@@ -341,28 +338,20 @@
 
     get("clozePrev").addEventListener("click", (e)=>{
       e.stopPropagation();
-      const st = uiState[id]; const n = st.nums.length;
-      if (!n) return;
+      const st = uiState[id]; const n = st.nums.length; if (!n) return;
       st.idx = (st.idx - 1 + n) % n; st.hidden = true; update();
     });
     get("clozeNext").addEventListener("click", (e)=>{
       e.stopPropagation();
-      const st = uiState[id]; const n = st.nums.length;
-      if (!n) return;
+      const st = uiState[id]; const n = st.nums.length; if (!n) return;
       st.idx = (st.idx + 1) % n; st.hidden = true; update();
     });
 
-    get("copy").addEventListener("click", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(note.html).then(()=> toast("Copied"));
-    });
+    get("copy").addEventListener("click", (e) => { e.stopPropagation(); navigator.clipboard.writeText(note.html).then(()=> toast("Copied")); });
 
     get("edit").addEventListener("click", (e) => { e.stopPropagation(); openEditor(note.id, update); });
 
-    get("save").addEventListener("click", (e) => {
-      e.stopPropagation();
-      note.status = "saved"; note.fav = true; save(); renderList();
-    });
+    get("save").addEventListener("click", (e) => { e.stopPropagation(); note.status = "saved"; note.fav = true; save(); renderList(); });
 
     get("discard").addEventListener("click", (e) => {
       e.stopPropagation();
@@ -391,22 +380,25 @@
     setTimeout(()=> b.remove(), 1300);
   }
 
-  // ---------- Editor (with Add/Remove Cloze helpers) ----------
+  // ---------- Editor with per-Cn tools ----------
   function openEditor(id, onSaved){
     const note = notes.find(n=>n.id===id);
     const prev = note.html;
-    const area = document.createElement("div");
-    area.innerHTML = `
+    const mount = document.createElement("div");
+    mount.innerHTML = `
       <div class="modalBackdrop" style="display:flex">
         <div class="modal" role="dialog" aria-modal="true">
           <header class="row"><div class="f1">Edit Card</div>
             <button class="btn bad" data-x>Close</button></header>
           <div class="hr"></div>
-          <p class="muted mini">Cloze: <code>{{c1::answer}}</code> or <code>{{c1::answer::hint}}</code>. Use <b>Ctrl/⌘+Shift+C</b> to cloze selection.</p>
-          <textarea class="input" id="editArea" style="width:100%;min-height:220px">${escapeHtml(prev)}</textarea>
+          <p class="muted mini">Cloze syntax: <code>{{c1::answer}}</code> or <code>{{c1::answer::hint}}</code>. 
+            Quick add: <b>Ctrl/⌘+Shift+C</b> (uses next new cN).</p>
+          <textarea class="input" id="editArea" style="width:100%;min-height:240px">${escapeHtml(prev)}</textarea>
+
+          <div class="row" id="perClozeTools" style="margin-top:10px"></div>
+
           <div class="row" style="margin-top:10px;">
             <button class="btn" data-removeAll>Remove All Clozes</button>
-            <button class="btn" data-addCloze>Add Cloze (next cN)</button>
             <button class="btn" data-preview>Preview</button>
             <button class="btn good" data-save>Save</button>
           </div>
@@ -415,55 +407,115 @@
         </div>
       </div>
     `;
-    document.body.appendChild(area);
-    const ta = area.querySelector("#editArea");
-    const close = ()=> area.remove();
-    area.querySelector("[data-x]").onclick = close;
+    document.body.appendChild(mount);
+    const ta = mount.querySelector("#editArea");
+    const close = ()=> mount.remove();
+    mount.querySelector("[data-x]").onclick = close;
 
-    function maxClozeNum(text){
-      let m, max=0; const re=/{{c(\d+)::/g;
-      while((m=re.exec(text))){ max = Math.max(max, parseInt(m[1],10)); }
-      return max;
-    }
-    function addCloze(){
+    // Helpers
+    const reAll = /{{c(\d+)::(.*?)(?:::([^}]+))?}}/g;
+    function currentNums(text){ return getClozeNumbers(text); }
+    function maxNum(text){ const ns=currentNums(text); return ns.length? ns[ns.length-1]:0; }
+
+    function addClozeWithNumber(n){
       const start = ta.selectionStart, end = ta.selectionEnd;
       if (start===end){ alert("Select text to cloze."); return; }
-      const txt = ta.value;
-      const sel = txt.slice(start,end);
-      const next = maxClozeNum(txt)+1;
-      const newCloze = `{{c${next}::${sel}}}`;
+      const txt = ta.value; const sel = txt.slice(start,end);
+      const newCloze = `{{c${n}::${sel}}}`;
       ta.value = txt.slice(0,start) + newCloze + txt.slice(end);
-      // place cursor after new cloze
       const pos = start + newCloze.length; ta.focus(); ta.setSelectionRange(pos,pos);
+      refreshTools();
     }
+
+    function removeClozeAndReindex(n){
+      // remove all cN
+      const pattern = new RegExp("\\{\\{c"+n+"::(.*?)(?:::(?:[^}]+))?\\}\\}","g");
+      let v = ta.value.replace(pattern, "$1");
+      // shift higher numbers down
+      v = v.replace(/\{\{c(\d+)::/g, (m, num)=>{
+        const k = parseInt(num,10);
+        return k>n ? "{{c"+(k-1)+"::" : m;
+      });
+      ta.value = v;
+      refreshTools();
+    }
+
     function removeAll(){
       ta.value = ta.value.replace(/{{c\d+::(.*?)(?:::([^}]+))?}}/g, "$1");
+      refreshTools();
     }
 
-    area.querySelector("[data-addCloze]").onclick = addCloze;
-    area.querySelector("[data-removeAll]").onclick = removeAll;
+    // Build the dynamic per-Cn toolbar
+    function refreshTools(){
+      const bar = mount.querySelector("#perClozeTools");
+      const nums = currentNums(ta.value);
+      const next = (nums.length? nums[nums.length-1] : 0) + 1;
 
-    area.addEventListener("keydown", (e)=>{
+      const btn = (label, handler, title="")=>{
+        const b = document.createElement("button");
+        b.className = "btn"; b.textContent = label; if (title) b.title = title;
+        b.onclick = handler; return b;
+      };
+
+      bar.innerHTML = "";
+
+      // Remove Cn buttons
+      if (nums.length){
+        const removeGroup = document.createElement("div");
+        removeGroup.className = "row";
+        removeGroup.appendChild(document.createTextNode("Remove:"));
+        nums.forEach(n=>{
+          removeGroup.appendChild(btn(`-C${n}`, ()=>removeClozeAndReindex(n), `Remove all C${n} and reindex higher numbers`));
+        });
+        bar.appendChild(removeGroup);
+      }
+
+      // Add cN buttons for each existing number + the next new one
+      const addGroup = document.createElement("div");
+      addGroup.className = "row";
+      addGroup.style.marginTop = "8px";
+      addGroup.appendChild(document.createTextNode("Add as:"));
+      const addNums = nums.concat(next); // include next new number
+      addNums.forEach(n=>{
+        addGroup.appendChild(btn(`Add c${n}`, ()=>addClozeWithNumber(n), `Wrap selection as c${n}`));
+      });
+      bar.appendChild(addGroup);
+    }
+
+    refreshTools();
+
+    // Keyboard shortcut: Ctrl/⌘+Shift+C → add next cN
+    mount.addEventListener("keydown", (e)=>{
       const key = e.key.toLowerCase();
       if ((e.ctrlKey||e.metaKey) && e.shiftKey && key==="c"){
-        e.preventDefault(); addCloze();
+        e.preventDefault();
+        const next = maxNum(ta.value)+1;
+        addClozeWithNumber(next);
       }
     });
 
-    area.querySelector("[data-preview]").onclick = ()=>{
+    // Live update tools on typing
+    ta.addEventListener("input", refreshTools);
+
+    // Preview
+    mount.querySelector("[data-preview]").onclick = ()=>{
       const v = ta.value;
       const nums = getClozeNumbers(v);
       const first = nums[0] || null;
-      area.querySelector("#preview").innerHTML = nums.length
+      mount.querySelector("#preview").innerHTML = nums.length
         ? (`<div class="notehtml">${renderClozeTarget(v, first, true)}</div>
             <div class="hr"></div>
             <div class="notehtml">${renderClozeTarget(v, first, false)}</div>`)
         : (`<div class="notehtml">${trimHtml(v)}</div>`);
     };
-    area.querySelector("[data-save]").onclick = ()=>{
+
+    // Remove All
+    mount.querySelector("[data-removeAll]").onclick = removeAll;
+
+    // Save
+    mount.querySelector("[data-save]").onclick = ()=>{
       const v = ta.value;
       note.html = v; save();
-      // Reset UI state for this note (so counts update)
       uiState[id] = { nums:getClozeNumbers(v), idx:0, hidden:true };
       renderList();
       if (typeof onSaved==="function") onSaved();
@@ -475,7 +527,6 @@
   // ---------- Solo (one-at-a-time) ----------
   const soloBack = el("#soloBack");
   const soloCard = el("#soloCard");
-  // Solo view maintains its own ui state
   let soloState = { idx:0, hidden:true, nums:[] };
 
   function openSolo(index=0){
@@ -520,6 +571,9 @@
   function visibleNotes(){
     const ids = new Set(lastRendered);
     return notes.filter(n => ids.has(n.id));
+  }
+  function savedNotes(){
+    return notes.filter(n => n.status === "saved");
   }
   function download(name, text, type="text/plain"){
     const blob = new Blob([text], {type});
@@ -629,6 +683,29 @@
     download("crowdanki.json", toCrowdAnki(arr), "application/json");
   });
 
+  // APKG (server) — uses your existing Flask /download_apkg route from your previous app
+  el("#expApkg").addEventListener("click", ()=>{
+    const arr = savedNotes();
+    if (!arr.length) { alert("Save some cards first (⭐), then export."); return; }
+    fetch("/download_apkg", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ saved_cards: arr.map(n=>n.html) })
+    })
+    .then(r=> r.ok ? r.blob() : Promise.reject("Server error"))
+    .then(blob=>{
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "saved_cards.apkg";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(e=>{
+      console.error(e);
+      alert("APKG download failed. Ensure this page is served by the Flask app that exposes POST /download_apkg.");
+    });
+  });
+
   el("#nukeBtn").addEventListener("click", ()=>{
     if (!confirm("Clear local data and start over?")) return;
     localStorage.removeItem(storeKey);
@@ -637,14 +714,12 @@
     el("#ingest").classList.remove("hidden");
   });
 
-  // Solo view handlers (now supports per-cloze nav)
+  // Solo view
   el("#soloBtn").addEventListener("click", ()=> openSolo(0));
   el("#soloClose").addEventListener("click", closeSolo);
   el("#soloPrev").addEventListener("click", ()=> { if (soloIndex>0){ soloIndex--; openSolo(soloIndex); } });
   el("#soloNext").addEventListener("click", ()=> { const m=filtered().length-1; if (soloIndex<m){ soloIndex++; openSolo(soloIndex); } });
-  el("#soloReveal").addEventListener("click", ()=>{
-    soloState.hidden = !soloState.hidden; drawSolo();
-  });
+  el("#soloReveal").addEventListener("click", ()=>{ soloState.hidden = !soloState.hidden; drawSolo(); });
   el("#soloCopy").addEventListener("click", ()=> {
     const cur = filtered()[soloIndex]; navigator.clipboard.writeText(cur.html).then(()=>toast("Copied"));
   });
