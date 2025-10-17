@@ -7,13 +7,14 @@
 <style>
   :root{
     --bg:#0f1115; --panel:#171a21; --surface:#1e222b; --muted:#96a0af; --text:#e7eaf0;
-    --accent:#9b87fd; --accent-weak:#b6a9ff; --good:#2ecc71; --bad:#e74c3c; --warn:#f39c12; --info:#3b82f6;
+    --accent:#9b87fd; --accent-weak:#b6a9ff; --good:#2ecc71; --bad:#e74c3c; --warn:#f39c12;
     --ring:0 0 0 2px rgba(155,135,253,.35);
-    --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.35); --code:#0b0d12;
+    --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.35);
+    --code:#0b0d12;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial}
-  body.noScroll{overflow:hidden}
+  body.modalOpen{overflow:hidden}
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
 
@@ -25,18 +26,15 @@
   }
   .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px}
   .toolbar .title{font-weight:700;font-size:18px;margin-right:auto}
-
   .btn{
     border:1px solid #2a3140;background:var(--surface);color:var(--text);
-    padding:9px 12px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow)
+    padding:9px 12px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow);
   }
   .btn:focus{outline:none;box-shadow:var(--ring)}
   .btn.primary{background:var(--accent);border-color:transparent;color:#0b0d12}
-  .btn.good,.btn.positive{background:var(--good);border-color:transparent;color:#0b0d12}
-  .btn.bad,.btn.negative{background:#ff6b6b;border-color:transparent;color:#0b0d12}
+  .btn.good{background:var(--good);border-color:transparent;color:#0b0d12}
+  .btn.bad{background:#ff6b6b;border-color:transparent;color:#0b0d12}
   .btn.warn{background:var(--warn);border-color:transparent;color:#0b0d12}
-  .btn.info{background:var(--info);border-color:transparent;color:#0b0d12}
-
   .seg{display:flex;gap:6px;background:var(--panel);padding:6px;border-radius:10px;border:1px solid #293042}
   .seg .segbtn{
     background:transparent;border:0;color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer
@@ -50,13 +48,25 @@
   .input:focus, textarea:focus{outline:none;box-shadow:var(--ring)}
   textarea{width:100%;min-height:160px;resize:vertical}
 
+  /* ONE column list */
   .cardlist{display:flex;flex-direction:column;gap:14px;margin-top:14px}
   .card{
-    position:relative;background:var(--surface);border:1px solid #2b3243;border-radius:var(--radius);padding:12px;
+    position:relative;
+    background:var(--surface);border:1px solid #2b3243;border-radius:var(--radius);padding:12px;
     box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px
   }
+
+  /* Status bar at top of card */
+  .statusBar{
+    margin:-12px -12px 10px -12px; /* span full width of card */
+    padding:8px 12px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);
+    text-align:center;font-weight:700;letter-spacing:.03em
+  }
+  .status-new{background:linear-gradient(180deg,#f7c948,#996c00); color:#0b0d12}
+  .status-saved{background:linear-gradient(180deg,#2ecc71,#0e8f49); color:#0b0d12}
+  .status-discarded{background:linear-gradient(180deg,#ff6b6b,#b02a2a); color:#0b0d12}
+
   .meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
-  .badge{padding:2px 8px;border-radius:999px;background:#262c39;border:1px solid #31384a;color:#c6cede}
   .tags{display:flex;flex-wrap:wrap;gap:6px}
   .notehtml{line-height:1.55;font-size:16px}
   .notehtml .cloze, .notehtml .cloze b, .notehtml .cloze i, .notehtml .cloze u{
@@ -74,7 +84,7 @@
   .hidden{display:none !important}
   .gridFooter{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted)}
 
-  /* Per-card cloze navigator */
+  /* Cloze navigator (bottom-right of card) */
   .clozeNav{
     position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:6px;
     background:#151925cc;border:1px solid #2b3243;border-radius:999px;padding:4px 8px
@@ -85,15 +95,19 @@
   }
   .clozeNav .indicator{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;color:#c7d2e7}
 
-  /* Modal */
+  /* Modal (one-by-one view) */
   .modalBackdrop{
-    position:fixed;inset:0;background:rgba(0,0,0,.45);
+    position:fixed;inset:0;background:rgba(0,0,0,.55);
     display:none;align-items:center;justify-content:center;z-index:20;
-    backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(6px);
   }
-  .modal{width:min(760px,94vw);background:var(--panel);border:1px solid #2b3243;border-radius:16px;box-shadow:var(--shadow);padding:16px}
-  .modal header{border:0;background:transparent}
+  .modal{
+    width:min(760px,94vw);max-height:90vh;overflow:auto;
+    background:var(--panel);border:1px solid #2b3243;border-radius:16px;box-shadow:var(--shadow);padding:16px
+  }
+  .modal header{border:0;background:transparent;position:sticky;top:0;padding-bottom:8px}
   .f1{flex:1}
+  .kbd{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;background:#10131a;color:#a3b0c2;border:1px solid #2b3243;border-radius:6px;padding:2px 6px}
   .muted{color:var(--muted)}
   .hr{height:1px;background:#2b3243;margin:10px 0;border-radius:1px}
   .mini{font-size:12px}
@@ -102,6 +116,11 @@
     display:block;background:var(--code);color:#cfe3ff;border:1px solid #293042;border-radius:10px;
     padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word
   }
+
+  /* Editor buttons color tweak per your request */
+  .btn.blue { background:#4a90e2; border-color:transparent; color:#0b0d12 }
+  .btn.red { background:#e74c3c; border-color:transparent; color:#0b0d12 }
+  .btn.green { background:#2ecc71; border-color:transparent; color:#0b0d12 }
 </style>
 </head>
 <body>
@@ -120,14 +139,8 @@
       <input class="input" id="tagFilter" placeholder='Filter by tag (comma: e.g. "neuro, lymph")'>
     </div>
     <div class="row">
-      <button class="btn" id="copyAllBtn" title="Copy all visible">Copy Visible</button>
-      <div class="seg" aria-label="Export">
-        <button class="segbtn" id="expTxt">TXT</button>
-        <button class="segbtn" id="expTsv">TSV</button>
-        <button class="segbtn" id="expCrowdAnki">CrowdAnki</button>
-        <button class="segbtn" id="expApkg">APKG</button>
-      </div>
-      <button class="btn bad" id="nukeBtn" title="Clear local data">Reset</button>
+      <button class="btn primary" id="pasteBtn">Paste / Replace</button>
+      <button class="btn warn" id="nukeBtn" title="Clear local data">Reset</button>
     </div>
   </div>
 </header>
@@ -145,16 +158,22 @@
   {"content": "The three branches are {{c1::executive}}, {{c1::legislative}}, and {{c1::judicial}}.", "tags":["civics"]},
   {"html":"{{c1::Jupiter}} is the largest planet.", "id":"note-42", "tags":["astro","giants"]}
 ]'></textarea>
+    <!-- Move Load/Copy/Export under the textarea to match your flow -->
     <div class="row" style="margin-top:10px;">
       <button class="btn primary" id="loadBtn">Load JSON</button>
-      <button class="btn warn" id="pasteBtn">Paste / Replace</button>
+      <button class="btn" id="copyAllBtn" title="Copy all visible">Copy Visible</button>
+      <div class="seg" aria-label="Export">
+        <button class="segbtn" id="expTxt">TXT</button>
+        <button class="segbtn" id="expTsv">TSV</button>
+        <button class="segbtn" id="expCrowdAnki">CrowdAnki</button>
+      </div>
     </div>
   </section>
 
   <section id="listArea" class="hidden">
     <div class="gridFooter">
       <div><span id="countLabel">0</span> cards</div>
-      <div class="muted mini">Click a card body to <span class="pill">Reveal/Hide current cloze</span>. Use ⭐ Save, 🗑️ Discard, ✏️ Edit, 📋 Copy.</div>
+      <div></div>
     </div>
     <div id="cards" class="cardlist" aria-live="polite"></div>
   </section>
@@ -165,20 +184,18 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="soloTitle">
     <header class="row" style="gap:10px;">
       <div id="soloTitle" class="f1">Solo View</div>
-      <button class="btn" id="soloPrev"><span class="mini">←</span> Prev</button>
-      <button class="btn" id="soloNext">Next <span class="mini">→</span></button>
+      <button class="btn" id="soloPrev"><span class="kbd">←</span> Prev</button>
+      <button class="btn" id="soloNext">Next <span class="kbd">→</span></button>
       <button class="btn bad" id="soloClose">Close</button>
     </header>
     <div class="hr"></div>
     <div id="soloCard" class="card"></div>
     <div class="row" style="margin-top:8px">
       <button class="btn good small" id="soloSave">⭐ Save</button>
-      <button class="btn small" id="soloReveal">Reveal / Hide</button>
       <button class="btn small" id="soloCopy">📋 Copy</button>
       <button class="btn small" id="soloEdit">✏️ Edit</button>
       <button class="btn bad small" id="soloDiscard">🗑️ Discard</button>
     </div>
-    <p class="muted mini">Hints ({{cN::answer::hint}}) render as a pale badge while hidden.</p>
   </div>
 </div>
 
@@ -194,7 +211,37 @@
   let tagFilter = [];
   let lastRendered = [];
   let soloIndex = 0;     // index in current filtered view
-  const uiState = {};    // { [id]: { nums:number[], idx:number, hidden:boolean } }
+  // Per-card UI state (not persisted)
+  const uiState = {}; // { [id]: { nums:number[], idx:number, hidden:boolean } }
+
+  // Prevent background scroll helpers (for modals)
+  let scrollBlockersBound = false;
+  function bindScrollBlockers(){
+    if (scrollBlockersBound) return;
+    const prevent = (e)=>{ e.preventDefault(); };
+    el("#soloBack").addEventListener("wheel", prevent, {passive:false});
+    el("#soloBack").addEventListener("touchmove", prevent, {passive:false});
+    document.addEventListener("wheel", prevent, {passive:false, capture:true});
+    document.addEventListener("touchmove", prevent, {passive:false, capture:true});
+    scrollBlockersBound = true;
+  }
+  function unbindScrollBlockers(){
+    if (!scrollBlockersBound) return;
+    // We reload listeners by replacing backdrop on close (simpler), so do nothing here.
+    scrollBlockersBound = false;
+  }
+  function openModalBackdrop(div){
+    document.body.classList.add("modalOpen");
+    bindScrollBlockers();
+    div.style.display = "flex";
+    div.setAttribute("aria-hidden","false");
+  }
+  function closeModalBackdrop(div){
+    div.style.display = "none";
+    div.setAttribute("aria-hidden","true");
+    document.body.classList.remove("modalOpen");
+    unbindScrollBlockers();
+  }
 
   // Load persisted
   try {
@@ -215,7 +262,7 @@
     while((m=re.exec(html))){ set.add(parseInt(m[1],10)); }
     return Array.from(set).sort((a,b)=>a-b);
   }
-  // Render: hide only target cloze; others shown
+  // Render with a single target cloze hidden/revealed; others always shown
   function renderClozeTarget(html, targetNum, hideTarget){
     if (!targetNum) return trimHtml(html);
     const re = /{{c(\d+)::(.*?)(?:::([^}]+))?}}/g;
@@ -233,7 +280,7 @@
     });
   }
 
-  // Normalize input to notes[]
+  // Parse flexible JSON into normalized notes[]
   function normalizeInput(input){
     const out = [];
     const tryStr = v => typeof v === "string" ? v : (v && typeof v.content === "string" ? v.content :
@@ -280,6 +327,15 @@
     cur.forEach(n => wireCard(n.id));
   }
 
+  function statusClass(s){
+    if (s==="saved") return "status-saved";
+    if (s==="discarded") return "status-discarded";
+    return "status-new";
+  }
+  function statusLabel(s){
+    return (s||"new").toUpperCase();
+  }
+
   function noteToCardHtml(n){
     const nums = getClozeNumbers(n.html);
     if (!uiState[n.id]) uiState[n.id] = { nums, idx:0, hidden:true };
@@ -287,22 +343,20 @@
 
     return `
       <article class="card" id="card-${n.id}" data-id="${n.id}">
-        <div class="meta">
-          <span class="badge">${n.status.toUpperCase()}</span>
-          ${n.tags.length ? `<div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-          <div class="row right">
-            <button class="btn small" data-action="toggle">Reveal</button>
-            <button class="btn small" data-action="copy">📋 Copy</button>
-            <button class="btn small" data-action="edit">✏️ Edit</button>
-            <button class="btn small good" data-action="save">⭐ Save</button>
-            <button class="btn small bad" data-action="discard">🗑️</button>
-          </div>
-        </div>
+        <div class="statusBar ${statusClass(n.status)}">${statusLabel(n.status)}</div>
+
+        ${n.tags.length ? `<div class="meta"><div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
+
         <div class="notehtml"></div>
+
         <div class="row">
-          <button class="ghostbtn" data-action="restore">Restore</button>
-          <span class="muted mini">ID: ${n.id}</span>
+          <button class="btn small" data-action="toggle">Reveal</button>
+          <button class="btn small" data-action="copy">📋 Copy</button>
+          <button class="btn small" data-action="edit">✏️ Edit</button>
+          <button class="btn small good" data-action="save">⭐ Save</button>
+          <button class="btn small bad" data-action="discard">🗑️</button>
         </div>
+
         <div class="clozeNav ${nums.length? "" : "hidden"}">
           <button class="miniBtn" data-action="clozePrev" title="Previous cloze">◀</button>
           <span class="indicator" data-role="clozeIndicator">1/${Math.max(nums.length,1)}</span>
@@ -322,13 +376,12 @@
 
     function update(){
       const st = uiState[id];
-      const nums = st.nums = getClozeNumbers(note.html); // keep in sync
+      const nums = st.nums;
       const has = nums.length>0;
       if (!has){
         htmlBox.innerHTML = trimHtml(note.html);
         nav.classList.add('hidden');
       } else {
-        st.idx = Math.min(st.idx, nums.length-1);
         const targetNum = nums[st.idx] ?? nums[0];
         htmlBox.innerHTML = renderClozeTarget(note.html, targetNum, st.hidden);
         indicator.textContent = `${(st.idx+1)}/${nums.length}`;
@@ -340,7 +393,9 @@
     if (!uiState[id]) uiState[id] = { nums:getClozeNumbers(note.html), idx:0, hidden:true };
     update();
 
-    get("toggle").addEventListener("click", () => { uiState[id].hidden = !uiState[id].hidden; update(); });
+    get("toggle").addEventListener("click", () => {
+      uiState[id].hidden = !uiState[id].hidden; update();
+    });
 
     root.addEventListener("click", e=>{
       if (e.target.closest(".row") || e.target.closest(".btn") || e.target.closest(".clozeNav")) return;
@@ -349,32 +404,33 @@
 
     get("clozePrev").addEventListener("click", (e)=>{
       e.stopPropagation();
-      const st = uiState[id]; const n = st.nums.length; if (!n) return;
+      const st = uiState[id]; const n = st.nums.length;
+      if (!n) return;
       st.idx = (st.idx - 1 + n) % n; st.hidden = true; update();
     });
     get("clozeNext").addEventListener("click", (e)=>{
       e.stopPropagation();
-      const st = uiState[id]; const n = st.nums.length; if (!n) return;
+      const st = uiState[id]; const n = st.nums.length;
+      if (!n) return;
       st.idx = (st.idx + 1) % n; st.hidden = true; update();
     });
 
-    get("copy").addEventListener("click", (e) => { e.stopPropagation(); navigator.clipboard.writeText(note.html).then(()=> toast("Copied")); });
+    get("copy").addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(note.html).then(()=> toast("Copied"));
+    });
 
     get("edit").addEventListener("click", (e) => { e.stopPropagation(); openEditor(note.id, update); });
 
-    get("save").addEventListener("click", (e) => { e.stopPropagation(); note.status = "saved"; note.fav = true; save(); renderList(); });
+    get("save").addEventListener("click", (e) => {
+      e.stopPropagation();
+      note.status = "saved"; note.fav = true; save(); renderList();
+    });
 
     get("discard").addEventListener("click", (e) => {
       e.stopPropagation();
       note.status = "discarded"; note.fav = false; save();
       if (view === "new") root.classList.add("hidden"); else renderList();
-    });
-
-    root.querySelector('[data-action="restore"]').addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (note.status === "discarded") note.status = "new";
-      else if (note.status === "saved") { note.status = "new"; note.fav = false; }
-      save(); renderList();
     });
   }
 
@@ -391,125 +447,142 @@
     setTimeout(()=> b.remove(), 1300);
   }
 
-  // ---------- Editor with per-Cn tools (styled +/−) ----------
+  // ---------- Editor (with color-coded cloze helpers) ----------
   function openEditor(id, onSaved){
     const note = notes.find(n=>n.id===id);
     const prev = note.html;
-    const mount = document.createElement("div");
-    mount.innerHTML = `
+    const area = document.createElement("div");
+    area.innerHTML = `
       <div class="modalBackdrop" style="display:flex">
         <div class="modal" role="dialog" aria-modal="true">
-          <header class="row">
-            <div class="f1">Edit Card</div>
-            <button class="btn bad" data-x>Close</button>
-          </header>
+          <header class="row"><div class="f1">Edit Card</div>
+            <button class="btn bad" data-x>Close</button></header>
           <div class="hr"></div>
+
           <textarea class="input" id="editArea" style="width:100%;min-height:260px;font-size:24px;line-height:1.25">${escapeHtml(prev)}</textarea>
 
-          <div class="row" id="perClozeTools" style="margin-top:10px"></div>
-
-          <div class="row" style="margin-top:10px;">
-            <button class="btn negative" data-removeAll>Remove All Clozes</button>
+          <div class="row" style="margin-top:10px;flex-wrap:wrap">
+            <button class="btn red" data-removeAll>Remove All Clozes</button>
+            <div class="row" id="minusRow" style="gap:6px"></div>
+            <div class="row" id="plusRow" style="gap:6px"></div>
+            <button class="btn blue" data-save>Save</button>
             <button class="btn" data-preview>Preview</button>
-            <button class="btn info" data-save>Save</button>
           </div>
+
           <div class="hr"></div>
           <div id="preview" class="card"></div>
         </div>
       </div>
     `;
-    document.body.appendChild(mount);
-    document.body.classList.add("noScroll");           // lock background scroll
+    document.body.appendChild(area);
+    const ta = area.querySelector("#editArea");
 
-    const ta = mount.querySelector("#editArea");
-    const close = ()=>{ mount.remove(); document.body.classList.remove("noScroll"); };
-    mount.querySelector("[data-x]").onclick = close;
+    // Lock background
+    openModalBackdrop(area.firstElementChild);
 
-    function currentNums(text){ return getClozeNumbers(text); }
-    function maxNum(text){ const ns=currentNums(text); return ns.length? ns[ns.length-1]:0; }
+    const close = ()=> { closeModalBackdrop(area.firstElementChild); area.remove(); };
 
-    function addClozeWithNumber(n){
+    area.querySelector("[data-x]").onclick = close;
+
+    function maxClozeNum(text){
+      let m, max=0; const re=/{{c(\d+)::/g;
+      while((m=re.exec(text))){ max = Math.max(max, parseInt(m[1],10)); }
+      return max;
+    }
+    function getNums(text){ return getClozeNumbers(text); }
+
+    function rebuildPlusMinusButtons(){
+      const nums = getNums(ta.value);
+      const minusRow = area.querySelector("#minusRow");
+      const plusRow = area.querySelector("#plusRow");
+      minusRow.innerHTML = "";
+      plusRow.innerHTML = "";
+
+      // Build "-Ck" (red) for existing cloze numbers
+      nums.forEach(k=>{
+        const b = document.createElement("button");
+        b.className = "btn red";
+        b.textContent = `-C${k}`;
+        b.title = `Remove all C${k} clozes (reindex higher ones)`;
+        b.onclick = ()=> removeCnum(k);
+        minusRow.appendChild(b);
+      });
+
+      // Build "+Ck" (green) for range 1..(max+1)
+      const m = nums.length ? Math.max(...nums) : 0;
+      for(let k=1; k<=m+1; k++){
+        const b = document.createElement("button");
+        b.className = "btn green";
+        b.textContent = `+C${k}`;
+        b.title = `Add selection as C${k}`;
+        b.onclick = ()=> addClozeAs(k);
+        plusRow.appendChild(b);
+      }
+    }
+
+    function addClozeAs(k){
       const start = ta.selectionStart, end = ta.selectionEnd;
       if (start===end){ alert("Select text to cloze."); return; }
-      const txt = ta.value; const sel = txt.slice(start,end);
-      const newCloze = `{{c${n}::${sel}}}`;
+      const txt = ta.value;
+      const sel = txt.slice(start,end);
+      const newCloze = `{{c${k}::${sel}}}`;
       ta.value = txt.slice(0,start) + newCloze + txt.slice(end);
       const pos = start + newCloze.length; ta.focus(); ta.setSelectionRange(pos,pos);
-      refreshTools();
+      rebuildPlusMinusButtons();
     }
-
-    function removeClozeAndReindex(n){
-      const pattern = new RegExp("\\{\\{c"+n+"::(.*?)(?:::(?:[^}]+))?\\}\\}","g");
-      let v = ta.value.replace(pattern, "$1");
-      v = v.replace(/\{\{c(\d+)::/g, (m, num)=>{
-        const k = parseInt(num,10);
-        return k>n ? "{{c"+(k-1)+"::" : m;
-      });
-      ta.value = v;
-      refreshTools();
-    }
-
     function removeAll(){
       ta.value = ta.value.replace(/{{c\d+::(.*?)(?:::([^}]+))?}}/g, "$1");
-      refreshTools();
+      rebuildPlusMinusButtons();
+    }
+    // Remove specific cN and reindex higher ones down by 1
+    function removeCnum(k){
+      let txt = ta.value;
+      const reTarget = new RegExp(`{{c${k}::(.*?)(?:::([^}]+))?}}`,"g");
+      txt = txt.replace(reTarget, "$1"); // drop Ck entirely
+
+      // Reindex C(k+1) -> Ck, C(k+2)->C(k+1), ...
+      let n = k+1;
+      while (new RegExp(`{{c${n}::`).test(txt)) {
+        const re = new RegExp(`{{c${n}::`,'g');
+        txt = txt.replace(re, `{{c${n-1}::`);
+        n++;
+      }
+      ta.value = txt;
+      rebuildPlusMinusButtons();
     }
 
-    function refreshTools(){
-      const bar = mount.querySelector("#perClozeTools");
-      const nums = currentNums(ta.value);
-      const next = (nums.length? nums[nums.length-1] : 0) + 1;
-      bar.innerHTML = "";
+    area.querySelector("[data-removeAll]").onclick = removeAll;
 
-      // −C# (red)
-      nums.forEach(n=>{
-        const b = document.createElement("button");
-        b.className = "btn negative";
-        b.textContent = `−C${n}`;
-        b.title = `Remove all C${n} and reindex`;
-        b.onclick = ()=>removeClozeAndReindex(n);
-        bar.appendChild(b);
-      });
-
-      // +C# for each existing and +next (green)
-      nums.concat(next).forEach(n=>{
-        const b = document.createElement("button");
-        b.className = "btn positive";
-        b.textContent = `+C${n}`;
-        b.title = `Wrap selection as C${n}`;
-        b.onclick = ()=>addClozeWithNumber(n);
-        bar.appendChild(b);
-      });
-    }
-    refreshTools();
-
-    // Keep Ctrl/⌘+Shift+C working (not advertised)
-    mount.addEventListener("keydown", (e)=>{
+    area.addEventListener("keydown", (e)=>{
+      // Keep your Ctrl/⌘+Shift+C shortcut working (not advertised, but functional)
       const key = e.key.toLowerCase();
       if ((e.ctrlKey||e.metaKey) && e.shiftKey && key==="c"){
         e.preventDefault();
-        const next = maxNum(ta.value)+1;
-        addClozeWithNumber(next);
+        const k = Math.max(1, maxClozeNum(ta.value)+1);
+        const start = ta.selectionStart, end = ta.selectionEnd;
+        if (start===end) return;
+        const txt = ta.value, sel = txt.slice(start,end);
+        const newCloze = `{{c${k}::${sel}}}`;
+        ta.value = txt.slice(0,start) + newCloze + txt.slice(end);
+        const pos = start + newCloze.length; ta.focus(); ta.setSelectionRange(pos,pos);
+        rebuildPlusMinusButtons();
       }
     });
 
-    ta.addEventListener("input", refreshTools);
-
-    mount.querySelector("[data-preview]").onclick = ()=>{
+    area.querySelector("[data-preview]").onclick = ()=>{
       const v = ta.value;
       const nums = getClozeNumbers(v);
       const first = nums[0] || null;
-      mount.querySelector("#preview").innerHTML = nums.length
+      area.querySelector("#preview").innerHTML = nums.length
         ? (`<div class="notehtml">${renderClozeTarget(v, first, true)}</div>
             <div class="hr"></div>
             <div class="notehtml">${renderClozeTarget(v, first, false)}</div>`)
         : (`<div class="notehtml">${trimHtml(v)}</div>`);
     };
-
-    mount.querySelector("[data-removeAll]").onclick = removeAll;
-
-    mount.querySelector("[data-save]").onclick = ()=>{
+    area.querySelector("[data-save]").onclick = ()=>{
       const v = ta.value;
       note.html = v; save();
+      // Reset UI state for this note (so counts update)
       uiState[id] = { nums:getClozeNumbers(v), idx:0, hidden:true };
       renderList();
       if (typeof onSaved==="function") onSaved();
@@ -517,13 +590,18 @@
       toast("Saved");
     };
 
-    // Close when clicking dim area outside modal
-    mount.addEventListener("click", (e)=>{ if (e.target === mount.firstElementChild) close(); });
+    rebuildPlusMinusButtons();
+
+    // Clicking outside modal closes it
+    area.firstElementChild.addEventListener("click",(e)=>{
+      if (e.target === area.firstElementChild) { close(); }
+    },{capture:true});
   }
 
   // ---------- Solo (one-at-a-time) ----------
   const soloBack = el("#soloBack");
   const soloCard = el("#soloCard");
+  // Solo view maintains its own ui state
   let soloState = { idx:0, hidden:true, nums:[] };
 
   function openSolo(index=0){
@@ -534,8 +612,7 @@
     soloState.nums = getClozeNumbers(n.html);
     soloState.idx = 0; soloState.hidden = true;
     drawSolo();
-    soloBack.style.display = "flex";
-    soloBack.setAttribute("aria-hidden","false");
+    openModalBackdrop(soloBack);
   }
   function drawSolo(){
     const cur = filtered(); const n = cur[soloIndex];
@@ -544,25 +621,30 @@
     const body = nums.length
       ? renderClozeTarget(n.html, target, soloState.hidden)
       : trimHtml(n.html);
+
     soloCard.innerHTML = `
-      <div class="meta">
-        <span class="badge">${n.status.toUpperCase()}</span>
-        ${n.tags.length ? `<div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-        <span class="muted mini f1" style="text-align:right">Card ${soloIndex+1} / ${cur.length}</span>
-      </div>
+      <div class="statusBar ${statusClass(n.status)}">${statusLabel(n.status)}</div>
+      ${n.tags.length ? `<div class="meta"><div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
       <div class="notehtml" id="soloHtml">${body}</div>
+
       <div class="clozeNav ${nums.length? "" : "hidden"}" style="position:static;margin-top:8px;align-self:flex-end">
         <button class="miniBtn" id="soloClozePrev">◀</button>
         <span class="indicator" id="soloIndicator">${nums.length? (soloState.idx+1)+"/"+nums.length : ""}</span>
         <button class="miniBtn" id="soloClozeNext">▶</button>
       </div>
     `;
+
+    // Tap the card body to toggle reveal/hide
+    soloCard.querySelector("#soloHtml").onclick = ()=>{
+      soloState.hidden = !soloState.hidden; drawSolo();
+    };
+
     const prevBtn = soloCard.querySelector("#soloClozePrev");
     const nextBtn = soloCard.querySelector("#soloClozeNext");
     if (prevBtn) prevBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx-1+nums.length)%nums.length; soloState.hidden=true; drawSolo(); };
     if (nextBtn) nextBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx+1)%nums.length; soloState.hidden=true; drawSolo(); };
   }
-  function closeSolo(){ soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); }
+  function closeSolo(){ closeModalBackdrop(soloBack); }
 
   // ---------- Export Helpers ----------
   function visibleNotes(){
@@ -638,7 +720,6 @@
     renderList();
   });
 
-  // Load / Paste now live under the textarea
   el("#loadBtn").addEventListener("click", ()=>{
     let parsed;
     try { parsed = JSON.parse(el("#jsonInput").value); }
@@ -678,28 +759,6 @@
     download("crowdanki.json", toCrowdAnki(arr), "application/json");
   });
 
-  el("#expApkg").addEventListener("click", ()=>{
-    const arr = notes.filter(n => n.status==="saved");
-    if (!arr.length) { alert("Save some cards first (⭐), then export."); return; }
-    fetch("/download_apkg", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ saved_cards: arr.map(n=>n.html) })
-    })
-    .then(r=> r.ok ? r.blob() : Promise.reject("Server error"))
-    .then(blob=>{
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "saved_cards.apkg";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(a.href);
-    })
-    .catch(e=>{
-      console.error(e);
-      alert("APKG download failed. Make sure this page is served by the Flask app exposing POST /download_apkg.");
-    });
-  });
-
   el("#nukeBtn").addEventListener("click", ()=>{
     if (!confirm("Clear local data and start over?")) return;
     localStorage.removeItem(storeKey);
@@ -708,12 +767,11 @@
     el("#ingest").classList.remove("hidden");
   });
 
-  // Solo view wiring
+  // Solo view handlers
   el("#soloBtn").addEventListener("click", ()=> openSolo(0));
   el("#soloClose").addEventListener("click", closeSolo);
   el("#soloPrev").addEventListener("click", ()=> { if (soloIndex>0){ soloIndex--; openSolo(soloIndex); } });
   el("#soloNext").addEventListener("click", ()=> { const m=filtered().length-1; if (soloIndex<m){ soloIndex++; openSolo(soloIndex); } });
-  el("#soloReveal").addEventListener("click", ()=>{ soloState.hidden = !soloState.hidden; drawSolo(); });
   el("#soloCopy").addEventListener("click", ()=> {
     const cur = filtered()[soloIndex]; navigator.clipboard.writeText(cur.html).then(()=>toast("Copied"));
   });
@@ -725,7 +783,8 @@
       if (e.key==="Escape"){ closeSolo(); }
       else if (e.key==="ArrowLeft"){ el("#soloPrev").click(); }
       else if (e.key==="ArrowRight"){ el("#soloNext").click(); }
-      else if (e.key===" "){ e.preventDefault(); el("#soloReveal").click(); }
+      // space toggles reveal/hide via click on card body
+      else if (e.key===" "){ e.preventDefault(); const body = el("#soloCard #soloHtml"); if (body) body.click(); }
       else if (e.key.toLowerCase()==="s"){ el("#soloSave").click(); }
       else if (e.key.toLowerCase()==="d"){ el("#soloDiscard").click(); }
       else if (e.key.toLowerCase()==="e"){ el("#soloEdit").click(); }
@@ -733,7 +792,9 @@
     }
   });
 
+  // Click backdrop to close modal
   el("#soloBack").addEventListener("click", (e)=>{ if (e.target===el("#soloBack")) closeSolo(); });
+
 })();
 </script>
 </body>
