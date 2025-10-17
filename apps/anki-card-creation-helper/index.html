@@ -56,15 +56,33 @@
     box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px
   }
 
-  /* Status bar at top of card */
+  /* Status bar (smaller; cloze nav lives on the right) */
   .statusBar{
-    margin:-12px -12px 10px -12px; /* span full width of card */
-    padding:8px 12px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);
-    text-align:center;font-weight:700;letter-spacing:.03em
+    margin:-12px -12px 8px -12px;
+    padding:4px 10px; /* ~half as big */
+    border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);
+    display:flex;align-items:center;
   }
-  .status-new{background:linear-gradient(180deg,#f7c948,#996c00); color:#0b0d12}
-  .status-saved{background:linear-gradient(180deg,#2ecc71,#0e8f49); color:#0b0d12}
-  .status-discarded{background:linear-gradient(180deg,#ff6b6b,#b02a2a); color:#0b0d12}
+  .statusTitle{
+    flex:1;text-align:center;font-weight:700;letter-spacing:.03em;font-size:13px;
+    color:#0b0d12;
+  }
+  .status-new{background:linear-gradient(180deg,#f7c948,#996c00)}
+  .status-saved{background:linear-gradient(180deg,#2ecc71,#0e8f49)}
+  .status-discarded{background:linear-gradient(180deg,#ff6b6b,#b02a2a)}
+
+  /* Top-right cloze navigator (inside status bar) */
+  .clozeTop{
+    margin-left:auto;display:flex;align-items:center;gap:6px;
+    background:#00000022;border:1px solid #00000033;border-radius:999px;padding:2px 6px;
+  }
+  .clozeTop .miniBtn{
+    border:1px solid #00000055;background:#00000033;color:#ffffff; border-radius:8px;
+    padding:2px 6px;cursor:pointer;font-size:12px;line-height:1
+  }
+  .clozeTop .indicator{
+    font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;color:#ffffffcc
+  }
 
   .meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
   .tags{display:flex;flex-wrap:wrap;gap:6px}
@@ -84,18 +102,7 @@
   .hidden{display:none !important}
   .gridFooter{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted)}
 
-  /* Cloze navigator (bottom-right of card) */
-  .clozeNav{
-    position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:6px;
-    background:#151925cc;border:1px solid #2b3243;border-radius:999px;padding:4px 8px
-  }
-  .clozeNav .miniBtn{
-    border:1px solid #2b3243;background:#0f1420;color:#d7e0f6;border-radius:8px;
-    padding:2px 6px;cursor:pointer;font-size:12px;line-height:1
-  }
-  .clozeNav .indicator{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;color:#c7d2e7}
-
-  /* Modal (one-by-one view) */
+  /* Modal (Edit/Solo) */
   .modalBackdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.55);
     display:none;align-items:center;justify-content:center;z-index:20;
@@ -117,7 +124,7 @@
     padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word
   }
 
-  /* Editor buttons color tweak per your request */
+  /* Editor buttons color palette */
   .btn.blue { background:#4a90e2; border-color:transparent; color:#0b0d12 }
   .btn.red { background:#e74c3c; border-color:transparent; color:#0b0d12 }
   .btn.green { background:#2ecc71; border-color:transparent; color:#0b0d12 }
@@ -158,7 +165,6 @@
   {"content": "The three branches are {{c1::executive}}, {{c1::legislative}}, and {{c1::judicial}}.", "tags":["civics"]},
   {"html":"{{c1::Jupiter}} is the largest planet.", "id":"note-42", "tags":["astro","giants"]}
 ]'></textarea>
-    <!-- Move Load/Copy/Export under the textarea to match your flow -->
     <div class="row" style="margin-top:10px;">
       <button class="btn primary" id="loadBtn">Load JSON</button>
       <button class="btn" id="copyAllBtn" title="Copy all visible">Copy Visible</button>
@@ -201,49 +207,43 @@
 
 <script>
 (() => {
-  // ---------- Types / State ----------
+  // ---------- Helpers / State ----------
   const el = sel => document.querySelector(sel);
   const els = sel => Array.from(document.querySelectorAll(sel));
   const storeKey = "cloze-reviewer-v1";
-  let notes = [];        // all notes
-  let view = "new";      // 'new' | 'saved' | 'discarded' | 'all'
+  let notes = [];
+  let view = "new";
   let searchTerm = "";
   let tagFilter = [];
   let lastRendered = [];
-  let soloIndex = 0;     // index in current filtered view
-  // Per-card UI state (not persisted)
+  let soloIndex = 0;
   const uiState = {}; // { [id]: { nums:number[], idx:number, hidden:boolean } }
 
-  // Prevent background scroll helpers (for modals)
-  let scrollBlockersBound = false;
-  function bindScrollBlockers(){
-    if (scrollBlockersBound) return;
-    const prevent = (e)=>{ e.preventDefault(); };
-    el("#soloBack").addEventListener("wheel", prevent, {passive:false});
-    el("#soloBack").addEventListener("touchmove", prevent, {passive:false});
-    document.addEventListener("wheel", prevent, {passive:false, capture:true});
-    document.addEventListener("touchmove", prevent, {passive:false, capture:true});
-    scrollBlockersBound = true;
-  }
-  function unbindScrollBlockers(){
-    if (!scrollBlockersBound) return;
-    // We reload listeners by replacing backdrop on close (simpler), so do nothing here.
-    scrollBlockersBound = false;
-  }
+  // Scroll lock management (add/remove listeners properly)
+  let wheelPreventHandler = null;
+  let touchPreventHandler = null;
+  function preventDefault(e){ e.preventDefault(); }
   function openModalBackdrop(div){
     document.body.classList.add("modalOpen");
-    bindScrollBlockers();
+    // attach blockers to backdrop only (and capture at doc to stop background scroll)
+    wheelPreventHandler = (e)=>{ if (!div.contains(e.target)) e.preventDefault(); };
+    touchPreventHandler = (e)=>{ if (!div.contains(e.target)) e.preventDefault(); };
+    document.addEventListener("wheel", wheelPreventHandler, {passive:false, capture:true});
+    document.addEventListener("touchmove", touchPreventHandler, {passive:false, capture:true});
     div.style.display = "flex";
     div.setAttribute("aria-hidden","false");
   }
   function closeModalBackdrop(div){
     div.style.display = "none";
     div.setAttribute("aria-hidden","true");
+    // remove blockers
+    if (wheelPreventHandler) document.removeEventListener("wheel", wheelPreventHandler, {capture:true});
+    if (touchPreventHandler) document.removeEventListener("touchmove", touchPreventHandler, {capture:true});
+    wheelPreventHandler = touchPreventHandler = null;
     document.body.classList.remove("modalOpen");
-    unbindScrollBlockers();
   }
 
-  // Load persisted
+  // Persist
   try {
     const raw = localStorage.getItem(storeKey);
     if (raw) {
@@ -252,7 +252,7 @@
     }
   } catch {}
 
-  // ---------- Utilities ----------
+  // ---------- Utils ----------
   function uid() { return "n_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
   function save() { localStorage.setItem(storeKey, JSON.stringify(notes)); }
   function trimHtml(s){ return (s||"").toString().trim(); }
@@ -262,7 +262,6 @@
     while((m=re.exec(html))){ set.add(parseInt(m[1],10)); }
     return Array.from(set).sort((a,b)=>a-b);
   }
-  // Render with a single target cloze hidden/revealed; others always shown
   function renderClozeTarget(html, targetNum, hideTarget){
     if (!targetNum) return trimHtml(html);
     const re = /{{c(\d+)::(.*?)(?:::([^}]+))?}}/g;
@@ -279,8 +278,6 @@
       }
     });
   }
-
-  // Parse flexible JSON into normalized notes[]
   function normalizeInput(input){
     const out = [];
     const tryStr = v => typeof v === "string" ? v : (v && typeof v.content === "string" ? v.content :
@@ -300,7 +297,6 @@
     });
     return out;
   }
-
   function filtered(){
     let arr = notes;
     if (view === "new") arr = arr.filter(n => n.status === "new");
@@ -318,23 +314,8 @@
 
   // ---------- Rendering ----------
   const cardsEl = el("#cards");
-  function renderList(){
-    const cur = filtered();
-    lastRendered = cur.map(n=>n.id);
-    el("#countLabel").textContent = String(cur.length);
-    el("#listArea").classList.toggle("hidden", cur.length === 0);
-    cardsEl.innerHTML = cur.map(noteToCardHtml).join("");
-    cur.forEach(n => wireCard(n.id));
-  }
-
-  function statusClass(s){
-    if (s==="saved") return "status-saved";
-    if (s==="discarded") return "status-discarded";
-    return "status-new";
-  }
-  function statusLabel(s){
-    return (s||"new").toUpperCase();
-  }
+  function statusClass(s){ if (s==="saved") return "status-saved"; if (s==="discarded") return "status-discarded"; return "status-new"; }
+  function statusLabel(s){ return (s||"new").toUpperCase(); }
 
   function noteToCardHtml(n){
     const nums = getClozeNumbers(n.html);
@@ -343,7 +324,14 @@
 
     return `
       <article class="card" id="card-${n.id}" data-id="${n.id}">
-        <div class="statusBar ${statusClass(n.status)}">${statusLabel(n.status)}</div>
+        <div class="statusBar ${statusClass(n.status)}">
+          <div class="statusTitle">${statusLabel(n.status)}</div>
+          <div class="clozeTop ${nums.length? "" : "hidden"}">
+            <button class="miniBtn" data-action="clozePrev" title="Previous cloze">◀</button>
+            <span class="indicator" data-role="clozeIndicator">${nums.length? ("1/"+nums.length) : ""}</span>
+            <button class="miniBtn" data-action="clozeNext" title="Next cloze">▶</button>
+          </div>
+        </div>
 
         ${n.tags.length ? `<div class="meta"><div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
 
@@ -356,14 +344,17 @@
           <button class="btn small good" data-action="save">⭐ Save</button>
           <button class="btn small bad" data-action="discard">🗑️</button>
         </div>
-
-        <div class="clozeNav ${nums.length? "" : "hidden"}">
-          <button class="miniBtn" data-action="clozePrev" title="Previous cloze">◀</button>
-          <span class="indicator" data-role="clozeIndicator">1/${Math.max(nums.length,1)}</span>
-          <button class="miniBtn" data-action="clozeNext" title="Next cloze">▶</button>
-        </div>
       </article>
     `;
+  }
+
+  function renderList(){
+    const cur = filtered();
+    lastRendered = cur.map(n=>n.id);
+    el("#countLabel").textContent = String(cur.length);
+    el("#listArea").classList.toggle("hidden", cur.length === 0);
+    cardsEl.innerHTML = cur.map(noteToCardHtml).join("");
+    cur.forEach(n => wireCard(n.id));
   }
 
   function wireCard(id){
@@ -372,7 +363,7 @@
     const note = notes.find(x=>x.id===id);
     const htmlBox = root.querySelector(".notehtml");
     const indicator = root.querySelector('[data-role="clozeIndicator"]');
-    const nav = root.querySelector('.clozeNav');
+    const nav = root.querySelector('.clozeTop');
 
     function update(){
       const st = uiState[id];
@@ -389,49 +380,34 @@
       }
       get("toggle").textContent = uiState[id].hidden ? "Reveal" : "Hide";
     }
-
     if (!uiState[id]) uiState[id] = { nums:getClozeNumbers(note.html), idx:0, hidden:true };
     update();
 
-    get("toggle").addEventListener("click", () => {
-      uiState[id].hidden = !uiState[id].hidden; update();
-    });
+    get("toggle").addEventListener("click", () => { uiState[id].hidden = !uiState[id].hidden; update(); });
 
+    // Click body toggles reveal/hide
     root.addEventListener("click", e=>{
-      if (e.target.closest(".row") || e.target.closest(".btn") || e.target.closest(".clozeNav")) return;
+      if (e.target.closest(".row") || e.target.closest(".btn") || e.target.closest(".clozeTop")) return;
       uiState[id].hidden = !uiState[id].hidden; update();
     });
 
-    get("clozePrev").addEventListener("click", (e)=>{
+    const prevBtn = root.querySelector('[data-action="clozePrev"]');
+    const nextBtn = root.querySelector('[data-action="clozeNext"]');
+    if (prevBtn) prevBtn.addEventListener("click", (e)=>{
       e.stopPropagation();
-      const st = uiState[id]; const n = st.nums.length;
-      if (!n) return;
+      const st = uiState[id]; const n = st.nums.length; if (!n) return;
       st.idx = (st.idx - 1 + n) % n; st.hidden = true; update();
     });
-    get("clozeNext").addEventListener("click", (e)=>{
+    if (nextBtn) nextBtn.addEventListener("click", (e)=>{
       e.stopPropagation();
-      const st = uiState[id]; const n = st.nums.length;
-      if (!n) return;
+      const st = uiState[id]; const n = st.nums.length; if (!n) return;
       st.idx = (st.idx + 1) % n; st.hidden = true; update();
     });
 
-    get("copy").addEventListener("click", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(note.html).then(()=> toast("Copied"));
-    });
-
+    get("copy").addEventListener("click", (e) => { e.stopPropagation(); navigator.clipboard.writeText(note.html).then(()=> toast("Copied")); });
     get("edit").addEventListener("click", (e) => { e.stopPropagation(); openEditor(note.id, update); });
-
-    get("save").addEventListener("click", (e) => {
-      e.stopPropagation();
-      note.status = "saved"; note.fav = true; save(); renderList();
-    });
-
-    get("discard").addEventListener("click", (e) => {
-      e.stopPropagation();
-      note.status = "discarded"; note.fav = false; save();
-      if (view === "new") root.classList.add("hidden"); else renderList();
-    });
+    get("save").addEventListener("click", (e) => { e.stopPropagation(); note.status = "saved"; note.fav = true; save(); renderList(); });
+    get("discard").addEventListener("click", (e) => { e.stopPropagation(); note.status = "discarded"; note.fav = false; save(); if (view === "new") root.classList.add("hidden"); else renderList(); });
   }
 
   function toast(msg){
@@ -447,13 +423,13 @@
     setTimeout(()=> b.remove(), 1300);
   }
 
-  // ---------- Editor (with color-coded cloze helpers) ----------
+  // ---------- Editor ----------
   function openEditor(id, onSaved){
     const note = notes.find(n=>n.id===id);
     const prev = note.html;
     const area = document.createElement("div");
     area.innerHTML = `
-      <div class="modalBackdrop" style="display:flex">
+      <div class="modalBackdrop">
         <div class="modal" role="dialog" aria-modal="true">
           <header class="row"><div class="f1">Edit Card</div>
             <button class="btn bad" data-x>Close</button></header>
@@ -475,21 +451,16 @@
       </div>
     `;
     document.body.appendChild(area);
+    const backdrop = area.firstElementChild;
+    openModalBackdrop(backdrop);
+
     const ta = area.querySelector("#editArea");
-
-    // Lock background
-    openModalBackdrop(area.firstElementChild);
-
-    const close = ()=> { closeModalBackdrop(area.firstElementChild); area.remove(); };
+    const close = ()=>{ closeModalBackdrop(backdrop); area.remove(); };
 
     area.querySelector("[data-x]").onclick = close;
 
-    function maxClozeNum(text){
-      let m, max=0; const re=/{{c(\d+)::/g;
-      while((m=re.exec(text))){ max = Math.max(max, parseInt(m[1],10)); }
-      return max;
-    }
     function getNums(text){ return getClozeNumbers(text); }
+    function maxClozeNum(text){ const ns=getNums(text); return ns.length? Math.max(...ns):0; }
 
     function rebuildPlusMinusButtons(){
       const nums = getNums(ta.value);
@@ -498,22 +469,18 @@
       minusRow.innerHTML = "";
       plusRow.innerHTML = "";
 
-      // Build "-Ck" (red) for existing cloze numbers
       nums.forEach(k=>{
         const b = document.createElement("button");
-        b.className = "btn red";
-        b.textContent = `-C${k}`;
+        b.className = "btn red"; b.textContent = `-C${k}`;
         b.title = `Remove all C${k} clozes (reindex higher ones)`;
         b.onclick = ()=> removeCnum(k);
         minusRow.appendChild(b);
       });
 
-      // Build "+Ck" (green) for range 1..(max+1)
       const m = nums.length ? Math.max(...nums) : 0;
       for(let k=1; k<=m+1; k++){
         const b = document.createElement("button");
-        b.className = "btn green";
-        b.textContent = `+C${k}`;
+        b.className = "btn green"; b.textContent = `+C${k}`;
         b.title = `Add selection as C${k}`;
         b.onclick = ()=> addClozeAs(k);
         plusRow.appendChild(b);
@@ -523,8 +490,7 @@
     function addClozeAs(k){
       const start = ta.selectionStart, end = ta.selectionEnd;
       if (start===end){ alert("Select text to cloze."); return; }
-      const txt = ta.value;
-      const sel = txt.slice(start,end);
+      const txt = ta.value, sel = txt.slice(start,end);
       const newCloze = `{{c${k}::${sel}}}`;
       ta.value = txt.slice(0,start) + newCloze + txt.slice(end);
       const pos = start + newCloze.length; ta.focus(); ta.setSelectionRange(pos,pos);
@@ -534,13 +500,10 @@
       ta.value = ta.value.replace(/{{c\d+::(.*?)(?:::([^}]+))?}}/g, "$1");
       rebuildPlusMinusButtons();
     }
-    // Remove specific cN and reindex higher ones down by 1
     function removeCnum(k){
       let txt = ta.value;
       const reTarget = new RegExp(`{{c${k}::(.*?)(?:::([^}]+))?}}`,"g");
-      txt = txt.replace(reTarget, "$1"); // drop Ck entirely
-
-      // Reindex C(k+1) -> Ck, C(k+2)->C(k+1), ...
+      txt = txt.replace(reTarget, "$1"); // drop Ck
       let n = k+1;
       while (new RegExp(`{{c${n}::`).test(txt)) {
         const re = new RegExp(`{{c${n}::`,'g');
@@ -552,9 +515,27 @@
     }
 
     area.querySelector("[data-removeAll]").onclick = removeAll;
+    area.querySelector("[data-preview]").onclick = ()=>{
+      const v = ta.value;
+      const nums = getClozeNumbers(v);
+      const first = nums[0] || null;
+      area.querySelector("#preview").innerHTML = nums.length
+        ? (`<div class="notehtml">${renderClozeTarget(v, first, true)}</div>
+            <div class="hr"></div>
+            <div class="notehtml">${renderClozeTarget(v, first, false)}</div>`)
+        : (`<div class="notehtml">${trimHtml(v)}</div>`);
+    };
+    area.querySelector("[data-save]").onclick = ()=>{
+      const v = ta.value;
+      note.html = v; save();
+      uiState[id] = { nums:getClozeNumbers(v), idx:0, hidden:true };
+      renderList();
+      if (typeof onSaved==="function") onSaved();
+      close(); toast("Saved");
+    };
 
+    // keep Ctrl/⌘+Shift+C working
     area.addEventListener("keydown", (e)=>{
-      // Keep your Ctrl/⌘+Shift+C shortcut working (not advertised, but functional)
       const key = e.key.toLowerCase();
       if ((e.ctrlKey||e.metaKey) && e.shiftKey && key==="c"){
         e.preventDefault();
@@ -569,44 +550,46 @@
       }
     });
 
-    area.querySelector("[data-preview]").onclick = ()=>{
-      const v = ta.value;
-      const nums = getClozeNumbers(v);
-      const first = nums[0] || null;
-      area.querySelector("#preview").innerHTML = nums.length
-        ? (`<div class="notehtml">${renderClozeTarget(v, first, true)}</div>
-            <div class="hr"></div>
-            <div class="notehtml">${renderClozeTarget(v, first, false)}</div>`)
-        : (`<div class="notehtml">${trimHtml(v)}</div>`);
-    };
-    area.querySelector("[data-save]").onclick = ()=>{
-      const v = ta.value;
-      note.html = v; save();
-      // Reset UI state for this note (so counts update)
-      uiState[id] = { nums:getClozeNumbers(v), idx:0, hidden:true };
-      renderList();
-      if (typeof onSaved==="function") onSaved();
-      close();
-      toast("Saved");
-    };
-
     rebuildPlusMinusButtons();
 
-    // Clicking outside modal closes it
-    area.firstElementChild.addEventListener("click",(e)=>{
-      if (e.target === area.firstElementChild) { close(); }
-    },{capture:true});
+    // click outside modal closes
+    backdrop.addEventListener("click",(e)=>{ if (e.target===backdrop) close(); },{capture:true});
   }
 
   // ---------- Solo (one-at-a-time) ----------
   const soloBack = el("#soloBack");
   const soloCard = el("#soloCard");
-  // Solo view maintains its own ui state
   let soloState = { idx:0, hidden:true, nums:[] };
 
+  function drawSolo(){
+    const cur = filtered(); const n = cur[soloIndex];
+    const nums = soloState.nums;
+    const target = nums[soloState.idx] || null;
+    const body = nums.length ? renderClozeTarget(n.html, target, soloState.hidden) : trimHtml(n.html);
+
+    soloCard.innerHTML = `
+      <div class="statusBar ${statusClass(n.status)}">
+        <div class="statusTitle">${statusLabel(n.status)}</div>
+        <div class="clozeTop ${nums.length? "" : "hidden"}">
+          <button class="miniBtn" id="soloClozePrev">◀</button>
+          <span class="indicator" id="soloIndicator">${nums.length? (soloState.idx+1)+"/"+nums.length : ""}</span>
+          <button class="miniBtn" id="soloClozeNext">▶</button>
+        </div>
+      </div>
+      ${n.tags.length ? `<div class="meta"><div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
+      <div class="notehtml" id="soloHtml">${body}</div>
+    `;
+
+    soloCard.querySelector("#soloHtml").onclick = ()=>{
+      soloState.hidden = !soloState.hidden; drawSolo();
+    };
+    const prevBtn = soloCard.querySelector("#soloClozePrev");
+    const nextBtn = soloCard.querySelector("#soloClozeNext");
+    if (prevBtn) prevBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx-1+nums.length)%nums.length; soloState.hidden=true; drawSolo(); };
+    if (nextBtn) nextBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx+1)%nums.length; soloState.hidden=true; drawSolo(); };
+  }
   function openSolo(index=0){
-    const cur = filtered();
-    if (!cur.length) return;
+    const cur = filtered(); if (!cur.length) return;
     soloIndex = Math.max(0, Math.min(index, cur.length-1));
     const n = cur[soloIndex];
     soloState.nums = getClozeNumbers(n.html);
@@ -614,39 +597,9 @@
     drawSolo();
     openModalBackdrop(soloBack);
   }
-  function drawSolo(){
-    const cur = filtered(); const n = cur[soloIndex];
-    const nums = soloState.nums;
-    const target = nums[soloState.idx] || null;
-    const body = nums.length
-      ? renderClozeTarget(n.html, target, soloState.hidden)
-      : trimHtml(n.html);
-
-    soloCard.innerHTML = `
-      <div class="statusBar ${statusClass(n.status)}">${statusLabel(n.status)}</div>
-      ${n.tags.length ? `<div class="meta"><div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div></div>` : ""}
-      <div class="notehtml" id="soloHtml">${body}</div>
-
-      <div class="clozeNav ${nums.length? "" : "hidden"}" style="position:static;margin-top:8px;align-self:flex-end">
-        <button class="miniBtn" id="soloClozePrev">◀</button>
-        <span class="indicator" id="soloIndicator">${nums.length? (soloState.idx+1)+"/"+nums.length : ""}</span>
-        <button class="miniBtn" id="soloClozeNext">▶</button>
-      </div>
-    `;
-
-    // Tap the card body to toggle reveal/hide
-    soloCard.querySelector("#soloHtml").onclick = ()=>{
-      soloState.hidden = !soloState.hidden; drawSolo();
-    };
-
-    const prevBtn = soloCard.querySelector("#soloClozePrev");
-    const nextBtn = soloCard.querySelector("#soloClozeNext");
-    if (prevBtn) prevBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx-1+nums.length)%nums.length; soloState.hidden=true; drawSolo(); };
-    if (nextBtn) nextBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx+1)%nums.length; soloState.hidden=true; drawSolo(); };
-  }
   function closeSolo(){ closeModalBackdrop(soloBack); }
 
-  // ---------- Export Helpers ----------
+  // ---------- Export ----------
   function visibleNotes(){
     const ids = new Set(lastRendered);
     return notes.filter(n => ids.has(n.id));
@@ -657,42 +610,16 @@
     a.href = URL.createObjectURL(blob); a.download = name; a.click();
     URL.revokeObjectURL(a.href);
   }
-  function toTSV(arr){
-    const header = "Text\n";
-    return header + arr.map(n => n.html.replace(/\n/g," ")).join("\n");
-  }
+  function toTSV(arr){ const header = "Text\n"; return header + arr.map(n => n.html.replace(/\n/g," ")).join("\n"); }
   function toCrowdAnki(arr){
     const deck = {
-      __type__: "Deck",
-      children: [],
-      crowdanki_uuid: "deck-" + uid(),
-      deck_config_uuid: "cfg-" + uid(),
-      deck_configurations: [{
-        __type__: "DeckConfig",
-        name: "Default",
-        autoplay: false,
-        bury_new: false,
-        bury_review: false,
-        crowdanki_uuid: "cfg-" + uid(),
-        cloze: true
-      }],
-      description: "Exported from Cloze Cards Reviewer",
-      name: "Saved Cards",
-      note_models: [{
-        __type__: "NoteModel",
-        crowdanki_uuid: "model-" + uid(),
-        name: "Cloze (Imported)",
-        type: "cloze",
-        fields: [{name:"Text"}],
-        templates: [{name:"Cloze", qfmt:"{{cloze:Text}}", afmt:"{{cloze:Text}}"}]
-      }],
-      notes: arr.map(n => ({
-        __type__: "Note",
-        guid: uid(),
-        note_model_uuid: "model-placeholder",
-        fields: [n.html],
-        tags: n.tags||[]
-      }))
+      __type__: "Deck", children: [],
+      crowdanki_uuid: "deck-" + uid(), deck_config_uuid: "cfg-" + uid(),
+      deck_configurations: [{__type__:"DeckConfig",name:"Default",autoplay:false,bury_new:false,bury_review:false,crowdanki_uuid:"cfg-" + uid(),cloze:true}],
+      description: "Exported from Cloze Cards Reviewer", name: "Saved Cards",
+      note_models: [{__type__:"NoteModel", crowdanki_uuid:"model-" + uid(), name:"Cloze (Imported)", type:"cloze",
+        fields:[{name:"Text"}], templates:[{name:"Cloze", qfmt:"{{cloze:Text}}", afmt:"{{cloze:Text}}"}]}],
+      notes: arr.map(n => ({__type__:"Note", guid: uid(), note_model_uuid:"model-placeholder", fields:[n.html], tags:n.tags||[]}))
     };
     const modelUuid = deck.note_models[0].crowdanki_uuid;
     deck.notes.forEach(nt => nt.note_model_uuid = modelUuid);
@@ -767,7 +694,7 @@
     el("#ingest").classList.remove("hidden");
   });
 
-  // Solo view handlers
+  // Solo
   el("#soloBtn").addEventListener("click", ()=> openSolo(0));
   el("#soloClose").addEventListener("click", closeSolo);
   el("#soloPrev").addEventListener("click", ()=> { if (soloIndex>0){ soloIndex--; openSolo(soloIndex); } });
@@ -783,7 +710,6 @@
       if (e.key==="Escape"){ closeSolo(); }
       else if (e.key==="ArrowLeft"){ el("#soloPrev").click(); }
       else if (e.key==="ArrowRight"){ el("#soloNext").click(); }
-      // space toggles reveal/hide via click on card body
       else if (e.key===" "){ e.preventDefault(); const body = el("#soloCard #soloHtml"); if (body) body.click(); }
       else if (e.key.toLowerCase()==="s"){ el("#soloSave").click(); }
       else if (e.key.toLowerCase()==="d"){ el("#soloDiscard").click(); }
@@ -792,7 +718,7 @@
     }
   });
 
-  // Click backdrop to close modal
+  // Backdrop click closes Solo
   el("#soloBack").addEventListener("click", (e)=>{ if (e.target===el("#soloBack")) closeSolo(); });
 
 })();
