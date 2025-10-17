@@ -7,14 +7,16 @@
 <style>
   :root{
     --bg:#0f1115; --panel:#171a21; --surface:#1e222b; --muted:#96a0af; --text:#e7eaf0;
-    --accent:#9b87fd; --accent-weak:#b6a9ff; --good:#2ecc71; --bad:#e74c3c; --warn:#f39c12;
+    --accent:#9b87fd; --accent-weak:#b6a9ff; --good:#2ecc71; --bad:#e74c3c; --warn:#f39c12; --info:#3b82f6;
     --ring:0 0 0 2px rgba(155,135,253,.35);
     --radius:14px; --shadow:0 10px 30px rgba(0,0,0,.35); --code:#0b0d12;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 system-ui,Segoe UI,Roboto,Inter,Helvetica,Arial}
+  body.noScroll{overflow:hidden}
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
+
   /* One-column layout */
   .wrap{max-width:880px;margin:0 auto;padding:16px}
   header{
@@ -23,15 +25,18 @@
   }
   .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px}
   .toolbar .title{font-weight:700;font-size:18px;margin-right:auto}
+
   .btn{
     border:1px solid #2a3140;background:var(--surface);color:var(--text);
-    padding:9px 12px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow);
+    padding:9px 12px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow)
   }
   .btn:focus{outline:none;box-shadow:var(--ring)}
   .btn.primary{background:var(--accent);border-color:transparent;color:#0b0d12}
-  .btn.good{background:var(--good);border-color:transparent;color:#0b0d12}
-  .btn.bad{background:#ff6b6b;border-color:transparent;color:#0b0d12}
+  .btn.good,.btn.positive{background:var(--good);border-color:transparent;color:#0b0d12}
+  .btn.bad,.btn.negative{background:#ff6b6b;border-color:transparent;color:#0b0d12}
   .btn.warn{background:var(--warn);border-color:transparent;color:#0b0d12}
+  .btn.info{background:var(--info);border-color:transparent;color:#0b0d12}
+
   .seg{display:flex;gap:6px;background:var(--panel);padding:6px;border-radius:10px;border:1px solid #293042}
   .seg .segbtn{
     background:transparent;border:0;color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer
@@ -44,7 +49,7 @@
   }
   .input:focus, textarea:focus{outline:none;box-shadow:var(--ring)}
   textarea{width:100%;min-height:160px;resize:vertical}
-  /* ONE column */
+
   .cardlist{display:flex;flex-direction:column;gap:14px;margin-top:14px}
   .card{
     position:relative;background:var(--surface);border:1px solid #2b3243;border-radius:var(--radius);padding:12px;
@@ -68,6 +73,7 @@
   }
   .hidden{display:none !important}
   .gridFooter{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted)}
+
   /* Per-card cloze navigator */
   .clozeNav{
     position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:6px;
@@ -78,12 +84,16 @@
     padding:2px 6px;cursor:pointer;font-size:12px;line-height:1
   }
   .clozeNav .indicator{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;color:#c7d2e7}
+
   /* Modal */
-  .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:20}
+  .modalBackdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);
+    display:none;align-items:center;justify-content:center;z-index:20;
+    backdrop-filter: blur(8px) saturate(120%);
+  }
   .modal{width:min(760px,94vw);background:var(--panel);border:1px solid #2b3243;border-radius:16px;box-shadow:var(--shadow);padding:16px}
   .modal header{border:0;background:transparent}
   .f1{flex:1}
-  .kbd{font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas;background:#10131a;color:#a3b0c2;border:1px solid #2b3243;border-radius:6px;padding:2px 6px}
   .muted{color:var(--muted)}
   .hr{height:1px;background:#2b3243;margin:10px 0;border-radius:1px}
   .mini{font-size:12px}
@@ -153,8 +163,8 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="soloTitle">
     <header class="row" style="gap:10px;">
       <div id="soloTitle" class="f1">Solo View</div>
-      <button class="btn" id="soloPrev"><span class="kbd">←</span> Prev</button>
-      <button class="btn" id="soloNext">Next <span class="kbd">→</span></button>
+      <button class="btn" id="soloPrev"><span class="mini">←</span> Prev</button>
+      <button class="btn" id="soloNext">Next <span class="mini">→</span></button>
       <button class="btn bad" id="soloClose">Close</button>
     </header>
     <div class="hr"></div>
@@ -182,8 +192,7 @@
   let tagFilter = [];
   let lastRendered = [];
   let soloIndex = 0;     // index in current filtered view
-  // Per-card UI state (not persisted)
-  const uiState = {}; // { [id]: { nums:number[], idx:number, hidden:boolean } }
+  const uiState = {};    // { [id]: { nums:number[], idx:number, hidden:boolean } }
 
   // Load persisted
   try {
@@ -380,7 +389,7 @@
     setTimeout(()=> b.remove(), 1300);
   }
 
-  // ---------- Editor with per-Cn tools ----------
+  // ---------- Editor with per-Cn tools (styled +/−) ----------
   function openEditor(id, onSaved){
     const note = notes.find(n=>n.id===id);
     const prev = note.html;
@@ -388,19 +397,19 @@
     mount.innerHTML = `
       <div class="modalBackdrop" style="display:flex">
         <div class="modal" role="dialog" aria-modal="true">
-          <header class="row"><div class="f1">Edit Card</div>
-            <button class="btn bad" data-x>Close</button></header>
+          <header class="row">
+            <div class="f1">Edit Card</div>
+            <button class="btn bad" data-x>Close</button>
+          </header>
           <div class="hr"></div>
-          <p class="muted mini">Cloze syntax: <code>{{c1::answer}}</code> or <code>{{c1::answer::hint}}</code>. 
-            Quick add: <b>Ctrl/⌘+Shift+C</b> (uses next new cN).</p>
-          <textarea class="input" id="editArea" style="width:100%;min-height:240px">${escapeHtml(prev)}</textarea>
+          <textarea class="input" id="editArea" style="width:100%;min-height:260px;font-size:48px;line-height:1.25">${escapeHtml(prev)}</textarea>
 
           <div class="row" id="perClozeTools" style="margin-top:10px"></div>
 
           <div class="row" style="margin-top:10px;">
-            <button class="btn" data-removeAll>Remove All Clozes</button>
+            <button class="btn negative" data-removeAll>Remove All Clozes</button>
             <button class="btn" data-preview>Preview</button>
-            <button class="btn good" data-save>Save</button>
+            <button class="btn info" data-save>Save</button>
           </div>
           <div class="hr"></div>
           <div id="preview" class="card"></div>
@@ -408,12 +417,13 @@
       </div>
     `;
     document.body.appendChild(mount);
+    document.body.classList.add("noScroll");           // lock background scroll
     const ta = mount.querySelector("#editArea");
-    const close = ()=> mount.remove();
+
+    const close = ()=>{ mount.remove(); document.body.classList.remove("noScroll"); };
     mount.querySelector("[data-x]").onclick = close;
 
-    // Helpers
-    const reAll = /{{c(\d+)::(.*?)(?:::([^}]+))?}}/g;
+    // helpers
     function currentNums(text){ return getClozeNumbers(text); }
     function maxNum(text){ const ns=currentNums(text); return ns.length? ns[ns.length-1]:0; }
 
@@ -428,10 +438,8 @@
     }
 
     function removeClozeAndReindex(n){
-      // remove all cN
       const pattern = new RegExp("\\{\\{c"+n+"::(.*?)(?:::(?:[^}]+))?\\}\\}","g");
       let v = ta.value.replace(pattern, "$1");
-      // shift higher numbers down
       v = v.replace(/\{\{c(\d+)::/g, (m, num)=>{
         const k = parseInt(num,10);
         return k>n ? "{{c"+(k-1)+"::" : m;
@@ -445,46 +453,36 @@
       refreshTools();
     }
 
-    // Build the dynamic per-Cn toolbar
+    // Dynamic toolbar (only buttons; no labels)
     function refreshTools(){
       const bar = mount.querySelector("#perClozeTools");
       const nums = currentNums(ta.value);
       const next = (nums.length? nums[nums.length-1] : 0) + 1;
-
-      const btn = (label, handler, title="")=>{
-        const b = document.createElement("button");
-        b.className = "btn"; b.textContent = label; if (title) b.title = title;
-        b.onclick = handler; return b;
-      };
-
       bar.innerHTML = "";
 
-      // Remove Cn buttons
-      if (nums.length){
-        const removeGroup = document.createElement("div");
-        removeGroup.className = "row";
-        removeGroup.appendChild(document.createTextNode("Remove:"));
-        nums.forEach(n=>{
-          removeGroup.appendChild(btn(`-C${n}`, ()=>removeClozeAndReindex(n), `Remove all C${n} and reindex higher numbers`));
-        });
-        bar.appendChild(removeGroup);
-      }
-
-      // Add cN buttons for each existing number + the next new one
-      const addGroup = document.createElement("div");
-      addGroup.className = "row";
-      addGroup.style.marginTop = "8px";
-      addGroup.appendChild(document.createTextNode("Add as:"));
-      const addNums = nums.concat(next); // include next new number
-      addNums.forEach(n=>{
-        addGroup.appendChild(btn(`Add c${n}`, ()=>addClozeWithNumber(n), `Wrap selection as c${n}`));
+      // −C# (red)
+      nums.forEach(n=>{
+        const b = document.createElement("button");
+        b.className = "btn negative";
+        b.textContent = `−C${n}`;
+        b.title = `Remove all C${n} and reindex`;
+        b.onclick = ()=>removeClozeAndReindex(n);
+        bar.appendChild(b);
       });
-      bar.appendChild(addGroup);
-    }
 
+      // +C# for each existing and +next (green)
+      nums.concat(next).forEach(n=>{
+        const b = document.createElement("button");
+        b.className = "btn positive";
+        b.textContent = `+C${n}`;
+        b.title = `Wrap selection as C${n}`;
+        b.onclick = ()=>addClozeWithNumber(n);
+        bar.appendChild(b);
+      });
+    }
     refreshTools();
 
-    // Keyboard shortcut: Ctrl/⌘+Shift+C → add next cN
+    // (Keep the keyboard shortcut working but not advertised)
     mount.addEventListener("keydown", (e)=>{
       const key = e.key.toLowerCase();
       if ((e.ctrlKey||e.metaKey) && e.shiftKey && key==="c"){
@@ -494,7 +492,7 @@
       }
     });
 
-    // Live update tools on typing
+    // Update toolbar as user types
     ta.addEventListener("input", refreshTools);
 
     // Preview
@@ -522,6 +520,9 @@
       close();
       toast("Saved");
     };
+
+    // Close when clicking dim area (but not the modal)
+    mount.addEventListener("click", (e)=>{ if (e.target === mount.firstElementChild) close(); });
   }
 
   // ---------- Solo (one-at-a-time) ----------
@@ -683,9 +684,9 @@
     download("crowdanki.json", toCrowdAnki(arr), "application/json");
   });
 
-  // APKG (server) — uses your existing Flask /download_apkg route from your previous app
+  // APKG (server)
   el("#expApkg").addEventListener("click", ()=>{
-    const arr = savedNotes();
+    const arr = notes.filter(n => n.status==="saved");
     if (!arr.length) { alert("Save some cards first (⭐), then export."); return; }
     fetch("/download_apkg", {
       method:"POST",
@@ -702,7 +703,7 @@
     })
     .catch(e=>{
       console.error(e);
-      alert("APKG download failed. Ensure this page is served by the Flask app that exposes POST /download_apkg.");
+      alert("APKG download failed. Make sure this page is served by the Flask app exposing POST /download_apkg.");
     });
   });
 
@@ -715,8 +716,52 @@
   });
 
   // Solo view
+  const soloBack = el("#soloBack");
+  const soloCard = el("#soloCard");
+  let soloState = { idx:0, hidden:true, nums:[] };
+
+  function openSolo(index=0){
+    const cur = filtered();
+    if (!cur.length) return;
+    soloIndex = Math.max(0, Math.min(index, cur.length-1));
+    const n = cur[soloIndex];
+    soloState.nums = getClozeNumbers(n.html);
+    soloState.idx = 0; soloState.hidden = true;
+    drawSolo();
+    soloBack.style.display = "flex";
+    soloBack.setAttribute("aria-hidden","false");
+  }
+  function drawSolo(){
+    const cur = filtered(); const n = cur[soloIndex];
+    const nums = soloState.nums;
+    const target = nums[soloState.idx] || null;
+    const body = nums.length
+      ? renderClozeTarget(n.html, target, soloState.hidden)
+      : trimHtml(n.html);
+    soloCard.innerHTML = `
+      <div class="meta">
+        <span class="badge">${n.status.toUpperCase()}</span>
+        ${n.tags.length ? `<div class="tags">${n.tags.map(t=>`<span class="pill">#${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+        <span class="muted mini f1" style="text-align:right">Card ${soloIndex+1} / ${cur.length}</span>
+      </div>
+      <div class="notehtml" id="soloHtml">${body}</div>
+      <div class="clozeNav ${nums.length? "" : "hidden"}" style="position:static;margin-top:8px;align-self:flex-end">
+        <button class="miniBtn" id="soloClozePrev">◀</button>
+        <span class="indicator" id="soloIndicator">${nums.length? (soloState.idx+1)+"/"+nums.length : ""}</span>
+        <button class="miniBtn" id="soloClozeNext">▶</button>
+      </div>
+    `;
+    const prevBtn = soloCard.querySelector("#soloClozePrev");
+    const nextBtn = soloCard.querySelector("#soloClozeNext");
+    if (prevBtn) prevBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx-1+nums.length)%nums.length; soloState.hidden=true; drawSolo(); };
+    if (nextBtn) nextBtn.onclick = ()=>{ if (!nums.length) return; soloState.idx=(soloState.idx+1)%nums.length; soloState.hidden=true; drawSolo(); };
+  }
+
+  // expose openSolo to header button
+  window.openSolo = openSolo;
+
   el("#soloBtn").addEventListener("click", ()=> openSolo(0));
-  el("#soloClose").addEventListener("click", closeSolo);
+  el("#soloClose").addEventListener("click", ()=>{ soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); });
   el("#soloPrev").addEventListener("click", ()=> { if (soloIndex>0){ soloIndex--; openSolo(soloIndex); } });
   el("#soloNext").addEventListener("click", ()=> { const m=filtered().length-1; if (soloIndex<m){ soloIndex++; openSolo(soloIndex); } });
   el("#soloReveal").addEventListener("click", ()=>{ soloState.hidden = !soloState.hidden; drawSolo(); });
@@ -728,7 +773,7 @@
 
   window.addEventListener("keydown", (e)=>{
     if (soloBack.style.display==="flex"){
-      if (e.key==="Escape"){ closeSolo(); }
+      if (e.key==="Escape"){ soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); }
       else if (e.key==="ArrowLeft"){ el("#soloPrev").click(); }
       else if (e.key==="ArrowRight"){ el("#soloNext").click(); }
       else if (e.key===" "){ e.preventDefault(); el("#soloReveal").click(); }
@@ -739,7 +784,8 @@
     }
   });
 
-  el("#soloBack").addEventListener("click", (e)=>{ if (e.target===el("#soloBack")) closeSolo(); });
+  // Click outside modal to close
+  el("#soloBack").addEventListener("click", (e)=>{ if (e.target===el("#soloBack")) { soloBack.style.display="none"; soloBack.setAttribute("aria-hidden","true"); } });
 
 })();
 </script>
