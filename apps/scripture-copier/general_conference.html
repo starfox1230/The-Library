@@ -62,10 +62,37 @@
   .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .nextup .meta .t { font-size: 18px; font-weight: 600; }
 
-  /* Filter bar */
-  .filters { display: grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin: 10px 0 12px; }
+  /* View buttons */
+  .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
   .seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
   .seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
+
+  /* Category Filters (collapsible) */
+  .filterbar { margin: 6px 0 12px; }
+  .filter-panel[hidden] { display: none !important; }
+
+  .filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .chk {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px; border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px; background: var(--card-2); color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .chk span { flex: 1; }
+
+  #btnFilterToggle { width: 100%; justify-content: space-between; }
 
   /* Talks list - redesigned row layout */
   .list { display: grid; gap:10px; }
@@ -163,11 +190,25 @@
       </div>
     </section>
 
-    <!-- Filters -->
-    <div class="filters" role="tablist" aria-label="Filter talks">
-      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need to Watch</div>
-      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Already Seen</div>
-      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favorites</div>
+    <!-- View filters -->
+    <div class="filters" role="tablist" aria-label="View">
+      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+      <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+    </div>
+
+    <!-- Category Filters (collapsible) -->
+    <div class="filterbar">
+      <button class="btn" id="btnFilterToggle" aria-expanded="false" aria-controls="filterPanel">
+        <span>Filters</span><span aria-hidden="true">▾</span>
+      </button>
+      <div id="filterPanel" class="filter-panel" hidden>
+        <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
+        <label class="chk"><input type="checkbox" id="catFirst"> <span>First Presidency</span></label>
+        <label class="chk"><input type="checkbox" id="catTwelve"> <span>Quorum of the Twelve</span></label>
+        <label class="chk"><input type="checkbox" id="catWomen"> <span>Women</span></label>
+      </div>
     </div>
 
     <!-- Talks List -->
@@ -240,6 +281,23 @@ const talks = [
 
 const transcriptCache = {}; // Cache to hold pre-loaded transcript text
 
+// Annotate talks with category buckets
+const FIRST_PRESIDENCY = new Set(["Dallin H. Oaks","Henry B. Eyring","Russell M. Nelson"]);
+const TWELVE = new Set([
+  "Gary E. Stevenson","Dieter F. Uchtdorf","Ronald A. Rasband","Quentin L. Cook",
+  "Patrick Kearon","Neil L. Andersen","Gerrit W. Gong","D. Todd Christofferson",
+  "Dale G. Renlund","Jeffrey R. Holland","Ulisses Soares","David A. Bednar"
+]);
+const WOMEN = new Set(["J. Anette Dennis","Tracy Y. Browning","Andrea M. Spannaus"]);
+
+function speakerCategory(name){
+  if (FIRST_PRESIDENCY.has(name)) return 'first';
+  if (TWELVE.has(name)) return 'twelve';
+  if (WOMEN.has(name)) return 'women';
+  return 'other';
+}
+talks.forEach(t => { t.category = speakerCategory(t.speaker || ""); });
+
 // -----------------------------
 // State & Persistence
 // -----------------------------
@@ -252,7 +310,11 @@ const DEFAULT_STATE = {
   notes: {},
   watchCounts: {}, // videoId -> total count (across all rounds)
   round: 1,
-  ui: { filter: 'need' }
+  ui: {
+    filter: 'need',                 // default view: Need
+    filterOpen: false,              // filters collapsed by default
+    cats: { all: true, first: false, twelve: false, women: false } // default category = All
+  }
 };
 
 function loadState(){
@@ -264,6 +326,11 @@ function loadState(){
     if(!obj.watchCounts) obj.watchCounts = {};
     if(!obj.round) obj.round = 1;
     if(!obj.version || obj.version < 2) obj.version = 2;
+    // Ensure UI fields exist
+    obj.ui = obj.ui || {};
+    if(typeof obj.ui.filter !== 'string') obj.ui.filter = 'need';
+    if(typeof obj.ui.filterOpen !== 'boolean') obj.ui.filterOpen = false;
+    obj.ui.cats = obj.ui.cats || { all: true, first: false, twelve: false, women: false };
     return obj;
   } catch(e){
     console.warn('Failed to parse state', e); return { ...DEFAULT_STATE };
@@ -319,6 +386,14 @@ const nextThumb = document.getElementById('nextThumb');
 const nextTitle = document.getElementById('nextTitle');
 const btnPlayNext = document.getElementById('btnPlayNext');
 
+// Category filter elements
+const btnFilterToggle = document.getElementById('btnFilterToggle');
+const filterPanel = document.getElementById('filterPanel');
+const catAll   = document.getElementById('catAll');
+const catFirst = document.getElementById('catFirst');
+const catTwelve= document.getElementById('catTwelve');
+const catWomen = document.getElementById('catWomen');
+
 function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
 
 // Robust thumbnail loader: Checks the dimensions of the loaded image to verify
@@ -335,24 +410,18 @@ function loadThumb(img, videoId) {
   const tester = new Image();
 
   tester.onload = () => {
-    // Check the intrinsic width of the loaded image.
     // A real 'maxresdefault.jpg' is 1280px wide. The placeholder is much smaller.
-    // We use a threshold (e.g., < 300px) to be safe.
     if (tester.naturalWidth < 300) {
-      // It's the placeholder image, so use the reliable thumbnail.
       img.src = reliableThumb;
     } else {
-      // It's the real, high-quality thumbnail.
       img.src = highResThumb;
     }
   };
 
   tester.onerror = () => {
-    // In case of a network failure, always fall back to the reliable one.
     img.src = reliableThumb;
   };
 
-  // Start the test by setting the tester's source.
   tester.src = highResThumb;
 }
 
@@ -408,14 +477,29 @@ function rowHTML(t){
   `;
 }
 
-function currentFilter(){ return state.ui.filter || 'need'; }
+function currentFilter(){ return (state.ui && state.ui.filter) ? state.ui.filter : 'need'; }
+
+function applyCategoryFilter(arr){
+  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
+  if (c.all || (!c.first && !c.twelve && !c.women)) return arr; // All/default
+
+  return arr.filter(t => {
+    if (c.first  && t.category === 'first')  return true;
+    if (c.twelve && t.category === 'twelve') return true;
+    if (c.women  && t.category === 'women')  return true;
+    return false;
+  });
+}
 
 function filteredTalks(){
   const f = currentFilter();
-  if(f==='need') return talks.filter(t=>!isWatched(t.videoId));
-  if(f==='seen') return talks.filter(t=>isWatched(t.videoId));
-  if(f==='faves') return talks.filter(t=>isFav(t.videoId));
-  return talks;
+  let base;
+  if(f==='need')  base = talks.filter(t=>!isWatched(t.videoId));
+  else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
+  else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
+  else base = talks; // 'all'
+
+  return applyCategoryFilter(base);
 }
 
 function renderList(){
@@ -468,10 +552,27 @@ function renderFilters(){
   });
 }
 
+function renderCategoryUI(){
+  // panel open/closed
+  const open = !!(state.ui && state.ui.filterOpen);
+  filterPanel.hidden = !open;
+  btnFilterToggle.setAttribute('aria-expanded', String(open));
+  // arrow
+  btnFilterToggle.lastElementChild.textContent = open ? '▴' : '▾';
+
+  // checkboxes
+  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
+  catAll.checked    = !!c.all;
+  catFirst.checked  = !!c.first;
+  catTwelve.checked = !!c.twelve;
+  catWomen.checked  = !!c.women;
+}
+
 function renderAll(){
   renderProgress();
   renderNextUp();
   renderFilters();
+  renderCategoryUI();
   renderList();
 }
 
@@ -495,8 +596,6 @@ function openYouTubeAppAndMark(t){
     appUrl = `vnd.youtube:${t.videoId}${start?`?t=${start}s`:``}`; 
   }
 
-  // Only attempt to open the link if an app-specific URL was created.
-  // Otherwise, do nothing.
   if(appUrl){
     window.location.href = appUrl;
   }
@@ -506,13 +605,11 @@ function openYouTubeAppAndMark(t){
 // Pre-load Transcripts
 // -----------------------------
 async function preloadTranscripts() {
-  // Use Promise.all to fetch all transcripts in parallel for speed
   await Promise.all(talks.map(async (talk) => {
     try {
       const res = await fetch(encodeURI(talk.transcriptPath));
       if (res.ok) {
         const text = await res.text();
-        // Store the transcript text in our cache, keyed by its path
         transcriptCache[talk.transcriptPath] = text;
       } else {
         console.warn(`Failed to preload transcript: ${talk.transcriptPath}`);
@@ -529,18 +626,15 @@ async function preloadTranscripts() {
 // -----------------------------
 async function copyTranscript(path){
   try {
-    // Read the transcript directly from the pre-loaded cache
     const txt = transcriptCache[path];
     if (typeof txt !== 'string') {
-      // This is a fallback in case preloading failed for a specific file
       throw new Error(`Transcript not found in cache for path: ${path}`);
     }
-    // This now happens instantly, so mobile browsers will allow it
     await navigator.clipboard.writeText(txt);
     toast('Transcript copied.');
   } catch(e){
     console.error('Copy failed:', e);
-    toast('Copy transcript failed.'); // Simplified error message for the user
+    toast('Copy transcript failed.');
   }
 }
 
@@ -586,7 +680,6 @@ function downloadAll(){
 }
 
 async function emailExport(){
-  // Prefer Web Share with file attachment
   try{
     const blob = new Blob([JSON.stringify(getFullState())], {type:'application/json'});
     const file = new File([blob], 'gc-tracker-oct-2025-backup.json', {type:'application/json'});
@@ -595,7 +688,6 @@ async function emailExport(){
       return;
     }
   }catch(_){ /* ignore */ }
-  // Fallback: mailto (inline body, no attachment possible)
   const body = encodeURIComponent(JSON.stringify(getFullState(), null, 2));
   window.location.href = `mailto:?subject=GC%20Backup&body=${body}`;
 }
@@ -610,6 +702,10 @@ function restoreFromFile(file){
         // Ensure new fields exist
         if(!state.watchCounts) state.watchCounts = {};
         if(!state.round) state.round = 1;
+        state.ui = state.ui || {};
+        if(typeof state.ui.filter !== 'string') state.ui.filter = 'need';
+        if(typeof state.ui.filterOpen !== 'boolean') state.ui.filterOpen = false;
+        state.ui.cats = state.ui.cats || { all: true, first: false, twelve: false, women: false };
         saveState(state); renderAll(); toast('Restore complete.');
       } else {
         toast('Backup not recognized.');
@@ -642,7 +738,6 @@ async function copyNotes(){
   if(!txt){ toast('No notes yet.'); return; }
   try{ await navigator.clipboard.writeText(txt); toast('Notes copied.'); }
   catch(e){
-    // Fallback for copyNotes if needed
     const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
     ta.select(); try{ document.execCommand('copy'); toast('Notes copied (fallback).'); }catch(_){toast('Copy failed.');}
     document.body.removeChild(ta);
@@ -654,7 +749,6 @@ async function copyNotes(){
 // -----------------------------
 const btnSettings = document.getElementById('btnSettings');
 btnSettings.onclick = () => {
-  // Tiny hint sheet
   toast('Tips: Long-press titles to open in app; use Settings for backup & notes export.');
 };
 
