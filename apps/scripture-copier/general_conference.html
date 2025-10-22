@@ -200,7 +200,7 @@
 
     <!-- Category Filters (collapsible) -->
     <div class="filterbar">
-      <button class="btn" id="btnFilterToggle" aria-expanded="false" aria-controls="filterPanel">
+      <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
         <span>Filters</span><span aria-hidden="true">▾</span>
       </button>
       <div id="filterPanel" class="filter-panel" hidden>
@@ -355,9 +355,7 @@ const setWatched = (id, val, {incrementCount=false}={}) => {
   }
   if(!val && was){
     state.watched = state.watched.filter(x => x!==id);
-    // Do not auto-decrement count on undo; user can edit.
   }
-  // If after marking we finished the round, reset visuals for a new round.
   if(state.watched.length === talks.length){
     state.round += 1;
     state.watched = [];
@@ -372,7 +370,7 @@ const toggleFav = (id) => { state.favorites = isFav(id) ? state.favorites.filter
 
 function nextUnwatched(){
   for(const t of talks){ if(!isWatched(t.videoId)) return t; }
-  return null; // when finishing a round, render will reset and compute again
+  return null;
 }
 
 // -----------------------------
@@ -396,32 +394,14 @@ const catWomen = document.getElementById('catWomen');
 
 function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
 
-// Robust thumbnail loader: Checks the dimensions of the loaded image to verify
-// if the high-resolution version is real or a placeholder, then falls back if needed.
+// Robust thumbnail loader with fallback
 function loadThumb(img, videoId) {
   const reliableThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
   const highResThumb = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
-
-  // Set no-referrer policy for better compatibility.
   img.setAttribute('referrerpolicy', 'no-referrer');
-
-  // Create an in-memory image to test the high-resolution URL without
-  // affecting the on-screen image until we're sure.
   const tester = new Image();
-
-  tester.onload = () => {
-    // A real 'maxresdefault.jpg' is 1280px wide. The placeholder is much smaller.
-    if (tester.naturalWidth < 300) {
-      img.src = reliableThumb;
-    } else {
-      img.src = highResThumb;
-    }
-  };
-
-  tester.onerror = () => {
-    img.src = reliableThumb;
-  };
-
+  tester.onload = () => { img.src = tester.naturalWidth < 300 ? reliableThumb : highResThumb; };
+  tester.onerror = () => { img.src = reliableThumb; };
   tester.src = highResThumb;
 }
 
@@ -498,22 +478,17 @@ function filteredTalks(){
   else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
   else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
   else base = talks; // 'all'
-
   return applyCategoryFilter(base);
 }
 
 function renderList(){
   listEl.innerHTML = filteredTalks().map(rowHTML).join('');
-  // Wire per-row handlers
   listEl.querySelectorAll('.row').forEach(row => {
     const id = row.dataset.id;
     const t = talks.find(x=>x.videoId===id);
-
-    // Load per-row thumbnail
     const img = row.querySelector('.rthumb');
     if (img) loadThumb(img, id);
 
-    // Open handlers (title & thumbnail)
     row.querySelector('.link-open').onclick = (event) => {
       event.preventDefault();
       openYouTubeAppAndMark(t);
@@ -523,7 +498,6 @@ function renderList(){
       openYouTubeAppAndMark(t);
     };
 
-    // Other controls
     row.querySelector('.copy').onclick = () => copyTranscript(t.transcriptPath);
     row.querySelector('.notes').onclick = () => openNotes(id, t.title);
     row.querySelector('.fav').onclick = () => toggleFav(id);
@@ -531,7 +505,6 @@ function renderList(){
       const now = !isWatched(id);
       setWatched(id, now, {incrementCount: now});
     };
-    // Count +/- and manual edit
     const minus = row.querySelector('.minus');
     const plus = row.querySelector('.plus');
     const input = row.querySelector('.count');
@@ -553,19 +526,20 @@ function renderFilters(){
 }
 
 function renderCategoryUI(){
-  // panel open/closed
   const open = !!(state.ui && state.ui.filterOpen);
-  filterPanel.hidden = !open;
-  btnFilterToggle.setAttribute('aria-expanded', String(open));
-  // arrow
-  btnFilterToggle.lastElementChild.textContent = open ? '▴' : '▾';
-
-  // checkboxes
+  if (filterPanel) {
+    filterPanel.hidden = !open;
+  }
+  if (btnFilterToggle) {
+    btnFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = btnFilterToggle.lastElementChild;
+    if (arrow) arrow.textContent = open ? '▴' : '▾';
+  }
   const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
-  catAll.checked    = !!c.all;
-  catFirst.checked  = !!c.first;
-  catTwelve.checked = !!c.twelve;
-  catWomen.checked  = !!c.women;
+  if (catAll)    catAll.checked    = !!c.all;
+  if (catFirst)  catFirst.checked  = !!c.first;
+  if (catTwelve) catTwelve.checked = !!c.twelve;
+  if (catWomen)  catWomen.checked  = !!c.women;
 }
 
 function renderAll(){
@@ -580,9 +554,7 @@ function renderAll(){
 // Deep Link + Auto Mark
 // -----------------------------
 function openYouTubeAppAndMark(t){
-  // Mark watched for the *current round* and increment the cumulative count
   setWatched(t.videoId, true, {incrementCount:true});
-
   const start = t.startSeconds ? t.startSeconds : null;
   const ua = navigator.userAgent || '';
   const isiOS = /iPad|iPhone|iPod/.test(ua);
@@ -591,11 +563,9 @@ function openYouTubeAppAndMark(t){
 
   if(isiOS){ 
     appUrl = `youtube://www.youtube.com/watch?v=${t.videoId}${start?`&t=${start}s`:``}`; 
-  }
-  else if(isAndroid){ 
+  } else if(isAndroid){ 
     appUrl = `vnd.youtube:${t.videoId}${start?`?t=${start}s`:``}`; 
   }
-
   if(appUrl){
     window.location.href = appUrl;
   }
@@ -627,9 +597,7 @@ async function preloadTranscripts() {
 async function copyTranscript(path){
   try {
     const txt = transcriptCache[path];
-    if (typeof txt !== 'string') {
-      throw new Error(`Transcript not found in cache for path: ${path}`);
-    }
+    if (typeof txt !== 'string') throw new Error(`Transcript not in cache: ${path}`);
     await navigator.clipboard.writeText(txt);
     toast('Transcript copied.');
   } catch(e){
@@ -698,8 +666,7 @@ function restoreFromFile(file){
     try{
       const data = JSON.parse(reader.result);
       if(data.version>=1 && data.conferenceId==='oct-2025'){
-        state = data; // replace entire state
-        // Ensure new fields exist
+        state = data;
         if(!state.watchCounts) state.watchCounts = {};
         if(!state.round) state.round = 1;
         state.ui = state.ui || {};
@@ -774,9 +741,46 @@ function toast(msg){
 }
 
 // -----------------------------
+// Filters toggle wiring (fixed)
+// -----------------------------
+function toggleFilters(openState){
+  state.ui.filterOpen = (typeof openState === 'boolean') ? openState : !state.ui.filterOpen;
+  saveState(state);
+  renderCategoryUI();
+}
+
+function onCatChange(ev){
+  const id = ev.target.id;
+  // If "All" turned on → turn others off
+  if (id === 'catAll' && catAll && catAll.checked) {
+    state.ui.cats = { all:true, first:false, twelve:false, women:false };
+  } else {
+    state.ui.cats.all    = false;
+    state.ui.cats.first  = !!(catFirst && catFirst.checked);
+    state.ui.cats.twelve = !!(catTwelve && catTwelve.checked);
+    state.ui.cats.women  = !!(catWomen && catWomen.checked);
+    if (!state.ui.cats.first && !state.ui.cats.twelve && !state.ui.cats.women) {
+      state.ui.cats = { all:true, first:false, twelve:false, women:false };
+    }
+  }
+  saveState(state);
+  renderAll();
+}
+
+if (btnFilterToggle) {
+  btnFilterToggle.addEventListener('click', () => toggleFilters());
+  btnFilterToggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFilters(); }
+  });
+}
+[catAll, catFirst, catTwelve, catWomen].forEach(el => {
+  if (el) el.addEventListener('change', onCatChange);
+});
+
+// -----------------------------
 // Init
 // -----------------------------
-preloadTranscripts(); // Pre-fetch all transcript files on page load
+preloadTranscripts();
 renderAll();
 </script>
 </body>
