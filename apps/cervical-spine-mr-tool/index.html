@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cervical Spine MRI Structured Report Builder</title>
+<style>
+:root {
+  --bg:#0f172a;
+  --card-bg:#1e253a;
+  --accent:#38bdf8;
+  --accent-soft:rgba(56,189,248,.15);
+  --text:#f8fafc;
+  --text-dim:#94a3b8;
+  --border:#334155;
+  --radius-lg:1rem;
+  --radius-sm:.5rem;
+  --gap:1rem;
+  --font-stack:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+* { box-sizing:border-box; }
+body {
+ background:var(--bg);
+ color:var(--text);
+ font-family:var(--font-stack);
+ line-height:1.4;
+ margin:0;
+ padding:1rem 1rem 4rem;
+}
+h1,h2,h3,h4,h5 {
+ margin:0;
+ font-weight:600;
+ color:var(--text);
+ line-height:1.2;
+}
+small { color:var(--text-dim); }
+
+.container {
+ display:grid;
+ grid-template-columns:1fr 400px;
+ gap:var(--gap);
+ align-items:flex-start;
+}
+@media(max-width:1100px){
+ .container{grid-template-columns:1fr;}
+}
+
+.card {
+ background:var(--card-bg);
+ border:1px solid var(--border);
+ border-radius:var(--radius-lg);
+ padding:1rem 1rem 1rem;
+ box-shadow:0 20px 40px rgb(0 0 0 / .6);
+}
+
+.header-bar{
+ display:flex;
+ align-items:flex-start;
+ justify-content:space-between;
+ flex-wrap:wrap;
+ gap:.5rem;
+ margin-bottom:1rem;
+}
+.header-left{
+ display:flex;
+ flex-direction:column;
+ gap:.5rem;
+}
+.header-right{
+ display:flex;
+ align-items:flex-start;
+ flex-wrap:wrap;
+ gap:.5rem;
+}
+
+.badge{
+ background:var(--accent-soft);
+ color:var(--accent);
+ font-size:.7rem;
+ font-weight:500;
+ padding:.25rem .5rem;
+ border-radius:var(--radius-sm);
+ border:1px solid var(--accent);
+ line-height:1.2;
+}
+
+button{
+ cursor:pointer;
+ border:none;
+ border-radius:var(--radius-sm);
+ background:var(--accent-soft);
+ color:var(--accent);
+ border:1px solid var(--accent);
+ font-size:.8rem;
+ font-weight:500;
+ line-height:1.2;
+ padding:.5rem .75rem;
+ transition:all .12s linear;
+}
+button:hover{
+ background:var(--accent);
+ color:#0f172a;
+}
+
+.section-card{
+ margin-bottom:1rem;
+ border:1px solid var(--border);
+ border-radius:var(--radius-lg);
+ background:rgba(15,23,42,.4);
+}
+.section-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ padding:.75rem 1rem;
+ border-bottom:1px solid var(--border);
+ cursor:pointer;
+}
+.section-head h3{
+ font-size:.9rem;
+ font-weight:600;
+ margin:0;
+ display:flex;
+ align-items:center;
+ gap:.5rem;
+}
+.section-head span.level-count{
+ font-size:.7rem;
+ color:var(--text-dim);
+ background:rgba(148,163,184,.1);
+ padding:.15rem .4rem;
+ border-radius:.4rem;
+ border:1px solid var(--border);
+}
+.section-body{
+ padding:1rem;
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));
+ gap:.75rem 1rem;
+}
+
+.option-group{
+ display:flex;
+ flex-direction:column;
+ gap:.5rem;
+}
+.option-group label.option-line{
+ display:flex;
+ align-items:flex-start;
+ font-size:.8rem;
+ line-height:1.3;
+ color:var(--text);
+ gap:.5rem;
+ padding:.4rem .5rem;
+ background:#1e253a;
+ border:1px solid var(--border);
+ border-radius:var(--radius-sm);
+ cursor:pointer;
+}
+.option-group label.option-line input{
+ margin-top:.2rem;
+}
+
+textarea.custom-text{
+ width:100%;
+ min-height:3.5rem;
+ background:#0f172a;
+ border:1px solid var(--border);
+ border-radius:var(--radius-sm);
+ color:var(--text);
+ font-size:.8rem;
+ padding:.5rem .5rem .75rem;
+ line-height:1.3;
+ resize:vertical;
+}
+textarea.custom-text:focus,
+select:focus,
+input[type="text"]:focus{
+ outline:2px solid var(--accent);
+ outline-offset:0;
+}
+
+.small-note{
+ font-size:.7rem;
+ line-height:1.2;
+ color:var(--text-dim);
+}
+
+/* Level builder cards */
+
+.level-builder-card{
+ border:1px solid var(--border);
+ border-radius:var(--radius-lg);
+ background:rgba(15,23,42,.6);
+ padding:1rem;
+ margin-bottom:1rem;
+ position:relative;
+}
+.level-builder-top{
+ display:flex;
+ flex-wrap:wrap;
+ gap:.5rem 1rem;
+ align-items:flex-start;
+ margin-bottom:.75rem;
+}
+.level-builder-top select,
+.level-builder-top input[type="checkbox"]{
+ font-size:.8rem;
+}
+
+select,
+input[type="text"]{
+ background:#0f172a;
+ border:1px solid var(--border);
+ border-radius:var(--radius-sm);
+ color:var(--text);
+ font-size:.8rem;
+ line-height:1.3;
+ padding:.5rem .5rem .5rem .5rem;
+ min-width:8rem;
+}
+select:focus,
+input[type="text"]:focus{
+ outline:2px solid var(--accent);
+ outline-offset:0;
+}
+
+.level-advanced{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));
+ gap:1rem;
+}
+
+.form-block{
+ display:flex;
+ flex-direction:column;
+ gap:.5rem;
+}
+.form-block label{
+ font-size:.7rem;
+ text-transform:uppercase;
+ font-weight:600;
+ color:var(--text-dim);
+ letter-spacing:.03em;
+}
+.form-block select{
+ width:100%;
+}
+
+.form-block .checkbox-multi{
+ display:flex;
+ flex-direction:column;
+ gap:.4rem;
+ max-height:8rem;
+ overflow-y:auto;
+ background:#1e253a;
+ border:1px solid var(--border);
+ border-radius:var(--radius-sm);
+ padding:.5rem;
+}
+.form-block .checkbox-multi label{
+ text-transform:none;
+ font-weight:400;
+ font-size:.75rem;
+ color:var(--text);
+ display:flex;
+ gap:.5rem;
+ line-height:1.3;
+ cursor:pointer;
+}
+
+.perLevelCustomText{
+ min-height:3rem;
+ resize:vertical;
+}
+
+.remove-level-btn{
+ position:absolute;
+ top:.75rem;
+ right:.75rem;
+ font-size:.7rem;
+ padding:.3rem .5rem;
+ background:#1e1e2f;
+ border:1px solid #ef4444;
+ color:#ef4444;
+ border-radius:var(--radius-sm);
+}
+.remove-level-btn:hover{
+ background:#ef4444;
+ color:#0f172a;
+}
+
+/* Report preview (sticky panel, auto-expanding textarea) */
+
+.report-card{
+ position:sticky;
+ top:1rem;
+ display:flex;
+ flex-direction:column;
+}
+
+.report-card textarea{
+ width:100%;
+ background:#0f172a;
+ border:1px solid var(--border);
+ border-radius:var(--radius-lg);
+ color:var(--text);
+ font-size:.8rem;
+ line-height:1.4;
+ padding:1rem;
+ resize:none;
+ overflow:hidden;
+ min-height:8rem;
+ height:auto;
+ white-space:pre-wrap;
+}
+
+.report-actions{
+ display:flex;
+ justify-content:space-between;
+ align-items:flex-start;
+ flex-wrap:wrap;
+ gap:.5rem;
+ margin-top:.75rem;
+}
+
+footer{
+ margin-top:2rem;
+ color:var(--text-dim);
+ font-size:.7rem;
+ line-height:1.4;
+ text-align:center;
+}
+
+.toggle-indicator{
+ font-size:.8rem;
+ color:var(--text-dim);
+}
+
+.hidden{
+ display:none !important;
+}
+</style>
+</head>
+<body>
+<div class="header-bar">
+ <div class="header-left">
+   <h1>Cervical Spine MRI Report Builder</h1>
+   <div class="badge">prototype • checkbox → prose</div>
+   <small>This builds draft FINDINGS text. You must review and edit before signing.</small>
+ </div>
+ <div class="header-right">
+   <button id="addLevelBtn" title="Add another level section">+ Add Level</button>
+   <button id="copyBtn" title="Copy generated report to clipboard">Copy Report</button>
+ </div>
+</div>
+
+<div class="container">
+ <!-- LEFT: inputs -->
+ <div>
+   <!-- Global sections will be injected here -->
+   <div id="sectionsContainer"></div>
+
+   <!-- Level Builder -->
+   <div class="card">
+     <div class="header-bar" style="margin-bottom:.5rem;">
+        <div class="header-left">
+           <h2 style="font-size:1rem;">Level-by-Level Builder</h2>
+           <small>Pathology → canal → foramina (auto-ordered).</small>
+        </div>
+        <div class="header-right" style="margin-left:auto;">
+           <button id="addLevelBtn2">+ Add Level</button>
+        </div>
+     </div>
+     <div id="levelsContainer"></div>
+   </div>
+ </div>
+
+ <!-- RIGHT: preview -->
+ <div class="card report-card">
+   <h2 style="font-size:1rem; margin-bottom:.5rem;">Report Preview</h2>
+   <textarea id="reportOutput" spellcheck="false"></textarea>
+   <div class="report-actions">
+     <button id="copyBtn2">Copy Report</button>
+     <small class="small-note">Empty sections are skipped automatically.</small>
+   </div>
+ </div>
+</div>
+
+<footer>
+   Cervical Spine MRI structured-report helper. Generated content is not final and should not be used verbatim without clinical review.
+</footer>
+
+<script>
+// ------------------------------------
+// CONFIGURATION DATA
+// ------------------------------------
+
+// Global section configuration (BONES, ALIGNMENT, etc.)
+const sectionsConfig = [
+  {
+    key: "bones",
+    label: "BONES",
+    phrases: [
+      "No evidence of fracture or bone marrow lesion.",
+      "Vertebral body heights are preserved.",
+      "No vertebral collapse.",
+      "Mild anterior wedging.",
+      "Nondisplaced fracture with mild osseous edema.",
+      "Nonunited type II odontoid process fracture.",
+      "Compression fracture with approximately 40-50% loss of height.",
+      "Trace of anterior epidural hematoma measuring 2 mm in thickness with mild mass effect on the anterior thecal sac.",
+      "No significant retropulsion.",
+      "Small C5 vertebral body hemangioma.",
+      "Hemangioma in the T3 vertebral body.",
+      "Degenerative edematous endplate changes.",
+      "Modic type I degenerative endplate changes.",
+      "Modic type II degenerative endplate changes.",
+      "C5-C6 block vertebra.",
+      "Status post C5-C6 ACDF.",
+      "ACDF hardware spanning C4-C7.",
+      "Laminectomy changes spanning C5 through the visualized thoracic spine."
+    ]
+  },
+  {
+    key: "alignment",
+    label: "VERTEBRAL ALIGNMENT",
+    phrases: [
+      "Cervical spine alignment is within normal limits.",
+      "Vertebral body alignment is anatomic.",
+      "No significant vertebral malalignment.",
+      "No spondylolisthesis.",
+      "Straightening of the cervical lordotic curvature.",
+      "Straightening of the normal cervical lordosis.",
+      "Reversal of the cervical lordotic curvature.",
+      "Exaggeration of the cervical lordotic curvature.",
+      "Focal kyphosis centered at C3-C4.",
+      "Mild dextrocurvature of the lower cervical/upper thoracic spine.",
+      "Mild levocurvature.",
+      "Trace retrolisthesis of C5 on C6.",
+      "Minimal retrolisthesis of C5 over C6.",
+      "Grade 1 anterolisthesis of C3 on C4.",
+      "Mild anterolisthesis of C2 on C3."
+    ]
+  },
+  {
+    key: "soft",
+    label: "NECK SOFT TISSUES",
+    phrases: [
+      "Prevertebral and paraspinal soft tissues are within normal limits.",
+      "Right-sided posterior paraspinal muscular strain.",
+      "Mild ligamentous sprain and muscular strain.",
+      "Posterior interspinous ligamentous strain.",
+      "No high-grade ligamentous injury.",
+      "The anterior longitudinal ligament is intact.",
+      "The alar and cruciate ligaments are intact.",
+      "Trace of anterior epidural hematoma with mild mass effect on the anterior thecal sac.",
+      "Simple epidural fluid.",
+      "Posterior neck lipoma.",
+      "Large cystic lesion within the right hemithyroid.",
+      "Thyroid nodule; recommend thyroid ultrasound.",
+      "Enlarged left thyroid lobe.",
+      "Perineural cyst.",
+      "Loss of normal left vertebral artery flow void, likely related to chronic occlusion.",
+      "The vertebral artery flow voids are maintained.",
+      "The right vertebral artery appears hypoplastic."
+    ]
+  },
+  {
+    key: "cord",
+    label: "CORD",
+    phrases: [
+      "Normal in morphology and signal intensity.",
+      "The cervical cord is normal in size and signal.",
+      "No cord compression or cord signal abnormality.",
+      "No abnormal intramedullary enhancement.",
+      "No spinal cord injury.",
+      "Cord deformity without cord signal abnormality.",
+      "Mild indentation of the spinal cord without myelomalacia.",
+      "Slight ventral cord flattening.",
+      "Cord flattening.",
+      "Cord compression.",
+      "Cord compression at C5-C6 level.",
+      "Increased T2/STIR hyperintense signal likely myelomalacia.",
+      "Tiny foci of increased T2 signal favoring chronic compressive myelomalacia.",
+      "Cord edema.",
+      "Increased T2/STIR signal at the C3-C4 level.",
+      "Small syrinx.",
+      "Prominent central canal.",
+      "Demyelinating plaques.",
+      "Low-lying cerebellar tonsils consistent with Chiari-type morphology."
+    ]
+  },
+  {
+    key: "discs",
+    label: "DISCS",
+    phrases: [
+      "Multilevel disc desiccation.",
+      "Mild multilevel degenerative changes of the cervical spine.",
+      "Mild discogenic degenerative changes.",
+      "Mild to moderate multilevel degenerative changes.",
+      "Multilevel cervical spondylosis.",
+      "No significant disc bulge or herniation identified."
+    ]
+  },
+  {
+    key: "enhance",
+    label: "ABNORMAL ENHANCEMENT",
+    phrases: [
+      "No abnormal postcontrast enhancement.",
+      "No abnormal enhancement.",
+      "No suspicious intracanal enhancement.",
+      "No abnormal intramedullary enhancement.",
+      "Facet arthropathy related enhancement with mild surrounding synovial thickening.",
+      "Enhancing osseous lesions concerning for metastasis."
+    ]
+  },
+  {
+    key: "other",
+    label: "OTHER / ADDITIONAL FINDINGS",
+    phrases: [
+      "Perineural cyst.",
+      "Chiari type malformation / cerebellar tonsillar ectopia.",
+      "Low-lying cerebellar tonsils.",
+      "Mild congenital cervical canal stenosis (primary cervical canal stenosis with >80% cord occupation ratio).",
+      "Posterior neck lipoma.",
+      "Large thyroid cystic lesion.",
+      "Thyroid nodule; recommend thyroid ultrasound.",
+      "Enlarged left thyroid lobe.",
+      "No acute abnormality of the cervical spine.",
+      "No acute abnormality identified."
+    ]
+  }
+];
+
+// Options for level builder
+const levelOptions = [
+  "Craniovertebral junction",
+  "C1-C2",
+  "C2-C3",
+  "C3-C4",
+  "C4-C5",
+  "C5-C6",
+  "C6-C7",
+  "C7-T1",
+  "T2-3"
+];
+
+const discOptions = [
+  "No disc bulge.",
+  "No significant disc bulge.",
+  "Diffuse posterior disc bulge.",
+  "Broad-based posterior disc bulge.",
+  "Mild diffuse posterior disc bulge.",
+  "Small diffuse disc bulge.",
+  "Minimal, broad-based posterior disc bulge.",
+  "Asymmetric left-sided disc bulge.",
+  "Central disc protrusion.",
+  "Small central disc protrusion.",
+  "Central to left paracentral disc herniation.",
+  "Right paracentral disc herniation.",
+  "Central disc herniation.",
+  "Posterior disc extrusion with caudal migration.",
+  "Disc osteophyte complex.",
+  "Diffuse posterior disc osteophyte complex.",
+  "Small right central disc osteophyte complex.",
+  "Disc bulge-osteophyte complex.",
+  "Asymmetric disc bulge-osteophyte complex, eccentric to the left.",
+  "Broad-based left foraminal component.",
+  "Right subarticular/foraminal component.",
+  "Superimposed right subarticular/foraminal component.",
+  "Superimposed small central disc protrusion.",
+  "Unroofing of the disc.",
+  "Effacing the ventral CSF space.",
+  "Effacement of the ventral CSF space.",
+  "Mild indentation of the ventral cord.",
+  "Minimal indentation of the thecal sac anteriorly.",
+  "Mildly deforming the ventral cord surface.",
+  "Abutting the ventral surface of the spinal cord.",
+  "Focal cord contour deformity.",
+  "Flattening of the ventral surface of the cord.",
+  "Minimally contacts the ventral right hemicord.",
+  "Cord deformity.",
+  "Cord deformity without cord signal abnormality."
+];
+
+const canalOptions = [
+  "No evidence of a spinal canal stenosis.",
+  "No significant spinal canal stenosis.",
+  "No central canal stenosis.",
+  "Minimal canal narrowing.",
+  "Mild spinal canal stenosis.",
+  "Mild canal narrowing.",
+  "Mild-to-moderate canal narrowing.",
+  "Mild to moderate central canal stenosis.",
+  "Moderate spinal canal narrowing.",
+  "Moderate to severe canal stenosis.",
+  "Severe spinal canal stenosis.",
+  "Effacement of the ventral CSF space.",
+  "Effacement of the CSF spaces.",
+  "Minimal ventral cord contact.",
+  "Slight indentation of the ventral and dorsal cord.",
+  "Mild cord surface deformation.",
+  "Flattening of the cervical cord.",
+  "Cord compression.",
+  "Primary cervical canal stenosis with increased spinal cord occupation ratio (>80%)."
+];
+
+const foraminalOptions = [
+  "No neural foraminal stenosis.",
+  "No significant neural foraminal narrowing.",
+  "The neural foramina are patent.",
+  "The right neural foramen is patent.",
+  "Minimal left foraminal stenosis.",
+  "Mild left neural foraminal narrowing.",
+  "Mild right foraminal stenosis.",
+  "Mild bilateral neural foraminal narrowing.",
+  "Moderate left foraminal narrowing.",
+  "Moderate to severe left foraminal narrowing.",
+  "Moderate to severe right foraminal narrowing.",
+  "Severe right foraminal stenosis.",
+  "Severe left foraminal narrowing.",
+  "Severe bilateral foraminal narrowing.",
+  "Left greater than right neural foraminal narrowing.",
+  "Right greater than left neural foraminal narrowing."
+];
+
+const nerveImpactOptions = [
+  "",
+  "Contacts the ventral right C8 nerve root.",
+  "Compression of the right C6 nerve root.",
+  "Suspected compression of the exiting left C4 and right C6 nerve roots.",
+  "Probable impingement upon the exiting C4 nerve roots.",
+  "Impingement upon the left, encroachment upon the right exiting C5 nerve roots.",
+  "Encroachment upon the right exiting C5 nerve root.",
+  "May affect the exiting C6 nerves."
+];
+
+const degenerativeJointOptions = [
+  "Facet joint hypertrophy.",
+  "Bilateral facet arthropathy.",
+  "Left greater than right facet joint DJD.",
+  "Uncovertebral hypertrophy.",
+  "Bilateral uncovertebral degenerative changes.",
+  "Left-sided uncovertebral DJD.",
+  "Bilateral uncinate hypertrophy.",
+  "Ligamentum flavum thickening.",
+  "Thickening of the posterior longitudinal ligament.",
+  "PLL hypertrophy.",
+  "Degenerative synovitis of the right C2-C3 facet.",
+  "STIR signal involving the left C4-5 facet joint.",
+  "Fusion level.",
+  "Status post ACDF at this level.",
+  "Laminectomy changes.",
+  "Multilevel facet arthropathy is seen."
+];
+
+const cordEffectOptions = [
+  "",
+  "Without cord signal abnormality.",
+  "With mild indentation of the spinal cord without myelomalacia.",
+  "With slight ventral cord flattening.",
+  "With cord deformity.",
+  "With cord compression.",
+  "With increased T2/STIR hyperintense signal likely myelomalacia.",
+  "With tiny foci of increased T2 signal favoring chronic compressive myelomalacia.",
+  "With cord edema."
+];
+
+// ------------------------------------
+// DOM HELPERS
+// ------------------------------------
+
+function escapeHtml(str){
+  return str
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function createSectionCard(sectionCfg){
+  const card = document.createElement("div");
+  card.className = "section-card";
+  card.dataset.sectionKey = sectionCfg.key;
+
+  // header
+  const head = document.createElement("div");
+  head.className = "section-head";
+
+  const h3 = document.createElement("h3");
+  h3.innerHTML = `<span>${sectionCfg.label}</span><span class="level-count">${sectionCfg.phrases.length} options</span>`;
+
+  const toggleSpan = document.createElement("span");
+  toggleSpan.className = "toggle-indicator";
+  toggleSpan.textContent = "▼";
+
+  head.appendChild(h3);
+  head.appendChild(toggleSpan);
+
+  // body
+  const body = document.createElement("div");
+  body.className = "section-body";
+
+  // checkbox list
+  const group = document.createElement("div");
+  group.className = "option-group";
+
+  sectionCfg.phrases.forEach((phrase, idx) => {
+    const lbl = document.createElement("label");
+    lbl.className = "option-line";
+    const id = `${sectionCfg.key}_${idx}`;
+    lbl.innerHTML = `
+      <input type="checkbox" data-phrase="${escapeHtml(phrase)}" id="${id}" />
+      <span>${phrase}</span>
+    `;
+    group.appendChild(lbl);
+  });
+
+  // custom addition
+  const customBlock = document.createElement("div");
+  customBlock.className = "option-group";
+  const customLabel = document.createElement("div");
+  customLabel.className = "small-note";
+  customLabel.textContent = "Custom text to append to this section (optional):";
+  const customTA = document.createElement("textarea");
+  customTA.className = "custom-text";
+  customTA.setAttribute("placeholder", "Custom addition for this section...");
+  customTA.dataset.customFor = sectionCfg.key;
+
+  customBlock.appendChild(customLabel);
+  customBlock.appendChild(customTA);
+
+  body.appendChild(group);
+  body.appendChild(customBlock);
+
+  // collapse/expand
+  head.addEventListener("click", () => {
+    body.classList.toggle("hidden");
+    toggleSpan.textContent = body.classList.contains("hidden") ? "▲" : "▼";
+    buildReport();
+  });
+
+  // track changes
+  body.addEventListener("input", buildReport);
+
+  card.appendChild(head);
+  card.appendChild(body);
+  return card;
+}
+
+// ------------------------------------
+// LEVEL CARD CREATION
+// ------------------------------------
+
+let levelIdCounter = 0;
+
+function makeFormBlockInline(labelTxt, element){
+  const wrap = document.createElement("div");
+  wrap.className = "form-block";
+  wrap.style.minWidth = "8rem";
+  const lbl = document.createElement("label");
+  lbl.textContent = labelTxt;
+  wrap.appendChild(lbl);
+  wrap.appendChild(element);
+  return wrap;
+}
+
+function createLevelCard(){
+  levelIdCounter += 1;
+  const lvlId = `levelCard_${levelIdCounter}`;
+
+  const card = document.createElement("div");
+  card.className = "level-builder-card";
+  card.dataset.levelCardId = lvlId;
+
+  // remove button
+  const rmBtn = document.createElement("button");
+  rmBtn.className = "remove-level-btn";
+  rmBtn.textContent = "Remove";
+  rmBtn.addEventListener("click", ()=>{
+    card.remove();
+    buildReport();
+  });
+  card.appendChild(rmBtn);
+
+  // top row: level + normal checkbox
+  const top = document.createElement("div");
+  top.className = "level-builder-top";
+
+  // level select
+  const levelSel = document.createElement("select");
+  levelSel.innerHTML =
+    `<option value="">[Select level]</option>` +
+    levelOptions.map(l => `<option value="${escapeHtml(l)}">${l}</option>`).join("");
+  levelSel.className = "level-select";
+
+  // normal-level checkbox
+  const normalWrap = document.createElement("label");
+  normalWrap.style.fontSize = ".75rem";
+  normalWrap.style.display = "flex";
+  normalWrap.style.alignItems = "center";
+  normalWrap.style.gap = ".4rem";
+  const normalChk = document.createElement("input");
+  normalChk.type = "checkbox";
+  normalChk.className = "normal-level-chk";
+  normalWrap.appendChild(normalChk);
+  normalWrap.appendChild(document.createTextNode("Normal level (no canal or foraminal stenosis)"));
+
+  top.appendChild(makeFormBlockInline("Level", levelSel));
+  top.appendChild(normalWrap);
+
+  // advanced area
+  const adv = document.createElement("div");
+  adv.className = "level-advanced";
+
+  // disc phrase (pathology bucket #1)
+  const discBlock = document.createElement("div");
+  discBlock.className = "form-block";
+  const discLbl = document.createElement("label");
+  discLbl.textContent = "Disc / morphology (pathology list start)";
+  const discSel = document.createElement("select");
+  discSel.innerHTML = `<option value="">(none)</option>` +
+    discOptions.map(p => `<option value="${escapeHtml(p)}">${p}</option>`).join("");
+  discSel.className = "disc-phrase";
+  discBlock.appendChild(discLbl);
+  discBlock.appendChild(discSel);
+
+  // degenerative / ligament / hardware multi-select (pathology bucket #2+)
+  const degenBlock = document.createElement("div");
+  degenBlock.className = "form-block";
+  const degenLbl = document.createElement("label");
+  degenLbl.textContent = "Facet / uncovertebral / ligament / hardware (more pathology)";
+  const degenBox = document.createElement("div");
+  degenBox.className = "checkbox-multi degen-phrases";
+  degenerativeJointOptions.forEach((p,idx)=>{
+    const dlbl = document.createElement("label");
+    const did = `${lvlId}_degen_${idx}`;
+    dlbl.innerHTML = `
+      <input type="checkbox" value="${escapeHtml(p)}" id="${did}" />
+      <span>${p}</span>`;
+    degenBox.appendChild(dlbl);
+  });
+  degenBlock.appendChild(degenLbl);
+  degenBlock.appendChild(degenBox);
+
+  // canal phrase (goes after "resulting in ...")
+  const canalBlock = document.createElement("div");
+  canalBlock.className = "form-block";
+  const canalLbl = document.createElement("label");
+  canalLbl.textContent = "Central canal stenosis / canal severity";
+  const canalSel = document.createElement("select");
+  canalSel.innerHTML = `<option value="">(none)</option>` +
+    canalOptions.map(p => `<option value="${escapeHtml(p)}">${p}</option>`).join("");
+  canalSel.className = "canal-phrase";
+  canalBlock.appendChild(canalLbl);
+  canalBlock.appendChild(canalSel);
+
+  // cord effect (attaches to canal part)
+  const cordEffBlock = document.createElement("div");
+  cordEffBlock.className = "form-block";
+  const cordEffLbl = document.createElement("label");
+  cordEffLbl.textContent = "Cord effect / signal (ties to canal stenosis)";
+  const cordEffSel = document.createElement("select");
+  cordEffSel.innerHTML = cordEffectOptions
+    .map(p => `<option value="${escapeHtml(p)}">${p || "(none)"} </option>`)
+    .join("");
+  cordEffSel.className = "cord-effect-phrase";
+  cordEffBlock.appendChild(cordEffLbl);
+  cordEffBlock.appendChild(cordEffSel);
+
+  // foraminal phrase (last in sentence)
+  const foramBlock = document.createElement("div");
+  foramBlock.className = "form-block";
+  const foramLbl = document.createElement("label");
+  foramLbl.textContent = "Foraminal narrowing (last clause)";
+  const foramSel = document.createElement("select");
+  foramSel.innerHTML = `<option value="">(none)</option>` +
+    foraminalOptions.map(p => `<option value="${escapeHtml(p)}">${p}</option>`).join("");
+  foramSel.className = "foraminal-phrase";
+  foramBlock.appendChild(foramLbl);
+  foramBlock.appendChild(foramSel);
+
+  // nerve root impact (attaches to foraminal clause)
+  const nerveBlock = document.createElement("div");
+  nerveBlock.className = "form-block";
+  const nerveLbl = document.createElement("label");
+  nerveLbl.textContent = "Nerve root impact (after foraminal clause)";
+  const nerveSel = document.createElement("select");
+  nerveSel.innerHTML = nerveImpactOptions
+    .map(p => `<option value="${escapeHtml(p)}">${p || "(none)"} </option>`)
+    .join("");
+  nerveSel.className = "nerve-phrase";
+  nerveBlock.appendChild(nerveLbl);
+  nerveBlock.appendChild(nerveSel);
+
+  // custom free text per level
+  const customBlock = document.createElement("div");
+  customBlock.className = "form-block";
+  const customLbl = document.createElement("label");
+  customLbl.textContent = "Custom note for this level (optional)";
+  const customTA = document.createElement("textarea");
+  customTA.className = "custom-text perLevelCustomText";
+  customTA.setAttribute("placeholder", "Custom detail, e.g. 'Severe left foraminal stenosis with suspected compression of the exiting C7 nerve root.'");
+  customBlock.appendChild(customLbl);
+  customBlock.appendChild(customTA);
+
+  // assemble advanced layout
+  adv.appendChild(discBlock);
+  adv.appendChild(degenBlock);
+  adv.appendChild(canalBlock);
+  adv.appendChild(cordEffBlock);
+  adv.appendChild(foramBlock);
+  adv.appendChild(nerveBlock);
+  adv.appendChild(customBlock);
+
+  // listeners -> update report
+  [
+    levelSel,
+    normalChk,
+    discSel,
+    canalSel,
+    foramSel,
+    nerveSel,
+    cordEffSel,
+    customTA
+  ].forEach(el => {
+    el.addEventListener("input", ()=>{
+      toggleAdvanced();
+      buildReport();
+    });
+  });
+  degenBox.addEventListener("input", buildReport);
+
+  function toggleAdvanced(){
+    if(normalChk.checked){
+      adv.classList.add("hidden");
+    }else{
+      adv.classList.remove("hidden");
+    }
+  }
+  toggleAdvanced();
+
+  card.appendChild(top);
+  card.appendChild(adv);
+
+  return card;
+}
+
+// ------------------------------------
+// REPORT GENERATION
+// ------------------------------------
+
+// auto-resize textarea so it grows with content
+function autoResize(el){
+  if(!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+function buildReport(){
+  const reportParts = [];
+
+  // helper to read a global section
+  function getSectionText(secKey){
+    const card = document.querySelector(`.section-card[data-section-key="${secKey}"]`);
+    if(!card) return "";
+    const body = card.querySelector(".section-body");
+    if(!body) return "";
+
+    // collect checked phrases
+    const checked = Array.from(body.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(cb => cb.getAttribute("data-phrase"))
+      .filter(Boolean);
+
+    // dedupe while preserving order
+    const deduped = [];
+    checked.forEach(p => { if(!deduped.includes(p)) deduped.push(p); });
+
+    const custom = (body.querySelector('textarea.custom-text')?.value || "").trim();
+
+    let text = "";
+    if(deduped.length){
+      text += deduped.join(" ");
+    }
+    if(custom){
+      if(text) text += " ";
+      text += custom;
+    }
+    return text.trim();
+  }
+
+  // Build level text using your required ordering:
+  //   Pathologies list (disc + degenerative/ligament/hardware)
+  //   → "resulting in" canal stenosis + cord effect
+  //   → "and" foraminal stenosis + nerve root impact
+  function buildLevelsText(){
+    const lvlCards = Array.from(document.querySelectorAll(".level-builder-card"));
+    if(!lvlCards.length) return "";
+
+    const lines = [];
+
+    lvlCards.forEach(card=>{
+      const level = card.querySelector(".level-select")?.value || "";
+      const normal = card.querySelector(".normal-level-chk")?.checked || false;
+
+      if(!level) return; // skip cards without a chosen level
+
+      if(normal){
+        lines.push(`${level}: No evidence of a spinal canal stenosis or neural foraminal narrowing.`);
+        return;
+      }
+
+      // gather pieces
+      const discPhrase = (card.querySelector(".disc-phrase")?.value || "").trim();
+      const canalPhrase = (card.querySelector(".canal-phrase")?.value || "").trim();
+      const foraminalPhrase = (card.querySelector(".foraminal-phrase")?.value || "").trim();
+      const nervePhrase = (card.querySelector(".nerve-phrase")?.value || "").trim();
+      const cordEffPhrase = (card.querySelector(".cord-effect-phrase")?.value || "").trim();
+      const custom = (card.querySelector(".perLevelCustomText")?.value || "").trim();
+
+      // degenerative / ligament / hardware multi-select (array)
+      const degenChecks = Array
+        .from(card.querySelectorAll(".degen-phrases input[type='checkbox']:checked"))
+        .map(cb=>cb.value.trim())
+        .filter(Boolean);
+
+      // Build pathology list = discPhrase + degenerative phrases
+      const pathologyList = [];
+      if(discPhrase) pathologyList.push(discPhrase.replace(/\.$/,""));
+      if(degenChecks.length){
+        pathologyList.push(degenChecks.map(p=>p.replace(/\.$/,"")).join(", "));
+      }
+      const pathologyStr = pathologyList.join(", ");
+
+      // Build canal portion (canal severity + cord effect)
+      let canalPart = "";
+      if(canalPhrase){
+        canalPart += canalPhrase.replace(/\.$/,"");
+      }
+      if(cordEffPhrase){
+        // attach cord effect after a space, but strip trailing period first
+        const ce = cordEffPhrase.replace(/\.$/,"");
+        if(canalPart){
+          canalPart += " " + ce;
+        } else {
+          canalPart = ce;
+        }
+      }
+      canalPart = canalPart.trim();
+
+      // Build foraminal portion (foraminal narrowing + nerve root impact)
+      let foraminalPart = "";
+      if(foraminalPhrase){
+        foraminalPart += foraminalPhrase.replace(/\.$/,"");
+      }
+      if(nervePhrase){
+        const np = nervePhrase.replace(/\.$/,"");
+        if(foraminalPart){
+          foraminalPart += " " + np;
+        } else {
+          foraminalPart = np;
+        }
+      }
+      foraminalPart = foraminalPart.trim();
+
+      // Assemble final sentence according to strategy:
+      // "[LEVEL]: [PATHOLOGIES], resulting in [CANAL], and [FORAMINAL]."
+      // Fallbacks handle missing pieces.
+      let sentenceCore = "";
+
+      if(pathologyStr){
+        sentenceCore += pathologyStr;
+        if(canalPart && foraminalPart){
+          sentenceCore += ", resulting in " + canalPart + ", and " + foraminalPart;
+        } else if(canalPart){
+          sentenceCore += ", resulting in " + canalPart;
+        } else if(foraminalPart){
+          sentenceCore += ", resulting in " + foraminalPart;
+        }
+      } else {
+        // If somehow no pathology but canal/foramina selected,
+        // just report the stenosis parts.
+        if(canalPart && foraminalPart){
+          sentenceCore += canalPart + ", and " + foraminalPart;
+        } else if(canalPart){
+          sentenceCore += canalPart;
+        } else if(foraminalPart){
+          sentenceCore += foraminalPart;
+        }
+      }
+
+      sentenceCore = sentenceCore.trim();
+      if(sentenceCore && !sentenceCore.endsWith(".")){
+        sentenceCore += ".";
+      }
+
+      // append custom (after a space, ensure period)
+      let trailingCustom = "";
+      if(custom){
+        let c = custom.trim();
+        if(!c.endsWith(".")) c += ".";
+        trailingCustom = " " + c;
+      }
+
+      const fullSentence = `${level}: ${sentenceCore}${trailingCustom}`.trim();
+      if(fullSentence){
+        lines.push(fullSentence);
+      }
+    });
+
+    return lines.join("\n");
+  }
+
+  // canonical output order
+  const order = [
+    {key:"bones", label:"BONES"},
+    {key:"alignment", label:"VERTEBRAL ALIGNMENT"},
+    {key:"soft", label:"NECK SOFT TISSUES"},
+    {key:"cord", label:"CORD"},
+    {key:"discs", label:"DISCS"},
+    {key:"levels", label:"LEVELS"},
+    {key:"enhance", label:"ABNORMAL ENHANCEMENT"},
+    {key:"other", label:"OTHER / ADDITIONAL FINDINGS"}
+  ];
+
+  const levelsText = buildLevelsText();
+
+  order.forEach(item=>{
+    let bodyText = "";
+    if(item.key === "levels"){
+      bodyText = levelsText.trim();
+    } else {
+      bodyText = getSectionText(item.key);
+    }
+    if(bodyText){
+      reportParts.push(item.label + ":\n" + bodyText.trim());
+    }
+  });
+
+  const finalText = "FINDINGS:\n\n" + reportParts.join("\n\n");
+  const outEl = document.getElementById("reportOutput");
+  if(outEl){
+    outEl.value = finalText.trim();
+    autoResize(outEl); // keep textarea height synced to content size
+  }
+}
+
+// ------------------------------------
+// INIT
+// ------------------------------------
+
+function initSections(){
+  const container = document.getElementById("sectionsContainer");
+  sectionsConfig.forEach(secCfg=>{
+    const card = createSectionCard(secCfg);
+    container.appendChild(card);
+  });
+}
+
+function initLevelButtons(){
+  const addBtns = [document.getElementById("addLevelBtn"), document.getElementById("addLevelBtn2")];
+  addBtns.forEach(btn=>{
+    if(btn){
+      btn.addEventListener("click", ()=>{
+        const lvlCard = createLevelCard();
+        document.getElementById("levelsContainer").appendChild(lvlCard);
+        buildReport();
+      });
+    }
+  });
+}
+
+function initCopyButtons(){
+  const copyBtns = [document.getElementById("copyBtn"), document.getElementById("copyBtn2")];
+  copyBtns.forEach(btn=>{
+    if(btn){
+      btn.addEventListener("click", ()=>{
+        const text = document.getElementById("reportOutput").value;
+        navigator.clipboard.writeText(text).then(()=>{
+          btn.textContent = "Copied!";
+          setTimeout(()=>{btn.textContent="Copy Report";},1500);
+        }).catch(()=>{
+          btn.textContent = "Copy Failed";
+          setTimeout(()=>{btn.textContent="Copy Report";},1500);
+        });
+      });
+    }
+  });
+}
+
+function initPreviewAutosize(){
+  const outEl = document.getElementById("reportOutput");
+  if(!outEl) return;
+  // in case user manually edits preview text:
+  outEl.addEventListener("input", ()=>{
+    autoResize(outEl);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  initSections();
+  initLevelButtons();
+  initCopyButtons();
+  initPreviewAutosize();
+  buildReport();
+});
+</script>
+</body>
+</html>
