@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matilda's Meter</title>
+  <style>
+    :root {
+      --bg-color: #0d0d10;
+      --panel-color: #1a1a22;
+      --border-color: #4a4a5a;
+      --text-main: #ffffff;
+      --text-dim: #888;
+      --accent-start: #ff66cc;
+      --accent-end: #a64dff;
+      --danger-start: #ff3b30;
+      --danger-end: #ff0000;
+      --success-start: #00ff99;
+      --success-end: #00cc66;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    header {
+      position: relative;
+      width: 100%;
+      padding: 1rem 4rem 0.5rem;
+      text-align: center;
+      z-index: 1001;
+    }
+
+    #title {
+      font-size: clamp(1.5rem, 2vw + 1rem, 2.5rem);
+      font-weight: 600;
+      color: var(--text-main);
+      text-shadow: 0 0 20px rgba(255,102,204,0.4);
+      margin: 0;
+    }
+
+    .hearts-label {
+      font-size: clamp(0.9rem, 1vw + 0.6rem, 1rem);
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    #heartsRow {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: clamp(1.5rem, 2vw + 1rem, 2.5rem);
+      line-height: 1;
+    }
+
+    .heart.full {
+      color: var(--accent-start);
+      text-shadow: 0 0 10px rgba(255,102,204,0.8);
+    }
+
+    .heart.empty {
+      color: #333;
+      text-shadow: none;
+    }
+
+    /* Settings button */
+    #settingsBtn {
+      position: absolute;
+      top: 0.75rem;
+      right: 1rem;
+      background: var(--panel-color);
+      border: 2px solid var(--border-color);
+      border-radius: 1rem;
+      font-size: clamp(1.5rem, 2vw + 1rem, 2.2rem);
+      line-height: 1;
+      color: var(--text-main);
+      padding: 0.4rem 0.7rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      cursor: pointer;
+    }
+
+    #settingsBtn:active {
+      transform: scale(0.95);
+    }
+
+    /* Main progress zone */
+    .main {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem 1rem 2rem;
+      text-align: center;
+    }
+
+    .progress-wrapper {
+      width: min(90vw, 700px);
+      background: var(--panel-color);
+      border: 2px solid var(--border-color);
+      border-radius: 2rem;
+      padding: 0.75rem;
+      box-shadow: 0 0 30px rgba(255,102,204,0.2), 0 30px 60px rgba(0,0,0,0.9);
+    }
+
+    .progress-inner {
+      position: relative;
+      height: clamp(3rem, 2vw + 2rem, 4rem);
+      background: rgba(0,0,0,0.4);
+      border-radius: 1.5rem;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.07);
+    }
+
+    #progressFill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-start) 0%, var(--accent-end) 100%);
+      border-radius: inherit;
+      box-shadow: 0 0 20px rgba(255,102,204,0.6), 0 0 40px rgba(166,77,255,0.4);
+      transition: width 0.3s ease;
+    }
+
+    #scoreText {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      text-align: center;
+      font-size: clamp(1.4rem, 2vw + 1rem, 2rem);
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 0 6px rgba(0,0,0,0.8), 0 0 20px rgba(255,102,204,0.5);
+      pointer-events: none;
+    }
+
+    /* Animation states */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    .shake {
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .pulse {
+      animation: pulse 0.4s ease;
+      box-shadow: 0 0 20px rgba(166,77,255,0.9), 0 0 40px rgba(255,102,204,0.5) !important;
+    }
+
+    .flash-bad {
+      background: linear-gradient(90deg, var(--danger-start) 0%, var(--danger-end) 100%) !important;
+      box-shadow: 0 0 20px rgba(255,0,0,0.8), 0 0 40px rgba(255,0,0,0.4) !important;
+    }
+
+    @keyframes goalPulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(0,255,128,0.6), 0 0 40px rgba(0,255,128,0.3);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 25px rgba(0,255,128,0.9), 0 0 60px rgba(0,255,128,0.5);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(0,255,128,0.6), 0 0 40px rgba(0,255,128,0.3);
+      }
+    }
+
+    .goal {
+      background: linear-gradient(90deg, var(--success-start) 0%, var(--success-end) 100%) !important;
+      box-shadow: 0 0 20px rgba(0,255,128,0.8), 0 0 50px rgba(0,255,128,0.5) !important;
+      animation: goalPulse 1.2s ease-in-out infinite;
+    }
+
+    /* Settings modal */
+    #settingsModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    #settingsModal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 90vw;
+      max-width: 320px;
+      background: var(--panel-color);
+      border: 2px solid #6a6a9a;
+      border-radius: 1rem;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+      padding: 1rem 1.25rem 1.25rem;
+      color: var(--text-main);
+    }
+
+    .modal-card h2 {
+      margin: 0 0 .5rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text-main);
+      text-shadow: 0 0 20px rgba(166,77,255,0.5);
+    }
+
+    .modal-card label {
+      display: block;
+      margin-top: .75rem;
+      font-size: .9rem;
+      color: #ccc;
+    }
+
+    .modal-card input {
+      width: 100%;
+      margin-top: .25rem;
+      padding: .6rem .75rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: .6rem;
+      border: 1px solid #444;
+      background: #0d0d10;
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: 1rem;
+      justify-content: center;
+    }
+
+    .modal-btn {
+      flex: 1 1 auto;
+      padding: .7rem .75rem;
+      font-size: .9rem;
+      font-weight: 600;
+      border-radius: .6rem;
+      border: 0;
+      cursor: pointer;
+      color: #fff;
+      text-align: center;
+    }
+
+    #saveBtn {
+      background: linear-gradient(90deg, var(--accent-start) 0%, var(--accent-end) 100%);
+      box-shadow: 0 10px 30px rgba(255,102,204,0.4);
+    }
+
+    #resetBtn {
+      background: #333;
+      border: 1px solid #666;
+      color: #fff;
+    }
+
+    #closeBtn {
+      background: transparent;
+      border: 2px solid #666;
+      color: #aaa;
+    }
+
+    #closeBtn:active,
+    #resetBtn:active,
+    #saveBtn:active {
+      transform: scale(0.96);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="settingsBtn" aria-label="Settings">⚙</button>
+    <h1 id="title">Matilda's Meter</h1>
+    <div class="hearts-label">Hearts left today</div>
+    <div id="heartsRow"></div>
+  </header>
+
+  <main class="main">
+    <div class="progress-wrapper">
+      <div class="progress-inner">
+        <div id="progressFill"></div>
+        <div id="scoreText">0 / 100</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-card">
+      <h2 id="settingsTitle">Settings</h2>
+
+      <label for="scoreInput">Current Score</label>
+      <input id="scoreInput" type="number" min="0" />
+
+      <label for="goalInput">Goal to Win Prize</label>
+      <input id="goalInput" type="number" min="1" />
+
+      <label for="heartsInput">Hearts Left Today (0–5)</label>
+      <input id="heartsInput" type="number" min="0" max="5" />
+
+      <div class="btn-row">
+        <button class="modal-btn" id="saveBtn">Save</button>
+        <button class="modal-btn" id="resetBtn">Reset Day</button>
+        <button class="modal-btn" id="closeBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Matilda's Meter v1.1
+    document.addEventListener('DOMContentLoaded', () => {
+      const MAX_HEARTS = 5;
+
+      let score = 0;
+      let goal = 100;
+      let hearts = MAX_HEARTS;
+      let modalOpen = false;
+
+      const progressFill = document.getElementById('progressFill');
+      const scoreText = document.getElementById('scoreText');
+      const heartsRow = document.getElementById('heartsRow');
+
+      const settingsBtn = document.getElementById('settingsBtn');
+      const settingsModal = document.getElementById('settingsModal');
+      const scoreInput = document.getElementById('scoreInput');
+      const goalInput = document.getElementById('goalInput');
+      const heartsInput = document.getElementById('heartsInput');
+
+      const saveBtn = document.getElementById('saveBtn');
+      const closeBtn = document.getElementById('closeBtn');
+      const resetBtn = document.getElementById('resetBtn');
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem('matildaMeter');
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (typeof data.score === 'number') score = data.score;
+            if (typeof data.goal === 'number') goal = data.goal;
+            if (typeof data.hearts === 'number') hearts = data.hearts;
+          }
+        } catch (err) {
+          console.warn('State load failed:', err);
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem('matildaMeter', JSON.stringify({
+          score,
+          goal,
+          hearts
+        }));
+      }
+
+      function clampAll() {
+        if (goal < 1) goal = 1;
+        if (score < 0) score = 0;
+        if (score > goal) score = goal;
+        if (hearts < 0) hearts = 0;
+        if (hearts > MAX_HEARTS) hearts = MAX_HEARTS;
+      }
+
+      function render() {
+        clampAll();
+        const percent = (score / goal) * 100;
+        progressFill.style.width = percent + '%';
+        scoreText.textContent = score + ' / ' + goal;
+
+        // goal reached visual state
+        if (score >= goal) {
+          progressFill.classList.add('goal');
+        } else {
+          progressFill.classList.remove('goal');
+        }
+
+        heartsRow.innerHTML = '';
+        for (let i = 0; i < MAX_HEARTS; i++) {
+          const span = document.createElement('span');
+          span.textContent = '♥';
+          span.className = 'heart ' + (i < hearts ? 'full' : 'empty');
+          heartsRow.appendChild(span);
+        }
+      }
+
+      function addBadAnimation() {
+        progressFill.classList.add('shake', 'flash-bad');
+        setTimeout(() => {
+          progressFill.classList.remove('shake', 'flash-bad');
+        }, 500);
+      }
+
+      function addGoodAnimation() {
+        progressFill.classList.add('pulse');
+        setTimeout(() => {
+          progressFill.classList.remove('pulse');
+        }, 500);
+      }
+
+      // tap logic anywhere on screen
+      document.addEventListener('pointerdown', (e) => {
+        if (modalOpen) return;
+        if (e.target.closest('#settingsBtn')) return;
+        if (e.target.closest('#settingsModal')) return;
+
+        // Left half of the screen = disobey
+        if (e.clientX < window.innerWidth / 2) {
+          if (score > 0) {
+            score--;
+          }
+          if (hearts > 0) {
+            hearts--;
+          }
+          addBadAnimation();
+        } else {
+          // Right half of the screen = obey
+          if (score < goal) {
+            score++;
+          }
+          addGoodAnimation();
+        }
+
+        render();
+        saveState();
+      });
+
+      function openSettings() {
+        modalOpen = true;
+        scoreInput.value = score;
+        goalInput.value = goal;
+        heartsInput.value = hearts;
+        settingsModal.classList.add('show');
+      }
+
+      function closeSettings() {
+        modalOpen = false;
+        settingsModal.classList.remove('show');
+      }
+
+      settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSettings();
+      });
+
+      saveBtn.addEventListener('click', () => {
+        const newScore = parseInt(scoreInput.value, 10);
+        const newGoal = parseInt(goalInput.value, 10);
+        const newHearts = parseInt(heartsInput.value, 10);
+
+        score = isNaN(newScore) ? 0 : newScore;
+        goal = isNaN(newGoal) ? 100 : newGoal;
+        hearts = isNaN(newHearts) ? hearts : newHearts;
+
+        render();
+        saveState();
+        closeSettings();
+      });
+
+      closeBtn.addEventListener('click', closeSettings);
+
+      resetBtn.addEventListener('click', () => {
+        score = 0;
+        hearts = MAX_HEARTS;
+        render();
+        saveState();
+        closeSettings();
+      });
+
+      // init
+      loadState();
+      render();
+    });
+  </script>
+</body>
+</html>
