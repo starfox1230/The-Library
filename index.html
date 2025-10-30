@@ -1145,7 +1145,9 @@
         const appListContainer = document.querySelector('.app-list');
         const allAppListItems = document.querySelectorAll('.app-list li');
         const viewToggles = document.querySelectorAll('.view-toggle');
+        const VIEW_STORAGE_KEY = 'appListViewPreference';
         let favorites = JSON.parse(localStorage.getItem('favoriteApps')) || [];
+        let currentView = null;
 
         // 1. Initialize: Add stars and apply favorite status from localStorage
         function initializeFavorites() {
@@ -1212,13 +1214,38 @@
             }
         }
 
+        function setActiveView(view, { persist = true } = {}) {
+            const normalizedView = view === 'favorites' ? 'favorites' : 'all';
+
+            if (currentView === normalizedView) {
+                if (persist) {
+                    localStorage.setItem(VIEW_STORAGE_KEY, normalizedView);
+                }
+                return;
+            }
+
+            currentView = normalizedView;
+
+            viewToggles.forEach(toggle => {
+                const toggleView = toggle.getAttribute('data-view');
+                if (toggleView === normalizedView) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+            });
+
+            filterView(normalizedView);
+
+            if (persist) {
+                localStorage.setItem(VIEW_STORAGE_KEY, normalizedView);
+            }
+        }
+
         viewToggles.forEach(toggle => {
             toggle.addEventListener('click', () => {
-                if (toggle.classList.contains('active')) return;
-                viewToggles.forEach(t => t.classList.remove('active'));
-                toggle.classList.add('active');
                 const view = toggle.getAttribute('data-view');
-                filterView(view);
+                setActiveView(view);
             });
         });
 
@@ -1249,8 +1276,13 @@
             appListContainer.scrollLeft = scrollLeft - walk;
         });
 
+        // Determine initial view preference before applying filters
+        const savedView = localStorage.getItem(VIEW_STORAGE_KEY);
+        const initialView = savedView === 'favorites' ? 'favorites' : 'all';
+
         // Run initialization
         initializeFavorites();
+        setActiveView(initialView, { persist: false });
     });
     // ========= End New Logic =========
 
