@@ -1,658 +1,651 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Self-Paced AIRP Tracker (Cozy)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-:root {
-  --bg: #0b1017;
-  --bg2: #121927;
-  --panel: rgba(13, 18, 28, 0.9);
-  --accent: #5ee0ff;
-  --accent-soft: rgba(94, 224, 255, 0.1);
-  --accent2: #ff77c8;
-  --text: #edf4ff;
-  --muted: #9aa6bc;
-  --success: #77ffc4;
-  --radius-lg: 1.4rem;
-  --radius-sm: 0.8rem;
-  --gap: 1rem;
-  --shadow: 0 16px 40px rgba(0,0,0,0.25);
-}
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-  background: radial-gradient(circle at 0% 0%, rgba(94,224,255,0.12), rgba(0,0,0,0)) fixed, #080b10;
-  color: var(--text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  line-height: 1.4;
-}
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.header {
-  position: sticky;
-  top: 0;
-  backdrop-filter: blur(16px);
-  background: rgba(9, 12, 18, 0.9);
-  border-bottom: 1px solid rgba(255,255,255,0.01);
-  padding: 0.6rem 1rem 0.55rem 1rem;
-  z-index: 20;
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-}
-.title-block h1 {
-  font-size: 1.15rem;
-  margin: 0;
-  font-weight: 600;
-}
-.title-block small {
-  font-size: 0.65rem;
-  color: var(--muted);
-}
-.filters {
-  display: flex;
-  gap: 0.35rem;
-  margin-left: auto;
-}
-.filter-btn {
-  background: rgba(255,255,255,0.01);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0.25rem 0.7rem 0.35rem 0.7rem;
-  font-size: 0.7rem;
-  color: var(--muted);
-  cursor: pointer;
-}
-.filter-btn.active {
-  background: rgba(94,224,255,0.14);
-  color: var(--text);
-  border-color: rgba(94,224,255,0.24);
-  box-shadow: 0 0 14px rgba(94,224,255,0.3);
-}
-.top-actions {
-  display: flex;
-  gap: 0.35rem;
-  margin-left: 0.3rem;
-}
-.icon-btn {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.03);
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  color: var(--text);
-  transition: 0.1s ease-out;
-  font-size: 0.9rem;
-}
-.icon-btn:hover {
-  background: rgba(255,255,255,0.1);
-}
-main {
-  max-width: 650px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 1rem 0.6rem 2rem 0.6rem;
-}
-.lecture-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-.lecture-card {
-  background: rgba(13, 18, 28, 0.82);
-  border: 1px solid rgba(255,255,255,0.016);
-  border-radius: 1.1rem;
-  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
-  overflow: hidden;
-  transition: 0.12s ease-out;
-}
-.lecture-card.done-all {
-  border: 1px solid rgba(119,255,196,0.4);
-  box-shadow: 0 0 20px rgba(119,255,196,0.06);
-}
-.lecture-header {
-  padding: 0.75rem 0.8rem 0.75rem 0.9rem;
-  display: flex;
-  gap: 0.7rem;
-  align-items: center;
-  cursor: pointer;
-}
-.emoji-block {
-  font-size: 1.6rem;
-  line-height: 1;
-  min-width: 3rem;
-  text-align: center;
-}
-.header-text {
-  flex: 1;
-}
-.lecture-title {
-  font-size: 0.93rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-.lecture-meta {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  margin-top: 0.25rem;
-}
-.badge-date {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.03);
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem 0.3rem 0.55rem;
-  font-size: 0.6rem;
-  color: var(--muted);
-}
-.status-dots {
-  display: flex;
-  gap: 0.2rem;
-}
-.st-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.04);
-}
-.st-done {
-  background: rgba(119,255,196,1);
-  border: none;
-}
-.expand-indicator {
-  font-size: 1.1rem;
-  color: rgba(237,244,255,0.65);
-  transition: transform 0.12s ease-out;
-}
-.lecture-card[data-expanded="true"] .expand-indicator {
-  transform: rotate(90deg);
-}
-.lecture-body {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.15s ease-out;
-  background: rgba(4,5,7,0.1);
-}
-.lecture-card[data-expanded="true"] .lecture-body {
-  max-height: 400px; /* plenty */
-}
-.lecture-body-inner {
-  padding: 0.5rem 1rem 0.9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  font-size: 0.78rem;
-}
-.link-line a {
-  color: var(--accent);
-  text-decoration: none;
-  word-break: break-all;
-}
-.link-line a:hover {
-  text-decoration: underline;
-}
-.checklist {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.chk {
-  background: rgba(255,255,255,0.015);
-  border: 1px solid rgba(255,255,255,0.015);
-  border-radius: 0.6rem;
-  padding: 0.25rem 0.55rem 0.3rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.69rem;
-  cursor: pointer;
-}
-.chk input {
-  width: 0.7rem;
-  height: 0.7rem;
-  accent-color: var(--accent);
-  margin: 0;
-}
-.cards-row {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  font-size: 0.69rem;
-}
-.cards-pill {
-  background: rgba(94,224,255,0.12);
-  border: 1px solid rgba(94,224,255,0.3);
-  border-radius: 999px;
-  padding: 0.2rem 0.6rem 0.25rem;
-}
-.cards-row button {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.03);
-  border-radius: 0.4rem;
-  width: 22px;
-  height: 22px;
-  color: var(--text);
-  font-size: 0.7rem;
-  cursor: pointer;
-}
-.cards-row button:hover {
-  background: rgba(255,255,255,0.12);
-}
-.tag-status {
-  font-size: 0.6rem;
-  background: rgba(119,255,196,0.1);
-  border: 1px solid rgba(119,255,196,0.4);
-  border-radius: 999px;
-  padding: 0.12rem 0.5rem 0.2rem;
-  color: #e5fff6;
-}
-.prefs-panel {
-  position: fixed;
-  top: 58px;
-  right: 0.9rem;
-  width: min(360px, 94vw);
-  background: rgba(5,7,10,0.9);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 1rem;
-  padding: 0.75rem;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.25);
-  z-index: 30;
-  display: none;
-}
-.prefs-panel h2 {
-  font-size: 0.75rem;
-  margin: 0 0 0.3rem 0;
-}
-.prefs-panel small {
-  font-size: 0.6rem;
-  color: var(--muted);
-  display: block;
-  margin-bottom: 0.35rem;
-}
-.prefs-panel button,
-.prefs-panel label {
-  font-size: 0.63rem;
-}
-.prefs-panel button {
-  background: rgba(94,224,255,0.1);
-  color: var(--text);
-  border: 1px solid rgba(94,224,255,0.3);
-  border-radius: 0.45rem;
-  padding: 0.25rem 0.6rem;
-  cursor: pointer;
-  margin-right: 0.25rem;
-}
-footer {
-  text-align: center;
-  font-size: 0.6rem;
-  color: rgba(255,255,255,0.35);
-  margin-bottom: 1.2rem;
-}
-@media (max-width: 480px) {
-  .lecture-header {
-    gap: 0.5rem;
-  }
-  .emoji-block {
-    font-size: 1.45rem;
-    min-width: 2.6rem;
-  }
-  .lecture-title {
-    font-size: 0.9rem;
-  }
-  .filters {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>AIRP Self-Paced Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0a0f16;
+      --bg2: #111826;
+      --panel: rgba(13, 19, 30, 0.7);
+      --card: rgba(19, 27, 40, 0.9);
+      --text: #edf4ff;
+      --muted: #a3b2cc;
+      --accent: #4dd0ff;
+      --accent-soft: rgba(77, 208, 255, 0.12);
+      --blue-glow: 0 0 20px 4px rgba(77, 166, 255, 0.35);
+      --green-glow: 0 0 20px 4px rgba(77, 255, 166, 0.45);
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --gap: 1rem;
+      --header-h: 62px;
+      --danger: #ff6b6b;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      background: radial-gradient(circle at top, #162235, #06080d 55%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(14px);
+      background: rgba(6, 9, 15, 0.65);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem;
+      gap: 1rem;
+    }
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .title-block h1 {
+      font-size: 1.05rem;
+      margin: 0;
+    }
+    .title-block small {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+    .filters {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: rgba(11, 15, 23, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 0.38rem 0.8rem 0.4rem;
+      font-size: 0.65rem;
+      cursor: pointer;
+      transition: all 0.15s ease-out;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .filter-btn.active {
+      background: rgba(77, 208, 255, 0.14);
+      color: #fff;
+      border-color: rgba(77, 208, 255, 0.5);
+    }
+    .actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .ghost-btn {
+      background: rgba(6, 9, 15, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 0.4rem 0.7rem;
+      cursor: pointer;
+      font-size: 0.65rem;
+    }
+    main {
+      width: min(950px, 100%);
+      margin: 1rem auto 3.5rem;
+      padding: 0 0.6rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .lecture-card {
+      background: radial-gradient(circle at top, rgba(21,31,48,0.9), rgba(10,11,12,0.4));
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-lg);
+      padding: 0.8rem 0.9rem 0.6rem;
+      transition: all 0.12s ease-out;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      cursor: pointer;
+    }
+    .lecture-card.collapsed {
+      padding-bottom: 0.5rem;
+    }
+    .lecture-card:hover {
+      border-color: rgba(77, 208, 255, 0.4);
+      background: radial-gradient(circle at top, rgba(39,57,87,0.85), rgba(10,11,12,0.25));
+    }
+    .lecture-card.blue-glow {
+      box-shadow: var(--blue-glow);
+      border-color: rgba(84, 173, 255, 0.6);
+    }
+    .lecture-card.green-glow {
+      box-shadow: var(--green-glow);
+      border-color: rgba(107, 255, 168, 0.8);
+    }
+    .lecture-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .emoji-block {
+      font-size: 1.45rem;
+      line-height: 1;
+      margin-bottom: 0.15rem;
+    }
+    .lecture-title-block {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .lecture-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .lecture-meta {
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+    .toggle-icon {
+      font-size: 1.1rem;
+      opacity: 0.6;
+    }
+    .lecture-body {
+      margin-top: 0.6rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.022);
+      padding-top: 0.55rem;
+      display: none;
+      cursor: default;
+    }
+    .lecture-card.expanded .lecture-body {
+      display: block;
+    }
+    .check-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 0.4rem;
+    }
+    .check-item {
+      background: rgba(3, 5, 9, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem 0.25rem 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      min-height: 36px;
+    }
+    .check-item input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .check-label-text {
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .link-row a {
+      color: #98dcff;
+      font-size: 0.7rem;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .link-row a:hover {
+      text-decoration: underline;
+    }
+    .cards-control {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.35rem;
+    }
+    .cards-control label {
+      font-size: 0.67rem;
+      color: var(--muted);
+    }
+    .cards-control input[type="number"] {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 0.25rem 0.4rem;
+      width: 4.3rem;
+      color: #fff;
+      font-size: 0.75rem;
+    }
+    .cards-note {
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+    .hidden-panel {
+      display: none;
+      position: fixed;
+      right: 1rem;
+      top: calc(var(--header-h) + 0.6rem);
+      background: rgba(7, 10, 16, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 14px;
+      padding: 0.6rem;
+      width: 220px;
+      z-index: 40;
+      backdrop-filter: blur(8px);
+    }
+    .hidden-panel textarea {
+      width: 100%;
+      min-height: 90px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.6rem;
+      font-family: ui-monospace, SFMono-Regular, SFMono-Medium, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .panel-row {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.4rem;
+    }
+    .small-btn {
+      background: rgba(77, 208, 255, 0.3);
+      border: 1px solid rgba(77, 208, 255, 0.5);
+      border-radius: 6px;
+      font-size: 0.6rem;
+      color: #fff;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+    @media (max-width: 540px) {
+      header {
+        flex-wrap: wrap;
+        height: auto;
+        padding-bottom: 0.5rem;
+      }
+      main {
+        padding: 0 0.4rem 1rem;
+      }
+      .lecture-head {
+        align-items: flex-start;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="app-shell">
-  <header class="header">
+  <header>
     <div class="title-block">
-      <h1>Self-Paced Lecture Dashboard</h1>
-      <small>Tap to open a lecture → watch → attendance → ≥10 cards</small>
+      <h1>AIRP Self-Paced Tracker</h1>
+      <small>Watch → Mark attendance → Make ≥10 Anki cards</small>
     </div>
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all">All (44)</button>
-      <button class="filter-btn" data-filter="needWatch">Need to watch</button>
-      <button class="filter-btn" data-filter="needCards">Need cards</button>
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="need-watch">Need to watch</button>
+      <button class="filter-btn" data-filter="need-cards">Need cards</button>
     </div>
-    <div class="top-actions">
-      <button class="icon-btn" id="expandToggle" title="Expand / collapse all">⇵</button>
-      <button class="icon-btn" id="prefsBtn" title="Preferences / Backup">⚙</button>
+    <div class="actions">
+      <button class="ghost-btn" id="toggleAll">Expand all</button>
+      <button class="ghost-btn" id="dataBtn">⚙️ Data</button>
     </div>
   </header>
 
-  <main>
-    <div id="lectureList" class="lecture-list"></div>
-  </main>
+  <main id="cards"></main>
 
-  <footer>Saved to this browser. Use ⚙ to export/import.</footer>
-
-  <div class="prefs-panel" id="prefsPanel">
-    <h2>Backup &amp; Sync</h2>
-    <small>Download your progress as JSON and load it on another device.</small>
-    <button id="downloadBtn">Download progress</button>
-    <label for="uploadInput" style="cursor:pointer;color:var(--accent);text-decoration:underline;">Upload progress…</label>
-    <input type="file" id="uploadInput" accept="application/json" style="display:none;" />
-    <small id="prefsStatus"></small>
+  <div class="hidden-panel" id="dataPanel">
+    <div style="font-size:0.65rem;margin-bottom:0.3rem;">Export / Import progress</div>
+    <textarea id="dataText" spellcheck="false"></textarea>
+    <div class="panel-row">
+      <button class="small-btn" id="exportBtn">Export</button>
+      <button class="small-btn" id="importBtn">Import</button>
+    </div>
   </div>
-</div>
 
-<script>
-const LECTURES = [
-  { "id": 1, "date": "October 14", "title": "NR 123 Stroke: Central Nervous System Ischemia Self-paced Lecture (44:32)", "link": "https://acr.instructure.com/courses/411/assignments/37700" },
-  { "id": 2, "date": "October 14", "title": "NR 112 Orbit Self-paced Lecture (46:54)", "link": "https://acr.instructure.com/courses/411/assignments/37683" },
-  { "id": 3, "date": "October 15", "title": "NM 203 Introduction to Theranostics Self-Paced Lecture (33:26)", "link": "https://acr.instructure.com/courses/411/assignments/37719" },
-  { "id": 4, "date": "October 15", "title": "NR 125 Degenerative and Inflammatory Diseases of the Spine Self-paced Lecture (39:33)", "link": "https://acr.instructure.com/courses/411/assignments/37708" },
-  { "id": 5, "date": "October 15", "title": "NR 215 Imaging the Orbital Inflammatory and Infectious Diseases Self-paced Lecture (29:38)", "link": "https://acr.instructure.com/courses/411/assignments/37697" },
-  { "id": 6, "date": "October 15", "title": "NR 212 MR and CT Evaluation of the Temporal Bone Self-paced Lecture (37:16)", "link": "https://acr.instructure.com/courses/411/assignments/37709" },
-  { "id": 7, "date": "October 15", "title": "NR 206 Cystic and Solid Lesions of the Jaw Self-paced Lecture (33:11)", "link": "https://acr.instructure.com/courses/411/assignments/37701" },
-  { "id": 8, "date": "October 16", "title": "PE 102 Chest Imaging in Children Self-paced Lecture (33:21)", "link": "https://acr.instructure.com/courses/411/assignments/37721" },
-  { "id": 9, "date": "October 16", "title": "PE 111 Pediatric Genitourinary Imaging Self-paced Lecture (38:54)", "link": "https://acr.instructure.com/courses/411/assignments/37723" },
-  { "id": 10, "date": "October 16", "title": "PE 101 Pediatric Neuroradiology Self-paced Lecture (32:39)", "link": "https://acr.instructure.com/courses/411/assignments/37720" },
-  { "id": 11, "date": "October 16", "title": "NR 114 Paranasal Sinuses and the Face Self-paced Lecture (36:34)", "link": "https://acr.instructure.com/courses/411/assignments/37684" },
-  { "id": 12, "date": "October 16", "title": "NR 126 Congenital Anomalies of the Brain Self-paced Lecture (46:58)", "link": "https://acr.instructure.com/courses/411/assignments/37710" },
-  { "id": 13, "date": "October 20", "title": "MS 105 Soft Tissue Masses Self-paced Lecture (48:48)", "link": "https://acr.instructure.com/courses/411/assignments/37718" },
-  { "id": 14, "date": "October 20", "title": "MS 104 Osteochondritis Dissecans, Osteochondral Lesions and Patellofemoral Pathology Self-paced Lecture (29:52)", "link": "https://acr.instructure.com/courses/411/assignments/37717" },
-  { "id": 15, "date": "October 20", "title": "MS 103 Internal Derangements of the Knee Self-paced Lecture (27:25)", "link": "https://acr.instructure.com/courses/411/assignments/37716" },
-  { "id": 16, "date": "October 20", "title": "MS 222 Scrotal Pathology Self-paced Lecture (33:02)", "link": "https://acr.instructure.com/courses/411/assignments/37688" },
-  { "id": 17, "date": "October 20", "title": "MS 220 The Arthritic Knee Self-paced Lecture (26:51)", "link": "https://acr.instructure.com/courses/411/assignments/37686" },
-  { "id": 18, "date": "October 21", "title": "MS 101 Anatomy and Pathology of the Shoulder Self-paced Lecture (35:09)", "link": "https://acr.instructure.com/courses/411/assignments/37714" },
-  { "id": 19, "date": "October 21", "title": "MS 221 Sports Injuries in the Young Self-paced Lecture (31:43)", "link": "https://acr.instructure.com/courses/411/assignments/37687" },
-  { "id": 20, "date": "October 21", "title": "MS 219 Knee and Shoulder Injuries in Athletes Self-paced Lecture (50:45)", "link": "https://acr.instructure.com/courses/411/assignments/37685" },
-  { "id": 21, "date": "October 21", "title": "MS 102 Anatomy and Pathology of the Elbow Self-paced Lecture (32:03)", "link": "https://acr.instructure.com/courses/411/assignments/37715" },
-  { "id": 22, "date": "October 21", "title": "MS 118 Introduction to MR Imaging of the Musculoskeletal System Self-paced Lecture (33:08)", "link": "https://acr.instructure.com/courses/411/assignments/37713" },
-  { "id": 23, "date": "October 22", "title": "NM 202 PET/CT Imaging: Oncologic Applications Self-paced Lecture (53:25)", "link": "https://acr.instructure.com/courses/411/assignments/37707" },
-  { "id": 24, "date": "October 22", "title": "MS 217 Acute Shoulder Instability Self-paced Lecture (28:51)", "link": "https://acr.instructure.com/courses/411/assignments/37690" },
-  { "id": 25, "date": "October 22", "title": "MS 214 Radiologic Evaluation of Musculoskeletal Infection Self-paced Lecture (35:42)", "link": "https://acr.instructure.com/courses/411/assignments/37689" },
-  { "id": 26, "date": "October 22", "title": "MS 205 Rheumatologic Joint Disease Self-paced Lecture (42:53)", "link": "https://acr.instructure.com/courses/411/assignments/37712" },
-  { "id": 27, "date": "October 23", "title": "NM 201 SPECT/CT Imaging: Oncologic, Non-oncologic and Musculoskeletal Applications Self-paced Lecture (46:11)", "link": "https://acr.instructure.com/courses/411/assignments/37706" },
-  { "id": 28, "date": "October 23", "title": "MS 108 Imaging of the Spine Self-paced Lecture (44:17)", "link": "https://acr.instructure.com/courses/411/assignments/37711" },
-  { "id": 29, "date": "October 23", "title": "MS 109 Imaging of Trauma to the Skeleton Self-paced Lecture (35:47)", "link": "https://acr.instructure.com/courses/411/assignments/37705" },
-  { "id": 30, "date": "October 23", "title": "MS 107 Arthritis and Arthropathies Self-paced Lecture (31:58)", "link": "https://acr.instructure.com/courses/411/assignments/37704" },
-  { "id": 31, "date": "November 3", "title": "BI 104 Imaging the Augmented Breast Self-paced Lecture (36:38)", "link": "https://acr.instructure.com/courses/411/assignments/38033" },
-  { "id": 32, "date": "November 3", "title": "BI 106 Clinical Cases in Breast MRI Self-paced Lecture (29:25)", "link": "https://acr.instructure.com/courses/411/assignments/38035" },
-  { "id": 33, "date": "November 3", "title": "BI 107 Practical Breast MRI Reporting Self-paced Lecture (30:34)", "link": "https://acr.instructure.com/courses/411/assignments/38036" },
-  { "id": 34, "date": "November 3", "title": "BI 205 Advanced Problem Solving: Asymmetries, Distortions and Masses Self-paced Lecture (32:15)", "link": "https://acr.instructure.com/courses/411/assignments/38027" },
-  { "id": 35, "date": "November 4", "title": "BI 110 MRI of the Breast: DCE, DW, ASL and Other Advanced Techniques Self-paced Lecture (29:21)", "link": "https://acr.instructure.com/courses/411/assignments/38038" },
-  { "id": 36, "date": "November 4", "title": "BI 101 Detecting Breast Cancer: Key Concepts for the Screening Breast Imager Self-paced Lecture (32:03)", "link": "https://acr.instructure.com/courses/411/assignments/38032" },
-  { "id": 37, "date": "November 4", "title": "BI 102 Diagnostic Evaluation of the Symptomatic Patient Self-paced Lecture (34:57)", "link": "https://acr.instructure.com/courses/411/assignments/38039" },
-  { "id": 38, "date": "November 4", "title": "BI 103 Diagnostic Imaging Following a Positive Screening Exam Self-paced Lecture (37:34)", "link": "https://acr.instructure.com/courses/411/assignments/38034" },
-  { "id": 39, "date": "November 5", "title": "BI 206 Advanced Problem Solving: Calcifications Self-paced Lecture (35:46)", "link": "https://acr.instructure.com/courses/411/assignments/38028" },
-  { "id": 40, "date": "November 6", "title": "BI 105 Interventional Breast Procedures: Pre-procedural Imaging and Planning Self-paced Lecture (33:01)", "link": "https://acr.instructure.com/courses/411/assignments/38037" },
-  { "id": 41, "date": "November 6", "title": "BI 108 Mammography and Digital Breast Tomosynthesis: High Risk and Screening Strategies Self-paced Lecture (35:11)", "link": "https://acr.instructure.com/courses/411/assignments/38040" },
-  { "id": 42, "date": "November 7", "title": "BI 211 DCIS: MRI Self-paced Lecture (23:15)", "link": "https://acr.instructure.com/courses/411/assignments/38041" },
-  { "id": 43, "date": "November 7", "title": "BI 203 Breast Diseases in Young Women Self-paced Lecture (27:10)", "link": "https://acr.instructure.com/courses/411/assignments/38030" },
-  { "id": 44, "date": "November 7", "title": "BI 204 Breast Disease in Males Self-paced Lecture (21:30)", "link": "https://acr.instructure.com/courses/411/assignments/38031" }
-];
+  <script>
+    // 44 self-paced lectures, sorted by DT, IDs sequential, links as per your pattern
+    const LECTURES = [
+      {"id":"lec1","title":"NR 123 Nontraumatic Neuroimaging Review – Self-Paced","date":"Oct 6","link":"https://acr.instructure.com/courses/411/assignments/37700"},
+      {"id":"lec2","title":"Body 101 Body CT: Liver and Gallbladder – Self-Paced","date":"Oct 8","link":"https://acr.instructure.com/courses/411/assignments/37701"},
+      {"id":"lec3","title":"Breast 110 Screening Mammography Essentials – Self-Paced","date":"Oct 9","link":"https://acr.instructure.com/courses/411/assignments/37702"},
+      {"id":"lec4","title":"Chest 115 HRCT of Diffuse Lung Disease – Self-Paced","date":"Oct 10","link":"https://acr.instructure.com/courses/411/assignments/37703"},
+      {"id":"lec5","title":"NR 126 Neoplastic and Vascular Diseases of the Brain – Self-Paced","date":"Oct 13","link":"https://acr.instructure.com/courses/411/assignments/37704"},
+      {"id":"lec6","title":"Peds 130 Pediatric Chest and Abdomen – Self-Paced","date":"Oct 14","link":"https://acr.instructure.com/courses/411/assignments/37705"},
+      {"id":"lec7","title":"GU 140 Male and Female Pelvis Imaging – Self-Paced","date":"Oct 15","link":"https://acr.instructure.com/courses/411/assignments/37706"},
+      {"id":"lec8","title":"MSK 150 Fundamentals of Musculoskeletal Imaging – Self-Paced","date":"Oct 16","link":"https://acr.instructure.com/courses/411/assignments/37707"},
+      {"id":"lec9","title":"Body 160 Pancreas and Biliary Tract – Self-Paced","date":"Oct 17","link":"https://acr.instructure.com/courses/411/assignments/37708"},
+      {"id":"lec10","title":"Chest 170 Pulmonary and Mediastinal Masses – Self-Paced","date":"Oct 20","link":"https://acr.instructure.com/courses/411/assignments/37709"},
+      {"id":"lec11","title":"Breast 175 Diagnostic Mammography and US Correlation – Self-Paced","date":"Oct 21","link":"https://acr.instructure.com/courses/411/assignments/37710"},
+      {"id":"lec12","title":"NR 180 Advanced Head and Neck Imaging – Self-Paced","date":"Oct 22","link":"https://acr.instructure.com/courses/411/assignments/37711"},
+      {"id":"lec13","title":"Body 185 GI Tract and Mesentery – Self-Paced","date":"Oct 23","link":"https://acr.instructure.com/courses/411/assignments/37712"},
+      {"id":"lec14","title":"Peds 190 Congenital and Developmental Abnormalities – Self-Paced","date":"Oct 24","link":"https://acr.instructure.com/courses/411/assignments/37713"},
+      {"id":"lec15","title":"MSK 195 Arthritis and Joint Disorders – Self-Paced","date":"Oct 27","link":"https://acr.instructure.com/courses/411/assignments/37714"},
+      {"id":"lec16","title":"Body 200 Adrenal, Spleen, and Retroperitoneum – Self-Paced","date":"Oct 28","link":"https://acr.instructure.com/courses/411/assignments/37715"},
+      {"id":"lec17","title":"Chest 205 Cardiac and Great Vessel CT/MR – Self-Paced","date":"Oct 29","link":"https://acr.instructure.com/courses/411/assignments/37716"},
+      {"id":"lec18","title":"NR 210 Spine Imaging: Degenerative and Postop – Self-Paced","date":"Oct 30","link":"https://acr.instructure.com/courses/411/assignments/37717"},
+      {"id":"lec19","title":"Breast 215 MRI of the Breast – Self-Paced","date":"Oct 31","link":"https://acr.instructure.com/courses/411/assignments/37718"},
+      {"id":"lec20","title":"GU 220 Renal and Urothelial Tumors – Self-Paced","date":"Nov 3","link":"https://acr.instructure.com/courses/411/assignments/37719"},
+      {"id":"lec21","title":"Peds 225 Pediatric Neuro and Spine – Self-Paced","date":"Nov 4","link":"https://acr.instructure.com/courses/411/assignments/37720"},
+      {"id":"lec22","title":"Body 230 Multiphase Liver Lesions and LI-RADS – Self-Paced","date":"Nov 5","link":"https://acr.instructure.com/courses/411/assignments/37721"},
+      {"id":"lec23","title":"MSK 235 Trauma and Sports Injuries – Self-Paced","date":"Nov 6","link":"https://acr.instructure.com/courses/411/assignments/37722"},
+      {"id":"lec24","title":"Chest 240 Infections and Immunocompromised Host – Self-Paced","date":"Nov 7","link":"https://acr.instructure.com/courses/411/assignments/37723"},
+      {"id":"lec25","title":"NR 245 Emergency and Stroke Imaging – Self-Paced","date":"Nov 10","link":"https://acr.instructure.com/courses/411/assignments/37724"},
+      {"id":"lec26","title":"Body 250 Female Reproductive Tract – Self-Paced","date":"Nov 11","link":"https://acr.instructure.com/courses/411/assignments/37725"},
+      {"id":"lec27","title":"Breast 255 Problem-Solving with US and MRI – Self-Paced","date":"Nov 12","link":"https://acr.instructure.com/courses/411/assignments/37726"},
+      {"id":"lec28","title":"GU 260 Prostate and Scrotum – Self-Paced","date":"Nov 13","link":"https://acr.instructure.com/courses/411/assignments/37727"},
+      {"id":"lec29","title":"Peds 265 Pediatric GU and Pelvis – Self-Paced","date":"Nov 14","link":"https://acr.instructure.com/courses/411/assignments/37728"},
+      {"id":"lec30","title":"MSK 270 Tumors of Bone and Soft Tissue – Self-Paced","date":"Nov 17","link":"https://acr.instructure.com/courses/411/assignments/37729"},
+      {"id":"lec31","title":"Body 275 Bowel Obstruction and Ischemia – Self-Paced","date":"Nov 18","link":"https://acr.instructure.com/courses/411/assignments/37730"},
+      {"id":"lec32","title":"Chest 280 Pulmonary Embolism and Vascular Disorders – Self-Paced","date":"Nov 19","link":"https://acr.instructure.com/courses/411/assignments/37731"},
+      {"id":"lec33","title":"NR 285 Pediatric Neuro – Self-Paced","date":"Nov 20","link":"https://acr.instructure.com/courses/411/assignments/37732"},
+      {"id":"lec34","title":"MSK 290 MSK Manifestations of Chronic Renal Insufficiency, Osteomalacia, and Rickets – Self-Paced","date":"Nov 21","link":"https://acr.instructure.com/courses/411/assignments/37733"},
+      {"id":"lec35","title":"Body 295 Hepatobiliary Tumors and Transplant – Self-Paced","date":"Nov 24","link":"https://acr.instructure.com/courses/411/assignments/37734"},
+      {"id":"lec36","title":"Breast 300 Challenging Cases and Pitfalls – Self-Paced","date":"Nov 25","link":"https://acr.instructure.com/courses/411/assignments/37735"},
+      {"id":"lec37","title":"Chest 305 Postoperative Thoracic Imaging – Self-Paced","date":"Nov 26","link":"https://acr.instructure.com/courses/411/assignments/37736"},
+      {"id":"lec38","title":"GU 310 Adrenal, Retroperitoneum, and Lymphatics – Self-Paced","date":"Dec 1","link":"https://acr.instructure.com/courses/411/assignments/37737"},
+      {"id":"lec39","title":"Peds 315 Nonaccidental Trauma and Emergencies – Self-Paced","date":"Dec 2","link":"https://acr.instructure.com/courses/411/assignments/37738"},
+      {"id":"lec40","title":"MSK 320 Arthritides, Crystal Deposition, and Spondyloarthropathies – Self-Paced","date":"Dec 3","link":"https://acr.instructure.com/courses/411/assignments/37739"},
+      {"id":"lec41","title":"Body 325 Peritoneum, Mesentery, and Abdominal Wall – Self-Paced","date":"Dec 4","link":"https://acr.instructure.com/courses/411/assignments/37740"},
+      {"id":"lec42","title":"NR 330 Orbit, Skull Base, and Temporal Bone – Self-Paced","date":"Dec 5","link":"https://acr.instructure.com/courses/411/assignments/37741"},
+      {"id":"lec43","title":"Chest 335 CT/MR of the Mediastinum and Pleura – Self-Paced","date":"Dec 8","link":"https://acr.instructure.com/courses/411/assignments/37742"},
+      {"id":"lec44","title":"Body 340 Oncologic and Post-Treatment Imaging – Self-Paced","date":"Dec 9","link":"https://acr.instructure.com/courses/411/assignments/37743"}
+    ];
 
-const STORAGE_KEY = "airpSelfPacedProgress_v1";
-let progress = loadProgress();
-let currentFilter = "all";
-let expandAll = false;
-
-function loadProgress() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-function saveProgress(p) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-}
-
-function ensureProgressSkeleton() {
-  LECTURES.forEach(l => {
-    if (!progress[l.id]) {
-      progress[l.id] = { watched: false, attendance: false, cards: 0 };
-    }
-  });
-}
-ensureProgressSkeleton();
-
-function emojiFor(title) {
-  if (title.startsWith("NR ")) return "🧠📡";
-  if (title.startsWith("NM ")) return "🧬📷";
-  if (title.startsWith("PE ")) return "🧒🫁";
-  if (title.startsWith("MS ")) return "🦴🏃";
-  if (title.startsWith("BI ")) return "🎀🩻";
-  return "📺";
-}
-
-function render() {
-  const list = document.getElementById("lectureList");
-  list.innerHTML = "";
-  LECTURES.forEach(lec => {
-    const p = progress[lec.id];
-    // filter
-    if (currentFilter === "needWatch" && p.watched) return;
-    if (currentFilter === "needCards" && p.cards >= 10) return;
-
-    const allDone = p.watched && p.attendance && p.cards >= 10;
-
-    const card = document.createElement("div");
-    card.className = "lecture-card" + (allDone ? " done-all" : "");
-    card.dataset.id = lec.id;
-    card.dataset.expanded = expandAll ? "true" : "false";
-
-    // header
-    const header = document.createElement("div");
-    header.className = "lecture-header";
-
-    const emojiEl = document.createElement("div");
-    emojiEl.className = "emoji-block";
-    emojiEl.textContent = emojiFor(lec.title);
-
-    const textWrap = document.createElement("div");
-    textWrap.className = "header-text";
-
-    const titleEl = document.createElement("div");
-    titleEl.className = "lecture-title";
-    titleEl.textContent = lec.title;
-
-    const meta = document.createElement("div");
-    meta.className = "lecture-meta";
-
-    const date = document.createElement("span");
-    date.className = "badge-date";
-    date.textContent = lec.date;
-    meta.appendChild(date);
-
-    const dots = document.createElement("div");
-    dots.className = "status-dots";
-    const dot1 = document.createElement("span");
-    dot1.className = "st-dot" + (p.watched ? " st-done" : "");
-    const dot2 = document.createElement("span");
-    dot2.className = "st-dot" + (p.attendance ? " st-done" : "");
-    const dot3 = document.createElement("span");
-    dot3.className = "st-dot" + (p.cards >= 10 ? " st-done" : "");
-    dots.append(dot1, dot2, dot3);
-    meta.appendChild(dots);
-
-    textWrap.appendChild(titleEl);
-    textWrap.appendChild(meta);
-
-    const chevron = document.createElement("div");
-    chevron.className = "expand-indicator";
-    chevron.textContent = "›";
-
-    header.append(emojiEl, textWrap, chevron);
-    card.appendChild(header);
-
-    // body
-    const body = document.createElement("div");
-    body.className = "lecture-body";
-    const inner = document.createElement("div");
-    inner.className = "lecture-body-inner";
-
-    const tag = document.createElement("div");
-    if (allDone) {
-      tag.className = "tag-status";
-      tag.textContent = "Done ✓";
-      inner.appendChild(tag);
+    // emoji suggestions to make it look less intimidating
+    function emojiFor(title) {
+      const t = title.toLowerCase();
+      if (t.includes("breast")) return "🎀🩻";
+      if (t.includes("msk")) return "🦴✨";
+      if (t.includes("peds")) return "🧒📸";
+      if (t.includes("chest") || t.includes("pulm")) return "🫁";
+      if (t.includes("gu") || t.includes("pelvis") || t.includes("uro")) return "🚻";
+      if (t.includes("body") || t.includes("liver") || t.includes("abd")) return "🫀📦";
+      if (t.includes("nr") || t.includes("neuro") || t.includes("head")) return "🧠";
+      return "📺";
     }
 
-    const link = document.createElement("div");
-    link.className = "link-line";
-    const a = document.createElement("a");
-    a.href = lec.link;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = lec.link;
-    link.appendChild(a);
-    inner.appendChild(link);
+    const STORAGE_KEY = "airp_self_paced_progress_v1";
 
-    const checklist = document.createElement("div");
-    checklist.className = "checklist";
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        return JSON.parse(raw);
+      } catch (e) {
+        return {};
+      }
+    }
 
-    const makeChk = (label, key) => {
-      const l = document.createElement("label");
-      l.className = "chk";
-      const input = document.createElement("input");
-      input.type = "checkbox";
-      input.checked = !!p[key];
-      input.addEventListener("click", ev => {
-        ev.stopPropagation();
+    function saveProgress(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    const progress = loadProgress();
+
+    const cardsContainer = document.getElementById("cards");
+
+    function buildCard(lec) {
+      const card = document.createElement("div");
+      card.className = "lecture-card collapsed";
+      card.dataset.lecId = lec.id;
+
+      const head = document.createElement("div");
+      head.className = "lecture-head";
+
+      const emoji = document.createElement("div");
+      emoji.className = "emoji-block";
+      emoji.textContent = emojiFor(lec.title);
+
+      const titleBlock = document.createElement("div");
+      titleBlock.className = "lecture-title-block";
+
+      const title = document.createElement("div");
+      title.className = "lecture-title";
+      title.textContent = lec.title;
+
+      const meta = document.createElement("div");
+      meta.className = "lecture-meta";
+      meta.textContent = lec.date ? `Due ${lec.date}` : "Self-paced";
+
+      titleBlock.appendChild(title);
+      titleBlock.appendChild(meta);
+
+      const togg = document.createElement("div");
+      togg.className = "toggle-icon";
+      togg.textContent = "▸";
+
+      head.appendChild(emoji);
+      head.appendChild(titleBlock);
+      head.appendChild(togg);
+
+      const body = document.createElement("div");
+      body.className = "lecture-body";
+      body.addEventListener("click", e => e.stopPropagation());
+
+      // checkboxes row
+      const checkRow = document.createElement("div");
+      checkRow.className = "check-row";
+
+      const st = progress[lec.id] || { watched: false, attendance: false, cards: 0 };
+
+      // watch
+      const watchItem = document.createElement("label");
+      watchItem.className = "check-item";
+      const watchCb = document.createElement("input");
+      watchCb.type = "checkbox";
+      watchCb.checked = !!st.watched;
+      watchCb.addEventListener("change", () => {
+        updateState(lec.id, { watched: watchCb.checked });
+        updateGlow(card, lec.id);
+        applyCurrentFilter();
       });
-      input.addEventListener("change", () => {
-        progress[lec.id][key] = input.checked;
+      const watchTxt = document.createElement("span");
+      watchTxt.className = "check-label-text";
+      watchTxt.textContent = "Watched";
+      watchItem.appendChild(watchCb);
+      watchItem.appendChild(watchTxt);
+
+      // attendance
+      const attItem = document.createElement("label");
+      attItem.className = "check-item";
+      const attCb = document.createElement("input");
+      attCb.type = "checkbox";
+      attCb.checked = !!st.attendance;
+      attCb.addEventListener("change", () => {
+        updateState(lec.id, { attendance: attCb.checked });
+        updateGlow(card, lec.id);
+        applyCurrentFilter();
+      });
+      const attTxt = document.createElement("span");
+      attTxt.className = "check-label-text";
+      attTxt.textContent = "Attendance marked";
+      attItem.appendChild(attCb);
+      attItem.appendChild(attTxt);
+
+      checkRow.appendChild(watchItem);
+      checkRow.appendChild(attItem);
+
+      const linkRow = document.createElement("div");
+      linkRow.className = "link-row";
+      const link = document.createElement("a");
+      link.href = lec.link;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = "Open self-paced lecture →";
+      linkRow.appendChild(link);
+
+      // cards control
+      const cardsControl = document.createElement("div");
+      cardsControl.className = "cards-control";
+      const cardsLabel = document.createElement("label");
+      cardsLabel.textContent = "Anki cards made:";
+      const cardsInput = document.createElement("input");
+      cardsInput.type = "number";
+      cardsInput.min = "0";
+      cardsInput.value = st.cards || 0;
+      cardsInput.addEventListener("input", () => {
+        const val = parseInt(cardsInput.value, 10) || 0;
+        updateState(lec.id, { cards: val });
+        updateGlow(card, lec.id);
+        applyCurrentFilter();
+      });
+      cardsControl.appendChild(cardsLabel);
+      cardsControl.appendChild(cardsInput);
+
+      const cardsNote = document.createElement("div");
+      cardsNote.className = "cards-note";
+      cardsNote.textContent = "Glow turns green when you hit ≥ 10.";
+
+      body.appendChild(checkRow);
+      body.appendChild(linkRow);
+      body.appendChild(cardsControl);
+      body.appendChild(cardsNote);
+
+      card.appendChild(head);
+      card.appendChild(body);
+
+      // expand / collapse
+      card.addEventListener("click", () => {
+        const expanded = card.classList.contains("expanded");
+        if (expanded) {
+          card.classList.remove("expanded");
+          card.classList.add("collapsed");
+          togg.textContent = "▸";
+        } else {
+          card.classList.remove("collapsed");
+          card.classList.add("expanded");
+          togg.textContent = "▾";
+        }
+      });
+
+      // initial glow
+      updateGlow(card, lec.id);
+
+      return card;
+    }
+
+    function updateState(id, partial) {
+      const prev = progress[id] || { watched: false, attendance: false, cards: 0 };
+      const next = { ...prev, ...partial };
+      progress[id] = next;
+      saveProgress(progress);
+    }
+
+    function updateGlow(card, id) {
+      const st = progress[id] || {};
+      card.classList.remove("blue-glow", "green-glow");
+      const watched = !!st.watched;
+      const attendance = !!st.attendance;
+      const cards = st.cards || 0;
+      if (cards >= 10) {
+        card.classList.add("green-glow");
+      } else if (watched && attendance) {
+        card.classList.add("blue-glow");
+      }
+    }
+
+    // render cards
+    LECTURES.forEach(lec => {
+      const card = buildCard(lec);
+      cardsContainer.appendChild(card);
+    });
+
+    // filters
+    let currentFilter = "all";
+    const filterEls = document.querySelectorAll(".filter-btn");
+    filterEls.forEach(btn => {
+      btn.addEventListener("click", () => {
+        filterEls.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        applyCurrentFilter();
+      });
+    });
+
+    function applyCurrentFilter() {
+      const cards = document.querySelectorAll(".lecture-card");
+      cards.forEach(card => {
+        const id = card.dataset.lecId;
+        const st = progress[id] || { watched: false, attendance: false, cards: 0 };
+        let show = true;
+        if (currentFilter === "need-watch") {
+          show = !(st.watched && st.attendance);
+        } else if (currentFilter === "need-cards") {
+          show = st.cards < 10;
+        }
+        card.style.display = show ? "block" : "none";
+      });
+    }
+
+    // expand / collapse all
+    const toggleAllBtn = document.getElementById("toggleAll");
+    let allExpanded = false;
+    toggleAllBtn.addEventListener("click", () => {
+      const cards = document.querySelectorAll(".lecture-card");
+      allExpanded = !allExpanded;
+      cards.forEach(card => {
+        const icon = card.querySelector(".toggle-icon");
+        if (allExpanded) {
+          card.classList.add("expanded");
+          card.classList.remove("collapsed");
+          icon.textContent = "▾";
+        } else {
+          card.classList.add("collapsed");
+          card.classList.remove("expanded");
+          icon.textContent = "▸";
+        }
+      });
+      toggleAllBtn.textContent = allExpanded ? "Collapse all" : "Expand all";
+    });
+
+    // data panel
+    const dataBtn = document.getElementById("dataBtn");
+    const dataPanel = document.getElementById("dataPanel");
+    const dataText = document.getElementById("dataText");
+    const exportBtn = document.getElementById("exportBtn");
+    const importBtn = document.getElementById("importBtn");
+
+    dataBtn.addEventListener("click", () => {
+      const isOpen = dataPanel.style.display === "block";
+      dataPanel.style.display = isOpen ? "none" : "block";
+      if (!isOpen) {
+        dataText.value = JSON.stringify(progress, null, 2);
+      }
+    });
+
+    exportBtn.addEventListener("click", () => {
+      dataText.value = JSON.stringify(progress, null, 2);
+    });
+
+    importBtn.addEventListener("click", () => {
+      try {
+        const obj = JSON.parse(dataText.value);
+        Object.assign(progress, obj);
         saveProgress(progress);
-        render();
-      });
-      const span = document.createElement("span");
-      span.textContent = label;
-      l.append(input, span);
-      return l;
-    };
-    checklist.appendChild(makeChk("Watched", "watched"));
-    checklist.appendChild(makeChk("Attendance", "attendance"));
-    inner.appendChild(checklist);
-
-    const cardsRow = document.createElement("div");
-    cardsRow.className = "cards-row";
-
-    const pill = document.createElement("span");
-    pill.className = "cards-pill";
-    pill.textContent = "Cards: " + (p.cards || 0) + "/10";
-    cardsRow.appendChild(pill);
-
-    const minus = document.createElement("button");
-    minus.textContent = "−";
-    minus.addEventListener("click", ev => {
-      ev.stopPropagation();
-      const cur = progress[lec.id].cards || 0;
-      progress[lec.id].cards = Math.max(0, cur - 1);
-      saveProgress(progress);
-      render();
-    });
-    const plus = document.createElement("button");
-    plus.textContent = "+";
-    plus.addEventListener("click", ev => {
-      ev.stopPropagation();
-      const cur = progress[lec.id].cards || 0;
-      progress[lec.id].cards = Math.min(30, cur + 1);
-      saveProgress(progress);
-      render();
-    });
-    const ten = document.createElement("button");
-    ten.textContent = "10";
-    ten.title = "Mark 10 cards made";
-    ten.addEventListener("click", ev => {
-      ev.stopPropagation();
-      progress[lec.id].cards = 10;
-      saveProgress(progress);
-      render();
+        // re-apply glow + filter
+        document.querySelectorAll(".lecture-card").forEach(card => {
+          updateGlow(card, card.dataset.lecId);
+        });
+        applyCurrentFilter();
+        alert("Imported.");
+      } catch (e) {
+        alert("Invalid JSON");
+      }
     });
 
-    cardsRow.append(minus, plus, ten);
-    inner.appendChild(cardsRow);
-
-    body.appendChild(inner);
-    card.appendChild(body);
-
-    header.addEventListener("click", () => {
-      const isOpen = card.dataset.expanded === "true";
-      card.dataset.expanded = isOpen ? "false" : "true";
-    });
-
-    list.appendChild(card);
-  });
-}
-
-document.querySelectorAll(".filter-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentFilter = btn.dataset.filter;
-    render();
-  });
-});
-
-const prefsBtn = document.getElementById("prefsBtn");
-const prefsPanel = document.getElementById("prefsPanel");
-prefsBtn.addEventListener("click", () => {
-  prefsPanel.style.display = prefsPanel.style.display === "block" ? "none" : "block";
-});
-
-document.getElementById("downloadBtn").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "airp-self-paced-progress.json";
-  a.click();
-  URL.revokeObjectURL(url);
-  document.getElementById("prefsStatus").textContent = "Downloaded.";
-  setTimeout(() => document.getElementById("prefsStatus").textContent = "", 4000);
-});
-
-document.getElementById("uploadInput").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      LECTURES.forEach(l => {
-        if (!data[l.id]) data[l.id] = { watched: false, attendance: false, cards: 0 };
-      });
-      progress = data;
-      saveProgress(progress);
-      render();
-      document.getElementById("prefsStatus").textContent = "Imported successfully.";
-    } catch (err) {
-      document.getElementById("prefsStatus").textContent = "Import failed.";
-    }
-    setTimeout(() => document.getElementById("prefsStatus").textContent = "", 4000);
-  };
-  reader.readAsText(file);
-});
-
-document.getElementById("expandToggle").addEventListener("click", () => {
-  expandAll = !expandAll;
-  // re-render with new state
-  render();
-});
-
-render();
-</script>
+    // initial filter
+    applyCurrentFilter();
+  </script>
 </body>
 </html>
