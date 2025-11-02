@@ -110,8 +110,6 @@ main {
   flex-direction: column;
   gap: 0.7rem;
 }
-
-/* cards */
 .lecture-card {
   background: rgba(13, 18, 28, 0.82);
   border: 1px solid rgba(255,255,255,0.016);
@@ -124,8 +122,6 @@ main {
   border: 1px solid rgba(119,255,196,0.4);
   box-shadow: 0 0 20px rgba(119,255,196,0.12);
 }
-
-/* new glow states */
 .lecture-card.glow-blue {
   border: 1px solid rgba(94, 224, 255, 0.5);
   box-shadow: 0 0 28px rgba(94, 224, 255, 0.26);
@@ -134,7 +130,6 @@ main {
   border: 1px solid rgba(119, 255, 196, 0.8);
   box-shadow: 0 0 30px rgba(119, 255, 196, 0.35);
 }
-
 .lecture-header {
   padding: 0.85rem 0.9rem 0.85rem 0.9rem;
   display: flex;
@@ -217,8 +212,6 @@ main {
 .link-line a:hover {
   text-decoration: underline;
 }
-
-/* bigger modern checkboxes */
 .checklist {
   display: flex;
   gap: 0.6rem;
@@ -443,7 +436,11 @@ function saveProgress(p) {
 function ensureProgressSkeleton() {
   LECTURES.forEach(l => {
     if (!progress[l.id]) {
-      progress[l.id] = { watched: false, attendance: false, cards: 0 };
+      progress[l.id] = { watched: false, attendance: false, cards: 0, expanded: false };
+    } else {
+      if (progress[l.id].expanded === undefined) {
+        progress[l.id].expanded = false;
+      }
     }
   });
 }
@@ -463,7 +460,7 @@ function render() {
   list.innerHTML = "";
   LECTURES.forEach(lec => {
     const p = progress[lec.id];
-    // filter
+
     if (currentFilter === "needWatch" && p.watched) return;
     if (currentFilter === "needCards" && p.cards >= 10) return;
 
@@ -472,16 +469,16 @@ function render() {
     const card = document.createElement("div");
     card.className = "lecture-card" + (allDone ? " done-all" : "");
     card.dataset.id = lec.id;
-    card.dataset.expanded = expandAll ? "true" : "false";
 
-    // blue/green glow logic
+    const isExpanded = expandAll ? true : !!p.expanded;
+    card.dataset.expanded = isExpanded ? "true" : "false";
+
     if (p.cards >= 10) {
       card.classList.add("glow-green");
     } else if (p.watched && p.attendance) {
       card.classList.add("glow-blue");
     }
 
-    // header
     const header = document.createElement("div");
     header.className = "lecture-header";
 
@@ -525,7 +522,6 @@ function render() {
     header.append(emojiEl, textWrap, chevron);
     card.appendChild(header);
 
-    // body
     const body = document.createElement("div");
     body.className = "lecture-body";
     const inner = document.createElement("div");
@@ -562,6 +558,7 @@ function render() {
       });
       input.addEventListener("change", () => {
         progress[lec.id][key] = input.checked;
+        progress[lec.id].expanded = true;
         saveProgress(progress);
         render();
       });
@@ -588,6 +585,7 @@ function render() {
       ev.stopPropagation();
       const cur = progress[lec.id].cards || 0;
       progress[lec.id].cards = Math.max(0, cur - 1);
+      progress[lec.id].expanded = true;
       saveProgress(progress);
       render();
     });
@@ -597,6 +595,7 @@ function render() {
       ev.stopPropagation();
       const cur = progress[lec.id].cards || 0;
       progress[lec.id].cards = Math.min(30, cur + 1);
+      progress[lec.id].expanded = true;
       saveProgress(progress);
       render();
     });
@@ -606,6 +605,7 @@ function render() {
     ten.addEventListener("click", ev => {
       ev.stopPropagation();
       progress[lec.id].cards = 10;
+      progress[lec.id].expanded = true;
       saveProgress(progress);
       render();
     });
@@ -618,7 +618,9 @@ function render() {
 
     header.addEventListener("click", () => {
       const isOpen = card.dataset.expanded === "true";
-      card.dataset.expanded = isOpen ? "false" : "true";
+      progress[lec.id].expanded = !isOpen;
+      saveProgress(progress);
+      render();
     });
 
     list.appendChild(card);
@@ -628,10 +630,16 @@ function render() {
 document.querySelectorAll(".filter-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+    btn.addEventListener
     currentFilter = btn.dataset.filter;
     render();
   });
+});
+document.querySelectorAll(".filter-btn").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".filter-btn").forEach(bb => bb.classList.remove("active"));
+  b.classList.add("active");
+  currentFilter = b.dataset.filter;
+  render();
 });
 
 const prefsBtn = document.getElementById("prefsBtn");
@@ -660,7 +668,8 @@ document.getElementById("uploadInput").addEventListener("change", e => {
     try {
       const data = JSON.parse(reader.result);
       LECTURES.forEach(l => {
-        if (!data[l.id]) data[l.id] = { watched: false, attendance: false, cards: 0 };
+        if (!data[l.id]) data[l.id] = { watched: false, attendance: false, cards: 0, expanded: false };
+        else if (data[l.id].expanded === undefined) data[l.id].expanded = false;
       });
       progress = data;
       saveProgress(progress);
@@ -676,6 +685,13 @@ document.getElementById("uploadInput").addEventListener("change", e => {
 
 document.getElementById("expandToggle").addEventListener("click", () => {
   expandAll = !expandAll;
+  if (expandAll) {
+    LECTURES.forEach(l => {
+      if (!progress[l.id]) progress[l.id] = { watched: false, attendance: false, cards: 0, expanded: true };
+      else progress[l.id].expanded = true;
+    });
+  }
+  saveProgress(progress);
   render();
 });
 
