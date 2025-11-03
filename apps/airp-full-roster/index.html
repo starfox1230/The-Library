@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIRP Lecture Tracker — All Lectures (Fav ⭐ + Complete ✓)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b1017; --bg2:#121927; --panel:rgba(13,18,28,.9);
+      --text:#edf4ff; --muted:#9aa6bc; --accent:#5ee0ff; --accent-soft:rgba(94,224,255,.1);
+      --border:rgba(255,255,255,.06); --fav:#ffd34d; --done:#77ffc4;
+      --radius-lg:1.1rem; --radius-sm:.7rem; --shadow:0 16px 40px rgba(0,0,0,.25)
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 1200px at 5% 0%, rgba(94,224,255,.12), transparent 60%),
+        radial-gradient(900px 900px at 100% 100%, rgba(255,119,200,.08), transparent 60%),
+        #080b10;
+      color:var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+      line-height:1.45;
+    }
+    .app{min-height:100vh;display:flex;flex-direction:column}
+    header{
+      position:sticky;top:0;z-index:10;display:flex;gap:.6rem;align-items:center;
+      background:rgba(9,12,18,.9);backdrop-filter:saturate(1.2) blur(14px);
+      border-bottom:1px solid var(--border);padding:.65rem 1rem
+    }
+    h1{margin:0;font-size:1.05rem;font-weight:650}
+    header small{color:var(--muted);font-size:.7rem}
+    .grow{flex:1}
+    .filters{display:flex;gap:.4rem;flex-wrap:wrap}
+    .chip{background:rgba(255,255,255,.04);border:1px solid transparent;color:var(--muted);
+      padding:.28rem .7rem .34rem;border-radius:999px;font-size:.72rem;cursor:pointer}
+    .chip.active{color:var(--text);background:rgba(94,224,255,.14);border-color:rgba(94,224,255,.28);box-shadow:0 0 16px rgba(94,224,255,.28)}
+    main{max-width:880px;width:100%;margin:0 auto;padding:1rem .8rem 2rem}
+    .list{display:flex;flex-direction:column;gap:.8rem}
+    .card{background:rgba(13,18,28,.82);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 10px 28px rgba(0,0,0,.16);overflow:hidden;transition:box-shadow .14s ease,border-color .14s ease}
+    .card.fav-glow{border-color:rgba(255,211,77,.7);box-shadow:0 0 26px rgba(255,211,77,.28)}
+    .card.done-border{border-color:rgba(119,255,196,.35)}
+    .card-header{display:flex;gap:.7rem;align-items:center;padding:.85rem 1rem;cursor:pointer}
+    .idx{min-width:2rem;height:2rem;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.05);
+      display:grid;place-items:center;font:700 .9rem/1 ui-sans-serif;color:var(--muted)}
+    .star{font-size:1.25rem;min-width:2rem;height:2rem;display:grid;place-items:center;border-radius:999px;border:1px solid var(--border);
+      background:rgba(255,255,255,.04);cursor:pointer;transition:.12s ease}
+    .star.fav{color:#1a1200;background:var(--fav);border-color:rgba(255,211,77,.6);box-shadow:0 0 18px rgba(255,211,77,.3)}
+    .emoji{font-size:1.6rem;min-width:2.2rem;text-align:center;line-height:1}
+    .meta-wrap{flex:1;min-width:0}
+    .title{font-size:1rem;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .meta{display:flex;gap:.4rem;align-items:center;margin-top:.22rem;flex-wrap:wrap}
+    .badge{font-size:.65rem;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:.16rem .55rem .22rem;background:rgba(255,255,255,.03)}
+    .badge.type{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.06)}
+    .complete-toggle{display:flex;align-items:center;gap:.45rem;font-size:.82rem;background:rgba(255,255,255,.04);
+      border:1px solid var(--border);padding:.35rem .6rem .4rem;border-radius:.6rem;cursor:pointer}
+    .complete-toggle input{width:1.05rem;height:1.05rem;margin:0;accent-color:var(--done);cursor:pointer}
+    .chev{font-size:1.2rem;color:rgba(237,244,255,.65);transition:transform .12s ease}
+    .card[data-open="true"] .chev{transform:rotate(90deg)}
+    .body{max-height:0;overflow:hidden;transition:max-height .18s ease;background:rgba(4,5,7,.16)}
+    .card[data-open="true"] .body{max-height:420px}
+    .inner{padding:.7rem 1rem 1rem;display:flex;flex-direction:column;gap:.6rem;font-size:.86rem}
+    .link a{color:var(--accent);text-decoration:none;word-break:break-all}
+    .link a:hover{text-decoration:underline}
+    .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:3rem 1rem;border:1px dashed var(--border);
+      border-radius:var(--radius-lg);background:rgba(255,255,255,.03)}
+    @media (max-width:520px){
+      .card-header{gap:.55rem}.emoji{min-width:1.8rem;font-size:1.45rem}.title{font-size:.95rem}.complete-toggle{font-size:.78rem}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="grow">
+        <h1>AIRP Lecture Tracker — All Lectures</h1>
+        <small>Paste your <code>const LECTURES = [ ... ];</code> into the first script tag below.</small>
+      </div>
+      <div class="filters" id="filters">
+        <button class="chip" data-view="all">All (0)</button>
+        <button class="chip" data-view="todo">Not complete (0)</button>
+        <button class="chip" data-view="done">Complete (0)</button>
+        <button class="chip" data-view="fav">Favorites (0)</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="list" class="list"></div>
+    </main>
+  </div>
+
+  <!-- === PASTE YOUR DATA HERE ========================================= -->
+  <script id="lectures-data">
+const LECTURES = [
+  { "id": 1, "date": "October 6, 2025", "title": "Course Policies", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/32075" },
+  { "id": 2, "date": "October 13, 2025", "title": "Case Submission", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/32074" },
+  { "id": 3, "date": "October 13, 2025", "title": "First Day Briefing: Course Expectations and Discussion", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16660" },
+  { "id": 4, "date": "October 13, 2025", "title": "Introductory Session (Coffee Chat)", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16661" },
+  { "id": 5, "date": "October 13, 2025", "title": "NR 118 Intraventricular Masses Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37693" },
+  { "id": 6, "date": "October 13, 2025", "title": "NR 119 Vascular Malformations Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37695" },
+  { "id": 7, "date": "October 13, 2025", "title": "LUNCH BREAK", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16662" },
+  { "id": 8, "date": "October 13, 2025", "title": "NR 113 Intra-axial Masses: Gliomas and Tumor Markers Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37685" },
+  { "id": 9, "date": "October 13, 2025", "title": "NR 115 Neoplasms of the Meninges Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37689" },
+  { "id": 10, "date": "October 13, 2025", "title": "NR 114 \"Pinealomas\" and Other Pineal Region Masses Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37686" },
+  { "id": 11, "date": "October 13, 2025", "title": "NR 116 Cystic Lesions of the CNS Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37691" },
+  { "id": 12, "date": "October 14, 2025", "title": "NR 123 Stroke: Central Nervous System Ischemia Self-paced Lecture (44:32)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37700" },
+  { "id": 13, "date": "October 14, 2025", "title": "NR 112 Orbit Self-paced Lecture (46:54)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37683" },
+  { "id": 14, "date": "October 14, 2025", "title": "NR 110 Skull Base and Sinonasal Anatomy and Inflammatory Disease Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37682" },
+  { "id": 15, "date": "October 14, 2025", "title": "NR 105 Suprahyoid Neck I: Masticator\, Parotid\, and Parapharyngeal Spaces Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37672" },
+  { "id": 16, "date": "October 14, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16663" },
+  { "id": 17, "date": "October 14, 2025", "title": "NR 109 Infrahyoid Neck and Visceral Space: Thyroid\, Parathyroid\, Hypopharynx\, and Larynx Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37680" },
+  { "id": 18, "date": "October 14, 2025", "title": "NR 106 Suprahyoid Neck II: Pharyngeal Mucosal\, Retropharyngeal\, and Danger Spaces Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37674" },
+  { "id": 19, "date": "October 14, 2025", "title": "NR 108 Cervical Lymph Nodes\, and Non-Nodal Neck Masses Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37678" },
+  { "id": 20, "date": "October 14, 2025", "title": "NR 107 Suprahyoid Neck III: Oral Cavity and Submandibular Space Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37676" },
+  { "id": 21, "date": "October 15, 2025", "title": "NM 203 Introduction to Theranostics Self-Paced Lecture (33:26)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37719" },
+  { "id": 22, "date": "October 15, 2025", "title": "NR 125 Degenerative and Inflammatory Diseases of the Spine Self-paced Lecture (42:01)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37701" },
+  { "id": 23, "date": "October 15, 2025", "title": "NR 126 Neoplastic and Vascular Diseases of the Spine Self-paced Lecture (41:57)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37702" },
+  { "id": 24, "date": "October 15, 2025", "title": "NR 127 Malformations of the Pediatric Brain Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37704" },
+  { "id": 25, "date": "October 15, 2025", "title": "NR 128 Malformations of the Pediatric Spine Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37706" },
+  { "id": 26, "date": "October 15, 2025", "title": "LUNCH BREAK", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16664" },
+  { "id": 27, "date": "October 15, 2025", "title": "NR 121 Advanced Imaging of Gliomas Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37697" },
+  { "id": 28, "date": "October 15, 2025", "title": "NR 122 Multimodality Imaging of Dementia and Cognitive Decline Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37698" },
+  { "id": 29, "date": "October 15, 2025", "title": "NR 206 - Dental Diseases Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37714" },
+  { "id": 30, "date": "October 15, 2025", "title": "RLI - Beyond the Reading Room", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/32246" },
+  { "id": 31, "date": "October 16, 2025", "title": "NR 203 Craniofacial Trauma Self-paced Lecture (41:54)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37711" },
+  { "id": 32, "date": "October 16, 2025", "title": "NR 204 Temporal Bone Self-paced Lecture (55:44)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37712" },
+  { "id": 33, "date": "October 16, 2025", "title": "NR 201 Central Nervous System Infections Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37708" },
+  { "id": 34, "date": "October 16, 2025", "title": "NR 202 Central Nervous System Lymphoma Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37710" },
+  { "id": 35, "date": "October 16, 2025", "title": "CER - Defining the Pediatric Radiology Workforce in a National Private Payor Dataset According to Work Relative Value Unit (wRVUs) Workload", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16665" },
+  { "id": 36, "date": "October 16, 2025", "title": "CV 108-Spectrum of Thoracic Aortic Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37726" },
+  { "id": 37, "date": "October 16, 2025", "title": "CV-CR 210 Case Review: Challenging Aortic Cases Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37737" },
+  { "id": 38, "date": "October 16, 2025", "title": "CV 102-Ischemic Cardiomyopathies Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37721" },
+  { "id": 39, "date": "October 16, 2025", "title": "CV 112-Coronary Artery Anatomy and Anomalies Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37729" },
+  { "id": 40, "date": "October 16, 2025", "title": "CV 103-Non-Ischemic Cardiomyopathies Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37781" },
+  { "id": 41, "date": "October 16, 2025", "title": "CV 214-Spectrum of Coronary Artery Aneurysms Self-paced Lecture (35:52)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37733" },
+  { "id": 42, "date": "October 17, 2025", "title": "CV 106 The Great Pretenders: Unusual Thoracic Lesions Self-paced Lecture", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37724" },
+  { "id": 43, "date": "October 17, 2025", "title": "CV 211-Cardiac Valvular Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37732" },
+  { "id": 44, "date": "October 17, 2025", "title": "TH-CR 123 - Case Review: Cystic Lung Disease Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37774" },
+  { "id": 45, "date": "October 17, 2025", "title": "TH-CR 003 - Case Review: Connective-Tissue Disease and ILD Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37783" },
+  { "id": 46, "date": "October 17, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16666" },
+  { "id": 47, "date": "October 17, 2025", "title": "TH 204 The Large Airways Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37759" },
+  { "id": 48, "date": "October 17, 2025", "title": "CV-CR 201-Case Review: Cardiac Masses Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37785" },
+  { "id": 49, "date": "October 17, 2025", "title": "CV 207 - Pericardial Disease: Making the Critical Observations Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37787" },
+  { "id": 50, "date": "October 17, 2025", "title": "CV-CR 204 - Case Review: Challenging Cardiac Cases Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37789" },
+  { "id": 51, "date": "October 20, 2025", "title": "CV 109-Thoracic Vasculitis: Imaging Clues and Collaborative Diagnosis Self-paced Lecture", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37727" },
+  { "id": 52, "date": "October 20, 2025", "title": "TH 219 Approach to Mediastinal Evaluation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37764" },
+  { "id": 53, "date": "October 20, 2025", "title": "TH 220a Mediastinal Masses: Radiologic Pathologic Correlation (Part 1) Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37766" },
+  { "id": 54, "date": "October 20, 2025", "title": "TH 220b Mediastinal Masses: Radiologic Pathologic Correlation (Part 2) Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37768" },
+  { "id": 55, "date": "October 20, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16667" },
+  { "id": 56, "date": "October 20, 2025", "title": "TH 120-Uncommon Malignant Lung Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37752" },
+  { "id": 57, "date": "October 20, 2025", "title": "TH 121-Benign Forms of Pulmonary Neoplasia Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37754" },
+  { "id": 58, "date": "October 20, 2025", "title": "TH 102-Pulmonary Fibrosis: How Pathology Informs Imaging Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37742" },
+  { "id": 59, "date": "October 20, 2025", "title": "TH-CR 002 - Case Review: Interstitial Lung Diseases Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37792" },
+  { "id": 60, "date": "October 20, 2025", "title": "TH 004 - Nodules and the Secondary Pulmonary Nodule: Location! Location! Location! Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37794" },
+  { "id": 61, "date": "October 21, 2025", "title": "TH-PPR 208-Assessment Adult Congenital Lung Disease Case Reviews Pre-presentation Review (PPR)⏰", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/37780" },
+  { "id": 62, "date": "October 21, 2025", "title": "CV 105 Nuclear and Molecular Cardiovascular Imaging Self-paced Lecture (45:32)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37723" },
+  { "id": 63, "date": "October 21, 2025", "title": "TH 101-Smoking-related Lung Injury Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37740" },
+  { "id": 64, "date": "October 21, 2025", "title": "TH 107-The Pneumoconioses Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37744" },
+  { "id": 65, "date": "October 21, 2025", "title": "TH 109-Pulmonary Hypertension Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37746" },
+  { "id": 66, "date": "October 21, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16668" },
+  { "id": 67, "date": "October 21, 2025", "title": "TH-CR 206 - Case Review: Challenging Chest Cases Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37776" },
+  { "id": 68, "date": "October 21, 2025", "title": "TH 112-The Pleura Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37750" },
+  { "id": 69, "date": "October 21, 2025", "title": "TH 111-The Chest Wall Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37748" },
+  { "id": 70, "date": "October 21, 2025", "title": "TH 007 - Pulmonary Infections: Recognizing Patterns & Pathophysiology Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38171" },
+  { "id": 71, "date": "October 21, 2025", "title": "TH-CR 208-Case Review: Adult Congenital Lung Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37778" },
+  { "id": 72, "date": "October 22, 2025", "title": "TH 205-Thoracic Metastatic Disease Self-paced Lecture (45:58)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37760" },
+  { "id": 73, "date": "October 22, 2025", "title": "TH 203-The Many Faces of Bronchiectasis Self-paced Lecture (46:12)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37757" },
+  { "id": 74, "date": "October 22, 2025", "title": "TH 216-RadPath Spectrum of Lung Cancer Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37796" },
+  { "id": 75, "date": "October 22, 2025", "title": "TH 217-Primary Pulmonary Lymphoproliferative Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37798" },
+  { "id": 76, "date": "October 22, 2025", "title": "TH-CR 219-Challenging Chest Cases\, Case Review Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37800" },
+  { "id": 77, "date": "October 22, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16669" },
+  { "id": 78, "date": "October 22, 2025", "title": "PD 107-Vascular Rings and Slings Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37817" },
+  { "id": 79, "date": "October 22, 2025", "title": "PD 118-Pediatric Pulmonary Lesions Live Lecture and Recording 💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37834" },
+  { "id": 80, "date": "October 22, 2025", "title": "PD 117-Neonatal Brain (Head Ultrasound) Live Lecture and Recording 💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37832" },
+  { "id": 81, "date": "October 22, 2025", "title": "PD-CR 112 Skeletal Dysplasia Case Review Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37845" },
+  { "id": 82, "date": "October 22, 2025", "title": "PD 101 Congenital Anomalies of the Kidney and Urinary Tract Self-paced Lecture (33:51)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37809" },
+  { "id": 83, "date": "October 23, 2025", "title": "PD 111 - Pediatric Pelvic Masses Self-paced Lecture (47:34)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37824" },
+  { "id": 84, "date": "October 23, 2025", "title": "PD 122 Brain and Spine Imaging for Head Trauma Self-paced Lecture (34:21)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37840" },
+  { "id": 85, "date": "October 23, 2025", "title": "PD-CR 103 - Pediatric Hip\, Case Review Self-paced Lecture (22:16)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37843" },
+  { "id": 86, "date": "October 23, 2025", "title": "PD 102 - Pediatric Airway and Neck Self-paced Lecture (35:05)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37810" },
+  { "id": 87, "date": "October 23, 2025", "title": "PD 105-Neonatal GI Obstruction Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37813" },
+  { "id": 88, "date": "October 23, 2025", "title": "PD 106-Acute GI Emergencies Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37815" },
+  { "id": 89, "date": "October 23, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16670" },
+  { "id": 90, "date": "October 23, 2025", "title": "PD-CR 123-Vascular Malformations Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37847" },
+  { "id": 91, "date": "October 23, 2025", "title": "PD 113-Renal Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37826" },
+  { "id": 92, "date": "October 23, 2025", "title": "PD 108-Hepatobiliary Tumor Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37819" },
+  { "id": 93, "date": "October 23, 2025", "title": "PD 109- Cystic Renal Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37821" },
+  { "id": 94, "date": "October 23, 2025", "title": "PD 104 Radiology of Child Abuse Self-paced Lecture (48:36)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37811" },
+  { "id": 95, "date": "October 23, 2025", "title": "PD 110 - Fetal Head to Toe Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37823" },
+  { "id": 96, "date": "October 24, 2025", "title": "PD 119-Congenital Heart Disease 1: Segmental Approach Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37836" },
+  { "id": 97, "date": "October 24, 2025", "title": "PD 120 Congenital Heart Disease Part 2\, Chest Radiography with MR an CT Correlation Live Lecture and Recording💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37838" },
+  { "id": 98, "date": "October 24, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16671" },
+  { "id": 99, "date": "October 24, 2025", "title": "PD 214 - Adrenal Masses Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37842" },
+  { "id": 100, "date": "October 24, 2025", "title": "PD 116-Lung Disease in Neonates Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37830" },
+  { "id": 101, "date": "October 24, 2025", "title": "PD 115-Congenital Lung Malformations Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37828" },
+  { "id": 102, "date": "October 24, 2025", "title": "PD 121 Congenital Heart Disease Part 3: Chest Radiography with MR and CT Correlation Self-paced Lecture (1:02:19)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37839" },
+  { "id": 103, "date": "October 27, 2025", "title": "GU 229 - Introduction: Key Rad-Path Concepts Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37917" },
+  { "id": 104, "date": "October 27, 2025", "title": "GU 214-Renal Imaging with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37859" },
+  { "id": 105, "date": "October 27, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16672" },
+  { "id": 106, "date": "October 27, 2025", "title": "GU 217-Imaging of the Bladder and Collecting System with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37861" },
+  { "id": 107, "date": "October 27, 2025", "title": "GU 228-Imaging of the Placenta with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37869" },
+  { "id": 108, "date": "October 27, 2025", "title": "GU-CR 203a - Case Review\, RadPix GU Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37872" },
+  { "id": 109, "date": "October 27, 2025", "title": "GU 222 - Prostate MRI Self-paced Lecture (37:15)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/38176" },
+  { "id": 110, "date": "October 28, 2025", "title": "GU 207-Imaging of the Uterus and Cervix with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37855" },
+  { "id": 111, "date": "October 28, 2025", "title": "GU 213-Ovarian Imaging with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37857" },
+  { "id": 112, "date": "October 28, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16673" },
+  { "id": 113, "date": "October 28, 2025", "title": "GU 204 - Imaging of the Penis and Urethra with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37851" },
+  { "id": 114, "date": "October 28, 2025", "title": "GU 205-Imaging of the Vagina and Pelvic Floor with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37853" },
+  { "id": 115, "date": "October 28, 2025", "title": "GU 202-Imaging of the Scrotum and Testes with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37849" },
+  { "id": 116, "date": "October 28, 2025", "title": "GU-CR 203b - Case Review\, RadPix GU Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37874" },
+  { "id": 117, "date": "October 29, 2025", "title": "GI 209 Pancreatitis Self-paced Lecture", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37889" },
+  { "id": 118, "date": "October 29, 2025", "title": "GI 212 The Spleen Self-paced Lecture (48:01)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37894" },
+  { "id": 119, "date": "October 29, 2025", "title": "GI 205 - Imaging of Biliary Disease Self-paced Lecture (44:45)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37882" },
+  { "id": 120, "date": "October 29, 2025", "title": "GI 211- Diffuse Liver Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37893" },
+  { "id": 121, "date": "October 29, 2025", "title": "GI 206 Primary Hepatic Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37884" },
+  { "id": 122, "date": "October 29, 2025", "title": "GI 218 RPC Approach to Hepatic Lesions Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37898" },
+  { "id": 123, "date": "October 29, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16674" },
+  { "id": 124, "date": "October 29, 2025", "title": "GI 207-Benign and Malignant Gall Bladder Disease Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37886" },
+  { "id": 125, "date": "October 29, 2025", "title": "GI 208 - Pancreatic Cystic Lesions Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37888" },
+  { "id": 126, "date": "October 29, 2025", "title": "GI-CR 208 Pancreatic Cystic Lesions\, Case Review Live Lecture (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37906" },
+  { "id": 127, "date": "October 29, 2025", "title": "GI-CR 217 Gallbladder and Biliary Case Review Live Lecture (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37916" },
+  { "id": 128, "date": "October 29, 2025", "title": "GI 210 Solid Pancreatic Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37891" },
+  { "id": 129, "date": "October 29, 2025", "title": "GI-CR 210 - Solid Pancreatic Lesions\, Case Review Live Lecture (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37908" },
+  { "id": 130, "date": "October 29, 2025", "title": "GI-CR 200 - Liver Disease\, Case Review Live Lecture💻 (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37904" },
+  { "id": 131, "date": "October 30, 2025", "title": "GI 201-Peritoneum: Radiology-Pathology: Tumors & Tumor-like Lesions of the Peritoneal Cavity\, Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37919" },
+  { "id": 132, "date": "October 30, 2025", "title": "GI 202-Peritoneum: Radiology-Pathology: Mesenteric Masses & Cystic Lesions of the Lesions of the Peritoneal Cavity Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37921" },
+  { "id": 133, "date": "October 30, 2025", "title": "GI 213 - Esophagus-Inflammatory Conditions Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37896" },
+  { "id": 134, "date": "October 30, 2025", "title": "GI 219 - Esophagus-Neoplasms Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37900" },
+  { "id": 135, "date": "October 30, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16675" },
+  { "id": 136, "date": "October 30, 2025", "title": "GI 221 - Gastric Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37923" },
+  { "id": 137, "date": "October 30, 2025", "title": "GI 222 - Small Bowel Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37925" },
+  { "id": 138, "date": "October 30, 2025", "title": "GI-CR 213 Esophagus\, Case Review Live Lecture (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37910" },
+  { "id": 139, "date": "October 30, 2025", "title": "GI-CR 214 Approach to Tumors of Stomach/Small Bowel\, Case Review Live Lecture (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37912" },
+  { "id": 140, "date": "October 30, 2025", "title": "GI-CR 222 - Peritoneal and Mesenteric Mass\, Case Review (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/37927" },
+  { "id": 141, "date": "October 31, 2025", "title": "GI 104 Imaging of Liver Metastases Self-paced Lecture (38:59)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37875" },
+  { "id": 142, "date": "October 31, 2025", "title": "GU 220-Adrenal Imaging with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37863" },
+  { "id": 143, "date": "October 31, 2025", "title": "GU 221 - Imaging of the Retroperitoneum with Radiologic-Pathologic Correlation Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37865" },
+  { "id": 144, "date": "October 31, 2025", "title": "LUNCH", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16676" },
+  { "id": 145, "date": "October 31, 2025", "title": "GI 204 - Polyps and Masses of Large Intestine Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37881" },
+  { "id": 146, "date": "October 31, 2025", "title": "GI 203 - Anorectal Neoplasms Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37879" },
+  { "id": 147, "date": "October 31, 2025", "title": "GI-CR 216 Colorectal and Anal\, Case Review (Attendance is Optional) Session will NOT be Recorded (US/Canada)", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/37914" },
+  { "id": 148, "date": "October 31, 2025", "title": "NM 202 Non-oncology: Molecular Imaging approach to Non-oncologic Disease Live Lecture and Recording 💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37718" },
+  { "id": 149, "date": "October 31, 2025", "title": "NM 201 - Oncology: Molecular Imaging approach to Oncologic Disease: Pearls and Pitfalls Live Lecture and Recording 💻 📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37716" },
+  { "id": 150, "date": "November 3, 2025", "title": "MS-PPR 104 MSK Case Review 1 Pre-Presentation Review (PPR) ⏰", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/38016" },
+  { "id": 151, "date": "November 3, 2025", "title": "MS 115 Imaging of Ewing Sarcoma and Langerhans Cell Histiocytosis Self-paced Lecture (42:43)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37964" },
+  { "id": 152, "date": "November 3, 2025", "title": "MS 101a Fundamental Concepts of Musculoskeletal Neoplasms: Radiographs Self-paced Lecture (1:15:16)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37929" },
+  { "id": 153, "date": "November 3, 2025", "title": "MS 101b Fundamental Concepts of Musculoskeletal Neoplasms: CT and MRI Self-paced Lecture (1:09:54)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37930" },
+  { "id": 154, "date": "November 3, 2025", "title": "MS 103a-Osteoid Lesion of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37933" },
+  { "id": 155, "date": "November 3, 2025", "title": "MS 103b-Osteoid Lesion of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37935" },
+  { "id": 156, "date": "November 3, 2025", "title": "MS 103c (I)- Osteoid Lesion of Bone Live Lecture Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37936" },
+  { "id": 157, "date": "November 3, 2025", "title": "MS 103c-Osteoid Lesion of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37937" },
+  { "id": 158, "date": "November 3, 2025", "title": "MS-CR 104-MSK\, Case Review 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38005" },
+  { "id": 159, "date": "November 3, 2025", "title": "LUNCH/Office Hour", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16677" },
+  { "id": 160, "date": "November 3, 2025", "title": "MS 202a-MRI of the Rotator Cuff Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37997" },
+  { "id": 161, "date": "November 3, 2025", "title": "MS 202b-MRI of the Rotator Cuff Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37999" },
+  { "id": 162, "date": "November 3, 2025", "title": "MS 105a Chondroid/Cartilaginous Lesions of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37939" },
+  { "id": 163, "date": "November 3, 2025", "title": "MS 105b Chondroid/Cartilaginous Lesions of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37941" },
+  { "id": 164, "date": "November 3, 2025", "title": "MS 105c Chondroid/Cartilaginous Lesions of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37943" },
+  { "id": 165, "date": "November 3, 2025", "title": "MS-UNKCR01 - Unknown Case Review - 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38021" },
+  { "id": 166, "date": "November 3, 2025", "title": "MS 108 Skeletal Metastases\, Myeloma\, and Lymphoma Self-paced Lecture (42:27)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37949" },
+  { "id": 167, "date": "November 4, 2025", "title": "MS-PPR 112 MSK\, Case Review 2\, Pre-Presentation Review (PPR) ⏰", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/38017" },
+  { "id": 168, "date": "November 4, 2025", "title": "MS 102 Osteonecrosis and Femoracetabular Impingement Self-paced Lecture (1:00:58)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37931" },
+  { "id": 169, "date": "November 4, 2025", "title": "MS 109 Musculoskeletal Angiomatous Lesions Self-paced Lecture (1:08:10)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37950" },
+  { "id": 170, "date": "November 4, 2025", "title": "MS 110 MSK Lipomatous Lesions Self-paced Lecture (1:08:53)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37951" },
+  { "id": 171, "date": "November 4, 2025", "title": "MS 111a-Fibrous Lesions of the MSK System\, Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37953" },
+  { "id": 172, "date": "November 4, 2025", "title": "MS 111b (I)- Fibrous Lesions of the MSK System\, Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37954" },
+  { "id": 173, "date": "November 4, 2025", "title": "MS 111b- Fibrous Lesions of the MSK System\, Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37955" },
+  { "id": 174, "date": "November 4, 2025", "title": "MS 111c-Fibrous Lesions of the MSK System\, Part 3 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37957" },
+  { "id": 175, "date": "November 4, 2025", "title": "MS-CR 112-MSK\, Case Review 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38007" },
+  { "id": 176, "date": "November 4, 2025", "title": "LUNCH/Office Hour", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16678" },
+  { "id": 177, "date": "November 4, 2025", "title": "MS 113a (I)-Approach to Inflammatory Arthropathies\, Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37958" },
+  { "id": 178, "date": "November 4, 2025", "title": "MS 113a-Approach to Inflammatory Arthropathies\, Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37959" },
+  { "id": 179, "date": "November 4, 2025", "title": "MS 113b-Approach to Inflammatory Arthropathies\, Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37961" },
+  { "id": 180, "date": "November 4, 2025", "title": "MS 113c-Approach to Inflammatory Arthropathies\, Part 3 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37963" },
+  { "id": 181, "date": "November 4, 2025", "title": "MS 106a Alphabet Soup and Cystic Lesions of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37945" },
+  { "id": 182, "date": "November 4, 2025", "title": "MS 106b Alphabet Soup and Cystic Lesions of Bone Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37947" },
+  { "id": 183, "date": "November 4, 2025", "title": "MS-UNKCR02 - Unknown Case Review - 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38023" },
+  { "id": 184, "date": "November 4, 2025", "title": "MS-UNKCR02 (I) - Unknown Case Review - 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38022" },
+  { "id": 185, "date": "November 5, 2025", "title": "MS-PPR 120 MSK\, Case Review 3 Pre-Presentation Review (PPR) ⏰", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/38018" },
+  { "id": 186, "date": "November 5, 2025", "title": "MS 107 Paget Disease Self-paced Lecture (1:03:04)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37948" },
+  { "id": 187, "date": "November 5, 2025", "title": "MS 116 MSK Manifestations of Chronic Renal Insufficiency\, Osteomalacia\, and Rickets Self-paced Lecture (1:06:05)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37965" },
+  { "id": 188, "date": "November 5, 2025", "title": "MS 117 Crystal Deposition Diseases and Neuropathic Osteoarthropathy Self-paced Lecture (50:11)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37966" },
+  { "id": 189, "date": "November 5, 2025", "title": "MS 201 MRI of Shoulder Instability Self-paced Lecture (36:06)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37995" },
+  { "id": 190, "date": "November 5, 2025", "title": "MS 119a-Juxtaarticular Soft Tissue Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37968" },
+  { "id": 191, "date": "November 5, 2025", "title": "MS 119b-Juxtaarticular Soft Tissue Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37970" },
+  { "id": 192, "date": "November 5, 2025", "title": "MS 119c-Juxtaarticular Soft Tissue Part 3 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37972" },
+  { "id": 193, "date": "November 5, 2025", "title": "MS-CR 120-MSK\, Case Review 3 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38009" },
+  { "id": 194, "date": "November 5, 2025", "title": "LUNCH/Office Hour", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16679" },
+  { "id": 195, "date": "November 5, 2025", "title": "MS 121a-MRI of the Knee Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37974" },
+  { "id": 196, "date": "November 5, 2025", "title": "MS 121b-MRI of the Knee Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37976" },
+  { "id": 197, "date": "November 5, 2025", "title": "MS 121c-MRI of the Knee Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37978" },
+  { "id": 198, "date": "November 5, 2025", "title": "MS 121d-MRI of the Knee Live Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37980" },
+  { "id": 199, "date": "November 5, 2025", "title": "MS 203a-MRI of the Foot and Ankle\, Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38001" },
+  { "id": 200, "date": "November 5, 2025", "title": "MS 203b-MRI of the Foot and Ankle Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38003" },
+  { "id": 201, "date": "November 5, 2025", "title": "MS-UNKCR03 - Unknown Case Review - 3 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38025" },
+  { "id": 202, "date": "November 6, 2025", "title": "MS-PPR 130\, 132\, 133 MSK\, Case Review 4\, 5 & 6 Pre-Presentation Review (PPR)⏰", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/38019" },
+  { "id": 203, "date": "November 6, 2025", "title": "MS 123 MRI of the Elbow Self-paced Lecture (41:52)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37981" },
+  { "id": 204, "date": "November 6, 2025", "title": "MS 124 MRI of the Wrist Self-paced Lecture (58:43)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37982" },
+  { "id": 205, "date": "November 6, 2025", "title": "MS 127 Musculoskeletal Ultrasound with MRI Correlation: Demonstration Self-paced Lecture (22:56)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37983" },
+  { "id": 206, "date": "November 6, 2025", "title": "MS 134 Radiologic Assessment of Joint Replacement and Imaging of Bone Grafts Self-paced Lecture (1:02:03)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/37994" },
+  { "id": 207, "date": "November 6, 2025", "title": "MS 128-Musculoskeletal Ultrasound with MRI Correlation: Upper Extremity Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37985" },
+  { "id": 208, "date": "November 6, 2025", "title": "MS 129-Musculoskeletal Ultrasound with MRI Correlation: Lower Extremity Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37987" },
+  { "id": 209, "date": "November 6, 2025", "title": "MS-CR 130-MSK\, Case Review 4 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38011" },
+  { "id": 210, "date": "November 6, 2025", "title": "LUNCH/Office Hour", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16680" },
+  { "id": 211, "date": "November 6, 2025", "title": "MS 131a-MSK Infection\, Part 1 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37989" },
+  { "id": 212, "date": "November 6, 2025", "title": "MS 131b-MSK Infection\, Part 2 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37991" },
+  { "id": 213, "date": "November 6, 2025", "title": "MS 131c-MSK Infection\, Part 3 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/37993" },
+  { "id": 214, "date": "November 6, 2025", "title": "MS-CR 132-MSK\, Case Review 5 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38013" },
+  { "id": 215, "date": "November 6, 2025", "title": "MS-CR 133-MSK\, Case Review 6 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38015" },
+  { "id": 216, "date": "November 6, 2025", "title": "MS-UNKCR04 - Unknown Case Review - 4 Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38027" },
+  { "id": 217, "date": "November 7, 2025", "title": "BI 210 DCIS: Mammography and Ultrasound Self-paced Lecture (36:11)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/38040" },
+  { "id": 218, "date": "November 7, 2025", "title": "BI 211 DCIS: MRI Self-paced Lecture (23:15)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/38041" },
+  { "id": 219, "date": "November 7, 2025", "title": "BI 203 Breast Diseases in Young Women Self-paced Lecture (27:10)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/38030" },
+  { "id": 220, "date": "November 7, 2025", "title": "BI 204 Breast Disease in Males Self-paced Lecture (21:30)", "type": "self-paced", "link": "https://acr.instructure.com/courses/411/assignments/38031" },
+  { "id": 221, "date": "November 7, 2025", "title": "BI 205-High Risk Lesions Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38033" },
+  { "id": 222, "date": "November 7, 2025", "title": "BI 206-Molecular Subtypes of Invasive Breast Cancer Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38035" },
+  { "id": 223, "date": "November 7, 2025", "title": "BI 207-Invasive Lobular Carcinoma Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38037" },
+  { "id": 224, "date": "November 7, 2025", "title": "LUNCH (Best Case presentation)", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/16681" },
+  { "id": 225, "date": "November 7, 2025", "title": "BI 208-Ductal Carcinoma Subtypes\, Sarcomas\, and Other Rare Tumors Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38039" },
+  { "id": 226, "date": "November 7, 2025", "title": "BI-CR 209-Breast Biopsy\, Case Review Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38043" },
+  { "id": 227, "date": "November 7, 2025", "title": "BI 201 - Mock Tumor Board Live Lecture and Recording 💻📼 (US/Canada)", "type": "live", "link": "https://acr.instructure.com/courses/411/assignments/38029" },
+  { "id": 228, "date": "November 7, 2025", "title": "Final Assessment 1.1", "type": "unknown", "link": "https://acr.instructure.com/courses/411/assignments/31980" }
+];
+window.LECTURES = LECTURES;  // <-- add this line
+  </script>
+  <!-- ================================================================== -->
+
+  <script>
+  (function(){
+    // ---- Keys
+    const PROG_KEY = "airp_allLectures_progress_v2";
+    const VIEW_KEY = "airp_allLectures_view_v2";
+
+    // ---- Raw data from user (must be defined in previous script tag)
+    const RAW = (typeof window.LECTURES !== "undefined" && Array.isArray(window.LECTURES)) ? window.LECTURES : [];
+
+    // ---- Helpers
+    const listEl = document.getElementById("list");
+    const filtersEl = document.getElementById("filters");
+    let currentView = localStorage.getItem(VIEW_KEY) || "all";
+
+    function stableIdFromLink(link){
+      if(!link) return "";
+      const m = String(link).match(/assignments\/(\d+)/);
+      if(m) return m[1];
+      const tail = String(link).match(/(\d+)(?!.*\d)/);
+      return tail ? tail[1] : String(link);
+    }
+    function typeFromTitle(t){
+      if(!t) return "unknown";
+      const s = String(t);
+      if(/self[- ]?paced/i.test(s)) return "self-paced";
+      if(/live/i.test(s) || /recording/i.test(s)) return "live";
+      return "unknown";
+    }
+    function emojiFor(title){
+      if(!title) return "📺";
+      if(/^NR[\s-]/i.test(title)) return "🧠";
+      if(/^NM[\s-]/i.test(title)) return "🧬";
+      if(/^CV[\s-]/i.test(title)) return "🫀";
+      if(/^TH[\s-]/i.test(title)) return "🫁";
+      if(/^GI[\s-]/i.test(title)) return "🍽️";
+      if(/^GU[\s-]/i.test(title)) return "💧";
+      if(/^MS[\s-]/i.test(title)) return "🦴";
+      if(/^PD(\b|-)/i.test(title)) return "🧒";
+      if(/^BI[\s-]/i.test(title)) return "🎀";
+      return "📚";
+    }
+    function loadProgress(){
+      try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); }
+      catch { return {}; }
+    }
+    function saveProgress(p){ localStorage.setItem(PROG_KEY, JSON.stringify(p)); }
+    function setView(v){ currentView=v; localStorage.setItem(VIEW_KEY,v); update(); }
+    function countBy(predicate){
+      return LECTURES.reduce((acc, lec)=>{
+        const p = PROG[lec._key] || {};
+        return acc + (predicate(p) ? 1 : 0);
+      },0);
+    }
+    function updateCounts(){
+      const all = LECTURES.length;
+      const done = countBy(p=>p.complete);
+      const todo = all - done;
+      const fav  = countBy(p=>p.fav);
+      const labels = {
+        all:`All (${all})`, todo:`Not complete (${todo})`, done:`Complete (${done})`, fav:`Favorites (${fav})`
+      };
+      [...filtersEl.querySelectorAll(".chip")].forEach(ch=>{
+        ch.textContent = labels[ch.dataset.view];
+        ch.classList.toggle("active", ch.dataset.view===currentView);
+      });
+    }
+
+    // ---- Normalize & index for stable display numbering
+    const LECTURES = RAW.map((x,i)=>({
+      _displayNum: i+1,                          // fixed numbering by order (1…N)
+      _key: stableIdFromLink(x.link) || String(x.id ?? (i+1)),
+      id: x.id ?? (i+1),
+      date: x.date || "",
+      title: x.title || "",
+      type: (x.type ? String(x.type).toLowerCase() : typeFromTitle(x.title||"")),
+      link: x.link || ""
+    }));
+
+    // ---- Progress (complete/fav/open) keyed by _key (assignment id if present)
+    let PROG = loadProgress();
+    // prune/seed to current data
+    const next = {};
+    for(const lec of LECTURES){
+      next[lec._key] = PROG[lec._key] ? {
+        complete: !!PROG[lec._key].complete,
+        fav:      !!PROG[lec._key].fav,
+        open:     !!PROG[lec._key].open
+      } : { complete:false, fav:false, open:false };
+    }
+    PROG = next; saveProgress(PROG);
+
+    function render(){
+      listEl.innerHTML = "";
+      if(!LECTURES.length){
+        listEl.innerHTML = `<div class="empty">No lectures loaded. Add your <b>const LECTURES = [ … ]</b> block in the first script tag and reload.</div>`;
+        return;
+      }
+      for(const lec of LECTURES){
+        const p = PROG[lec._key] || {complete:false,fav:false,open:false};
+
+        // filter
+        if(currentView==="todo" && p.complete) continue;
+        if(currentView==="done" && !p.complete) continue;
+        if(currentView==="fav"  && !p.fav) continue;
+
+        const card = document.createElement("div");
+        card.className = "card" + (p.complete ? " done-border" : "") + (p.fav ? " fav-glow" : "");
+        card.dataset.key = lec._key;
+        card.dataset.open = p.open ? "true" : "false";
+
+        const header = document.createElement("div");
+        header.className = "card-header";
+
+        const idx = document.createElement("div");
+        idx.className = "idx";
+        idx.textContent = lec._displayNum;
+
+        const star = document.createElement("div");
+        star.className = "star" + (p.fav ? " fav":"");
+        star.textContent = p.fav ? "★" : "☆";
+        star.title = p.fav ? "Unfavorite" : "Favorite";
+        star.addEventListener("click",(e)=>{
+          e.stopPropagation();
+          PROG[lec._key].fav = !PROG[lec._key].fav;
+          saveProgress(PROG);
+          const keepKey = lec._key;
+          update(); // re-render
+          const el = listEl.querySelector(`.card[data-key="${keepKey}"]`);
+          if(el) el.dataset.open = "true";
+        });
+
+        const emoji = document.createElement("div");
+        emoji.className="emoji";
+        emoji.textContent = emojiFor(lec.title);
+
+        const metaWrap = document.createElement("div");
+        metaWrap.className="meta-wrap";
+
+        const title = document.createElement("div");
+        title.className="title";
+        title.textContent = lec.title;
+
+        const meta = document.createElement("div");
+        meta.className="meta";
+        const bdDate = document.createElement("span");
+        bdDate.className="badge";
+        bdDate.textContent = lec.date || "";
+        const bdType = document.createElement("span");
+        bdType.className="badge type";
+        bdType.textContent = lec.type || "unknown";
+        meta.append(bdDate, bdType);
+        metaWrap.append(title, meta);
+
+        const complete = document.createElement("label");
+        complete.className="complete-toggle";
+        complete.title = p.complete ? "Mark as not complete" : "Mark as complete";
+        const chk = document.createElement("input");
+        chk.type="checkbox"; chk.checked = !!p.complete;
+        chk.addEventListener("click", e=>e.stopPropagation());
+        chk.addEventListener("change", ()=>{
+          PROG[lec._key].complete = chk.checked;
+          PROG[lec._key].open = true; // keep open
+          saveProgress(PROG);
+          const keepKey = lec._key;
+          update();
+          const el = listEl.querySelector(`.card[data-key="${keepKey}"]`);
+          if(el) el.dataset.open = "true";
+        });
+        const cLbl = document.createElement("span");
+        cLbl.textContent="Complete";
+        complete.append(chk,cLbl);
+
+        const chev = document.createElement("div");
+        chev.className="chev"; chev.textContent="›";
+
+        header.append(idx, star, emoji, metaWrap, complete, chev);
+        card.appendChild(header);
+
+        const body = document.createElement("div");
+        body.className="body";
+        const inner = document.createElement("div");
+        inner.className="inner";
+
+        const link = document.createElement("div");
+        link.className="link";
+        const a = document.createElement("a");
+        a.href = lec.link; a.target="_blank"; a.rel="noopener noreferrer";
+        a.textContent = lec.link || "No link";
+        link.appendChild(a);
+
+        inner.appendChild(link);
+        body.appendChild(inner);
+        card.appendChild(body);
+
+        header.addEventListener("click", ()=>{
+          const isOpen = card.dataset.open === "true";
+          PROG[lec._key].open = !isOpen;
+          saveProgress(PROG);
+          card.dataset.open = (!isOpen) ? "true" : "false";
+        });
+
+        listEl.appendChild(card);
+      }
+    }
+
+    function update(){
+      updateCounts();
+      render();
+    }
+
+    // ---- Events
+    filtersEl.addEventListener("click",(e)=>{
+      const btn = e.target.closest(".chip"); if(!btn) return;
+      setView(btn.dataset.view);
+    });
+
+    // ---- Init
+    update();
+  })();
+  </script>
+</body>
+</html>
