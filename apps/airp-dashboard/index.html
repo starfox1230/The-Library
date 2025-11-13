@@ -47,7 +47,8 @@ body {
   z-index: 20;
   display: flex;
   gap: 0.6rem;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 .title-block h1 {
   font-size: 1.15rem;
@@ -57,6 +58,53 @@ body {
 .title-block small {
   font-size: 0.65rem;
   color: var(--muted);
+}
+.title-block {
+  flex: 1 1 200px;
+}
+.progress-area {
+  flex: 2 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.2rem 0 0.1rem;
+}
+.progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.62rem;
+  color: var(--muted);
+  gap: 0.75rem;
+}
+.progress-label strong {
+  color: var(--text);
+  font-size: 0.68rem;
+}
+.progress-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(94,224,255,0.4), rgba(94,224,255,0.9));
+  width: 0%;
+  transition: width 0.2s ease-out;
+}
+.progress-fill.alt {
+  background: linear-gradient(90deg, rgba(255,119,200,0.4), rgba(255,119,200,0.95));
 }
 .filters {
   display: flex;
@@ -327,6 +375,9 @@ footer {
   .lecture-title {
     font-size: 0.96rem;
   }
+  .progress-area {
+    flex-basis: 100%;
+  }
   .filters {
     width: 100%;
     flex-wrap: wrap;
@@ -341,6 +392,26 @@ footer {
     <div class="title-block">
       <h1>Self-Paced Lecture Dashboard</h1>
       <small>Tap to open → watch → attendance → make ≥10 cards</small>
+    </div>
+    <div class="progress-area">
+      <div class="progress-block">
+        <div class="progress-label">
+          <span>Attendance completion</span>
+          <span id="attendanceSummary">0/0</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="attendanceBar"></div>
+        </div>
+      </div>
+      <div class="progress-block">
+        <div class="progress-label">
+          <span>Need <strong id="dailyNeedNumber">--</strong> videos/day (finish by Nov 20, 2025)</span>
+          <span id="dailySummary">0 today</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill alt" id="dailyBar"></div>
+        </div>
+      </div>
     </div>
     <div class="filters">
       <button class="filter-btn active" data-filter="all">All (44)</button>
@@ -418,9 +489,84 @@ const LECTURES = [
 ];
 
 const STORAGE_KEY = "airpSelfPacedProgress_v1";
+const TARGET_DATE = new Date(2025, 10, 20); // November 20, 2025 (month index 10)
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 let progress = loadProgress();
 let currentFilter = "all";
 let expandAll = false;
+
+function startOfDay(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function todayLocalISO() {
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - tzOffset).toISOString().split("T")[0];
+}
+
+function daysRemainingInclusive() {
+  const today = startOfDay(new Date());
+  const target = startOfDay(TARGET_DATE);
+  const diff = target - today;
+  if (diff < 0) return 0;
+  return Math.floor(diff / MS_PER_DAY) + 1;
+}
+
+function updateProgressIndicators() {
+  const total = LECTURES.length;
+  let attendanceCount = 0;
+  let todayCount = 0;
+  const todayISO = todayLocalISO();
+
+  LECTURES.forEach(lec => {
+    const entry = progress[lec.id];
+    if (entry?.attendance) {
+      attendanceCount += 1;
+      if (entry.attendanceDate === todayISO) {
+        todayCount += 1;
+      }
+    }
+  });
+
+  const attendancePct = total > 0 ? (attendanceCount / total) * 100 : 0;
+  const attendanceSummaryEl = document.getElementById("attendanceSummary");
+  const attendanceBarEl = document.getElementById("attendanceBar");
+  if (attendanceSummaryEl) attendanceSummaryEl.textContent = `${attendanceCount}/${total}`;
+  if (attendanceBarEl) attendanceBarEl.style.width = `${Math.min(100, attendancePct)}%`;
+
+  const daysLeft = daysRemainingInclusive();
+  const remaining = Math.max(0, total - attendanceCount);
+  const perDay = daysLeft > 0 ? remaining / daysLeft : remaining;
+  const needNumberEl = document.getElementById("dailyNeedNumber");
+  if (needNumberEl) {
+    if (daysLeft > 0) {
+      needNumberEl.textContent = perDay.toFixed(perDay >= 1 ? 1 : 2);
+    } else {
+      needNumberEl.textContent = "0";
+    }
+  }
+
+  const dailySummaryEl = document.getElementById("dailySummary");
+  if (dailySummaryEl) {
+    dailySummaryEl.textContent = `${todayCount} today`;
+  }
+
+  const dailyGoal = perDay;
+  const dailyBarEl = document.getElementById("dailyBar");
+  if (dailyBarEl) {
+    if (remaining === 0) {
+      dailyBarEl.style.width = "100%";
+    } else if (dailyGoal <= 0) {
+      dailyBarEl.style.width = "0%";
+    } else {
+      const pct = Math.min(100, (todayCount / dailyGoal) * 100);
+      dailyBarEl.style.width = `${pct}%`;
+    }
+  }
+}
 
 function loadProgress() {
   try {
@@ -436,10 +582,13 @@ function saveProgress(p) {
 function ensureProgressSkeleton() {
   LECTURES.forEach(l => {
     if (!progress[l.id]) {
-      progress[l.id] = { watched: false, attendance: false, cards: 0, expanded: false };
+      progress[l.id] = { watched: false, attendance: false, cards: 0, expanded: false, attendanceDate: null };
     } else {
       if (progress[l.id].expanded === undefined) {
         progress[l.id].expanded = false;
+      }
+      if (progress[l.id].attendanceDate === undefined) {
+        progress[l.id].attendanceDate = null;
       }
     }
   });
@@ -562,6 +711,9 @@ function render() {
       });
       input.addEventListener("change", () => {
         progress[lec.id][key] = input.checked;
+        if (key === "attendance") {
+          progress[lec.id].attendanceDate = input.checked ? todayLocalISO() : null;
+        }
         progress[lec.id].expanded = true;
         saveProgress(progress);
         render();
@@ -629,6 +781,8 @@ function render() {
 
     list.appendChild(card);
   });
+
+  updateProgressIndicators();
 }
 
 document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -674,6 +828,7 @@ document.getElementById("uploadInput").addEventListener("change", e => {
       LECTURES.forEach(l => {
         if (!data[l.id]) data[l.id] = { watched: false, attendance: false, cards: 0, expanded: false };
         else if (data[l.id].expanded === undefined) data[l.id].expanded = false;
+        if (data[l.id].attendanceDate === undefined) data[l.id].attendanceDate = null;
       });
       progress = data;
       saveProgress(progress);
@@ -693,6 +848,7 @@ document.getElementById("expandToggle").addEventListener("click", () => {
     LECTURES.forEach(l => {
       if (!progress[l.id]) progress[l.id] = { watched: false, attendance: false, cards: 0, expanded: true };
       else progress[l.id].expanded = true;
+      if (progress[l.id].attendanceDate === undefined) progress[l.id].attendanceDate = null;
     });
   }
   saveProgress(progress);
