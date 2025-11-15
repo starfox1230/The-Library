@@ -280,6 +280,7 @@ const talks = [
 ];
 
 const transcriptCache = {}; // Cache to hold pre-loaded transcript text
+const talkOrder = new Map(talks.map((talk, index) => [talk.videoId, index]));
 
 // Annotate talks with category buckets
 const FIRST_PRESIDENCY = new Set(["Dallin H. Oaks","Henry B. Eyring","Russell M. Nelson"]);
@@ -494,12 +495,14 @@ function filteredTalks(){
   if(f==='seen'){
     const seenMap = state.seenAt || {};
     filtered.sort((a,b)=>{
-      const av = seenMap[a.videoId] || 0;
-      const bv = seenMap[b.videoId] || 0;
-      if(bv === av){
-        return a.title.localeCompare(b.title);
+      const av = seenMap[a.videoId];
+      const bv = seenMap[b.videoId];
+      const aHasSeq = typeof av === 'number' && av > 0;
+      const bHasSeq = typeof bv === 'number' && bv > 0;
+      if(aHasSeq && bHasSeq && av !== bv){
+        return av - bv; // oldest first so the newest ends up last
       }
-      return bv - av;
+      return (talkOrder.get(a.videoId) || 0) - (talkOrder.get(b.videoId) || 0);
     });
   }
   return filtered;
