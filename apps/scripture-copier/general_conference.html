@@ -303,13 +303,15 @@ talks.forEach(t => { t.category = speakerCategory(t.speaker || ""); });
 // -----------------------------
 const STORAGE_KEY = "gc:oct-2025:state";
 const DEFAULT_STATE = {
-  version: 2,
+  version: 3,
   conferenceId: "oct-2025",
   watched: [], // current round only
   favorites: [],
   notes: {},
   watchCounts: {}, // videoId -> total count (across all rounds)
   round: 1,
+  seenAt: {}, // videoId -> sequence number of most recent view
+  seenSeq: 0,
   ui: {
     filter: 'need',                 // default view: Need
     filterOpen: false,              // filters collapsed by default
@@ -325,7 +327,11 @@ function loadState(){
     // Migrations
     if(!obj.watchCounts) obj.watchCounts = {};
     if(!obj.round) obj.round = 1;
-    if(!obj.version || obj.version < 2) obj.version = 2;
+    if(!obj.seenAt) obj.seenAt = {};
+    if(!obj.seenSeq) obj.seenSeq = 0;
+    if(!obj.version || obj.version < 3){
+      obj.version = 3;
+    }
     // Ensure UI fields exist
     obj.ui = obj.ui || {};
     if(typeof obj.ui.filter !== 'string') obj.ui.filter = 'need';
@@ -355,6 +361,12 @@ const setWatched = (id, val, {incrementCount=false}={}) => {
   }
   if(!val && was){
     state.watched = state.watched.filter(x => x!==id);
+  }
+  if(val){
+    state.seenSeq = (state.seenSeq||0) + 1;
+    state.seenAt[id] = state.seenSeq;
+  } else {
+    if(state.seenAt){ delete state.seenAt[id]; }
   }
   if(state.watched.length === talks.length){
     state.round += 1;
@@ -478,7 +490,19 @@ function filteredTalks(){
   else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
   else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
   else base = talks; // 'all'
-  return applyCategoryFilter(base);
+  const filtered = applyCategoryFilter(base);
+  if(f==='seen'){
+    const seenMap = state.seenAt || {};
+    filtered.sort((a,b)=>{
+      const av = seenMap[a.videoId] || 0;
+      const bv = seenMap[b.videoId] || 0;
+      if(bv === av){
+        return a.title.localeCompare(b.title);
+      }
+      return bv - av;
+    });
+  }
+  return filtered;
 }
 
 function renderList(){
@@ -669,6 +693,8 @@ function restoreFromFile(file){
         state = data;
         if(!state.watchCounts) state.watchCounts = {};
         if(!state.round) state.round = 1;
+        if(!state.seenAt) state.seenAt = {};
+        if(!state.seenSeq) state.seenSeq = 0;
         state.ui = state.ui || {};
         if(typeof state.ui.filter !== 'string') state.ui.filter = 'need';
         if(typeof state.ui.filterOpen !== 'boolean') state.ui.filterOpen = false;
