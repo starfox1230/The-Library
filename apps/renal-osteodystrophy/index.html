@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renal Osteodystrophy: The Complete Loop</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --pipe: #475569;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            
+            /* Colors representing the Chemistry */
+            --c-kidney: #ec4899; /* Pink */
+            --c-bone: #e2e8f0;   /* Bone White */
+            --c-pth: #f59e0b;    /* Amber (Warning) */
+            --c-ca: #3b82f6;     /* Blue */
+            --c-po4: #a855f7;    /* Purple */
+            --c-vitd: #fbbf24;   /* Gold */
+            --c-gut: #22c55e;    /* Green */
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin: 0; text-align: center; }
+        .subtitle { color: var(--muted); margin-bottom: 20px; text-align: center; max-width: 700px; font-size: 0.9rem; }
+
+        /* --- LAYOUT --- */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* --- SIMULATION BOARD --- */
+        .sim-board {
+            position: relative;
+            background: var(--panel);
+            border-radius: 16px;
+            height: 600px;
+            border: 1px solid var(--pipe);
+            overflow: hidden;
+        }
+
+        /* Connection Lines (SVG) */
+        .connections {
+            position: absolute;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        line { stroke: var(--pipe); stroke-width: 3; stroke-dasharray: 5; opacity: 0.5; }
+
+        /* Central Bloodstream */
+        .bloodstream {
+            position: absolute;
+            left: 50%; top: 10%; bottom: 10%;
+            width: 60px;
+            transform: translateX(-50%);
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 2px solid var(--pipe);
+            border-right: 2px solid var(--pipe);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1;
+        }
+        .blood-text { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 4px; color: rgba(255,255,255,0.2); font-weight: 900; }
+
+        /* Organs */
+        .organ {
+            position: absolute;
+            width: 130px;
+            padding: 10px;
+            background: #263345;
+            border: 2px solid var(--muted);
+            border-radius: 12px;
+            text-align: center;
+            z-index: 2;
+            transition: all 0.3s;
+        }
+        .organ-icon { font-size: 2rem; display: block; margin-bottom: 5px; }
+        .organ h3 { margin: 0; font-size: 0.9rem; }
+        .organ p { font-size: 0.7rem; color: var(--muted); margin: 4px 0 0 0; }
+
+        /* Positioning */
+        #org-parathyroid { top: 20px; left: 20px; border-color: var(--c-pth); }
+        #org-gut { top: 20px; right: 20px; border-color: var(--c-gut); }
+        #org-kidney { bottom: 20px; right: 20px; border-color: var(--c-kidney); }
+        #org-bone { bottom: 150px; left: 20px; border-color: var(--c-bone); }
+
+        /* Status Classes */
+        .healthy { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); border-color: #22c55e !important; }
+        .failed { filter: grayscale(100%) opacity(0.6); border-color: #64748b !important; }
+        .active-danger { animation: pulse-red 1s infinite; border-color: var(--c-pth) !important; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(0,0,0,0); } }
+
+        /* --- DASHBOARD --- */
+        .dashboard { display: flex; flex-direction: column; gap: 15px; }
+        
+        .logic-panel {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border-left: 3px solid var(--text);
+        }
+        .logic-row { margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .trend-up { color: var(--danger); }
+        .trend-down { color: var(--c-ca); }
+        .trend-flat { color: var(--muted); }
+
+        .stat-card { background: var(--panel); padding: 12px; border-radius: 8px; }
+        .stat-label { font-size: 0.8rem; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .bar-bg { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+
+        button {
+            padding: 15px; border: none; border-radius: 8px;
+            font-weight: bold; cursor: pointer; font-size: 1rem;
+            background: var(--danger); color: white;
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button.reset { background: var(--pipe); }
+
+        /* --- PARTICLES --- */
+        .particle {
+            position: absolute;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 4px;
+            white-space: nowrap;
+        }
+        .p-vitd { background: var(--c-vitd); color: black; }
+        .p-ca { background: var(--c-ca); color: white; }
+        .p-po4 { background: var(--c-po4); color: white; }
+        .p-pth { background: var(--c-pth); color: black; }
+
+        .cross-out {
+            position: absolute; font-size: 3rem; color: red; font-weight: bold;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            display: none; z-index: 20;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <h1>Renal Osteodystrophy</h1>
+    <p class="subtitle">
+        <strong>The Vitamin D Logic:</strong> 
+        Healthy kidneys activate Vitamin D. Active Vitamin D acts as a "key" that unlocks the Gut to absorb Calcium from food.
+        <br>No Kidney = No Key = No Calcium Absorption.
+    </p>
+
+    <div class="main-grid">
+        
+        <!-- SIMULATION AREA -->
+        <div class="sim-board" id="board">
+            
+            <svg class="connections">
+                <!-- Lines connecting organs to bloodstream -->
+                <line x1="20%" y1="80" x2="50%" y2="80" /> <!-- PTH -> Blood -->
+                <line x1="20%" y1="450" x2="50%" y2="450" /> <!-- Bone -> Blood -->
+                <line x1="80%" y1="80" x2="50%" y2="80" /> <!-- Gut -> Blood -->
+                <line x1="80%" y1="520" x2="50%" y2="520" /> <!-- Kidney -> Blood -->
+                
+                <!-- Special Line: Kidney to Gut (Vit D path) -->
+                <line x1="80%" y1="520" x2="80%" y2="150" style="stroke: var(--c-vitd); stroke-dasharray: 0; opacity: 0.3;" />
+            </svg>
+
+            <div class="bloodstream"><span class="blood-text">CIRCULATION</span></div>
+
+            <!-- 1. GUT -->
+            <div class="organ healthy" id="org-gut">
+                <span class="organ-icon">🌭</span>
+                <h3>Intestine (Gut)</h3>
+                <p>Absorbs Calcium from food</p>
+                <div style="font-size:0.65rem; color:var(--c-vitd); margin-top:4px;">Needs Vit D Key! 🔑</div>
+            </div>
+
+            <!-- 2. KIDNEY -->
+            <div class="organ healthy" id="org-kidney">
+                <div class="cross-out" id="x-kidney">❌</div>
+                <span class="organ-icon">🥔</span>
+                <h3>Kidney</h3>
+                <p>1. Filters Phosphate<br>2. Activates Vit D</p>
+            </div>
+
+            <!-- 3. PARATHYROID -->
+            <div class="organ healthy" id="org-pth">
+                <span class="organ-icon">🦋</span>
+                <h3>Parathyroid</h3>
+                <p>The Sensor</p>
+                <div id="pth-status" style="font-size:0.65rem; margin-top:4px;">Sleeping</div>
+            </div>
+
+            <!-- 4. BONE -->
+            <div class="organ healthy" id="org-bone">
+                <span class="organ-icon">🦴</span>
+                <h3>Bone</h3>
+                <p>Calcium Bank</p>
+                <div id="bone-status" style="font-size:0.65rem; margin-top:4px;">Density: 100%</div>
+            </div>
+
+        </div>
+
+        <!-- CONTROLS & LOGIC -->
+        <div class="dashboard">
+            
+            <div class="logic-panel">
+                <div style="text-align:center; margin-bottom:10px; font-weight:bold; color:#fff;">REAL-TIME LOGIC</div>
+                
+                <!-- Calcium Logic -->
+                <div class="logic-row">
+                    <span>Ca<sup>++</sup> from Gut (Vit D):</span>
+                    <span id="log-gut">+1.0 /sec</span>
+                </div>
+                <div class="logic-row">
+                    <span>Ca<sup>++</sup> lost to PO<sub>4</sub>:</span>
+                    <span id="log-binding">0.0 /sec</span>
+                </div>
+                <div class="logic-row" style="border-top: 1px solid #475569; padding-top:4px;">
+                    <span><strong>NET CALCIUM:</strong></span>
+                    <span id="log-net-ca" style="color:var(--success)">STABLE</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label"><span>Vitamin D (The Key) 🔑</span> <span id="val-vitd">Active</span></div>
+                <div class="bar-bg"><div class="bar-fill" id="bar-vitd" style="width: 100%; background: var(--c-vitd);"></div></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label"><span>Serum Calcium</span> <span id="val-ca">Normal</span></div>
+                <div class="bar-bg"><div class="bar-fill" id="bar-ca" style="width: 60%; background: var(--c-ca);"></div></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label"><span>Serum Phosphate</span> <span id="val-po4">Normal</span></div>
+                <div class="bar-bg"><div class="bar-fill" id="bar-po4" style="width: 30%; background: var(--c-po4);"></div></div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label"><span>PTH (Hormone)</span> <span id="val-pth">Low</span></div>
+                <div class="bar-bg"><div class="bar-fill" id="bar-pth" style="width: 10%; background: var(--c-pth);"></div></div>
+            </div>
+
+            <button id="btn-disease" onclick="startDisease()">⚡ KILL KIDNEY FUNCTION</button>
+            <button class="reset" onclick="resetSim()">🔄 Reset Simulation</button>
+        </div>
+    </div>
+
+    <script>
+        // --- VARIABLES ---
+        let state = {
+            ca: 60,         // Normal: 50-70
+            po4: 30,        // Normal: 20-40
+            pth: 10,        // Normal: 5-15
+            vitD: 100,      // Normal: 100%
+            bone: 100,
+            kidneyAlive: true,
+            tick: 0
+        };
+
+        let interval = null;
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            board: document.getElementById('board'),
+            orgGut: document.getElementById('org-gut'),
+            orgKidney: document.getElementById('org-kidney'),
+            orgPth: document.getElementById('org-pth'),
+            orgBone: document.getElementById('org-bone'),
+            blood: document.querySelector('.bloodstream'),
+            xKidney: document.getElementById('x-kidney'),
+            
+            // UI Bars
+            barVitD: document.getElementById('bar-vitd'),
+            barCa: document.getElementById('bar-ca'),
+            barPo4: document.getElementById('bar-po4'),
+            barPth: document.getElementById('bar-pth'),
+            
+            // Logic Logs
+            logGut: document.getElementById('log-gut'),
+            logBinding: document.getElementById('log-binding'),
+            logNetCa: document.getElementById('log-net-ca')
+        };
+
+        // Start Loop
+        interval = setInterval(gameLoop, 1000);
+
+        // --- MAIN LOGIC LOOP ---
+        function gameLoop() {
+            state.tick++;
+            let netCaChange = 0;
+
+            // 1. KIDNEY & VITAMIN D LOGIC
+            if (state.kidneyAlive) {
+                // Kidney is alive: It makes Vitamin D
+                state.vitD = 100;
+                
+                // Visual: Kidney sends Vit D Key to Gut
+                if (state.tick % 3 === 0) sendParticle(els.orgKidney, els.orgGut, '🔑 Vit D', 'p-vitd');
+                
+                // Kidney filters Phosphate
+                if(state.po4 > 30) state.po4 -= 2;
+            } else {
+                // Kidney dead: No Vit D made
+                state.vitD = 0;
+                // Kidney dead: Phosphate accumulates
+                if(state.po4 < 95) state.po4 += 4; 
+            }
+
+            // 2. GUT ABSORPTION LOGIC (Driven by Vit D)
+            if (state.vitD > 0) {
+                // We have the key! Absorb Calcium.
+                netCaChange += 1;
+                state.ca += 1;
+                els.logGut.innerText = "+1.0 (Absorbing)";
+                els.logGut.style.color = "var(--c-gut)";
+                
+                // Visual: Gut sends Calcium to Blood
+                if (state.tick % 3 === 0) sendParticle(els.orgGut, els.blood, 'Ca++ (Food)', 'p-ca');
+            } else {
+                // No key!
+                els.logGut.innerText = "0.0 (Malabsorption)";
+                els.logGut.style.color = "var(--muted)";
+            }
+
+            // 3. PHOSPHATE BINDING LOGIC
+            let bindingLoss = 0;
+            if (state.po4 > 60) {
+                // High Phosphate binds Calcium like a magnet
+                bindingLoss = 2.5;
+                state.ca -= bindingLoss;
+                netCaChange -= bindingLoss;
+                
+                // Visual: PO4 meeting Ca in blood (implied by stats, showing accumulation)
+                if(state.tick % 2 === 0) sendParticle(els.orgKidney, els.blood, 'PO4 Accumulating', 'p-po4');
+            }
+            els.logBinding.innerText = `-${bindingLoss.toFixed(1)} (Binding)`;
+            els.logBinding.style.color = bindingLoss > 0 ? "var(--danger)" : "var(--muted)";
+
+            // 4. NET CA STATUS
+            if(netCaChange > 0) {
+                els.logNetCa.innerText = "RISING (Healthy)";
+                els.logNetCa.style.color = "var(--success)";
+            } else if (netCaChange < 0) {
+                els.logNetCa.innerText = "FALLING (Hypocalcemia)";
+                els.logNetCa.style.color = "var(--danger)";
+            } else {
+                els.logNetCa.innerText = "STABLE";
+                els.logNetCa.style.color = "var(--muted)";
+            }
+
+            // 5. PARATHYROID RESPONSE (The Fixer)
+            if (state.ca < 45) {
+                state.pth += 5;
+                els.orgPth.classList.add('active-danger');
+                els.orgPth.classList.remove('healthy');
+                document.getElementById('pth-status').innerText = "SECRETING PTH!";
+                
+                // Visual: PTH to Bone
+                sendParticle(els.orgPth, els.orgBone, '⚠️ PTH Command', 'p-pth');
+            } else {
+                if(state.pth > 10) state.pth -= 2;
+                els.orgPth.classList.remove('active-danger');
+                els.orgPth.classList.add('healthy');
+                document.getElementById('pth-status').innerText = "Sleeping";
+            }
+
+            // 6. BONE RESPONSE (The Victim)
+            if (state.pth > 50) {
+                state.bone -= 1;
+                state.ca += 2; // Emergency Calcium release
+                
+                // Visual: Bone releasing Ca
+                sendParticle(els.orgBone, els.blood, 'Ca++ (Resorption)', 'p-ca');
+                document.getElementById('bone-status').innerText = `DENSITY: ${state.bone}%`;
+                
+                if(state.bone < 80) els.orgBone.style.borderStyle = "dashed";
+            }
+
+            // Clamping
+            state.ca = clamp(state.ca, 0, 100);
+            state.po4 = clamp(state.po4, 0, 100);
+            state.pth = clamp(state.pth, 0, 100);
+
+            updateUI();
+        }
+
+        // --- CONTROL FUNCTIONS ---
+        function startDisease() {
+            state.kidneyAlive = false;
+            els.xKidney.style.display = "block";
+            els.orgKidney.classList.remove('healthy');
+            els.orgKidney.classList.add('failed');
+            els.orgGut.classList.remove('healthy'); // Gut loses "healthy" glow because it lacks Vit D
+            
+            document.getElementById('btn-disease').disabled = true;
+        }
+
+        function resetSim() {
+            state = { ca: 60, po4: 30, pth: 10, vitD: 100, bone: 100, kidneyAlive: true, tick: 0 };
+            
+            els.xKidney.style.display = "none";
+            els.orgKidney.className = "organ healthy";
+            els.orgGut.className = "organ healthy";
+            els.orgPth.className = "organ healthy";
+            els.orgBone.style.borderStyle = "solid";
+            
+            document.getElementById('btn-disease').disabled = false;
+            document.querySelectorAll('.particle').forEach(p => p.remove());
+        }
+
+        function updateUI() {
+            setBar(els.barVitD, state.vitD);
+            setBar(els.barCa, state.ca);
+            setBar(els.barPo4, state.po4);
+            setBar(els.barPth, state.pth);
+
+            // Color changes based on values
+            document.getElementById('val-vitd').innerText = state.vitD > 0 ? "ACTIVE" : "ABSENT";
+            document.getElementById('val-vitd').style.color = state.vitD > 0 ? "var(--c-vitd)" : "var(--danger)";
+            
+            document.getElementById('val-ca').innerText = state.ca < 45 ? "LOW" : "Normal";
+            document.getElementById('val-po4').innerText = state.po4 > 60 ? "HIGH" : "Normal";
+        }
+
+        function setBar(el, val) { el.style.width = val + "%"; }
+        function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
+
+        // --- VISUAL ENGINE ---
+        function sendParticle(start, end, text, cls) {
+            const p = document.createElement('div');
+            p.className = `particle ${cls}`;
+            p.innerText = text;
+            els.board.appendChild(p);
+
+            const boardRect = els.board.getBoundingClientRect();
+            const startRect = start.getBoundingClientRect();
+            const endRect = end.getBoundingClientRect();
+
+            const sx = (startRect.left + startRect.width/2) - boardRect.left;
+            const sy = (startRect.top + startRect.height/2) - boardRect.top;
+            const ex = (endRect.left + endRect.width/2) - boardRect.left;
+            const ey = (endRect.top + endRect.height/2) - boardRect.top;
+
+            p.style.left = sx + 'px';
+            p.style.top = sy + 'px';
+
+            const anim = p.animate([
+                { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 },
+                { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.2 },
+                { transform: `translate(${ex-sx}px, ${ey-sy}px)`, opacity: 1, offset: 0.9 },
+                { transform: `translate(${ex-sx}px, ${ey-sy}px) scale(0)`, opacity: 0 }
+            ], { duration: 1800, easing: 'ease-in-out' });
+
+            anim.onfinish = () => p.remove();
+        }
+
+    </script>
+</body>
+</html>
