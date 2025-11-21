@@ -74,18 +74,79 @@ body {
   flex-direction: column;
   gap: 0.25rem;
 }
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   font-size: 0.62rem;
   color: var(--muted);
   gap: 0.75rem;
 }
-.progress-label strong {
-  color: var(--text);
-  font-size: 0.68rem;
-}
+  .progress-label strong {
+    color: var(--text);
+    font-size: 0.68rem;
+  }
+  .search-toggle {
+    margin-left: 0.35rem;
+    background: rgba(94,224,255,0.12);
+    border: 1px solid rgba(94,224,255,0.3);
+    color: var(--text);
+    border-radius: 0.6rem;
+    padding: 0.2rem 0.65rem 0.3rem;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: 0.12s ease-out;
+  }
+  .search-toggle:hover,
+  .search-toggle.active {
+    background: rgba(94,224,255,0.2);
+    box-shadow: 0 0 12px rgba(94,224,255,0.35);
+  }
+  .search-panel {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem;
+    align-items: center;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 0.9rem;
+    padding: 0.5rem 0.55rem;
+    margin-top: 0.2rem;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.18s ease-out, opacity 0.15s ease-out, margin 0.15s ease-out;
+  }
+  .search-panel[data-open="true"] {
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 0.5rem;
+  }
+  .search-panel input {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.6rem;
+    font-size: 0.85rem;
+  }
+  .search-panel input::placeholder {
+    color: var(--muted);
+  }
+  .search-panel button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    border-radius: 0.6rem;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: 0.1s ease-out;
+  }
+  .search-panel button:hover {
+    background: rgba(255,255,255,0.12);
+  }
 .progress-bar {
   position: relative;
   height: 6px;
@@ -106,11 +167,11 @@ body {
 .progress-fill.alt {
   background: linear-gradient(90deg, rgba(255,119,200,0.4), rgba(255,119,200,0.95));
 }
-.filters {
-  display: flex;
-  gap: 0.35rem;
-  margin-left: auto;
-}
+  .filters {
+    display: flex;
+    gap: 0.35rem;
+    margin-left: auto;
+  }
 .filter-btn {
   background: rgba(255,255,255,0.01);
   border: 1px solid transparent;
@@ -406,7 +467,10 @@ footer {
       <div class="progress-block">
         <div class="progress-label">
           <span>Need <strong id="dailyNeedNumber">--</strong> videos/day (finish by Nov 20, 2025)</span>
-          <span id="dailySummary">0 today</span>
+          <span style="display:flex;align-items:center;gap:0.35rem;">
+            <span id="dailySummary">0 today</span>
+            <button class="search-toggle" id="searchToggle">Search</button>
+          </span>
         </div>
         <div class="progress-bar">
           <div class="progress-fill alt" id="dailyBar"></div>
@@ -421,6 +485,10 @@ footer {
     <div class="top-actions">
       <button class="icon-btn" id="expandToggle" title="Expand / collapse all">⇵</button>
       <button class="icon-btn" id="prefsBtn" title="Preferences / Backup">⚙</button>
+    </div>
+    <div class="search-panel" id="searchPanel" data-open="false">
+      <input type="text" id="searchInput" placeholder="Search lectures by title..." />
+      <button id="clearSearch">Clear</button>
     </div>
   </header>
 
@@ -494,6 +562,8 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 let progress = loadProgress();
 let currentFilter = "all";
 let expandAll = false;
+let searchOpen = false;
+let searchTerm = "";
 
 function startOfDay(date) {
   const d = new Date(date);
@@ -611,11 +681,13 @@ function emojiFor(title) {
 function render() {
   const list = document.getElementById("lectureList");
   list.innerHTML = "";
+  const query = searchTerm.trim().toLowerCase();
   LECTURES.forEach(lec => {
     const p = progress[lec.id];
 
     if (currentFilter === "needWatch" && p.watched) return;
     if (currentFilter === "needCards" && p.cards >= 10) return;
+    if (query && !lec.title.toLowerCase().includes(query)) return;
 
     const allDone = p.watched && p.attendance && p.cards >= 10;
 
@@ -783,22 +855,68 @@ function render() {
   });
 
   updateProgressIndicators();
+
+  if (!list.children.length) {
+    const empty = document.createElement("div");
+    empty.style.textAlign = "center";
+    empty.style.color = "var(--muted)";
+    empty.style.padding = "1rem 0";
+    empty.textContent = query ? "No lectures match your search." : "No lectures to show.";
+    list.appendChild(empty);
+  }
 }
 
-document.querySelectorAll(".filter-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.addEventListener
-    currentFilter = btn.dataset.filter;
+  document.querySelectorAll(".filter-btn").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".filter-btn").forEach(bb => bb.classList.remove("active"));
+    b.classList.add("active");
+    currentFilter = b.dataset.filter;
+    render();
+});
+
+const searchToggle = document.getElementById("searchToggle");
+const searchPanel = document.getElementById("searchPanel");
+const searchInput = document.getElementById("searchInput");
+const clearSearch = document.getElementById("clearSearch");
+
+function syncSearchUI() {
+  if (searchPanel) searchPanel.dataset.open = searchOpen || !!searchTerm;
+  if (searchToggle) searchToggle.classList.toggle("active", searchOpen || !!searchTerm);
+}
+
+if (searchToggle) {
+  searchToggle.addEventListener("click", () => {
+    if (searchOpen) {
+      searchOpen = false;
+      searchTerm = "";
+      if (searchInput) searchInput.value = "";
+      render();
+    } else {
+      searchOpen = true;
+      setTimeout(() => searchInput?.focus(), 50);
+    }
+    syncSearchUI();
+  });
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", e => {
+    searchTerm = e.target.value;
+    if (searchTerm && !searchOpen) searchOpen = true;
+    syncSearchUI();
     render();
   });
-});
-document.querySelectorAll(".filter-btn").forEach(b => b.onclick = () => {
-  document.querySelectorAll(".filter-btn").forEach(bb => bb.classList.remove("active"));
-  b.classList.add("active");
-  currentFilter = b.dataset.filter;
-  render();
-});
+}
+
+if (clearSearch) {
+  clearSearch.addEventListener("click", () => {
+    searchTerm = "";
+    if (searchInput) searchInput.value = "";
+    searchOpen = false;
+    syncSearchUI();
+    render();
+    searchInput?.focus();
+  });
+}
 
 const prefsBtn = document.getElementById("prefsBtn");
 const prefsPanel = document.getElementById("prefsPanel");
@@ -855,6 +973,7 @@ document.getElementById("expandToggle").addEventListener("click", () => {
   render();
 });
 
+syncSearchUI();
 render();
 </script>
 </body>
