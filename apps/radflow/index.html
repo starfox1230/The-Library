@@ -25,7 +25,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            user-select: none; /* Prevent text highlighting */
+            user-select: none;
         }
 
         /* --- Header --- */
@@ -49,6 +49,7 @@
             border-radius: 4px;
             font-size: 0.9rem;
             outline: none;
+            cursor: pointer;
         }
 
         /* --- Main Content --- */
@@ -130,7 +131,7 @@
             color: #aaa;
             display: flex;
             align-items: center;
-            padding: 5px;
+            padding: 8px;
             border-radius: 4px;
             background: #1a1a1a;
             border: 1px solid #2a2a2a;
@@ -152,7 +153,7 @@
         .controls-hint {
             display: flex;
             justify-content: center;
-            gap: 40px;
+            gap: 20px;
             margin-top: 20px;
             border-top: 1px solid #222;
             padding-top: 20px;
@@ -162,20 +163,35 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
             color: #555;
             font-size: 0.8rem;
+            cursor: pointer; /* Looks clickable */
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .key-hint:hover {
+            background: #1a1a1a;
+            color: #aaa;
+        }
+
+        .key-hint:active {
+            background: #222;
+            transform: scale(0.96);
         }
 
         .key-box {
             border: 1px solid #444;
             border-radius: 4px;
-            padding: 4px 10px;
+            padding: 6px 14px;
             color: #ccc;
             background: #222;
             font-family: monospace;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            min-width: 40px;
         }
 
         /* States */
@@ -207,15 +223,20 @@
         <div class="checklist" id="checkList"></div>
 
         <div class="controls-hint">
-            <div class="key-hint">
+            <!-- Back Button -->
+            <div class="key-hint" id="btnBack">
                 <div class="key-box">←</div>
                 <span>Back</span>
             </div>
-            <div class="key-hint">
+            
+            <!-- Finding/Stop Button -->
+            <div class="key-hint" id="btnFinding">
                 <div class="key-box">ENTER</div>
                 <span style="color:#ff6b6b">Finding</span>
             </div>
-            <div class="key-hint">
+            
+            <!-- Normal/Next Button -->
+            <div class="key-hint" id="btnNormal">
                 <div class="key-box">SPACE / →</div>
                 <span style="color:#51cf66">Normal</span>
             </div>
@@ -224,10 +245,17 @@
 </div>
 
 <script>
-    // Data Structure based on your "Search Pattern" text and "Attending Reports" content
+    // Standard "First Step" for all protocols
+    const STEP_PRIORS = { 
+        cat: "0. Start", 
+        name: "Indication & Priors", 
+        items: ["Read Clinical Indication", "Review Prior Imaging", "Compare & Triage", "Check Technique/Contrast"] 
+    };
+
     const PROTOCOLS = {
         ct_cap: [
-            { cat: "1. Preliminaries", name: "Scout & History", items: ["Lines/Tubes/Foreign Bodies", "Priors (Oncology/Trauma?)", "Motion/Artifact Check", "Edges of Film"] },
+            STEP_PRIORS,
+            { cat: "1. Preliminaries", name: "Scout & Localizer", items: ["Lines/Tubes/Foreign Bodies", "FOV Edges (Neck/Thighs)", "Motion/Artifact Check", "Gross Pathology on Scout"] },
             
             // CHEST
             { cat: "2. Chest - Airway", name: "Trachea & Bronchi", items: ["Trachea Patent?", "Main Bronchi", "Segmental Bronchi", "Endobronchial Lesions"] },
@@ -243,7 +271,7 @@
             { cat: "3. Abdomen - Viscera", name: "Spleen", items: ["Splenomegaly", "Infarcts", "Focal Lesions", "Accessory Spleen"] },
             { cat: "3. Abdomen - Viscera", name: "Adrenals", items: ["Nodules (Adenoma vs Met)", "Thickening", "Hemorrhage", "Calcification"] },
             
-            // GU GROUPED (User Preference)
+            // GU GROUPED
             { cat: "3. Abdomen - GU", name: "Kidneys & Ureters", items: ["Hydronephrosis", "Stones", "Renal Masses/Cysts", "Perinephric Stranding", "Ureteral Course"] },
             { cat: "3. Abdomen - GU", name: "Bladder", items: ["Distension", "Wall Thickening", "Intraluminal Masses/Stones", "Air in Bladder?"] },
             
@@ -267,6 +295,7 @@
         ],
 
         ct_ap: [
+            STEP_PRIORS,
             { cat: "1. Preliminaries", name: "Scout & Lower Chest", items: ["Lung Bases (Nodules/Infiltrate)", "Heart Size", "Incidental PE Check", "Pleural Effusion"] },
             { cat: "2. Abdomen - Viscera", name: "Liver", items: ["Size/Contour", "Focal Lesions", "Portal Vein Patency", "Fatty Infiltration"] },
             { cat: "2. Abdomen - Viscera", name: "Biliary & GB", items: ["Gallbladder (Stones/Inflammation)", "Biliary Dilation", "CBD Path"] },
@@ -281,7 +310,8 @@
         ],
         
         ct_chest: [
-            { cat: "1. Preliminaries", name: "Scout & Support", items: ["Lines/Tubes", "Pneumothorax on Scout", "Foreign Bodies"] },
+            STEP_PRIORS,
+            { cat: "1. Preliminaries", name: "Scout & Support", items: ["Lines/Tubes", "Pneumothorax on Scout", "Foreign Bodies", "Technical Adequacy"] },
             { cat: "2. Airway", name: "Trachea & Bronchi", items: ["Trachea Patency", "Endobronchial Lesions", "Bronchiectasis", "Wall Thickening"] },
             { cat: "3. Lungs", name: "Lung Parenchyma", items: ["Nodules (MIPs)", "Consolidation", "GGO", "Emphysema/Cysts"] },
             { cat: "4. Pleura", name: "Pleural Space", items: ["Effusion", "Pneumothorax", "Pleural Thickening/Plaques"] },
@@ -292,6 +322,7 @@
         ],
 
         cta_pe: [
+            STEP_PRIORS,
             { cat: "1. QC", name: "Quality Check", items: ["Contrast Timing (HU > 200)", "Motion Artifact", "Streak Artifact"] },
             { cat: "2. Pulmonary Arteries", name: "PA Evaluation", items: ["Main PA", "Lobar Branches", "Segmental/Subsegmental", "Webs/Chronic PE"] },
             { cat: "3. Heart", name: "Right Heart Strain", items: ["RV/LV Ratio > 1", "Septal Bowing", "Contrast Reflux to IVC", "Main PA Diameter"] },
@@ -311,13 +342,17 @@
         checkList: document.getElementById('checkList'),
         progressBar: document.getElementById('progressBar'),
         flash: document.getElementById('flash'),
-        select: document.getElementById('protocolSelect')
+        select: document.getElementById('protocolSelect'),
+        btnBack: document.getElementById('btnBack'),
+        btnFinding: document.getElementById('btnFinding'),
+        btnNormal: document.getElementById('btnNormal')
     };
 
     function init() {
         loadProtocol();
         ui.select.addEventListener('change', loadProtocol);
         
+        // Keyboard Listeners
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.key === 'ArrowRight') {
                 e.preventDefault();
@@ -330,6 +365,11 @@
                 nextStep('finding');
             }
         });
+
+        // Click Listeners for Buttons
+        ui.btnBack.addEventListener('click', () => prevStep());
+        ui.btnFinding.addEventListener('click', () => nextStep('finding'));
+        ui.btnNormal.addEventListener('click', () => nextStep('normal'));
     }
 
     function loadProtocol() {
@@ -341,7 +381,6 @@
     function nextStep(type) {
         if (currentIndex < currentProtocol.length) {
             flashFeedback(type);
-            // Optional: Add a slight delay to the slide to let the flash register
             setTimeout(() => {
                 currentIndex++;
                 render();
