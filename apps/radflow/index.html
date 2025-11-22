@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RadFlow: Call Mode</title>
+    <title>RadFlow: Template Mode</title>
     <style>
         :root {
-            --bg-color: #000000;
-            --card-bg: #121212;
+            --bg-color: #050505;
+            --card-bg: #141414;
+            --sidebar-bg: #1a1a1a;
             --text-main: #e0e0e0;
-            --text-dim: #666;
-            --accent: #3bc9db; /* Cyan */
-            --success: #2f9e44; /* Green */
-            --stop: #e03131; /* Red */
+            --text-dim: #777;
+            --accent: #3bc9db;
+            --success: #2f9e44;
+            --stop: #e03131;
+            --border: #333;
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
@@ -23,37 +25,107 @@
             margin: 0;
             height: 100vh;
             display: flex;
-            flex-direction: column;
             overflow: hidden;
             user-select: none;
         }
 
-        /* --- Header --- */
-        header {
-            padding: 15px 20px;
+        /* --- Sidebar (Reordering) --- */
+        .sidebar {
+            position: fixed;
+            right: -350px;
+            top: 0;
+            width: 350px;
+            height: 100%;
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--border);
+            transition: right 0.3s ease;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .sidebar.open { right: 0; }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #222;
-            background: #080808;
+            background: #222;
         }
 
-        h1 { margin: 0; font-size: 1rem; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }
-        h1 span { color: var(--accent); font-weight: 800; }
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
 
-        select {
+        .draggable-item {
+            background: #2c2c2c;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .draggable-item:active { cursor: grabbing; background: #333; }
+        .draggable-item.dragging { opacity: 0.5; }
+        
+        .drag-handle { margin-right: 10px; color: #666; }
+
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        /* --- Main Layout --- */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            transition: margin-right 0.3s ease;
+        }
+
+        header {
+            height: 60px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: #0a0a0a;
+        }
+
+        .timer-display {
+            font-family: monospace;
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: bold;
+            background: #111;
+            padding: 5px 15px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        select, button {
             background: #222;
             color: white;
-            border: 1px solid #333;
-            padding: 5px 10px;
+            border: 1px solid #444;
+            padding: 6px 12px;
             border-radius: 4px;
-            font-size: 0.9rem;
-            outline: none;
             cursor: pointer;
+            font-size: 0.9rem;
         }
+        button:hover { background: #333; }
 
-        /* --- Main Content --- */
-        .main-container {
+        /* --- Focus Card Area --- */
+        .content-area {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -62,11 +134,10 @@
             position: relative;
         }
 
-        /* Progress Bar */
         .progress-track {
             position: absolute;
             top: 0; left: 0; right: 0;
-            height: 6px;
+            height: 4px;
             background: #1a1a1a;
         }
         .progress-fill {
@@ -74,51 +145,46 @@
             background: var(--accent);
             width: 0%;
             transition: width 0.2s ease-out;
-            box-shadow: 0 0 10px var(--accent);
         }
 
-        /* The Focus Card */
         .focus-card {
-            width: 600px;
+            width: 650px;
             max-width: 90%;
             background: var(--card-bg);
-            border: 1px solid #333;
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 40px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.7);
-            text-align: center;
-            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
             position: relative;
             overflow: hidden;
+            text-align: center;
         }
 
-        /* Flash Overlay for feedback */
         .flash-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: transparent;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s;
         }
 
-        .category-label {
+        .section-label {
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             letter-spacing: 2px;
             color: var(--text-dim);
             margin-bottom: 10px;
         }
 
-        .structure-name {
-            font-size: 3rem;
+        .template-heading {
+            font-size: 2.5rem;
             font-weight: 800;
             margin: 0 0 30px 0;
             line-height: 1.1;
             color: white;
         }
 
-        .checklist {
+        .checklist-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
@@ -127,263 +193,284 @@
         }
 
         .check-item {
-            font-size: 1.1rem;
-            color: #aaa;
+            font-size: 1.05rem;
+            color: #bbb;
             display: flex;
             align-items: center;
-            padding: 8px;
-            border-radius: 4px;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            padding: 8px 12px;
+            background: #1d1d1d;
+            border: 1px solid #333;
+            border-radius: 6px;
         }
-        
         .check-item::before {
-            content: "";
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: var(--accent);
-            border-radius: 50%;
-            margin-right: 12px;
-            margin-left: 8px;
-            box-shadow: 0 0 5px var(--accent);
+            content: "•";
+            color: var(--accent);
+            margin-right: 10px;
+            font-size: 1.5rem;
+            line-height: 0;
         }
 
-        /* Controls Visuals */
-        .controls-hint {
+        /* Controls */
+        .controls-area {
             display: flex;
             justify-content: center;
             gap: 20px;
             margin-top: 20px;
-            border-top: 1px solid #222;
+            border-top: 1px solid var(--border);
             padding-top: 20px;
         }
 
-        .key-hint {
+        .ctrl-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            color: #555;
-            font-size: 0.8rem;
-            cursor: pointer; /* Looks clickable */
+            gap: 5px;
+            color: #666;
+            cursor: pointer;
             padding: 10px 20px;
             border-radius: 8px;
-            transition: background 0.1s, transform 0.1s;
+            transition: 0.1s;
         }
-
-        .key-hint:hover {
-            background: #1a1a1a;
-            color: #aaa;
-        }
-
-        .key-hint:active {
-            background: #222;
-            transform: scale(0.96);
-        }
+        .ctrl-btn:hover { background: #222; color: #aaa; }
+        .ctrl-btn:active { transform: scale(0.95); }
 
         .key-box {
             border: 1px solid #444;
-            border-radius: 4px;
-            padding: 6px 14px;
-            color: #ccc;
             background: #222;
+            padding: 4px 10px;
+            border-radius: 4px;
             font-family: monospace;
+            color: #ddd;
             font-weight: bold;
-            font-size: 1.1rem;
-            min-width: 40px;
-        }
-
-        /* States */
-        .finished-state {
-            color: var(--success);
         }
 
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Rad<span>Flow</span> Call Mode</h1>
-    <select id="protocolSelect">
-        <option value="ct_cap">CT CAP (Pan-Scan)</option>
-        <option value="ct_chest">CT Chest</option>
-        <option value="ct_ap">CT Abd/Pelvis</option>
-        <option value="cta_pe">CTA Chest (PE)</option>
-    </select>
-</header>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h3 style="margin:0">Customize Flow</h3>
+        <button onclick="toggleSidebar()">Close</button>
+    </div>
+    <div class="sidebar-content" id="dragContainer">
+        <!-- Draggable items injected here -->
+    </div>
+    <div class="sidebar-footer">
+        <button onclick="resetOrder()" style="color:#ff6b6b; border-color:#552222;">Reset to Default</button>
+    </div>
+</div>
 
-<div class="main-container">
-    <div class="progress-track"><div class="progress-fill" id="progressBar"></div></div>
+<!-- MAIN APP -->
+<div class="main-wrapper">
+    <header>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <h1 style="margin:0; font-size:1.1rem; color:#888;">Rad<span style="color:var(--accent)">Flow</span></h1>
+            <select id="protocolSelect">
+                <option value="ct_cap">CT CAP (Pan-Scan)</option>
+                <option value="ct_chest">CT Chest</option>
+                <option value="ct_ap">CT Abd/Pelvis</option>
+                <option value="cta_pe">CTA Chest (PE)</option>
+            </select>
+        </div>
+        
+        <div class="timer-display" id="timerDisplay">00:00</div>
 
-    <div class="focus-card" id="card">
-        <div class="flash-overlay" id="flash"></div>
-        <div class="category-label" id="catLabel">Loading...</div>
-        <h2 class="structure-name" id="structName">Loading...</h2>
-        <div class="checklist" id="checkList"></div>
+        <button onclick="toggleSidebar()">Edit Order ☰</button>
+    </header>
 
-        <div class="controls-hint">
-            <!-- Back Button -->
-            <div class="key-hint" id="btnBack">
-                <div class="key-box">←</div>
-                <span>Back</span>
-            </div>
+    <div class="content-area">
+        <div class="progress-track"><div class="progress-fill" id="progressBar"></div></div>
+
+        <div class="focus-card" id="card">
+            <div class="flash-overlay" id="flash"></div>
             
-            <!-- Finding/Stop Button -->
-            <div class="key-hint" id="btnFinding">
-                <div class="key-box">ENTER</div>
-                <span style="color:#ff6b6b">Finding</span>
-            </div>
-            
-            <!-- Normal/Next Button -->
-            <div class="key-hint" id="btnNormal">
-                <div class="key-box">SPACE / →</div>
-                <span style="color:#51cf66">Normal</span>
+            <div class="section-label" id="sectionLabel">Loading...</div>
+            <h2 class="template-heading" id="templateHeading">Loading...</h2>
+            <div class="checklist-grid" id="checkList"></div>
+
+            <div class="controls-area">
+                <div class="ctrl-btn" id="btnBack">
+                    <div class="key-box">←</div>
+                    <span>Back</span>
+                </div>
+                <div class="ctrl-btn" id="btnFind">
+                    <div class="key-box">ENTER</div>
+                    <span style="color:#ff6b6b">Finding</span>
+                </div>
+                <div class="ctrl-btn" id="btnNext">
+                    <div class="key-box">SPACE</div>
+                    <span style="color:var(--success)">Normal</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Standard "First Step" for all protocols
-    const STEP_PRIORS = { 
-        cat: "0. Start", 
-        name: "Indication & Priors", 
-        items: ["Read Clinical Indication", "Review Prior Imaging", "Compare & Triage", "Check Technique/Contrast"] 
+    // --- DATABASE: Sections & Checklist Items ---
+    // These items are derived from the "Search Pattern" text but organized into "Template" buckets.
+    
+    const SECTIONS = {
+        // PRELIMINARIES
+        "ind_prior": { name: "Indication & Priors", cat: "Prelim", items: ["Review Indication", "Review Priors (Onc/Trauma)", "Triage Urgency", "Check Technique"] },
+        "scout": { name: "Scout & Localizer", cat: "Prelim", items: ["Lines/Tubes/Foreign Bodies", "FOV Edges (Neck/Thighs)", "Gross Pathology", "Motion/Artifact Check"] },
+        "neck": { name: "LOWER NECK", cat: "Prelim", items: ["Thyroid (Nodules/Masses)", "Supraclavicular Nodes", "IJ Veins (Thrombus)", "Cervical Spine Levels"] },
+
+        // CHEST
+        "chest_lung": { name: "LUNGS / AIRWAYS / PLEURA", cat: "Chest", items: ["Trachea/Bronchi Patency", "Endobronchial Lesions", "Nodules (Use MIPs)", "Consolidation/GGO", "Emphysema/Cysts", "Effusion/Pneumothorax", "Diaphragmatic Pleura"] },
+        "chest_heart": { name: "HEART / VESSELS", cat: "Chest", items: ["Pericardium (Effusion/Calc)", "Heart Size/Chambers", "LAA Thrombus", "Valves (Calc/Veg)", "Coronary Arteries", "Thoracic Aorta", "Pulmonary Arteries (PE)", "SVC/IVC"] },
+        "chest_med": { name: "MEDIASTINUM / ESOPHAGUS", cat: "Chest", items: ["Esophageal Thickening/Hernia", "Thymus/Ant. Mediastinum", "Pneumomediastinum", "Soft Tissue Masses"] },
+        "chest_nodes": { name: "LYMPH NODES (Chest)", cat: "Chest", items: ["Axillary/Subpectoral", "Mediastinal Stations", "Hilar", "Internal Mammary"] },
+        "chest_wall": { name: "CHEST WALL", cat: "Chest", items: ["Ribs (Fx/Mets)", "Sternum", "Soft Tissue Masses", "Breast Tissue"] },
+
+        // ABDOMEN VISCERA
+        "liver": { name: "LIVER", cat: "Abdomen", items: ["Size/Contour (Cirrhosis)", "Parenchyma (Cysts/Mets/Steatosis)", "Portal/Hepatic Veins", "Periportal Edema", "Intrahepatic Fissure"] },
+        "biliary": { name: "BILIARY TRACT", cat: "Abdomen", items: ["Intrahepatic Ducts", "CBD Dilation", "Post-cholecystectomy state?"] },
+        "gb": { name: "GALLBLADDER", cat: "Abdomen", items: ["Stones (Hypodense?)", "Wall Thickening", "Pericholecystic Fluid", "Sludge/Polyps"] },
+        "pancreas": { name: "PANCREAS", cat: "Abdomen", items: ["Parenchyma/Atrophy", "Duct Dilation", "Uncinate Process Shape", "Peripancreatic Fat/Fluid", "Divisum/Annular?"] },
+        "spleen": { name: "SPLEEN", cat: "Abdomen", items: ["Splenomegaly", "Focal Lesions/Infarcts", "Accessory Spleen", "Varices"] },
+        "adrenals": { name: "ADRENALS", cat: "Abdomen", items: ["Nodules (Adenoma/Met)", "Thickening/Hemorrhage", "Calcification", "Shape (Y vs Linear)"] },
+        "kidneys": { name: "KIDNEYS", cat: "Abdomen", items: ["Enhancement Symmetry", "Hydronephrosis", "Stones", "Masses/Cysts", "Perinephric Stranding"] },
+        
+        // GI
+        "stomach_sb": { name: "STOMACH / SMALL BOWEL", cat: "GI", items: ["Distension/Obstruction", "Wall Thickening", "Transition Points", "Mesenteric Ischemia"] },
+        "colon_app": { name: "COLON / APPENDIX", cat: "GI", items: ["Diverticulosis/itis", "Appendicitis", "Colitis/Thickening", "Masses/Strictures", "Stool Burden"] },
+        
+        // SPACES & SYSTEMIC
+        "peritoneum": { name: "PERITONEUM / MESENTERY", cat: "Systemic", items: ["Free Air (Lung Windows)", "Ascites/Collections", "Mesenteric Nodes", "Misty Mesentery", "Omental Cake"] },
+        "retro": { name: "RETROPERITONEUM", cat: "Systemic", items: ["Retroperitoneal Nodes", "Retrocrural Space", "Psoas Muscles"] },
+        "abd_vess": { name: "VESSELS (Abd)", cat: "Systemic", items: ["Abd Aorta (Aneurysm/Dissection)", "Celiac/SMA/IMA Patency", "Renal Arteries", "Iliac/Femoral Arteries", "IVC Patency"] },
+        
+        // PELVIS / REPRO / BLADDER
+        "bladder": { name: "URINARY BLADDER", cat: "Pelvis", items: ["Distension", "Wall Thickening", "Intraluminal Masses/Stones", "Air in Bladder?"] },
+        "repro": { name: "REPRODUCTIVE ORGANS", cat: "Pelvis", items: ["Uterus/Ovaries (Masses)", "Prostate/Seminal Vesicles", "Adnexal/Free Fluid", "Inguinal Canals"] },
+        
+        // MSK / WALL
+        "body_wall": { name: "BODY WALL", cat: "Soft Tissue", items: ["Hernias (Ventral/Inguinal)", "Subcutaneous Emphysema", "Muscle Asymmetry", "Skin Lesions/Nodules"] },
+        "msk": { name: "MUSCULOSKELETAL", cat: "MSK", items: ["Spine (Alignment/Fx/Mets)", "Pelvic Bones (Sacrum/SI)", "Femoral Heads", "Discitis/Osteo", "Canal Stenosis"] },
+
+        // SPECIAL CTA PE
+        "pe_art": { name: "PULMONARY ARTERIES (CTA)", cat: "Vascular", items: ["Main/Lobar Filling Defects", "Segmental/Subsegmental", "Webs/Chronic PE", "Contrast Timing Quality"] },
+        "pe_heart": { name: "RIGHT HEART STRAIN", cat: "Heart", items: ["RV/LV Ratio > 1", "Septal Bowing", "Contrast Reflux to IVC", "Main PA Diameter"] }
     };
 
-    const PROTOCOLS = {
+    // --- DEFAULT PROTOCOL ORDERS ---
+    // IDs corresponding to SECTIONS keys
+    const DEFAULTS = {
         ct_cap: [
-            STEP_PRIORS,
-            { cat: "1. Preliminaries", name: "Scout & Localizer", items: ["Lines/Tubes/Foreign Bodies", "FOV Edges (Neck/Thighs)", "Motion/Artifact Check", "Gross Pathology on Scout"] },
-            
-            // CHEST
-            { cat: "2. Chest - Airway", name: "Trachea & Bronchi", items: ["Trachea Patent?", "Main Bronchi", "Segmental Bronchi", "Endobronchial Lesions"] },
-            { cat: "2. Chest - Lungs", name: "Lungs & Pleura", items: ["Nodules (MIPs)", "Consolidation/GGO", "Pneumothorax", "Pleural Effusion"] },
-            { cat: "2. Chest - Heart", name: "Heart", items: ["Pericardial Effusion", "Chamber Size", "LAA Thrombus", "Valvular Calcification"] },
-            { cat: "2. Chest - Vessels", name: "Thoracic Vessels", items: ["Aortic Aneurysm/Dissection", "Pulmonary Arteries (PE?)", "SVC/IVC Patency", "Arch Branches"] },
-            { cat: "2. Chest - Mediastinum", name: "Mediastinum", items: ["Axillary Nodes", "Hilar/Mediastinal Nodes", "Esophagus (Thickening?)", "Thyroid/Lower Neck"] },
-            
-            // ABDOMEN
-            { cat: "3. Abdomen - Viscera", name: "Liver", items: ["Size/Contour (Cirrhosis)", "Focal Lesions (Cysts/Mets)", "Portal/Hepatic Veins", "Periportal Edema"] },
-            { cat: "3. Abdomen - Viscera", name: "Biliary System", items: ["Gallbladder (Stones/Wall)", "CBD Dilation", "Intrahepatic Ducts", "Post-cholecystectomy?"] },
-            { cat: "3. Abdomen - Viscera", name: "Pancreas", items: ["Parenchyma/Atrophy", "Duct Dilation", "Uncinate Process (Triangular?)", "Peripancreatic Fat"] },
-            { cat: "3. Abdomen - Viscera", name: "Spleen", items: ["Splenomegaly", "Infarcts", "Focal Lesions", "Accessory Spleen"] },
-            { cat: "3. Abdomen - Viscera", name: "Adrenals", items: ["Nodules (Adenoma vs Met)", "Thickening", "Hemorrhage", "Calcification"] },
-            
-            // GU GROUPED
-            { cat: "3. Abdomen - GU", name: "Kidneys & Ureters", items: ["Hydronephrosis", "Stones", "Renal Masses/Cysts", "Perinephric Stranding", "Ureteral Course"] },
-            { cat: "3. Abdomen - GU", name: "Bladder", items: ["Distension", "Wall Thickening", "Intraluminal Masses/Stones", "Air in Bladder?"] },
-            
-            // PELVIS / REPRO
-            { cat: "4. Pelvis", name: "Reproductive", items: ["Uterus/Ovaries (Adnexal Mass)", "Prostate/Seminal Vesicles", "Free Fluid in Pelvis", "Inguinal Canals"] },
-            
-            // GI TRACT
-            { cat: "5. GI Tract", name: "Stomach & Small Bowel", items: ["Distension/Obstruction", "Wall Thickening", "Transition Point?", "Mesenteric Ischemia?"] },
-            { cat: "5. GI Tract", name: "Colon & Appendix", items: ["Diverticulitis", "Appendicitis", "Colitis/Wall Thickening", "Masses/Strictures"] },
-            
-            // SYSTEMIC
-            { cat: "6. Systemic", name: "Abd Vessels", items: ["Abd Aorta (Aneurysm)", "Celiac/SMA/IMA Patency", "Renal Arteries", "Iliac/Femoral Arteries"] },
-            { cat: "6. Systemic", name: "Peritoneum & Nodes", items: ["Free Air (Lung Windows)", "Ascites", "Mesenteric Nodes", "Retroperitoneal Nodes"] },
-            
-            // MSK / SOFT TISSUE
-            { cat: "7. MSK", name: "Spine", items: ["Vertebral Alignment", "Fractures/Compression", "Discitis/Osteo", "Canal Stenosis"] },
-            { cat: "7. MSK", name: "Bones (Other)", items: ["Ribs (Fractures/Mets)", "Pelvic Bones (Sacrum/SI)", "Femoral Heads", "Sternum"] },
-            { cat: "8. Soft Tissue", name: "Body Wall", items: ["Hernias (Ventral/Inguinal)", "Subcutaneous Emphysema", "Muscle Asymmetry/Abscess", "Skin Lesions"] },
-            
-            { cat: "9. Finish", name: "Final Check", items: ["Review Blind Spots", "Correlate with History", "Check Edges of FOV", "Proofread"] }
+            "ind_prior", "scout", "neck", 
+            "chest_lung", "chest_heart", "chest_med", "chest_nodes", "chest_wall",
+            "liver", "biliary", "gb", "pancreas", "spleen", "adrenals", "kidneys",
+            "stomach_sb", "colon_app", "peritoneum", "retro", "abd_vess",
+            "bladder", "repro", "body_wall", "msk"
         ],
-
-        ct_ap: [
-            STEP_PRIORS,
-            { cat: "1. Preliminaries", name: "Scout & Lower Chest", items: ["Lung Bases (Nodules/Infiltrate)", "Heart Size", "Incidental PE Check", "Pleural Effusion"] },
-            { cat: "2. Abdomen - Viscera", name: "Liver", items: ["Size/Contour", "Focal Lesions", "Portal Vein Patency", "Fatty Infiltration"] },
-            { cat: "2. Abdomen - Viscera", name: "Biliary & GB", items: ["Gallbladder (Stones/Inflammation)", "Biliary Dilation", "CBD Path"] },
-            { cat: "2. Abdomen - Viscera", name: "Pancreas", items: ["Duct Dilation", "Masses", "Pancreatitis (Stranding)", "Atrophy"] },
-            { cat: "2. Abdomen - Viscera", name: "Spleen & Adrenals", items: ["Splenomegaly", "Adrenal Nodules", "Thickening"] },
-            { cat: "3. Abdomen - GU", name: "Kidneys/Ureters/Bladder", items: ["Stones", "Hydronephrosis", "Renal Masses", "Bladder Wall"] },
-            { cat: "4. Pelvis", name: "Reproductive", items: ["Uterus/Ovaries", "Prostate/Seminal Vesicles", "Free Fluid"] },
-            { cat: "5. GI Tract", name: "Bowel & Appendix", items: ["Obstruction (SBO)", "Appendicitis", "Diverticulitis", "Colitis"] },
-            { cat: "6. Systemic", name: "Vessels & Nodes", items: ["Aorta/Iliacs (Aneurysm)", "Mesenteric Ischemia", "Retroperitoneal Nodes", "Mesenteric Nodes"] },
-            { cat: "6. Systemic", name: "Peritoneum", items: ["Free Air", "Ascites", "Abscess Collections"] },
-            { cat: "7. MSK", name: "Bones & Soft Tissue", items: ["Spine (Fx/Mets)", "Pelvic Bones", "Hernias", "Body Wall"] }
-        ],
-        
         ct_chest: [
-            STEP_PRIORS,
-            { cat: "1. Preliminaries", name: "Scout & Support", items: ["Lines/Tubes", "Pneumothorax on Scout", "Foreign Bodies", "Technical Adequacy"] },
-            { cat: "2. Airway", name: "Trachea & Bronchi", items: ["Trachea Patency", "Endobronchial Lesions", "Bronchiectasis", "Wall Thickening"] },
-            { cat: "3. Lungs", name: "Lung Parenchyma", items: ["Nodules (MIPs)", "Consolidation", "GGO", "Emphysema/Cysts"] },
-            { cat: "4. Pleura", name: "Pleural Space", items: ["Effusion", "Pneumothorax", "Pleural Thickening/Plaques"] },
-            { cat: "5. Heart", name: "Heart & Pericardium", items: ["Heart Size", "Pericardial Effusion", "Coronary Calcification", "Valves"] },
-            { cat: "6. Vessels", name: "Thoracic Vessels", items: ["Aorta (Dissection/Aneurysm)", "Pulmonary Arteries", "SVC/IVC"] },
-            { cat: "7. Mediastinum", name: "Mediastinum & Hila", items: ["Adenopathy (Axilla/Hilar)", "Esophagus", "Thyroid", "Thymus"] },
-            { cat: "8. MSK", name: "Bones & Wall", items: ["Ribs", "Spine", "Sternum", "Breast Tissue"] }
+            "ind_prior", "scout", "neck",
+            "chest_lung", "chest_heart", "chest_med", "chest_nodes", "chest_wall", "msk"
         ],
-
+        ct_ap: [
+            "ind_prior", "scout", 
+            "liver", "biliary", "gb", "pancreas", "spleen", "adrenals", "kidneys",
+            "stomach_sb", "colon_app", "peritoneum", "retro", "abd_vess",
+            "bladder", "repro", "body_wall", "msk"
+        ],
         cta_pe: [
-            STEP_PRIORS,
-            { cat: "1. QC", name: "Quality Check", items: ["Contrast Timing (HU > 200)", "Motion Artifact", "Streak Artifact"] },
-            { cat: "2. Pulmonary Arteries", name: "PA Evaluation", items: ["Main PA", "Lobar Branches", "Segmental/Subsegmental", "Webs/Chronic PE"] },
-            { cat: "3. Heart", name: "Right Heart Strain", items: ["RV/LV Ratio > 1", "Septal Bowing", "Contrast Reflux to IVC", "Main PA Diameter"] },
-            { cat: "4. Lungs", name: "Parenchyma", items: ["Infarcts (Wedge shaped)", "Consolidation", "Effusion", "Malignancy Check"] },
-            { cat: "5. Aorta", name: "Aorta & Coronaries", items: ["Dissection", "Coronary Anomalies", "Aneurysm"] },
-            { cat: "6. Standard Chest", name: "Rest of Chest", items: ["Mediastinum", "Axilla", "Bones", "Upper Abdomen"] }
+            "ind_prior", "scout",
+            "pe_art", "pe_heart",
+            "chest_lung", "chest_med", "chest_nodes", "chest_wall", "msk"
         ]
     };
 
-    let currentProtocol = [];
+    // --- STATE MANAGEMENT ---
+    let currentProtocolKey = "ct_cap";
+    let protocolOrder = []; // Array of IDs
     let currentIndex = 0;
+    let timerInterval;
+    let seconds = 0;
 
+    // --- UI REFERENCES ---
     const ui = {
         card: document.getElementById('card'),
-        catLabel: document.getElementById('catLabel'),
-        structName: document.getElementById('structName'),
+        sectionLabel: document.getElementById('sectionLabel'),
+        templateHeading: document.getElementById('templateHeading'),
         checkList: document.getElementById('checkList'),
         progressBar: document.getElementById('progressBar'),
         flash: document.getElementById('flash'),
         select: document.getElementById('protocolSelect'),
-        btnBack: document.getElementById('btnBack'),
-        btnFinding: document.getElementById('btnFinding'),
-        btnNormal: document.getElementById('btnNormal')
+        timer: document.getElementById('timerDisplay'),
+        sidebar: document.getElementById('sidebar'),
+        dragContainer: document.getElementById('dragContainer')
     };
 
     function init() {
-        loadProtocol();
-        ui.select.addEventListener('change', loadProtocol);
+        // Load saved order or defaults
+        loadOrderFromStorage();
         
-        // Keyboard Listeners
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.key === 'ArrowRight') {
-                e.preventDefault();
-                nextStep('normal');
-            } else if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                prevStep();
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                nextStep('finding');
-            }
+        renderMain();
+        startTimer();
+
+        // Event Listeners
+        ui.select.addEventListener('change', (e) => {
+            currentProtocolKey = e.target.value;
+            loadOrderFromStorage(); // Re-fetch specific order for this new protocol
+            currentIndex = 0;
+            resetTimer();
+            renderMain();
         });
 
-        // Click Listeners for Buttons
-        ui.btnBack.addEventListener('click', () => prevStep());
-        ui.btnFinding.addEventListener('click', () => nextStep('finding'));
-        ui.btnNormal.addEventListener('click', () => nextStep('normal'));
+        // Inputs
+        document.addEventListener('keydown', handleKey);
+        document.getElementById('btnNext').addEventListener('click', () => nextStep('normal'));
+        document.getElementById('btnBack').addEventListener('click', prevStep);
+        document.getElementById('btnFind').addEventListener('click', () => nextStep('finding'));
     }
 
-    function loadProtocol() {
-        currentProtocol = PROTOCOLS[ui.select.value];
-        currentIndex = 0;
-        render();
+    // --- CORE LOGIC ---
+
+    function loadOrderFromStorage() {
+        const saved = localStorage.getItem(`radflow_order_${currentProtocolKey}`);
+        if (saved) {
+            protocolOrder = JSON.parse(saved);
+        } else {
+            protocolOrder = [...DEFAULTS[currentProtocolKey]];
+        }
+        populateSidebar();
+    }
+
+    function saveOrderToStorage() {
+        localStorage.setItem(`radflow_order_${currentProtocolKey}`, JSON.stringify(protocolOrder));
+    }
+
+    function resetOrder() {
+        if(confirm("Reset this protocol to default template order?")) {
+            localStorage.removeItem(`radflow_order_${currentProtocolKey}`);
+            loadOrderFromStorage();
+            currentIndex = 0;
+            renderMain();
+        }
+    }
+
+    function handleKey(e) {
+        if (e.code === 'Space' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            nextStep('normal');
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prevStep();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            nextStep('finding');
+        }
     }
 
     function nextStep(type) {
-        if (currentIndex < currentProtocol.length) {
-            flashFeedback(type);
+        if (currentIndex < protocolOrder.length) {
+            flash(type);
             setTimeout(() => {
                 currentIndex++;
-                render();
+                renderMain();
             }, 50);
         }
     }
@@ -391,60 +478,132 @@
     function prevStep() {
         if (currentIndex > 0) {
             currentIndex--;
-            render();
+            renderMain();
         }
     }
 
-    function flashFeedback(type) {
+    function flash(type) {
         const color = type === 'normal' ? 'rgba(47, 158, 68, 0.3)' : 'rgba(224, 49, 49, 0.3)';
         ui.flash.style.background = color;
         ui.flash.style.opacity = '1';
-        setTimeout(() => {
-            ui.flash.style.opacity = '0';
-        }, 200);
+        setTimeout(() => ui.flash.style.opacity = '0', 200);
     }
 
-    function render() {
+    function renderMain() {
         // Progress
-        const pct = Math.min(100, (currentIndex / currentProtocol.length) * 100);
+        const pct = Math.min(100, (currentIndex / protocolOrder.length) * 100);
         ui.progressBar.style.width = pct + '%';
 
-        // Finished State
-        if (currentIndex >= currentProtocol.length) {
-            ui.catLabel.innerText = "Complete";
-            ui.structName.innerText = "Dictate & Verify";
-            ui.structName.classList.add('finished-state');
+        // Finished?
+        if (currentIndex >= protocolOrder.length) {
+            ui.sectionLabel.innerText = "Study Complete";
+            ui.templateHeading.innerText = "Dictate & Verify";
+            ui.templateHeading.style.color = "var(--success)";
             ui.checkList.innerHTML = `
-                <div class="check-item">Review edges of film one last time</div>
-                <div class="check-item">Proofread report for laterality errors</div>
-                <div class="check-item">Check congruence with clinical history</div>
-                <div class="check-item">Sign report</div>
+                <div class="check-item">Check FOV edges</div>
+                <div class="check-item">Proofread laterality</div>
+                <div class="check-item">Sign Report</div>
             `;
             return;
         }
 
-        // Normal State
-        ui.structName.classList.remove('finished-state');
-        const step = currentProtocol[currentIndex];
-        
-        ui.catLabel.innerText = step.cat;
-        ui.structName.innerText = step.name;
-        
+        const sectionId = protocolOrder[currentIndex];
+        const data = SECTIONS[sectionId];
+
+        ui.sectionLabel.innerText = data.cat;
+        ui.templateHeading.innerText = data.name;
+        ui.templateHeading.style.color = "white";
+
         ui.checkList.innerHTML = '';
-        step.items.forEach(item => {
+        data.items.forEach(item => {
             const div = document.createElement('div');
             div.className = 'check-item';
             div.innerText = item;
             ui.checkList.appendChild(div);
         });
 
-        // Animation trigger (simple CSS shift)
+        // Visual Pop
         ui.card.style.transform = "scale(0.98)";
         setTimeout(() => ui.card.style.transform = "scale(1)", 100);
     }
 
-    init();
+    // --- TIMER ---
+    function startTimer() {
+        if(timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            seconds++;
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            ui.timer.innerText = `${m}:${s}`;
+        }, 1000);
+    }
 
+    function resetTimer() {
+        seconds = 0;
+        ui.timer.innerText = "00:00";
+    }
+
+    // --- SIDEBAR / DRAG & DROP ---
+    function toggleSidebar() {
+        ui.sidebar.classList.toggle('open');
+    }
+
+    function populateSidebar() {
+        ui.dragContainer.innerHTML = "";
+        protocolOrder.forEach((id, index) => {
+            const item = document.createElement('div');
+            item.className = 'draggable-item';
+            item.draggable = true;
+            item.dataset.index = index;
+            item.innerHTML = `<span class="drag-handle">☰</span> ${SECTIONS[id].name}`;
+            
+            // Drag Events
+            item.addEventListener('dragstart', dragStart);
+            item.addEventListener('dragover', dragOver);
+            item.addEventListener('drop', dragDrop);
+            item.addEventListener('dragenter', (e) => e.preventDefault());
+            
+            ui.dragContainer.appendChild(item);
+        });
+    }
+
+    let dragSrcEl = null;
+
+    function dragStart(e) {
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+        this.classList.add('dragging');
+    }
+
+    function dragOver(e) {
+        if (e.preventDefault) e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function dragDrop(e) {
+        if (e.stopPropagation) e.stopPropagation();
+        
+        const srcIndex = parseInt(dragSrcEl.dataset.index);
+        const targetIndex = parseInt(this.dataset.index);
+
+        if (srcIndex !== targetIndex) {
+            // Move item in array
+            const itemMoved = protocolOrder[srcIndex];
+            protocolOrder.splice(srcIndex, 1);
+            protocolOrder.splice(targetIndex, 0, itemMoved);
+            
+            // Save & Re-render
+            saveOrderToStorage();
+            populateSidebar();
+            renderMain(); // Update main view in case current item moved
+        }
+        dragSrcEl.classList.remove('dragging');
+        return false;
+    }
+
+    init();
 </script>
 </body>
 </html>
