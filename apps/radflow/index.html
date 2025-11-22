@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RadFlow: Speed & Structure</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-dim: #a0a0a0;
+            --accent: #00bcd4; /* Radiology Blue */
+            --accent-hover: #26c6da;
+            --success: #4caf50;
+            --danger: #f44336;
+            --font-stack: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-stack);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            padding: 15px 20px;
+            background: #181818;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+        
+        .protocol-selector select {
+            background: #333;
+            color: white;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        /* --- Main Layout --- */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- Focus Zone (Left) --- */
+        .focus-zone {
+            flex: 2;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid #333;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-title {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .step-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .step-checklist li::before {
+            content: "▹";
+            color: var(--accent);
+            margin-right: 10px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-normal {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-abnormal {
+            background: #333;
+            color: var(--text-main);
+            border: 1px solid #555;
+        }
+        
+        .btn-abnormal:hover { background: #444; }
+
+        .keyboard-hint {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: #555;
+        }
+
+        /* --- Report Zone (Right) --- */
+        .report-zone {
+            flex: 1;
+            background: #151515;
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 400px;
+        }
+
+        .report-zone h2 { margin-top: 0; font-size: 1rem; color: var(--text-dim); }
+
+        textarea#report-output {
+            flex: 1;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            color: var(--text-main);
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: none;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .copy-btn {
+            background: var(--accent);
+            color: #000;
+        }
+
+        /* --- Edit Overlay (Abnormal) --- */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .overlay-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            width: 500px;
+            border: 1px solid var(--accent);
+        }
+
+        .overlay input {
+            width: 100%;
+            padding: 15px;
+            background: #111;
+            border: 1px solid #444;
+            color: white;
+            font-size: 1.1rem;
+            margin: 15px 0;
+            border-radius: 4px;
+            box-sizing: border-box; /* Fix padding width issue */
+        }
+
+        .overlay input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+        /* --- Hidden Logic --- */
+        .hidden { display: none; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>RadFlow <span style="font-size:0.7em; color:#666;">// High Velocity Search</span></h1>
+    <div class="protocol-selector">
+        <select id="protocolSelect">
+            <option value="ct_cap">CT CAP (Pan-Scan)</option>
+            <option value="ct_chest">CT Chest</option>
+            <option value="cta_pe">CTA PE</option>
+            <option value="ct_ap">CT Abd/Pelvis</option>
+        </select>
+        <button onclick="resetStudy()" style="padding: 8px 15px; margin-left: 10px; background: #333; color: #fff;">Reset</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Search Pattern Area -->
+    <div class="focus-zone">
+        <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+        
+        <div class="step-card" id="stepCard">
+            <div class="step-title" id="stepTitle">Loading...</div>
+            <ul class="step-checklist" id="stepChecklist">
+                <!-- JS populates this -->
+            </ul>
+            
+            <div class="controls">
+                <button class="btn-normal" id="btnNormal" onclick="handleNormal()">NORMAL (Space)</button>
+                <button class="btn-abnormal" id="btnAbnormal" onclick="openAbnormalInput()">FINDING (Enter)</button>
+            </div>
+            <span class="keyboard-hint">Space = Normal/Next | Enter = Add Finding | Esc = Cancel Finding</span>
+        </div>
+    </div>
+
+    <!-- Live Report Area -->
+    <div class="report-zone">
+        <h2>Findings Draft</h2>
+        <textarea id="report-output" spellcheck="false"></textarea>
+        <button class="copy-btn" onclick="copyReport()">Copy to Clipboard</button>
+    </div>
+</div>
+
+<!-- Abnormal Input Modal -->
+<div class="overlay" id="abnormalOverlay">
+    <div class="overlay-content">
+        <h3 style="margin-top:0">Describe Findings</h3>
+        <p id="overlayContext" style="color:#888; font-size:0.9rem;"></p>
+        <input type="text" id="findingInput" placeholder="e.g., 3mm nodule in RUL..." autocomplete="off">
+        <div style="display:flex; gap:10px; justify-content: flex-end;">
+            <button onclick="closeAbnormalInput()" style="background:#333; color:#ccc;">Cancel</button>
+            <button onclick="submitAbnormal()" style="background:var(--danger); color:white;">Add Finding</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DATA CONFIGURATION ---
+    // Based on your provided text. "norm" is the default text if Spacebar is pressed.
+    
+    const PROTOCOLS = {
+        ct_cap: [
+            { title: "1. Scout & Adequacy", list: ["Check coverage (neck to pubis?)", "Lines/Tubes ends", "Motion artifact", "Compare to Priors"], norm: "Diagnostic quality exam. Support devices are appropriately positioned." },
+            { title: "2. Airway", list: ["Trachea patent?", "Bronchial stenosis/cutoff?", "Endobronchial lesions?"], norm: "The trachea and central airways are patent." },
+            { title: "3. Pleura", list: ["Effusion?", "Pneumothorax?", "Nodularity/Plaques?", "Check Diaphragmatic pleura"], norm: "No pleural effusion or pneumothorax." },
+            { title: "4. Lungs", list: ["Consolidation/GGO", "Nodules (check MIPs)", "Emphysema/Cysts", "Interstitium/Septal thickening"], norm: "The lungs are clear without consolidation or suspicious pulmonary nodules." },
+            { title: "5. Heart", list: ["Pericardial effusion", "Chamber size", "LAA Thrombus", "Valve calcs"], norm: "Heart size is normal. No pericardial effusion." },
+            { title: "6. Thoracic Vessels", list: ["Aortic Aneurysm/Dissection", "Pulmonary Artery emboli", "SVC/IVC patency"], norm: "The thoracic aorta and pulmonary vasculature are unremarkable." },
+            { title: "7. Mediastinum/Nodes", list: ["Axillary", "Mediastinal", "Hilar adenopathy", "Esophagus thickening"], norm: "No mediastinal, hilar, or axillary lymphadenopathy." },
+            { title: "8. Liver", list: ["Size/Contour (Cirrhosis?)", "Focal lesions (Cysts/Mets)", "Biliary dilation", "Portal/Hepatic Veins"], norm: "The liver is normal in size and contour. No focal hepatic lesions or biliary dilation." },
+            { title: "9. Gallbladder/Biliary", list: ["Stones/Sludge", "Wall thickening", "Pericholecystic fluid", "CBD dilation"], norm: "The gallbladder is unremarkable. No biliary ductal dilatation." },
+            { title: "10. Pancreas", list: ["Atrophy/Edema", "Duct dilation", "Masses", "Check Uncinate process"], norm: "The pancreas is normal in enhancement and morphology. No ductal dilation." },
+            { title: "11. Spleen", list: ["Size (Splenomegaly)", "Focal lesions", "Infarcts"], norm: "The spleen is normal in size and appearance." },
+            { title: "12. Adrenals", list: ["Nodules/Masses", "Thickening/Hemorrhage"], norm: "The adrenal glands are unremarkable." },
+            { title: "13. Kidneys", list: ["Stones", "Hydronephrosis", "Masses/Cysts", "Perinephric stranding"], norm: "Both kidneys enhance symmetrically without hydronephrosis or suspicious solid masses." },
+            { title: "14. Bladder/Ureters", list: ["Wall thickening", "Filling defects", "Distal ureter stones"], norm: "The urinary bladder and ureters are unremarkable." },
+            { title: "15. Reproductive", list: ["Prostate/Seminal Vesicles", "Uterus/Ovaries", "Adnexal masses"], norm: "Pelvic reproductive organs are unremarkable." },
+            { title: "16. Bowel (Stomach/Small)", list: ["Obstruction/Dilation", "Wall thickening", "Transition points"], norm: "No small bowel obstruction or wall thickening." },
+            { title: "17. Bowel (Colon/Appendix)", list: ["Diverticulitis", "Appendicitis", "Masses/Strictures", "Colitis"], norm: "The colon and appendix are unremarkable." },
+            { title: "18. Abd Vasculature", list: ["Aortic Aneurysm", "SMA/Celiac patency", "Portal/Splenic Vein thrombus"], norm: "The abdominal aorta and major branches are patent." },
+            { title: "19. Peritoneum/Nodes", list: ["Free air", "Ascites", "Mesenteric nodes", "Retroperitoneal nodes"], norm: "No free air, ascites, or retroperitoneal lymphadenopathy." },
+            { title: "20. Bones - Spine", list: ["Fractures (Cortical disruption)", "Mets (Lytic/Sclerotic)", "Discitis/Osteo", "Canal stenosis"], norm: "No acute fracture or suspicious osseous lesion." },
+            { title: "21. Bones - Ribs/Pelvis", list: ["Rib fractures", "SI Joints", "Femoral heads", "Sternum"], norm: "Skeletal structures are otherwise unremarkable." },
+            { title: "22. Soft Tissues", list: ["Abdominal wall hernias", "Muscles (Atrophy/Asymmetry)", "Subcutaneous nodules", "Skin"], norm: "Body wall soft tissues are unremarkable." },
+            { title: "23. FINAL CHECK", list: ["Blind spots review", "Review edges of film", "Correlate with history", "Priors comparison"], norm: "" }
+        ],
+        ct_chest: [
+             { title: "1. Scout & Support", list: ["Lines/Tubes", "Pneumothorax on scout", "Foreign bodies"], norm: "Support devices are appropriately positioned." },
+             { title: "2. Airways", list: ["Trachea", "Main bronchi", "Segmental patency", "Wall thickening"], norm: "The airways are patent." },
+             { title: "3. Lungs", list: ["Nodules (MIPs)", "Consolidation", "GGO", "Interstitial disease"], norm: "The lungs are clear. No suspicious nodules or consolidation." },
+             { title: "4. Pleura", list: ["Effusion", "Pneumothorax", "Thickening"], norm: "No pleural effusion or pneumothorax." },
+             { title: "5. Heart/Pericardium", list: ["Size", "Effusion", "Coronary Calcification", "Valves"], norm: "The heart and pericardium are unremarkable." },
+             { title: "6. Vessels", list: ["Aorta (Dissection/Aneurysm)", "Pulmonary Arteries (PE)", "SVC"], norm: "Thoracic vasculature is normal in caliber and patency." },
+             { title: "7. Mediastinum/Hila", list: ["Lymphadenopathy", "Masses", "Esophagus"], norm: "No mediastinal or hilar lymphadenopathy." },
+             { title: "8. Chest Wall/Neck", list: ["Thyroid", "Axilla", "Bones (Ribs/Spine/Sternum)", "Breast tissue"], norm: "Thyroid, axilla, and osseous structures are unremarkable." }
+        ],
+        cta_pe: [
+            { title: "1. Tech Quality", list: ["Contrast timing (HU > 200)", "Motion/Streak artifact"], norm: "Study is technically adequate for evaluation of PE." },
+            { title: "2. Pulmonary Arteries", list: ["Main/Lobar filling defects", "Segmental/Subsegmental", "Webs/Chronic"], norm: "No filling defects in the pulmonary arteries to suggest pulmonary embolism." },
+            { title: "3. RV Strain", list: ["RV/LV Ratio > 1", "Septal bowing", "Contrast reflux into IVC"], norm: "No CT evidence of right heart strain." },
+            { title: "4. Lungs/Pleura", list: ["Infarcts (Hampton's Hump)", "Consolidation", "Effusion"], norm: "Lungs and pleura are otherwise unremarkable." },
+            { title: "5. Aorta/Coronaries", list: ["Dissection", "Coronary origin/course"], norm: "Thoracic aorta is unremarkable." },
+            { title: "6. Remainder", list: ["Review standard chest checklist"], norm: "Remainder of the chest is unremarkable." }
+        ],
+        ct_ap: [
+             { title: "1. Lung Bases", list: ["PE check", "Nodules", "Effusions"], norm: "Visualized lung bases are clear." },
+             { title: "2. Liver/Biliary", list: ["Masses", "Ducts", "Gallbladder"], norm: "Liver, gallbladder, and biliary tree are unremarkable." },
+             { title: "3. Pancreas/Spleen", list: ["Pancreatitis", "Masses", "Splenomegaly"], norm: "Pancreas and spleen are normal." },
+             { title: "4. Adrenals/Kidneys", list: ["Stones", "Hydro", "Masses"], norm: "Kidneys and adrenals are unremarkable." },
+             { title: "5. Bowel", list: ["Obstruction", "Inflammation", "Appendix"], norm: "No bowel obstruction or inflammatory changes." },
+             { title: "6. Pelvis", list: ["Bladder", "Reproductive Organs", "Free fluid"], norm: "Pelvic organs are unremarkable." },
+             { title: "7. Vascular/Nodes", list: ["Aorta", "IVC", "Adenopathy"], norm: "Abdominal vasculature is patent. No adenopathy." },
+             { title: "8. Bones/Wall", list: ["Spine", "Pelvic bones", "Hernias"], norm: "Osseous structures and body wall are unremarkable." }
+        ]
+    };
+
+    // --- STATE ---
+    let currentProtocol = "ct_cap";
+    let currentIndex = 0;
+    let reportText = "";
+
+    // --- DOM ELEMENTS ---
+    const elProtocol = document.getElementById('protocolSelect');
+    const elTitle = document.getElementById('stepTitle');
+    const elList = document.getElementById('stepChecklist');
+    const elReport = document.getElementById('report-output');
+    const elProgress = document.getElementById('progressBar');
+    const elOverlay = document.getElementById('abnormalOverlay');
+    const elInput = document.getElementById('findingInput');
+    const elContext = document.getElementById('overlayContext');
+
+    // --- INITIALIZATION ---
+    function init() {
+        elProtocol.value = currentProtocol;
+        loadStep();
+        elProtocol.addEventListener('change', (e) => {
+            currentProtocol = e.target.value;
+            resetStudy();
+        });
+
+        // Keyboard Listeners
+        document.addEventListener('keydown', (e) => {
+            // If overlay is open
+            if(elOverlay.style.display === 'flex') {
+                if(e.key === 'Enter') submitAbnormal();
+                if(e.key === 'Escape') closeAbnormalInput();
+                return;
+            }
+
+            // Main Interface shortcuts
+            if(e.code === 'Space') {
+                e.preventDefault(); // Stop scrolling
+                handleNormal();
+            }
+            if(e.key === 'Enter') {
+                e.preventDefault();
+                openAbnormalInput();
+            }
+        });
+    }
+
+    // --- CORE LOGIC ---
+    function loadStep() {
+        const steps = PROTOCOLS[currentProtocol];
+        
+        if(currentIndex >= steps.length) {
+            finishStudy();
+            return;
+        }
+
+        const step = steps[currentIndex];
+        elTitle.innerText = step.title;
+        
+        // Build List
+        elList.innerHTML = "";
+        step.list.forEach(item => {
+            let li = document.createElement('li');
+            li.innerText = item;
+            elList.appendChild(li);
+        });
+
+        // Progress Bar
+        const pct = (currentIndex / steps.length) * 100;
+        elProgress.style.width = pct + "%";
+
+        // Card Animation Reset
+        const card = document.getElementById('stepCard');
+        card.style.animation = 'none';
+        card.offsetHeight; /* trigger reflow */
+        card.style.animation = 'slideIn 0.2s ease-out';
+    }
+
+    function handleNormal() {
+        const step = PROTOCOLS[currentProtocol][currentIndex];
+        if(step.norm) {
+            appendToReport(step.norm);
+        }
+        nextStep();
+    }
+
+    function openAbnormalInput() {
+        const step = PROTOCOLS[currentProtocol][currentIndex];
+        elContext.innerText = "Current Section: " + step.title;
+        elOverlay.style.display = 'flex';
+        elInput.value = "";
+        elInput.focus();
+    }
+
+    function closeAbnormalInput() {
+        elOverlay.style.display = 'none';
+    }
+
+    function submitAbnormal() {
+        const val = elInput.value.trim();
+        if(val) {
+            appendToReport(val);
+        }
+        closeAbnormalInput();
+        nextStep();
+    }
+
+    function nextStep() {
+        currentIndex++;
+        loadStep();
+    }
+
+    function appendToReport(text) {
+        // Auto-formatting: Add space if needed
+        if(elReport.value && !elReport.value.endsWith('\n')) {
+            elReport.value += " ";
+        }
+        elReport.value += text;
+        // Scroll to bottom
+        elReport.scrollTop = elReport.scrollHeight;
+    }
+
+    function finishStudy() {
+        elTitle.innerText = "Study Complete";
+        elList.innerHTML = "<li>Review findings on the right.</li><li>Proofread for grammar/congruence.</li><li>Check edges of film one last time.</li>";
+        elProgress.style.width = "100%";
+        document.getElementById('btnNormal').disabled = true;
+        document.getElementById('btnAbnormal').disabled = true;
+    }
+
+    function resetStudy() {
+        currentIndex = 0;
+        elReport.value = "";
+        document.getElementById('btnNormal').disabled = false;
+        document.getElementById('btnAbnormal').disabled = false;
+        loadStep();
+    }
+
+    function copyReport() {
+        elReport.select();
+        document.execCommand('copy');
+        const btn = document.querySelector('.copy-btn');
+        const originalText = btn.innerText;
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = originalText, 1500);
+    }
+
+    // Start
+    init();
+
+</script>
+</body>
+</html>
