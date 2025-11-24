@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDAC Vascular Involvement Helper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #050611;
+      --bg-alt: #101322;
+      --card: #171b2b;
+      --accent: #29f4c8;
+      --accent-soft: rgba(41, 244, 200, 0.2);
+      --accent-strong: rgba(41, 244, 200, 0.6);
+      --text: #e8ecff;
+      --muted: #8a90b3;
+      --danger: #ff6b88;
+      --border: #262b40;
+      --shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #151932 0, var(--bg) 55%);
+      color: var(--text);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 24px 12px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1000px;
+      background: linear-gradient(135deg, #101320 0%, #060814 60%, #050611 100%);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .app-header {
+      padding: 18px 22px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .title-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #ffffff 0, #00ffc8 35%, #0088ff 70%, #050611 100%);
+      box-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #02030a;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 2px 0 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 4px 9px;
+      border: 1px solid var(--accent-soft);
+      background: radial-gradient(circle at 0 0, rgba(41, 244, 200, 0.18), transparent 65%);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--accent);
+    }
+
+    .app-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 0;
+      min-height: 420px;
+    }
+
+    @media (max-width: 840px) {
+      .app-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      padding: 16px 18px 18px;
+    }
+
+    .panel + .panel {
+      border-left: 1px solid var(--border);
+    }
+
+    @media (max-width: 840px) {
+      .panel + .panel {
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
+    }
+
+    .panel-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .group-card {
+      background: radial-gradient(circle at top left, rgba(41, 244, 200, 0.08), rgba(18, 21, 40, 0.96));
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 10px 12px 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .group-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .group-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .vessel-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .vessel-row {
+      display: flex;
+      flex-direction: column;
+      padding: 7px 8px;
+      border-radius: 9px;
+      border: 1px solid rgba(66, 72, 112, 0.9);
+      background: radial-gradient(circle at top, rgba(41, 244, 200, 0.04), rgba(10, 12, 26, 0.98));
+    }
+
+    .vessel-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .vessel-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .vessel-type {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+    }
+
+    .vessel-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .pill {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(72, 79, 124, 0.9);
+      background: rgba(12, 15, 30, 0.96);
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border 0.12s ease, box-shadow 0.12s ease, background 0.12s ease,
+        color 0.12s ease;
+    }
+
+    .pill input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .pill span.dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1px solid rgba(140, 149, 200, 0.9);
+      box-shadow: 0 0 0 1px rgba(19, 22, 42, 0.9);
+    }
+
+    .pill[data-value="none"] span.dot {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #29f4c8);
+    }
+
+    .pill[data-value="lt180"] span.dot {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #ffc857);
+    }
+
+    .pill[data-value="gt180"] span.dot {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #ff6b88);
+    }
+
+    .pill[data-value="na"] span.dot {
+      background: radial-gradient(circle at 30% 30%, #cbd3ff, #858baf);
+    }
+
+    .pill.selected {
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 12px rgba(41, 244, 200, 0.35);
+      background: radial-gradient(circle at top, rgba(41, 244, 200, 0.3), #101320);
+      color: var(--text);
+    }
+
+    .pill[data-value="gt180"].selected {
+      border-color: rgba(255, 107, 136, 0.8);
+      box-shadow: 0 0 14px rgba(255, 107, 136, 0.6);
+    }
+
+    .pill-text {
+      white-space: nowrap;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(18, 20, 36, 0.98);
+      border: 1px solid rgba(49, 54, 92, 0.9);
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.none {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #29f4c8);
+    }
+    .legend-dot.lt180 {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #ffc857);
+    }
+    .legend-dot.gt180 {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #ff6b88);
+    }
+    .legend-dot.na {
+      background: radial-gradient(circle at 30% 30%, #cbd3ff, #858baf);
+    }
+
+    .panel-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .panel-note strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .primary-textarea-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    .primary-textarea {
+      width: 100%;
+      min-height: 70px;
+      resize: vertical;
+      border-radius: 9px;
+      border: 1px solid rgba(66, 72, 112, 0.9);
+      background: radial-gradient(circle at top, rgba(41, 244, 200, 0.03), #060814);
+      color: var(--text);
+      padding: 8px 9px;
+      font-size: 12px;
+      line-height: 1.4;
+      outline: none;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.7);
+    }
+
+    .primary-textarea::placeholder {
+      color: rgba(138, 144, 179, 0.8);
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .btn-primary {
+      background: radial-gradient(circle at 20% 0, #ffffff, #29f4c8 40%, #0099ff 80%);
+      color: #02030a;
+      box-shadow: 0 0 18px rgba(41, 244, 200, 0.6);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 22px rgba(41, 244, 200, 0.8);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid rgba(90, 98, 148, 0.9);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(21, 24, 44, 0.96);
+      color: var(--text);
+    }
+
+    .tiny-label {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .output-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 8px;
+    }
+
+    .output-box {
+      flex: 1 1 auto;
+      border-radius: var(--radius);
+      border: 1px solid rgba(66, 72, 112, 0.9);
+      background: radial-gradient(circle at top, rgba(41, 244, 200, 0.04), #060814);
+      padding: 10px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      min-height: 180px;
+    }
+
+    .output-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .output-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .pill-small {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(49, 54, 92, 0.9);
+      background: rgba(18, 20, 36, 0.98);
+      color: var(--muted);
+    }
+
+    .output-area {
+      flex: 1 1 auto;
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid rgba(43, 47, 79, 0.9);
+      background: rgba(3, 5, 12, 0.98);
+      color: var(--text);
+      padding: 8px 9px;
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11.5px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
+      white-space: pre-wrap;
+    }
+
+    .output-hint {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .status-line {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      min-height: 14px;
+    }
+
+    .status-line.ok {
+      color: var(--accent);
+    }
+
+    .status-line.warn {
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="app">
+      <header class="app-header">
+        <div class="title-block">
+          <div class="title-icon">🩻</div>
+          <div>
+            <h1>PDAC Vascular Helper</h1>
+            <p class="subtitle">Night-mode tool to build clean vascular report text from your findings.</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span class="badge">Pancreas CT</span>
+          <span>Pick contact for each vessel → generate text.</span>
+        </div>
+      </header>
+
+      <div class="app-body">
+        <!-- LEFT: INPUTS -->
+        <section class="panel">
+          <div class="panel-title">Step 1 · Mark vessel involvement</div>
+
+          <!-- Arteries -->
+          <div class="group-card">
+            <div class="group-header">
+              <div>
+                <div class="group-title">Major Arteries</div>
+                <div class="group-subtitle">Celiac axis, SMA, CHA, GDA</div>
+              </div>
+            </div>
+
+            <div class="vessel-list">
+              <div class="vessel-row" data-vessel="celiac_axis">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Celiac axis (celiac trunk)</span>
+                  <span class="vessel-type">Artery</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="celiac_axis" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="celiac_axis" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="celiac_axis" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="celiac_axis" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="vessel-row" data-vessel="sma">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Superior mesenteric artery (SMA)</span>
+                  <span class="vessel-type">Artery</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="sma" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="sma" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="sma" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="sma" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="vessel-row" data-vessel="cha">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Common hepatic artery (CHA)</span>
+                  <span class="vessel-type">Artery</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="cha" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="cha" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="cha" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="cha" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="vessel-row" data-vessel="gda">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Gastroduodenal artery (GDA)</span>
+                  <span class="vessel-type">Artery</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="gda" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="gda" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="gda" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="gda" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="legend">
+              <div class="legend-item">
+                <span class="legend-dot none"></span><span>No contact</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot lt180"></span><span>&lt; 180° contact</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot gt180"></span><span>&gt; 180° / encasement</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot na"></span><span>Not well assessed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Veins -->
+          <div class="group-card">
+            <div class="group-header">
+              <div>
+                <div class="group-title">Major Veins</div>
+                <div class="group-subtitle">SMV, portal vein / confluence, splenic vein</div>
+              </div>
+            </div>
+            <div class="vessel-list">
+              <div class="vessel-row" data-vessel="smv">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Superior mesenteric vein (SMV)</span>
+                  <span class="vessel-type">Vein</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="smv" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="smv" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="smv" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="smv" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="vessel-row" data-vessel="pv">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Portal vein / SMV-portal confluence</span>
+                  <span class="vessel-type">Vein</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="pv" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="pv" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="pv" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="pv" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="vessel-row" data-vessel="sv">
+                <div class="vessel-label-row">
+                  <span class="vessel-name">Splenic vein</span>
+                  <span class="vessel-type">Vein</span>
+                </div>
+                <div class="vessel-controls">
+                  <label class="pill" data-value="none">
+                    <input type="radio" name="sv" value="none" />
+                    <span class="dot"></span>
+                    <span class="pill-text">No contact</span>
+                  </label>
+                  <label class="pill" data-value="lt180">
+                    <input type="radio" name="sv" value="lt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&lt; 180° contact</span>
+                  </label>
+                  <label class="pill" data-value="gt180">
+                    <input type="radio" name="sv" value="gt180" />
+                    <span class="dot"></span>
+                    <span class="pill-text">&gt; 180° contact / encasement</span>
+                  </label>
+                  <label class="pill" data-value="na">
+                    <input type="radio" name="sv" value="na" />
+                    <span class="dot"></span>
+                    <span class="pill-text">Not well assessed</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="panel-note">
+            <strong>Tip:</strong> Think in three buckets for each vessel: no contact, contact &lt; 180°, or
+            contact &gt; 180° / encasement. The generator will translate that into clean report language.
+          </p>
+
+          <label class="primary-textarea-label">
+            Optional: primary tumour sentence (will appear above vascular text)
+          </label>
+          <textarea
+            id="primaryText"
+            class="primary-textarea"
+            placeholder="Example: Ill-defined hypoattenuating mass in the pancreatic head measuring 3.2 × 2.8 cm with main pancreatic duct and common bile duct obstruction, most consistent with pancreatic ductal adenocarcinoma."
+          ></textarea>
+
+          <div class="controls-row">
+            <button class="btn-primary" id="generateBtn">
+              <span>Generate Report Text</span>
+            </button>
+            <button class="btn-ghost" id="resetBtn">Reset Choices</button>
+            <span class="tiny-label">You can still edit any phrasing after paste.</span>
+          </div>
+          <div id="status" class="status-line"></div>
+        </section>
+
+        <!-- RIGHT: OUTPUT -->
+        <section class="panel">
+          <div class="output-wrapper">
+            <div class="panel-title">Step 2 · Copy into your report</div>
+            <div class="output-box">
+              <div class="output-label-row">
+                <div class="output-title">Suggested report text</div>
+                <div class="pill-small">Vascular involvement section</div>
+              </div>
+              <textarea id="outputArea" class="output-area" readonly placeholder="Click “Generate Report Text” to build structured vascular phrasing based on your selections."></textarea>
+              <div class="output-hint">
+                This is plain text. Paste directly into your impression or body and adjust language if needed.
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const vessels = [
+        // id, label, type, isArtery
+        { id: "celiac_axis", label: "celiac axis (celiac trunk)", type: "artery" },
+        { id: "sma", label: "superior mesenteric artery (SMA)", type: "artery" },
+        { id: "cha", label: "common hepatic artery (CHA)", type: "artery" },
+        { id: "gda", label: "gastroduodenal artery (GDA)", type: "artery" },
+        { id: "smv", label: "superior mesenteric vein (SMV)", type: "vein" },
+        { id: "pv", label: "portal vein / SMV-portal confluence", type: "vein" },
+        { id: "sv", label: "splenic vein", type: "vein" }
+      ];
+
+      const generateBtn = document.getElementById("generateBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const outputArea = document.getElementById("outputArea");
+      const primaryText = document.getElementById("primaryText");
+      const statusEl = document.getElementById("status");
+
+      // Handle pill visual selection
+      document.querySelectorAll(".vessel-controls").forEach((controls) => {
+        controls.addEventListener("click", (e) => {
+          const pill = e.target.closest(".pill");
+          if (!pill) return;
+          const radio = pill.querySelector('input[type="radio"]');
+          if (!radio) return;
+
+          // Unselect siblings
+          const siblings = controls.querySelectorAll(".pill");
+          siblings.forEach((sib) => sib.classList.remove("selected"));
+
+          // Select this one
+          pill.classList.add("selected");
+          radio.checked = true;
+        });
+      });
+
+      function buildSentence(vesselId, value) {
+        const v = vessels.find((x) => x.id === vesselId);
+        if (!v || !value || value === "na") return null;
+
+        const isArtery = v.type === "artery";
+        const name = v.label;
+
+        if (value === "none") {
+          if (isArtery) {
+            return `There is no tumour contact with the ${name}, and perivascular fat planes are preserved.`;
+          } else {
+            return `There is no tumour contact with the ${name}, which remains widely patent with a smooth contour and no thrombus.`;
+          }
+        }
+
+        if (value === "lt180") {
+          if (isArtery) {
+            return `The tumour abuts the ${name} over less than 180° of the arterial circumference without significant luminal narrowing or contour irregularity.`;
+          } else {
+            return `The tumour abuts the ${name} over less than 180° of the venous circumference without contour irregularity or luminal narrowing; the vein remains patent.`;
+          }
+        }
+
+        if (value === "gt180") {
+          if (isArtery) {
+            return `The tumour encases the ${name} over greater than 180° of its circumference with associated luminal narrowing, in keeping with significant arterial involvement.`;
+          } else {
+            return `There is greater than 180° contact between the tumour and the ${name} with associated narrowing of the lumen, in keeping with significant venous involvement.`;
+          }
+        }
+
+        return null;
+      }
+
+      function generateReportText() {
+        const primary = primaryText.value.trim();
+        const arterialSentences = [];
+        const venousSentences = [];
+        let missingCount = 0;
+
+        vessels.forEach((v) => {
+          const radios = document.querySelectorAll(
+            `.vessel-row[data-vessel="${v.id}"] input[type="radio"]`
+          );
+          let value = null;
+          radios.forEach((r) => {
+            if (r.checked) value = r.value;
+          });
+
+          if (!value) {
+            missingCount += 1;
+            return;
+          }
+
+          const sentence = buildSentence(v.id, value);
+          if (!sentence) return;
+
+          if (v.type === "artery") {
+            arterialSentences.push(sentence);
+          } else {
+            venousSentences.push(sentence);
+          }
+        });
+
+        const lines = [];
+
+        if (primary) {
+          lines.push(primary);
+          lines.push(""); // blank line
+        }
+
+        if (arterialSentences.length > 0) {
+          lines.push("Arterial involvement:");
+          arterialSentences.forEach((s) => lines.push("• " + s));
+          lines.push("");
+        }
+
+        if (venousSentences.length > 0) {
+          lines.push("Venous involvement:");
+          venousSentences.forEach((s) => lines.push("• " + s));
+        }
+
+        const text = lines.join("\n").trim();
+        outputArea.value = text || "";
+
+        if (!text) {
+          statusEl.textContent = "No selections detected. Pick contact for at least one vessel.";
+          statusEl.className = "status-line warn";
+        } else if (missingCount > 0) {
+          statusEl.textContent =
+            "Report text generated. Some vessels do not have a selection; adjust wording as needed.";
+          statusEl.className = "status-line";
+        } else {
+          statusEl.textContent = "Report text generated. Copy and paste into your report and edit as needed.";
+          statusEl.className = "status-line ok";
+        }
+      }
+
+      function resetChoices() {
+        // Clear radio selections and pill states
+        document.querySelectorAll(".vessel-row").forEach((row) => {
+          row.querySelectorAll('input[type="radio"]').forEach((r) => {
+            r.checked = false;
+          });
+          row.querySelectorAll(".pill").forEach((pill) => {
+            pill.classList.remove("selected");
+          });
+        });
+        // Clear text and status
+        outputArea.value = "";
+        statusEl.textContent = "";
+        statusEl.className = "status-line";
+      }
+
+      generateBtn.addEventListener("click", generateReportText);
+      resetBtn.addEventListener("click", resetChoices);
+    })();
+  </script>
+</body>
+</html>
