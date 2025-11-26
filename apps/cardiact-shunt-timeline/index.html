@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardiac Shunt Hemodynamics Timeline</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            
+            --col-sys: #ff4d4d;   /* Red - Systemic */
+            --col-pulm: #2979ff;  /* Blue - Pulmonary */
+            --col-body: #ffccbc;  /* Skin tone */
+            --col-cyano: #7b5e9b; /* Cyanotic tone */
+            --col-warn: #ffd700;
+            
+            --bar-svr: #ff4d4d;
+            --bar-pvr-low: #2979ff;
+            --bar-pvr-high: #d500f9;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-weight: 300;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        /* --- LAYOUT --- */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+            max-width: 1100px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 320px;
+            position: relative;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        /* --- PANEL 1: HEART (UPDATED) --- */
+        .heart-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            gap: 0;
+        }
+
+        .chamber {
+            height: 140px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.5s ease;
+            position: relative;
+            z-index: 2;
+            min-width: 60px;
+        }
+
+        .chamber span { font-size: 0.8rem; font-weight: normal; opacity: 0.7; }
+        .chamber .side-label { font-size: 0.7rem; color: #666; position: absolute; bottom: 5px; }
+
+        #rv {
+            background: rgba(41, 121, 255, 0.15);
+            border: 3px solid var(--col-pulm);
+            color: var(--col-pulm);
+            width: 80px; 
+            border-right: none; 
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        #lv {
+            background: rgba(255, 77, 77, 0.15);
+            border: 3px solid var(--col-sys);
+            color: var(--col-sys);
+            width: 80px;
+            border-left: none; 
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        /* WRAPPER FOR SHUNT CHANNEL + LABEL */
+        .shunt-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 140px; /* Fixed width for stability */
+            position: relative;
+        }
+
+        /* SHUNT CHANNEL (Visual Pipe) */
+        .shunt-channel {
+            height: 60px; /* Changes with JS */
+            width: 100%;
+            background: #111;
+            border-top: 2px dashed #444;
+            border-bottom: 2px dashed #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            transition: height 0.3s ease;
+        }
+
+        /* FLOW INDICATORS (Arrows) */
+        .flow-arrows {
+            font-family: monospace;
+            font-size: 2.5rem; /* Larger arrows */
+            font-weight: bold;
+            white-space: nowrap;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            line-height: 1;
+            margin-top: -5px; /* Center alignment adjustment */
+        }
+
+        /* TEXT LABEL (Moved Outside) */
+        .shunt-label {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* ANIMATIONS FOR FLOW */
+        /* Screen Left is RV. Screen Right is LV. */
+        /* L->R Shunt means LV to RV. Visually: Right to Left (<---) */
+        @keyframes flowRightToLeft {
+            0% { transform: translateX(40%); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateX(-40%); opacity: 0; }
+        }
+
+        /* R->L Shunt means RV to LV. Visually: Left to Right (--->) */
+        @keyframes flowLeftToRight {
+            0% { transform: translateX(-40%); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateX(40%); opacity: 0; }
+        }
+
+        /* --- PANEL 2: RESISTANCE BARS --- */
+        .bar-chart {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            width: 100%;
+            height: 200px;
+            gap: 40px;
+            padding-bottom: 20px;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+            width: 60px;
+        }
+
+        .bar {
+            width: 100%;
+            background: #555;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease, background-color 0.5s ease;
+            position: relative;
+        }
+
+        .bar-label { margin-top: 10px; font-weight: bold; font-size: 0.9rem; }
+        .bar-value { position: absolute; top: -25px; width: 100%; text-align: center; font-size: 0.8rem; color: #ccc; }
+
+        /* --- PANEL 3: LUNGS & BODY --- */
+        .organ-display {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        .lung-container { position: relative; width: 140px; height: 100px; }
+        
+        .lung-shape {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, #444, #222);
+            border-radius: 50% 50% 20% 20% / 80% 80% 20% 20%;
+            border: 2px solid #555;
+            transition: border 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lung-edema {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(41, 121, 255, 0.9), transparent);
+            opacity: 0; transition: opacity 0.5s ease;
+        }
+
+        .lung-label { text-align: center; margin-top: 5px; font-size: 0.8rem; color: var(--text-muted); }
+
+        .body-circle {
+            width: 60px; height: 60px; border-radius: 50%;
+            background-color: var(--col-body);
+            border: 2px solid #444; transition: background-color 0.5s ease;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: rgba(0,0,0,0.5);
+        }
+
+        /* --- CONTROLS --- */
+        .control-panel {
+            width: 100%; max-width: 800px;
+            background: #252525; padding: 20px; border-radius: 12px;
+            margin-top: 10px; border: 1px solid #333;
+        }
+
+        .range-wrap { position: relative; padding: 0 10px; }
+        
+        input[type=range] {
+            width: 100%; margin: 20px 0; cursor: pointer;
+            accent-color: var(--col-sys);
+        }
+
+        .ticks { display: flex; justify-content: space-between; margin-top: -10px; color: var(--text-muted); font-size: 0.8rem; }
+        .tick { position: relative; text-align: center; width: 40px; }
+        .tick::before { content: '|'; display: block; font-weight: bold; margin-bottom: 5px; }
+
+        .status-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #444; }
+        .status-title { color: var(--col-warn); font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
+        .status-desc { font-size: 0.95rem; line-height: 1.5; color: #ddd; }
+
+        @media (max-width: 800px) { .dashboard { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <h1>Cardiac Shunt Timeline</h1>
+
+    <div class="dashboard">
+        
+        <!-- PANEL 1: HEART -->
+        <div class="panel">
+            <div class="panel-title">Flow Direction & Magnitude</div>
+            <div class="heart-container">
+                <div id="rv" class="chamber">
+                    RV
+                    <span class="side-label">Screen Left</span>
+                </div>
+                
+                <!-- Shunt Wrapper (Stacking Channel and Text) -->
+                <div class="shunt-wrapper">
+                    <div class="shunt-channel" id="shuntChannel">
+                        <div class="flow-arrows" id="flowArrows">«««</div>
+                    </div>
+                    <div class="shunt-label" id="shuntLabel">Minimal Shunt</div>
+                </div>
+
+                <div id="lv" class="chamber">
+                    LV
+                    <span class="side-label">Screen Right</span>
+                </div>
+            </div>
+            <div style="font-size:0.8rem; color:#666; margin-top:15px; text-align:center;">
+                Channel width = Shunt Volume<br>
+                Chamber width = Volume Load
+            </div>
+        </div>
+
+        <!-- PANEL 2: RESISTANCE -->
+        <div class="panel">
+            <div class="panel-title">Vascular Resistance</div>
+            <div class="bar-chart">
+                <div class="bar-group">
+                    <div class="bar-value">80</div>
+                    <div class="bar" id="svrBar" style="height: 80%; background: var(--bar-svr);"></div>
+                    <div class="bar-label">SVR</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value" id="pvrText">75</div>
+                    <div class="bar" id="pvrBar" style="height: 75%; background: var(--bar-pvr-low);"></div>
+                    <div class="bar-label">PVR</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL 3: LUNGS/BODY -->
+        <div class="panel">
+            <div class="panel-title">Clinical Impact</div>
+            <div class="organ-display">
+                <!-- Lungs -->
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <div class="lung-container">
+                        <div class="lung-shape" id="lungShape">
+                            <div class="lung-edema" id="edemaOverlay"></div>
+                        </div>
+                    </div>
+                    <div class="lung-label">Lungs <span id="lungStatus"></span></div>
+                </div>
+
+                <!-- Body -->
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <div class="body-circle" id="bodyCircle">👤</div>
+                    <div class="lung-label">Systemic Color</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="control-panel">
+        <div class="range-wrap">
+            <input type="range" id="stageSlider" min="0" max="400" value="0" step="1">
+            <div class="ticks">
+                <div class="tick">Neonate</div>
+                <div class="tick">Infant</div>
+                <div class="tick">High Vol</div>
+                <div class="tick">PAH Dev</div>
+                <div class="tick">Eisenmenger</div>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <div class="status-title" id="statusTitle">Stage 0: Neonate</div>
+            <div class="status-desc" id="statusDesc">
+                High pulmonary vascular resistance. Small left-to-right shunt. Usually clinically silent.
+            </div>
+        </div>
+    </div>
+
+<script>
+    const slider = document.getElementById('stageSlider');
+    
+    // UI References
+    const pvrBar = document.getElementById('pvrBar');
+    const pvrText = document.getElementById('pvrText');
+    const svrBar = document.getElementById('svrBar');
+    
+    const shuntChannel = document.getElementById('shuntChannel');
+    const flowArrows = document.getElementById('flowArrows');
+    const shuntLabel = document.getElementById('shuntLabel');
+    
+    const rvDiv = document.getElementById('rv');
+    const lvDiv = document.getElementById('lv');
+    
+    const lungShape = document.getElementById('lungShape');
+    const edemaOverlay = document.getElementById('edemaOverlay');
+    const lungStatus = document.getElementById('lungStatus');
+    const bodyCircle = document.getElementById('bodyCircle');
+    
+    const statusTitle = document.getElementById('statusTitle');
+    const statusDesc = document.getElementById('statusDesc');
+
+    // Logic Data Points
+    const keyframes = [
+        { 
+            t: 0, 
+            pvr: 75, 
+            lvScale: 1.0, rvScale: 1.0, 
+            edema: 0.0, 
+            descTitle: "Stage 0: Neonate", 
+            desc: "High PVR (~Systemic). Pressure gradient is minimal. Small L→R shunt. Clinically silent." 
+        },
+        { 
+            t: 1, 
+            pvr: 30, 
+            lvScale: 1.4, rvScale: 1.0, 
+            edema: 0.4, 
+            descTitle: "Stage 1: Early Infant", 
+            desc: "PVR drops. Systemic resistance > Pulmonary. Large L→R shunt develops. LV Volume overload." 
+        },
+        { 
+            t: 2, 
+            pvr: 30, 
+            lvScale: 1.6, rvScale: 1.0, 
+            edema: 0.9, 
+            descTitle: "Stage 2: High Volume (Qp:Qs High)", 
+            desc: "Sustained massive L→R shunt. LV Failure. Pulmonary Venous Hypertension & Edema." 
+        },
+        { 
+            t: 3, 
+            pvr: 60, 
+            lvScale: 1.3, rvScale: 1.2, 
+            edema: 0.5, 
+            descTitle: "Stage 3: Developing PAH", 
+            desc: "Chronic overcirculation damages lung vessels. PVR rises. Shunt volume decreases (Pseudo-normalization)." 
+        },
+        { 
+            t: 4, 
+            pvr: 90, 
+            lvScale: 1.0, rvScale: 1.6, 
+            edema: 0.1, 
+            descTitle: "Stage 4: Eisenmenger Syndrome", 
+            desc: "PVR ≥ SVR. Shunt Reversal (Right-to-Left). Deoxygenated blood enters body. Cyanosis." 
+        }
+    ];
+
+    function lerp(start, end, amt) {
+        return (1 - amt) * start + amt * end;
+    }
+
+    function update() {
+        const rawVal = parseInt(slider.value);
+        const t = rawVal / 100; // 0.0 to 4.0
+        
+        // Find indices for interpolation
+        const idx1 = Math.floor(t);
+        const idx2 = Math.min(idx1 + 1, keyframes.length - 1);
+        const ratio = t - idx1;
+
+        const k1 = keyframes[idx1];
+        const k2 = keyframes[idx2];
+
+        // 1. Interpolate Values
+        const curPVR = lerp(k1.pvr, k2.pvr, ratio);
+        const curLV = lerp(k1.lvScale, k2.lvScale, ratio);
+        const curRV = lerp(k1.rvScale, k2.rvScale, ratio);
+        const curEdema = lerp(k1.edema, k2.edema, ratio);
+        const SVR = 80;
+
+        // 2. Resistance Bars
+        pvrBar.style.height = curPVR + "%";
+        pvrText.innerText = Math.round(curPVR);
+        
+        if(curPVR > 85) pvrBar.style.backgroundColor = "var(--bar-pvr-high)"; // Purple
+        else if (curPVR > 50) pvrBar.style.backgroundColor = "#9c4dff";
+        else pvrBar.style.backgroundColor = "var(--bar-pvr-low)"; // Blue
+
+        // 3. Shunt Channel Logic (Direction: Screen Right LV to Screen Left RV)
+        const delta = SVR - curPVR; // Positive = L->R, Negative = R->L
+        const magnitude = Math.abs(delta);
+        
+        // Channel Height
+        let thickness = Math.max(4, (magnitude / 50) * 60);
+        shuntChannel.style.height = thickness + "px";
+
+        // Flow Direction & Color
+        if (delta >= 0) {
+            // LEFT TO RIGHT SHUNT (Physiological)
+            // Visually: From LV (Screen Right) to RV (Screen Left)
+            // Direction: <---- (Right to Left)
+            
+            flowArrows.innerText = "«««";
+            flowArrows.style.color = "var(--col-sys)"; // Red
+            flowArrows.style.animation = `flowRightToLeft ${1.5 - (magnitude/100)}s linear infinite`;
+            
+            shuntLabel.innerText = magnitude < 10 ? "Minimal L→R" : "Large L → R";
+            shuntLabel.style.color = "var(--text-main)";
+            
+            // Channel Glow (Red)
+            shuntChannel.style.borderColor = "var(--col-sys)";
+            shuntChannel.style.boxShadow = `inset 0 0 20px rgba(255, 77, 77, ${magnitude/100})`;
+
+        } else {
+            // RIGHT TO LEFT SHUNT (Eisenmenger)
+            // Visually: From RV (Screen Left) to LV (Screen Right)
+            // Direction: ----> (Left to Right)
+            
+            flowArrows.innerText = "»»»";
+            flowArrows.style.color = "var(--col-cyano)"; // Purple/Blue
+            flowArrows.style.animation = `flowLeftToRight ${1.5 - (magnitude/100)}s linear infinite`;
+            
+            shuntLabel.innerText = "Reversed R → L";
+            shuntLabel.style.color = "var(--col-cyano)";
+            
+            // Channel Glow (Purple)
+            shuntChannel.style.borderColor = "var(--col-cyano)";
+            shuntChannel.style.boxShadow = `inset 0 0 20px rgba(123, 94, 155, ${magnitude/50})`;
+        }
+
+        // 4. Chamber Widths
+        lvDiv.style.width = (80 * curLV) + "px";
+        rvDiv.style.width = (80 * curRV) + "px";
+
+        // 5. Lungs Status
+        edemaOverlay.style.opacity = curEdema;
+        
+        if(t > 2.5) {
+            const borderThick = lerp(2, 8, (t - 2.5)/1.5);
+            lungShape.style.border = `${borderThick}px solid #777`;
+            lungStatus.innerText = "(Vessel Remodeling)";
+        } else if (curEdema > 0.4) {
+            lungShape.style.border = "2px solid #555";
+            lungStatus.innerText = "(Congested/Wet)";
+        } else {
+            lungShape.style.border = "2px solid #555";
+            lungStatus.innerText = "(Normal)";
+        }
+
+        // 6. Cyanosis
+        if(delta < 0) {
+            bodyCircle.style.backgroundColor = "var(--col-cyano)";
+            bodyCircle.innerText = "🤢";
+        } else {
+            bodyCircle.style.backgroundColor = "var(--col-body)";
+            bodyCircle.innerText = "👤";
+        }
+
+        // 7. Text
+        const displayKey = ratio < 0.5 ? k1 : k2;
+        statusTitle.innerText = displayKey.descTitle;
+        statusDesc.innerText = displayKey.desc;
+    }
+
+    slider.addEventListener('input', update);
+    update();
+
+</script>
+</body>
+</html>
