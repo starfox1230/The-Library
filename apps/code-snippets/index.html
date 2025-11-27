@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interatrial Septum Development</title>
+    <style>
+        :root {
+            --bg-color: #fdfdf6;
+            --outline-color: #222;
+            --primum-color: #d81b60; /* Magenta-ish */
+            --secundum-color: #3949ab; /* Blue-ish */
+            --highlight: #ffd700;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--outline-color);
+        }
+
+        .container {
+            position: relative;
+            width: 600px;
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 2px solid #eee;
+        }
+
+        /* Canvas styling to look like a notebook drawing */
+        canvas {
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: crosshair;
+        }
+
+        .controls {
+            width: 100%;
+            padding: 10px 0;
+        }
+
+        input[type=range] {
+            width: 100%;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+
+        .step-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            min-height: 1.6em;
+            color: #333;
+        }
+
+        .description {
+            font-size: 1rem;
+            color: #666;
+            min-height: 3em;
+            margin-bottom: 20px;
+        }
+
+        /* Label styling overlay */
+        .label-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 560px; /* match canvas width */
+            height: 400px; /* match canvas height */
+            pointer-events: none;
+        }
+
+        .label {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+
+        .label.active {
+            opacity: 1;
+        }
+
+        /* Specific label colors matching visuals */
+        .lbl-primum { color: var(--primum-color); border-color: var(--primum-color); }
+        .lbl-secundum { color: var(--secundum-color); border-color: var(--secundum-color); }
+        .lbl-structure { color: black; border-color: black; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="step-display" id="stepTitle">Common Atrium</div>
+        
+        <div style="position: relative;">
+            <canvas id="heartCanvas" width="560" height="400"></canvas>
+            <div id="labelOverlay" class="label-container">
+                <!-- Labels injected via JS -->
+            </div>
+        </div>
+
+        <div class="description" id="stepDesc">
+            Use the slider to begin the development of the heart.
+        </div>
+
+        <div class="controls">
+            <input type="range" id="timeSlider" min="0" max="100" value="0" step="0.5">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('timeSlider');
+        const titleEl = document.getElementById('stepTitle');
+        const descEl = document.getElementById('stepDesc');
+        const overlay = document.getElementById('labelOverlay');
+
+        // Configuration for visuals
+        const centerX = canvas.width / 2;
+        const roofY = 80;
+        const cushionY = 320;
+        const cushionSize = 40;
+        
+        // State for labels to prevent constant DOM thrashing
+        let activeLabels = new Set();
+
+        // Helper to add labels
+        function updateLabel(id, text, x, y, type, visible) {
+            let el = document.getElementById(id);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = id;
+                el.className = `label ${type}`;
+                el.innerText = text;
+                overlay.appendChild(el);
+            }
+            
+            if (visible) {
+                el.classList.add('active');
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+            } else {
+                el.classList.remove('active');
+            }
+        }
+
+        function drawHeartOutline() {
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#222';
+            ctx.fillStyle = '#fdfdf6';
+
+            // Draw the "m" shape of the atria
+            ctx.beginPath();
+            // Left Atrium curve
+            ctx.moveTo(centerX - 200, 200);
+            ctx.bezierCurveTo(centerX - 200, roofY - 50, centerX - 10, roofY - 20, centerX, roofY + 30);
+            // Right Atrium curve
+            ctx.bezierCurveTo(centerX + 10, roofY - 20, centerX + 200, roofY - 50, centerX + 200, 200);
+            
+            // Bottom curves coming in
+            ctx.moveTo(centerX - 200, 200);
+            ctx.quadraticCurveTo(centerX - 180, 300, centerX - cushionSize, cushionY);
+            
+            ctx.moveTo(centerX + 200, 200);
+            ctx.quadraticCurveTo(centerX + 180, 300, centerX + cushionSize, cushionY);
+            
+            ctx.stroke();
+
+            // Endocardial Cushion (The square in the middle)
+            ctx.fillStyle = '#222';
+            ctx.fillRect(centerX - cushionSize/2, cushionY - 10, cushionSize, 20);
+            
+            updateLabel('lbl-cushion', 'Endocardial Cushions', centerX - 60, cushionY + 20, 'lbl-structure', true);
+        }
+
+        function drawSeptumPrimum(progress) {
+            // Progress 0 to 100 for this specific structure
+            if (progress <= 0) return;
+
+            const maxLen = cushionY - roofY;
+            const currentLen = maxLen * Math.min(progress, 1); // Cap length at 100%
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#d81b60'; // Pink
+            ctx.lineWidth = 8;
+            ctx.moveTo(centerX - 5, roofY); 
+            ctx.lineTo(centerX - 5, roofY + currentLen);
+            ctx.stroke();
+
+            // Logic for Foramen Primum (The gap at the bottom)
+            const gapExists = progress < 1;
+            updateLabel('lbl-f-primum', 'Foramen Primum', centerX - 120, cushionY - 40, 'lbl-primum', gapExists && progress > 0.2);
+            updateLabel('lbl-s-primum', 'Septum Primum', centerX - 120, roofY + 40, 'lbl-primum', progress > 0.1);
+        }
+
+        function drawPerforations(apoptosisProgress) {
+            // apoptosisProgress: 0 (none) to 1 (full hole)
+            if (apoptosisProgress <= 0) return;
+
+            ctx.fillStyle = '#fdfdf6'; // Background color to simulate holes
+            const holeSize = 6 * apoptosisProgress;
+
+            // Draw scattering of holes that eventually merge
+            const holeY = roofY + 30;
+            
+            ctx.beginPath();
+            // Simulating multiple small holes
+            ctx.arc(centerX - 5, holeY, holeSize, 0, Math.PI * 2);
+            ctx.arc(centerX - 5, holeY + 15, holeSize * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            updateLabel('lbl-apoptosis', 'Apoptosis (Cell Death)', centerX - 160, roofY + 10, 'lbl-primum', apoptosisProgress > 0.1 && apoptosisProgress < 0.9);
+            updateLabel('lbl-f-secundum', 'Foramen Secundum', centerX - 140, roofY + 20, 'lbl-primum', apoptosisProgress >= 0.9);
+        }
+
+        function drawSeptumSecundum(progress) {
+            if (progress <= 0) return;
+
+            const maxLen = cushionY - roofY - 60; // Doesn't go all the way down usually, or creates the limb
+            // In the video/diagrams, Secundum is thick and to the right
+            
+            // It actually grows to cover the holes but leaves an oval gap
+            const currentLen = (cushionY - roofY) * Math.min(progress, 0.75); 
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#3949ab'; // Blue
+            ctx.lineWidth = 12; // Thicker
+            ctx.moveTo(centerX + 10, roofY); 
+            ctx.lineTo(centerX + 10, roofY + currentLen);
+            ctx.stroke();
+
+            // The Limb (Limbus) logic - creates the valve shape
+            updateLabel('lbl-s-secundum', 'Septum Secundum', centerX + 30, roofY + 60, 'lbl-secundum', progress > 0.1);
+            
+            // Foramen Ovale label (The path created)
+            updateLabel('lbl-f-ovale', 'Foramen Ovale', centerX + 30, cushionY - 100, 'lbl-structure', progress > 0.7);
+        }
+
+        function drawScene() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Static Anatomy
+            drawHeartOutline();
+
+            const t = parseInt(slider.value);
+            
+            // Timeline Logic
+            // 0 - 30: Septum Primum grows
+            // 25 - 45: Perforations appear (Apoptosis)
+            // 30 - 40: Septum Primum fuses with cushions (Foramen Primum closes)
+            // 45 - 60: Perforations merge (Foramen Secundum formed)
+            // 60 - 100: Septum Secundum grows
+
+            // --- Calculations ---
+
+            // Septum Primum Growth (0 to 100% length)
+            let primumGrowth = 0;
+            if (t < 40) {
+                primumGrowth = t / 40; 
+            } else {
+                primumGrowth = 1; // Fully fused
+            }
+
+            // Perforations / Foramen Secundum formation
+            let apoptosis = 0;
+            if (t > 25 && t < 50) {
+                apoptosis = (t - 25) / 25; // 0 to 1
+            } else if (t >= 50) {
+                apoptosis = 1; // Fully formed hole
+            }
+
+            // Septum Secundum Growth
+            let secundumGrowth = 0;
+            if (t > 60) {
+                secundumGrowth = (t - 60) / 40;
+            }
+
+            // --- Drawing Layers ---
+            
+            drawSeptumPrimum(primumGrowth);
+            drawPerforations(apoptosis);
+            drawSeptumSecundum(secundumGrowth);
+
+            // --- Text Descriptions ---
+            let title = "";
+            let desc = "";
+
+            if (t < 10) {
+                title = "Common Atrium";
+                desc = "We start with a single common atrium. The Endocardial cushions are visible at the bottom.";
+            } else if (t < 25) {
+                title = "Septum Primum Growth";
+                desc = "The Septum Primum grows down from the roof. The gap remaining at the bottom is the Foramen Primum.";
+            } else if (t < 40) {
+                title = "Foramen Primum Closing";
+                desc = "As the Septum Primum reaches the cushions to close the Foramen Primum, programmed cell death (apoptosis) begins near the roof.";
+            } else if (t < 60) {
+                title = "Formation of Foramen Secundum";
+                desc = "The Foramen Primum is completely closed. The perforations merge to form a new opening: The Foramen Secundum.";
+            } else if (t < 90) {
+                title = "Septum Secundum Growth";
+                desc = "A second, thicker septum (Septum Secundum) grows down from the roof to the right of the Septum Primum.";
+            } else {
+                title = "Foramen Ovale";
+                desc = "The Septum Secundum covers the Foramen Secundum but leaves an opening called the Foramen Ovale. The Septum Primum acts as a valve.";
+            }
+
+            titleEl.innerText = title;
+            descEl.innerText = desc;
+        }
+
+        // Initialize
+        slider.addEventListener('input', drawScene);
+        drawScene(); // First draw
+
+    </script>
+</body>
+</html>
