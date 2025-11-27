@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heart Development - Mobile Optimized</title>
+    <title>Heart Development - Mobile Fix</title>
     <style>
         :root {
             --bg-color: #fdfdf6;
-            --outline-color: #333;
+            --text-color: #333;
             --primum-color: #d81b60; /* Magenta */
             --secundum-color: #3949ab; /* Blue */
-            --cushion-color: #444;
+            --cushion-color: #555;
         }
 
         * {
@@ -19,406 +19,358 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 20px 10px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            color: var(--outline-color);
+            color: var(--text-color);
         }
 
-        .header {
+        header {
             text-align: center;
             margin-bottom: 10px;
         }
 
         h2 {
-            margin: 0 0 5px 0;
-            font-size: 1.4rem;
+            margin: 0;
+            font-size: 1.2rem;
+            color: #222;
         }
 
-        /* 
-           The Visual Wrapper keeps the canvas and labels in sync.
-           It scales naturally with the screen width.
-        */
-        .visual-wrapper {
+        /* Container for the Drawing and Labels */
+        .visual-container {
             position: relative;
             width: 100%;
-            max-width: 500px; /* Max width for tablets/desktop */
-            aspect-ratio: 1 / 0.9; /* Keep aspect ratio consistent */
+            max-width: 450px; /* Tablet limit */
+            aspect-ratio: 1 / 0.9; /* Square-ish */
             margin: 0 auto;
-            background: #fff;
+            background: white;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            border: 1px solid #e0e0e0;
-            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+            overflow: hidden; /* Ensures nothing spills out */
         }
 
         canvas {
             display: block;
             width: 100%;
             height: 100%;
-            /* The canvas internal resolution is fixed in JS, CSS scales it */
         }
 
-        /* Labels are positioned absolutely using percentages */
+        /* 
+           LABEL STYLING 
+           We use fixed positions (Top Left, Top Right, Bottom) 
+           so they never leave the screen boundaries.
+        */
         .label {
             position: absolute;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem; /* Small readable text */
-            font-weight: 600;
             background: rgba(255, 255, 255, 0.95);
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            pointer-events: none; /* Let clicks pass through to canvas */
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            opacity: 0;
-            white-space: nowrap;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            transition: opacity 0.3s ease;
+            opacity: 0; /* Hidden by default */
+            pointer-events: none;
+            max-width: 45%; /* Prevent overlapping center */
+            text-align: center;
             z-index: 10;
-        }
-
-        /* Mobile specific font bump if screen is tiny */
-        @media (max-width: 360px) {
-            .label { font-size: 0.7rem; padding: 2px 5px; }
         }
 
         .label.active {
             opacity: 1;
         }
 
-        /* Color Coding */
-        .lbl-primum { 
-            color: var(--primum-color); 
+        /* Specific Locations */
+        #lbl-left {
+            top: 20px;
+            left: 10px; /* Pinned to safe zone inside left edge */
+            color: var(--primum-color);
             border-left: 4px solid var(--primum-color);
-        }
-        .lbl-secundum { 
-            color: var(--secundum-color); 
-            border-right: 4px solid var(--secundum-color);
-        }
-        .lbl-neutral {
-            color: #333;
-            border-bottom: 3px solid #333;
+            text-align: left;
         }
 
-        /* Controls Section */
-        .controls-container {
+        #lbl-right {
+            top: 20px;
+            right: 10px; /* Pinned to safe zone inside right edge */
+            color: var(--secundum-color);
+            border-right: 4px solid var(--secundum-color);
+            text-align: right;
+        }
+
+        #lbl-center-bot {
+            bottom: 60px; /* Above the cushion */
+            left: 50%;
+            transform: translateX(-50%);
+            color: #333;
+            border-bottom: 3px solid #ccc;
+            white-space: nowrap;
+        }
+
+        #lbl-cushion {
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #eee;
+            color: #444;
+            border: none;
+        }
+
+        /* Controls */
+        .controls {
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
+            margin-top: 15px;
             background: white;
             padding: 15px;
             border-radius: 12px;
-            margin-top: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            text-align: center;
+            border: 1px solid #eee;
         }
 
-        .description {
-            font-size: 0.95rem;
+        .desc-box {
+            font-size: 0.9rem;
             line-height: 1.4;
             color: #555;
-            min-height: 3.5em; /* Prevent layout jump */
+            min-height: 60px;
             margin-bottom: 15px;
         }
 
         input[type=range] {
             width: 100%;
-            height: 8px;
-            border-radius: 5px;
-            background: #e0e0e0;
-            outline: none;
-            -webkit-appearance: none;
+            margin: 0;
+            cursor: pointer;
         }
 
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: var(--primum-color);
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(0,0,0,0.2);
-            border: 2px solid #fff;
-        }
-
-        input[type=range]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: var(--primum-color);
-            cursor: pointer;
-            border: 2px solid #fff;
-        }
     </style>
 </head>
 <body>
 
-    <div class="header">
+    <header>
         <h2 id="stepTitle">Common Atrium</h2>
+    </header>
+
+    <div class="visual-container">
+        <canvas id="heartCanvas"></canvas>
+        
+        <!-- Fixed DOM Labels -->
+        <div id="lbl-left" class="label">Septum Primum</div>
+        <div id="lbl-right" class="label">Septum Secundum</div>
+        <div id="lbl-center-bot" class="label">Foramen</div>
+        <div id="lbl-cushion" class="label active">Endocardial Cushions</div>
     </div>
 
-    <div class="visual-wrapper" id="visualWrapper">
-        <canvas id="heartCanvas" width="600" height="540"></canvas>
-        <!-- Labels injected by JS -->
-    </div>
-
-    <div class="controls-container">
-        <div class="description" id="stepDesc">
-            Drag the slider to start formation.
+    <div class="controls">
+        <div class="desc-box" id="stepDesc">
+            Drag the slider to visualize the development process.
         </div>
-        <input type="range" id="timeSlider" min="0" max="100" value="0" step="0.5">
+        <input type="range" id="slider" min="0" max="100" value="0" step="0.5">
     </div>
 
     <script>
         const canvas = document.getElementById('heartCanvas');
         const ctx = canvas.getContext('2d');
-        const slider = document.getElementById('timeSlider');
+        const slider = document.getElementById('slider');
+        
+        // DOM Elements for labels
+        const lblLeft = document.getElementById('lbl-left');
+        const lblRight = document.getElementById('lbl-right');
+        const lblCenter = document.getElementById('lbl-center-bot');
         const titleEl = document.getElementById('stepTitle');
         const descEl = document.getElementById('stepDesc');
-        const wrapper = document.getElementById('visualWrapper');
 
-        // Internal resolution of canvas (High DPI)
-        // We use these coordinates for drawing, but convert to % for labels
-        const CW = 600; 
-        const CH = 540;
-        const CX = CW / 2; // Center X (300)
+        // Layout Constants (Internal Resolution)
+        // We set internal res high, CSS scales it down.
+        const W = 600;
+        const H = 540;
         
-        // Anatomy Constants
-        const ROOF_Y = 60;
-        const CUSHION_Y = 420;
-        const ATRIUM_WIDTH = 240;
+        // Anatomical Coordinates
+        const CX = W / 2;
+        const ROOF_Y = 80;
+        const CUSHION_Y = 460;
+        const CUSHION_W = 100;
 
-        // Label Management
-        function updateLabel(id, text, x, y, type, align, visible) {
-            let el = document.getElementById(id);
-            if (!el) {
-                el = document.createElement('div');
-                el.id = id;
-                el.className = `label ${type}`;
-                el.innerText = text;
-                wrapper.appendChild(el);
-            }
+        // Label Anchor Points (Where the lines start from)
+        // These roughly match where the CSS places the DOM elements
+        const LABEL_LEFT_ANCHOR = { x: 50, y: 60 }; 
+        const LABEL_RIGHT_ANCHOR = { x: W - 50, y: 60 };
 
-            if (visible) {
-                el.classList.add('active');
-                
-                // Convert internal coordinates to percentages
-                const leftPct = (x / CW) * 100;
-                const topPct = (y / CH) * 100;
+        // Setup Canvas Resolution
+        canvas.width = W;
+        canvas.height = H;
 
-                el.style.left = leftPct + '%';
-                el.style.top = topPct + '%';
-                
-                // Handle alignment to keep text away from the drawing
-                // translate(-100%, ...) moves the label to the left of the coordinate
-                // translate(0, ...) moves it to the right
-                if (align === 'left') {
-                    el.style.transform = 'translate(-100%, -50%)'; 
-                    el.style.textAlign = 'right';
-                } else if (align === 'right') {
-                    el.style.transform = 'translate(0%, -50%)';
-                    el.style.textAlign = 'left';
-                } else {
-                    el.style.transform = 'translate(-50%, -50%)'; // Center
-                }
-
-            } else {
-                el.classList.remove('active');
-            }
-        }
-
-        function drawHeartOutline() {
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.strokeStyle = '#222';
-            ctx.fillStyle = '#fdfdf6';
-            ctx.lineWidth = 6;
-
-            ctx.clearRect(0, 0, CW, CH);
-
-            // 1. Draw Atria Walls
+        function drawConnector(startX, startY, endX, endY, color) {
             ctx.beginPath();
-            
-            // Left Wall
-            ctx.moveTo(CX - 80, CUSHION_Y + 40); // Bottom valve area
-            ctx.quadraticCurveTo(CX - ATRIUM_WIDTH, CUSHION_Y, CX - ATRIUM_WIDTH, 200); // Side
-            ctx.quadraticCurveTo(CX - ATRIUM_WIDTH, ROOF_Y, CX, ROOF_Y + 20); // Top left arc
-
-            // Right Wall
-            ctx.quadraticCurveTo(CX + ATRIUM_WIDTH, ROOF_Y, CX + ATRIUM_WIDTH, 200); // Top right arc
-            ctx.quadraticCurveTo(CX + ATRIUM_WIDTH, CUSHION_Y, CX + 80, CUSHION_Y + 40); // Side
-            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 3]); // Dashed line
+            ctx.moveTo(startX, startY);
+            // Draw a little curve or straight line to the target
+            ctx.lineTo(endX, endY);
             ctx.stroke();
+            ctx.setLineDash([]); // Reset
 
-            // 2. Endocardial Cushions (The base)
-            ctx.fillStyle = '#444';
-            ctx.fillRect(CX - 40, CUSHION_Y - 15, 80, 30);
-            
-            // Label for Cushion (Bottom Center)
-            updateLabel('lbl-cushion', 'Endocardial Cushions', CX, CUSHION_Y + 45, 'lbl-neutral', 'center', true);
-        }
-
-        function drawSeptumPrimum(t) {
-            // Timeline: 0 -> 40
-            let growth = Math.min(Math.max(t / 40, 0), 1);
-            if (growth <= 0) return;
-
-            // Draw Septum Primum (Pink)
-            const length = (CUSHION_Y - ROOF_Y - 15) * growth;
-            
+            // Draw a dot at the target
             ctx.beginPath();
-            ctx.strokeStyle = '#d81b60';
-            ctx.lineWidth = 10;
-            ctx.moveTo(CX - 8, ROOF_Y + 20);
-            ctx.lineTo(CX - 8, ROOF_Y + 20 + length);
-            ctx.stroke();
-
-            // Label Positioned to the FAR LEFT (x=20) to avoid overlap
-            // We align based on the tip of the septum vertically
-            const labelY = ROOF_Y + 20 + (length / 2);
-            updateLabel('lbl-primum', 'Septum Primum', 120, labelY, 'lbl-primum', 'left', t > 5);
-
-            // Foramen Primum Label (The gap)
-            // Visible until fully fused (t=40)
-            if (t > 10 && t < 38) {
-                 updateLabel('lbl-fprimum', 'Foramen Primum', 120, CUSHION_Y - 40, 'lbl-primum', 'left', true);
-                 // Little arrow or indicator line helper
-                 ctx.beginPath();
-                 ctx.lineWidth = 2;
-                 ctx.setLineDash([5, 5]);
-                 ctx.strokeStyle = '#d81b60';
-                 ctx.moveTo(125, CUSHION_Y - 40);
-                 ctx.lineTo(CX - 15, CUSHION_Y - 20);
-                 ctx.stroke();
-                 ctx.setLineDash([]);
-            } else {
-                updateLabel('lbl-fprimum', '', 0, 0, '', '', false);
-            }
+            ctx.fillStyle = color;
+            ctx.arc(endX, endY, 4, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        function drawApoptosis(t) {
-            // Timeline: 25 -> 50
-            if (t < 25) {
-                updateLabel('lbl-secundum-hole', '', 0, 0, '', '', false);
-                return;
-            };
-
-            let stage = Math.min(Math.max((t - 25) / 25, 0), 1);
-            
-            // Draw holes
-            ctx.fillStyle = '#fdfdf6'; // Color of background to simulate holes
-            const holeBaseY = ROOF_Y + 50;
-            const holeSize = 5 + (10 * stage); // Holes get bigger
-
-            // We create a "masking" effect to create holes in the pink line
-            if (stage > 0) {
-                ctx.beginPath();
-                ctx.arc(CX - 8, holeBaseY, holeSize, 0, Math.PI*2);
-                ctx.arc(CX - 8, holeBaseY + 25, holeSize * 0.8, 0, Math.PI*2);
-                ctx.fill();
-            }
-
-            // Label
-            let text = stage < 0.9 ? "Apoptosis" : "Foramen Secundum";
-            updateLabel('lbl-secundum-hole', text, 120, holeBaseY + 10, 'lbl-primum', 'left', true);
-        }
-
-        function drawSeptumSecundum(t) {
-            // Timeline: 60 -> 100
-            if (t < 60) {
-                updateLabel('lbl-ssecundum', '', 0, 0, '', '', false);
-                return;
-            };
-            
-            let growth = Math.min(Math.max((t - 60) / 40, 0), 1);
-
-            // It comes down, is thicker, and sits to the right
-            // It creates the LIMBUS (Limb)
-            const fullLength = CUSHION_Y - ROOF_Y - 80; // Doesn't touch bottom, leaves ovalis
-            const currentLen = fullLength * growth;
-
-            ctx.beginPath();
-            ctx.strokeStyle = '#3949ab';
-            ctx.lineWidth = 14; // Thicker
-            ctx.lineCap = 'butt'; // Square end
-            ctx.moveTo(CX + 12, ROOF_Y + 20);
-            ctx.lineTo(CX + 12, ROOF_Y + 20 + currentLen);
-            ctx.stroke();
-
-            // Draw rounded tip for secundum
-            if (growth > 0) {
-                ctx.beginPath();
-                ctx.fillStyle = '#3949ab';
-                ctx.arc(CX + 12, ROOF_Y + 20 + currentLen, 7, 0, Math.PI, false);
-                ctx.fill();
-            }
-
-            // Label Positioned to the FAR RIGHT (CW - 120)
-            const labelY = ROOF_Y + 20 + (currentLen / 2);
-            updateLabel('lbl-ssecundum', 'Septum Secundum', CW - 120, labelY, 'lbl-secundum', 'right', true);
-            
-            // Foramen Ovale Label
-            if (t > 90) {
-                updateLabel('lbl-ovale', 'Foramen Ovale', CW - 120, CUSHION_Y - 100, 'lbl-neutral', 'right', true);
-                // Connector line
-                ctx.beginPath();
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.strokeStyle = '#333';
-                ctx.moveTo(CW - 125, CUSHION_Y - 100);
-                ctx.lineTo(CX + 20, CUSHION_Y - 80);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            } else {
-                updateLabel('lbl-ovale', '', 0, 0, '', '', false);
-            }
-        }
-
-        function render() {
+        function drawScene() {
             const t = parseFloat(slider.value);
             
-            // 1. Base
-            drawHeartOutline();
+            // Clear
+            ctx.clearRect(0, 0, W, H);
             
-            // 2. Septum Primum (Left side structure)
-            drawSeptumPrimum(t);
+            // --- 1. Draw Heart Walls (Static) ---
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#333';
             
-            // 3. Holes formation
-            drawApoptosis(t);
+            ctx.beginPath();
+            // Left Atrium Wall
+            ctx.moveTo(CX - CUSHION_W, CUSHION_Y + 20);
+            ctx.quadraticCurveTo(CX - 220, CUSHION_Y, CX - 220, 200);
+            ctx.quadraticCurveTo(CX - 220, ROOF_Y, CX, ROOF_Y + 20);
+            // Right Atrium Wall
+            ctx.moveTo(CX + CUSHION_W, CUSHION_Y + 20);
+            ctx.quadraticCurveTo(CX + 220, CUSHION_Y, CX + 220, 200);
+            ctx.quadraticCurveTo(CX + 220, ROOF_Y, CX, ROOF_Y + 20);
+            ctx.stroke();
 
-            // 4. Septum Secundum (Right side structure)
-            drawSeptumSecundum(t);
+            // Endocardial Cushion
+            ctx.fillStyle = '#666';
+            ctx.fillRect(CX - (CUSHION_W/2), CUSHION_Y - 20, CUSHION_W, 40);
 
-            // 5. Text updates
-            updateText(t);
+            // --- 2. Septum Primum (Pink) ---
+            // Timeline: 0 -> 40 (Growth)
+            let pHeight = 0;
+            if (t > 0) {
+                const maxP = CUSHION_Y - ROOF_Y - 20; // Stops just above cushion usually
+                // It fuses at t=40
+                let progress = Math.min(t / 40, 1);
+                pHeight = maxP * progress;
+
+                ctx.beginPath();
+                ctx.strokeStyle = '#d81b60';
+                ctx.lineWidth = 10;
+                ctx.moveTo(CX - 10, ROOF_Y + 20);
+                ctx.lineTo(CX - 10, ROOF_Y + 20 + pHeight);
+                ctx.stroke();
+
+                // Connector line from Label to Tip of Septum
+                if (t > 5) {
+                    drawConnector(LABEL_LEFT_ANCHOR.x + 80, LABEL_LEFT_ANCHOR.y, CX - 15, ROOF_Y + 20 + pHeight/2, '#d81b60');
+                }
+            }
+
+            // --- 3. Apoptosis / Foramen Secundum ---
+            // Timeline: 25 -> 50
+            if (t > 25) {
+                let aProgress = Math.min((t - 25) / 20, 1);
+                
+                // Draw holes by erasing/drawing white circles on top of the pink line
+                ctx.fillStyle = '#fff';
+                const holeCenterY = ROOF_Y + 60;
+                const holeSize = 4 + (12 * aProgress);
+                
+                if (aProgress > 0) {
+                    ctx.beginPath();
+                    ctx.arc(CX - 10, holeCenterY, holeSize, 0, Math.PI*2);
+                    ctx.arc(CX - 10, holeCenterY + 30, holeSize * 0.8, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+
+            // --- 4. Septum Secundum (Blue) ---
+            // Timeline: 60 -> 100
+            let sHeight = 0;
+            if (t > 60) {
+                const maxS = CUSHION_Y - ROOF_Y - 120; // Shorter, leaves Foramen Ovale
+                let progress = Math.min((t - 60) / 40, 1);
+                sHeight = maxS * progress;
+
+                ctx.beginPath();
+                ctx.strokeStyle = '#3949ab';
+                ctx.lineWidth = 14;
+                ctx.moveTo(CX + 15, ROOF_Y + 20);
+                ctx.lineTo(CX + 15, ROOF_Y + 20 + sHeight);
+                ctx.stroke();
+
+                // Connector
+                if (progress > 0.1) {
+                    drawConnector(LABEL_RIGHT_ANCHOR.x - 80, LABEL_RIGHT_ANCHOR.y, CX + 22, ROOF_Y + 20 + sHeight, '#3949ab');
+                }
+            }
+
+            // --- 5. Update Labels & Text ---
+            updateLabels(t, pHeight, sHeight);
         }
 
-        function updateText(t) {
-            let title = "";
-            let desc = "";
+        function updateLabels(t, pHeight, sHeight) {
+            // Left Label (Pink)
+            if (t > 5) {
+                lblLeft.innerText = "Septum Primum";
+                lblLeft.classList.add('active');
+            } else {
+                lblLeft.classList.remove('active');
+            }
 
+            // Center Label (Holes)
+            if (t > 10 && t < 38) {
+                lblCenter.innerText = "Foramen Primum";
+                lblCenter.classList.add('active');
+                // Adjust position visually
+                lblCenter.style.bottom = "80px"; 
+            } else if (t >= 38 && t < 45) {
+                 lblCenter.classList.remove('active'); // Transition period
+            } else if (t >= 45 && t < 90) {
+                lblCenter.innerText = "Foramen Secundum";
+                lblCenter.classList.add('active');
+                lblCenter.style.bottom = "auto";
+                lblCenter.style.top = "160px"; // Move it up near the holes
+            } else if (t >= 90) {
+                lblCenter.innerText = "Foramen Ovale";
+                lblCenter.classList.add('active');
+                lblCenter.style.top = "auto";
+                lblCenter.style.bottom = "180px";
+            } else {
+                lblCenter.classList.remove('active');
+            }
+
+            // Right Label (Blue)
+            if (t > 60) {
+                lblRight.innerText = "Septum Secundum";
+                lblRight.classList.add('active');
+            } else {
+                lblRight.classList.remove('active');
+            }
+
+            // Description Logic
+            let title, desc;
             if (t < 10) {
                 title = "Common Atrium";
-                desc = "We begin with a single chamber. The <strong>Septum Primum</strong> (Pink) starts growing down from the roof toward the <strong>Endocardial Cushions</strong>.";
-            } else if (t < 25) {
-                title = "Septum Primum Descends";
-                desc = "The septum continues to grow. The space remaining at the bottom is called the <strong>Foramen Primum</strong>.";
-            } else if (t < 40) {
-                title = "Foramen Primum Closes";
-                desc = "Before the septum completely fuses with the cushions, cell death (apoptosis) begins near the roof to ensure blood flow continues.";
-            } else if (t < 60) {
+                desc = "We start with a single chamber. Watch the <strong>Septum Primum</strong> (Pink) begin to grow from the roof.";
+            } else if (t < 35) {
+                title = "Foramen Primum";
+                desc = "The gap at the bottom is the <strong>Foramen Primum</strong>. It allows blood to flow across while the wall grows.";
+            } else if (t < 55) {
+                title = "Apoptosis & Fusion";
+                desc = "The septum fuses with the cushions. Simultaneously, cell death creates holes near the roof.";
+            } else if (t < 80) {
                 title = "Foramen Secundum";
-                desc = "The lower gap closes completely. The holes near the roof merge to form a new opening called the <strong>Foramen Secundum</strong>.";
-            } else if (t < 90) {
-                title = "Septum Secundum";
-                desc = "A second, thicker muscular wall, the <strong>Septum Secundum</strong> (Blue), grows down on the right side of the first septum.";
+                desc = "The holes merge to form the <strong>Foramen Secundum</strong>. A new wall, <strong>Septum Secundum</strong> (Blue), begins to grow.";
             } else {
                 title = "Foramen Ovale";
-                desc = "The Septum Secundum covers the hole but leaves an oval opening. The Septum Primum acts as a flutter valve, allowing blood to flow Right to Left only.";
+                desc = "The blue wall creates a valve. The path between the two walls is the <strong>Foramen Ovale</strong>.";
             }
 
             titleEl.innerHTML = title;
@@ -426,9 +378,9 @@
         }
 
         // Init
-        slider.addEventListener('input', render);
-        window.addEventListener('resize', render); // Handle orientation changes
-        render();
+        slider.addEventListener('input', drawScene);
+        window.addEventListener('resize', drawScene); // Handle rotation
+        drawScene();
 
     </script>
 </body>
