@@ -3,263 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Hearth - Gift Exchange</title>
+    <title>The Annual Exchange</title>
     
-    <!-- Updated Lottie Script -->
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- Lottie Script -->
     <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
 
     <style>
         :root {
-            --bg-color: #1a0f0f;
-            --accent-gold: #d4af37;
-            --accent-red: #8a1c1c;
-            --text-color: #eecfa1;
-            --card-bg: #2a1a1a;
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-gold: #fbbf24;
+            --accent-glow: rgba(251, 191, 36, 0.3);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
         }
 
         body {
-            font-family: 'Georgia', serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 10%, #1e293b 0%, #0f172a 100%);
+            color: var(--text-main);
             margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
         }
 
-        h1, h2 { text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold); }
-        button { cursor: pointer; }
+        /* --- MODERN UI UTILITIES --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
 
-        /* --- UTILITY & LAYOUT --- */
-        .container { max-width: 1000px; width: 100%; padding: 20px; text-align: center; }
-        .hidden { display: none !important; }
+        h1, h2, h3 { font-family: 'Playfair Display', serif; color: var(--accent-gold); margin: 0 0 1rem 0; }
+        h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--accent-glow); margin-top: 2rem; }
         
+        .container { max-width: 1100px; width: 95%; padding: 20px; text-align: center; position: relative; z-index: 2; }
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- BUTTONS --- */
         .btn {
-            background: var(--accent-red);
-            border: 1px solid var(--accent-gold);
-            color: var(--accent-gold);
-            padding: 10px 20px;
-            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            border: none;
+            color: #1e1b4b;
+            padding: 12px 24px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            transition: 0.3s;
-            margin: 5px;
+            box-shadow: 0 0 15px var(--accent-glow);
         }
-        .btn:hover { background: var(--accent-gold); color: var(--accent-red); box-shadow: 0 0 15px var(--accent-gold); }
-        .btn-small { font-size: 0.8rem; padding: 5px 10px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 0 25px var(--accent-gold); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: var(--text-main); box-shadow: none; border: 1px solid var(--glass-border); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); color: #fff; }
+        .btn-small { padding: 6px 12px; font-size: 0.85rem; }
 
         /* --- SETUP PHASE --- */
+        .io-bar {
+            display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 2rem;
+            padding: 15px; width: fit-content; margin-left: auto; margin-right: auto;
+        }
+
         .setup-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 30px;
         }
         .sibling-card {
-            background: var(--card-bg);
-            border: 1px solid var(--accent-gold);
-            padding: 15px;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 20px; display: flex; flex-direction: column; align-items: center; transition: 0.3s;
         }
-        .avatar-preview {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: #000;
-            border: 2px solid var(--accent-gold);
-            margin-bottom: 10px;
-            object-fit: cover;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: #555;
-        }
-        input[type="file"] { display: none; }
-        .upload-label { font-size: 0.7rem; text-decoration: underline; cursor: pointer; color: #aaa; }
+        .sibling-card:hover { border-color: var(--accent-gold); background: rgba(255,255,255,0.05); }
 
-        /* --- THE HEARTH (CEREMONY) --- */
-        #hearth-view {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 80vh;
-            position: relative;
+        .avatar-frame {
+            width: 100px; height: 100px; border-radius: 50%;
+            margin-bottom: 15px; overflow: hidden;
+            border: 3px solid var(--glass-border);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
         }
+        .avatar-img { width: 100%; height: 100%; object-fit: cover; }
+        .upload-label { font-size: 0.8rem; color: var(--text-muted); cursor: pointer; margin-top: 5px; text-decoration: underline; }
 
-        .hearth-circle {
-            position: relative;
-            width: 500px;
-            height: 500px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* The central fire/result area */
-        .center-stage {
-            width: 300px;
-            height: 300px;
-            text-align: center;
-            z-index: 10;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Update Lottie Positioning for new tag */
-        dotlottie-wc {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1;
-            opacity: 1;
-        }
+        /* --- CEREMONY VIEW --- */
+        #hearth-view { height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        
+        .hearth-circle { position: relative; width: 600px; height: 600px; display: flex; align-items: center; justify-content: center; }
+        
+        .center-stage { width: 400px; height: 400px; position: relative; display: flex; align-items: center; justify-content: center; }
+        
+        /* HIDDEN BY DEFAULT */
+        dotlottie-wc { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; opacity: 0; transition: opacity 1s ease; }
+        dotlottie-wc.lit { opacity: 1; }
 
         .result-box {
-            position: relative;
-            z-index: 20; /* Above the fire */
-            font-size: 2rem;
-            color: var(--accent-gold);
-            opacity: 0;
-            transform: scale(0.5);
-            transition: all 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            
-            /* Visual styling for readability over fire */
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            background: rgba(0, 0, 0, 0.6);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            backdrop-filter: blur(2px);
+            position: relative; z-index: 10;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            padding: 30px 50px;
+            border-radius: 20px;
+            border: 1px solid var(--accent-gold);
+            text-align: center;
+            opacity: 0; transform: scale(0.8); transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .result-box.show { opacity: 1; transform: scale(1); }
-        
-        /* The Siblings around the table */
+
         .sibling-node {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: all 1s ease;
-            opacity: 0.5;
-            filter: grayscale(80%);
+            position: absolute; width: 90px; height: 90px;
+            display: flex; flex-direction: column; align-items: center;
+            transition: all 0.8s ease; opacity: 0.4; filter: grayscale(100%);
         }
-        .sibling-node img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 3px solid #333;
-            object-fit: cover;
-            box-shadow: 0 0 10px #000;
+        .sibling-node .node-avatar {
+            width: 70px; height: 70px; border-radius: 50%; border: 2px solid #555;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); object-fit: cover;
         }
-        .sibling-node span { margin-top: 5px; background: #000; padding: 2px 8px; border-radius: 4px; }
-
-        /* Active States */
-        .sibling-node.active {
-            opacity: 1;
-            filter: grayscale(0%);
-            transform: scale(1.3);
-            z-index: 5;
-        }
-        .sibling-node.active img {
-            border-color: var(--accent-gold);
-            box-shadow: 0 0 30px var(--accent-gold);
+        .sibling-node span { 
+            margin-top: 8px; background: rgba(0,0,0,0.8); padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;
         }
 
-        /* --- HISTORY TABLE --- */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #222; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
-        th { background: var(--accent-red); color: var(--accent-gold); }
+        /* Active Turn State */
+        .sibling-node.active { opacity: 1; filter: grayscale(0%); transform: scale(1.4); z-index: 20; }
+        .sibling-node.active .node-avatar { border-color: var(--accent-gold); box-shadow: 0 0 30px var(--accent-gold); }
 
-        /* --- FILE ACTIONS --- */
-        .io-bar {
-            background: #333;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            justify-content: center;
+        /* --- DISTRIBUTION VIEW --- */
+        .dist-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(255,255,255,0.03); margin-bottom: 10px; padding: 15px; border-radius: 8px;
+            text-align: left;
         }
+        .dist-info { flex: 1; display: flex; align-items: center; gap: 15px; }
+        .email-input {
+            background: rgba(0,0,0,0.3); border: 1px solid #444; color: white; padding: 8px; border-radius: 6px; width: 200px;
+        }
+        
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>🎄 The Family Hearth 🎄</h1>
+    <div class="container fade-in">
+        <h1>✨ The Annual Exchange ✨</h1>
         
-        <!-- SAVE/LOAD SECTION -->
-        <div class="io-bar">
-            <span>💾 Data Management:</span>
-            <button class="btn btn-small" onclick="downloadData()">Download History</button>
-            <input type="file" id="load-file" onchange="loadData(this)" style="display:block; width:auto;">
-        </div>
-
         <!-- SETUP VIEW -->
         <div id="setup-view">
-            <h2>Who is participating?</h2>
+            <div class="glass-panel io-bar">
+                <span>📂 History File:</span>
+                <input type="file" id="load-file" onchange="loadData(this)" style="display:none;">
+                <button class="btn btn-secondary btn-small" onclick="document.getElementById('load-file').click()">Load Previous Year</button>
+            </div>
+
             <div class="setup-grid" id="siblings-list">
-                <!-- Sibling cards generated by JS -->
+                <!-- Generated by JS -->
             </div>
             
-            <div style="margin-top: 30px; border-top: 1px solid #444; padding-top: 20px;">
-                <button class="btn" onclick="generateAndStart()">🎁 Start Ceremony</button>
-                <button class="btn" style="background: #333" onclick="toggleHistory()">📜 View History</button>
+            <div style="margin-top: 40px;">
+                <button class="btn" style="font-size: 1.2rem; padding: 15px 40px;" onclick="generateAndStart()">Start Ceremony</button>
             </div>
         </div>
 
         <!-- CEREMONY VIEW -->
         <div id="hearth-view" class="hidden">
-            <h2 id="turn-indicator">Gather around...</h2>
+            <h2 id="turn-indicator" style="height: 30px;">Gather 'round...</h2>
             
             <div class="hearth-circle" id="circle-container">
-                <!-- Center Stage -->
                 <div class="center-stage">
-                    
-                    <!-- NEW LOTTIE CODE -->
+                    <!-- FIRE ANIMATION (Initially Hidden) -->
                     <dotlottie-wc 
+                        id="hearth-fire"
                         src="https://lottie.host/f273b986-dae1-4552-ab56-65f950653fae/tpRS8rxX4F.lottie" 
-                        style="width: 300px; height: 300px;" 
+                        style="width: 380px; height: 380px;" 
                         autoplay 
                         loop>
                     </dotlottie-wc>
 
                     <div id="reveal-area" class="result-box">
-                        <div style="font-size: 1rem; color: #fff;">Giving To:</div>
-                        <div id="recipient-name" style="font-size: 2.5rem; font-weight: bold; margin: 10px 0;">???</div>
+                        <div style="font-size: 0.9rem; color: #ccc; letter-spacing: 2px; text-transform: uppercase;">Is Buying For</div>
+                        <div id="recipient-name" style="font-size: 2.5rem; font-family: 'Playfair Display', serif; color: var(--accent-gold); margin: 10px 0;">???</div>
                     </div>
                 </div>
             </div>
 
-            <div style="margin-top: 50px; z-index: 20;">
-                <button id="action-btn" class="btn" onclick="nextStep()">Begin</button>
-                <button class="btn" style="background: #333" onclick="exitCeremony()">Exit</button>
+            <div style="margin-top: 50px; position: relative; z-index: 30;">
+                <button id="action-btn" class="btn" onclick="nextStep()">Light the Fire</button>
             </div>
         </div>
 
-        <!-- HISTORY VIEW -->
-        <div id="history-view" class="hidden">
-            <h2>Gift History Archive</h2>
-            <div id="history-tables"></div>
-            <button class="btn" onclick="toggleHistory()">Close</button>
+        <!-- DISTRIBUTION VIEW -->
+        <div id="distribution-view" class="hidden">
+            <h2>🎁 Ceremony Complete!</h2>
+            <p style="color: #ccc; margin-bottom: 30px;">Enter email addresses below to send assignments.</p>
+            
+            <div class="glass-panel" style="padding: 20px; margin-bottom: 30px;">
+                <div id="email-list">
+                    <!-- Generated Rows -->
+                </div>
+            </div>
+
+            <div class="glass-panel io-bar" style="flex-direction: column;">
+                <h3>⚠️ Critical Step</h3>
+                <p style="font-size: 0.9rem; color: #aaa; margin:0;">You must download this file and keep it safe.<br>It ensures we don't repeat matches next year.</p>
+                <button class="btn" onclick="downloadData()">Download 2025_History.json</button>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="location.reload()">Reset App</button>
         </div>
 
     </div>
 
     <script>
-        // --- DATA STRUCTURE ---
+        // --- DATA ---
         const defaultSiblings = [
             { id: 1, name: "Savannah", avatar: null },
             { id: 2, name: "Chris", avatar: null },
@@ -275,29 +237,45 @@
             currentMatches: []
         };
 
+        // --- UTILS ---
+        // Generates a consistent pastel color from a string
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hue = Math.abs(hash % 360);
+            return `hsl(${hue}, 60%, 70%)`;
+        }
+
         // --- INIT ---
         function init() {
             renderSetup();
         }
 
-        // --- SETUP LOGIC ---
+        // --- SETUP RENDER ---
         function renderSetup() {
             const container = document.getElementById('siblings-list');
             container.innerHTML = '';
             appData.siblings.forEach((sib, index) => {
-                const imgSrc = sib.avatar ? sib.avatar : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>';
-                const hasImg = !!sib.avatar;
-                
+                // Determine Avatar Source or Fallback Color
+                let avatarHTML = '';
+                if (sib.avatar) {
+                    avatarHTML = `<img src="${sib.avatar}" class="avatar-img">`;
+                } else {
+                    avatarHTML = `<div style="width:100%; height:100%; background-color:${stringToColor(sib.name)};"></div>`;
+                }
+
                 const card = document.createElement('div');
-                card.className = 'sibling-card';
+                card.className = 'sibling-card glass-panel';
                 card.innerHTML = `
-                    <div class="avatar-preview">
-                        ${hasImg ? `<img src="${sib.avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : '🎅'}
+                    <div class="avatar-frame">
+                        ${avatarHTML}
                     </div>
-                    <strong>${sib.name}</strong>
+                    <strong style="font-size: 1.2rem;">${sib.name}</strong>
                     <label class="upload-label">
-                        ${hasImg ? 'Change Art' : 'Upload Art'}
-                        <input type="file" accept="image/*" onchange="handleImageUpload(${index}, this)">
+                        Upload PNG
+                        <input type="file" accept="image/png, image/jpeg" onchange="handleImageUpload(${index}, this)">
                     </label>
                 `;
                 container.appendChild(card);
@@ -315,7 +293,7 @@
             }
         }
 
-        // --- MATCHING ALGORITHM ---
+        // --- ALGORITHM ---
         function generateMatches() {
             const givers = [...appData.siblings];
             let receivers = [...appData.siblings];
@@ -323,7 +301,7 @@
             let isValid = false;
             let attempts = 0;
 
-            while (!isValid && attempts < 1000) {
+            while (!isValid && attempts < 2000) {
                 attempts++;
                 receivers = receivers.sort(() => Math.random() - 0.5);
                 matches = [];
@@ -333,24 +311,17 @@
                     const giver = givers[i];
                     const receiver = receivers[i];
 
-                    // Rule 1: Cannot pick self
-                    if (giver.name === receiver.name) {
-                        possible = false;
-                        break;
-                    }
+                    // Rule 1: Self
+                    if (giver.name === receiver.name) { possible = false; break; }
 
-                    // Rule 2: Check last 2 years history
+                    // Rule 2: History (Last 2 years)
                     const pastReceivers = [];
                     appData.history.forEach(yearRecord => {
-                        const match = yearRecord.matches.find(m => m.giver === giver.name);
-                        if (match) pastReceivers.push(match.receiver);
+                        const m = yearRecord.matches.find(x => x.giver === giver.name);
+                        if (m) pastReceivers.push(m.receiver);
                     });
-
                     const recentPast = pastReceivers.slice(-2);
-                    if (recentPast.includes(receiver.name)) {
-                        possible = false;
-                        break;
-                    }
+                    if (recentPast.includes(receiver.name)) { possible = false; break; }
 
                     matches.push({ giver: giver.name, receiver: receiver.name });
                 }
@@ -358,7 +329,7 @@
             }
 
             if (!isValid) {
-                alert("Could not find a valid match arrangement based on history constraints!");
+                alert("Constraint Error: Could not find valid matches based on history.");
                 return false;
             }
 
@@ -372,7 +343,7 @@
             }
         }
 
-        // --- CEREMONY LOGIC ---
+        // --- CEREMONY ---
         let ceremonyStep = -1; 
         let isRevealed = false;
 
@@ -382,23 +353,19 @@
             renderCircle();
             ceremonyStep = -1;
             isRevealed = false;
-            document.getElementById('action-btn').innerText = "Light the Fire";
-            document.getElementById('turn-indicator').innerText = "The Fire is Lit";
-            document.getElementById('reveal-area').classList.remove('show');
         }
 
         function renderCircle() {
             const container = document.getElementById('circle-container');
-            // Keep center stage, remove old nodes
             const center = container.querySelector('.center-stage');
             container.innerHTML = '';
             container.appendChild(center);
 
-            const radius = 220; // Distance from center
+            const radius = 250;
             const count = appData.siblings.length;
 
             appData.siblings.forEach((sib, i) => {
-                const angle = (i / count) * (2 * Math.PI) - (Math.PI / 2); // Start at top
+                const angle = (i / count) * (2 * Math.PI) - (Math.PI / 2);
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
 
@@ -407,10 +374,16 @@
                 node.id = `node-${sib.name}`;
                 node.style.transform = `translate(${x}px, ${y}px)`;
                 
-                const imgSrc = sib.avatar ? sib.avatar : 'https://ui-avatars.com/api/?name='+sib.name+'&background=random';
+                // Avatar or Color
+                let imgHTML = '';
+                if(sib.avatar) {
+                    imgHTML = `<img src="${sib.avatar}" class="node-avatar">`;
+                } else {
+                    imgHTML = `<div class="node-avatar" style="background-color:${stringToColor(sib.name)}"></div>`;
+                }
                 
                 node.innerHTML = `
-                    <img src="${imgSrc}">
+                    ${imgHTML}
                     <span>${sib.name}</span>
                 `;
                 container.appendChild(node);
@@ -419,49 +392,47 @@
 
         function nextStep() {
             const btn = document.getElementById('action-btn');
-            const nodes = document.querySelectorAll('.sibling-node');
             const revealArea = document.getElementById('reveal-area');
             const recipientName = document.getElementById('recipient-name');
             const turnIndicator = document.getElementById('turn-indicator');
+            const fire = document.getElementById('hearth-fire');
 
-            // Initial Start
+            // 1. Light the Fire
             if (ceremonyStep === -1) {
                 ceremonyStep = 0;
+                fire.classList.add('lit'); // Show Lottie
                 highlightSibling(ceremonyStep);
                 btn.innerText = "Reveal Match";
-                isRevealed = false;
+                turnIndicator.innerText = "The hearth is lit...";
                 return;
             }
 
-            // If we have gone through everyone
+            // 2. Finished
             if (ceremonyStep >= appData.siblings.length) {
-                saveToHistory();
-                alert("The Ceremony is complete! Be sure to download the history file.");
-                exitCeremony();
+                endCeremony();
                 return;
             }
 
+            // 3. Logic Loop
             if (!isRevealed) {
-                // REVEAL ACTION
+                // Reveal
                 const currentGiver = appData.siblings[ceremonyStep].name;
                 const match = appData.currentMatches.find(m => m.giver === currentGiver);
                 
                 recipientName.innerText = match.receiver;
                 revealArea.classList.add('show');
-                
-                turnIndicator.innerText = `🎉 ${currentGiver} has ${match.receiver}! 🎉`;
-                
+                turnIndicator.innerText = `${currentGiver} has...`;
                 btn.innerText = "Next Person";
                 isRevealed = true;
             } else {
-                // MOVE TO NEXT
+                // Move Next
                 revealArea.classList.remove('show');
                 ceremonyStep++;
 
                 if (ceremonyStep >= appData.siblings.length) {
-                    btn.innerText = "Finish Ceremony";
-                    turnIndicator.innerText = "All matches revealed!";
-                    nodes.forEach(n => n.classList.remove('active'));
+                    btn.innerText = "Finalize & Distribute";
+                    turnIndicator.innerText = "Ceremony Complete";
+                    document.querySelectorAll('.sibling-node').forEach(n => n.classList.remove('active'));
                 } else {
                     highlightSibling(ceremonyStep);
                     btn.innerText = "Reveal Match";
@@ -472,40 +443,81 @@
 
         function highlightSibling(index) {
             const name = appData.siblings[index].name;
-            const nodes = document.querySelectorAll('.sibling-node');
-            const turnIndicator = document.getElementById('turn-indicator');
-            
-            nodes.forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.sibling-node').forEach(n => n.classList.remove('active'));
             document.getElementById(`node-${name}`).classList.add('active');
-            turnIndicator.innerText = `It is ${name}'s turn...`;
+            document.getElementById('turn-indicator').innerText = `It is ${name}'s turn`;
         }
 
-        function exitCeremony() {
+        function endCeremony() {
+            saveToHistoryLogic();
             document.getElementById('hearth-view').classList.add('hidden');
-            document.getElementById('setup-view').classList.remove('hidden');
+            document.getElementById('distribution-view').classList.remove('hidden');
+            renderDistribution();
         }
 
-        // --- HISTORY & SAVE LOGIC ---
-        function saveToHistory() {
-            // Check if already saved
+        // --- DISTRIBUTION & EMAIL ---
+        function renderDistribution() {
+            const list = document.getElementById('email-list');
+            list.innerHTML = '';
+            
+            // Create list string
+            let fullListText = "OFFICIAL 2025 LIST:\n";
+            appData.currentMatches.forEach(m => {
+                fullListText += `- ${m.giver} buys for ${m.receiver}\n`;
+            });
+
+            appData.siblings.forEach(sib => {
+                const match = appData.currentMatches.find(m => m.giver === sib.name);
+                
+                const row = document.createElement('div');
+                row.className = 'dist-row';
+                row.innerHTML = `
+                    <div class="dist-info">
+                        <strong style="width:100px">${sib.name}</strong>
+                        <span style="color:#aaa; font-size:0.9rem">➔ ${match.receiver}</span>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="email" id="email-${sib.name}" class="email-input" placeholder="Email address...">
+                        <button class="btn btn-small" onclick="sendEmail('${sib.name}', '${match.receiver}')">Draft Email</button>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function sendEmail(giverName, receiverName) {
+            const email = document.getElementById(`email-${giverName}`).value;
+            
+            // Build the full list string
+            let fullListText = "\n--- OFFICIAL 2025 MASTER LIST ---\n";
+            appData.currentMatches.forEach(m => {
+                fullListText += `${m.giver} ➔ ${m.receiver}\n`;
+            });
+
+            const subject = `🎄 Secret Santa Assignment for ${giverName}`;
+            const body = `Hi ${giverName},\n\nYour Secret Santa assignment for this year is:\n\n✨ ${receiverName} ✨\n\n${fullListText}\n\nIMPORTANT: The host has downloaded a history file (JSON) for next year. Please make sure that file is kept safe!`;
+
+            const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        }
+
+        // --- FILE IO ---
+        function saveToHistoryLogic() {
             const currentYear = new Date().getFullYear();
             const exists = appData.history.find(h => h.year === currentYear);
             if(!exists) {
-                appData.history.push({
-                    year: currentYear,
-                    matches: appData.currentMatches
-                });
+                appData.history.push({ year: currentYear, matches: appData.currentMatches });
             }
         }
 
         function downloadData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "christmas_history.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", `christmas_history_${new Date().getFullYear()}.json`);
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
         }
 
         function loadData(input) {
@@ -514,51 +526,24 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const loadedData = JSON.parse(e.target.result);
-                    appData = loadedData;
+                    const loaded = JSON.parse(e.target.result);
+                    // Merge logic
+                    appData.history = loaded.history || [];
+                    // Update avatars if they exist in file
+                    if(loaded.siblings) {
+                        appData.siblings.forEach(s => {
+                            const found = loaded.siblings.find(ls => ls.name === s.name);
+                            if(found && found.avatar) s.avatar = found.avatar;
+                        });
+                    }
                     renderSetup();
-                    alert("History loaded successfully!");
-                } catch(err) {
-                    alert("Error loading file. Make sure it's a valid JSON file.");
-                }
+                    alert("✅ History loaded!");
+                } catch(err) { alert("Error loading JSON."); }
             };
             reader.readAsText(file);
         }
 
-        function toggleHistory() {
-            const view = document.getElementById('history-view');
-            const setup = document.getElementById('setup-view');
-            
-            if (view.classList.contains('hidden')) {
-                view.classList.remove('hidden');
-                setup.classList.add('hidden');
-                renderHistoryTable();
-            } else {
-                view.classList.add('hidden');
-                setup.classList.remove('hidden');
-            }
-        }
-
-        function renderHistoryTable() {
-            const div = document.getElementById('history-tables');
-            div.innerHTML = '';
-            
-            if (appData.history.length === 0) {
-                div.innerHTML = '<p>No history yet.</p>';
-                return;
-            }
-
-            appData.history.sort((a,b) => b.year - a.year).forEach(record => {
-                let html = `<h3>${record.year}</h3><table><thead><tr><th>Giver</th><th>Receiver</th></tr></thead><tbody>`;
-                record.matches.forEach(m => {
-                    html += `<tr><td>${m.giver}</td><td>${m.receiver}</td></tr>`;
-                });
-                html += `</tbody></table>`;
-                div.innerHTML += html;
-            });
-        }
-
-        // Run Init
+        // Start
         init();
 
     </script>
