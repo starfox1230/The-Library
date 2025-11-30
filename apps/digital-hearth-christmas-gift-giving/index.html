@@ -33,6 +33,15 @@
             align-items: center;
         }
 
+        /* --- SNOW CANVAS --- */
+        #snow-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
         /* --- UI COMPONENTS --- */
         .glass-panel {
             background: var(--glass-bg);
@@ -44,8 +53,7 @@
         }
 
         h1 { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--accent-gold); text-shadow: 0 0 25px var(--accent-glow); margin: 30px 0; letter-spacing: 2px; }
-        h2 { font-family: 'Playfair Display', serif; margin: 0; }
-
+        
         .container { max-width: 1200px; width: 95%; padding: 20px; text-align: center; position: relative; z-index: 2; }
         .hidden { display: none !important; }
 
@@ -69,7 +77,7 @@
             width: 120px; height: 120px; border-radius: 50%; 
             border: 4px solid var(--glass-border);
             margin-bottom: 15px; overflow: hidden; position: relative;
-            aspect-ratio: 1/1; /* Forces Circle */
+            aspect-ratio: 1/1; 
             background: #000;
         }
         .setup-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -77,7 +85,7 @@
 
         /* --- HEARTH VIEW (THE STAGE) --- */
         #hearth-view {
-            height: 75vh;
+            height: 90vh;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -85,86 +93,133 @@
             position: relative;
         }
 
-        /* 1. The Waiting Circle (Top/Background) */
+        /* Top Indicator Text */
+        #top-turn-indicator {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: var(--accent-gold);
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            margin: 10px 0;
+            z-index: 10;
+            min-height: 3rem;
+        }
+
+        /* 1. The Waiting Circle */
         #waiting-room {
-            display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
-            margin-top: 20px; min-height: 100px;
+            display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;
+            margin-bottom: 10px; min-height: 60px; z-index: 5;
         }
         .waiting-node {
-            width: 80px; height: 80px; border-radius: 50%;
+            width: 50px; height: 50px; border-radius: 50%;
             border: 2px solid #444; overflow: hidden; opacity: 0.6;
             transition: all 0.5s ease; filter: grayscale(80%);
             aspect-ratio: 1/1;
         }
         .waiting-node img { width: 100%; height: 100%; object-fit: cover; }
-        .waiting-node.current { opacity: 0; transform: scale(0); width: 0; margin: 0; } /* Disappears when moving to stage */
+        .waiting-node.current { opacity: 0; transform: scale(0); width: 0; margin: 0; } 
         .waiting-node.done { opacity: 0.3; filter: grayscale(100%); transform: scale(0.8); }
 
-        /* 2. The Main Stage (Center) */
+        /* 2. The Main Stage */
         #stage-container {
             flex-grow: 1;
             width: 100%;
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
 
         /* Background Fire */
         .fire-layer {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 500px; height: 500px; z-index: 0; opacity: 0; transition: opacity 1.5s ease;
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 4/3; 
+            z-index: 0; 
+            opacity: 0; 
+            transition: opacity 1.5s ease;
+            margin: 0 auto;
         }
-        .fire-layer.burning { opacity: 0.6; }
+        .fire-layer.burning { opacity: 0.8; }
 
-        /* The Avatar Interaction Area */
-        .actors-layer {
-            position: relative; z-index: 10;
-            display: flex; align-items: center; justify-content: center;
-            gap: 60px; /* Space between Giver and Receiver */
-            min-height: 300px;
+        /* Assignment Text (Below Fire) */
+        #assignment-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+            margin-top: -30px; 
+            min-height: 3rem;
+            z-index: 25;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
 
-        /* Avatar Styling on Stage */
+        /* Avatar Styling */
         .actor {
             border-radius: 50%; border: 4px solid var(--accent-gold);
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
-            overflow: hidden; opacity: 0; transform: scale(0.5) translateY(20px);
-            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden; 
             background: #000;
             aspect-ratio: 1/1;
+            position: absolute;
+            transition: all 0.8s ease;
         }
         .actor img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Giver State */
+        /* Giver State - BIG, LEFT */
         .actor.giver {
-            width: 240px; height: 240px; opacity: 1; transform: scale(1) translateY(0);
-            box-shadow: 0 0 60px var(--accent-glow);
+            width: 260px; height: 260px;
+            left: 5%; top: 50%; transform: translateY(-50%);
+            z-index: 10;
+            box-shadow: 0 0 40px rgba(251, 191, 36, 0.4);
+            border-color: #94a3b8;
         }
         
-        /* Receiver State */
+        /* Receiver State - BIG, RIGHT */
         .actor.receiver {
-            width: 160px; height: 160px; /* Smaller */
-            border-color: #fff;
-            opacity: 1; transform: scale(1) translateY(0);
+            width: 260px; height: 260px;
+            right: 5%; top: 50%; transform: translateY(-50%); /* Right side */
+            z-index: 20;
+            opacity: 0;
         }
 
-        /* 3. Text & Controls (Bottom) */
+        /* Responsive Avatar Sizing */
+        @media (max-width: 900px) {
+            .actor.giver, .actor.receiver {
+                width: 180px; height: 180px;
+                top: 45%;
+            }
+        }
+        @media (max-width: 600px) {
+            .actor.giver, .actor.receiver {
+                width: 120px; height: 120px;
+                border-width: 2px;
+                top: 40%;
+            }
+            #top-turn-indicator { font-size: 1.8rem; }
+            #assignment-text { font-size: 1.2rem; }
+        }
+
+        /* Burst Animation */
+        .burst-effect {
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            box-shadow: 0 0 80px var(--accent-gold), inset 0 0 20px #fff;
+            border: 6px solid #fff;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: translateY(-50%) scale(0) rotate(-15deg); }
+            60% { opacity: 1; transform: translateY(-50%) scale(1.1) rotate(5deg); }
+            100% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0deg); }
+        }
+
+        /* 3. Controls (Bottom) */
         #ui-layer {
-            z-index: 20; margin-bottom: 40px; min-height: 150px;
+            z-index: 20; margin-bottom: 20px;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-        }
-
-        .status-text {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.2rem; margin-bottom: 10px; color: var(--accent-gold);
-            min-height: 3.5rem;
-        }
-        .sub-text {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.2rem; color: #94a3b8; letter-spacing: 3px; text-transform: uppercase;
-            margin-bottom: 20px;
         }
 
         /* --- DISTRIBUTION LIST --- */
@@ -177,6 +232,9 @@
     </style>
 </head>
 <body>
+
+    <!-- Snowfall Canvas -->
+    <canvas id="snow-canvas"></canvas>
 
     <div class="container fade-in">
         
@@ -200,14 +258,19 @@
         <!-- HEARTH VIEW -->
         <div id="hearth-view" class="hidden">
             
-            <!-- Top: Waiting List -->
-            <div id="waiting-room">
-                <!-- Small avatars sit here -->
-            </div>
+            <!-- Turn Indicator (Top) -->
+            <div id="top-turn-indicator"></div>
 
-            <!-- Center: Stage -->
+            <!-- Waiting List -->
+            <div id="waiting-room"></div>
+
+            <!-- Stage -->
             <div id="stage-container">
-                <!-- Fire Background -->
+                
+                <!-- Giver (Left) and Receiver (Right) injected here -->
+                <div id="stage-actors"></div>
+
+                <!-- Fire Background (Center) -->
                 <div class="fire-layer" id="fire-bg">
                     <dotlottie-wc 
                         src="https://lottie.host/f273b986-dae1-4552-ab56-65f950653fae/tpRS8rxX4F.lottie" 
@@ -216,16 +279,12 @@
                     </dotlottie-wc>
                 </div>
 
-                <!-- Actors -->
-                <div class="actors-layer" id="stage-actors">
-                    <!-- Giver and Receiver injected here -->
-                </div>
+                <!-- Assignment Text (Below Fire) -->
+                <div id="assignment-text"></div>
             </div>
 
-            <!-- Bottom: Text & Controls -->
+            <!-- Controls (Bottom) -->
             <div id="ui-layer">
-                <div class="sub-text" id="lbl-sub">The Hearth Awaits</div>
-                <div class="status-text" id="lbl-main">Gather 'Round</div>
                 <button id="main-btn" class="btn" onclick="nextStep()">Light the Fire</button>
             </div>
         </div>
@@ -235,9 +294,7 @@
             <h1>Assignments Complete</h1>
             <p style="color:#999; margin-bottom: 40px;">Please ensure every sibling receives their match.</p>
 
-            <div class="glass-panel dist-list" id="final-list">
-                <!-- Generated Rows -->
-            </div>
+            <div class="glass-panel dist-list" id="final-list"></div>
 
             <div class="glass-panel" style="padding: 30px; margin-top: 30px; border: 1px solid var(--accent-gold);">
                 <h3 style="color:var(--accent-gold); margin-top:0;">🛑 HOST ACTION REQUIRED</h3>
@@ -252,6 +309,51 @@
     </div>
 
     <script>
+        // --- SNOWFALL ENGINE ---
+        (function() {
+            const canvas = document.getElementById('snow-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            const flakes = [];
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function createFlake() {
+                return {
+                    x: Math.random() * width,
+                    y: Math.random() * -50,
+                    size: Math.random() * 3 + 1,
+                    speed: Math.random() * 1 + 0.5,
+                    opacity: Math.random() * 0.5 + 0.3
+                };
+            }
+
+            for(let i=0; i<100; i++) flakes.push(createFlake());
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = '#fff';
+                flakes.forEach(f => {
+                    ctx.globalAlpha = f.opacity;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    f.y += f.speed;
+                    if(f.y > height) {
+                        f.y = -5;
+                        f.x = Math.random() * width;
+                    }
+                });
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
         // --- DATA & CONFIG ---
         const siblings = [
             { name: "Savannah" }, { name: "Chris" }, 
@@ -272,14 +374,10 @@
             return `hsl(${Math.abs(hash % 360)}, 60%, 70%)`;
         }
 
-        // Gets avatar HTML. Priority: 1. Base64 (loaded from JSON), 2. Folder, 3. Color
         function getAvatar(sib) {
             const color = stringToColor(sib.name);
             const folderPath = `avatars/${sib.name.toLowerCase()}.png`;
-            
-            // CSS ensures aspect-ratio: 1/1 for circles
             let content = `<div style="width:100%; height:100%; background:${color};"></div>`;
-            
             if (sib.base64) {
                 content = `<img src="${sib.base64}" onerror="this.style.display='none'">`;
             } else {
@@ -307,7 +405,6 @@
 
         // --- ALGORITHM ---
         function generateAndStart() {
-            // Matching Logic
             const givers = [...appData.siblings];
             let receivers = [...appData.siblings];
             let matches = [];
@@ -319,42 +416,34 @@
                 receivers.sort(() => Math.random() - 0.5);
                 matches = [];
                 let possible = true;
-
                 for(let i=0; i<givers.length; i++) {
                     const g = givers[i];
                     const r = receivers[i];
-                    
-                    // 1. Self Check
                     if(g.name === r.name) { possible = false; break; }
-                    
-                    // 2. History Check (Last 2 years)
                     const past = [];
                     appData.history.forEach(h => {
                         const rec = h.matches.find(m => m.giver === g.name);
                         if(rec) past.push(rec.receiver);
                     });
                     if(past.slice(-2).includes(r.name)) { possible = false; break; }
-
                     matches.push({ giver: g.name, receiver: r.name });
                 }
                 if(possible) success = true;
             }
 
             if(!success) { alert("Could not match constraints!"); return; }
-            
             appData.matches = matches;
             startCeremony();
         }
 
         // --- CEREMONY VISUALS ---
-        let step = -1; // -1: Intro, 0..N: Siblings
+        let step = -1;
         let revealed = false;
 
         function startCeremony() {
             document.getElementById('setup-view').classList.add('hidden');
             document.getElementById('hearth-view').classList.remove('hidden');
             
-            // Populate Waiting Room
             const wr = document.getElementById('waiting-room');
             wr.innerHTML = '';
             appData.siblings.forEach(sib => {
@@ -364,14 +453,16 @@
                 div.innerHTML = getAvatar(sib);
                 wr.appendChild(div);
             });
+            
+            document.getElementById('top-turn-indicator').innerText = "Gather 'Round";
         }
 
         function nextStep() {
             const btn = document.getElementById('main-btn');
-            const lblMain = document.getElementById('lbl-main');
-            const lblSub = document.getElementById('lbl-sub');
+            const txtAssignment = document.getElementById('assignment-text');
             const stage = document.getElementById('stage-actors');
             const fire = document.getElementById('fire-bg');
+            const topText = document.getElementById('top-turn-indicator');
 
             // 1. Light Fire
             if(step === -1) {
@@ -394,24 +485,26 @@
                 const match = appData.matches.find(m => m.giver === giverName);
                 const recSib = appData.siblings.find(s => s.name === match.receiver);
 
-                // Create Recipient Element
+                // Create Recipient Element (RIGHT SIDE)
                 const rDiv = document.createElement('div');
-                rDiv.className = 'actor receiver';
+                rDiv.className = 'actor receiver burst-effect'; 
                 rDiv.innerHTML = getAvatar(recSib);
                 stage.appendChild(rDiv);
 
-                lblMain.innerHTML = match.receiver;
-                lblSub.innerText = `${giverName} is buying for`;
-                
+                // Update Text Below Fire
+                txtAssignment.innerHTML = `${giverName} is buying for <strong style="color:var(--accent-gold)">${match.receiver}</strong>`;
+                txtAssignment.style.opacity = 1;
+
+                topText.innerText = "Match Revealed!";
                 btn.innerText = "Next Sibling";
                 revealed = true;
             } else {
                 // NEXT TURN
                 step++;
                 if(step >= appData.siblings.length) {
-                    lblMain.innerText = "All Matches Set";
-                    lblSub.innerText = "The Fire dims...";
-                    stage.innerHTML = ''; // Clear stage
+                    txtAssignment.innerHTML = "All Matches Complete";
+                    topText.innerText = "The Fire dims...";
+                    stage.innerHTML = '';
                     btn.innerText = "See Full List";
                 } else {
                     setupTurn();
@@ -422,36 +515,35 @@
         function setupTurn() {
             const giver = appData.siblings[step];
             const btn = document.getElementById('main-btn');
-            const lblMain = document.getElementById('lbl-main');
-            const lblSub = document.getElementById('lbl-sub');
+            const txtAssignment = document.getElementById('assignment-text');
             const stage = document.getElementById('stage-actors');
+            const topText = document.getElementById('top-turn-indicator');
 
-            // Visuals
+            // Reset Visuals
             revealed = false;
-            stage.innerHTML = ''; // Clear stage
+            stage.innerHTML = ''; 
+            txtAssignment.style.opacity = 0; 
             
-            // 1. Mark waiting room node as active (hide it)
+            // Mark waiting room
             document.querySelectorAll('.waiting-node').forEach(n => n.classList.remove('current'));
             const waitNode = document.getElementById(`wait-${giver.name}`);
             if(waitNode) {
                 waitNode.classList.add('current');
-                waitNode.classList.add('done'); // Mark as done for later
+                waitNode.classList.add('done');
             }
 
-            // 2. Create Giver on Stage (Big, Center)
+            // Create Giver (Left Side)
             const gDiv = document.createElement('div');
             gDiv.className = 'actor giver';
             gDiv.innerHTML = getAvatar(giver);
             stage.appendChild(gDiv);
 
-            // 3. Text
-            lblMain.innerText = "???";
-            lblSub.innerText = `It is ${giver.name}'s turn`;
+            // Controls
+            topText.innerText = `It's ${giver.name}'s turn`;
             btn.innerText = "Reveal Match";
         }
 
         function endGame() {
-            // Save History Logic
             const year = new Date().getFullYear();
             if(!appData.history.find(h => h.year === year)) {
                 appData.history.push({ year: year, matches: appData.matches });
@@ -485,13 +577,12 @@
             let listText = "\n--- OFFICIAL 2025 LIST ---\n";
             appData.matches.forEach(m => listText += `${m.giver} ➔ ${m.receiver}\n`);
             
-            const subject = `🎄 Secret Santa: You have ${receiver}!`;
-            const body = `Hi ${giver},\n\nYou are buying for:\n\n✨ ${receiver} ✨\n\n${listText}\n\nIMPORTANT: The host is attaching the .json history file. Keep it safe!`;
+            const subject = `🎄 Not-So-Secret Santa: You have ${receiver}!`;
+            const body = `Hi ${giver},\n\nYou have the exquisite privilege of buying for:\n\n✨ ${receiver} ✨\n\n${listText}\n\nIMPORTANT: The host is attaching the .json history file. Keep it safe!`;
             
             window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         }
 
-        // --- FILE I/O ---
         function downloadData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
             const dl = document.createElement('a');
@@ -510,12 +601,11 @@
                 try {
                     const loaded = JSON.parse(e.target.result);
                     appData.history = loaded.history || [];
-                    // Check for legacy manual uploads (base64)
                     if(loaded.siblings) {
                         loaded.siblings.forEach(ls => {
                             const local = appData.siblings.find(s => s.name === ls.name);
                             if(local && ls.avatar && ls.avatar.startsWith('data:')) {
-                                local.base64 = ls.avatar; // Store strictly as manual override
+                                local.base64 = ls.avatar;
                             }
                         });
                     }
@@ -526,9 +616,7 @@
             reader.readAsText(file);
         }
 
-        // Start
         init();
-
     </script>
 </body>
 </html>
