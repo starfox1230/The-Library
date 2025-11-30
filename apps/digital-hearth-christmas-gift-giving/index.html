@@ -416,22 +416,45 @@
                 receivers.sort(() => Math.random() - 0.5);
                 matches = [];
                 let possible = true;
+                
+                // 1. Generate Matches
                 for(let i=0; i<givers.length; i++) {
                     const g = givers[i];
                     const r = receivers[i];
+                    
+                    // Self Check
                     if(g.name === r.name) { possible = false; break; }
+                    
+                    // History Check (Last 2 years)
                     const past = [];
                     appData.history.forEach(h => {
                         const rec = h.matches.find(m => m.giver === g.name);
                         if(rec) past.push(rec.receiver);
                     });
                     if(past.slice(-2).includes(r.name)) { possible = false; break; }
+                    
                     matches.push({ giver: g.name, receiver: r.name });
                 }
+
+                // 2. Mutual Exclusion Check (No A->B AND B->A)
+                if(possible) {
+                    for(let m of matches) {
+                        // Check if the person 'm' is giving to is also giving back to 'm'
+                        const reciprocal = matches.find(other => 
+                            other.giver === m.receiver && other.receiver === m.giver
+                        );
+                        
+                        if(reciprocal) {
+                            possible = false; // A pair was found, reject this set
+                            break;
+                        }
+                    }
+                }
+
                 if(possible) success = true;
             }
 
-            if(!success) { alert("Could not match constraints!"); return; }
+            if(!success) { alert("Could not match constraints! (Tried 2000 combinations)"); return; }
             appData.matches = matches;
             startCeremony();
         }
