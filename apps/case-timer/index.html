@@ -59,10 +59,71 @@
       margin-bottom: 14px;
     }
 
+    .header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     h1, h2 {
       font-size: 1.4rem;
       letter-spacing: 0.02em;
     }
+
+    .icon-button {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .icon-button:hover { background: rgba(255, 255, 255, 0.1); }
+    .icon-button:active { transform: translateY(1px); }
+
+    .settings-menu {
+      position: relative;
+    }
+
+    .settings-dropdown {
+      position: absolute;
+      top: 42px;
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
+      padding: 10px;
+      min-width: 190px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .settings-dropdown.open { display: flex; }
+
+    .settings-dropdown button {
+      width: 100%;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 120ms ease, transform 120ms ease;
+      font-weight: 600;
+    }
+
+    .settings-dropdown button:hover { background: rgba(255, 255, 255, 0.1); }
+    .settings-dropdown button:active { transform: translateY(1px); }
 
     .status-pill {
       padding: 8px 12px;
@@ -86,6 +147,7 @@
       text-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
       text-align: center;
       margin: 10px 0 6px;
+      cursor: pointer;
     }
 
     .hint {
@@ -93,6 +155,29 @@
       color: var(--muted);
       letter-spacing: 0.01em;
       margin-top: 4px;
+    }
+
+    .end-button {
+      margin: 10px auto 0;
+      display: none;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #f56565;
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(245, 101, 101, 0.35);
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    .end-button:hover { background: #ff7b7b; }
+    .end-button:active { transform: translateY(1px); }
+
+    .toolbar-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 6px;
     }
 
     .session-log .panel-header {
@@ -120,6 +205,26 @@
       gap: 12px;
     }
 
+    .case-item .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .case-item button.delete {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 120ms ease, transform 120ms ease;
+      font-weight: 600;
+    }
+
+    .case-item button.delete:hover { background: rgba(255, 255, 255, 0.12); }
+    .case-item button.delete:active { transform: translateY(1px); }
+
     .case-item .label { font-weight: 700; }
 
     .case-item .duration {
@@ -144,10 +249,23 @@
     <section class="panel timer-panel">
       <div class="panel-header">
         <h1>Case Timer</h1>
-        <span id="statusPill" class="status-pill">Idle</span>
+        <div class="header-actions">
+          <span id="statusPill" class="status-pill">Idle</span>
+          <div class="settings-menu">
+            <button id="settingsButton" class="icon-button" aria-expanded="false">⚙️</button>
+            <div id="settingsDropdown" class="settings-dropdown" role="menu">
+              <button id="printButton" role="menuitem">Print saved data</button>
+              <button id="resetButton" role="menuitem">Reset all timers</button>
+              <button id="editToggle" role="menuitem">Edit case list</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="timerDisplay" class="timer-display">00:00.000</div>
-      <p class="hint">Space toggles play / pause · → logs the case</p>
+      <div id="timerDisplay" class="timer-display" role="button" aria-live="polite">00:00</div>
+      <p class="hint">Click or press Space to play / pause · → logs the case</p>
+      <div class="toolbar-row">
+        <button id="endButton" class="end-button">End Case</button>
+      </div>
     </section>
 
     <section class="panel session-log">
@@ -169,18 +287,36 @@
     const statusPill = document.getElementById('statusPill');
     const caseList = document.getElementById('caseList');
     const caseCount = document.getElementById('caseCount');
+    const endButton = document.getElementById('endButton');
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsDropdown = document.getElementById('settingsDropdown');
+    const printButton = document.getElementById('printButton');
+    const resetButton = document.getElementById('resetButton');
+    const editToggle = document.getElementById('editToggle');
+
+    const STORAGE_KEY = 'caseTimerData';
 
     let currentCase = null;
     let startTimestamp = null;
     let rafId = null;
-    let caseCounter = 0;
+    let cases = [];
+    let isEditing = false;
+    let pausedByClick = false;
 
     function formatTime(ms) {
       const totalSeconds = Math.floor(ms / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
-      const millis = Math.floor(ms % 1000);
-      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function saveState() {
+      const data = {
+        cases,
+        currentCase,
+        startTimestamp,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
     function setStatus(state) {
@@ -197,34 +333,83 @@
     }
 
     function updateCaseCount() {
-      caseCount.textContent = caseCounter ? `${caseCounter} case${caseCounter === 1 ? '' : 's'}` : 'No cases';
+      const total = cases.length + (currentCase ? 1 : 0);
+      caseCount.textContent = total ? `${total} case${total === 1 ? '' : 's'}` : 'No cases';
+    }
+
+    function renderCases() {
+      caseList.innerHTML = '';
+      if (!cases.length) {
+        const empty = document.createElement('li');
+        empty.className = 'case-item empty';
+        empty.innerHTML = '<span class="label">No cases yet</span><span class="duration muted">—</span>';
+        caseList.appendChild(empty);
+        return;
+      }
+
+      for (let i = cases.length - 1; i >= 0; i--) {
+        const entry = cases[i];
+        const caseNumber = i + 1;
+        const listItem = document.createElement('li');
+        listItem.className = 'case-item';
+
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = `Case ${caseNumber}`;
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+
+        const duration = document.createElement('span');
+        duration.className = 'duration';
+        duration.textContent = formatTime(entry.elapsed);
+        actions.appendChild(duration);
+
+        if (isEditing) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', () => deleteCase(caseNumber - 1));
+          actions.appendChild(deleteBtn);
+        }
+
+        listItem.appendChild(label);
+        listItem.appendChild(actions);
+        caseList.appendChild(listItem);
+      }
     }
 
     function updateDisplay() {
       if (!currentCase || startTimestamp === null) return;
-      const now = performance.now();
+      const now = Date.now();
       const elapsed = currentCase.elapsed + (now - startTimestamp);
       timerDisplay.textContent = formatTime(elapsed);
       rafId = requestAnimationFrame(updateDisplay);
     }
 
     function startNewCase() {
-      currentCase = { id: ++caseCounter, elapsed: 0 };
-      startTimestamp = performance.now();
+      currentCase = { number: cases.length + 1, elapsed: 0 };
+      startTimestamp = Date.now();
       setStatus('running');
+      pausedByClick = false;
+      endButton.style.display = 'none';
       cancelAnimationFrame(rafId);
       updateDisplay();
       updateCaseCount();
+      saveState();
     }
 
-    function pauseTimer() {
+    function pauseTimer(reason = 'other') {
       if (!currentCase || startTimestamp === null) return;
-      const now = performance.now();
+      const now = Date.now();
       currentCase.elapsed += now - startTimestamp;
       startTimestamp = null;
       cancelAnimationFrame(rafId);
       timerDisplay.textContent = formatTime(currentCase.elapsed);
       setStatus('paused');
+      pausedByClick = reason === 'click';
+      endButton.style.display = pausedByClick ? 'inline-flex' : 'none';
+      saveState();
     }
 
     function resumeTimer() {
@@ -233,13 +418,16 @@
         return;
       }
       if (startTimestamp !== null) return;
-      startTimestamp = performance.now();
+      startTimestamp = Date.now();
       setStatus('running');
+      pausedByClick = false;
+      endButton.style.display = 'none';
       cancelAnimationFrame(rafId);
       updateDisplay();
+      saveState();
     }
 
-    function toggleTimer() {
+    function toggleTimer(trigger = 'other') {
       if (!currentCase) {
         startNewCase();
         return;
@@ -247,7 +435,7 @@
       if (startTimestamp === null) {
         resumeTimer();
       } else {
-        pauseTimer();
+        pauseTimer(trigger);
       }
     }
 
@@ -255,41 +443,105 @@
       if (!currentCase) return;
 
       if (startTimestamp !== null) {
-        const now = performance.now();
+        const now = Date.now();
         currentCase.elapsed += now - startTimestamp;
         startTimestamp = null;
         cancelAnimationFrame(rafId);
       }
 
-      const listItem = document.createElement('li');
-      listItem.className = 'case-item';
-      const label = document.createElement('span');
-      label.className = 'label';
-      label.textContent = `Case ${currentCase.id}`;
-      const duration = document.createElement('span');
-      duration.className = 'duration';
-      duration.textContent = formatTime(currentCase.elapsed);
-
-      listItem.appendChild(label);
-      listItem.appendChild(duration);
-
-      if (caseList.querySelector('.empty')) {
-        caseList.innerHTML = '';
-      }
-      caseList.prepend(listItem);
+      cases.push({ elapsed: currentCase.elapsed });
 
       currentCase = null;
       startTimestamp = null;
+      pausedByClick = false;
+      endButton.style.display = 'none';
       cancelAnimationFrame(rafId);
-      timerDisplay.textContent = '00:00.000';
+      timerDisplay.textContent = '00:00';
       setStatus('idle');
+      updateCaseCount();
+      renderCases();
+      saveState();
+    }
+
+    function deleteCase(index) {
+      cases.splice(index, 1);
+      if (currentCase) {
+        currentCase.number = cases.length + 1;
+      }
+      renderCases();
+      updateCaseCount();
+      saveState();
+    }
+
+    function resetAll() {
+      cases = [];
+      currentCase = null;
+      startTimestamp = null;
+      pausedByClick = false;
+      cancelAnimationFrame(rafId);
+      timerDisplay.textContent = '00:00';
+      setStatus('idle');
+      endButton.style.display = 'none';
+      isEditing = false;
+      editToggle.textContent = 'Edit case list';
+      settingsDropdown.classList.remove('open');
+      settingsButton.setAttribute('aria-expanded', 'false');
+      renderCases();
+      updateCaseCount();
+      saveState();
+    }
+
+    function toggleEditing() {
+      isEditing = !isEditing;
+      editToggle.textContent = isEditing ? 'Done editing' : 'Edit case list';
+      renderCases();
+      saveState();
+    }
+
+    function loadState() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        renderCases();
+        updateCaseCount();
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(stored);
+        cases = Array.isArray(parsed.cases) ? parsed.cases : [];
+        currentCase = parsed.currentCase || null;
+        startTimestamp = parsed.startTimestamp || null;
+      } catch (error) {
+        cases = [];
+        currentCase = null;
+        startTimestamp = null;
+      }
+
+      if (currentCase) {
+        if (startTimestamp) {
+          const now = Date.now();
+          currentCase.elapsed += Math.max(0, now - startTimestamp);
+          startTimestamp = now;
+          setStatus('running');
+          updateDisplay();
+          saveState();
+        } else {
+          timerDisplay.textContent = formatTime(currentCase.elapsed);
+          setStatus('paused');
+        }
+      } else {
+        timerDisplay.textContent = '00:00';
+        setStatus('idle');
+      }
+
+      renderCases();
       updateCaseCount();
     }
 
     document.addEventListener('keydown', (event) => {
       if (event.code === 'Space') {
         event.preventDefault();
-        toggleTimer();
+        toggleTimer('keyboard');
       }
 
       if (event.code === 'ArrowRight') {
@@ -297,6 +549,40 @@
         endCase();
       }
     });
+
+    timerDisplay.addEventListener('click', () => toggleTimer('click'));
+    endButton.addEventListener('click', endCase);
+
+    settingsButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = settingsDropdown.classList.toggle('open');
+      settingsButton.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!settingsDropdown.contains(event.target) && event.target !== settingsButton) {
+        settingsDropdown.classList.remove('open');
+        settingsButton.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    resetButton.addEventListener('click', () => {
+      resetAll();
+    });
+
+    printButton.addEventListener('click', () => {
+      console.log('Stored case timer data:', { cases, currentCase, startTimestamp });
+      settingsDropdown.classList.remove('open');
+      settingsButton.setAttribute('aria-expanded', 'false');
+    });
+
+    editToggle.addEventListener('click', () => {
+      toggleEditing();
+      settingsDropdown.classList.remove('open');
+      settingsButton.setAttribute('aria-expanded', 'false');
+    });
+
+    loadState();
   </script>
 </body>
 </html>
