@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Radiology Anki Quest – Answer-to-Survive</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-grad-1: #020617;
+      --bg-grad-2: #0f172a;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.15);
+      --accent-strong: #0ea5e9;
+      --danger: #f97373;
+      --danger-soft: rgba(248, 113, 113, 0.15);
+      --success: #4ade80;
+      --success-soft: rgba(74, 222, 128, 0.15);
+      --card-bg: rgba(15, 23, 42, 0.95);
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --border-subtle: rgba(148, 163, 184, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0f172a, #020617 60%);
+      color: var(--text);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 1100px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 16px 20px;
+      box-shadow:
+        0 22px 45px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(148, 163, 184, 0.25);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      backdrop-filter: blur(18px);
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .app-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      color: var(--muted);
+    }
+
+    .mode-tagline {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .nav-tabs {
+      display: inline-flex;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+    }
+
+    .nav-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 600;
+    }
+
+    .nav-btn:active {
+      transform: scale(0.97);
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 800px) {
+      .status-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .status-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      font-size: 0.8rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(148, 163, 184, 0.85);
+    }
+
+    .badge-strong {
+      border-color: rgba(56, 189, 248, 0.7);
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+    }
+
+    .health-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .health-bar-shell {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, rgba(15, 118, 110, 0.7), rgba(15, 23, 42, 1));
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      position: relative;
+    }
+
+    .health-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #22c55e, #facc15, #f97316, #ef4444);
+      transform-origin: left center;
+      transform: scaleX(1);
+      transition: transform 0.18s ease-out;
+    }
+
+    .health-gloss {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.28), transparent);
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+
+    .progress-mini {
+      display: flex;
+      gap: 10px;
+      font-size: 0.76rem;
+      color: var(--muted);
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .progress-mini span {
+      white-space: nowrap;
+    }
+
+    .game-and-review {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .game-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .game-main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .question-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .question-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    .question-id {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .question-text {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .option-btn {
+      text-align: left;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98));
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease, background 0.12s ease;
+    }
+
+    .option-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      pointer-events: none;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .option-btn:hover:not(:disabled)::before {
+      opacity: 1;
+    }
+
+    .option-btn:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .option-btn.correct {
+      border-color: rgba(74, 222, 128, 0.9);
+      background: linear-gradient(135deg, var(--success-soft), rgba(15, 23, 42, 0.98));
+      box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.5);
+    }
+
+    .option-btn.incorrect {
+      border-color: rgba(248, 113, 113, 0.9);
+      background: linear-gradient(135deg, var(--danger-soft), rgba(15, 23, 42, 0.98));
+      box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.5);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+      opacity: 0.9;
+    }
+
+    .feedback-area {
+      margin-top: 10px;
+      font-size: 0.84rem;
+      color: var(--muted);
+      min-height: 1.3em;
+    }
+
+    .next-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .primary-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 16px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: radial-gradient(circle at top left, var(--accent-strong), #0369a1);
+      color: #0b1120;
+      box-shadow:
+        0 10px 25px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(8, 47, 73, 0.7);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
+    }
+
+    .primary-btn:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow:
+        0 4px 12px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(8, 47, 73, 0.7);
+      filter: brightness(0.96);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.7;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .side-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    .side-panel {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .side-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .side-stat {
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 1));
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .side-stat-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(148, 163, 184, 0.85);
+    }
+
+    .side-stat-value {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .side-note {
+      font-size: 0.76rem;
+      color: var(--muted);
+      border-radius: 10px;
+      border: 1px dashed rgba(148, 163, 184, 0.55);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent);
+      padding: 8px 9px;
+    }
+
+    .review-card {
+      margin-top: 4px;
+      padding-top: 6px;
+    }
+
+    .review-table-wrapper {
+      max-height: 280px;
+      overflow: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 1));
+    }
+
+    .review-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+
+    .review-table thead {
+      position: sticky;
+      top: 0;
+      background: rgba(15, 23, 42, 0.98);
+      z-index: 1;
+    }
+
+    .review-table th,
+    .review-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(31, 41, 55, 1);
+      vertical-align: top;
+    }
+
+    .review-table th {
+      font-weight: 600;
+      text-align: left;
+      color: rgba(148, 163, 184, 0.95);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.68rem;
+    }
+
+    .review-table tr:nth-child(even) td {
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    .chip-correct {
+      background: var(--success-soft);
+      border-color: rgba(74, 222, 128, 0.8);
+      color: var(--success);
+    }
+
+    .chip-wrong {
+      background: var(--danger-soft);
+      border-color: rgba(248, 113, 113, 0.8);
+      color: var(--danger);
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.74rem;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .truncate {
+      max-width: 260px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 600px) {
+      .truncate {
+        max-width: 160px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="card app-header">
+      <div class="title-block">
+        <div class="app-title">
+          Radiology Anki Quest – Answer-to-Survive
+          <span class="pill">Answer-to-survive quiz</span>
+        </div>
+        <div id="modeTagline" class="mode-tagline"></div>
+      </div>
+      <div class="nav-tabs">
+        <button id="navGame" class="nav-btn active" type="button">Game</button>
+        <button id="navReview" class="nav-btn" type="button">Review</button>
+      </div>
+    </div>
+
+    <div class="card status-row">
+      <div class="status-main">
+        <div class="badge badge-strong">
+          <span class="badge-label">Mode</span>
+          <span id="modeName">–</span>
+        </div>
+        <div class="badge">
+          <span class="badge-label">Score</span>
+          <span id="scoreDisplay">0</span>
+        </div>
+        <div class="badge">
+          <span class="badge-label">Multiplier</span>
+          <span id="multiplierDisplay">×1.0</span>
+        </div>
+        <div class="badge">
+          <span class="badge-label">Accuracy</span>
+          <span id="accuracyDisplay">–</span>
+        </div>
+      </div>
+      <div class="health-wrapper">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span>Stability</span>
+          <span id="healthValue" class="mono">100 / 100</span>
+        </div>
+        <div class="health-bar-shell">
+          <div id="healthFill" class="health-fill"></div>
+          <div class="health-gloss"></div>
+        </div>
+        <div class="progress-mini">
+          <span id="cardCounter">Card 0 / 0</span>
+          <span id="runTime">Run: 0:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-and-review">
+      <div id="gameView" class="game-main">
+        <div class="card question-card">
+          <div class="question-header">
+            <div>
+              <div class="question-label">Case prompt</div>
+              <div class="question-id" id="questionIdLabel">Card –</div>
+            </div>
+          </div>
+          <div id="questionText" class="question-text">
+          </div>
+          <div id="optionsContainer" class="options"></div>
+          <div id="feedback" class="feedback-area"></div>
+          <div class="next-row">
+            <button id="nextButton" class="primary-btn hidden" type="button">
+              Next case
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="side-panel-header">
+            <span>Run stats</span>
+          </div>
+          <div class="side-panel">
+            <div class="side-stat-grid">
+              <div class="side-stat">
+                <div class="side-stat-label">Correct</div>
+                <div id="statCorrect" class="side-stat-value">0</div>
+              </div>
+              <div class="side-stat">
+                <div class="side-stat-label">Missed</div>
+                <div id="statWrong" class="side-stat-value">0</div>
+              </div>
+              <div class="side-stat">
+                <div class="side-stat-label">Current streak</div>
+                <div id="statStreak" class="side-stat-value">0</div>
+              </div>
+              <div class="side-stat">
+                <div class="side-stat-label">Deck size</div>
+                <div id="statTotal" class="side-stat-value">0</div>
+              </div>
+            </div>
+            <div class="side-note" id="modeHint">
+              Answer to climb the Radiology Tower. Miss and you lose stability; fall to zero and your multiplier breaks while you get patched up for the next case.
+            </div>
+            <div class="side-note">
+              Every answer is logged in the Review tab with your choice, the correct answer, and response time for post-call debrief.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="reviewView" class="card review-card hidden">
+        <div class="side-panel-header">
+          <span>Answer log</span>
+          <span id="reviewSummary" class="muted mono"></span>
+        </div>
+        <div class="review-table-wrapper">
+          <table class="review-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Card</th>
+                <th>Question</th>
+                <th>Your answer</th>
+                <th>Correct answer</th>
+                <th>Result</th>
+                <th>Δt (s)</th>
+              </tr>
+            </thead>
+            <tbody id="reviewBody">
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top: 8px; font-size: 0.76rem;" class="muted">
+          Log includes card order/ID, full prompts, your answers, correctness, and per-case response time for spaced repetition review.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cards = [
+      {
+        id: 1,
+        question: "What is the second most common cause of sudden cardiac death in young patients (after hypertrophic cardiomyopathy)?",
+        answer: "Interarterial course of an anomalous left coronary artery arising from the right coronary cusp"
+      },
+      {
+        id: 2,
+        question: "On a lateral chest radiograph, the left main pulmonary artery courses posterior to which structure?",
+        answer: "posterior to the left upper lobe bronchus"
+      },
+      {
+        id: 4,
+        question: "Functional pancreatic neuroendocrine tumors often present when small because...",
+        answer: "hormone secretion produces clinical symptoms that trigger early imaging."
+      },
+      {
+        id: 5,
+        question: "The two most common intramedullary neoplasms of the spinal cord are...",
+        answer: "ependymoma and astrocytoma."
+      },
+      {
+        id: 6,
+        question: "Procedure?",
+        answer: "hemiarthroplasty"
+      },
+      {
+        id: 7,
+        question: "A practical way to reduce chemical shift artifact is to...",
+        answer: "increase the receiver bandwidth."
+      },
+      {
+        id: 8,
+        question: "Lymphocytic interstitial pneumonia (LIP) in an adult is classically associated with what disease?",
+        answer: "Sjogren's syndrome"
+      },
+      {
+        id: 9,
+        question: "A Ghon complex is defined as what?",
+        answer: "A Ghon focus alongside ipsilateral mediastinal lymphadenopathy."
+      },
+      {
+        id: 10,
+        question: "List the intracranial segments of the facial nerve in order from the internal auditory canal to exit at the stylomastoid foramen.",
+        answer: "Labyrinthine → Geniculate ganglion (first genu) → Tympanic segment → Mastoid segment."
+      },
+      {
+        id: 11,
+        question: "Among posterior fossa tumors, which is most associated with drop metastases?",
+        answer: "medulloblastoma."
+      },
+      {
+        id: 12,
+        question: "The two classic benign asbestos-related changes are...",
+        answer: "pleural effusion and pleural plaques."
+      },
+      {
+        id: 13,
+        question: "What percentage of adrenal adenomas are lipid poor?",
+        answer: "30%"
+      },
+      {
+        id: 14,
+        question: "The term bone contusion refers to what?",
+        answer: "trabecular microfractures that manifest as a pattern of bone marrow edema on MR images, without contour abnormalities or a discrete fracture line."
+      },
+      {
+        id: 15,
+        question: "Diffusely sclerotic bones in a child with limb short stature, delayed closure of cranial sutures, frontal and occipital bossing, short broad hands with nail hypoplasia, and multiple long bone fractures. Diagnosis?",
+        answer: "Pyknodysostosis"
+      },
+      {
+        id: 16,
+        question: "For a mobile C-arm, the minimum focus-to-skin distance is how many centimeters?",
+        answer: "30 cm"
+      },
+      {
+        id: 17,
+        question: "Idiopathic retroperitoneal fibrosis is also called what, and many cases are now recognized as part of what disease group?",
+        answer: "Ormond disease and IgG4 related disease."
+      },
+      {
+        id: 19,
+        question: "Diagnosis in 65 year old?",
+        answer: "CPPD crystal deposition disease"
+      },
+      {
+        id: 20,
+        question: "Diagnosis?",
+        answer: "Hibernoma"
+      },
+      {
+        id: 21,
+        question: "Pyknodysostosis combines what skeletal features?",
+        answer: "generalized osteosclerosis with brittle bones and fractures."
+      },
+      {
+        id: 22,
+        question: "Diagnosis?",
+        answer: "Polyarteritis nodosa"
+      },
+      {
+        id: 23,
+        question: "Which liposarcoma typically appears as a large deep soft tissue mass with necrosis and only small foci of fat?",
+        answer: "Pleomorphic liposarcoma"
+      },
+      {
+        id: 24,
+        question: "The hallmark CT enhancement pattern for pancreatic neuroendocrine tumors is what on which phase?",
+        answer: "hyper-enhancement on the pancreatic parenchymal or arterial phase."
+      },
+      {
+        id: 25,
+        question: "In renal cell carcinoma TNM staging, T4 means what?",
+        answer: "tumor invades beyond the Gerota fascia or involves the ipsilateral adrenal gland."
+      },
+      {
+        id: 26,
+        question: "Doctrine and Covenants: what sections were written during Liberty Jail?",
+        answer: "121-123"
+      },
+      {
+        id: 28,
+        question: "The anterior meniscofemoral ligament (ligament of Humphry) arises from where and passes how relative to the PCL?",
+        answer: "arises from the posterior horn of the lateral meniscus and passes anterior to the PCL"
+      },
+      {
+        id: 29,
+        question: "Myocardial bridging refers to what?",
+        answer: "an intramyocardial course of a coronary artery (most commonly the LAD)."
+      },
+      {
+        id: 30,
+        question: "For the foot and ankle, the most common causes of neuropathic arthropathy are...",
+        answer: "diabetes mellitus and alcoholism."
+      },
+      {
+        id: 31,
+        question: "Overall limb pattern in thanatophoric dysplasia:",
+        answer: "micromelia per AIRP lecture, rhizomelia per crack the core."
+      },
+      {
+        id: 32,
+        question: "Diagnosis?",
+        answer: "Filum fibrolipoma"
+      },
+      {
+        id: 33,
+        question: "Most common manifestation of cardiac metastases is what, and the second most is what?",
+        answer: "pericardial effusion and pericardial lymph node involvement."
+      },
+      {
+        id: 35,
+        question: "Compared with intraductal papillary mucinous neoplasms, cystic pancreatic neuroendocrine tumors are distinguished by what feature?",
+        answer: "a solid hyper-enhancing rim rather than a purely cystic lesion without a prominent enhancing wall."
+      },
+      {
+        id: 36,
+        question: "Diagnosis?",
+        answer: "grade 2 germinal matrix hemorrhage"
+      },
+      {
+        id: 37,
+        question: "When you see polyostotic aggressive bone lesions, what three entities should you think of first?",
+        answer: "metastases, multiple myeloma, and lymphoma."
+      },
+      {
+        id: 41,
+        question: "When lipomatosis affects a nerve territory with associated bone hypertrophy, what is it called?",
+        answer: "macrodystrophia lipomatosa."
+      },
+      {
+        id: 42,
+        question: "The hallmark MRI appearance of myxoid liposarcoma is what?",
+        answer: "a high water content mass that contains only a small amount of intrinsic fat, often less than ten percent of the tumor volume."
+      },
+      {
+        id: 43,
+        question: "The anterior inferior tibiofibular ligament (AITFL) is also known as what?",
+        answer: "the anterior syndesmosis."
+      },
+      {
+        id: 44,
+        question: "Important causes of a hyper-enhancing pancreatic lesion on arterial phase imaging include what?",
+        answer: "pancreatic neuroendocrine tumor, metastatic renal cell carcinoma, duodenal gastrointestinal stromal tumor, solid appearing serous cystadenoma, and intrapancreatic accessory spleen."
+      },
+      {
+        id: 45,
+        question: "In renal cell carcinoma TNM staging, T2 means what?",
+        answer: "tumor limited to the kidney and greater than seven centimeters."
+      },
+      {
+        id: 46,
+        question: "Myxoid liposarcoma tends to occur in what age group and typical locations?",
+        answer: "younger adults in intermuscular locations of the thigh and popliteal fossa."
+      },
+      {
+        id: 47,
+        question: "Trans masculine patients on long term testosterone therapy with arterially hyperenhancing liver lesions are more likely to have what subtype of hepatocellular adenoma?",
+        answer: "beta catenin associated hepatocellular adenomas."
+      }
+    ];
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    const state = {
+      mode: "tower", // "tower" | "survival"
+      order: [],
+      currentIdx: 0,
+      score: 0,
+      health: 100,
+      multiplier: 1,
+      streak: 0,
+      history: [],
+      correctCount: 0,
+      gameStartTime: 0,
+      questionStartTime: 0,
+      answered: false,
+      knockedOnThisCard: false
+    };
+
+    const els = {};
+
+    function cacheEls() {
+      els.modeTagline = document.getElementById("modeTagline");
+      els.modeName = document.getElementById("modeName");
+      els.modeHint = document.getElementById("modeHint");
+      els.scoreDisplay = document.getElementById("scoreDisplay");
+      els.multiplierDisplay = document.getElementById("multiplierDisplay");
+      els.accuracyDisplay = document.getElementById("accuracyDisplay");
+      els.healthFill = document.getElementById("healthFill");
+      els.healthValue = document.getElementById("healthValue");
+      els.cardCounter = document.getElementById("cardCounter");
+      els.runTime = document.getElementById("runTime");
+      els.questionIdLabel = document.getElementById("questionIdLabel");
+      els.questionText = document.getElementById("questionText");
+      els.optionsContainer = document.getElementById("optionsContainer");
+      els.feedback = document.getElementById("feedback");
+      els.nextButton = document.getElementById("nextButton");
+      els.statCorrect = document.getElementById("statCorrect");
+      els.statWrong = document.getElementById("statWrong");
+      els.statStreak = document.getElementById("statStreak");
+      els.statTotal = document.getElementById("statTotal");
+      els.gameView = document.getElementById("gameView");
+      els.reviewView = document.getElementById("reviewView");
+      els.navGame = document.getElementById("navGame");
+      els.navReview = document.getElementById("navReview");
+      els.reviewBody = document.getElementById("reviewBody");
+      els.reviewSummary = document.getElementById("reviewSummary");
+    }
+
+    function pickMode() {
+      if (Math.random() < 0.5) {
+        return {
+          id: "tower",
+          name: "Radiology Tower",
+          tagline: "Climb the tower one case at a time. Correct answers lift you higher; misses sap your stability.",
+          hint: "Correct answers boost your score and stability. If stability hits zero, you \"fall\" and your multiplier breaks, but you restart the next floor with partial stability."
+        };
+      }
+      return {
+        id: "survival",
+        name: "On-Call Survival",
+        tagline: "Survive a night of waves of cases. Each correct call keeps you in the game.",
+        hint: "Correct answers keep you alive and ramp your multiplier. If stability hits zero, it's a code situation: you get stabilized for the next case but lose your streak."
+      };
+    }
+
+    function initGame() {
+      const modeInfo = pickMode();
+      state.mode = modeInfo.id;
+      state.order = shuffle([...Array(cards.length).keys()]);
+      state.currentIdx = 0;
+      state.score = 0;
+      state.health = 100;
+      state.multiplier = 1;
+      state.streak = 0;
+      state.history = [];
+      state.correctCount = 0;
+      state.gameStartTime = Date.now();
+      state.questionStartTime = Date.now();
+      state.answered = false;
+      state.knockedOnThisCard = false;
+
+      els.modeName.textContent = modeInfo.name;
+      els.modeTagline.textContent = modeInfo.tagline;
+      els.modeHint.textContent = modeInfo.hint;
+      els.statTotal.textContent = String(cards.length);
+      els.nextButton.textContent = state.mode === "tower" ? "Next floor" : "Next case";
+      els.nextButton.onclick = goNext;
+      els.nextButton.classList.add("hidden");
+      els.feedback.textContent = "";
+      els.reviewBody.innerHTML = "";
+      els.reviewSummary.textContent = "0 attempts logged";
+
+      updateStatus();
+      loadCurrentCard();
+    }
+
+    function updateStatus() {
+      els.scoreDisplay.textContent = state.score;
+      els.multiplierDisplay.textContent = "×" + state.multiplier.toFixed(1);
+      const totalAttempts = state.history.length;
+      const accuracy = totalAttempts ? Math.round((state.correctCount / totalAttempts) * 100) : null;
+      els.accuracyDisplay.textContent = accuracy === null ? "–" : accuracy + "%";
+
+      const health = Math.max(0, Math.min(100, state.health));
+      const scale = health / 100;
+      els.healthFill.style.transform = "scaleX(" + scale + ")";
+      els.healthValue.textContent = Math.round(health) + " / 100";
+
+      els.statCorrect.textContent = String(state.correctCount);
+      els.statWrong.textContent = String(totalAttempts - state.correctCount);
+      els.statStreak.textContent = String(state.streak);
+
+      const elapsedMs = Date.now() - state.gameStartTime;
+      const totalSeconds = Math.floor(elapsedMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      els.runTime.textContent = "Run: " + minutes + ":" + String(seconds).padStart(2, "0");
+
+      if (state.order.length) {
+        els.cardCounter.textContent = "Card " + (state.currentIdx + 1) + " / " + state.order.length;
+      } else {
+        els.cardCounter.textContent = "Card 0 / 0";
+      }
+    }
+
+    function loadCurrentCard() {
+      if (state.currentIdx >= state.order.length) {
+        handleRunComplete();
+        return;
+      }
+      const cardIndex = state.order[state.currentIdx];
+      const card = cards[cardIndex];
+
+      els.questionIdLabel.textContent = "Card " + card.id;
+      els.questionText.textContent = card.question;
+      els.optionsContainer.innerHTML = "";
+      els.feedback.textContent = "";
+      els.nextButton.classList.add("hidden");
+      state.answered = false;
+      state.knockedOnThisCard = false;
+      state.questionStartTime = Date.now();
+
+      const options = buildOptions(cardIndex);
+      options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "option-btn";
+        btn.textContent = opt;
+        btn.onclick = () => handleAnswer(opt, btn);
+        els.optionsContainer.appendChild(btn);
+      });
+
+      updateStatus();
+    }
+
+    function buildOptions(cardIndex) {
+      const correct = cards[cardIndex].answer;
+      const pool = [];
+      for (let i = 0; i < cards.length; i++) {
+        if (i === cardIndex) continue;
+        const ans = cards[i].answer;
+        if (!ans || ans === correct) continue;
+        pool.push(ans);
+      }
+      const shuffledPool = shuffle(pool);
+      const distractors = shuffledPool.slice(0, Math.min(3, shuffledPool.length));
+      const combined = [correct, ...distractors];
+      return shuffle(combined);
+    }
+
+    function handleAnswer(selectedText, buttonEl) {
+      if (state.answered) return;
+      const cardIndex = state.order[state.currentIdx];
+      const card = cards[cardIndex];
+      const correctText = card.answer;
+      const isCorrect = selectedText === correctText;
+      const responseTimeMs = Date.now() - state.questionStartTime;
+
+      let feedback = "";
+      if (isCorrect) {
+        state.correctCount += 1;
+        state.streak += 1;
+        const heal = 8;
+        state.health = Math.min(100, state.health + heal);
+        if (state.streak >= 3 && state.multiplier < 3) {
+          state.multiplier = Math.min(3, state.multiplier + 0.5);
+        }
+        const base = 100;
+        const gained = Math.round(base * state.multiplier);
+        state.score += gained;
+        feedback =
+          "Correct. +" + gained + " pts, +" + heal + " stability. " +
+          (state.mode === "tower" ? "You climb to a higher floor." : "You clear this on-call case.");
+      } else {
+        const loss = 18;
+        state.streak = 0;
+        state.multiplier = 1;
+        state.health = Math.max(0, state.health - loss);
+        feedback =
+          "Missed. -" + loss + " stability, multiplier reset. " +
+          (state.mode === "tower" ? "You slip on the tower steps." : "Your on-call night gets rougher.");
+      }
+
+      let knocked = false;
+      if (state.health <= 0) {
+        knocked = true;
+        feedback += state.mode === "tower"
+          ? " Stability collapsed: you fall back but will restart the next floor with partial stability and no streak."
+          : " Stability collapsed: you crash, get resuscitated, then continue the next case with partial stability and no streak.";
+      }
+
+      state.history.push({
+        id: card.id,
+        sequence: state.history.length + 1,
+        question: card.question,
+        userAnswer: selectedText,
+        correctAnswer: correctText,
+        correct: isCorrect,
+        answeredAt: new Date().toLocaleTimeString(),
+        responseTimeMs: responseTimeMs
+      });
+
+      const buttons = els.optionsContainer.querySelectorAll(".option-btn");
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === correctText) {
+          btn.classList.add("correct");
+        }
+      });
+      if (!isCorrect) {
+        buttonEl.classList.add("incorrect");
+      }
+
+      els.feedback.textContent = feedback;
+      els.nextButton.classList.remove("hidden");
+
+      state.answered = true;
+      state.knockedOnThisCard = knocked;
+
+      updateStatus();
+      renderHistory();
+    }
+
+    function goNext() {
+      if (!state.answered && state.currentIdx < state.order.length) {
+        return;
+      }
+      if (state.currentIdx >= state.order.length) {
+        initGame();
+        return;
+      }
+      if (state.knockedOnThisCard && state.health <= 0) {
+        state.health = 60;
+        state.streak = 0;
+        state.multiplier = 1;
+      }
+      state.currentIdx += 1;
+      loadCurrentCard();
+    }
+
+    function handleRunComplete() {
+      const totalCards = state.order.length;
+      const accuracy = totalCards ? Math.round((state.correctCount / totalCards) * 100) : 0;
+      const summaryLine = "Run complete. Score " + state.score + " | Accuracy " + accuracy + "%";
+
+      els.questionIdLabel.textContent = "Deck cleared";
+      els.questionText.textContent = summaryLine;
+      els.optionsContainer.innerHTML = "";
+      els.feedback.textContent =
+        (state.mode === "tower"
+          ? "You reached the top of the Radiology Tower. Restart for a reshuffled deck and possibly a different game mode."
+          : "You survived all on-call waves. Restart for a reshuffled deck and possibly a different game mode."
+        );
+      els.cardCounter.textContent = "All cards cleared (" + totalCards + ").";
+
+      els.nextButton.textContent = "Restart run";
+      els.nextButton.classList.remove("hidden");
+      els.nextButton.onclick = function () {
+        els.nextButton.textContent = state.mode === "tower" ? "Next floor" : "Next case";
+        initGame();
+      };
+
+      updateStatus();
+      renderHistory();
+    }
+
+    function showView(which) {
+      if (which === "game") {
+        els.gameView.classList.remove("hidden");
+        els.reviewView.classList.add("hidden");
+        els.navGame.classList.add("active");
+        els.navReview.classList.remove("active");
+      } else {
+        els.gameView.classList.add("hidden");
+        els.reviewView.classList.remove("hidden");
+        els.navGame.classList.remove("active");
+        els.navReview.classList.add("active");
+      }
+    }
+
+    function renderHistory() {
+      const body = els.reviewBody;
+      body.innerHTML = "";
+      const history = state.history;
+      history.forEach(entry => {
+        const tr = document.createElement("tr");
+
+        const tdSeq = document.createElement("td");
+        tdSeq.textContent = entry.sequence;
+        tdSeq.className = "mono";
+        tr.appendChild(tdSeq);
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = entry.answeredAt;
+        tdTime.className = "mono";
+        tr.appendChild(tdTime);
+
+        const tdId = document.createElement("td");
+        tdId.textContent = entry.id;
+        tdId.className = "mono";
+        tr.appendChild(tdId);
+
+        const tdQ = document.createElement("td");
+        tdQ.textContent = entry.question;
+        tdQ.className = "truncate";
+        tr.appendChild(tdQ);
+
+        const tdYour = document.createElement("td");
+        tdYour.textContent = entry.userAnswer;
+        tr.appendChild(tdYour);
+
+        const tdCorrect = document.createElement("td");
+        tdCorrect.textContent = entry.correctAnswer;
+        tr.appendChild(tdCorrect);
+
+        const tdResult = document.createElement("td");
+        const chip = document.createElement("span");
+        chip.className = "chip " + (entry.correct ? "chip-correct" : "chip-wrong");
+        chip.textContent = entry.correct ? "Right" : "Wrong";
+        tdResult.appendChild(chip);
+        tr.appendChild(tdResult);
+
+        const tdDt = document.createElement("td");
+        const secs = (entry.responseTimeMs / 1000).toFixed(1);
+        tdDt.textContent = secs;
+        tdDt.className = "mono";
+        tr.appendChild(tdDt);
+
+        body.appendChild(tr);
+      });
+
+      const total = history.length;
+      const acc = total ? Math.round((state.correctCount / total) * 100) : 0;
+      els.reviewSummary.textContent = total + " attempts | " + (total ? acc + "% correct" : "–");
+    }
+
+    window.addEventListener("load", () => {
+      cacheEls();
+      els.navGame.addEventListener("click", () => showView("game"));
+      els.navReview.addEventListener("click", () => showView("review"));
+      initGame();
+      setInterval(updateStatus, 1000);
+    });
+  </script>
+</body>
+</html>
