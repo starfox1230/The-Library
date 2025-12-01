@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Radiology Rush – Anki Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #050814;
+      --bg-alt: #0d1224;
+      --card-bg: #151a2c;
+      --accent: #4dd0e1;
+      --accent-soft: rgba(77,208,225,0.25);
+      --accent-strong: #00e676;
+      --danger: #ff5252;
+      --warning: #ffca28;
+      --text-main: #f5f7ff;
+      --text-muted: #9ba4d0;
+      --right: #00e676;
+      --wrong: #ff5252;
+    }
+
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  background: radial-gradient(circle at top, #1b2242 0, #050814 55%);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header.hud {
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to right, rgba(9,13,30,0.95), rgba(9,13,30,0.7));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.hud-left, .hud-center, .hud-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hud-stat {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hud-stat span.value {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.lives {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.life-heart {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff 0, #ff6b81 40%, #c2185b 100%);
+  box-shadow: 0 0 6px rgba(255,105,135,0.6);
+}
+.life-heart.lost {
+  background: radial-gradient(circle at 30% 30%, #777 0, #444 40%, #222 100%);
+  box-shadow: none;
+  opacity: 0.4;
+}
+
+.timer-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 110px;
+}
+
+.timer-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.timer-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.timer-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  background: linear-gradient(90deg, #00e676, #ffeb3b, #ff5252);
+  transform-origin: left center;
+  transform: scaleX(1);
+  transition: transform 0.12s linear;
+}
+
+.timer-text {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+
+.pause-btn {
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(8,12,28,0.9);
+  color: var(--text-main);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.pause-btn span.icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 2px solid var(--accent);
+  position: relative;
+}
+.pause-btn span.icon::before,
+.pause-btn span.icon::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  background: var(--accent);
+}
+.pause-btn span.icon::before { left: 1px; }
+.pause-btn span.icon::after { right: 1px; }
+.pause-btn.paused span.icon {
+  border-radius: 50%;
+  border-color: var(--warning);
+}
+.pause-btn.paused span.icon::before,
+.pause-btn.paused span.icon::after {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 7px;
+  border-color: transparent transparent transparent var(--warning);
+  left: 2px;
+  right: auto;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem 0.6rem 0.5rem;
+  gap: 0.4rem;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.1rem;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.8rem;
+  border-radius: 999px;
+  background: rgba(9,13,30,0.9);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: radial-gradient(circle at top left, rgba(77,208,225,0.3), rgba(77,208,225,0.1));
+  border-color: rgba(77,208,225,0.8);
+  color: var(--text-main);
+  box-shadow: 0 0 18px rgba(77,208,225,0.4);
+}
+
+.tab-btn span.badge {
+  min-width: 1.2rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--accent);
+}
+
+.views {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.view {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.view.active {
+  display: flex;
+}
+
+#playfield {
+  flex: 0 0 34%;
+  min-height: 120px;
+  max-height: 180px;
+  border-radius: 14px;
+  background: radial-gradient(circle at top, #283593 0, #11152a 45%, #050814 100%);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.55);
+}
+
+.pf-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,0.14) 1px, transparent 0),
+    radial-gradient(circle at 80% 30%, rgba(255,255,255,0.1) 1px, transparent 0),
+    radial-gradient(circle at 40% 80%, rgba(255,255,255,0.12) 1px, transparent 0);
+  background-size: 160px 160px, 200px 200px, 180px 180px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.pf-ground {
+  position: absolute;
+  bottom: -20px;
+  left: -10%;
+  right: -10%;
+  height: 40px;
+  background: radial-gradient(circle at top, #26c6da 0, #11152a 55%, #050814 100%);
+  filter: blur(3px);
+  opacity: 0.25;
+}
+
+.pf-base {
+  position: absolute;
+  left: 8%;
+  bottom: 12%;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 30% 20%, #fff 0, #4dd0e1 20%, #283593 60%);
+  box-shadow:
+    0 0 18px rgba(77,208,225,0.9),
+    0 0 0 1px rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pf-base-core {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, #fff 0, #00e676 40%, #00bfa5 90%);
+  box-shadow: 0 0 12px rgba(0,230,118,0.8);
+  position: relative;
+}
+
+.pf-base-core::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid rgba(0,0,0,0.25);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+}
+
+.pf-enemy {
+  position: absolute;
+  bottom: 18%;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, #fff 0, #ff5252 25%, #b71c1c 75%);
+  box-shadow:
+    0 0 12px rgba(255,82,82,0.9),
+    0 0 0 1px rgba(255,255,255,0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(0);
+  transition: transform 0.18s ease-out;
+}
+
+.pf-enemy::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: inherit;
+  border: 2px solid rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+}
+
+.pf-beam {
+  position: absolute;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0,229,255,0.4), rgba(0,229,255,1), rgba(255,255,255,0.9));
+  box-shadow: 0 0 10px rgba(0,229,255,0.8);
+  transform-origin: left center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pf-beam.active {
+  opacity: 1;
+  animation: beamZap 260ms ease-out forwards;
+}
+
+@keyframes beamZap {
+  0% { transform: scaleX(0); opacity: 0.1; }
+  50% { transform: scaleX(1.05); opacity: 1; }
+  100% { transform: scaleX(0); opacity: 0; }
+}
+
+.pf-danger-bar {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  right: 10px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.45);
+  overflow: hidden;
+}
+
+.pf-danger-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00e676, #ffeb3b, #ff5252);
+  transition: width 0.15s linear;
+}
+
+.pf-danger-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.7);
+}
+
+.pf-status {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+#card-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to bottom right, rgba(15,20,45,0.98), rgba(6,10,26,0.98));
+  border-radius: 14px;
+  padding: 0.55rem 0.6rem 0.55rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+  min-height: 0;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.card-progress {
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.card-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.qa-text {
+  flex: 1;
+  min-height: 0;
+  padding: 0.55rem;
+  border-radius: 10px;
+  background: rgba(8,12,28,0.95);
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow-y: auto;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.qa-text::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.qa-label {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--accent-soft);
+  margin-bottom: 0.2rem;
+}
+
+.qa-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.qa-answer {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed rgba(255,255,255,0.12);
+  display: none;
+}
+
+.qa-answer.visible {
+  display: block;
+}
+
+.qa-answer .qa-label {
+  color: var(--accent);
+}
+
+.card-actions {
+  margin-top: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.reveal-btn {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 999px;
+  border: none;
+  background: radial-gradient(circle at top left, rgba(77,208,225,0.6), rgba(77,208,225,0.3));
+  color: #000814;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.8), 0 0 18px rgba(77,208,225,0.75);
+  cursor: pointer;
+}
+
+.reveal-btn:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+}
+
+.rw-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.rw-btn {
+  flex: 1;
+  padding: 0.45rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: rgba(9,13,30,0.95);
+  color: var(--text-main);
+}
+
+.rw-btn.right {
+  border-color: rgba(0,230,118,0.7);
+  background: linear-gradient(to right, rgba(0,230,118,0.16), rgba(0,150,136,0.25));
+}
+
+.rw-btn.wrong {
+  border-color: rgba(255,82,82,0.8);
+  background: linear-gradient(to right, rgba(255,82,82,0.18), rgba(198,40,40,0.25));
+}
+
+.rw-btn.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rw-btn span.icon-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.card-flash {
+  animation: flashGood 220ms ease-out;
+}
+
+.card-flash-bad {
+  animation: flashBad 220ms ease-out;
+}
+
+@keyframes flashGood {
+  0% { box-shadow: 0 0 0 rgba(0,230,118,0); border-color: rgba(0,230,118,0.0); }
+  40% { box-shadow: 0 0 20px rgba(0,230,118,0.9); border-color: rgba(0,230,118,0.8); }
+  100% { box-shadow: 0 12px 30px rgba(0,0,0,0.7); border-color: rgba(255,255,255,0.08); }
+}
+
+@keyframes flashBad {
+  0% { box-shadow: 0 0 0 rgba(255,82,82,0); border-color: rgba(255,82,82,0.0); transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { box-shadow: 0 0 22px rgba(255,82,82,0.9); border-color: rgba(255,82,82,0.7); transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  100% { box-shadow: 0 12px 30px rgba(0,0,0,0.7); border-color: rgba(255,255,255,0.08); transform: translateX(0); }
+}
+
+#review-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to bottom right, rgba(10,15,34,0.98), rgba(6,10,26,0.98));
+  border-radius: 14px;
+  padding: 0.55rem 0.6rem 0.55rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+  min-height: 0;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.review-filters {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.filter-btn {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(9,13,30,0.95);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  border-color: rgba(77,208,225,0.8);
+  color: var(--accent);
+  background: rgba(77,208,225,0.12);
+}
+
+.review-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+  margin-top: 0.1rem;
+}
+
+.review-item {
+  padding: 0.4rem 0.45rem;
+  border-radius: 10px;
+  background: rgba(5,9,24,0.96);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.review-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.15rem;
+}
+
+.review-q {
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 0.15rem;
+}
+
+.review-a {
+  color: var(--text-muted);
+}
+
+.badge-status {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.badge-status.right {
+  background: rgba(0,230,118,0.12);
+  color: var(--right);
+  border: 1px solid rgba(0,230,118,0.8);
+}
+.badge-status.wrong {
+  background: rgba(255,82,82,0.12);
+  color: var(--wrong);
+  border: 1px solid rgba(255,82,82,0.85);
+}
+
+.badge-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.session-complete-banner {
+  font-size: 0.78rem;
+  color: var(--accent);
+  display: none;
+}
+.session-complete-banner.visible {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.session-complete-banner span.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  box-shadow: 0 0 6px rgba(0,230,118,0.8);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1,4,15,0.85);
+  z-index: 20;
+}
+
+.overlay.visible {
+  display: flex;
+}
+
+.overlay-card {
+  width: min(420px, 90vw);
+  padding: 1rem 0.85rem 0.9rem;
+  border-radius: 16px;
+  background: linear-gradient(to bottom right, #101528, #050813);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.9);
+  text-align: center;
+}
+
+.overlay-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+}
+
+.overlay-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-bottom: 0.7rem;
+}
+
+.overlay-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.overlay-btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  font-size: 0.84rem;
+  cursor: pointer;
+  background: rgba(8,12,28,0.95);
+  color: var(--text-main);
+}
+
+.overlay-btn.primary {
+  background: radial-gradient(circle at top left, rgba(77,208,225,0.7), rgba(77,208,225,0.3));
+  border-color: rgba(77,208,225,0.9);
+  color: #020412;
+}
+
+.game-over {
+  border-color: rgba(255,82,82,0.7);
+  box-shadow: 0 0 30px rgba(255,82,82,0.7);
+}
+
+@media (min-width: 768px) {
+  main {
+    padding-inline: 0.9rem;
+  }
+  .pf-base {
+    left: 10%;
+  }
+  .pf-enemy {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="hud">
+    <div class="hud-left">
+      <div class="hud-stat">
+        Score
+        <span class="value" id="scoreDisplay">0</span>
+      </div>
+      <div class="hud-stat">
+        Card
+        <span class="value" id="cardCountDisplay">1 / 1</span>
+      </div>
+    </div>
+    <div class="hud-center">
+      <div class="timer-wrapper">
+        <div class="timer-label">Time since reveal</div>
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+        <div class="timer-text" id="timerText">0.0 s</div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-stat">
+        Lives
+        <div class="lives" id="livesContainer"></div>
+      </div>
+      <button class="pause-btn" id="pauseBtn">
+        <span class="icon"></span>
+        <span id="pauseLabel">Pause</span>
+      </button>
+    </div>
+  </header>
+
+
+  <main>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabGame">
+        Game
+        <span class="badge" id="tabGameBadge">Play</span>
+      </button>
+      <button class="tab-btn" id="tabReview">
+        Review
+        <span class="badge" id="tabReviewBadge">0</span>
+      </button>
+      <div class="session-complete-banner" id="sessionCompleteBanner">
+        <span class="dot"></span>
+        Session complete
+      </div>
+    </div>
+
+
+<div class="views">
+  <div class="view active" id="viewGame">
+    <section id="playfield">
+      <div class="pf-stars"></div>
+      <div class="pf-ground"></div>
+      <div class="pf-danger-bar">
+        <div class="pf-danger-fill" id="dangerFill"></div>
+      </div>
+      <div class="pf-danger-label">Threat</div>
+      <div class="pf-status" id="pfStatus">Stable</div>
+      <div class="pf-base" id="pfBase">
+        <div class="pf-base-core"></div>
+      </div>
+      <div class="pf-enemy" id="pfEnemy"></div>
+      <div class="pf-beam" id="pfBeam"></div>
+    </section>
+
+    <section id="card-panel">
+      <div class="card-header-row">
+        <div>Radiology Rush</div>
+        <div class="card-progress" id="cardProgressText">Card 1 / 1</div>
+      </div>
+      <div class="card-body">
+        <div class="qa-text" id="qaText">
+          <div class="qa-label">Question</div>
+          <div class="qa-content" id="questionText"></div>
+          <div class="qa-answer" id="answerBlock">
+            <div class="qa-label">Answer</div>
+            <div class="qa-content" id="answerText"></div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="reveal-btn" id="revealBtn">Tap to Reveal Answer</button>
+          <div class="rw-row">
+            <button class="rw-btn right disabled" id="rightBtn">
+              <span class="icon-dot"></span>
+              I got it right
+            </button>
+            <button class="rw-btn wrong disabled" id="wrongBtn">
+              <span class="icon-dot"></span>
+              I got it wrong
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="view" id="viewReview">
+    <section id="review-panel">
+      <div class="review-header">
+        <div>Attempts log</div>
+        <div class="review-filters">
+          <button class="filter-btn active" data-filter="all" id="filterAll">All</button>
+          <button class="filter-btn" data-filter="wrong" id="filterWrong">Wrong</button>
+        </div>
+      </div>
+      <div class="review-list" id="reviewList">
+      </div>
+    </section>
+  </div>
+</div>
+
+  </main>
+</div>
+
+
+<div class="overlay" id="pauseOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title">Paused</div>
+    <div class="overlay-sub">Timer and threat progression are on hold.</div>
+    <div class="overlay-actions">
+      <button class="overlay-btn primary" id="resumeBtn">Resume</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="overlay" id="gameOverOverlay">
+  <div class="overlay-card game-over">
+    <div class="overlay-title">Game Over</div>
+    <div class="overlay-sub">
+      The threat reached critical levels. You can still review your cards and restart the run.
+    </div>
+    <div class="overlay-actions">
+      <button class="overlay-btn" id="goToReviewBtn">Review</button>
+      <button class="overlay-btn primary" id="restartBtn">Restart</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  const cards = [
+    {
+      front: `A practical way to reduce chemical shift artifact is to [...]`,
+      back: `Increase the receiver bandwidth.`
+    },
+    {
+      front: `Musculoskeletal imaging: diffusely sclerotic bones in a child with short limb stature, delayed cranial suture closure, frontal and occipital bossing, short broad hands with nail hypoplasia, and multiple long bone fractures after minimal trauma. Diagnosis: [...]`,
+      back: `Pyknodysostosis.`
+    },
+    {
+      front: `For the foot and ankle, the most common causes of neuropathic arthropathy are [...]`,
+      back: `Diabetes mellitus and alcoholism.`
+    },
+    {
+      front: `Most common manifestation of cardiac metastases is [...]; the second most is [...]`,
+      back: `Most common: pericardial effusion. Second most: pericardial lymph node involvement.`
+    },
+    {
+      front: `When you see polyostotic aggressive bone lesions, first think of [...]`,
+      back: `Metastases, multiple myeloma, and lymphoma.`
+    },
+    {
+      front: `Compared with intraductal papillary mucinous neoplasms, cystic pancreatic neuroendocrine tumors are distinguished by [...]`,
+      back: `A solid hyper-enhancing rim rather than a purely cystic lesion without a prominent enhancing wall.`
+    },
+    {
+      front: `Diagnosis? (Preterm neonate with intraventricular hemorrhage extending into the ventricles but no parenchymal involvement) [...]`,
+      back: `Grade 2 germinal matrix hemorrhage.`
+    },
+    {
+      front: `Diagnosis of a fatty thickened filum terminale is [...]`,
+      back: `Filum fibrolipoma.`
+    },
+    {
+      front: `Overall limb pattern in thanatophoric dysplasia: [...]`,
+      back: `Micromelia per AIRP lecture (rhizomelia per Crack the Core).`
+    },
+    {
+      front: `Most likely diagnosis for well-circumscribed retroperitoneal mass along a nerve trajectory: [...]`,
+      back: `Nerve sheath tumor (schwannoma vs neurofibroma).`
+    },
+    {
+      front: `Ultrasound evaluation of the normal right lung shows the pleural line with multiple ripple-like echogenic lines extending deep, referred to as [...]`,
+      back: `A-lines.`
+    },
+    {
+      front: `In a full term infant, the lung disease that places the child at highest risk for air leak syndromes such as pneumothorax and pneumomediastinum is [...]`,
+      back: `Meconium aspiration.`
+    },
+    {
+      front: `Jeune syndrome belongs to the [...] spectrum.`,
+      back: `Short rib thoracic dysplasia spectrum.`
+    },
+    {
+      front: `What is the density of this breast mass? [...]`,
+      back: `Equal density.`
+    },
+    {
+      front: `Most common primary cardiac tumor in adults (overall) is [...]`,
+      back: `Left atrial myxoma.`
+    },
+    {
+      front: `What type of breast calcification is shown here? [...]`,
+      back: `Coarse heterogeneous calcifications.`
+    },
+    {
+      front: `Most likely diagnosis of this mediastinal mass with serpiginous structures adjacent to the esophagus: [...]`,
+      back: `Paraesophageal varices.`
+    },
+    {
+      front: `Epicardial late gadolinium enhancement pattern classically suggests [...] (also consider [...]).`,
+      back: `Myocarditis (also consider sarcoidosis).`
+    },
+    {
+      front: `Clinical uses of 68Ga-Dotatate PET/CT in neuroendocrine tumors include [...]`,
+      back: `Whole-body staging, detection of occult bone metastases, and assessing somatostatin receptor status for prognosis and peptide receptor radionuclide therapy eligibility.`
+    },
+    {
+      front: `Diagnosis? Large heterogeneous lipomatous soft-tissue mass with non-fatty components and high-grade features: [...]`,
+      back: `Pleomorphic liposarcoma.`
+    },
+    {
+      front: `Most likely diagnosis for a predominantly fatty retroperitoneal mass with thick septa and nodular non-lipomatous components: [...]`,
+      back: `Well-differentiated liposarcoma.`
+    },
+    {
+      front: `A lymphatic malformation is also called a [...]`,
+      back: `Lymphangioma.`
+    },
+    {
+      front: `What carotid ultrasound finding is associated with Takayasu arteritis? [...]`,
+      back: `Echogenic smooth narrowing of the arterial lumen.`
+    },
+    {
+      front: `Contraindications to nitroglycerin for coronary CTA? [...]`,
+      back: `Systolic blood pressure < 100 mmHg; severe aortic stenosis; hypertrophic obstructive cardiomyopathy; recent phosphodiesterase inhibitor use.`
+    },
+    {
+      front: `Compared with pancreatic ductal adenocarcinoma enhancement, pancreatic neuroendocrine tumors usually appear [...]`,
+      back: `Hyper-enhancing or at least iso-dense on arterial phase, whereas adenocarcinomas are typically hypo-enhancing.`
+    },
+    {
+      front: `What are the main types of intracranial arteriovenous fistulas? [...]`,
+      back: `Dural AVF, carotid-cavernous fistula, and vein of Galen malformation.`
+    },
+    {
+      front: `Diagnosis? Fat-containing ovarian mass with calcifications and diverse tissue elements: [...]`,
+      back: `Ovarian teratoma.`
+    },
+    {
+      front: `The anterior portion of the midbrain, ventral to the aqueduct, containing the red nucleus and substantia nigra, is the [...]`,
+      back: `Tegmentum.`
+    },
+    {
+      front: `For thyroid imaging in a patient who recently received iodinated intravenous contrast, the preferred radionuclide is [...]`,
+      back: `Tc-99m pertechnetate.`
+    },
+    {
+      front: `The term meaning short proximal limb segments such as the humerus or femur is [...]`,
+      back: `Rhizomelia.`
+    },
+    {
+      front: `For high grade gliomas, the standard oral alkylating agent used with radiation is [...]`,
+      back: `Temozolomide.`
+    },
+    {
+      front: `Name two malignant salivary tumors that can arise from minor salivary glands. [...]`,
+      back: `Adenoid cystic carcinoma and mucoepidermoid carcinoma.`
+    },
+    {
+      front: `Diagnosis? Pedunculated bony outgrowth with corticomedullary continuity pointing away from the joint: [...]`,
+      back: `Pedunculated osteochondroma.`
+    },
+    {
+      front: `What structure is labeled here coursing in the posterior AV groove? [...]`,
+      back: `Coronary sinus.`
+    },
+    {
+      front: `The fusion direction of the metopic suture is [...]`,
+      back: `Front to back.`
+    },
+    {
+      front: `The management for BI-RADS category 3 is [...]`,
+      back: `Short-interval follow-up (about 6 months) or continued imaging monitoring.`
+    },
+    {
+      front: `What lymph node station is this just below the aortic arch (aortopulmonary window)? [...]`,
+      back: `Sub-aortic (station 5).`
+    },
+    {
+      front: `In pancreatic neuroendocrine tumors, the rule of thumb that links tumor size with aggressiveness is summarized as [...]`,
+      back: `“Bigger is worse.”`
+    },
+    {
+      front: `What is the wrist subluxation pattern shown? [...]`,
+      back: `Barton fracture-dislocation pattern.`
+    },
+    {
+      front: `From what specific site does a juvenile angiofibroma arise? [...]`,
+      back: `The sphenopalatine foramen.`
+    },
+    {
+      front: `How are these calcifications best described on mammography? [...]`,
+      back: `Lucent-centered skin calcifications.`
+    },
+    {
+      front: `Diagnosis? Intramedullary enhancing lesion of the spinal cord with rim enhancement and central restriction, in infectious context: [...]`,
+      back: `Spinal cord abscess.`
+    },
+    {
+      front: `What symptoms are classically associated with superficial siderosis of the CNS? [...]`,
+      back: `Sensorineural hearing loss (among others).`
+    },
+    {
+      front: `What is the primary split in the Garden classification system? [...]`,
+      back: `Garden I and II are nondisplaced femoral neck fractures; Garden III and IV are displaced.`
+    },
+    {
+      front: `Diagnosis? Homogeneous fatty soft-tissue mass without thick septa or nodules: [...]`,
+      back: `Lipoma.`
+    },
+    {
+      front: `Dental hardware and even mascara can cause [...] artifact that degrades fat saturation.`,
+      back: `Susceptibility artifact that degrades fat saturation.`
+    },
+    {
+      front: `Finding? Tortuous vessels in the expected position of the main portal vein with both hepatopetal and hepatofugal flow suggest [...]`,
+      back: `Cavernous transformation of the portal vein.`
+    },
+    {
+      front: `Well-differentiated liposarcoma is usually composed of [...]`,
+      back: `More than 75% fat with thickened enhancing septa and small non-lipomatous nodules.`
+    },
+    {
+      front: `Book of Mormon chapter heading: Giddianhi, the Gadianton leader, demands that Lachoneus and the Nephites surrender; the Nephites assemble in Zarahemla and Bountiful to defend themselves. This is in [...]`,
+      back: `3 Nephi 3.`
+    },
+    {
+      front: `Most likely diagnosis of this mediastinal mass at the right cardiophrenic angle with water attenuation: [...]`,
+      back: `Pericardial cyst.`
+    },
+    {
+      front: `D&C Overview: Moroni quotes Malachi in which section? [...]`,
+      back: `Doctrine and Covenants Section 2.`
+    },
+    {
+      front: `What is the best description of the right breast findings on MRI? [...]`,
+      back: `Segmental non-mass enhancement.`
+    },
+    {
+      front: `A CT pattern characterized by diffuse symmetric bowel wall thickening, intense mucosal enhancement, and a flat IVC is most consistent with [...]`,
+      back: `Hypoperfusion complex (“shock bowel”).`
+    },
+    {
+      front: `Which calcification morphology has the highest positive predictive value for ductal carcinoma in situ (DCIS)? [...]`,
+      back: `Fine linear / fine linear branching calcifications.`
+    },
+    {
+      front: `What is the most likely diagnosis for a lobulated mass in the petrous apex with high T1 and high T2 signal? [...]`,
+      back: `Cholesterol granuloma.`
+    },
+    {
+      front: `Prosthesis? Valve prosthesis seen at the pulmonic valve position: [...]`,
+      back: `Pulmonary valve prosthesis.`
+    },
+    {
+      front: `If you encounter a fluid-appearing mass in a location where you have never seen a ganglion, synovial cyst, or bursa, you should [...]`,
+      back: `Obtain contrast-enhanced MRI or ultrasound rather than assume it is a simple cyst, to exclude myxoid liposarcoma.`
+    },
+    {
+      front: `The two-view full-field digital mammography estimated lifetime attributable risk of cancer per 100,000 persons imaged is [...]`,
+      back: `Approximately 1–5 per 100,000.`
+    },
+    {
+      front: `Compared with standard screening views, what different technique does magnification mammography utilize? [...]`,
+      back: `A smaller focal spot (about 0.1 mm).`
+    },
+    {
+      front: `On this MR image, which is the phase-encoding direction and which is the frequency-encoding direction? [...]`,
+      back: `Phase-encoding direction: anterior to posterior. Frequency-encoding direction: right to left.`
+    },
+    {
+      front: `Name the arthroplasty: isolated patellofemoral joint replacement in the left knee. [...]`,
+      back: `Patellofemoral unicompartmental left knee arthroplasty.`
+    },
+    {
+      front: `Intralobar pulmonary sequestration can get infected due to aeration via [...]`,
+      back: `Pores of Kohn and canals of Lambert.`
+    },
+    {
+      front: `Nasopharyngeal carcinoma has an increased incidence in Southeast Asia and is felt to be associated with what risk factor? [...]`,
+      back: `Epstein–Barr virus (EBV).`
+    },
+    {
+      front: `Among the classic causes of neonatal low bowel obstruction, which entity may present with a normal contrast enema, so rectal biopsy is still required? [...]`,
+      back: `Hirschsprung disease.`
+    },
+    {
+      front: `[...] is the most common Müllerian duct anomaly associated with unilateral renal agenesis.`,
+      back: `Uterine didelphys.`
+    },
+    {
+      front: `Book of Mormon chapter heading: Jesus expounds all things from the beginning to the end; babes and children utter marvelous things; those in the Church of Christ have all things in common among them (about A.D. 34). This is in [...]`,
+      back: `3 Nephi 26.`
+    },
+    {
+      front: `Important causes of a hyper-enhancing pancreatic lesion on arterial phase imaging include [...]`,
+      back: `Pancreatic neuroendocrine tumor, metastatic renal cell carcinoma, duodenal gastrointestinal stromal tumor, solid-appearing serous cystadenoma, and intrapancreatic accessory spleen.`
+    },
+    {
+      front: `Key findings and most likely diagnosis? “Tombstone” (square) iliac wings and interpedicular distance that gradually diminishes in the lumbar spine: [...]`,
+      back: `Achondroplasia.`
+    },
+    {
+      front: `Trans masculine patients on long-term testosterone therapy with arterially hyperenhancing liver lesions are more likely to have [...]`,
+      back: `β-catenin–associated hepatocellular adenomas.`
+    },
+    {
+      front: `Myxoid liposarcoma tends to occur in which age group and typical location? [...]`,
+      back: `Younger adults, most often arising in intermuscular locations of the thigh and popliteal fossa.`
+    },
+    {
+      front: `A quadrigeminal cistern mass that is homogeneous with central calcification suggests [...]`,
+      back: `Germinoma.`
+    },
+    {
+      front: `Which lung cancer subtype is most associated with ectopic parathyroid hormone secretion and hypercalcemia? [...]`,
+      back: `Squamous cell carcinoma.`
+    },
+    {
+      front: `When lipomatosis affects a nerve territory with associated bone hypertrophy it is called [...]`,
+      back: `Macrodystrophia lipomatosa.`
+    },
+    {
+      front: `On a lateral chest radiograph, the left main pulmonary artery courses where relative to the left upper lobe bronchus? [...]`,
+      back: `Posterior to the left upper lobe bronchus.`
+    },
+    {
+      front: `How is a slipped capital femoral epiphysis (SCFE) typically stabilized to preserve blood supply? [...]`,
+      back: `Percutaneous in situ cannulated screw fixation, avoiding excessive manipulation (“pin in place”).`
+    },
+    {
+      front: `The branches of the anterior division of the internal iliac artery (per “I Love Going Places In My Very Own Underwear” mnemonic) include [...]`,
+      back: `Internal pudendal artery, inferior and superior vesical arteries, middle rectal artery, vaginal artery (in females), obturator artery, umbilical artery, uterine artery (in females), plus gluteal branches; mnemonic: “I Love Going Places In My Very Own Underwear!”`
+    },
+    {
+      front: `What are some relative contraindications for TIPS placement often cited for board exams? [...]`,
+      back: `High MELD score (>20), severe or uncontrolled hepatic encephalopathy, right heart failure (absolute), and portal vein thrombosis (relative).`
+    },
+    {
+      front: `Diagnosis in a young runner with hip pain and typical location of marrow edema but no clear fracture line: [...]`,
+      back: `Stress fracture (specifically fatigue fracture).`
+    }
+  ];
+
+  const MAX_TIME = 12.0; // seconds counted after reveal
+  const INITIAL_LIVES = 3;
+  const BASE_THREAT_RATE = 0.22; // per second
+  const FAST_THRESHOLD = 3.0;
+  const MEDIUM_THRESHOLD = 7.0;
+
+  let currentIndex = 0;
+  let score = 0;
+  let lives = INITIAL_LIVES;
+  let attempts = [];
+  let timerInterval = null;
+  let dangerInterval = null;
+  let remainingTime = 0;
+  let activeThinkTime = 0;
+  let timerRunning = false;
+  let hasRevealed = false;
+  let paused = false;
+  let sessionComplete = false;
+  let gameOver = false;
+  let dangerLevel = 10; // 0-100
+
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const cardCountDisplay = document.getElementById('cardCountDisplay');
+  const cardProgressText = document.getElementById('cardProgressText');
+  const timerFill = document.getElementById('timerFill');
+  const timerText = document.getElementById('timerText');
+  const livesContainer = document.getElementById('livesContainer');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const pauseLabel = document.getElementById('pauseLabel');
+
+  const tabGame = document.getElementById('tabGame');
+  const tabReview = document.getElementById('tabReview');
+  const tabGameBadge = document.getElementById('tabGameBadge');
+  const tabReviewBadge = document.getElementById('tabReviewBadge');
+  const viewGame = document.getElementById('viewGame');
+  const viewReview = document.getElementById('viewReview');
+  const sessionCompleteBanner = document.getElementById('sessionCompleteBanner');
+
+  const questionText = document.getElementById('questionText');
+  const answerBlock = document.getElementById('answerBlock');
+  const answerText = document.getElementById('answerText');
+  const revealBtn = document.getElementById('revealBtn');
+  const rightBtn = document.getElementById('rightBtn');
+  const wrongBtn = document.getElementById('wrongBtn');
+  const qaTextCard = document.getElementById('qaText');
+
+  const reviewList = document.getElementById('reviewList');
+  const filterAll = document.getElementById('filterAll');
+  const filterWrong = document.getElementById('filterWrong');
+
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const gameOverOverlay = document.getElementById('gameOverOverlay');
+  const goToReviewBtn = document.getElementById('goToReviewBtn');
+  const restartBtn = document.getElementById('restartBtn');
+
+  const pfEnemy = document.getElementById('pfEnemy');
+  const pfBeam = document.getElementById('pfBeam');
+  const dangerFill = document.getElementById('dangerFill');
+  const pfStatus = document.getElementById('pfStatus');
+
+  let reviewFilter = 'all';
+
+  function initLives() {
+    livesContainer.innerHTML = '';
+    for (let i = 0; i < INITIAL_LIVES; i++) {
+      const div = document.createElement('div');
+      div.className = 'life-heart';
+      livesContainer.appendChild(div);
+    }
+    updateLivesDisplay();
+  }
+
+  function updateLivesDisplay() {
+    const hearts = livesContainer.querySelectorAll('.life-heart');
+    hearts.forEach((h, idx) => {
+      if (idx < lives) {
+        h.classList.remove('lost');
+      } else {
+        h.classList.add('lost');
+      }
+    });
+  }
+
+  function updateHUD() {
+    scoreDisplay.textContent = score.toString();
+    cardCountDisplay.textContent = `${Math.min(currentIndex + 1, cards.length)} / ${cards.length}`;
+    cardProgressText.textContent = `Card ${Math.min(currentIndex + 1, cards.length)} / ${cards.length}`;
+    tabReviewBadge.textContent = attempts.length.toString();
+    if (sessionComplete) {
+      tabGameBadge.textContent = 'Done';
+      sessionCompleteBanner.classList.add('visible');
+    } else {
+      tabGameBadge.textContent = 'Play';
+      sessionCompleteBanner.classList.remove('visible');
+    }
+  }
+
+  function resetTimerVisuals() {
+    remainingTime = 0;
+    activeThinkTime = 0;
+    timerFill.style.transform = 'scaleX(0)';
+    timerText.textContent = '0.0 s';
+  }
+
+  function startCardTimer() {
+    remainingTime = MAX_TIME;
+    activeThinkTime = 0;
+    timerRunning = true;
+    updateTimerDisplay();
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (!timerRunning || paused || gameOver) return;
+      const step = 0.1;
+      remainingTime = Math.max(0, remainingTime - step);
+      activeThinkTime = Math.min(MAX_TIME + 5, activeThinkTime + step);
+      updateTimerDisplay();
+      if (remainingTime <= 0) {
+        handleTimeOutVisuals();
+      }
+    }, 100);
+  }
+
+  function updateTimerDisplay() {
+    const fraction = Math.max(0, Math.min(1, remainingTime / MAX_TIME));
+    timerFill.style.transform = `scaleX(${fraction})`;
+    timerText.textContent = `${activeThinkTime.toFixed(1)} s`;
+  }
+
+  function stopCardTimer() {
+    timerRunning = false;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function handleTimeOutVisuals() {
+    // Timer reached zero: penalize via threat but do not auto-mark correctness.
+    pfStatus.textContent = 'Time pressure!';
+    pfStatus.style.color = '#ffca28';
+    dangerLevel = Math.min(100, dangerLevel + 8);
+    updateDangerVisuals();
+  }
+
+  function updateDangerVisuals() {
+    const clamped = Math.max(0, Math.min(100, dangerLevel));
+    dangerFill.style.width = `${clamped}%`;
+
+    const minRight = 10;
+    const maxRight = 80;
+    const xPercent = minRight + (clamped / 100) * (maxRight - minRight);
+    pfEnemy.style.left = `${xPercent}%`;
+
+    if (clamped < 30) {
+      pfStatus.textContent = 'Stable';
+      pfStatus.style.color = '#c5e1ff';
+    } else if (clamped < 65) {
+      pfStatus.textContent = 'Rising threat';
+      pfStatus.style.color = '#ffca28';
+    } else {
+      pfStatus.textContent = 'Critical!';
+      pfStatus.style.color = '#ff5252';
+    }
+
+    if (clamped >= 100 && !gameOver) {
+      triggerGameOver();
+    }
+  }
+
+  function startThreatLoop() {
+    if (dangerInterval) clearInterval(dangerInterval);
+    dangerInterval = setInterval(() => {
+      if (paused || gameOver) return;
+      const step = BASE_THREAT_RATE * 0.2 * 10; // approx BASE_THREAT_RATE per second
+      dangerLevel = Math.min(100, dangerLevel + step);
+      updateDangerVisuals();
+    }, 200);
+  }
+
+  function spawnBeam(correct, powerFraction) {
+    const baseRect = document.getElementById('pfBase').getBoundingClientRect();
+    const enemyRect = pfEnemy.getBoundingClientRect();
+    const pfRect = document.getElementById('playfield').getBoundingClientRect();
+
+    const startX = baseRect.right - pfRect.left - 4;
+    const startY = (baseRect.top + baseRect.bottom) / 2 - pfRect.top;
+    const endX = enemyRect.left - pfRect.left + enemyRect.width * 0.15;
+
+    const length = Math.max(10, endX - startX);
+    pfBeam.style.left = `${startX}px`;
+    pfBeam.style.top = `${startY - 2}px`;
+    pfBeam.style.width = `${length}px`;
+    pfBeam.classList.remove('active');
+    void pfBeam.offsetWidth;
+    pfBeam.classList.add('active');
+    pfBeam.style.opacity = correct ? '1' : '0.8';
+  }
+
+  function applyGameEffects(correct, timeFrac) {
+    const effectiveTimeFrac = Math.max(0, Math.min(1, timeFrac));
+    spawnBeam(correct, effectiveTimeFrac);
+
+    if (correct) {
+      const threatReduction = 15 * effectiveTimeFrac + 3;
+      dangerLevel = Math.max(0, dangerLevel - threatReduction);
+    } else {
+      const threatIncrease = 12 * (1 - effectiveTimeFrac) + 6;
+      dangerLevel = Math.min(100, dangerLevel + threatIncrease);
+    }
+
+    updateDangerVisuals();
+  }
+
+  function flashCard(correct) {
+    qaTextCard.classList.remove('card-flash', 'card-flash-bad');
+    void qaTextCard.offsetWidth;
+    qaTextCard.classList.add(correct ? 'card-flash' : 'card-flash-bad');
+  }
+
+  function loadCard(index) {
+    sessionComplete = false;
+    gameOver = false;
+    answerBlock.classList.remove('visible');
+    revealBtn.disabled = false;
+    revealBtn.textContent = 'Tap to Reveal Answer';
+    rightBtn.classList.add('disabled');
+    wrongBtn.classList.add('disabled');
+    hasRevealed = false;
+    stopCardTimer();
+    resetTimerVisuals();
+
+    if (index >= cards.length) {
+      endSession();
+      return;
+    }
+
+    const card = cards[index];
+    questionText.textContent = card.front;
+    answerText.textContent = card.back;
+    updateHUD();
+  }
+
+  function computeScoreDelta(correct, responseTime) {
+    if (!correct) return -50;
+
+    const t = Math.max(0, Math.min(MAX_TIME, responseTime));
+    let base = 120;
+
+    if (t <= FAST_THRESHOLD) {
+      base = 250;
+    } else if (t <= MEDIUM_THRESHOLD) {
+      base = 170;
+    } else {
+      base = 110;
+    }
+
+    const timeFrac = Math.max(0, (MAX_TIME - t) / MAX_TIME);
+    const bonus = Math.round(80 * timeFrac);
+    return base + bonus;
+  }
+
+  function logAttempt(correct, responseTime) {
+    const card = cards[currentIndex];
+    attempts.push({
+      index: currentIndex,
+      question: card.front,
+      answer: card.back,
+      correct,
+      responseTime,
+      timestamp: Date.now()
+    });
+  }
+
+  function handleReveal() {
+    if (hasRevealed || gameOver) return;
+    hasRevealed = true;
+    answerBlock.classList.add('visible');
+    revealBtn.textContent = 'Answer revealed';
+    startCardTimer();
+    rightBtn.classList.remove('disabled');
+    wrongBtn.classList.remove('disabled');
+  }
+
+  function handleMark(correct) {
+    if (!hasRevealed || rightBtn.classList.contains('disabled') || gameOver) return;
+
+    stopCardTimer();
+    const responseTime = activeThinkTime;
+
+    logAttempt(correct, responseTime);
+
+    const delta = computeScoreDelta(correct, responseTime);
+    score = Math.max(0, score + delta);
+
+    if (!correct) {
+      lives = Math.max(0, lives - 1);
+      updateLivesDisplay();
+      if (lives === 0 && !gameOver) {
+        applyGameEffects(false, 0);
+        triggerGameOver();
+      }
+    }
+
+    const timeFrac = Math.max(0, Math.min(1, (MAX_TIME - responseTime) / MAX_TIME));
+    applyGameEffects(correct, timeFrac);
+    flashCard(correct);
+    updateHUD();
+    renderReview();
+
+    rightBtn.classList.add('disabled');
+    wrongBtn.classList.add('disabled');
+
+    if (!gameOver) {
+      setTimeout(() => {
+        currentIndex += 1;
+        if (currentIndex >= cards.length) {
+          endSession();
+        } else {
+          loadCard(currentIndex);
+        }
+      }, 260);
+    }
+  }
+
+  function endSession() {
+    sessionComplete = true;
+    stopCardTimer();
+    updateHUD();
+    renderReview();
+  }
+
+  function triggerGameOver() {
+    gameOver = true;
+    stopCardTimer();
+    gameOverOverlay.classList.add('visible');
+  }
+
+  function switchTab(tab) {
+    if (tab === 'game') {
+      viewGame.classList.add('active');
+      viewReview.classList.remove('active');
+      tabGame.classList.add('active');
+      tabReview.classList.remove('active');
+    } else {
+      viewGame.classList.remove('active');
+      viewReview.classList.add('active');
+      tabGame.classList.remove('active');
+      tabReview.classList.add('active');
+      renderReview();
+    }
+  }
+
+  function renderReview() {
+    reviewList.innerHTML = '';
+    let filtered = attempts;
+    if (reviewFilter === 'wrong') {
+      filtered = attempts.filter(a => !a.correct);
+    }
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.fontSize = '0.82rem';
+      empty.style.color = 'var(--text-muted)';
+      empty.textContent = 'No attempts to show yet.';
+      reviewList.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach((a) => {
+      const item = document.createElement('div');
+      item.className = 'review-item';
+
+      const header = document.createElement('div');
+      header.className = 'review-item-header';
+
+      const left = document.createElement('div');
+      left.textContent = `Card ${a.index + 1}`;
+
+      const right = document.createElement('div');
+      const status = document.createElement('span');
+      status.className = 'badge-status ' + (a.correct ? 'right' : 'wrong');
+      status.textContent = a.correct ? 'Right' : 'Wrong';
+
+      const time = document.createElement('span');
+      time.className = 'badge-time';
+      time.textContent = ` ${a.responseTime.toFixed(1)} s`;
+
+      right.appendChild(status);
+      right.appendChild(time);
+      header.appendChild(left);
+      header.appendChild(right);
+
+      const q = document.createElement('div');
+      q.className = 'review-q';
+      const qText = a.question.length > 140 ? a.question.slice(0, 137) + '…' : a.question;
+      q.textContent = qText;
+
+      const ans = document.createElement('div');
+      ans.className = 'review-a';
+      const ansText = a.answer.length > 160 ? a.answer.slice(0, 157) + '…' : a.answer;
+      ans.textContent = ansText;
+
+      item.appendChild(header);
+      item.appendChild(q);
+      item.appendChild(ans);
+      reviewList.appendChild(item);
+    });
+  }
+
+  function setFilter(filter) {
+    reviewFilter = filter;
+    filterAll.classList.toggle('active', filter === 'all');
+    filterWrong.classList.toggle('active', filter === 'wrong');
+    renderReview();
+  }
+
+  function setPaused(state) {
+    paused = state;
+    if (paused) {
+      pauseOverlay.classList.add('visible');
+      pauseBtn.classList.add('paused');
+      pauseLabel.textContent = 'Resume';
+    } else {
+      pauseOverlay.classList.remove('visible');
+      pauseBtn.classList.remove('paused');
+      pauseLabel.textContent = 'Pause';
+    }
+  }
+
+  function restartGame() {
+    currentIndex = 0;
+    score = 0;
+    lives = INITIAL_LIVES;
+    attempts = [];
+    dangerLevel = 10;
+    gameOver = false;
+    sessionComplete = false;
+    setPaused(false);
+    gameOverOverlay.classList.remove('visible');
+    updateDangerVisuals();
+    initLives();
+    resetTimerVisuals();
+    updateHUD();
+    switchTab('game');
+    loadCard(0);
+  }
+
+  // Event wiring
+  revealBtn.addEventListener('click', handleReveal);
+  rightBtn.addEventListener('click', () => handleMark(true));
+  wrongBtn.addEventListener('click', () => handleMark(false));
+
+  tabGame.addEventListener('click', () => switchTab('game'));
+  tabReview.addEventListener('click', () => switchTab('review'));
+
+  filterAll.addEventListener('click', () => setFilter('all'));
+  filterWrong.addEventListener('click', () => setFilter('wrong'));
+
+  pauseBtn.addEventListener('click', () => {
+    if (gameOver) return;
+    setPaused(!paused);
+  });
+
+  resumeBtn.addEventListener('click', () => setPaused(false));
+
+  goToReviewBtn.addEventListener('click', () => {
+    gameOverOverlay.classList.remove('visible');
+    switchTab('review');
+  });
+
+  restartBtn.addEventListener('click', restartGame);
+
+  // Initial setup
+  initLives();
+  updateDangerVisuals();
+  updateHUD();
+  loadCard(0);
+  startThreatLoop();
+</script>
+
+
+</body>
+</html>
