@@ -3,212 +3,94 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>APKG → Front/Back TXT Export</title>
+<title>APKG → Text Export (Anki Order)</title>
 <style>
   :root{
-    --bg:#020617; --fg:#e8f0ff; --muted:#9bb0d0; --accent:#4ea1ff;
-    --panel:#0b1020; --panel2:#050814; --stroke:#243042;
+    --bg:#020617; --panel:#020617; --panel2:#020617;
+    --fg:#e5edff; --muted:#94a3b8; --accent:#38bdf8;
+    --border:#1f2937;
   }
   *{ box-sizing:border-box }
   html,body{height:100%}
   body{
-    margin:0; background:#000; color:var(--fg);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    margin:0; background:radial-gradient(circle at 0% 0%, #0f172a 0, #020617 50%, #000 100%);
+    color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; align-items:center; padding:16px;
   }
-
-  /* background */
-  #bgfx, #bgfx2{
-    position:fixed; inset:0; z-index:-2; pointer-events:none; filter:blur(40px) saturate(120%);
-    background:
-      radial-gradient(1200px 600px at 10% 20%, #113a71 0%, transparent 60%),
-      radial-gradient(1000px 600px at 90% 80%, #360f5b 0%, transparent 60%),
-      linear-gradient(180deg, #020617 0%, #020112 100%);
-    animation:bgpan 18s linear infinite alternate;
+  h1{ margin:8px 0 4px; font-size:18px }
+  p{ margin:4px 0; color:var(--muted); font-size:13px }
+  .card{
+    width:min(980px, 100%); background:linear-gradient(145deg, rgba(15,23,42,.95), rgba(15,23,42,.92));
+    border-radius:16px; padding:16px 16px 12px; border:1px solid rgba(148,163,184,.25);
+    box-shadow:0 18px 40px rgba(15,23,42,.8);
   }
-  #bgfx2{
-    mix-blend-mode:screen; opacity:.7; filter:blur(60px) saturate(160%);
-    background:
-      radial-gradient(700px 500px at 70% 20%, #0064ff 0%, transparent 60%),
-      radial-gradient(700px 500px at 30% 80%, #a000ff 0%, transparent 60%);
-    animation:bgpan2 22s linear infinite alternate;
+  .controls{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 0 10px;
   }
-  @keyframes bgpan { to{ transform:translate3d(0,6%,0) } }
-  @keyframes bgpan2{ to{ transform:translate3d(0,-4%,0) } }
-
-  header{
-    width:100%; max-width:980px;
-    padding:16px 16px 8px;
-    position:sticky; top:0; z-index:10;
-    background:linear-gradient(180deg, rgba(1,7,18,.92), rgba(1,6,16,.75));
-    backdrop-filter:blur(10px);
-    border-bottom:1px solid #0f172a;
-  }
-  h1{
-    margin:0 0 8px; font-size:20px; font-weight:700; letter-spacing:.02em;
-  }
-  #subtitle{
-    margin:0 0 12px; font-size:13px; color:var(--muted);
-  }
-  main{
-    width:100%; max-width:980px;
-    padding:8px 16px 32px;
-  }
-
-  .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px }
   input[type=file]{
-    background:#020617; border:1px solid #1f2937; color:var(--fg);
+    background:#020617; border:1px solid var(--border); color:var(--fg);
     padding:8px 10px; border-radius:10px; font-size:13px;
   }
   button{
-    border:0; padding:9px 14px; border-radius:999px;
-    font-weight:600; font-size:14px; cursor:pointer;
-    background:var(--accent); color:#fff;
-    box-shadow:0 10px 30px rgba(78,161,255,.35);
+    border:0; border-radius:999px; padding:8px 14px; font-size:13px;
+    font-weight:600; cursor:pointer; background:var(--accent); color:#0f172a;
+    box-shadow:0 8px 22px rgba(56,189,248,.35);
   }
   button.secondary{
-    background:#0b1120; color:var(--fg); border:1px solid #1f2937;
+    background:#020617; color:var(--fg); border:1px solid var(--border);
     box-shadow:none;
   }
   button:disabled{
-    opacity:.45; cursor:default; box-shadow:none;
+    opacity:.45; cursor:not-allowed; box-shadow:none;
   }
-
-  #options{ display:flex; flex-wrap:wrap; gap:10px; margin-top:4px; font-size:13px; color:var(--muted) }
-  #options label{ display:flex; align-items:center; gap:6px; cursor:pointer }
-  #options input[type=checkbox]{ accent-color:var(--accent) }
-
-  #panel{
-    margin-top:14px;
-    background:linear-gradient(180deg, var(--panel), var(--panel2));
-    border-radius:18px;
-    border:1px solid var(--stroke);
-    box-shadow:0 30px 80px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.03);
-    padding:16px 16px 18px;
-    font-size:13px;
-  }
-  #deckInfo strong{ font-weight:600 }
-  #status{ margin-top:6px; color:var(--muted); min-height:1.2em; }
-  #preview{
-    margin-top:12px; padding:10px; border-radius:12px;
-    background:#020617; border:1px solid #111827;
-    max-height:220px; overflow:auto; white-space:pre-wrap; font-family:system-ui, -apple-system, Segoe UI, sans-serif;
-    font-size:12px; line-height:1.4;
-  }
-  #previewTitle{ font-weight:600; margin-bottom:4px; color:#cbd5f5; }
-
-  @media (max-width:640px){
-    header, main{ padding-left:10px; padding-right:10px }
-    h1{ font-size:18px }
+  #status{ font-size:12px; color:var(--muted); margin-top:4px; min-height:18px }
+  textarea{
+    width:100%; height:55vh; margin-top:10px; resize:vertical;
+    background:#020617; color:var(--fg); border-radius:12px;
+    border:1px solid var(--border); padding:10px; font-family:Menlo,Consolas,monospace;
+    font-size:12px; line-height:1.4; white-space:pre; overflow:auto;
   }
 </style>
 </head>
 <body>
-<div id="bgfx"></div><div id="bgfx2"></div>
+<div class="card">
+  <h1>APKG → Text Export (Anki Order)</h1>
+  <p>Exports all due cards using the same queue logic as your Lightning Drill app (approximate Anki order), with plain front/back text.</p>
 
-<header>
-  <h1>APKG → Front/Back TXT Export</h1>
-  <p id="subtitle">Load an Anki <code>.apkg</code> / <code>.colpkg</code>, then export or copy the front/back text of all active cards in Anki due order.</p>
-  <div class="row">
-    <input id="file" type="file" accept=".apkg,.colpkg" />
-    <button id="exportBtn" disabled>Export TXT</button>
-    <button id="copyBtn" class="secondary" disabled>Copy Text</button>
+  <div class="controls">
+    <input id="fileInput" type="file" accept=".apkg,.colpkg" />
+    <button id="downloadBtn" class="secondary" disabled>Download .txt</button>
+    <button id="copyBtn" disabled>Copy text</button>
   </div>
-  <div id="options">
-    <label><input id="stripHtml" type="checkbox" checked /> Strip all HTML to plain text</label>
-    <label><input id="includeIds" type="checkbox" checked /> Include card and note IDs</label>
-  </div>
-</header>
-
-<main>
-  <div id="panel">
-    <div id="deckInfo">No deck loaded.</div>
-    <div id="status"></div>
-    <div id="preview" style="display:none">
-      <div id="previewTitle">Preview (first card):</div>
-      <div id="previewBody"></div>
-    </div>
-  </div>
-</main>
+  <div id="status"></div>
+  <textarea id="output" placeholder="Load an .apkg/.colpkg file to see output here…" spellcheck="false"></textarea>
+</div>
 
 <!-- libs -->
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.3.0/dist/protobuf.min.js"></script>
-
 <script>
-/* ===== shorthand & helpers ===== */
-const $ = s => document.querySelector(s);
-const els = {
-  file: $('#file'),
-  exportBtn: $('#exportBtn'),
-  copyBtn: $('#copyBtn'),
-  stripHtml: $('#stripHtml'),
-  includeIds: $('#includeIds'),
-  deckInfo: $('#deckInfo'),
-  status: $('#status'),
-  preview: $('#preview'),
-  previewBody: $('#previewBody')
-};
-
-function setStatus(msg){
-  els.status.textContent = msg || '';
+/* ========= Small helpers ========= */
+function stripHtml(s){
+  const d = document.createElement('div');
+  d.innerHTML = s;
+  return d.textContent || d.innerText || '';
 }
-
-/* Remove any <script> tags but otherwise leave HTML intact */
 function sanitize(html){
-  return String(html).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+  return String(html).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,'');
 }
 
-/* Collapse exact duplicate lines (e.g., duplicated FrontSide) */
-function collapseExactDuplicate(html){
-  const lines = String(html).split(/(?:\r?\n|<br\s*\/?>)+/i)
-    .map(s => s.trim())
-    .filter(Boolean);
-  const seen = new Set(), out = [];
-  for(const line of lines){
-    const key = line.replace(/\s+/g, ' ');
-    if(!seen.has(key)){ seen.add(key); out.push(line); }
-  }
-  return out.join('\n');
-}
-
-/* Convert HTML fragment to plain text, preserving basic line breaks */
-function htmlToPlainText(html){
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  let text = div.textContent || div.innerText || '';
-  text = text.replace(/\r?\n[ \t]*/g, '\n');
-  text = text.replace(/\n{3,}/g, '\n\n');
-  return text.trim();
-}
-
-/* ===== sql.js ===== */
-let SQLReady = false, SQL;
-initSqlJs({
-  locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
-}).then(db => {
-  SQL = db;
-  SQLReady = true;
-  setStatus('SQLite engine ready. Load a deck.');
-}).catch(e => {
-  alert('Failed to load sql.js.\n' + (e && e.message || e));
-});
-
-/* ===== unzip & media parsing ===== */
-
+/* ========= Unzip + media parsing (same core as Lightning) ========= */
 function unzipWithWatchdog(buf, timeoutMs=20000){
   return new Promise((resolve, reject) => {
-    let done = false;
-    const to = setTimeout(()=>{
-      if(!done){ done=true; reject(new Error('Unzip timeout')); }
-    }, timeoutMs);
+    let done=false;
+    const to=setTimeout(()=>{ if(!done){done=true; reject(new Error('Unzip timeout'))}}, timeoutMs);
     try{
-      fflate.unzip(buf, { consume:true }, (err, obj)=>{
+      fflate.unzip(buf, {consume:true}, (err,obj)=>{
         if(done) return;
         clearTimeout(to);
-        if(err){ done=true; reject(err); }
-        else { done=true; resolve(obj); }
+        if(err){ done=true; reject(err) } else { done=true; resolve(obj) }
       });
     }catch(e){
       clearTimeout(to);
@@ -217,7 +99,7 @@ function unzipWithWatchdog(buf, timeoutMs=20000){
   });
 }
 
-function looksGzip(b){ return b.length>2 && b[0]===0x1F && b[1]===0x8B; }
+function looksGzip(b){ return b.length>2 && b[0]===0x1F && b[1]===0x8B }
 function looksZstd(b){
   return b.length>4 && (
     (b[0]===0xFD && b[1]===0x2F && b[2]===0xB5 && b[3]===0x28) ||
@@ -226,28 +108,28 @@ function looksZstd(b){
 }
 
 function loadScript(url){
-  return new Promise((res, rej)=>{
-    const s = document.createElement('script');
-    s.src = url;
-    s.onload = res;
-    s.onerror = ()=>rej(new Error('Failed to load ' + url));
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=url;
+    s.onload=res;
+    s.onerror=()=>rej(new Error('Failed '+url));
     document.head.appendChild(s);
   });
 }
 
 async function maybeDecompress(bytes){
-  if(bytes[0] === 0x7B) return bytes; // plain JSON
+  if(bytes[0]===0x7B) return bytes; // '{' JSON
   if(looksGzip(bytes)) return fflate.gunzipSync(bytes);
   if(looksZstd(bytes)){
     if(!window.ZstdCodec){
       await loadScript('https://cdn.jsdelivr.net/npm/zstd-codec@0.1.4/dist/zstd-codec.min.js');
     }
-    return await new Promise((resolve, reject)=>{
+    return await new Promise((resolve,reject)=>{
       window.ZstdCodec.run(zstd=>{
         try{
           const out = new zstd.Simple().decompress(bytes);
           resolve(out);
-        }catch(e){ reject(e); }
+        }catch(e){ reject(e) }
       });
     });
   }
@@ -255,44 +137,43 @@ async function maybeDecompress(bytes){
 }
 
 function parseMediaJSON(txt){
-  if (txt.charCodeAt(0)===0xFEFF) txt = txt.slice(1); // strip BOM
-  const first = txt.indexOf('{');
-  const last  = txt.lastIndexOf('}');
-  if(first<0 || last<0 || last<=first) throw new Error('No JSON object in media file');
-  txt = txt.slice(first, last+1)
-           .replace(/,\s*([}\]])/g, '$1')
-           .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
-           .replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
+  if(txt.charCodeAt(0)===0xFEFF) txt=txt.slice(1); // BOM
+  const first=txt.indexOf('{'), last=txt.lastIndexOf('}');
+  if(first<0||last<0||last<=first) throw new Error('No JSON object in media file');
+  txt = txt.slice(first,last+1)
+           .replace(/,\s*([}\]])/g,'$1')
+           .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g,'')
+           .replace(/([{,]\s*)(\d+)(\s*:)/g,'$1"$2"$3');
   return JSON.parse(txt);
 }
 
 async function decodeProtoMedia(bytes){
-  const urls = [
+  const urls=[
     "https://cdn.jsdelivr.net/gh/ankitects/anki@stable/proto/anki/import_export.proto",
     "https://cdn.jsdelivr.net/gh/ankitects/anki@main/proto/anki/import_export.proto"
   ];
   let root=null;
   for(const u of urls){
     try{
-      const r = await fetch(u, { cache:'force-cache' });
+      const r=await fetch(u,{cache:'force-cache'});
       if(!r.ok) continue;
       root = protobuf.parse(await r.text()).root;
       break;
-    }catch(_){}
+    }catch{}
   }
-  if(!root) throw new Error('Failed to load Anki proto definitions');
+  if(!root) throw new Error('proto load failed');
 
   function toMap(obj){
     for(const v of Object.values(obj||{})){
-      if(Array.isArray(v) && v.length && typeof v[0]==='object'){
-        const hasIdx = ('index' in v[0]) || ('id' in v[0]);
-        const hasNm  = ('filename' in v[0]) || ('name' in v[0]);
-        if(hasIdx && hasNm){
+      if(Array.isArray(v)&&v.length&&typeof v[0]==='object'){
+        const hasIdx=('index'in v[0])||('id'in v[0]);
+        const hasNm=('filename'in v[0])||('name'in v[0]);
+        if(hasIdx&&hasNm){
           const m={};
           for(const it of v){
-            const k = (it.index ?? it.id);
-            const nm = (it.filename ?? it.name);
-            if(k!=null && typeof nm==='string') m[String(k)] = nm;
+            const k=(it.index??it.id);
+            const nm=(it.filename??it.name);
+            if(k!=null&&typeof nm==='string') m[String(k)]=nm;
           }
           return m;
         }
@@ -312,18 +193,18 @@ async function decodeProtoMedia(bytes){
 
   for(const T of all){
     try{
-      const msg = T.decode(bytes);
-      const map = toMap(msg);
+      const msg=T.decode(bytes);
+      const map=toMap(msg);
       if(map) return map;
-    }catch(_){}
+    }catch{}
   }
-  throw new Error('Unknown media proto format');
+  throw new Error('unknown media map');
 }
 
 async function parseMediaEntry(entryBytes){
-  const td = new TextDecoder('utf-8', { fatal:false });
-  let bytes = await maybeDecompress(entryBytes);
-  if(bytes[0] === 0x7B){
+  const td=new TextDecoder('utf-8',{fatal:false});
+  let bytes=await maybeDecompress(entryBytes);
+  if(bytes[0]===0x7B){ // JSON
     return parseMediaJSON(td.decode(bytes));
   }
   try{
@@ -335,118 +216,109 @@ async function parseMediaEntry(entryBytes){
 }
 
 function mediaURLForKey(key, files){
-  const bytes = files[key];
+  const bytes=files[key];
   if(!bytes) return null;
-  return URL.createObjectURL(new Blob([bytes], { type:'application/octet-stream' }));
+  return URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
 }
 
 function buildMediaReplacer(mediaMap, files){
-  const reverse = {};
-  for(const [k,v] of Object.entries(mediaMap)){
-    reverse[v] = k;
-  }
-  const imgRE   = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-  const audioRE = /\[sound:([^\]]+)\]/gi;
+  const reverse={};
+  for(const [k,v] of Object.entries(mediaMap)) reverse[v]=k;
+
+  const imgRE=/<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const audioRE=/\[sound:([^\]]+)\]/gi;
 
   function resolve(src){
     if(/^\d+$/.test(src)){
-      const u = mediaURLForKey(src, files);
+      const u=mediaURLForKey(src,files);
       if(u) return u;
     }
-    let u = mediaURLForKey(src, files);
+    let u=mediaURLForKey(src,files);
     if(u) return u;
-    const idx = reverse[src];
-    if(idx !== undefined){
-      u = mediaURLForKey(idx, files);
+    const idx=reverse[src];
+    if(idx!==undefined){
+      u=mediaURLForKey(idx,files);
       if(u) return u;
     }
     return null;
   }
 
   return function replaceAll(html){
-    html = html.replace(imgRE, (m, src)=>{
-      const u = resolve(src);
-      return u ? m.replace(src, u) : m;
+    html = html.replace(imgRE,(m,src)=>{
+      const u=resolve(src);
+      return u ? m.replace(src,u) : m;
     });
-    html = html.replace(audioRE, (m, name)=>{
-      const u = resolve(name);
+    html = html.replace(audioRE,(m,name)=>{
+      const u=resolve(name);
       return u ? `<audio controls preload="metadata" src="${u}"></audio>` : m;
     });
     return html;
   };
 }
 
-/* ===== Anki template / cloze helpers ===== */
-
+/* ========= Cloze templating & templates (same behavior as Lightning) ========= */
 function processClozeForOrd(text, targetIndex, side){
-  return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g,
-    (m, n, inner, hint)=>{
-      const idx = parseInt(n,10);
-      const safeInner = (inner||'').replace(/</g,'&lt;');
-      const safeHint  = (hint ||'').replace(/</g,'&lt;');
-      if(idx === targetIndex){
-        if(side === 'front'){
-          const mask = safeHint ? `[${safeHint}]` : `[...]`;
-          return `<span class="cloze"><span class="cloze-mask">${mask}</span><span class="cloze-answer" style="display:none">${safeInner}</span></span>`;
-        }else{
-          return `<span class="cloze-reveal">${safeInner}</span>`;
-        }
+  return String(text).replace(/\{\{c(\d+)::([\s\S]*?)(?:::(.*?))?\}\}/g,(m,n,inner,hint)=>{
+    const idx=parseInt(n,10);
+    const safeInner = (inner||'').replace(/</g,'&lt;');
+    const safeHint  = (hint||'').replace(/</g,'&lt;');
+    if(idx===targetIndex){
+      if(side==='front'){
+        const mask = safeHint ? `[${safeHint}]` : `[...]`;
+        return `<span class="cloze"><span class="cloze-mask">${mask}</span><span class="cloze-answer" style="display:none">${safeInner}</span></span>`;
+      }else{
+        return `<span class="cloze-reveal">${safeInner}</span>`;
       }
-      return safeInner;
-    });
+    }
+    return safeInner;
+  });
 }
 
 function applyConditionals(tpl, fields, fieldNames){
-  tpl = tpl.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
-    (m, name, inner)=>{
-      const idx = fieldNames.indexOf(name.trim());
-      const val = idx >= 0 ? fields[idx] : '';
-      return String(val).trim() ? inner : '';
-    });
-  tpl = tpl.replace(/\{\{\^([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,
-    (m, name, inner)=>{
-      const idx = fieldNames.indexOf(name.trim());
-      const val = idx >= 0 ? fields[idx] : '';
-      return String(val).trim() ? '' : inner;
-    });
+  tpl = tpl.replace(/\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,(m,name,inner)=>{
+    const idx=fieldNames.indexOf(name.trim());
+    const val=idx>=0 ? fields[idx] : '';
+    return String(val).trim() ? inner : '';
+  });
+  tpl = tpl.replace(/\{\{\^([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g,(m,name,inner)=>{
+    const idx=fieldNames.indexOf(name.trim());
+    const val=idx>=0 ? fields[idx] : '';
+    return String(val).trim() ? '' : inner;
+  });
   return tpl;
 }
 
 function stripClozeMarkup(s){
-  return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g, '$1');
+  return String(s).replace(/\{\{c\d+::([\s\S]*?)(?:::[^}]*)?\}\}/g,'$1');
 }
 
 function collectClozeFieldsFromTemplate(tpl){
-  const set = new Set();
-  tpl.replace(/\{\{([^}]+)\}\}/g, (m, token)=>{
-    const parts = token.trim().split(':');
-    const field = parts.pop().trim();
-    const chain = parts.map(p=>p.trim().toLowerCase());
+  const set=new Set();
+  tpl.replace(/\{\{([^}]+)\}\}/g,(_m,token)=>{
+    const parts=token.trim().split(':');
+    const field=parts.pop().trim();
+    const chain=parts.map(p=>p.trim().toLowerCase());
     if(chain.includes('cloze')) set.add(field);
   });
   return set;
 }
 
 function substituteTokens(tpl, fields, fieldNames, { side, targetCloze, templateForScan }){
-  const clozeFields = collectClozeFieldsFromTemplate(templateForScan || tpl);
-  return tpl.replace(/\{\{([^}]+)\}\}/g, (m, raw)=>{
-    const token = raw.trim();
-    if(token === 'FrontSide') return '{{FrontSide}}';
+  const clozeFields=collectClozeFieldsFromTemplate(templateForScan||tpl);
+  return tpl.replace(/\{\{([^}]+)\}\}/g,(m,raw)=>{
+    const token=raw.trim();
+    if(token==='FrontSide') return '{{FrontSide}}';
+    const parts=token.split(':');
+    const fieldName=parts.pop().trim();
+    const chain=parts.map(p=>p.trim().toLowerCase());
+    const idx=fieldNames.indexOf(fieldName);
+    const val=idx>=0 ? (fields[idx]??'') : '';
 
-    const parts = token.split(':');
-    const fieldName = parts.pop().trim();
-    const chain = parts.map(p=>p.trim().toLowerCase());
+    const hasCloze=chain.includes('cloze');
+    const hasType =chain.includes('type');
+    const hasText =chain.includes('text') || chain.includes('hint');
 
-    const idx = fieldNames.indexOf(fieldName);
-    const val = idx >= 0 ? (fields[idx] ?? '') : '';
-
-    const hasCloze = chain.includes('cloze');
-    const hasType  = chain.includes('type');
-    const hasText  = chain.includes('text') || chain.includes('hint');
-
-    if(hasCloze){
-      return processClozeForOrd(val, targetCloze, side);
-    }
+    if(hasCloze) return processClozeForOrd(val, targetCloze, side);
     if(hasType){
       return `<input class="type-answer" aria-label="type your answer" />`;
     }
@@ -454,365 +326,297 @@ function substituteTokens(tpl, fields, fieldNames, { side, targetCloze, template
       if(clozeFields.has(fieldName)) return '';
       return stripClozeMarkup(val);
     }
-    if(clozeFields.has(fieldName)){
-      return '';
-    }
+    if(clozeFields.has(fieldName)) return '';
     return val;
   });
 }
 
-/* ===== global Anki state ===== */
-const G = {
-  entries: null,
-  fileTable: {},
-  mediaMap: {},
-  replaceMedia: html => html,
-  decks: {},
-  models: {},
-  notes: [],
-  cards: [],
-  notesById: {}
-};
+function collapseExactDuplicate(html){
+  const lines=String(html).split(/(?:\r?\n|<br\s*\/?>)+/i)
+    .map(s=>s.trim()).filter(Boolean);
+  const seen=new Set(), keep=[];
+  for(const line of lines){
+    const key=line.replace(/\s+/g,' ');
+    if(!seen.has(key)){
+      seen.add(key);
+      keep.push(line);
+    }
+  }
+  return keep.join('<br>');
+}
 
-/* Render Anki card front/back text using templates */
-function renderCardFrontBack(card){
-  const note = G.notesById[card.nid];
-  if(!note) return null;
-  const model = G.models[String(note.mid)];
-  if(!model) return null;
+/* ========= Queue building: SAME LOGIC as Lightning Drill ========= */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=(Math.random()*(i+1))|0;
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
 
-  const fieldNames = (model.flds || []).map(f => f.name);
-  const fields = (note.flds || '').split('\x1f');
-  const tmpls = model.tmpls || [];
-  const tmpl  = tmpls[card.ord];
-  if(!tmpl) return null;
+function computeToday(nowSec, crt, cutoffSec){
+  const DAY = 86400;
+  return Math.floor((nowSec - cutoffSec)/DAY) - Math.floor((crt - cutoffSec)/DAY);
+}
 
-  const target = card.ord + 1;
+function buildAnkiLikeQueue(cards, decksById, nowSec, today){
+  const learnNow   = cards
+    .filter(c => c.queue===1 && c.due <= nowSec)
+    .sort((a,b)=>a.due-b.due || a.id-b.id);
 
-  // Front
-  let front = tmpl.qfmt || '';
-  front = applyConditionals(front, fields, fieldNames);
-  front = substituteTokens(front, fields, fieldNames, {
-    side:'front',
-    targetCloze:target,
-    templateForScan:tmpl.qfmt
+  const learnToday = cards
+    .filter(c => c.queue===3 && c.due <= today)
+    .sort((a,b)=>a.due-b.due || a.id-b.id);
+
+  let reviews = cards.filter(c => c.queue===2 && c.due <= today);
+  let news    = cards.filter(c => c.queue===0 || c.type===0);
+
+  if(reviews.length){
+    const groups = new Map();
+    for(const c of reviews){
+      if(!groups.has(c.due)) groups.set(c.due, []);
+      groups.get(c.due).push(c);
+    }
+    reviews = Array.from(groups.keys())
+      .sort((a,b)=>a-b)
+      .flatMap(k => {
+        const g = groups.get(k);
+        shuffle(g);
+        return g;
+      });
+  }
+
+  news.sort((a,b)=>{
+    const da=(decksById[a.did]||'').localeCompare(decksById[b.did]||'');
+    if(da) return da;
+    return (a.due - b.due) || (a.id - b.id);
   });
-  front = sanitize(front);
-  front = G.replaceMedia(front);
-  front = collapseExactDuplicate(front);
 
-  // Back
-  let back = tmpl.afmt || '';
-  back = back.replace(/\{\{FrontSide\}\}/g, front);
-  back = applyConditionals(back, fields, fieldNames);
-  back = substituteTokens(back, fields, fieldNames, {
-    side:'back',
-    targetCloze:target,
-    templateForScan:tmpl.afmt
+  const newPerDay=20, revPerDay=200;
+  news    = news.slice(0,newPerDay);
+  reviews = reviews.slice(0,revPerDay);
+
+  const seenNote = new Set();
+  const bury = arr => arr.filter(c => {
+    if(seenNote.has(c.nid)) return false;
+    seenNote.add(c.nid);
+    return true;
   });
-  back = sanitize(back);
-  back = G.replaceMedia(back);
-  back = collapseExactDuplicate(back);
 
-  return { front, back };
+  const ReviewsQ = bury(reviews);
+  const NewsQ    = bury(news);
+
+  return [...learnNow, ...ReviewsQ, ...learnToday, ...NewsQ];
 }
 
-/* ===== card ordering: approximate Anki due order ===== */
+/* ========= SQL init ========= */
+let SQLReady=false, SQL;
 
-function getActiveCards(){
-  return G.cards.filter(c => c.queue !== -1 && c.queue !== -2); // exclude suspended/buried
-}
+initSqlJs({
+  locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/${f}`
+}).then(db => {
+  SQL = db;
+  SQLReady = true;
+}).catch(e => {
+  alert('Failed to load SQLite engine (sql.js). Refresh and try again.\n'+(e?.message||e));
+});
 
-function queuePriority(c){
-  if(c.queue === 1) return 0;                       // learning
-  if(c.queue === 3) return 1;                       // relearning
-  if(c.queue === 2) return 2;                       // review
-  if(c.queue === 0 || c.type === 0) return 3;       // new
-  return 4;                                         // everything else
-}
+/* ========= Main conversion ========= */
+async function convertApkgToText(file, statusEl){
+  if(!SQLReady) throw new Error('SQLite engine not ready yet.');
 
-function compareCardsForDueOrder(a, b){
-  const qa = queuePriority(a);
-  const qb = queuePriority(b);
-  if(qa !== qb) return qa - qb;
-  if(a.due !== b.due) return a.due - b.due;
-  return (a.id || 0) - (b.id || 0);
-}
-
-function cardsInDueOrder(){
-  const arr = getActiveCards();
-  arr.sort(compareCardsForDueOrder);
-  return arr;
-}
-
-/* ===== rendering all cards to text (shared by Export + Copy) ===== */
-
-let lastRenderKey = null;
-let lastRender = null;
-
-async function renderAllCards(strip, includeIds){
-  const cardsSorted = cardsInDueOrder();
-  const lines = [];
-  let firstPreview = null;
-  let idx = 0;
-
-  for(const card of cardsSorted){
-    idx++;
-    const rendered = renderCardFrontBack(card);
-    if(!rendered) continue;
-
-    let front = rendered.front;
-    let back  = rendered.back;
-
-    if(strip){
-      front = htmlToPlainText(front);
-      back  = htmlToPlainText(back);
-    }
-
-    const cardLines = [];
-    if(includeIds){
-      cardLines.push(`Card ${idx} (card_id: ${card.id}, note_id: ${card.nid})`);
-    }else{
-      cardLines.push(`Card ${idx}`);
-    }
-    cardLines.push('');
-    cardLines.push('FRONT:');
-    cardLines.push(front || '(empty)');
-    cardLines.push('');
-    cardLines.push('BACK:');
-    cardLines.push(back || '(empty)');
-
-    lines.push(cardLines.join('\n'));
-
-    if(!firstPreview){
-      firstPreview = cardLines.join('\n');
-    }
-
-    if(idx % 250 === 0){
-      setStatus(`Rendering cards... (${idx}/${cardsSorted.length})`);
-      await new Promise(r => setTimeout(r, 0));
-    }
-  }
-
-  const text = lines.join('\n\n-----\n\n');
-  if(!firstPreview) firstPreview = '(no cards rendered)';
-  els.previewBody.textContent = firstPreview;
-  els.preview.style.display = 'block';
-
-  return { text, firstPreview, count: cardsSorted.length };
-}
-
-async function ensureRenderedText(){
-  const strip = els.stripHtml.checked;
-  const includeIds = els.includeIds.checked;
-  const key = `${G.cards.length}|${strip?'1':'0'}|${includeIds?'1':'0'}`;
-
-  if(lastRender && lastRenderKey === key){
-    return lastRender;
-  }
-
-  setStatus('Rendering cards...');
-  const result = await renderAllCards(strip, includeIds);
-  lastRender = result;
-  lastRenderKey = key;
-  return result;
-}
-
-/* ===== file loading ===== */
-
-els.file.addEventListener('change', async (e)=>{
-  const file = e.target.files && e.target.files[0];
-  if(!file) return;
-  if(!SQLReady){
-    alert('SQLite engine is not ready yet. Wait a moment and try again.');
-    return;
-  }
-
-  els.exportBtn.disabled = true;
-  els.copyBtn.disabled = true;
-  els.preview.style.display = 'none';
-  lastRender = null;
-  lastRenderKey = null;
-  setStatus('Reading file...');
-
+  statusEl.textContent='Reading file…';
   const buf = new Uint8Array(await file.arrayBuffer());
+
   if(!(buf[0]===0x50 && buf[1]===0x4b)){ // 'PK'
-    alert('This does not look like a ZIP (.apkg/.colpkg).');
-    setStatus('Not a valid Anki package.');
-    return;
+    throw new Error('This does not look like a ZIP (.apkg/.colpkg).');
   }
 
-  let entries;
-  try{
-    setStatus('Unzipping deck...');
-    entries = await unzipWithWatchdog(buf, 25000);
-  }catch(err){
-    alert('Unzip failed: ' + (err && err.message || err));
-    setStatus('Unzip failed.');
-    return;
+  statusEl.textContent='Unzipping…';
+  const entries = await unzipWithWatchdog(buf, 20000);
+
+  const dbEntry = entries['collection.anki21'] || entries['collection.anki21b'] || entries['collection.anki2'];
+  if(!dbEntry) throw new Error('Could not find collection.anki21/.anki2 in this package.');
+
+  let mediaMap={};
+  if(entries['media']){
+    try{ mediaMap = await parseMediaEntry(entries['media']); }
+    catch(e){ console.warn('media parse failed', e); }
   }
 
-  const dbEntry = entries['collection.anki21'] ||
-                  entries['collection.anki21b'] ||
-                  entries['collection.anki2'];
-  if(!dbEntry){
-    alert('Could not find collection.anki21/anki21b/anki2 in this package.');
-    setStatus('No collection DB in package.');
-    return;
-  }
-
-  let mediaMap = {};
-  try{
-    if(entries['media']){
-      setStatus('Parsing media map...');
-      mediaMap = await parseMediaEntry(entries['media']);
-    }
-  }catch(e){
-    console.warn('Media map parse failed', e);
-  }
-
-  const fileTable = {};
-  for(const [k,v] of Object.entries(entries)) fileTable[k] = v;
+  const fileTable={};
+  for(const [k,v] of Object.entries(entries)) fileTable[k]=v;
   const replaceMedia = buildMediaReplacer(mediaMap, fileTable);
 
-  setStatus('Opening SQLite DB...');
+  statusEl.textContent='Opening collection…';
   let db;
   try{
     db = new SQL.Database(dbEntry);
   }catch(e){
-    alert('Failed to open SQLite DB: ' + (e && e.message || e));
-    setStatus('SQLite open failed.');
-    return;
+    throw new Error('SQLite open failed: '+(e?.message||e));
   }
 
-  let models={}, decks={};
-  let notes=[], cards=[];
+  let models={}, decks={}, crt=0;
   try{
-    const colRes = db.exec(`SELECT * FROM col LIMIT 1`)[0];
-    if(!colRes) throw new Error('No row in col');
-    const colRow = Object.fromEntries(colRes.columns.map((c,i)=>[c,colRes.values[0][i]]));
-    models = JSON.parse(colRow.models);
-    decks  = JSON.parse(colRow.decks);
+    const col = db.exec(`SELECT * FROM col LIMIT 1`)[0];
+    if(!col) throw new Error('no col rows');
+    const row = Object.fromEntries(col.columns.map((c,i)=>[c,col.values[0][i]]));
+    models = JSON.parse(row.models);
+    decks  = JSON.parse(row.decks);
+    crt    = Number(row.crt)||0;
   }catch(e){
-    alert('Failed to read collection metadata: ' + (e && e.message || e));
-    setStatus('Collection metadata read failed.');
-    return;
+    throw new Error('Failed to read collection metadata: '+(e?.message||e));
   }
 
+  const notes=[];
   try{
-    const nRes = db.exec(`SELECT id,guid,mid,flds,sfld,tags FROM notes`)[0];
-    if(nRes){
-      for(const v of nRes.values){
-        const obj = {};
-        nRes.columns.forEach((c,i)=>obj[c]=v[i]);
-        notes.push(obj);
+    const r=db.exec(`SELECT id,guid,mid,flds,sfld,tags FROM notes`)[0];
+    if(r){
+      for(const v of r.values){
+        notes.push(Object.fromEntries(r.columns.map((c,i)=>[c,v[i]])));
       }
     }
   }catch(e){
-    alert('Failed to read notes table: ' + (e && e.message || e));
-    setStatus('Notes read failed.');
-    return;
+    throw new Error('Failed to read notes table: '+(e?.message||e));
   }
 
+  const cards=[];
   try{
-    const cRes = db.exec(`SELECT id,nid,did,ord,type,queue,due,ivl FROM cards`)[0];
-    if(cRes){
-      for(const v of cRes.values){
-        const obj = {};
-        cRes.columns.forEach((c,i)=>obj[c]=v[i]);
-        cards.push(obj);
+    const r=db.exec(`SELECT id,nid,did,ord,type,queue,due,ivl FROM cards`)[0];
+    if(r){
+      for(const v of r.values){
+        cards.push(Object.fromEntries(r.columns.map((c,i)=>[c,v[i]])));
       }
     }
   }catch(e){
-    alert('Failed to read cards table: ' + (e && e.message || e));
-    setStatus('Cards read failed.');
-    return;
+    throw new Error('Failed to read cards table: '+(e?.message||e));
   }
 
-  G.entries = entries;
-  G.fileTable = fileTable;
-  G.mediaMap = mediaMap;
-  G.replaceMedia = replaceMedia;
-  G.decks = decks;
-  G.models = models;
-  G.notes = notes;
-  G.cards = cards;
-  G.notesById = {};
-  for(const n of notes) G.notesById[n.id] = n;
-
-  const deckCount = Object.keys(decks).length;
-  const activeCount = getActiveCards().length;
-  els.deckInfo.innerHTML =
-    `<strong>Loaded deck:</strong> ${file.name} · ` +
-    `${deckCount} deck${deckCount===1?'':'s'} · ` +
-    `${cards.length} total cards · ${activeCount} active cards · ${notes.length} notes`;
-
-  const hasCards = activeCount > 0;
-  els.exportBtn.disabled = !hasCards;
-  els.copyBtn.disabled = !hasCards;
-  setStatus(hasCards
-    ? 'Ready. Click “Export TXT” or “Copy Text” to generate card text in due order.'
-    : 'No active cards to export (all cards may be suspended/buried).');
-});
-
-/* ===== Export button ===== */
-
-els.exportBtn.addEventListener('click', async ()=>{
-  if(!G.cards.length){
-    alert('No cards found in this deck.');
-    return;
+  // Build decksById for new-card ordering
+  const decksById={};
+  for(const [id,d] of Object.entries(decks)){
+    decksById[id] = d?.name || d?.nm || String(id);
   }
 
-  els.exportBtn.disabled = true;
-  els.copyBtn.disabled = true;
+  const nowSec = Math.floor(Date.now()/1000);
+  const crtNum = crt || nowSec;
+  const dayCutoffSec = 4*3600; // same as Lightning Drill
+  const today = computeToday(nowSec, crtNum, dayCutoffSec);
+
+  statusEl.textContent='Building Anki-like queue…';
+  const queue = buildAnkiLikeQueue(cards, decksById, nowSec, today);
+
+  const noteById = new Map();
+  for(const n of notes) noteById.set(n.id, n);
+
+  let exportedCount=0;
+  let out='';
+
+  statusEl.textContent='Rendering cards… (this may take a bit for large decks)';
+  queue.forEach((card, idx)=>{
+    const note = noteById.get(card.nid);
+    if(!note) return;
+    const model = models[String(note.mid)];
+    if(!model) return;
+    const fieldNames = (model.flds || []).map(f => f.name);
+    const fields = (note.flds || '').split('\x1f');
+    const tmpl = (model.tmpls || [])[card.ord];
+    if(!tmpl) return;
+    const targetCloze = card.ord + 1;
+
+    let front = tmpl.qfmt || '';
+    front = applyConditionals(front, fields, fieldNames);
+    front = substituteTokens(front, fields, fieldNames, {
+      side:'front',
+      targetCloze,
+      templateForScan: tmpl.qfmt
+    });
+    front = sanitize(front);
+    front = replaceMedia(front);
+    front = collapseExactDuplicate(front);
+
+    let back = tmpl.afmt || '';
+    back = back.replace(/\{\{FrontSide\}\}/g, front);
+    back = applyConditionals(back, fields, fieldNames);
+    back = substituteTokens(back, fields, fieldNames, {
+      side:'back',
+      targetCloze,
+      templateForScan: tmpl.afmt
+    });
+    back = sanitize(back);
+    back = replaceMedia(back);
+    back = collapseExactDuplicate(back);
+
+    const frontText = stripHtml(front).trim();
+    const backText  = stripHtml(back).trim();
+
+    exportedCount++;
+    out += `Card ${idx+1}\nFront:\n${frontText}\n\nBack:\n${backText}\n\n---\n\n`;
+  });
+
+  if(!out){
+    out = 'No due cards found to export with the current queue logic.';
+  }
+
+  statusEl.textContent = `Done. Exported ${exportedCount} cards in Anki-like order.`;
+  return out;
+}
+
+/* ========= Wire up UI ========= */
+const fileInput   = document.getElementById('fileInput');
+const statusEl    = document.getElementById('status');
+const outputEl    = document.getElementById('output');
+const downloadBtn = document.getElementById('downloadBtn');
+const copyBtn     = document.getElementById('copyBtn');
+
+let lastText = '';
+
+fileInput.addEventListener('change', async (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+
+  outputEl.value = '';
+  lastText = '';
+  downloadBtn.disabled = true;
+  copyBtn.disabled = true;
+  statusEl.textContent = 'Preparing…';
 
   try{
-    const { text, count } = await ensureRenderedText();
-    const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = 'anki-front-back.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 2000);
-    setStatus(`Exported ${count} cards to text (in due order).`);
-  }catch(e){
-    alert('Export failed: ' + (e && e.message || e));
-    setStatus('Export failed.');
-  }finally{
-    els.exportBtn.disabled = false;
-    els.copyBtn.disabled = false;
+    const text = await convertApkgToText(file, statusEl);
+    lastText = text;
+    outputEl.value = text;
+    downloadBtn.disabled = false;
+    copyBtn.disabled = false;
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Error: ' + (err?.message||String(err));
+    alert('Error converting deck:\n' + (err?.message||String(err)));
   }
 });
 
-/* ===== Copy button ===== */
+downloadBtn.addEventListener('click', ()=>{
+  if(!lastText) return;
+  const blob = new Blob([lastText], {type:'text/plain;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'anki-export.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+});
 
-els.copyBtn.addEventListener('click', async ()=>{
-  if(!G.cards.length){
-    alert('No cards found in this deck.');
-    return;
-  }
-
-  if(!navigator.clipboard || !navigator.clipboard.writeText){
-    alert('Clipboard API is not available in this browser. Use “Export TXT” instead.');
-    return;
-  }
-
-  els.exportBtn.disabled = true;
-  els.copyBtn.disabled = true;
-
+copyBtn.addEventListener('click', async ()=>{
+  if(!lastText) return;
   try{
-    const { text, count } = await ensureRenderedText();
-    await navigator.clipboard.writeText(text);
-    setStatus(`Copied ${count} cards to clipboard (in due order).`);
-  }catch(e){
-    alert('Clipboard copy failed. You can still use “Export TXT” to download the file.\n' + (e && e.message || e));
-    setStatus('Clipboard copy failed.');
-  }finally{
-    els.exportBtn.disabled = false;
-    els.copyBtn.disabled = false;
+    await navigator.clipboard.writeText(lastText);
+    statusEl.textContent = 'Copied to clipboard.';
+  }catch{
+    // Fallback: select + execCommand
+    outputEl.focus();
+    outputEl.select();
+    document.execCommand('copy');
+    statusEl.textContent = 'Copied (fallback).';
   }
 });
 </script>
