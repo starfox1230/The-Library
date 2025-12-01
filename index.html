@@ -74,6 +74,29 @@
       background: rgba(44, 44, 44, 0.5);
     }
 
+    .app-search {
+      text-align: center;
+      padding: 8px 0 14px;
+      background: rgba(44, 44, 44, 0.35);
+    }
+
+    .app-search input {
+      width: min(420px, 92%);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-light);
+      font-size: 0.95em;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .app-search input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.18);
+    }
+
     .view-toggle {
       background: none;
       border: 1px solid var(--border-color);
@@ -117,6 +140,15 @@
     /* --- NEW: Hides non-favorite apps --- */
     .app-list li.hidden {
       display: none;
+    }
+
+    .app-list li.filter-hidden {
+      display: none;
+    }
+
+    .app-list li.case-timer-link {
+      order: 999;
+      margin-left: auto;
     }
 
     .app-list::-webkit-scrollbar { display: none; }
@@ -571,6 +603,9 @@
       <button class="view-toggle active" data-view="all">All Apps</button>
       <button class="view-toggle" data-view="favorites">Favorites ★</button>
     </div>
+    <div class="app-search">
+      <input type="text" id="appSearch" placeholder="Filter apps by name..." aria-label="Filter apps by name">
+    </div>
     <ul class="app-list">
       <!-- ADD YOUR APPS HERE -->
       <li><a href="apps/ACR-Contrast-Reaction/index.html" class="app-link"><span class="emoji">💉</span><span class="text">ACR Contrast Reaction</span></a></li>
@@ -586,7 +621,7 @@
           <span class="text">Call Timer -- Display Only</span>
         </a>
       </li>
-      <li>
+      <li class="case-timer-link">
         <a href="apps/case-timer/index.html" class="app-link">
           <span class="emoji">⏱️</span>
           <span class="text">Case Timer</span>
@@ -1205,9 +1240,11 @@
         const appListContainer = document.querySelector('.app-list');
         const allAppListItems = document.querySelectorAll('.app-list li');
         const viewToggles = document.querySelectorAll('.view-toggle');
+        const searchInput = document.getElementById('appSearch');
         const VIEW_STORAGE_KEY = 'appListViewPreference';
         let favorites = JSON.parse(localStorage.getItem('favoriteApps')) || [];
         let currentView = null;
+        let searchTerm = '';
 
         // 1. Initialize: Add stars and apply favorite status from localStorage
         function initializeFavorites() {
@@ -1248,30 +1285,35 @@
                 starElement.innerHTML = '★';
             }
             localStorage.setItem('favoriteApps', JSON.stringify(favorites));
-
-            // If user is in favorites view, immediately hide the unfavorited item
-            const favoritesViewActive = document.querySelector('.view-toggle[data-view="favorites"]').classList.contains('active');
-            if (favoritesViewActive && isFavorited) {
-                starElement.closest('li').classList.add('hidden');
-            }
+            applyFilters();
         }
 
-        // 3. Filter View Based on Selection
-        function filterView(view) {
-            if (view === 'favorites') {
-                allAppListItems.forEach(li => {
-                    const appIdentifier = li.querySelector('a')?.getAttribute('href');
-                    if (appIdentifier && !favorites.includes(appIdentifier)) {
-                        li.classList.add('hidden');
-                    } else {
-                        li.classList.remove('hidden');
-                    }
-                });
-            } else { // 'all' view
-                allAppListItems.forEach(li => {
+        // 3. Apply favorites view and text filter together
+        function applyFilters() {
+            const normalizedTerm = searchTerm.trim().toLowerCase();
+
+            allAppListItems.forEach(li => {
+                const link = li.querySelector('a');
+                if (!link) return;
+
+                const appIdentifier = link.getAttribute('href');
+                const inFavoritesView = currentView === 'favorites';
+                const matchesFavorite = !inFavoritesView || favorites.includes(appIdentifier);
+                const labelText = li.querySelector('.text')?.textContent.toLowerCase() || '';
+                const matchesSearch = !normalizedTerm || labelText.includes(normalizedTerm);
+
+                if (matchesFavorite) {
                     li.classList.remove('hidden');
-                });
-            }
+                } else {
+                    li.classList.add('hidden');
+                }
+
+                if (matchesSearch) {
+                    li.classList.remove('filter-hidden');
+                } else {
+                    li.classList.add('filter-hidden');
+                }
+            });
         }
 
         function setActiveView(view, { persist = true } = {}) {
@@ -1295,7 +1337,7 @@
                 }
             });
 
-            filterView(normalizedView);
+            applyFilters();
 
             if (persist) {
                 localStorage.setItem(VIEW_STORAGE_KEY, normalizedView);
@@ -1308,6 +1350,13 @@
                 setActiveView(view);
             });
         });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (event) => {
+                searchTerm = event.target.value;
+                applyFilters();
+            });
+        }
 
         // 4. Drag-to-Scroll for PC
         let isDown = false;
@@ -1343,6 +1392,7 @@
         // Run initialization
         initializeFavorites();
         setActiveView(initialView, { persist: false });
+        applyFilters();
     });
     // ========= End New Logic =========
 
