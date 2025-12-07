@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumbar MRI Generator (Fixed)</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --border: #333;
+            --text: #e0e0e0;
+            --accent: #007bff;
+            --highlight: #2c2c2c;
+            
+            /* Status Colors */
+            --abut: #f1c40f; /* Yellow/Gold */
+            --disp: #e74c3c; /* Red */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Split Screen */
+        .left-panel {
+            flex: 2;
+            overflow-y: auto;
+            padding: 15px;
+            padding-bottom: 80px; /* Space for mobile footer */
+        }
+
+        .right-panel {
+            flex: 1;
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow: auto; }
+            .right-panel { display: none; } /* Hidden on mobile */
+            .mobile-footer { display: flex; }
+        }
+
+        /* General UI */
+        h2 { color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 0; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        select, input {
+            background: var(--highlight);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
+            width: 100%;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+
+        /* Level Cards */
+        .level-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .level-header {
+            background: #252525;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .level-title { font-weight: bold; color: var(--accent); font-size: 1.1rem; }
+
+        .level-body { padding: 15px; }
+
+        /* Segmented Control (Normal/Bulge/Herniation) */
+        .seg-control {
+            display: flex;
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 2px;
+        }
+        .seg-control label {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.8rem;
+            color: #888;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .seg-control input { display: none; }
+        .seg-control input:checked + label {
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Pathology Area */
+        .pathology-area { display: none; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
+
+        /* Nerve Matrix */
+        .nerve-matrix {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: var(--bg);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .nerve-col-title { text-align: center; font-size: 0.75rem; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+        
+        .nerve-btn {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: #888;
+            padding: 10px;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            user-select: none;
+            transition: 0.1s;
+        }
+        /* Nerve States */
+        .nerve-btn[data-state="0"] { border-color: var(--border); }
+        .nerve-btn[data-state="1"] { background: var(--abut); color: black; border-color: var(--abut); } /* Abutting */
+        .nerve-btn[data-state="2"] { background: var(--disp); color: white; border-color: var(--disp); } /* Displacing */
+
+        /* Ancillary Buttons */
+        .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .chip {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .chip.active { background: #333; color: var(--accent); border-color: var(--accent); }
+
+        /* Output */
+        textarea {
+            flex: 1;
+            background: var(--highlight);
+            color: var(--text);
+            border: none;
+            padding: 15px;
+            resize: none;
+            font-family: monospace;
+            border-radius: 6px;
+        }
+
+        /* Mobile Sticky Footer */
+        .mobile-footer {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--panel);
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            z-index: 999;
+        }
+
+        .btn-copy {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            width: 100%;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .btn-copy:active { opacity: 0.8; }
+
+    </style>
+</head>
+<body>
+
+    <!-- LEFT: INPUTS -->
+    <div class="left-panel">
+        
+        <!-- GENERAL -->
+        <div class="level-card" style="padding:15px;">
+            <h2>General Findings</h2>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <label style="font-size:0.8rem; color:#888;">Conus</label>
+                    <select id="conus" onchange="generateReport()">
+                        <option value="normal">Normal</option>
+                        <option value="abnormal">Abnormal</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:#888;">Alignment</label>
+                    <select id="align" onchange="generateReport()">
+                        <option value="normal">Anatomic</option>
+                        <option value="spondy">Spondylolisthesis</option>
+                        <option value="retro">Retrolisthesis</option>
+                    </select>
+                </div>
+            </div>
+            <input type="text" id="marrow" placeholder="Marrow signal (e.g. Modic changes)..." oninput="generateReport()">
+        </div>
+
+        <!-- LEVELS CONTAINER (Populated via JS) -->
+        <div id="levels-wrapper"></div>
+
+    </div>
+
+    <!-- RIGHT: PREVIEW -->
+    <div class="right-panel">
+        <h2>Report Preview</h2>
+        <textarea id="output" readonly></textarea>
+        <button class="btn-copy" onclick="copyText()" style="margin-top:10px;">Copy Report</button>
+    </div>
+
+    <!-- MOBILE FOOTER -->
+    <div class="mobile-footer">
+        <button class="btn-copy" onclick="copyText()">Copy Report</button>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const levelsData = [
+            { name: 'L1-2', exit: 'L1', trav: 'L2' },
+            { name: 'L2-3', exit: 'L2', trav: 'L3' },
+            { name: 'L3-4', exit: 'L3', trav: 'L4' },
+            { name: 'L4-5', exit: 'L4', trav: 'L5' },
+            { name: 'L5-S1', exit: 'L5', trav: 'S1' }
+        ];
+
+        // Nerve State Descriptions
+        const nerveStates = [
+            { label: "", val: 0 },
+            { label: "ABUT", val: 1, text: "abutting" },
+            { label: "DISP", val: 2, text: "displacing" }
+        ];
+
+        // --- 2. INITIALIZATION ---
+        function init() {
+            const wrapper = document.getElementById('levels-wrapper');
+            
+            levelsData.forEach(lvl => {
+                const el = document.createElement('div');
+                el.className = 'level-card';
+                el.innerHTML = `
+                    <div class="level-header">
+                        <span class="level-title">${lvl.name}</span>
+                        <div style="width:180px;">
+                            <div class="seg-control">
+                                <input type="radio" name="status_${lvl.name}" id="norm_${lvl.name}" value="normal" checked onchange="togglePath('${lvl.name}')">
+                                <label for="norm_${lvl.name}">Normal</label>
+                                
+                                <input type="radio" name="status_${lvl.name}" id="bulge_${lvl.name}" value="bulge" onchange="togglePath('${lvl.name}')">
+                                <label for="bulge_${lvl.name}">Bulge</label>
+                                
+                                <input type="radio" name="status_${lvl.name}" id="hern_${lvl.name}" value="herniation" onchange="togglePath('${lvl.name}')">
+                                <label for="hern_${lvl.name}">Hern</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="level-body" id="body_${lvl.name}" style="display:none;"> <!-- Hidden if normal -->
+                        
+                        <!-- DISC DETAILS -->
+                        <div class="pathology-area" style="display:block; margin-top:0; border-top:none;">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                                <div id="type_wrap_${lvl.name}">
+                                    <label style="font-size:0.75rem; color:#888;">Type</label>
+                                    <select id="type_${lvl.name}" onchange="generateReport()">
+                                        <option value="protrusion">Protrusion</option>
+                                        <option value="extrusion">Extrusion</option>
+                                        <option value="sequestrated">Sequestrated</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.75rem; color:#888;">Location</label>
+                                    <select id="loc_${lvl.name}" onchange="generateReport()">
+                                        <option value="central">Central</option>
+                                        <option value="left paracentral">Left Paracentral</option>
+                                        <option value="right paracentral">Right Paracentral</option>
+                                        <option value="left foraminal">Left Foraminal</option>
+                                        <option value="right foraminal">Right Foraminal</option>
+                                        <option value="diffuse">Diffuse</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- NERVE MATRIX -->
+                            <div class="nerve-matrix">
+                                <div>
+                                    <div class="nerve-col-title">Traversing (${lvl.trav})</div>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                                        <div class="nerve-btn" onclick="cycleNerve(this)" data-state="0" data-root="${lvl.trav}" data-side="Left" data-loc="traversing">L</div>
+                                        <div class="nerve-btn" onclick="cycleNerve(this)" data-state="0" data-root="${lvl.trav}" data-side="Right" data-loc="traversing">R</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="nerve-col-title">Exiting (${lvl.exit})</div>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                                        <div class="nerve-btn" onclick="cycleNerve(this)" data-state="0" data-root="${lvl.exit}" data-side="Left" data-loc="exiting">L</div>
+                                        <div class="nerve-btn" onclick="cycleNerve(this)" data-state="0" data-root="${lvl.exit}" data-side="Right" data-loc="exiting">R</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align:center; font-size:0.7rem; color:#666; margin-top:5px;">Tap to cycle: Gray(None) > Gold(Abut) > Red(Displace)</div>
+                        </div>
+
+                        <!-- ANCILLARY -->
+                        <div class="chip-grid">
+                            <div class="chip" id="sten_${lvl.name}" onclick="toggleChip(this)">Stenosis</div>
+                            <div class="chip" id="facet_${lvl.name}" onclick="toggleChip(this)">Facet Arthropathy</div>
+                            <div class="chip" id="lig_${lvl.name}" onclick="toggleChip(this)">Lig. Flavum</div>
+                            <div class="chip" id="cyst_${lvl.name}" onclick="toggleChip(this)">Synovial Cyst</div>
+                        </div>
+                    </div>
+                `;
+                wrapper.appendChild(el);
+            });
+            generateReport(); // Initial run
+        }
+
+        // --- 3. UI LOGIC ---
+
+        function togglePath(lvlName) {
+            const status = document.querySelector(`input[name="status_${lvlName}"]:checked`).value;
+            const body = document.getElementById(`body_${lvlName}`);
+            const typeWrap = document.getElementById(`type_wrap_${lvlName}`);
+            const locSel = document.getElementById(`loc_${lvlName}`);
+
+            // 1. Show/Hide details
+            if (status === 'normal') {
+                body.style.display = 'none';
+            } else {
+                body.style.display = 'block';
+                // 2. Adjust for Bulge vs Herniation
+                if (status === 'bulge') {
+                    typeWrap.style.visibility = 'hidden';
+                    locSel.value = 'diffuse';
+                } else {
+                    typeWrap.style.visibility = 'visible';
+                    if(locSel.value === 'diffuse') locSel.value = 'central';
+                }
+            }
+            generateReport();
+        }
+
+        function cycleNerve(btn) {
+            let state = parseInt(btn.getAttribute('data-state'));
+            state = (state + 1) % 3; // Cycle 0->1->2->0
+            btn.setAttribute('data-state', state);
+            // Visual text update
+            if(state === 0) btn.innerText = btn.getAttribute('data-side') === 'Left' ? 'L' : 'R';
+            if(state === 1) btn.innerText = "ABUT";
+            if(state === 2) btn.innerText = "DISP";
+            generateReport();
+        }
+
+        function toggleChip(btn) {
+            btn.classList.toggle('active');
+            generateReport();
+        }
+
+        // --- 4. REPORT GENERATION ---
+
+        function generateReport() {
+            let txt = "LUMBAR SPINE MRI\n\nFINDINGS:\n";
+
+            // General
+            const conus = document.getElementById('conus').value;
+            txt += conus === 'normal' ? "Conus medullaris: Normal. " : "Conus medullaris: Abnormal signal. ";
+            const align = document.getElementById('align').value;
+            txt += align === 'normal' ? "Alignment: Anatomic.\n\n" : `Alignment: ${align === 'spondy' ? 'Spondylolisthesis' : 'Retrolisthesis'}.\n\n`;
+
+            const marrow = document.getElementById('marrow').value;
+            if(marrow) txt += `Marrow: ${marrow}\n\n`;
+
+            let impression = [];
+
+            // Loop Levels
+            levelsData.forEach(lvl => {
+                const status = document.querySelector(`input[name="status_${lvl.name}"]:checked`).value;
+                const bodyVisible = (status !== 'normal');
+                
+                // Get Ancillary
+                const sten = document.getElementById(`sten_${lvl.name}`).classList.contains('active');
+                const facet = document.getElementById(`facet_${lvl.name}`).classList.contains('active');
+                const lig = document.getElementById(`lig_${lvl.name}`).classList.contains('active');
+                const cyst = document.getElementById(`cyst_${lvl.name}`).classList.contains('active');
+                
+                // Is this level actually normal? (Check status AND chips)
+                const isCompletelyNormal = (status === 'normal' && !sten && !facet && !lig && !cyst);
+
+                let line = `At ${lvl.name}: `;
+
+                if (isCompletelyNormal) {
+                    line += "No significant stenosis or disc herniation.";
+                } else {
+                    let parts = [];
+
+                    // Disc Description
+                    if (status !== 'normal') {
+                        const type = document.getElementById(`type_${lvl.name}`).value;
+                        const loc = document.getElementById(`loc_${lvl.name}`).value;
+                        
+                        let dText = (status === 'bulge') ? `diffuse disc bulge` : `focal ${loc} disc ${type}`;
+                        if(type === 'sequestrated' && status !== 'bulge') dText += " (free fragment)";
+
+                        // Check Nerves
+                        let nerveHits = [];
+                        const btns = document.querySelectorAll(`#body_${lvl.name} .nerve-btn`);
+                        
+                        btns.forEach(btn => {
+                            const state = parseInt(btn.getAttribute('data-state'));
+                            if (state > 0) {
+                                const side = btn.getAttribute('data-side');
+                                const root = btn.getAttribute('data-root');
+                                const locType = btn.getAttribute('data-loc'); // traversing vs exiting
+                                const effect = (state === 1) ? "abutting" : "displacing";
+
+                                const locString = (locType === 'traversing') ? "in the lateral recess" : "in the foramen";
+                                nerveHits.push(`${effect} the ${side} ${root} nerve root ${locString}`);
+
+                                // Add to Impression
+                                if (state === 2) impression.push(`${lvl.name}: ${status==='bulge'?'Bulge':type} displacing ${side} ${root} nerve root.`);
+                                else if (state === 1 && status === 'herniation') impression.push(`${lvl.name}: Herniation abutting ${side} ${root} nerve root.`);
+                            }
+                        });
+
+                        if (nerveHits.length > 0) {
+                            dText += ", which is " + nerveHits.join(" and ");
+                        } else {
+                            if (status === 'bulge') dText += " without significant nerve compression";
+                        }
+                        parts.push(dText);
+                    }
+
+                    if (cyst) { parts.push("synovial cyst present"); impression.push(`${lvl.name}: Synovial cyst.`); }
+                    if (sten) parts.push("canal stenosis");
+                    if (facet) parts.push("facet arthropathy");
+                    if (lig) parts.push("ligamentum flavum thickening");
+
+                    line += parts.join(". ") + ".";
+                    // Capitalize
+                    line = line.replace(/\. \w/g, c => c.toUpperCase());
+                }
+
+                txt += line + "\n";
+            });
+
+            txt += "\nIMPRESSION:\n";
+            if (impression.length === 0) {
+                txt += "1. No acute disc herniation or high-grade stenosis.";
+            } else {
+                impression.forEach((imp, i) => txt += `${i+1}. ${imp}\n`);
+            }
+
+            document.getElementById('output').value = txt;
+        }
+
+        function copyText() {
+            const el = document.getElementById('output');
+            el.select();
+            el.setSelectionRange(0,99999);
+            document.execCommand('copy');
+            alert("Copied!");
+        }
+
+        // Init on load
+        window.addEventListener('load', init);
+
+    </script>
+</body>
+</html>
