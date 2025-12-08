@@ -92,6 +92,7 @@
       transition: transform 0.12s ease, box-shadow 0.12s ease;
       box-shadow: 0 8px 20px rgba(88,166,255,0.25);
       min-width: 140px;
+      touch-action: manipulation;
     }
     button.secondary { background: var(--accent-2); box-shadow: 0 8px 20px rgba(187,134,252,0.25); }
     button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
@@ -132,7 +133,8 @@
     .day-card p.meta { margin: 0 0 12px; color: var(--muted); }
     .section-block { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
     .section-block:last-child { border-bottom: none; padding-bottom: 0; }
-    .section-block h4 { margin: 0 0 6px; font-size: 1rem; }
+    .section-block h4 { margin: 0 0 6px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+    .section-block h4 button { min-width: auto; padding: 6px 10px; font-size: 0.85rem; }
     .section-block pre {
       white-space: pre-wrap;
       background: #0f141b;
@@ -149,6 +151,37 @@
     }
 
     .message { color: #ffb86c; font-weight: 600; }
+
+    .copy-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .checklist {
+      background: rgba(88,166,255,0.07);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 12px 0 16px;
+      display: grid;
+      gap: 8px;
+    }
+    .checklist label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .checklist input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -206,15 +239,23 @@
         <select id="day-select"></select>
         <button id="today-btn" class="secondary">Today</button>
       </div>
+      <div class="copy-row">
+        <button id="copy-day-top">Copy all sections</button>
+        <span style="color: var(--muted); font-size: 0.95rem;">You can also copy any individual section below.</span>
+      </div>
       <div style="margin: 12px 0; border-bottom: 1px solid var(--border);"></div>
       <h3 id="day-title"></h3>
       <p class="meta" id="day-meta"></p>
+      <div id="day-checklist" class="checklist"></div>
       <div id="day-content"></div>
     </div>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      const STORAGE_KEY = 'core-study-plans';
+      let savedPlans = {};
+
       const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
       const natCompare = (a,b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
       const compareSectionKeys = (a,b) => {
@@ -246,6 +287,62 @@
       const summaryRange = document.getElementById('summary-range');
       const summaryDays = document.getElementById('summary-days');
       const summarySections = document.getElementById('summary-sections');
+      const copyDayTopBtn = document.getElementById('copy-day-top');
+      const checklistEl = document.getElementById('day-checklist');
+
+      const loadSavedPlans = () => {
+        try {
+          savedPlans = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        } catch { savedPlans = {}; }
+        return savedPlans;
+      };
+
+      const persistSavedPlans = () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPlans));
+      };
+
+      const serializePlan = (p) => ({
+        book: p.book,
+        range: p.range,
+        startDate: p.startDate.toISOString(),
+        endDate: p.endDate.toISOString(),
+        totalLen: p.totalLen,
+        totalSections: p.totalSections,
+        days: p.days.map(day => ({
+          date: day.date.toISOString(),
+          length: day.length,
+          checklist: day.checklist || { viewed: false, anki: false },
+          sections: day.sections,
+        })),
+      });
+
+      const deserializePlan = (raw) => ({
+        book: raw.book,
+        range: raw.range,
+        startDate: new Date(raw.startDate),
+        endDate: new Date(raw.endDate),
+        totalLen: raw.totalLen,
+        totalSections: raw.totalSections,
+        days: raw.days.map(day => ({
+          date: new Date(day.date),
+          length: day.length,
+          checklist: day.checklist || { viewed: false, anki: false },
+          sections: day.sections,
+        })),
+      });
+
+      const persistCurrentPlan = () => {
+        if (!plan) return;
+        loadSavedPlans();
+        savedPlans[plan.book] = {
+          range: plan.range,
+          startDate: startDateEl.value,
+          endDate: endDateEl.value,
+          plan: serializePlan(plan),
+        };
+        savedPlans.__lastBook = plan.book;
+        persistSavedPlans();
+      };
 
       const setTodayDefaults = () => {
         const today = new Date();
@@ -275,6 +372,11 @@
               opt.value = name; opt.textContent = name;
               bookEl.appendChild(opt);
             });
+            const store = loadSavedPlans();
+            if (store.__lastBook && booksData[store.__lastBook]) {
+              bookEl.value = store.__lastBook;
+              loadManifest(store.__lastBook, true);
+            }
           })
           .catch(err => setMessage('Error loading books.json: ' + err));
       };
@@ -318,7 +420,7 @@
         startEl.disabled = endEl.disabled = flatSections.length === 0;
       };
 
-      const loadManifest = (bookName) => {
+      const loadManifest = (bookName, shouldRestore=false) => {
         resetPlan();
         setMessage('');
         if (!bookName) {
@@ -332,8 +434,30 @@
           .then(manifest => {
             flatSections = flattenSections(manifest);
             populateRangeSelectors();
+            if (shouldRestore) {
+              applySavedPlan(bookName);
+            }
           })
           .catch(err => setMessage('Error loading manifest: ' + err));
+      };
+
+      const applySavedPlan = (bookName) => {
+        const store = loadSavedPlans();
+        const saved = store[bookName];
+        if (!saved) return;
+        if (typeof saved.range?.startIdx === 'number') {
+          startEl.value = saved.range.startIdx;
+          endEl.value = saved.range.endIdx;
+        }
+        if (saved.startDate) startDateEl.value = saved.startDate;
+        if (saved.endDate) endDateEl.value = saved.endDate;
+        if (saved.plan) {
+          plan = deserializePlan(saved.plan);
+          renderSummary();
+          setMessage('Loaded your saved plan.');
+          copyBtn.disabled = false;
+          setDay(Math.min(plan.days.length - 1, getTodayIndex()));
+        }
       };
 
       const validateRange = () => {
@@ -372,31 +496,49 @@
           }
           const totalLen = withText.reduce((s, sec) => s + sec.length, 0);
           const dayCount = Math.floor((end - start) / (1000*60*60*24)) + 1;
-          const target = totalLen / dayCount;
+          const lengths = withText.map(s => s.length);
+          const canPartition = (limit) => {
+            let days = 1, sum = 0;
+            for (const len of lengths) {
+              if (len > limit) return false;
+              if (sum + len > limit) { days++; sum = len; }
+              else { sum += len; }
+            }
+            return days <= dayCount;
+          };
+          let low = Math.max(...lengths);
+          let high = totalLen;
+          while (low < high) {
+            const mid = Math.floor((low + high) / 2);
+            if (canPartition(mid)) high = mid; else low = mid + 1;
+          }
+          const maxLoad = low;
           const buckets = [];
-          let bucket = [], cumulative = 0, threshold = target;
-          withText.forEach(sec => {
-            bucket.push(sec);
-            cumulative += sec.length;
-            if (buckets.length < dayCount - 1 && cumulative >= threshold) {
+          let bucket = [], current = 0;
+          withText.forEach((sec, idx) => {
+            if (current + sec.length > maxLoad && buckets.length < dayCount - 1) {
               buckets.push(bucket);
               bucket = [];
-              threshold += target;
+              current = 0;
+            }
+            bucket.push(sec);
+            current += sec.length;
+            if (idx === withText.length - 1) {
+              buckets.push(bucket);
             }
           });
-          if (bucket.length) buckets.push(bucket);
           while (buckets.length < dayCount) buckets.push([]);
 
           plan = {
             book: bookEl.value,
-            range: { start: selectedSections[0], end: selectedSections[selectedSections.length-1] },
+            range: { start: selectedSections[0], end: selectedSections[selectedSections.length-1], startIdx: range.start, endIdx: range.end },
             startDate: start,
             endDate: end,
             days: buckets.map((sections, idx) => {
               const dayDate = new Date(start);
               dayDate.setDate(start.getDate() + idx);
               const length = sections.reduce((s, sec) => s + sec.length, 0);
-              return { date: dayDate, sections, length };
+              return { date: dayDate, sections, length, checklist: { viewed: false, anki: false } };
             }),
             totalLen,
             totalSections: selectedSections.length,
@@ -406,6 +548,7 @@
           setMessage('Plan ready!');
           setDay(Math.min(plan.days.length - 1, getTodayIndex()));
           copyBtn.disabled = false;
+          persistCurrentPlan();
         } catch (err) {
           plan = null;
           setMessage(err.message || 'Failed to build plan.');
@@ -459,28 +602,60 @@
           block.className = 'section-block';
           const title = document.createElement('h4');
           title.textContent = `${sec.chapterTitle} · ${sec.key} — ${sec.title}`;
+          const copyOne = document.createElement('button');
+          copyOne.textContent = 'Copy';
+          copyOne.addEventListener('click', () => copySections([sec]));
+          title.appendChild(copyOne);
           const pre = document.createElement('pre');
           pre.textContent = sec.text.trim();
           block.append(title, pre);
           dayContent.appendChild(block);
         });
+        renderChecklist(day, clamped);
+      };
+
+      const copySections = async (sections) => {
+        if (!sections || !sections.length) return;
+        const blob = sections.map(sec => `# ${sec.chapterTitle} · ${sec.key} — ${sec.title}\n${sec.text.trim()}\n`).join('\n');
+        try {
+          await navigator.clipboard.writeText(blob);
+          setMessage('Copied to clipboard.');
+        } catch (err) {
+          setMessage('Unable to copy: ' + err);
+        }
       };
 
       const copyDay = async () => {
         if (!plan) return;
         const idx = parseInt(daySelect.value, 10) || 0;
         const day = plan.days[idx];
-        const blob = day.sections.map(sec => `# ${sec.chapterTitle} · ${sec.key} — ${sec.title}\n${sec.text.trim()}\n`).join('\n');
-        try {
-          await navigator.clipboard.writeText(blob);
-          setMessage('Copied day to clipboard.');
-        } catch (err) {
-          setMessage('Unable to copy: ' + err);
-        }
+        await copySections(day.sections);
+      };
+
+      const renderChecklist = (day, idx) => {
+        const checklist = day.checklist || { viewed: false, anki: false };
+        day.checklist = checklist;
+        checklistEl.innerHTML = '';
+        const createItem = (labelText, key) => {
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.checked = !!checklist[key];
+          input.addEventListener('change', () => {
+            checklist[key] = input.checked;
+            persistCurrentPlan();
+          });
+          label.append(input, document.createTextNode(labelText));
+          return label;
+        };
+        checklistEl.append(
+          createItem('View content.', 'viewed'),
+          createItem('Make anki cards and underline those concepts in book in blue.', 'anki')
+        );
       };
 
       // Event wiring
-      bookEl.addEventListener('change', () => loadManifest(bookEl.value));
+      bookEl.addEventListener('change', () => loadManifest(bookEl.value, true));
       startEl.addEventListener('change', () => {
         const range = validateRange();
         if (range) { endEl.value = endEl.value || startEl.value; }
@@ -493,6 +668,7 @@
       prevDayBtn.addEventListener('click', () => setDay((parseInt(daySelect.value,10)||0) - 1));
       nextDayBtn.addEventListener('click', () => setDay((parseInt(daySelect.value,10)||0) + 1));
       todayBtn.addEventListener('click', () => setDay(getTodayIndex()));
+      copyDayTopBtn.addEventListener('click', copyDay);
 
       setTodayDefaults();
       loadBooks();
