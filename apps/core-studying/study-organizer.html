@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Study Organizer</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --card: #1f2630;
+      --border: #2a3140;
+      --text: #e6edf3;
+      --muted: #9ea7b3;
+      --accent: #58a6ff;
+      --accent-2: #bb86fc;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 10% 20%, rgba(88,166,255,0.15), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(187,134,252,0.12), transparent 25%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+    .page {
+      width: min(1200px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    header {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px 16px;
+      box-shadow: var(--shadow);
+    }
+    header h1 {
+      margin: 0 0 6px;
+      font-size: 1.9rem;
+      letter-spacing: -0.01em;
+    }
+    header p { margin: 0; color: var(--muted); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+    }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    select, input[type="date"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f141b;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    select:focus, input[type="date"]:focus { border-color: var(--accent); }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-weight: 700;
+      color: #0b0d11;
+      background: var(--accent);
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 8px 20px rgba(88,166,255,0.25);
+      min-width: 140px;
+    }
+    button.secondary { background: var(--accent-2); box-shadow: 0 8px 20px rgba(187,134,252,0.25); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .pill {
+      background: rgba(88,166,255,0.12);
+      border: 1px solid rgba(88,166,255,0.3);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+    }
+    .pill strong { display: block; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.02em; }
+
+    .day-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .day-controls select { width: auto; min-width: 180px; }
+    .day-controls .spacer { flex: 1; }
+
+    .day-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .day-card h3 { margin: 0 0 4px; }
+    .day-card p.meta { margin: 0 0 12px; color: var(--muted); }
+    .section-block { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .section-block:last-child { border-bottom: none; padding-bottom: 0; }
+    .section-block h4 { margin: 0 0 6px; font-size: 1rem; }
+    .section-block pre {
+      white-space: pre-wrap;
+      background: #0f141b;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      color: var(--text);
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-height: 300px;
+      overflow: auto;
+    }
+
+    .message { color: #ffb86c; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Core Study Organizer</h1>
+      <p>Pick a textbook, choose how much you want to cover, set a target date, and get an even day-by-day plan with one-click copying.</p>
+    </header>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="book">Book</label>
+          <select id="book"><option value="">-- Select Book --</option></select>
+        </div>
+        <div>
+          <label for="start-section">Start Section</label>
+          <select id="start-section" disabled><option value="">--</option></select>
+        </div>
+        <div>
+          <label for="end-section">End Section</label>
+          <select id="end-section" disabled><option value="">--</option></select>
+        </div>
+        <div>
+          <label for="start-date">Start Date</label>
+          <input type="date" id="start-date" />
+        </div>
+        <div>
+          <label for="end-date">Target Date</label>
+          <input type="date" id="end-date" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top: 12px;">
+        <button id="generate">Generate Study Plan</button>
+        <button id="copy-day" class="secondary" disabled>Copy Day to Clipboard</button>
+      </div>
+      <div class="message" id="message"></div>
+    </div>
+
+    <div class="card" id="summary-card" style="display:none;">
+      <div class="summary">
+        <div class="pill"><strong>Book</strong><span id="summary-book"></span></div>
+        <div class="pill"><strong>Range</strong><span id="summary-range"></span></div>
+        <div class="pill"><strong>Days</strong><span id="summary-days"></span></div>
+        <div class="pill"><strong>Sections</strong><span id="summary-sections"></span></div>
+      </div>
+    </div>
+
+    <div class="day-card" id="day-card" style="display:none;">
+      <div class="day-controls">
+        <button id="prev-day">◀️ Previous</button>
+        <button id="next-day">Next ▶️</button>
+        <div class="spacer"></div>
+        <label for="day-select" style="margin: 0; font-weight:600;">Jump to</label>
+        <select id="day-select"></select>
+        <button id="today-btn" class="secondary">Today</button>
+      </div>
+      <div style="margin: 12px 0; border-bottom: 1px solid var(--border);"></div>
+      <h3 id="day-title"></h3>
+      <p class="meta" id="day-meta"></p>
+      <div id="day-content"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
+      const natCompare = (a,b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+      const compareSectionKeys = (a,b) => {
+        const toNums = k => k.split('.').map(x => parseInt(x,10)).filter(Number.isFinite);
+        const A = toNums(a), B = toNums(b), n = Math.max(A.length,B.length);
+        for (let i=0;i<n;i++){ const da=A[i]||0, db=B[i]||0; if (da!==db) return da-db; }
+        return natCompare(a,b);
+      };
+
+      let booksData, currentBookPath, flatSections = [], plan = null;
+      const bookEl = document.getElementById('book');
+      const startEl = document.getElementById('start-section');
+      const endEl = document.getElementById('end-section');
+      const startDateEl = document.getElementById('start-date');
+      const endDateEl = document.getElementById('end-date');
+      const msgEl = document.getElementById('message');
+      const generateBtn = document.getElementById('generate');
+      const copyBtn = document.getElementById('copy-day');
+      const summaryCard = document.getElementById('summary-card');
+      const dayCard = document.getElementById('day-card');
+      const daySelect = document.getElementById('day-select');
+      const dayTitle = document.getElementById('day-title');
+      const dayMeta = document.getElementById('day-meta');
+      const dayContent = document.getElementById('day-content');
+      const prevDayBtn = document.getElementById('prev-day');
+      const nextDayBtn = document.getElementById('next-day');
+      const todayBtn = document.getElementById('today-btn');
+      const summaryBook = document.getElementById('summary-book');
+      const summaryRange = document.getElementById('summary-range');
+      const summaryDays = document.getElementById('summary-days');
+      const summarySections = document.getElementById('summary-sections');
+
+      const setTodayDefaults = () => {
+        const today = new Date();
+        const toInput = (d) => d.toISOString().slice(0,10);
+        startDateEl.value = toInput(today);
+        const target = new Date(today);
+        target.setDate(target.getDate() + 14);
+        endDateEl.value = toInput(target);
+      };
+
+      const setMessage = (text='') => { msgEl.textContent = text; };
+
+      const resetPlan = () => {
+        plan = null;
+        dayCard.style.display = 'none';
+        summaryCard.style.display = 'none';
+        copyBtn.disabled = true;
+      };
+
+      const loadBooks = () => {
+        fetch('books.json')
+          .then(r => r.json())
+          .then(data => {
+            booksData = data;
+            Object.keys(booksData).forEach(name => {
+              const opt = document.createElement('option');
+              opt.value = name; opt.textContent = name;
+              bookEl.appendChild(opt);
+            });
+          })
+          .catch(err => setMessage('Error loading books.json: ' + err));
+      };
+
+      const flattenSections = (manifest) => {
+        const chapters = Object.keys(manifest).filter(k => manifest[k] && typeof manifest[k] === 'object');
+        chapters.sort(natCompare);
+        const list = [];
+        for (const chKey of chapters) {
+          const chapter = manifest[chKey];
+          const chapterTitle = chapter.title || chKey;
+          const secKeys = Object.keys(chapter).filter(k => k !== 'title').sort(compareSectionKeys);
+          for (const secKey of secKeys) {
+            const sec = chapter[secKey];
+            list.push({
+              id: `${chKey}__${secKey}`,
+              key: secKey,
+              title: sec.title,
+              file: sec.file,
+              chapterTitle,
+            });
+          }
+        }
+        return list;
+      };
+
+      const populateRangeSelectors = () => {
+        startEl.innerHTML = '<option value="">-- Select start --</option>';
+        endEl.innerHTML = '<option value="">-- Select end --</option>';
+        flatSections.forEach((sec, idx) => {
+          const label = `${sec.chapterTitle} · ${sec.key} — ${sec.title}`;
+          const optStart = document.createElement('option');
+          optStart.value = idx;
+          optStart.textContent = label;
+          startEl.appendChild(optStart);
+          const optEnd = document.createElement('option');
+          optEnd.value = idx;
+          optEnd.textContent = label;
+          endEl.appendChild(optEnd);
+        });
+        startEl.disabled = endEl.disabled = flatSections.length === 0;
+      };
+
+      const loadManifest = (bookName) => {
+        resetPlan();
+        setMessage('');
+        if (!bookName) {
+          startEl.disabled = endEl.disabled = true;
+          return;
+        }
+        const info = booksData[bookName];
+        currentBookPath = info.basePath;
+        fetch(info.manifest)
+          .then(r => r.json())
+          .then(manifest => {
+            flatSections = flattenSections(manifest);
+            populateRangeSelectors();
+          })
+          .catch(err => setMessage('Error loading manifest: ' + err));
+      };
+
+      const validateRange = () => {
+        const s = parseInt(startEl.value, 10);
+        const e = parseInt(endEl.value, 10);
+        if (Number.isNaN(s) || Number.isNaN(e)) return null;
+        if (s > e) return null;
+        return { start: s, end: e };
+      };
+
+      const fetchSectionText = async (section) => {
+        const url = encodePath(`${currentBookPath}/${section.file}`);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to load ${section.title}`);
+        const text = await res.text();
+        return { ...section, text, length: text.length };
+      };
+
+      const buildPlan = async () => {
+        const range = validateRange();
+        if (!range) { setMessage('Please pick a valid start and end section.'); return; }
+        if (!startDateEl.value || !endDateEl.value) { setMessage('Please pick both dates.'); return; }
+
+        const start = new Date(startDateEl.value);
+        const end = new Date(endDateEl.value);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) { setMessage('Dates are invalid.'); return; }
+        if (end < start) { setMessage('Target date must be on or after the start date.'); return; }
+
+        setMessage('Building plan...');
+        const selectedSections = flatSections.slice(range.start, range.end + 1);
+        try {
+          const withText = [];
+          for (const sec of selectedSections) {
+            const rich = await fetchSectionText(sec);
+            withText.push(rich);
+          }
+          const totalLen = withText.reduce((s, sec) => s + sec.length, 0);
+          const dayCount = Math.floor((end - start) / (1000*60*60*24)) + 1;
+          const target = totalLen / dayCount;
+          const buckets = [];
+          let bucket = [], cumulative = 0, threshold = target;
+          withText.forEach(sec => {
+            bucket.push(sec);
+            cumulative += sec.length;
+            if (buckets.length < dayCount - 1 && cumulative >= threshold) {
+              buckets.push(bucket);
+              bucket = [];
+              threshold += target;
+            }
+          });
+          if (bucket.length) buckets.push(bucket);
+          while (buckets.length < dayCount) buckets.push([]);
+
+          plan = {
+            book: bookEl.value,
+            range: { start: selectedSections[0], end: selectedSections[selectedSections.length-1] },
+            startDate: start,
+            endDate: end,
+            days: buckets.map((sections, idx) => {
+              const dayDate = new Date(start);
+              dayDate.setDate(start.getDate() + idx);
+              const length = sections.reduce((s, sec) => s + sec.length, 0);
+              return { date: dayDate, sections, length };
+            }),
+            totalLen,
+            totalSections: selectedSections.length,
+          };
+
+          renderSummary();
+          setMessage('Plan ready!');
+          setDay(Math.min(plan.days.length - 1, getTodayIndex()));
+          copyBtn.disabled = false;
+        } catch (err) {
+          plan = null;
+          setMessage(err.message || 'Failed to build plan.');
+        }
+      };
+
+      const renderSummary = () => {
+        if (!plan) return;
+        summaryBook.textContent = plan.book;
+        summaryRange.textContent = `${plan.range.start.chapterTitle} · ${plan.range.start.key} → ${plan.range.end.key}`;
+        summaryDays.textContent = `${plan.days.length} day${plan.days.length === 1 ? '' : 's'}`;
+        summarySections.textContent = `${plan.totalSections} section${plan.totalSections === 1 ? '' : 's'}`;
+        summaryCard.style.display = 'block';
+        dayCard.style.display = 'block';
+        populateDaySelect();
+      };
+
+      const formatDate = (d) => d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      const getTodayIndex = () => {
+        if (!plan) return 0;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const start = new Date(plan.startDate); start.setHours(0,0,0,0);
+        const diff = Math.floor((today - start) / (1000*60*60*24));
+        if (diff < 0) return 0;
+        if (diff >= plan.days.length) return plan.days.length - 1;
+        return diff;
+      };
+
+      const populateDaySelect = () => {
+        daySelect.innerHTML = '';
+        plan.days.forEach((day, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          const readable = formatDate(day.date);
+          opt.textContent = `Day ${idx + 1} • ${readable} • ${day.sections.length} section${day.sections.length === 1 ? '' : 's'}`;
+          daySelect.appendChild(opt);
+        });
+      };
+
+      const setDay = (idx) => {
+        if (!plan) return;
+        const clamped = Math.max(0, Math.min(idx, plan.days.length - 1));
+        const day = plan.days[clamped];
+        daySelect.value = String(clamped);
+        dayTitle.textContent = `Day ${clamped + 1} — ${formatDate(day.date)}`;
+        dayMeta.textContent = `${day.sections.length} section${day.sections.length === 1 ? '' : 's'} | ${(day.length/1000).toFixed(1)}k characters`;
+        dayContent.innerHTML = '';
+        day.sections.forEach(sec => {
+          const block = document.createElement('div');
+          block.className = 'section-block';
+          const title = document.createElement('h4');
+          title.textContent = `${sec.chapterTitle} · ${sec.key} — ${sec.title}`;
+          const pre = document.createElement('pre');
+          pre.textContent = sec.text.trim();
+          block.append(title, pre);
+          dayContent.appendChild(block);
+        });
+      };
+
+      const copyDay = async () => {
+        if (!plan) return;
+        const idx = parseInt(daySelect.value, 10) || 0;
+        const day = plan.days[idx];
+        const blob = day.sections.map(sec => `# ${sec.chapterTitle} · ${sec.key} — ${sec.title}\n${sec.text.trim()}\n`).join('\n');
+        try {
+          await navigator.clipboard.writeText(blob);
+          setMessage('Copied day to clipboard.');
+        } catch (err) {
+          setMessage('Unable to copy: ' + err);
+        }
+      };
+
+      // Event wiring
+      bookEl.addEventListener('change', () => loadManifest(bookEl.value));
+      startEl.addEventListener('change', () => {
+        const range = validateRange();
+        if (range) { endEl.value = endEl.value || startEl.value; }
+        resetPlan();
+      });
+      endEl.addEventListener('change', () => { resetPlan(); });
+      generateBtn.addEventListener('click', buildPlan);
+      copyBtn.addEventListener('click', copyDay);
+      daySelect.addEventListener('change', () => setDay(parseInt(daySelect.value,10)));
+      prevDayBtn.addEventListener('click', () => setDay((parseInt(daySelect.value,10)||0) - 1));
+      nextDayBtn.addEventListener('click', () => setDay((parseInt(daySelect.value,10)||0) + 1));
+      todayBtn.addEventListener('click', () => setDay(getTodayIndex()));
+
+      setTodayDefaults();
+      loadBooks();
+    });
+  </script>
+</body>
+</html>
