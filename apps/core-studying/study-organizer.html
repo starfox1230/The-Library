@@ -68,6 +68,17 @@
       padding: 20px;
       box-shadow: var(--shadow);
     }
+    .setup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .setup-title { font-weight: 700; }
+    .setup-sub { color: var(--muted); font-size: 0.85rem; }
+    .setup-content.collapsed { display: none; }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -283,32 +294,41 @@
 
   <!-- Setup Card -->
   <div class="card" id="setup-card">
-    <div class="grid">
+    <div class="setup-header" id="setup-header">
       <div>
-        <label for="book-select">Book</label>
-        <select id="book-select"><option value="">Loading books...</option></select>
+        <div class="setup-title">Plan Builder</div>
+        <div class="setup-sub">Select a book, range, and dates to generate a plan.</div>
       </div>
-      <div>
-        <label for="start-section">Start Section</label>
-        <select id="start-section" disabled><option>--</option></select>
-      </div>
-      <div>
-        <label for="end-section">End Section</label>
-        <select id="end-section" disabled><option>--</option></select>
-      </div>
-      <div>
-        <label for="start-date">Start Date</label>
-        <input type="date" id="start-date">
-      </div>
-      <div>
-        <label for="end-date">Target Date</label>
-        <input type="date" id="end-date">
-      </div>
+      <button id="setup-toggle" class="secondary">Expand</button>
     </div>
-    <div class="actions">
-      <button id="generate-btn">Generate New Plan</button>
+    <div id="setup-content" class="collapsed">
+      <div class="grid">
+        <div>
+          <label for="book-select">Book</label>
+          <select id="book-select"><option value="">Loading books...</option></select>
+        </div>
+        <div>
+          <label for="start-section">Start Section</label>
+          <select id="start-section" disabled><option>--</option></select>
+        </div>
+        <div>
+          <label for="end-section">End Section</label>
+          <select id="end-section" disabled><option>--</option></select>
+        </div>
+        <div>
+          <label for="start-date">Start Date</label>
+          <input type="date" id="start-date">
+        </div>
+        <div>
+          <label for="end-date">Target Date</label>
+          <input type="date" id="end-date">
+        </div>
+      </div>
+      <div class="actions">
+        <button id="generate-btn">Generate New Plan</button>
+      </div>
+      <div id="setup-msg" class="msg"></div>
     </div>
-    <div id="setup-msg" class="msg"></div>
   </div>
 
   <!-- Plan View (Calendar + Day) -->
@@ -390,6 +410,10 @@ const els = {
   dlBtn: document.getElementById('download-data-btn'),
   ulBtn: document.getElementById('upload-data-btn'),
   ulInput: document.getElementById('upload-file'),
+  setupCard: document.getElementById('setup-card'),
+  setupHeader: document.getElementById('setup-header'),
+  setupToggle: document.getElementById('setup-toggle'),
+  setupContent: document.getElementById('setup-content'),
   bookSelect: document.getElementById('book-select'),
   startSec: document.getElementById('start-section'),
   endSec: document.getElementById('end-section'),
@@ -419,6 +443,7 @@ const els = {
 async function init() {
   loadData();
   setDefaultDates();
+  setSetupCollapsed(true);
   try {
     const res = await fetch('books.json');
     booksData = await res.json();
@@ -441,6 +466,18 @@ function loadData() {
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
   updateSavedPlansDropdown();
+}
+function setSetupCollapsed(collapsed) {
+  if (!els.setupContent) return;
+  if (collapsed) {
+    els.setupContent.classList.add('collapsed');
+    els.setupToggle.textContent = 'Expand';
+    els.setupCard.classList.add('is-collapsed');
+  } else {
+    els.setupContent.classList.remove('collapsed');
+    els.setupToggle.textContent = 'Collapse';
+    els.setupCard.classList.remove('is-collapsed');
+  }
 }
 function showMsg(txt, type) {
   els.msg.textContent = txt;
@@ -666,7 +703,7 @@ function loadPlan(id) {
   renderRealCalendar();
 
   const todayIdx = getTodayIndex();
-  setDay(todayIdx);
+  setDay(todayIdx, true);
   els.bookSelect.value = currentPlan.book;
 }
 
@@ -814,6 +851,13 @@ function getGradientColor(pct) {
 }
 
 // --- Day View ---
+function scrollToDayTop() {
+  if (!els.dayCard) return;
+  const padding = 12;
+  const offset = els.dayCard.getBoundingClientRect().top + window.scrollY - padding;
+  window.scrollTo({ top: Math.max(offset, 0), behavior: 'smooth' });
+}
+
 async function setDay(idx, scrollToDay = false) {
   if (!currentPlan) return;
   if (idx < 0) idx = 0; if (idx >= currentPlan.days.length) idx = currentPlan.days.length - 1;
@@ -821,7 +865,7 @@ async function setDay(idx, scrollToDay = false) {
   els.dayJumper.value = idx;
 
   if (scrollToDay && els.dayCard) {
-    els.dayCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToDayTop();
   }
 
   document.querySelectorAll('.cal-day').forEach(el => {
@@ -980,6 +1024,11 @@ const compareSectionKeys = (a, b) => {
 };
 const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
 
+function toggleSetupPanel() {
+  const isCollapsed = els.setupContent.classList.contains('collapsed');
+  setSetupCollapsed(!isCollapsed);
+}
+
 els.bookSelect.addEventListener('change', handleBookChange);
 els.genBtn.addEventListener('click', generatePlan);
 els.loadBtn.addEventListener('click', loadPlanFromDropdown);
@@ -990,8 +1039,10 @@ els.ulInput.addEventListener('change', importData);
 els.dayJumper.addEventListener('change', (e) => setDay(parseInt(e.target.value)));
 els.prevDay.addEventListener('click', () => setDay(currentDayIndex - 1));
 els.nextDay.addEventListener('click', () => setDay(currentDayIndex + 1));
-els.todayBtn.addEventListener('click', () => setDay(getTodayIndex()));
+els.todayBtn.addEventListener('click', () => setDay(getTodayIndex(), true));
 els.copyDayBtn.addEventListener('click', copyFullDay);
+els.setupHeader.addEventListener('click', toggleSetupPanel);
+els.setupToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSetupPanel(); });
 
 init();
 </script>
