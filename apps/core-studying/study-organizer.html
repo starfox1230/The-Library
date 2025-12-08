@@ -312,7 +312,13 @@
           date: day.date.toISOString(),
           length: day.length,
           checklist: day.checklist || { viewed: false, anki: false },
-          sections: day.sections,
+          sections: day.sections.map(sec => ({
+            chapterTitle: sec.chapterTitle,
+            key: sec.key,
+            title: sec.title,
+            file: sec.file,
+            length: sec.length,
+          })),
         })),
       });
 
@@ -435,13 +441,13 @@
             flatSections = flattenSections(manifest);
             populateRangeSelectors();
             if (shouldRestore) {
-              applySavedPlan(bookName);
+              applySavedPlan(bookName).catch(err => setMessage(err.message || 'Failed to load saved plan.'));
             }
           })
           .catch(err => setMessage('Error loading manifest: ' + err));
       };
 
-      const applySavedPlan = (bookName) => {
+      const applySavedPlan = async (bookName) => {
         const store = loadSavedPlans();
         const saved = store[bookName];
         if (!saved) return;
@@ -454,9 +460,11 @@
         if (saved.plan) {
           plan = deserializePlan(saved.plan);
           renderSummary();
-          setMessage('Loaded your saved plan.');
+          setMessage('Loading your saved plan...');
           copyBtn.disabled = false;
+          await hydratePlanContent();
           setDay(Math.min(plan.days.length - 1, getTodayIndex()));
+          setMessage('Loaded your saved plan.');
         }
       };
 
@@ -474,6 +482,25 @@
         if (!res.ok) throw new Error(`Failed to load ${section.title}`);
         const text = await res.text();
         return { ...section, text, length: text.length };
+      };
+
+      const hydratePlanContent = async () => {
+        if (!plan) return;
+        const missing = [];
+        plan.days.forEach(day => {
+          day.sections.forEach(sec => {
+            if (!sec.text) missing.push(sec);
+          });
+        });
+        if (!missing.length) return;
+        setMessage('Loading book sections...');
+        const hydrated = await Promise.all(missing.map(sec => fetchSectionText(sec)));
+        hydrated.forEach((rich, idx) => Object.assign(missing[idx], rich));
+        plan.totalLen = plan.days.reduce((sum, day) => {
+          day.length = day.sections.reduce((s, sec) => s + (sec.length || 0), 0);
+          return sum + day.length;
+        }, 0);
+        renderSummary();
       };
 
       const buildPlan = async () => {
