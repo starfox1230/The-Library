@@ -540,33 +540,49 @@
             if (canPartition(mid)) high = mid; else low = mid + 1;
           }
           const maxLoad = low;
-          const buckets = [];
-          let bucket = [], current = 0;
-          withText.forEach((sec, idx) => {
-            if (current + sec.length > maxLoad && buckets.length < dayCount - 1) {
-              buckets.push(bucket);
-              bucket = [];
-              current = 0;
-            }
-            bucket.push(sec);
-            current += sec.length;
-            if (idx === withText.length - 1) {
-              buckets.push(bucket);
-            }
-          });
-          while (buckets.length < dayCount) buckets.push([]);
+            const buckets = [];
+            let bucket = [], current = 0;
+            withText.forEach((sec, idx) => {
+              if (current + sec.length > maxLoad && buckets.length < dayCount - 1) {
+                buckets.push(bucket);
+                bucket = [];
+                current = 0;
+              }
+              bucket.push(sec);
+              current += sec.length;
+              if (idx === withText.length - 1) {
+                buckets.push(bucket);
+              }
+            });
+
+            const spreadBucketsEvenly = (filledBuckets, totalDays) => {
+              if (filledBuckets.length >= totalDays) return filledBuckets.slice(0, totalDays);
+              const extraDays = totalDays - filledBuckets.length;
+              const gaps = filledBuckets.length; // spaces after each filled day
+              const baseGap = Math.floor(extraDays / gaps);
+              const remainder = extraDays % gaps;
+              const spaced = [];
+              filledBuckets.forEach((b, idx) => {
+                spaced.push(b);
+                const gapSize = baseGap + (idx < remainder ? 1 : 0);
+                for (let i = 0; i < gapSize; i++) spaced.push([]);
+              });
+              return spaced;
+            };
+
+            const spacedBuckets = spreadBucketsEvenly(buckets, dayCount);
 
           plan = {
             book: bookEl.value,
             range: { start: selectedSections[0], end: selectedSections[selectedSections.length-1], startIdx: range.start, endIdx: range.end },
             startDate: start,
             endDate: end,
-            days: buckets.map((sections, idx) => {
-              const dayDate = new Date(start);
-              dayDate.setDate(start.getDate() + idx);
-              const length = sections.reduce((s, sec) => s + sec.length, 0);
-              return { date: dayDate, sections, length, checklist: { viewed: false, anki: false } };
-            }),
+              days: spacedBuckets.map((sections, idx) => {
+                const dayDate = new Date(start);
+                dayDate.setDate(start.getDate() + idx);
+                const length = sections.reduce((s, sec) => s + sec.length, 0);
+                return { date: dayDate, sections, length, checklist: { viewed: false, anki: false } };
+              }),
             totalLen,
             totalSections: selectedSections.length,
           };
