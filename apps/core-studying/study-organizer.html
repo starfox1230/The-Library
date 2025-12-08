@@ -14,7 +14,6 @@
       --muted: #8b949e;
       --accent: #58a6ff;
       --accent-hover: #79c0ff;
-      --accent-2: #bc8cff;
       --success: #3fb950;
       --danger: #f85149;
       --radius: 8px;
@@ -60,7 +59,7 @@
     }
     .plan-manager select { flex: 1; min-width: 200px; }
 
-    /* -- General UI Elements -- */
+    /* -- General UI -- */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -68,14 +67,11 @@
       padding: 20px;
       box-shadow: var(--shadow);
     }
-    h2, h3, h4 { margin-top: 0; color: var(--text); }
-    
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
     }
-    
     label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 0.85rem; color: var(--muted); }
     select, input[type="date"] {
       width: 100%;
@@ -88,8 +84,6 @@
       outline: none;
     }
     select:focus, input:focus { border-color: var(--accent); }
-    select:disabled { opacity: 0.6; cursor: not-allowed; }
-
     button {
       border: none;
       border-radius: 6px;
@@ -103,74 +97,55 @@
     }
     button:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    
     button.secondary { background: #21262d; color: var(--accent); border: 1px solid var(--border); }
     button.secondary:hover:not(:disabled) { background: #30363d; }
-    
     button.danger { background: rgba(248, 81, 73, 0.1); color: var(--danger); border: 1px solid rgba(248, 81, 73, 0.4); }
-    button.danger:hover:not(:disabled) { background: rgba(248, 81, 73, 0.2); }
     
-    button.success { background: var(--success); color: white; }
-
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
     .msg { margin-top: 10px; font-size: 0.9rem; min-height: 1.4em; }
     .msg.error { color: var(--danger); }
     .msg.info { color: var(--accent); }
 
-    /* -- Summary Pills -- */
-    .summary-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 0; }
-    .pill {
-      background: rgba(88,166,255,0.1);
-      border: 1px solid rgba(88,166,255,0.2);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      color: var(--accent-hover);
+    /* -- Real Calendar Styles -- */
+    .calendar-container {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
     }
-
-    /* -- Calendar Visualization -- */
-    .calendar-wrapper { margin-top: 20px; }
-    .calendar-grid {
+    .month-block { margin-bottom: 24px; }
+    .month-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+    
+    .cal-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+      grid-template-columns: repeat(7, 1fr);
       gap: 6px;
-      margin-top: 10px;
+    }
+    .cal-header {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding-bottom: 4px;
+      font-weight: bold;
     }
     .cal-day {
       aspect-ratio: 1;
       border-radius: 4px;
-      background: #21262d;
+      background: #21262d; /* Default empty */
       border: 1px solid var(--border);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
-      color: rgba(255,255,255,0.7);
-      transition: transform 0.1s;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.8);
       position: relative;
+      transition: transform 0.1s;
     }
-    .cal-day:hover { transform: scale(1.1); z-index: 2; border-color: white; }
-    .cal-day.active { border: 2px solid white; }
-    /* Tooltip */
-    .cal-day:hover::after {
-      content: attr(data-date);
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: black;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 10;
-      margin-bottom: 5px;
-    }
+    .cal-day:not(.empty):hover { transform: scale(1.1); z-index: 2; border-color: white; }
+    .cal-day.active { border: 2px solid white; z-index: 1; }
+    .cal-day.empty { background: transparent; border: none; cursor: default; }
 
-    /* -- Daily View -- */
+    /* -- Day Detail View -- */
     .day-header {
       display: flex;
       flex-wrap: wrap;
@@ -195,27 +170,34 @@
       background: #21262d;
       border-bottom: 1px solid var(--border);
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
     }
+    .section-info { flex: 1; }
     .section-title { font-weight: 600; font-size: 0.95rem; }
     .section-meta { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
     
-    .section-check {
+    .checklist-group {
+      display: flex;
+      gap: 16px;
+      background: rgba(0,0,0,0.2);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .chk-label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
+      gap: 6px;
+      font-size: 0.85rem;
       cursor: pointer;
       user-select: none;
     }
-    .section-check input { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; }
+    .chk-label input { width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; }
 
-    .section-content {
-      padding: 12px;
-      overflow-x: auto;
-    }
+    .section-content { padding: 12px; overflow-x: auto; }
     pre {
       margin: 0;
       white-space: pre-wrap;
@@ -228,14 +210,29 @@
     }
     
     .loading-text { color: var(--accent); font-style: italic; padding: 20px; text-align: center; }
+    .summary-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .pill {
+      background: rgba(88,166,255,0.1);
+      border: 1px solid rgba(88,166,255,0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--accent-hover);
+    }
 
-    /* Utilities */
     .hidden { display: none !important; }
     
-    @media (max-width: 600px) {
-      .day-header { flex-direction: column; align-items: stretch; }
-      .day-nav { justify-content: space-between; }
+    /* Legend for split calendar */
+    .cal-legend {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      justify-content: center;
     }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-box { width: 12px; height: 12px; border: 1px solid var(--border); border-radius: 2px; }
   </style>
 </head>
 <body>
@@ -244,7 +241,7 @@
   <!-- Top Bar -->
   <header>
     <h1>Core Study Organizer</h1>
-    <p>Select a book, set a date range, and get a balanced plan. <br>Text is loaded dynamically to save space.</p>
+    <p>Select a book, set a date range, and get a balanced plan. <br>Track "Read" and "Anki" progress separately on the split-view calendar.</p>
     
     <div class="plan-manager">
       <select id="saved-plans-select">
@@ -253,8 +250,8 @@
       <button id="load-plan-btn" class="secondary">Load</button>
       <button id="delete-plan-btn" class="danger">Delete</button>
       <div style="flex:1"></div>
-      <button id="download-data-btn" class="secondary" title="Backup all data">⬇ Backup JSON</button>
-      <button id="upload-data-btn" class="secondary" title="Restore data">⬆ Restore JSON</button>
+      <button id="download-data-btn" class="secondary" title="Backup all data">⬇ Backup</button>
+      <button id="upload-data-btn" class="secondary" title="Restore data">⬆ Restore</button>
       <input type="file" id="upload-file" accept=".json" style="display:none">
     </div>
   </header>
@@ -293,17 +290,25 @@
   <div id="plan-view" class="hidden">
     <!-- Summary -->
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-        <div class="summary-pills">
-          <div class="pill" id="sum-book"></div>
-          <div class="pill" id="sum-range"></div>
-          <div class="pill" id="sum-counts"></div>
-        </div>
+      <div class="summary-pills">
+        <div class="pill" id="sum-book"></div>
+        <div class="pill" id="sum-range"></div>
+        <div class="pill" id="sum-counts"></div>
       </div>
       
-      <div class="calendar-wrapper">
-        <label>Progress Tracker (Click a day to view)</label>
-        <div id="calendar-grid" class="calendar-grid"></div>
+      <div style="display:flex; justify-content: space-between; align-items: center;">
+        <label style="margin:0;">Progress Calendar (Split View: Left=Read, Right=Anki)</label>
+        <button id="toggle-cal-btn" class="secondary" style="padding: 6px 12px; font-size: 0.8rem;">Show Calendar</button>
+      </div>
+
+      <div id="calendar-wrapper" class="calendar-container hidden">
+        <div id="real-calendar-root"></div>
+        <div class="cal-legend">
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #f85149 50%, #21262d 50%)"></div> Read (Low)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #3fb950 50%, #21262d 50%)"></div> Read (Done)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #f85149 50%)"></div> Anki (Low)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #3fb950 50%)"></div> Anki (Done)</div>
+        </div>
       </div>
     </div>
 
@@ -319,38 +324,33 @@
         <button id="copy-day-btn" class="secondary">Copy Full Day</button>
       </div>
 
-      <div id="day-content">
-        <!-- Sections will be injected here -->
-      </div>
+      <div id="day-content"></div>
     </div>
   </div>
 </div>
 
 <script>
 /**
- * Core Study Organizer Logic V3
- * Features: LocalStorage Friendly (No Text Saved), Dynamic Fetching, Calendar
+ * Core Study Organizer V4
+ * - Full Calendar View (Split Color)
+ * - Dual Checkboxes (Read + Anki)
+ * - Storage V4 (Clean slate for data structure change)
  */
 
-// --- State Management ---
-const STORAGE_KEY = 'core_study_data_lite';
+const STORAGE_KEY = 'core_study_data_v4';
 let appData = {
-  savedPlans: {}, // Key: ID, Value: Plan Object (without text)
+  savedPlans: {}, 
   lastActiveId: null
 };
 
-// Books cache
 let booksData = {};
-let currentBookSections = []; // Used during setup
-let currentBookPath = ''; // Used during generation and viewing
-
-// Runtime State
+let currentBookSections = [];
+let currentBookPath = '';
 let currentPlan = null;
 let currentDayIndex = 0;
-// We use a small runtime cache so if you switch days, we don't re-fetch immediately
-let runtimeTextCache = {}; 
+let runtimeTextCache = {};
 
-// DOM Elements
+// UI Refs
 const els = {
   savedSelect: document.getElementById('saved-plans-select'),
   loadBtn: document.getElementById('load-plan-btn'),
@@ -358,7 +358,6 @@ const els = {
   dlBtn: document.getElementById('download-data-btn'),
   ulBtn: document.getElementById('upload-data-btn'),
   ulInput: document.getElementById('upload-file'),
-  
   bookSelect: document.getElementById('book-select'),
   startSec: document.getElementById('start-section'),
   endSec: document.getElementById('end-section'),
@@ -366,12 +365,14 @@ const els = {
   endDate: document.getElementById('end-date'),
   genBtn: document.getElementById('generate-btn'),
   msg: document.getElementById('setup-msg'),
-  
   planView: document.getElementById('plan-view'),
   sumBook: document.getElementById('sum-book'),
   sumRange: document.getElementById('sum-range'),
   sumCounts: document.getElementById('sum-counts'),
-  calGrid: document.getElementById('calendar-grid'),
+  
+  toggleCalBtn: document.getElementById('toggle-cal-btn'),
+  calWrapper: document.getElementById('calendar-wrapper'),
+  calRoot: document.getElementById('real-calendar-root'),
   
   prevDay: document.getElementById('prev-day'),
   nextDay: document.getElementById('next-day'),
@@ -381,56 +382,48 @@ const els = {
   dayContent: document.getElementById('day-content')
 };
 
-// --- Initialization ---
-
 async function init() {
   loadData();
   setDefaultDates();
-  
   try {
     const res = await fetch('books.json');
     booksData = await res.json();
     populateBooks();
-    
-    // Auto-load most recent if available
     if (appData.lastActiveId && appData.savedPlans[appData.lastActiveId]) {
-      // Small delay to ensure booksData is ready for path lookups
       setTimeout(() => loadPlan(appData.lastActiveId), 100);
     }
   } catch (e) {
     showMsg('Error loading books.json: ' + e.message, 'error');
   }
-  
   updateSavedPlansDropdown();
 }
-
-// --- Data Persistence ---
 
 function loadData() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
-    try {
-      appData = JSON.parse(raw);
-    } catch(e) { console.error("Data parse error", e); }
+    try { appData = JSON.parse(raw); } catch(e) { console.error(e); }
   }
 }
-
 function saveData() {
-  // Safe to save because plan objects do not contain the text blobs
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
   updateSavedPlansDropdown();
 }
+function showMsg(txt, type) {
+  els.msg.textContent = txt;
+  els.msg.className = 'msg ' + type;
+  setTimeout(() => els.msg.textContent = '', 4000);
+}
 
+// --- Import/Export ---
 function exportData() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
   const node = document.createElement('a');
   node.setAttribute("href", dataStr);
-  node.setAttribute("download", "study_plan_backup.json");
+  node.setAttribute("download", "study_plan_v4_backup.json");
   document.body.appendChild(node);
   node.click();
   node.remove();
 }
-
 function importData(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -442,22 +435,16 @@ function importData(e) {
         appData = parsed;
         saveData();
         location.reload(); 
-      } else {
-        alert("Invalid file format.");
-      }
-    } catch(err) {
-      alert("Error parsing JSON");
-    }
+      } else { alert("Invalid file."); }
+    } catch(err) { alert("Error parsing JSON"); }
   };
   reader.readAsText(file);
 }
 
-// --- Plan Manager UI ---
-
+// --- Plan Management ---
 function updateSavedPlansDropdown() {
   els.savedSelect.innerHTML = '<option value="">-- Load a saved plan --</option>';
   const plans = Object.values(appData.savedPlans).sort((a,b) => b.created - a.created);
-  
   plans.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
@@ -465,18 +452,14 @@ function updateSavedPlansDropdown() {
     els.savedSelect.appendChild(opt);
   });
 }
-
 function loadPlanFromDropdown() {
   const id = els.savedSelect.value;
-  if(id && appData.savedPlans[id]) {
-    loadPlan(id);
-  }
+  if(id && appData.savedPlans[id]) loadPlan(id);
 }
-
 function deletePlan() {
   const id = els.savedSelect.value;
   if (!id) return;
-  if (confirm("Are you sure you want to delete this plan?")) {
+  if (confirm("Delete this plan?")) {
     delete appData.savedPlans[id];
     if (appData.lastActiveId === id) appData.lastActiveId = null;
     saveData();
@@ -484,39 +467,28 @@ function deletePlan() {
   }
 }
 
-// --- Book Loading Logic ---
-
+// --- Setup Logic ---
 function populateBooks() {
   els.bookSelect.innerHTML = '<option value="">-- Select Book --</option>';
   Object.keys(booksData).forEach(k => {
-    const opt = document.createElement('option');
-    opt.value = k;
-    opt.textContent = k;
-    els.bookSelect.appendChild(opt);
+    els.bookSelect.appendChild(new Option(k, k));
   });
 }
-
 async function handleBookChange() {
   const name = els.bookSelect.value;
   if (!name) return;
-  
   const info = booksData[name];
   currentBookPath = info.basePath;
-  
   try {
     const res = await fetch(info.manifest);
     const manifest = await res.json();
     currentBookSections = flattenManifest(manifest);
     populateRangeSelects();
-  } catch(e) {
-    showMsg("Error loading manifest", 'error');
-  }
+  } catch(e) { showMsg("Error loading manifest", 'error'); }
 }
-
 function flattenManifest(manifest) {
   const chapters = Object.keys(manifest).sort(natCompare);
   const flat = [];
-  
   chapters.forEach(chKey => {
     const ch = manifest[chKey];
     if (ch.title && !ch.file && typeof ch === 'object') {
@@ -534,24 +506,17 @@ function flattenManifest(manifest) {
   });
   return flat;
 }
-
 function populateRangeSelects() {
-  els.startSec.innerHTML = '';
-  els.endSec.innerHTML = '';
-  els.startSec.disabled = false;
-  els.endSec.disabled = false;
-  
+  els.startSec.innerHTML = ''; els.endSec.innerHTML = '';
+  els.startSec.disabled = false; els.endSec.disabled = false;
   currentBookSections.forEach((s, idx) => {
-    const opt1 = new Option(s.fullTitle, idx);
-    const opt2 = new Option(s.fullTitle, idx);
-    els.startSec.add(opt1);
-    els.endSec.add(opt2);
+    els.startSec.add(new Option(s.fullTitle, idx));
+    els.endSec.add(new Option(s.fullTitle, idx));
   });
   els.endSec.value = currentBookSections.length - 1;
 }
 
-// --- Generation Logic (The Fix for Quota Exceeded) ---
-
+// --- Generation ---
 async function generatePlan() {
   const bookName = els.bookSelect.value;
   const startIdx = parseInt(els.startSec.value);
@@ -560,41 +525,34 @@ async function generatePlan() {
   const eDate = new Date(els.endDate.value);
 
   if (!bookName || isNaN(startIdx) || isNaN(endIdx) || !sDate || !eDate) {
-    showMsg("Please fill all fields", 'error');
-    return;
+    showMsg("Fill all fields", 'error'); return;
   }
-  if (endIdx < startIdx) {
-    showMsg("End section cannot be before start section", 'error');
-    return;
-  }
-  if (eDate < sDate) {
-    showMsg("Target date cannot be before start date", 'error');
-    return;
-  }
+  if (endIdx < startIdx) { showMsg("Invalid range", 'error'); return; }
+  if (eDate < sDate) { showMsg("Invalid dates", 'error'); return; }
 
   els.genBtn.disabled = true;
-  showMsg("Analyzing text lengths (this does not save text locally)...", 'info');
+  showMsg("Analyzing...", 'info');
 
   try {
     const selection = currentBookSections.slice(startIdx, endIdx + 1);
     const hydratedSections = [];
     
-    // 1. Fetch text TEMPORARILY to calculate length
+    // Fetch text temporarily to measure length
     for (const sec of selection) {
       const url = encodePath(`${currentBookPath}/${sec.file}`);
       const r = await fetch(url);
-      if(!r.ok) throw new Error(`Missing file: ${sec.file}`);
+      if(!r.ok) throw new Error(`Missing: ${sec.file}`);
       const text = await r.text();
       hydratedSections.push({
-        file: sec.file,          // Save path
-        fullTitle: sec.fullTitle,// Save title
-        length: text.length,     // Save length
-        checked: false,          // Init state
-        // WE DO NOT SAVE 'text' HERE for the plan object
+        file: sec.file,
+        fullTitle: sec.fullTitle,
+        length: text.length,
+        // DUAL CHECKBOX STATE
+        read: false, 
+        anki: false 
       });
     }
 
-    // 2. Algorithm: Even Distribution
     const daysCount = Math.floor((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
     const totalChars = hydratedSections.reduce((acc, s) => acc + s.length, 0);
     const targetPerDay = totalChars / daysCount;
@@ -605,12 +563,7 @@ async function generatePlan() {
     for (let d = 0; d < daysCount; d++) {
       const dayDate = new Date(sDate);
       dayDate.setDate(sDate.getDate() + d);
-      
-      const dayObj = {
-        date: dayDate.toISOString(),
-        sections: []
-      };
-
+      const dayObj = { date: dayDate.toISOString(), sections: [] };
       let dayLoad = 0;
 
       while (secIndex < hydratedSections.length) {
@@ -618,37 +571,24 @@ async function generatePlan() {
         const remainingSections = hydratedSections.length - secIndex;
         const remainingDays = daysCount - d;
 
-        // Force at least 1 section per remaining day if we run low
-        if (remainingSections <= remainingDays && dayObj.sections.length > 0) {
-          break; 
-        }
+        if (remainingSections <= remainingDays && dayObj.sections.length > 0) break; 
 
         if (dayObj.sections.length === 0) {
-          dayObj.sections.push(sec);
-          dayLoad += sec.length;
-          secIndex++;
+          dayObj.sections.push(sec); dayLoad += sec.length; secIndex++;
         } else {
           const currentDiff = Math.abs(dayLoad - targetPerDay);
           const nextDiff = Math.abs((dayLoad + sec.length) - targetPerDay);
-          
           if (nextDiff < currentDiff || (dayLoad < targetPerDay * 0.7)) {
-            dayObj.sections.push(sec);
-            dayLoad += sec.length;
-            secIndex++;
-          } else {
-            break;
-          }
+            dayObj.sections.push(sec); dayLoad += sec.length; secIndex++;
+          } else { break; }
         }
       }
       days.push(dayObj);
     }
-
-    // Handle leftovers
     while(secIndex < hydratedSections.length) {
       days[days.length-1].sections.push(hydratedSections[secIndex++]);
     }
 
-    // 3. Create Plan Object (Lightweight)
     const planId = Date.now().toString();
     const newPlan = {
       id: planId,
@@ -658,149 +598,220 @@ async function generatePlan() {
       startDate: els.startDate.value,
       endDate: els.endDate.value,
       totalSections: selection.length,
-      days: days // These days contain file paths, but NO text
+      days: days
     };
 
     appData.savedPlans[planId] = newPlan;
     appData.lastActiveId = planId;
-    saveData(); // This will succeed now
-    
-    showMsg("Plan created successfully!", 'info');
+    saveData();
+    showMsg("Plan created!", 'info');
     loadPlan(planId);
 
-  } catch(e) {
-    showMsg("Error generating plan: " + e.message, 'error');
-    console.error(e);
-  } finally {
-    els.genBtn.disabled = false;
-  }
+  } catch(e) { showMsg("Error: " + e.message, 'error'); } 
+  finally { els.genBtn.disabled = false; }
 }
 
-// --- Display Logic (Dynamic Fetching) ---
-
+// --- Rendering ---
 function loadPlan(id) {
   currentPlan = appData.savedPlans[id];
   if (!currentPlan) return;
-  
   appData.lastActiveId = id;
   saveData();
+  if (booksData[currentPlan.book]) currentBookPath = booksData[currentPlan.book].basePath;
   
-  // Ensure we know the base path for this book
-  if (booksData[currentPlan.book]) {
-    currentBookPath = booksData[currentPlan.book].basePath;
-  }
-  
-  // Render Summary
   els.planView.classList.remove('hidden');
   els.sumBook.innerHTML = `<strong>Book:</strong> ${currentPlan.book}`;
   els.sumRange.innerHTML = `<strong>Range:</strong> ${currentPlan.range}`;
   els.sumCounts.innerHTML = `<strong>Stats:</strong> ${currentPlan.days.length} Days, ${currentPlan.totalSections} Sections`;
   
-  renderCalendar();
-  
-  // Populate Jumper
+  // Setup Jumper
   els.dayJumper.innerHTML = '';
   currentPlan.days.forEach((d, i) => {
-    const opt = new Option(`Day ${i+1}: ${new Date(d.date).toLocaleDateString()}`, i);
-    els.dayJumper.add(opt);
+    els.dayJumper.add(new Option(`Day ${i+1}: ${new Date(d.date).toLocaleDateString()}`, i));
   });
+
+  // Render Real Calendar
+  renderRealCalendar();
 
   const todayIdx = getTodayIndex();
   setDay(todayIdx);
-  
-  // Update inputs to match plan for context
   els.bookSelect.value = currentPlan.book;
 }
 
-function renderCalendar() {
-  els.calGrid.innerHTML = '';
+// --- Real Calendar Logic ---
+function renderRealCalendar() {
+  els.calRoot.innerHTML = '';
+  if (!currentPlan) return;
+
+  const sDate = new Date(currentPlan.startDate);
+  const eDate = new Date(currentPlan.endDate);
+  
+  // Map date string YYYY-MM-DD to Plan Day Index for coloring
+  const dateMap = {};
   currentPlan.days.forEach((day, idx) => {
-    const el = document.createElement('div');
-    el.className = 'cal-day';
-    el.dataset.date = `Day ${idx+1}: ${new Date(day.date).toLocaleDateString()}`;
-    el.textContent = idx + 1;
-    updateDayColor(el, day);
-    el.onclick = () => setDay(idx);
-    els.calGrid.appendChild(el);
+    dateMap[day.date.split('T')[0]] = { day, idx };
   });
+
+  // Iterate month by month
+  let iter = new Date(sDate.getFullYear(), sDate.getMonth(), 1);
+  const finalMonth = new Date(eDate.getFullYear(), eDate.getMonth(), 1);
+
+  while (iter <= finalMonth) {
+    const year = iter.getFullYear();
+    const month = iter.getMonth();
+    
+    // Month Container
+    const monthBlock = document.createElement('div');
+    monthBlock.className = 'month-block';
+    
+    const title = document.createElement('div');
+    title.className = 'month-title';
+    title.textContent = iter.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    monthBlock.appendChild(title);
+    
+    // Grid Header (Mon-Sun)
+    const grid = document.createElement('div');
+    grid.className = 'cal-grid';
+    ['S','M','T','W','T','F','S'].forEach(d => {
+      const h = document.createElement('div');
+      h.className = 'cal-header';
+      h.textContent = d;
+      grid.appendChild(h);
+    });
+
+    // Days
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startDay = new Date(year, month, 1).getDay(); // 0 = Sun
+
+    // Empty Slots
+    for (let i = 0; i < startDay; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    // Actual Days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const cell = document.createElement('div');
+      cell.className = 'cal-day';
+      cell.textContent = d;
+      
+      if (dateMap[dateStr]) {
+        const { day, idx } = dateMap[dateStr];
+        updateCalendarCellColor(cell, day);
+        cell.onclick = () => {
+          setDay(idx);
+          // Auto-hide calendar on mobile/small screens maybe? Keeping open for now.
+        };
+        // Highlight active if selected
+        if (idx === currentDayIndex) cell.classList.add('active');
+        cell.dataset.planIdx = idx; // Marker
+      } else {
+        cell.classList.add('empty');
+        cell.style.opacity = '0.3';
+      }
+      
+      grid.appendChild(cell);
+    }
+
+    monthBlock.appendChild(grid);
+    els.calRoot.appendChild(monthBlock);
+
+    // Next month
+    iter.setMonth(iter.getMonth() + 1);
+  }
 }
 
-function updateDayColor(el, day) {
-  if (day.sections.length === 0) {
-    el.style.background = '#21262d'; 
+// --- Split Color Gradient Logic ---
+function updateCalendarCellColor(cell, day) {
+  if (!day.sections || day.sections.length === 0) {
+    cell.style.background = '#21262d'; 
     return;
   }
-  const completed = day.sections.filter(s => s.checked).length;
-  const pct = completed / day.sections.length;
   
-  let r, g, b = 85;
-  if (pct < 0.5) {
-    r = 255;
-    g = Math.round(85 + (170 * (pct * 2))); 
-  } else {
-    r = Math.round(255 - (170 * ((pct - 0.5) * 2))); 
-    g = 255;
-  }
-  el.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.3)`;
-  el.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+  const total = day.sections.length;
+  const readCount = day.sections.filter(s => s.read).length;
+  const ankiCount = day.sections.filter(s => s.anki).length;
+  
+  const readPct = readCount / total;
+  const ankiPct = ankiCount / total;
+
+  const cRead = getGradientColor(readPct);
+  const cAnki = getGradientColor(ankiPct);
+  
+  // Left Half = Read, Right Half = Anki
+  cell.style.background = `linear-gradient(90deg, ${cRead} 50%, ${cAnki} 50%)`;
+  
+  // Text shadow to make numbers readable on bright colors
+  cell.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
 }
 
-// --- The Core View Logic: Fetch Text on Demand ---
+function getGradientColor(pct) {
+  // Red (0) -> Yellow (0.5) -> Green (1)
+  let r, g, b = 85; // slightly blue-ish base for darkness? Actually we want bright colors here.
+  // Using pure colors for the gradient
+  if (pct < 0.5) {
+    // Red (255, 0, 0) to Yellow (255, 255, 0)
+    // Actually using specific hexes for style
+    // Red: 248, 81, 73 (#f85149)
+    // Yellow: 210, 153, 34 (#d29922)
+    const ratio = pct * 2;
+    r = 248 + (210 - 248) * ratio;
+    g = 81 + (153 - 81) * ratio;
+    b = 73 + (34 - 73) * ratio;
+  } else {
+    // Yellow (#d29922) to Green (#3fb950)
+    const ratio = (pct - 0.5) * 2;
+    r = 210 + (63 - 210) * ratio;
+    g = 153 + (185 - 153) * ratio;
+    b = 34 + (80 - 34) * ratio;
+  }
+  // Apply a bit of transparency/darkening if 0? No, let's keep it visible.
+  // Use opacity for unfinished
+  if (pct === 0) return 'rgba(33, 38, 45, 1)'; // Dark gray
+  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+}
 
+
+// --- Day View ---
 async function setDay(idx) {
   if (!currentPlan) return;
-  
-  // Bounds check
-  if (idx < 0) idx = 0;
-  if (idx >= currentPlan.days.length) idx = currentPlan.days.length - 1;
-  
+  if (idx < 0) idx = 0; if (idx >= currentPlan.days.length) idx = currentPlan.days.length - 1;
   currentDayIndex = idx;
   els.dayJumper.value = idx;
-  
-  // Calendar Highlight
-  document.querySelectorAll('.cal-day').forEach((el, i) => {
-    if (i === idx) el.classList.add('active');
+
+  // Highlight Calendar Cell
+  document.querySelectorAll('.cal-day').forEach(el => {
+    if (el.dataset.planIdx == idx) el.classList.add('active');
     else el.classList.remove('active');
   });
 
   const day = currentPlan.days[idx];
-  els.dayContent.innerHTML = ''; // Clear
+  els.dayContent.innerHTML = '';
 
   if (day.sections.length === 0) {
     els.dayContent.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">Rest Day</div>';
     return;
   }
 
-  // Show Loading State
-  els.dayContent.innerHTML = '<div class="loading-text">Fetching section content from repository...</div>';
+  els.dayContent.innerHTML = '<div class="loading-text">Fetching content...</div>';
 
   try {
-    // Parallel Fetching of text files
     const sectionPromises = day.sections.map(async (sec) => {
       const cacheKey = currentPlan.book + '_' + sec.file;
-      
-      // Return cached text if we visited this day this session
-      if (runtimeTextCache[cacheKey]) {
-        return { ...sec, text: runtimeTextCache[cacheKey] };
-      }
-      
-      // Fetch fresh
+      if (runtimeTextCache[cacheKey]) return { ...sec, text: runtimeTextCache[cacheKey] };
       const url = encodePath(`${currentBookPath}/${sec.file}`);
       const res = await fetch(url);
       if (!res.ok) return { ...sec, text: "Error loading text." };
       const txt = await res.text();
-      
-      // Cache it
       runtimeTextCache[cacheKey] = txt;
       return { ...sec, text: txt };
     });
 
     const richSections = await Promise.all(sectionPromises);
-    
-    // Clear loading
     els.dayContent.innerHTML = '';
 
-    // Render HTML
     richSections.forEach((sec, sIdx) => {
       const item = document.createElement('div');
       item.className = 'section-item';
@@ -808,29 +819,42 @@ async function setDay(idx) {
       const head = document.createElement('div');
       head.className = 'section-header';
       
-      const left = document.createElement('div');
-      const label = document.createElement('label');
-      label.className = 'section-check';
+      // Info
+      const info = document.createElement('div');
+      info.className = 'section-info';
+      info.innerHTML = `<div class="section-title">${sec.fullTitle}</div><div class="section-meta">${sec.length} chars</div>`;
       
-      const chk = document.createElement('input');
-      chk.type = 'checkbox';
-      chk.checked = day.sections[sIdx].checked || false; // Use original plan data for checked status
-      chk.onchange = () => toggleCheck(idx, sIdx, chk.checked);
+      // Checkboxes (Read & Anki)
+      const grp = document.createElement('div');
+      grp.className = 'checklist-group';
       
-      const txt = document.createElement('div');
-      txt.innerHTML = `<div class="section-title">${sec.fullTitle}</div><div class="section-meta">${sec.length} chars</div>`;
-      
-      label.append(chk, txt);
-      left.appendChild(label);
-      
+      // Read Check
+      const lRead = document.createElement('label');
+      lRead.className = 'chk-label';
+      const cRead = document.createElement('input');
+      cRead.type = 'checkbox';
+      cRead.checked = day.sections[sIdx].read || false;
+      cRead.onchange = () => toggleCheck(idx, sIdx, 'read', cRead.checked);
+      lRead.append(cRead, "Read");
+
+      // Anki Check
+      const lAnki = document.createElement('label');
+      lAnki.className = 'chk-label';
+      const cAnki = document.createElement('input');
+      cAnki.type = 'checkbox';
+      cAnki.checked = day.sections[sIdx].anki || false;
+      cAnki.onchange = () => toggleCheck(idx, sIdx, 'anki', cAnki.checked);
+      lAnki.append(cAnki, "Anki");
+
+      grp.append(lRead, lAnki);
+
+      // Copy Button
       const cpBtn = document.createElement('button');
       cpBtn.className = 'secondary';
-      cpBtn.style.padding = '4px 8px';
-      cpBtn.style.fontSize = '0.8rem';
       cpBtn.textContent = 'Copy';
       cpBtn.onclick = (e) => copyText(sec.text, e.target);
-      
-      head.append(left, cpBtn);
+
+      head.append(info, grp, cpBtn);
       
       const content = document.createElement('div');
       content.className = 'section-content';
@@ -842,117 +866,82 @@ async function setDay(idx) {
       els.dayContent.appendChild(item);
     });
 
-  } catch (err) {
-    els.dayContent.innerHTML = `<div class="msg error">Failed to load day content: ${err.message}</div>`;
-  }
+  } catch (err) { els.dayContent.innerHTML = `<div class="msg error">${err.message}</div>`; }
 }
 
-function toggleCheck(dayIdx, secIdx, isChecked) {
-  currentPlan.days[dayIdx].sections[secIdx].checked = isChecked;
+function toggleCheck(dayIdx, secIdx, type, isChecked) {
+  // type is 'read' or 'anki'
+  currentPlan.days[dayIdx].sections[secIdx][type] = isChecked;
   saveData();
-  const calDay = els.calGrid.children[dayIdx];
-  if (calDay) updateDayColor(calDay, currentPlan.days[dayIdx]);
+  
+  // Find specific calendar cell to update color without re-rendering whole calendar
+  const cells = document.querySelectorAll('.cal-day');
+  cells.forEach(c => {
+    if (c.dataset.planIdx == dayIdx) {
+      updateCalendarCellColor(c, currentPlan.days[dayIdx]);
+    }
+  });
 }
 
-// --- Utilities ---
-
-async function copyText(text, btnElement) {
+// --- Utils ---
+async function copyText(text, btn) {
   try {
     await navigator.clipboard.writeText(text);
-    const orig = btnElement.textContent;
-    btnElement.textContent = "Copied!";
-    btnElement.classList.add('success');
-    setTimeout(() => {
-      btnElement.textContent = orig;
-      btnElement.classList.remove('success');
-    }, 1500);
-  } catch (err) {
-    console.error(err);
-  }
+    const orig = btn.textContent; btn.textContent = "Copied!"; btn.classList.add('success');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('success'); }, 1500);
+  } catch (e) { console.error(e); }
 }
 
 async function copyFullDay() {
   const day = currentPlan.days[currentDayIndex];
   if (!day || !day.sections.length) return;
-  
-  // We must ensure text is loaded. 
-  // We can grab it from runtime cache or DOM, but best to use cache logic.
-  let fullBlob = "";
-  
-  // Temporarily indicate working
-  const origText = els.copyDayBtn.textContent;
-  els.copyDayBtn.textContent = "Gathering...";
-  
+  const orig = els.copyDayBtn.textContent; els.copyDayBtn.textContent = "Gathering...";
   try {
+    let full = "";
     for (const sec of day.sections) {
-      const cacheKey = currentPlan.book + '_' + sec.file;
-      let txt = runtimeTextCache[cacheKey];
-      
+      const k = currentPlan.book + '_' + sec.file;
+      let txt = runtimeTextCache[k];
       if (!txt) {
-         // Fetch if not currently displayed/cached
          const url = encodePath(`${currentBookPath}/${sec.file}`);
          const res = await fetch(url);
          txt = await res.text();
-         runtimeTextCache[cacheKey] = txt;
+         runtimeTextCache[k] = txt;
       }
-      
-      fullBlob += `# ${sec.fullTitle}\n${txt}\n\n`;
+      full += `# ${sec.fullTitle}\n${txt}\n\n`;
     }
-    
-    await navigator.clipboard.writeText(fullBlob);
-    els.copyDayBtn.textContent = "Copied!";
-    els.copyDayBtn.classList.add('success');
-    setTimeout(() => {
-       els.copyDayBtn.textContent = origText;
-       els.copyDayBtn.classList.remove('success');
-    }, 1500);
-    
-  } catch (e) {
-    els.copyDayBtn.textContent = "Error";
-    console.error(e);
-  }
+    await navigator.clipboard.writeText(full);
+    els.copyDayBtn.textContent = "Copied!"; els.copyDayBtn.classList.add('success');
+    setTimeout(() => { els.copyDayBtn.textContent = orig; els.copyDayBtn.classList.remove('success'); }, 1500);
+  } catch (e) { els.copyDayBtn.textContent = "Error"; }
 }
 
 function getTodayIndex() {
   if (!currentPlan) return 0;
-  const now = new Date();
-  now.setHours(0,0,0,0);
-  const start = new Date(currentPlan.startDate);
-  start.setHours(0,0,0,0);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const start = new Date(currentPlan.startDate); start.setHours(0,0,0,0);
   const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return 0;
-  if (diff >= currentPlan.days.length) return currentPlan.days.length - 1;
+  if (diff < 0) return 0; if (diff >= currentPlan.days.length) return currentPlan.days.length - 1;
   return diff;
 }
-
 function setDefaultDates() {
-  const today = new Date();
-  els.startDate.value = today.toISOString().split('T')[0];
-  const target = new Date();
-  target.setDate(today.getDate() + 14);
-  els.endDate.value = target.toISOString().split('T')[0];
+  const t = new Date(); els.startDate.value = t.toISOString().split('T')[0];
+  t.setDate(t.getDate() + 14); els.endDate.value = t.toISOString().split('T')[0];
 }
 
-function showMsg(txt, type) {
-  els.msg.textContent = txt;
-  els.msg.className = 'msg ' + type;
-  setTimeout(() => els.msg.textContent = '', 4000);
-}
+els.toggleCalBtn.addEventListener('click', () => {
+  els.calWrapper.classList.toggle('hidden');
+  els.toggleCalBtn.textContent = els.calWrapper.classList.contains('hidden') ? "Show Calendar" : "Hide Calendar";
+});
 
 const natCompare = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 const compareSectionKeys = (a, b) => {
-  const numsA = a.split('.').map(Number);
-  const numsB = b.split('.').map(Number);
-  for (let i = 0; i < Math.max(numsA.length, numsB.length); i++) {
-    const valA = numsA[i] || 0;
-    const valB = numsB[i] || 0;
-    if (valA !== valB) return valA - valB;
-  }
-  return 0;
+  const nA = a.split('.').map(Number); const nB = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(nA.length, nB.length); i++) {
+    if ((nA[i]||0) !== (nB[i]||0)) return (nA[i]||0) - (nB[i]||0);
+  } return 0;
 };
 const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
 
-// --- Event Listeners ---
 els.bookSelect.addEventListener('change', handleBookChange);
 els.genBtn.addEventListener('click', generatePlan);
 els.loadBtn.addEventListener('click', loadPlanFromDropdown);
