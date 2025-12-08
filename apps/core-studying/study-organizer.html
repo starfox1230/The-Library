@@ -16,6 +16,7 @@
       --accent-hover: #79c0ff;
       --success: #3fb950;
       --danger: #f85149;
+      --warning: #d29922;
       --radius: 8px;
       --shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
@@ -140,10 +141,22 @@
       color: rgba(255,255,255,0.8);
       position: relative;
       transition: transform 0.1s;
+      overflow: hidden; /* Keeps the sliver inside rounded corners */
     }
-    .cal-day:not(.empty):hover { transform: scale(1.1); z-index: 2; border-color: white; }
-    .cal-day.active { border: 2px solid white; z-index: 1; }
+    .cal-day:not(.empty):hover { transform: scale(1.1); z-index: 20; border-color: white; }
+    .cal-day.active { border: 2px solid white; z-index: 10; }
     .cal-day.empty { background: transparent; border: none; cursor: default; }
+
+    /* The new Bottom Sliver for Relative Load */
+    .load-sliver {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      z-index: 5;
+      pointer-events: none;
+    }
 
     /* -- Day Detail View -- */
     .day-header {
@@ -157,6 +170,17 @@
       border-bottom: 1px solid var(--border);
     }
     .day-nav { display: flex; gap: 8px; align-items: center; }
+    .day-actions { display: flex; align-items: center; gap: 12px; }
+
+    .char-count-badge {
+      font-size: 0.85rem;
+      color: var(--muted);
+      background: rgba(255,255,255,0.05);
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
     
     .section-item {
       background: #161b22;
@@ -225,6 +249,7 @@
     /* Legend for split calendar */
     .cal-legend {
       display: flex;
+      flex-wrap: wrap;
       gap: 15px;
       margin-top: 10px;
       font-size: 0.8rem;
@@ -297,17 +322,21 @@
       </div>
       
       <div style="display:flex; justify-content: space-between; align-items: center;">
-        <label style="margin:0;">Progress Calendar (Split View: Left=Read, Right=Anki)</label>
+        <label style="margin:0;">Progress Calendar (Left=Read, Right=Anki, Bottom=Load)</label>
         <button id="toggle-cal-btn" class="secondary" style="padding: 6px 12px; font-size: 0.8rem;">Show Calendar</button>
       </div>
 
       <div id="calendar-wrapper" class="calendar-container hidden">
         <div id="real-calendar-root"></div>
         <div class="cal-legend">
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #f85149 50%, #21262d 50%)"></div> Read (Low)</div>
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #3fb950 50%, #21262d 50%)"></div> Read (Done)</div>
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #f85149 50%)"></div> Anki (Low)</div>
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #3fb950 50%)"></div> Anki (Done)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #f85149 50%, #21262d 50%)"></div> Read (0%)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #3fb950 50%, #21262d 50%)"></div> Read (100%)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #f85149 50%)"></div> Anki (0%)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #3fb950 50%)"></div> Anki (100%)</div>
+          <div class="legend-item" style="border-left: 1px solid var(--border); padding-left: 10px; margin-left: 5px;">
+            <div class="legend-box" style="background: #3fb950"></div> Light Load
+          </div>
+          <div class="legend-item"><div class="legend-box" style="background: #f85149"></div> Heavy Load</div>
         </div>
       </div>
     </div>
@@ -321,7 +350,11 @@
           <button id="next-day" class="secondary">▶</button>
           <button id="today-btn">Today</button>
         </div>
-        <button id="copy-day-btn" class="secondary">Copy Full Day</button>
+        
+        <div class="day-actions">
+          <button id="copy-day-btn" class="secondary">Copy Full Day</button>
+          <div id="day-char-count" class="char-count-badge">0 chars</div>
+        </div>
       </div>
 
       <div id="day-content"></div>
@@ -331,10 +364,9 @@
 
 <script>
 /**
- * Core Study Organizer V4
- * - Full Calendar View (Split Color)
- * - Dual Checkboxes (Read + Anki)
- * - Storage V4 (Clean slate for data structure change)
+ * Core Study Organizer V4.1
+ * - Includes Character Count Badge in Day Header
+ * - Includes Relative Load "Sliver" in Calendar (Green=Light, Red=Heavy)
  */
 
 const STORAGE_KEY = 'core_study_data_v4';
@@ -379,6 +411,7 @@ const els = {
   dayJumper: document.getElementById('day-jumper'),
   todayBtn: document.getElementById('today-btn'),
   copyDayBtn: document.getElementById('copy-day-btn'),
+  dayCharCount: document.getElementById('day-char-count'),
   dayContent: document.getElementById('day-content')
 };
 
@@ -624,13 +657,11 @@ function loadPlan(id) {
   els.sumRange.innerHTML = `<strong>Range:</strong> ${currentPlan.range}`;
   els.sumCounts.innerHTML = `<strong>Stats:</strong> ${currentPlan.days.length} Days, ${currentPlan.totalSections} Sections`;
   
-  // Setup Jumper
   els.dayJumper.innerHTML = '';
   currentPlan.days.forEach((d, i) => {
     els.dayJumper.add(new Option(`Day ${i+1}: ${new Date(d.date).toLocaleDateString()}`, i));
   });
 
-  // Render Real Calendar
   renderRealCalendar();
 
   const todayIdx = getTodayIndex();
@@ -643,16 +674,25 @@ function renderRealCalendar() {
   els.calRoot.innerHTML = '';
   if (!currentPlan) return;
 
+  // 1. Calculate Load Min/Max for formatting
+  let maxLoad = 0;
+  let minLoad = Infinity;
+  currentPlan.days.forEach(d => {
+    const load = d.sections.reduce((a,b) => a + (b.length || 0), 0);
+    if(load > maxLoad) maxLoad = load;
+    if(load < minLoad) minLoad = load;
+  });
+  // Edge case: if all days are equal, avoid divide by zero
+  if (maxLoad === minLoad) { maxLoad++; } 
+
   const sDate = new Date(currentPlan.startDate);
   const eDate = new Date(currentPlan.endDate);
   
-  // Map date string YYYY-MM-DD to Plan Day Index for coloring
   const dateMap = {};
   currentPlan.days.forEach((day, idx) => {
     dateMap[day.date.split('T')[0]] = { day, idx };
   });
 
-  // Iterate month by month
   let iter = new Date(sDate.getFullYear(), sDate.getMonth(), 1);
   const finalMonth = new Date(eDate.getFullYear(), eDate.getMonth(), 1);
 
@@ -660,7 +700,6 @@ function renderRealCalendar() {
     const year = iter.getFullYear();
     const month = iter.getMonth();
     
-    // Month Container
     const monthBlock = document.createElement('div');
     monthBlock.className = 'month-block';
     
@@ -669,7 +708,6 @@ function renderRealCalendar() {
     title.textContent = iter.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
     monthBlock.appendChild(title);
     
-    // Grid Header (Mon-Sun)
     const grid = document.createElement('div');
     grid.className = 'cal-grid';
     ['S','M','T','W','T','F','S'].forEach(d => {
@@ -679,18 +717,15 @@ function renderRealCalendar() {
       grid.appendChild(h);
     });
 
-    // Days
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startDay = new Date(year, month, 1).getDay(); // 0 = Sun
+    const startDay = new Date(year, month, 1).getDay(); 
 
-    // Empty Slots
     for (let i = 0; i < startDay; i++) {
       const empty = document.createElement('div');
       empty.className = 'cal-day empty';
       grid.appendChild(empty);
     }
 
-    // Actual Days
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const cell = document.createElement('div');
@@ -700,13 +735,25 @@ function renderRealCalendar() {
       if (dateMap[dateStr]) {
         const { day, idx } = dateMap[dateStr];
         updateCalendarCellColor(cell, day);
-        cell.onclick = () => {
-          setDay(idx);
-          // Auto-hide calendar on mobile/small screens maybe? Keeping open for now.
-        };
-        // Highlight active if selected
+        
+        // --- Add Sliver ---
+        const dayLoad = day.sections.reduce((a,b) => a + (b.length || 0), 0);
+        // Ratio 0 to 1
+        const ratio = (dayLoad - minLoad) / (maxLoad - minLoad);
+        const sliver = document.createElement('div');
+        sliver.className = 'load-sliver';
+        // Green(Light) to Red(Heavy). 
+        // My getGradientColor is Red(0)->Green(1).
+        // So for Light Load (low char count) -> we want Green (1).
+        // For Heavy Load (high char count) -> we want Red (0).
+        // Input should be: 1 - ratio.
+        sliver.style.background = getGradientColor(1 - ratio);
+        cell.appendChild(sliver);
+        // ------------------
+
+        cell.onclick = () => setDay(idx);
         if (idx === currentDayIndex) cell.classList.add('active');
-        cell.dataset.planIdx = idx; // Marker
+        cell.dataset.planIdx = idx; 
       } else {
         cell.classList.add('empty');
         cell.style.opacity = '0.3';
@@ -717,8 +764,6 @@ function renderRealCalendar() {
 
     monthBlock.appendChild(grid);
     els.calRoot.appendChild(monthBlock);
-
-    // Next month
     iter.setMonth(iter.getMonth() + 1);
   }
 }
@@ -740,20 +785,15 @@ function updateCalendarCellColor(cell, day) {
   const cRead = getGradientColor(readPct);
   const cAnki = getGradientColor(ankiPct);
   
-  // Left Half = Read, Right Half = Anki
   cell.style.background = `linear-gradient(90deg, ${cRead} 50%, ${cAnki} 50%)`;
-  
-  // Text shadow to make numbers readable on bright colors
   cell.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
 }
 
 function getGradientColor(pct) {
   // Red (0) -> Yellow (0.5) -> Green (1)
-  let r, g, b = 85; // slightly blue-ish base for darkness? Actually we want bright colors here.
-  // Using pure colors for the gradient
+  let r, g, b = 85; 
   if (pct < 0.5) {
-    // Red (255, 0, 0) to Yellow (255, 255, 0)
-    // Actually using specific hexes for style
+    // Red to Yellow
     // Red: 248, 81, 73 (#f85149)
     // Yellow: 210, 153, 34 (#d29922)
     const ratio = pct * 2;
@@ -761,18 +801,16 @@ function getGradientColor(pct) {
     g = 81 + (153 - 81) * ratio;
     b = 73 + (34 - 73) * ratio;
   } else {
+    // Yellow to Green
     // Yellow (#d29922) to Green (#3fb950)
     const ratio = (pct - 0.5) * 2;
     r = 210 + (63 - 210) * ratio;
     g = 153 + (185 - 153) * ratio;
     b = 34 + (80 - 34) * ratio;
   }
-  // Apply a bit of transparency/darkening if 0? No, let's keep it visible.
-  // Use opacity for unfinished
-  if (pct === 0) return 'rgba(33, 38, 45, 1)'; // Dark gray
+  if (pct === 0) return 'rgba(33, 38, 45, 1)';
   return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 }
-
 
 // --- Day View ---
 async function setDay(idx) {
@@ -781,7 +819,6 @@ async function setDay(idx) {
   currentDayIndex = idx;
   els.dayJumper.value = idx;
 
-  // Highlight Calendar Cell
   document.querySelectorAll('.cal-day').forEach(el => {
     if (el.dataset.planIdx == idx) el.classList.add('active');
     else el.classList.remove('active');
@@ -789,6 +826,10 @@ async function setDay(idx) {
 
   const day = currentPlan.days[idx];
   els.dayContent.innerHTML = '';
+
+  // Update Character Count Badge
+  const totalChars = day.sections.reduce((a,b) => a + (b.length || 0), 0);
+  els.dayCharCount.textContent = `${totalChars.toLocaleString()} chars`;
 
   if (day.sections.length === 0) {
     els.dayContent.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">Rest Day</div>';
@@ -819,16 +860,13 @@ async function setDay(idx) {
       const head = document.createElement('div');
       head.className = 'section-header';
       
-      // Info
       const info = document.createElement('div');
       info.className = 'section-info';
       info.innerHTML = `<div class="section-title">${sec.fullTitle}</div><div class="section-meta">${sec.length} chars</div>`;
       
-      // Checkboxes (Read & Anki)
       const grp = document.createElement('div');
       grp.className = 'checklist-group';
       
-      // Read Check
       const lRead = document.createElement('label');
       lRead.className = 'chk-label';
       const cRead = document.createElement('input');
@@ -837,7 +875,6 @@ async function setDay(idx) {
       cRead.onchange = () => toggleCheck(idx, sIdx, 'read', cRead.checked);
       lRead.append(cRead, "Read");
 
-      // Anki Check
       const lAnki = document.createElement('label');
       lAnki.className = 'chk-label';
       const cAnki = document.createElement('input');
@@ -848,7 +885,6 @@ async function setDay(idx) {
 
       grp.append(lRead, lAnki);
 
-      // Copy Button
       const cpBtn = document.createElement('button');
       cpBtn.className = 'secondary';
       cpBtn.textContent = 'Copy';
@@ -870,11 +906,8 @@ async function setDay(idx) {
 }
 
 function toggleCheck(dayIdx, secIdx, type, isChecked) {
-  // type is 'read' or 'anki'
   currentPlan.days[dayIdx].sections[secIdx][type] = isChecked;
   saveData();
-  
-  // Find specific calendar cell to update color without re-rendering whole calendar
   const cells = document.querySelectorAll('.cal-day');
   cells.forEach(c => {
     if (c.dataset.planIdx == dayIdx) {
