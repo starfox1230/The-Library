@@ -488,6 +488,18 @@ function showMsg(txt, type) {
   setTimeout(() => els.msg.textContent = '', 4000);
 }
 
+function formatLocalISO(date) {
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffset).toISOString().split('T')[0];
+}
+
+function parseLocalISO(dateStr) {
+  if (!dateStr) return new Date(NaN);
+  const [datePart] = dateStr.split('T');
+  const [y, m, d] = (datePart || '').split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 // --- Import/Export ---
 function exportData() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
@@ -522,7 +534,7 @@ function updateSavedPlansDropdown() {
   plans.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = `${p.book} (${new Date(p.startDate).toLocaleDateString()} - ${new Date(p.endDate).toLocaleDateString()})`;
+    opt.textContent = `${p.book} (${parseLocalISO(p.startDate).toLocaleDateString()} - ${parseLocalISO(p.endDate).toLocaleDateString()})`;
     els.savedSelect.appendChild(opt);
   });
 }
@@ -595,8 +607,8 @@ async function generatePlan() {
   const bookName = els.bookSelect.value;
   const startIdx = parseInt(els.startSec.value);
   const endIdx = parseInt(els.endSec.value);
-  const sDate = new Date(els.startDate.value);
-  const eDate = new Date(els.endDate.value);
+  const sDate = parseLocalISO(els.startDate.value);
+  const eDate = parseLocalISO(els.endDate.value);
 
   if (!bookName || isNaN(startIdx) || isNaN(endIdx) || !sDate || !eDate) {
     showMsg("Fill all fields", 'error'); return;
@@ -636,8 +648,8 @@ async function generatePlan() {
 
     for (let d = 0; d < daysCount; d++) {
       const dayDate = new Date(sDate);
-      dayDate.setDate(sDate.getDate() + d);
-      const dayObj = { date: dayDate.toISOString(), sections: [] };
+      dayDate.setDate(dayDate.getDate() + d);
+      const dayObj = { date: formatLocalISO(dayDate), sections: [] };
       let dayLoad = 0;
 
       while (secIndex < hydratedSections.length) {
@@ -700,7 +712,7 @@ function loadPlan(id) {
   
   els.dayJumper.innerHTML = '';
   currentPlan.days.forEach((d, i) => {
-    els.dayJumper.add(new Option(`Day ${i+1}: ${new Date(d.date).toLocaleDateString()}`, i));
+    els.dayJumper.add(new Option(`Day ${i+1}: ${parseLocalISO(d.date).toLocaleDateString()}`, i));
   });
 
   renderRealCalendar();
@@ -726,8 +738,8 @@ function renderRealCalendar() {
   // Edge case: if all days are equal, avoid divide by zero
   if (maxLoad === minLoad) { maxLoad++; } 
 
-  const sDate = new Date(currentPlan.startDate);
-  const eDate = new Date(currentPlan.endDate);
+  const sDate = parseLocalISO(currentPlan.startDate);
+  const eDate = parseLocalISO(currentPlan.endDate);
   
   const dateMap = {};
   currentPlan.days.forEach((day, idx) => {
@@ -1003,14 +1015,14 @@ async function copyFullDay() {
 function getTodayIndex() {
   if (!currentPlan) return 0;
   const now = new Date(); now.setHours(0,0,0,0);
-  const start = new Date(currentPlan.startDate); start.setHours(0,0,0,0);
+  const start = parseLocalISO(currentPlan.startDate); start.setHours(0,0,0,0);
   const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
   if (diff < 0) return 0; if (diff >= currentPlan.days.length) return currentPlan.days.length - 1;
   return diff;
 }
 function setDefaultDates() {
-  const t = new Date(); els.startDate.value = t.toISOString().split('T')[0];
-  t.setDate(t.getDate() + 14); els.endDate.value = t.toISOString().split('T')[0];
+  const t = new Date(); els.startDate.value = formatLocalISO(t);
+  t.setDate(t.getDate() + 14); els.endDate.value = formatLocalISO(t);
 }
 
 els.toggleCalBtn.addEventListener('click', () => {
