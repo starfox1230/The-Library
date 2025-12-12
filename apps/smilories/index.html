@@ -3,29 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#120812" />
-  <title>Calorie Log (JSON Paste)</title>
+  <meta name="theme-color" content="#0b0f19" />
+  <title>Calorie Log</title>
   <style>
     :root{
-      --bg: #0f0813;
-
+      --bg: #0b0f19;
       --panel: rgba(255,255,255,0.06);
       --panel2: rgba(255,255,255,0.09);
-
       --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.70);
-      --faint: rgba(255,255,255,0.52);
+      --muted: rgba(255,255,255,0.68);
+      --faint: rgba(255,255,255,0.5);
       --line: rgba(255,255,255,0.12);
 
-      /* Pastel pink / lavender accents */
-      --accent: #ff79b7;
-      --accent2:#caa8ff;
-      --accent3:#ffb3d8;
+      /* softer/pastel */
+      --good: #69e7c4;
+      --warn: #ffd1a8;
+      --bad:  #ff7aa2;
 
-      --good: #67f0c7;
-      --warn: #ffd28a;
-      --bad:  #ff5f93;
-
+      --accent:  #ff7ab6;   /* pink */
+      --accent2: #caa8ff;   /* pastel purple */
+      --accent3: #9fd7ff;   /* soft blue */
       --shadow: 0 14px 45px rgba(0,0,0,0.45);
       --radius: 16px;
       --radius2: 12px;
@@ -39,9 +36,9 @@
       margin: 0;
       font-family: var(--font);
       background:
-        radial-gradient(1200px 900px at 20% 10%, rgba(255,121,183,0.16), transparent 52%),
-        radial-gradient(1000px 800px at 82% 18%, rgba(202,168,255,0.14), transparent 56%),
-        radial-gradient(1000px 900px at 45% 85%, rgba(255,179,216,0.10), transparent 58%),
+        radial-gradient(1200px 900px at 18% 12%, rgba(255,122,182,0.22), transparent 52%),
+        radial-gradient(1000px 800px at 82% 18%, rgba(202,168,255,0.18), transparent 56%),
+        radial-gradient(900px 800px at 45% 85%, rgba(159,215,255,0.12), transparent 55%),
         var(--bg);
       color: var(--text);
       -webkit-font-smoothing: antialiased;
@@ -50,27 +47,19 @@
       touch-action: manipulation;
     }
 
-    /* Avoid iOS “scroll behind modal” and weird rubber-banding */
     body.locked{
       position: fixed;
       width: 100%;
       overflow: hidden;
     }
 
-    a{ color: var(--accent); text-decoration: none; }
-    a:active{ opacity: .85; }
-
-    .app{
-      min-height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
+    .app{ min-height: 100%; display:flex; flex-direction:column; }
 
     .topbar{
       position: sticky;
       top: 0;
       z-index: 5;
-      background: linear-gradient(to bottom, rgba(15,8,19,0.92), rgba(15,8,19,0.72));
+      background: linear-gradient(to bottom, rgba(11,15,25,0.92), rgba(11,15,25,0.70));
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--line);
@@ -78,43 +67,64 @@
     }
 
     .toprow{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
 
     .title{
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
+      display:flex; flex-direction:column; gap:2px; min-width:0;
     }
     .title h1{
-      margin: 0;
-      font-size: 16px;
-      letter-spacing: .2px;
-      font-weight: 750;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      margin:0;
+      font-size:16px;
+      letter-spacing:.2px;
+      font-weight:780;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .title .sub{
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+
+    .btnrow{ display:flex; gap:10px; flex-wrap:wrap; }
+
+    button, .btn{
+      min-height: var(--tap);
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-weight: 740;
+      font-size: 14px;
+      letter-spacing: .15px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:active{ transform: translateY(1px); opacity:.92; }
+    button.small{
+      min-height: 40px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 740;
+    }
+
+    button.pink{
+      background: linear-gradient(135deg, rgba(255,122,182,0.26), rgba(202,168,255,0.20));
+      border-color: rgba(255,122,182,0.42);
+    }
+    button.pink.active{
+      background: linear-gradient(135deg, rgba(255,122,182,0.36), rgba(202,168,255,0.28));
+      border-color: rgba(255,122,182,0.62);
+      box-shadow: 0 0 0 3px rgba(255,122,182,0.14);
     }
 
     .pillrow{
       margin-top: 10px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
     }
-
     .pill{
       background: rgba(255,255,255,0.06);
       border: 1px solid var(--line);
@@ -122,32 +132,26 @@
       padding: 8px 10px;
       font-size: 12px;
       color: var(--muted);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      max-width: 100%;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      max-width:100%;
     }
-    .pill strong{ color: var(--text); font-weight: 750; }
+    .pill strong{ color: var(--text); font-weight: 780; }
     .pill .dot{
-      width: 8px; height: 8px; border-radius: 999px;
+      width:8px; height:8px; border-radius:999px;
       background: var(--accent);
-      opacity: .95;
-      flex: 0 0 auto;
+      opacity:.95;
+      flex:0 0 auto;
     }
 
     .content{
-      flex: 1;
+      flex:1;
       padding: 14px;
       padding-bottom: calc(14px + env(safe-area-inset-bottom));
       max-width: 860px;
       width: 100%;
       margin: 0 auto;
-    }
-
-    .grid{
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
     }
 
     .card{
@@ -158,96 +162,7 @@
       overflow: hidden;
     }
 
-    .card .hd{
-      padding: 14px 14px 12px 14px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .card .hd .hgroup{
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .card .hd .hgroup .h{
-      font-size: 14px;
-      font-weight: 780;
-      margin: 0;
-      letter-spacing: .2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .card .hd .hgroup .hint{
-      font-size: 12px;
-      color: var(--muted);
-      margin: 0;
-      line-height: 1.35;
-    }
-
-    .card .bd{
-      padding: 14px;
-    }
-
-    .row{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .btnrow{
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button, .btn{
-      min-height: var(--tap);
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      font-weight: 720;
-      font-size: 14px;
-      letter-spacing: .15px;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    button:active, .btn:active{ transform: translateY(1px); opacity: .92; }
-    button.primary{
-      background: linear-gradient(135deg, rgba(255,121,183,0.30), rgba(202,168,255,0.22));
-      border-color: rgba(255,121,183,0.38);
-    }
-    button.ghost{
-      background: transparent;
-    }
-    button.danger{
-      background: rgba(255,95,147,0.12);
-      border-color: rgba(255,95,147,0.25);
-    }
-    button.small{
-      min-height: 40px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    button.icon{
-      min-height: 40px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .bd{ padding: 14px; }
 
     textarea, input, select{
       width: 100%;
@@ -260,35 +175,27 @@
       outline: none;
     }
     textarea{
-      min-height: 180px;
+      min-height: 170px;
       resize: vertical;
       line-height: 1.35;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       padding: 12px;
     }
     input:focus, textarea:focus, select:focus{
-      border-color: rgba(255,121,183,0.55);
-      box-shadow: 0 0 0 3px rgba(255,121,183,0.16);
+      border-color: rgba(255,122,182,0.60);
+      box-shadow: 0 0 0 3px rgba(255,122,182,0.16);
     }
 
-    .help{
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.35;
-      margin-top: 8px;
-    }
+    .hidden{ display:none !important; }
 
-    .split{
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 820px){
-      .split{ grid-template-columns: 1.1fr .9fr; align-items: start; }
+    .sep{
+      height: 1px;
+      background: var(--line);
+      margin: 12px 0;
     }
 
     .kpi{
-      display: grid;
+      display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
@@ -297,194 +204,165 @@
       border: 1px solid var(--line);
       border-radius: var(--radius2);
       padding: 12px;
-      display: flex;
-      flex-direction: column;
+      display:flex;
+      flex-direction:column;
       gap: 6px;
       min-height: 78px;
-      justify-content: center;
+      justify-content:center;
     }
     .kpi .box .label{ font-size: 12px; color: var(--muted); }
     .kpi .box .value{
       font-size: 22px;
-      font-weight: 820;
+      font-weight: 840;
       letter-spacing: .2px;
       line-height: 1.1;
     }
     .kpi .box .mini{ font-size: 12px; color: var(--muted); }
 
-    .toggle{
-      display: flex;
-      align-items: center;
+    .chartHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
       gap: 10px;
-      flex-wrap: wrap;
     }
-    .switch{
-      width: 52px; height: 32px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.08);
-      position: relative;
-      flex: 0 0 auto;
+    .chartTitle{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .2px;
     }
-    .switch .knob{
-      position: absolute;
-      top: 3px; left: 3px;
-      width: 26px; height: 26px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.85);
-      transition: transform .18s ease;
+    .navbtn{
+      min-height: 38px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 860;
+      background: rgba(255,255,255,0.06);
     }
-    .switch.on{
-      background: rgba(255,121,183,0.16);
-      border-color: rgba(255,121,183,0.26);
-    }
-    .switch.on .knob{ transform: translateX(20px); background: rgba(255,121,183,0.92); }
 
-    .sep{
-      height: 1px;
-      background: var(--line);
-      margin: 12px 0;
+    .chart{
+      height: 150px;
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      align-items:end;
+      padding-top: 6px;
+    }
+    .barwrap{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      align-items:center;
+      min-width:0;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+    .barval{
+      font-size: 11px;
+      color: rgba(255,255,255,0.74);
+      line-height: 1;
+      height: 12px;
+      white-space: nowrap;
+    }
+    .bar{
+      width: 100%;
+      border-radius: 10px;
+      background: rgba(255,122,182,0.16);
+      border: 1px solid rgba(255,122,182,0.26);
+      height: 10px;
+      min-height: 10px;
+      transition: height .2s ease, background .2s ease, border-color .2s ease;
+    }
+    .barwrap.selected .bar{
+      background: linear-gradient(180deg, rgba(255,122,182,0.30), rgba(202,168,255,0.20));
+      border-color: rgba(255,122,182,0.55);
+    }
+    .barlabel{
+      font-size: 11px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:100%;
     }
 
     .list{
-      display: flex;
-      flex-direction: column;
+      display:flex;
+      flex-direction:column;
       gap: 10px;
     }
-
-    .dayHeader{
-      margin-top: 2px;
-      padding: 6px 2px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 780;
-      letter-spacing: .2px;
-    }
-
-    .dayHeader .sub{
-      font-weight: 700;
-      opacity: .9;
-    }
-
     .entry{
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--line);
       border-radius: var(--radius2);
       padding: 12px;
-      display: grid;
+      display:grid;
       grid-template-columns: 1fr auto;
       gap: 10px;
-      align-items: center;
+      align-items:center;
     }
     .entry .left{
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
     }
     .entry .top{
-      display: flex;
+      display:flex;
       gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      min-width: 0;
+      align-items:center;
+      flex-wrap:wrap;
+      min-width:0;
     }
     .badge{
       font-size: 12px;
       padding: 5px 8px;
       border-radius: 999px;
       border: 1px solid var(--line);
-      color: var(--muted);
+      color: rgba(255,255,255,0.78);
       background: rgba(255,255,255,0.04);
     }
-
+    .badge.meal{
+      border-color: rgba(202,168,255,0.32);
+      background: rgba(202,168,255,0.10);
+      color: rgba(246,238,255,0.96);
+    }
     .entry .name{
       font-size: 14px;
-      font-weight: 760;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
+      font-weight: 780;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .entry .meta{
       font-size: 12px;
       color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .entry .right{
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
       gap: 6px;
-      flex: 0 0 auto;
+      flex:0 0 auto;
     }
     .entry .kcal{
-      font-weight: 860;
+      font-weight: 880;
       font-size: 18px;
       letter-spacing: .2px;
     }
 
-    .chart{
-      height: 155px;
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      align-items: end;
-      padding-top: 6px;
-    }
-    .barwrap{
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: center;
-      min-width: 0;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .barwrap:active{ transform: translateY(1px); opacity: .95; }
-
-    .barvalue{
-      font-size: 11px;
-      color: rgba(255,255,255,0.86);
-      line-height: 1;
-      letter-spacing: .15px;
-      text-align: center;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .bar{
-      width: 100%;
-      border-radius: 10px;
-      background: rgba(255,121,183,0.18);
-      border: 1px solid rgba(255,121,183,0.28);
-      height: 10px;
-      min-height: 10px;
-      transition: height .2s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
-    }
-    .bar.selected{
-      background: rgba(202,168,255,0.22);
-      border-color: rgba(202,168,255,0.38);
-      box-shadow: 0 10px 24px rgba(202,168,255,0.12);
-    }
-
-    .barlabel{
-      font-size: 11px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
+    .footerRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-top: 12px;
     }
 
     /* Toast */
@@ -524,55 +402,49 @@
       padding-top: calc(14px + env(safe-area-inset-top));
       padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
-    .modalOverlay.show{ display: flex; }
+    .modalOverlay.show{ display:flex; }
 
     .modal{
       width: min(900px, 100%);
       max-height: 86vh;
-      background: rgba(18,10,24,0.92);
+      background: rgba(15,20,35,0.92);
       border: 1px solid rgba(255,255,255,0.14);
       border-radius: 18px;
       box-shadow: var(--shadow);
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      display:flex;
+      flex-direction:column;
     }
     .modal .mhd{
       padding: 14px 14px 12px 14px;
       border-bottom: 1px solid rgba(255,255,255,0.12);
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
       gap: 10px;
     }
     .modal .mhd .mtitle{
-      margin: 0;
+      margin:0;
       font-size: 15px;
-      font-weight: 820;
+      font-weight: 840;
       letter-spacing: .2px;
-    }
-    .modal .mhd .msub{
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.35;
     }
     .modal .mbd{
       padding: 14px;
-      overflow: auto;
+      overflow:auto;
       -webkit-overflow-scrolling: touch;
     }
     .modal .mft{
       padding: 12px 14px;
       border-top: 1px solid rgba(255,255,255,0.12);
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
     }
 
     .formgrid{
-      display: grid;
+      display:grid;
       grid-template-columns: 1fr;
       gap: 12px;
     }
@@ -581,75 +453,78 @@
     }
 
     .field label{
-      display: block;
+      display:block;
       font-size: 12px;
       color: var(--muted);
       margin-bottom: 6px;
     }
 
     .items{
-      display: flex;
-      flex-direction: column;
+      display:flex;
+      flex-direction:column;
       gap: 10px;
       margin-top: 8px;
     }
     .itemrow{
-      display: grid;
+      display:grid;
       grid-template-columns: 1.4fr .7fr auto;
       gap: 10px;
-      align-items: center;
+      align-items:center;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 14px;
       padding: 10px;
     }
-    .itemrow input{
-      border-radius: 12px;
-      padding: 10px 10px;
-    }
-    .itemrow button{
-      min-height: 42px;
-      padding: 10px 12px;
-      border-radius: 12px;
-    }
+    .itemrow input{ border-radius: 12px; padding: 10px 10px; }
+    .itemrow button{ min-height: 42px; padding: 10px 12px; border-radius: 12px; }
 
-    .collapsible{
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 14px;
-      overflow: hidden;
-      margin-top: 12px;
-      background: rgba(255,255,255,0.03);
-    }
-    .collapsible summary{
-      cursor: pointer;
-      padding: 12px;
-      font-size: 13px;
-      font-weight: 750;
-      color: rgba(255,255,255,0.88);
-      list-style: none;
-    }
-    .collapsible summary::-webkit-details-marker{ display:none; }
-    .collapsible .inner{
-      padding: 0 12px 12px 12px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
-      white-space: pre-wrap;
-    }
-
-    .hidden{ display: none !important; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-    .footerActions{
-      display: flex;
+    .switchRow{
+      display:flex;
+      align-items:center;
       gap: 10px;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 12px;
+      flex-wrap:wrap;
+    }
+    .switch{
+      width: 52px; height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.08);
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .switch .knob{
+      position:absolute;
+      top:3px; left:3px;
+      width: 26px; height: 26px;
+      border-radius:999px;
+      background: rgba(255,255,255,0.85);
+      transition: transform .18s ease;
+    }
+    .switch.on{
+      background: rgba(255,122,182,0.18);
+      border-color: rgba(255,122,182,0.35);
+    }
+    .switch.on .knob{
+      transform: translateX(20px);
+      background: rgba(255,122,182,0.95);
     }
 
-    .dangerText{ color: rgba(255,210,228,0.98); }
+    .dangerZone{
+      margin-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-top: 14px;
+    }
+    .dangerNote{
+      font-size: 12px;
+      color: rgba(255,210,218,0.95);
+      border-left: 3px solid rgba(255,92,122,0.55);
+      padding-left: 10px;
+      line-height: 1.35;
+    }
+    button.danger{
+      background: rgba(255,92,122,0.12);
+      border-color: rgba(255,92,122,0.25);
+    }
   </style>
 </head>
 
@@ -658,185 +533,93 @@
     <div class="topbar">
       <div class="toprow">
         <div class="title">
-          <h1 id="topTitle">Paste JSON</h1>
-          <div class="sub" id="topSub">Fast calorie logging with local storage.</div>
+          <h1>Calorie Log</h1>
         </div>
         <div class="btnrow">
-          <button class="small ghost" id="btnGoAdd" type="button">Add</button>
-          <button class="small ghost" id="btnGoView" type="button">Dashboard</button>
+          <button class="small pink" id="btnToggleAdd" type="button" aria-pressed="false">Add</button>
+          <button class="small" id="btnOpenSettings" type="button">Settings</button>
         </div>
       </div>
 
       <div class="pillrow">
         <div class="pill" title="Total calories logged today">
           <span class="dot"></span>
-          <span>Today: <strong id="pillToday">0</strong> kcal</span>
+          <span><strong id="pillToday">0</strong> kcal</span>
         </div>
         <div class="pill" id="pillGoal" title="Goal status">
-          <span class="dot" style="background: var(--good)"></span>
-          <span>Goal: <strong id="pillGoalText">off</strong></span>
+          <span class="dot" style="background: var(--accent2)"></span>
+          <span><strong id="pillGoalText">off</strong></span>
         </div>
         <div class="pill" title="Entries stored on this device">
-          <span class="dot" style="background: var(--accent2)"></span>
-          <span>Entries: <strong id="pillCount">0</strong></span>
+          <span class="dot" style="background: var(--accent3)"></span>
+          <span><strong id="pillCount">0</strong></span>
         </div>
       </div>
     </div>
 
     <div class="content">
-      <!-- ADD VIEW -->
-      <section id="viewAdd" class="grid">
-        <div class="card">
-          <div class="hd">
-            <div class="hgroup">
-              <p class="h">Paste JSON from your GPT response</p>
-              <p class="hint">On open, this screen is the default. Paste → Add. Cancel goes to the dashboard.</p>
-            </div>
-          </div>
-
-          <div class="bd">
-            <div class="split">
-              <div>
-                <textarea id="jsonInput" placeholder='Paste JSON here (one entry object, or {"entries":[...]}).'></textarea>
-
-                <div class="help">
-                  Tips: If calories look off, add first, then tap the entry on the dashboard to edit totals/items.
-                </div>
-
-                <div class="footerActions">
-                  <div class="btnrow">
-                    <button class="icon" id="btnPasteClipboard" type="button">Paste from clipboard</button>
-                    <button class="primary" id="btnAddEntry" type="button">Add</button>
-                    <button class="ghost" id="btnCancelToDashboard" type="button">Cancel</button>
-                  </div>
-
-                  <div class="btnrow">
-                    <button class="small" id="btnClear" type="button">Clear</button>
-                  </div>
-                </div>
-
-                <div class="sep"></div>
-
-                <div id="addStatus" class="help"></div>
-              </div>
-
-              <div>
-                <div class="kpi">
-                  <div class="box">
-                    <div class="label">Today total</div>
-                    <div class="value"><span id="kpiToday">0</span> kcal</div>
-                    <div class="mini" id="kpiTodayMini">No entries yet.</div>
-                  </div>
-                  <div class="box">
-                    <div class="label">Goal remaining</div>
-                    <div class="value" id="kpiRemain">—</div>
-                    <div class="mini" id="kpiRemainMini">Goal is off.</div>
-                  </div>
-                </div>
-
-                <div class="sep"></div>
-
-                <div class="card" style="box-shadow:none; background:transparent; border:none;">
-                  <div class="bd" style="padding:0;">
-                    <div class="row" style="align-items:flex-end;">
-                      <div style="min-width:0;">
-                        <div style="font-size:13px; font-weight:780; margin-bottom:6px;">Goal</div>
-                        <div class="toggle">
-                          <div class="switch" id="goalSwitch" role="switch" aria-checked="false" tabindex="0">
-                            <div class="knob"></div>
-                          </div>
-                          <div style="min-width: 180px; flex: 1;">
-                            <input id="goalInput" type="number" inputmode="numeric" min="0" placeholder="Goal calories (e.g., 1800)" disabled />
-                          </div>
-                        </div>
-                        <div class="help">Goal is optional. It affects “remaining” and the dashboard header only.</div>
-                      </div>
-                    </div>
-
-                    <div class="sep"></div>
-
-                    <div class="row">
-                      <div style="min-width:0;">
-                        <div style="font-size:13px; font-weight:780; margin-bottom:6px;">Data</div>
-                        <div class="help">Stored locally on this device (no account). Use Export/Import from the dashboard.</div>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- DASHBOARD VIEW -->
-      <section id="viewDash" class="grid hidden">
-        <div class="card">
-          <div class="hd">
-            <div class="hgroup">
-              <p class="h">Dashboard</p>
-              <p class="hint">Tap any entry to edit. Tap a day bar to view that day’s entries.</p>
-            </div>
-            <div class="btnrow">
-              <button class="small" id="btnExport" type="button">Export</button>
-              <button class="small" id="btnImport" type="button">Import</button>
-              <input id="importFile" type="file" accept="application/json" class="hidden" />
-            </div>
-          </div>
-
-          <div class="bd">
-            <div class="kpi">
-              <div class="box">
-                <div class="label">Today total</div>
-                <div class="value"><span id="dashToday">0</span> kcal</div>
-                <div class="mini" id="dashTodayMini">—</div>
-              </div>
-              <div class="box">
-                <div class="label">Goal remaining</div>
-                <div class="value" id="dashRemain">—</div>
-                <div class="mini" id="dashRemainMini">—</div>
-              </div>
-            </div>
-
-            <div class="sep"></div>
-
-            <div class="row" style="align-items:center;">
-              <div style="font-size:13px; font-weight:780;">Last 7 days</div>
+      <div class="card">
+        <div class="bd">
+          <!-- ADD PANEL (toggles) -->
+          <div id="addPanel" class="hidden">
+            <textarea id="jsonInput" placeholder='Paste JSON here'></textarea>
+            <div class="footerRow">
               <div class="btnrow">
-                <button class="small ghost" id="btnChartPrev" type="button" aria-label="Previous 7 days">‹</button>
-                <button class="small" id="btnChartToday" type="button">Today</button>
-                <button class="small ghost" id="btnChartNext" type="button" aria-label="Next 7 days">›</button>
-              </div>
-            </div>
-            <div class="help" id="chartRangeHelp">—</div>
-
-            <div class="chart" id="chart7"></div>
-
-            <div class="sep"></div>
-
-            <div class="row" style="align-items:flex-end;">
-              <div style="min-width: 220px; flex: 1;">
-                <div style="font-size:13px; font-weight:780; margin-bottom:6px;">Recent entries</div>
-                <div class="help" id="recentHelp">—</div>
+                <button class="small" id="btnPasteClipboard" type="button">Paste</button>
+                <button class="small pink" id="btnAddEntry" type="button">Add</button>
+                <button class="small" id="btnCancelAdd" type="button">Cancel</button>
               </div>
               <div class="btnrow">
-                <button class="small" id="btnSeeMore" type="button">See more</button>
-                <button class="small danger" id="btnClearAll" type="button">Clear all</button>
+                <button class="small" id="btnClearInput" type="button">Clear</button>
               </div>
             </div>
-
             <div class="sep"></div>
+          </div>
 
-            <div class="list" id="entryList"></div>
-
-            <div class="help" style="margin-top: 14px;">
-              Edit rules: “Total kcal” can be overridden directly, or you can adjust items and save.
+          <!-- KPIs -->
+          <div class="kpi">
+            <div class="box">
+              <div class="label">Today</div>
+              <div class="value"><span id="dashToday">0</span> kcal</div>
+              <div class="mini" id="dashTodayMini">—</div>
+            </div>
+            <div class="box">
+              <div class="label">Remaining</div>
+              <div class="value" id="dashRemain">—</div>
+              <div class="mini" id="dashRemainMini">—</div>
             </div>
           </div>
+
+          <div class="sep"></div>
+
+          <!-- CHART -->
+          <div class="chartHeader">
+            <div class="chartTitle">
+              <span>Last 7 days</span>
+              <button class="navbtn" id="btnPrev7" type="button" aria-label="Previous 7 days">‹</button>
+              <button class="navbtn" id="btnNext7" type="button" aria-label="Next 7 days">›</button>
+              <button class="navbtn" id="btnTodayView" type="button">Today</button>
+            </div>
+            <div class="badge" id="rangeLabel">—</div>
+          </div>
+          <div class="chart" id="chart7"></div>
+
+          <div class="sep"></div>
+
+          <!-- ENTRIES -->
+          <div class="chartHeader" style="margin-bottom:10px;">
+            <div class="chartTitle" id="entriesTitle">Recent</div>
+            <div class="badge" id="entriesSubtitle">—</div>
+          </div>
+
+          <div class="list" id="entryList"></div>
+
+          <div class="footerRow">
+            <div></div>
+            <button class="small" id="btnSeeMore" type="button">See more</button>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   </div>
 
@@ -846,17 +629,17 @@
       <div class="mhd">
         <div style="min-width:0;">
           <div class="mtitle" id="modalTitle">Edit entry</div>
-          <div class="msub" id="modalSub">—</div>
+          <div class="mtitle" style="font-size:12px; font-weight:650; color: rgba(255,255,255,0.70); margin-top:4px;" id="modalSub">—</div>
         </div>
         <div class="btnrow">
-          <button class="small ghost" id="btnCloseModal" type="button">Close</button>
+          <button class="small" id="btnCloseModal" type="button">Close</button>
         </div>
       </div>
 
       <div class="mbd">
         <div class="formgrid">
           <div class="field">
-            <label for="editMealLabel">Meal label</label>
+            <label for="editMealLabel">Meal</label>
             <select id="editMealLabel">
               <option value="meal">meal</option>
               <option value="breakfast">breakfast</option>
@@ -867,13 +650,13 @@
           </div>
 
           <div class="field">
-            <label for="editCreatedAt">Time (local)</label>
+            <label for="editCreatedAt">Time</label>
             <input id="editCreatedAt" type="datetime-local" />
           </div>
 
           <div class="field">
             <label for="editTotal">Total kcal (override)</label>
-            <input id="editTotal" type="number" inputmode="numeric" min="0" placeholder="Leave blank to compute from items" />
+            <input id="editTotal" type="number" inputmode="numeric" min="0" placeholder="blank = sum of items" />
           </div>
 
           <div class="field">
@@ -886,7 +669,7 @@
           </div>
 
           <div class="field" style="grid-column: 1 / -1;">
-            <label for="editFreeText">Original text / description</label>
+            <label for="editFreeText">Description</label>
             <input id="editFreeText" type="text" />
           </div>
 
@@ -897,22 +680,69 @@
               <button class="small" id="btnAddItem" type="button">Add item</button>
             </div>
 
-            <details class="collapsible" id="assumptionsBlock">
-              <summary>Show assumptions / notes</summary>
-              <div class="inner" id="assumptionsText">—</div>
+            <details class="collapsible" id="assumptionsBlock" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:14px; overflow:hidden; background: rgba(255,255,255,0.03);">
+              <summary style="cursor:pointer; padding:12px; font-size:13px; font-weight:760; color: rgba(255,255,255,0.88); list-style:none;">Assumptions</summary>
+              <div class="inner" id="assumptionsText" style="padding: 0 12px 12px 12px; color: var(--muted); font-size:12px; line-height:1.35; white-space:pre-wrap;">—</div>
             </details>
           </div>
 
           <div class="field" style="grid-column: 1 / -1;">
-            <label for="editNotes">Notes (optional)</label>
-            <input id="editNotes" type="text" placeholder="Any notes you want to keep with this entry" />
+            <label for="editNotes">Notes</label>
+            <input id="editNotes" type="text" />
           </div>
         </div>
       </div>
 
       <div class="mft">
         <button class="danger" id="btnDeleteEntry" type="button">Delete</button>
-        <button class="primary" id="btnSaveEntry" type="button">Save</button>
+        <button class="pink" id="btnSaveEntry" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modalOverlay" id="settingsOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="mhd">
+        <div style="min-width:0;">
+          <div class="mtitle" id="settingsTitle">Settings</div>
+        </div>
+        <div class="btnrow">
+          <button class="small" id="btnCloseSettings" type="button">Close</button>
+        </div>
+      </div>
+
+      <div class="mbd">
+        <div class="field">
+          <label>Goal</label>
+          <div class="switchRow">
+            <div class="switch" id="goalSwitch" role="switch" aria-checked="false" tabindex="0">
+              <div class="knob"></div>
+            </div>
+            <div style="min-width: 180px; flex: 1;">
+              <input id="goalInput" type="number" inputmode="numeric" min="0" placeholder="Goal calories (e.g., 1800)" disabled />
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="btnrow">
+          <button class="small" id="btnExport" type="button">Export</button>
+          <button class="small" id="btnImport" type="button">Import</button>
+          <input id="importFile" type="file" accept="application/json" class="hidden" />
+        </div>
+
+        <div class="dangerZone">
+          <div class="dangerNote">Danger zone — this cannot be undone.</div>
+          <div class="btnrow" style="margin-top:10px;">
+            <button class="small danger" id="btnClearAll" type="button">Clear all entries</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mft">
+        <button class="small" id="btnDoneSettings" type="button">Done</button>
       </div>
     </div>
   </div>
@@ -941,28 +771,35 @@
 
     function nowISO(){ return new Date().toISOString(); }
 
-    function dateAtNoonLocal(d){
-      const x = new Date(d);
-      x.setHours(12,0,0,0);
-      return x;
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function toast(msg){
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => t.classList.remove("show"), 1600);
     }
-    function addDaysLocal(d, delta){
-      const x = dateAtNoonLocal(d);
-      x.setDate(x.getDate() + delta);
-      return dateAtNoonLocal(x);
+
+    function loadState(){
+      let entries = [];
+      try{
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) entries = JSON.parse(raw) || [];
+      }catch(e){ entries = []; }
+
+      let settings = { goalEnabled: false, goalKcal: null };
+      try{
+        const rawS = localStorage.getItem(SETTINGS_KEY);
+        if (rawS) settings = Object.assign(settings, JSON.parse(rawS) || {});
+      }catch(e){}
+
+      if (!Array.isArray(entries)) entries = [];
+      return { entries, settings };
     }
-    function dateFromYMD(ymd){
-      const [y,m,day] = String(ymd).split("-").map(n => parseInt(n,10));
-      const d = new Date(y, (m||1)-1, day||1, 12, 0, 0, 0);
-      return dateAtNoonLocal(d);
-    }
-    function ymdFromDateLocal(d){
-      const x = new Date(d);
-      const y = x.getFullYear();
-      const m = String(x.getMonth()+1).padStart(2,"0");
-      const day = String(x.getDate()).padStart(2,"0");
-      return `${y}-${m}-${day}`;
-    }
+
+    function saveEntries(entries){ localStorage.setItem(STORE_KEY, JSON.stringify(entries)); }
+    function saveSettings(settings){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
 
     function toLocalDatetimeInputValue(isoString){
       const d = new Date(isoString);
@@ -994,55 +831,40 @@
       return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
     }
 
-    function formatDateRange(startDate, endDate){
-      const s = startDate.toLocaleDateString([], { month:"short", day:"numeric" });
-      const e = endDate.toLocaleDateString([], { month:"short", day:"numeric" });
-      return `${s}–${e}`;
-    }
-
     function ymdLocal(isoString){
       const d = new Date(isoString);
       if (isNaN(d.getTime())) return null;
-      return ymdFromDateLocal(d);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
     }
 
-    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
-
-    function toast(msg){
-      const t = document.getElementById("toast");
-      t.textContent = msg;
-      t.classList.add("show");
-      clearTimeout(toast._timer);
-      toast._timer = setTimeout(() => t.classList.remove("show"), 1600);
+    function ymdFromDateLocal(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
     }
 
-    function loadState(){
-      let entries = [];
-      try{
-        const raw = localStorage.getItem(STORE_KEY);
-        if (raw) entries = JSON.parse(raw) || [];
-      }catch(e){ entries = []; }
-
-      let settings = { goalEnabled: false, goalKcal: null };
-      try{
-        const rawS = localStorage.getItem(SETTINGS_KEY);
-        if (rawS) settings = Object.assign(settings, JSON.parse(rawS) || {});
-      }catch(e){}
-
-      if (!Array.isArray(entries)) entries = [];
-      return { entries, settings };
+    function dateFromYmdLocal(ymd){
+      const [y,m,d] = String(ymd).split("-").map(Number);
+      const dt = new Date(y, (m||1)-1, d||1, 12,0,0,0);
+      return dt;
     }
 
-    function saveEntries(entries){
-      localStorage.setItem(STORE_KEY, JSON.stringify(entries));
+    function addDaysYmd(ymd, delta){
+      const dt = dateFromYmdLocal(ymd);
+      dt.setDate(dt.getDate() + delta);
+      return ymdFromDateLocal(dt);
     }
-    function saveSettings(settings){
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+
+    function todayYmd(){
+      return ymdFromDateLocal(new Date());
     }
 
     function normalizeEntry(obj){
       const e = Object.assign({}, obj);
-
       if (!e.schema_version) e.schema_version = 1;
       if (!e.entry_id) e.entry_id = uuid();
       if (!e.created_at) e.created_at = nowISO();
@@ -1052,6 +874,7 @@
       if (!e.confidence) e.confidence = "medium";
 
       const numeric = (v)=> (typeof v === "number" && isFinite(v)) ? v : (typeof v === "string" && v.trim() !== "" && isFinite(Number(v)) ? Number(v) : null);
+
       let total = numeric(e.total_kcal);
       if (total == null){
         let sum = 0;
@@ -1074,7 +897,6 @@
 
       if (!e.user_overrides) e.user_overrides = { total_kcal: null, items: {} };
       if (e.user_overrides && typeof e.user_overrides !== "object") e.user_overrides = { total_kcal: null, items: {} };
-
       if (typeof e.notes !== "string") e.notes = "";
 
       e.items = e.items.map(it => {
@@ -1093,7 +915,7 @@
     }
 
     function todayTotals(entries){
-      const today = ymdLocal(nowISO());
+      const today = todayYmd();
       let total = 0;
       let count = 0;
       for (const e of entries){
@@ -1106,52 +928,63 @@
       return { total, count };
     }
 
-    function totalsForDaysWindow(entries, endDateLocalNoon, n=7){
-      const out = [];
-      const base = dateAtNoonLocal(endDateLocalNoon);
+    function computeRemaining(state){
+      const { total } = todayTotals(state.entries);
+      const goal = state.settings.goalEnabled ? Number(state.settings.goalKcal || 0) : 0;
+      if (!state.settings.goalEnabled || !goal) return null;
+      return goal - total;
+    }
 
+    function rangeLabelForWindow(endYmd, n=7){
+      const end = dateFromYmdLocal(endYmd);
+      const start = new Date(end);
+      start.setDate(start.getDate() - (n-1));
+      const opts = { month: "short", day: "numeric" };
+      const a = start.toLocaleDateString([], opts);
+      const b = end.toLocaleDateString([], opts);
+      return `${a}–${b}`;
+    }
+
+    function lastNDaysTotalsWindow(entries, endYmd, n=7){
+      const out = [];
+      const end = dateFromYmdLocal(endYmd);
       for (let i = n-1; i >= 0; i--){
-        const d = addDaysLocal(base, -i);
+        const d = new Date(end);
+        d.setDate(d.getDate() - i);
         const ymd = ymdFromDateLocal(d);
         const label = d.toLocaleDateString([], { weekday: "short" });
-
         let total = 0;
         for (const e of entries){
           if (ymdLocal(e.created_at) === ymd) total += Number(e.total_kcal || 0);
         }
-        out.push({ ymd, label, total, date: d });
+        out.push({ ymd, label, total });
       }
-      return out; // oldest -> newest
+      return out;
     }
 
-    function entriesForDay(entries, ymd){
-      return entries.filter(e => ymdLocal(e.created_at) === ymd);
+    function entriesSortedDesc(entries){
+      return [...entries].sort((a,b)=>{
+        const ta = new Date(a.created_at).getTime();
+        const tb = new Date(b.created_at).getTime();
+        return tb - ta;
+      });
     }
 
-    /***********************
-     * Routing
-     ***********************/
-    function showView(which){
-      const add = document.getElementById("viewAdd");
-      const dash = document.getElementById("viewDash");
-      if (which === "add"){
-        add.classList.remove("hidden");
-        dash.classList.add("hidden");
-        document.getElementById("topTitle").textContent = "Paste JSON";
-        document.getElementById("topSub").textContent = "Paste → Add. Cancel goes to dashboard.";
-        setTimeout(()=> document.getElementById("jsonInput").focus({ preventScroll: true }), 60);
-      } else {
-        dash.classList.remove("hidden");
-        add.classList.add("hidden");
-        document.getElementById("topTitle").textContent = "Dashboard";
-        document.getElementById("topSub").textContent = "Tap a bar to view that day. See more loads prior days.";
+    function hasAnyEntriesOnYmd(entries, ymd){
+      for (const e of entries){
+        if (ymdLocal(e.created_at) === ymd) return true;
       }
+      return false;
     }
 
-    function routeFromHash(){
-      const h = (location.hash || "").toLowerCase();
-      if (h === "#view" || h === "#dash" || h === "#dashboard") showView("dash");
-      else showView("add");
+    function minEntryYmd(entries){
+      let min = null;
+      for (const e of entries){
+        const d = ymdLocal(e.created_at);
+        if (!d) continue;
+        if (min == null || d < min) min = d;
+      }
+      return min;
     }
 
     /***********************
@@ -1177,11 +1010,12 @@
     let state = loadState();
     let editingEntryId = null;
 
-    // Dashboard view controls
-    let chartEndDate = dateAtNoonLocal(new Date()); // end of the 7-day window
-    let selectedDayYMD = null;                      // selected bar day (for highlight + list anchor)
-    let recentAnchorYMD = ymdFromDateLocal(new Date());
-    let recentDaysShown = 1;                        // 1 => anchor only; "See more" adds prior days
+    const ui = {
+      addOpen: false,
+      chartOffsetDays: 0,      // 0 = ending today; +7 = older; -7 = future
+      selectedDay: todayYmd(), // ymd
+      recentLoadedDays: [todayYmd()] // only used when selectedDay === today
+    };
 
     function refreshHeaderPills(){
       const { total } = todayTotals(state.entries);
@@ -1192,28 +1026,6 @@
       document.getElementById("pillGoalText").textContent = goalText;
     }
 
-    function computeRemaining(){
-      const { total } = todayTotals(state.entries);
-      const goal = state.settings.goalEnabled ? Number(state.settings.goalKcal || 0) : 0;
-      if (!state.settings.goalEnabled || !goal) return null;
-      return goal - total;
-    }
-
-    function refreshAddKPIs(){
-      const t = todayTotals(state.entries);
-      document.getElementById("kpiToday").textContent = t.total;
-      document.getElementById("kpiTodayMini").textContent = t.count ? `${t.count} entr${t.count===1?"y":"ies"} today.` : "No entries yet.";
-
-      const rem = computeRemaining();
-      if (rem == null){
-        document.getElementById("kpiRemain").textContent = "—";
-        document.getElementById("kpiRemainMini").textContent = "Goal is off.";
-      } else {
-        document.getElementById("kpiRemain").textContent = `${rem} kcal`;
-        document.getElementById("kpiRemainMini").textContent = rem >= 0 ? "Remaining today." : "Over goal today.";
-      }
-    }
-
     function applyGoalUI(){
       const sw = document.getElementById("goalSwitch");
       const inp = document.getElementById("goalInput");
@@ -1222,41 +1034,57 @@
       sw.setAttribute("aria-checked", String(enabled));
       inp.disabled = !enabled;
       inp.value = state.settings.goalKcal ? String(state.settings.goalKcal) : "";
-      refreshAddKPIs();
-      refreshDash();
-      refreshHeaderPills();
     }
 
-    function buildRecentWindowYMDs(){
-      const anchorDate = dateFromYMD(recentAnchorYMD);
-      const ymds = [];
-      for (let i = 0; i < recentDaysShown; i++){
-        const d = addDaysLocal(anchorDate, -i);
-        ymds.push(ymdFromDateLocal(d));
+    function setAddOpen(open){
+      ui.addOpen = !!open;
+      document.getElementById("addPanel").classList.toggle("hidden", !ui.addOpen);
+
+      const btn = document.getElementById("btnToggleAdd");
+      btn.classList.toggle("active", ui.addOpen);
+      btn.setAttribute("aria-pressed", String(ui.addOpen));
+
+      if (ui.addOpen){
+        setTimeout(()=> document.getElementById("jsonInput").focus({ preventScroll: true }), 60);
       }
-      return ymds; // newest->oldest
     }
 
-    function refreshDash(){
+    function resetRecentToToday(){
+      ui.selectedDay = todayYmd();
+      ui.recentLoadedDays = [ui.selectedDay];
+    }
+
+    function setSelectedDay(ymd){
+      ui.selectedDay = ymd;
+      if (ymd === todayYmd()){
+        if (!ui.recentLoadedDays || !ui.recentLoadedDays.length) ui.recentLoadedDays = [ymd];
+      } else {
+        ui.recentLoadedDays = [todayYmd()]; // keep ready for later
+      }
+      renderEntries();
+      renderChart(); // updates selected highlight
+    }
+
+    function renderKPIs(){
       const t = todayTotals(state.entries);
       document.getElementById("dashToday").textContent = t.total;
-      document.getElementById("dashTodayMini").textContent = t.count ? `${t.count} entr${t.count===1?"y":"ies"} today.` : "No entries today.";
+      document.getElementById("dashTodayMini").textContent = t.count ? `${t.count}` : "—";
 
-      const rem = computeRemaining();
+      const rem = computeRemaining(state);
       if (rem == null){
         document.getElementById("dashRemain").textContent = "—";
-        document.getElementById("dashRemainMini").textContent = "Goal is off.";
+        document.getElementById("dashRemainMini").textContent = "—";
       } else {
         document.getElementById("dashRemain").textContent = `${rem} kcal`;
-        document.getElementById("dashRemainMini").textContent = rem >= 0 ? "Remaining today." : "Over goal today.";
+        document.getElementById("dashRemainMini").textContent = (rem >= 0) ? "remaining today." : "over today.";
       }
+    }
 
-      // CHART (7-day window with navigation)
-      const days = totalsForDaysWindow(state.entries, chartEndDate, 7);
-      const chartStart = days[0]?.date ? dateAtNoonLocal(days[0].date) : addDaysLocal(chartEndDate, -6);
-      const chartHelp = document.getElementById("chartRangeHelp");
-      chartHelp.textContent = `${formatDateRange(chartStart, chartEndDate)} • Tap a day to view entries`;
+    function renderChart(){
+      const endYmd = addDaysYmd(todayYmd(), -ui.chartOffsetDays);
+      document.getElementById("rangeLabel").textContent = rangeLabelForWindow(endYmd, 7);
 
+      const days = lastNDaysTotalsWindow(state.entries, endYmd, 7);
       const max = Math.max(1, ...days.map(d => d.total));
       const chart = document.getElementById("chart7");
       chart.innerHTML = "";
@@ -1264,181 +1092,136 @@
       for (const d of days){
         const wrap = document.createElement("div");
         wrap.className = "barwrap";
-        wrap.tabIndex = 0;
-        wrap.setAttribute("role","button");
-        wrap.setAttribute("aria-label", `${d.ymd}: ${d.total} calories`);
+        if (d.ymd === ui.selectedDay) wrap.classList.add("selected");
 
         const val = document.createElement("div");
-        val.className = "barvalue";
+        val.className = "barval";
         val.textContent = String(d.total);
 
         const bar = document.createElement("div");
         bar.className = "bar";
-
         const h = clamp(Math.round((d.total / max) * 110), 10, 110);
         bar.style.height = `${h}px`;
         bar.title = `${d.ymd}: ${d.total} kcal`;
-
-        if (selectedDayYMD && d.ymd === selectedDayYMD){
-          bar.classList.add("selected");
-        } else if (!selectedDayYMD && d.ymd === ymdFromDateLocal(new Date())){
-          // subtle highlight for today when nothing selected
-          bar.classList.add("selected");
-        }
 
         const lab = document.createElement("div");
         lab.className = "barlabel";
         lab.textContent = d.label;
 
-        const selectThisDay = () => {
-          selectedDayYMD = d.ymd;
-          recentAnchorYMD = d.ymd;
-          recentDaysShown = 1;
-          refreshDash();
-          toast(`Showing ${d.label}`);
-        };
-
-        wrap.addEventListener("click", selectThisDay);
-        wrap.addEventListener("keydown", (ev) => {
-          if (ev.key === "Enter" || ev.key === " "){
-            ev.preventDefault();
-            selectThisDay();
-          }
-        });
-
         wrap.appendChild(val);
         wrap.appendChild(bar);
         wrap.appendChild(lab);
+
+        wrap.addEventListener("click", () => {
+          setSelectedDay(d.ymd);
+        });
+
         chart.appendChild(wrap);
       }
+    }
 
-      // RECENT ENTRIES (today only by default; "See more" adds prior days; tapping chart sets anchor day)
+    function renderEntries(){
       const list = document.getElementById("entryList");
       list.innerHTML = "";
 
-      const windowYMDs = buildRecentWindowYMDs(); // newest->oldest
-      const windowSet = new Set(windowYMDs);
+      const sorted = entriesSortedDesc(state.entries);
 
-      const entriesInWindow = [...state.entries]
-        .filter(e => windowSet.has(ymdLocal(e.created_at)))
-        .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const entriesTitle = document.getElementById("entriesTitle");
+      const entriesSubtitle = document.getElementById("entriesSubtitle");
+      const btnSeeMore = document.getElementById("btnSeeMore");
 
-      const todayYMD = ymdFromDateLocal(new Date());
-      const isTodayAnchor = (recentAnchorYMD === todayYMD);
-
-      if (recentDaysShown === 1){
-        document.getElementById("recentHelp").textContent =
-          isTodayAnchor ? "Showing today only. Tap “See more” to include yesterday. Tap a bar to view a specific day."
-                        : `Showing ${formatDateShort(dateFromYMD(recentAnchorYMD).toISOString())} only. Tap “See more” to include the prior day.`;
+      const today = todayYmd();
+      if (ui.selectedDay === today){
+        entriesTitle.textContent = "Recent";
+        entriesSubtitle.textContent = ui.recentLoadedDays.length === 1 ? "today" : `${ui.recentLoadedDays.length} days`;
       } else {
-        const start = dateFromYMD(windowYMDs[windowYMDs.length - 1]);
-        const end = dateFromYMD(windowYMDs[0]);
-        document.getElementById("recentHelp").textContent =
-          `Showing ${formatDateRange(start, end)} (most recent first). Tap a bar to jump to a specific day.`;
+        entriesTitle.textContent = "Day";
+        entriesSubtitle.textContent = ui.selectedDay;
       }
 
-      // Group by day (newest->oldest)
-      const grouped = new Map();
-      for (const ymd of windowYMDs){
-        grouped.set(ymd, []);
-      }
-      for (const e of entriesInWindow){
-        const y = ymdLocal(e.created_at);
-        if (grouped.has(y)) grouped.get(y).push(e);
+      let show = [];
+      if (ui.selectedDay === today){
+        const setDays = new Set(ui.recentLoadedDays);
+        show = sorted.filter(e => setDays.has(ymdLocal(e.created_at)));
+      } else {
+        show = sorted.filter(e => ymdLocal(e.created_at) === ui.selectedDay);
       }
 
-      let anyRendered = false;
-      for (const ymd of windowYMDs){
-        const d = dateFromYMD(ymd);
-        const label = d.toLocaleDateString([], { weekday:"long", month:"short", day:"numeric" });
-        const dayEntries = grouped.get(ymd) || [];
-        const dayTotal = dayEntries.reduce((s, e) => s + Number(e.total_kcal || 0), 0);
+      for (const e of show){
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.tabIndex = 0;
+        div.role = "button";
 
-        const hdr = document.createElement("div");
-        hdr.className = "dayHeader";
-        hdr.innerHTML = `<span>${escapeHTML(label)}</span><span class="sub">${dayEntries.length ? `${dayTotal} kcal` : "No entries"}</span>`;
-        list.appendChild(hdr);
+        const left = document.createElement("div");
+        left.className = "left";
 
-        if (!dayEntries.length) continue;
-        anyRendered = true;
+        const top = document.createElement("div");
+        top.className = "top";
 
-        for (const e of dayEntries){
-          const div = document.createElement("div");
-          div.className = "entry";
-          div.tabIndex = 0;
-          div.role = "button";
+        // confidence tag removed here (kept in edit modal only)
+        const meal = document.createElement("span");
+        meal.className = "badge meal";
+        meal.textContent = e.meal_label || "meal";
+        top.appendChild(meal);
 
-          const left = document.createElement("div");
-          left.className = "left";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = (e.free_text && e.free_text.trim()) ? e.free_text.trim() : "Entry";
 
-          const top = document.createElement("div");
-          top.className = "top";
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = `${formatDateShort(e.created_at)} • ${formatTimeShort(e.created_at)}`;
 
-          // Confidence tag removed here (still editable in modal)
-          const b2 = document.createElement("span");
-          b2.className = "badge";
-          b2.textContent = e.meal_label || "meal";
-          top.appendChild(b2);
+        left.appendChild(top);
+        left.appendChild(name);
+        left.appendChild(meta);
 
-          const name = document.createElement("div");
-          name.className = "name";
-          name.textContent = (e.free_text && e.free_text.trim()) ? e.free_text.trim() : "Entry";
+        const right = document.createElement("div");
+        right.className = "right";
 
-          const meta = document.createElement("div");
-          meta.className = "meta";
-          meta.textContent = `${formatTimeShort(e.created_at)} • ${e.items?.length || 0} item(s)`;
+        const kcal = document.createElement("div");
+        kcal.className = "kcal";
+        kcal.textContent = `${Number(e.total_kcal || 0)} kcal`;
 
-          left.appendChild(top);
-          left.appendChild(name);
-          left.appendChild(meta);
+        right.appendChild(kcal);
 
-          const right = document.createElement("div");
-          right.className = "right";
+        div.appendChild(left);
+        div.appendChild(right);
 
-          const kcal = document.createElement("div");
-          kcal.className = "kcal";
-          kcal.textContent = `${Number(e.total_kcal || 0)} kcal`;
-
-          let rangeText = "";
-          if (Array.isArray(e.kcal_range) && e.kcal_range.length === 2){
-            rangeText = `${e.kcal_range[0]}–${e.kcal_range[1]}`;
+        div.addEventListener("click", () => openEditModal(e.entry_id));
+        div.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " "){
+            ev.preventDefault();
+            openEditModal(e.entry_id);
           }
-          const mini = document.createElement("div");
-          mini.className = "meta";
-          mini.textContent = rangeText ? `range ${rangeText}` : "";
+        });
 
-          right.appendChild(kcal);
-          if (rangeText) right.appendChild(mini);
-
-          div.appendChild(left);
-          div.appendChild(right);
-
-          div.addEventListener("click", () => openEditModal(e.entry_id));
-          div.addEventListener("keydown", (ev) => {
-            if (ev.key === "Enter" || ev.key === " "){
-              ev.preventDefault();
-              openEditModal(e.entry_id);
-            }
-          });
-
-          list.appendChild(div);
-        }
+        list.appendChild(div);
       }
 
-      if (!anyRendered && state.entries.length){
-        // If window exists but has no entries (e.g., selected future day), keep headers and add a hint
-        const hint = document.createElement("div");
-        hint.className = "help";
-        hint.textContent = "No entries in this range.";
-        list.appendChild(hint);
-      } else if (!state.entries.length){
-        const hint = document.createElement("div");
-        hint.className = "help";
-        hint.textContent = "No entries saved yet.";
-        list.appendChild(hint);
+      // See more logic
+      if (ui.selectedDay !== today){
+        btnSeeMore.classList.add("hidden");
+        return;
       }
 
+      btnSeeMore.classList.remove("hidden");
+
+      const minYmd = minEntryYmd(state.entries);
+      const oldestLoaded = ui.recentLoadedDays[ui.recentLoadedDays.length - 1];
+      const canGoOlder = !!minYmd && oldestLoaded > minYmd;
+
+      btnSeeMore.disabled = !canGoOlder;
+      btnSeeMore.style.opacity = canGoOlder ? "1" : "0.45";
+    }
+
+    function refreshAll(){
+      applyGoalUI();
       refreshHeaderPills();
+      renderKPIs();
+      renderChart();
+      renderEntries();
     }
 
     /***********************
@@ -1446,18 +1229,15 @@
      ***********************/
     function addParsedObject(obj){
       let toAdd = [];
-      if (obj && typeof obj === "object" && Array.isArray(obj.entries)){
-        toAdd = obj.entries;
-      } else {
-        toAdd = [obj];
-      }
+      if (obj && typeof obj === "object" && Array.isArray(obj.entries)) toAdd = obj.entries;
+      else toAdd = [obj];
 
       const normalized = [];
       for (const raw of toAdd){
         if (!raw || typeof raw !== "object") continue;
         normalized.push(normalizeEntry(raw));
       }
-      if (!normalized.length) return { ok: false, msg: "No valid entry objects found in JSON." };
+      if (!normalized.length) return { ok:false, msg:"No valid entry objects found in JSON." };
 
       const existingIds = new Set(state.entries.map(e => e.entry_id));
       let added = 0;
@@ -1466,68 +1246,55 @@
         state.entries.push(e);
         added++;
       }
-
       saveEntries(state.entries);
-      return { ok: true, added };
+      return { ok:true, added };
     }
 
     async function pasteFromClipboard(){
       const area = document.getElementById("jsonInput");
       try{
         if (!navigator.clipboard || !navigator.clipboard.readText){
-          toast("Clipboard not available here.");
+          toast("Clipboard not available.");
           return;
         }
         const text = await navigator.clipboard.readText();
         if (!text || !text.trim()){
-          toast("Clipboard is empty.");
+          toast("Clipboard empty.");
           return;
         }
         area.value = text;
         toast("Pasted.");
         area.focus({ preventScroll: false });
       }catch(e){
-        toast("Clipboard paste blocked. Tap and paste manually.");
+        toast("Paste blocked.");
       }
     }
 
     function handleAdd(){
       const area = document.getElementById("jsonInput");
-      const status = document.getElementById("addStatus");
-      status.textContent = "";
       const txt = area.value.trim();
       if (!txt){
-        status.textContent = "Paste JSON first.";
         toast("Paste JSON first.");
         return;
       }
 
       const parsed = safeParseJSON(txt);
       if (!parsed.ok){
-        status.innerHTML = `<span class="dangerText">Invalid JSON.</span> Check quotes/commas and try again.`;
         toast("Invalid JSON.");
         return;
       }
 
       const res = addParsedObject(parsed.value);
       if (!res.ok){
-        status.innerHTML = `<span class="dangerText">${escapeHTML(res.msg)}</span>`;
         toast("Nothing added.");
         return;
       }
 
-      status.textContent = `Added ${res.added} entr${res.added===1?"y":"ies"}.`;
-      toast(`Added ${res.added}.`);
       area.value = "";
-
-      // If user is viewing a specific past day, keep it; otherwise keep "today-only" window anchored to today
-      if (!selectedDayYMD){
-        recentAnchorYMD = ymdFromDateLocal(new Date());
-        recentDaysShown = 1;
-      }
-
-      refreshAddKPIs();
-      refreshDash();
+      setAddOpen(false);
+      resetRecentToToday();
+      toast(`Added ${res.added}.`);
+      refreshAll();
     }
 
     /***********************
@@ -1540,7 +1307,7 @@
       editingEntryId = entryId;
 
       document.getElementById("modalSub").textContent =
-        `${formatDateShort(e.created_at)} • ${formatTimeShort(e.created_at)} • ID ${entryId.slice(0,8)}…`;
+        `${formatDateShort(e.created_at)} • ${formatTimeShort(e.created_at)} • ${entryId.slice(0,8)}…`;
 
       document.getElementById("editMealLabel").value = (e.meal_label || "meal");
       document.getElementById("editCreatedAt").value = toLocalDatetimeInputValue(e.created_at);
@@ -1562,7 +1329,7 @@
         }
       }
       if (e.kcal_range) lines.push(`kcal_range: ${e.kcal_range[0]}–${e.kcal_range[1]}`);
-      document.getElementById("assumptionsText").textContent = lines.length ? lines.join("\n") : "No assumptions listed.";
+      document.getElementById("assumptionsText").textContent = lines.length ? lines.join("\n") : "—";
       document.getElementById("assumptionsBlock").open = false;
 
       const overlay = document.getElementById("modalOverlay");
@@ -1585,8 +1352,9 @@
 
       if (!Array.isArray(items) || !items.length){
         const empty = document.createElement("div");
-        empty.className = "help";
-        empty.textContent = "No items. Add one below if you want item-level tracking.";
+        empty.style.fontSize = "12px";
+        empty.style.color = "rgba(255,255,255,0.65)";
+        empty.textContent = "—";
         box.appendChild(empty);
         return;
       }
@@ -1599,7 +1367,7 @@
         const name = document.createElement("input");
         name.type = "text";
         name.value = it.name || "";
-        name.placeholder = "Item name";
+        name.placeholder = "Item";
 
         const kcal = document.createElement("input");
         kcal.type = "number";
@@ -1675,10 +1443,11 @@
       }
 
       saveEntries(state.entries);
-      refreshDash();
-      refreshAddKPIs();
       toast("Saved.");
       closeEditModal();
+
+      // if you edited a different day, keep selection; refresh all views
+      refreshAll();
     }
 
     function deleteEditedEntry(){
@@ -1687,10 +1456,9 @@
       if (idx < 0) return;
       state.entries.splice(idx, 1);
       saveEntries(state.entries);
-      refreshDash();
-      refreshAddKPIs();
       toast("Deleted.");
       closeEditModal();
+      refreshAll();
     }
 
     /***********************
@@ -1726,7 +1494,7 @@
         }
         const obj = parsed.value;
         if (!obj || typeof obj !== "object" || !Array.isArray(obj.entries)){
-          toast("Import file missing entries[].");
+          toast("Import missing entries[].");
           return;
         }
 
@@ -1746,59 +1514,34 @@
 
         saveEntries(state.entries);
         saveSettings(state.settings);
-
-        // Reset to today view on import (predictable)
-        chartEndDate = dateAtNoonLocal(new Date());
-        selectedDayYMD = null;
-        recentAnchorYMD = ymdFromDateLocal(new Date());
-        recentDaysShown = 1;
-
         applyGoalUI();
-        refreshDash();
-        refreshAddKPIs();
+        resetRecentToToday();
+        refreshAll();
         toast(`Imported ${added}.`);
       };
       reader.readAsText(file);
     }
 
     /***********************
-     * Safety helpers
+     * Settings Modal
      ***********************/
-    function escapeHTML(s){
-      return String(s).replace(/[&<>"']/g, ch => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      }[ch]));
+    function openSettings(){
+      // avoid stacking modals
+      if (document.getElementById("modalOverlay").classList.contains("show")) return;
+
+      const overlay = document.getElementById("settingsOverlay");
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden","false");
+      lockBody();
     }
 
-    /***********************
-     * Wire up UI
-     ***********************/
-    document.getElementById("btnGoAdd").addEventListener("click", () => {
-      location.hash = "#add";
-      routeFromHash();
-    });
-    document.getElementById("btnGoView").addEventListener("click", () => {
-      location.hash = "#view";
-      routeFromHash();
-      refreshDash();
-    });
+    function closeSettings(){
+      const overlay = document.getElementById("settingsOverlay");
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden","true");
+      unlockBody();
+    }
 
-    document.getElementById("btnCancelToDashboard").addEventListener("click", () => {
-      location.hash = "#view";
-      routeFromHash();
-      refreshDash();
-    });
-
-    document.getElementById("btnPasteClipboard").addEventListener("click", pasteFromClipboard);
-    document.getElementById("btnAddEntry").addEventListener("click", handleAdd);
-    document.getElementById("btnClear").addEventListener("click", () => {
-      document.getElementById("jsonInput").value = "";
-      document.getElementById("addStatus").textContent = "";
-      toast("Cleared.");
-      document.getElementById("jsonInput").focus({ preventScroll: true });
-    });
-
-    // Goal toggle
     function toggleGoal(){
       state.settings.goalEnabled = !state.settings.goalEnabled;
       if (state.settings.goalEnabled && (!state.settings.goalKcal || !isFinite(Number(state.settings.goalKcal)))){
@@ -1806,9 +1549,71 @@
       }
       saveSettings(state.settings);
       applyGoalUI();
+      refreshAll();
       toast(state.settings.goalEnabled ? "Goal on." : "Goal off.");
     }
 
+    /***********************
+     * Wire up UI
+     ***********************/
+    document.getElementById("btnToggleAdd").addEventListener("click", () => {
+      setAddOpen(!ui.addOpen);
+    });
+
+    document.getElementById("btnPasteClipboard").addEventListener("click", pasteFromClipboard);
+    document.getElementById("btnAddEntry").addEventListener("click", handleAdd);
+
+    document.getElementById("btnCancelAdd").addEventListener("click", () => {
+      setAddOpen(false);
+    });
+
+    document.getElementById("btnClearInput").addEventListener("click", () => {
+      document.getElementById("jsonInput").value = "";
+      toast("Cleared.");
+      document.getElementById("jsonInput").focus({ preventScroll: true });
+    });
+
+    // Chart window nav
+    document.getElementById("btnPrev7").addEventListener("click", () => {
+      ui.chartOffsetDays += 7;
+      renderChart();
+    });
+    document.getElementById("btnNext7").addEventListener("click", () => {
+      ui.chartOffsetDays -= 7;
+      renderChart();
+    });
+    document.getElementById("btnTodayView").addEventListener("click", () => {
+      ui.chartOffsetDays = 0;
+      resetRecentToToday();
+      renderChart();
+      renderEntries();
+    });
+
+    // See more (today only): adds prior days one day at a time
+    document.getElementById("btnSeeMore").addEventListener("click", () => {
+      const today = todayYmd();
+      if (ui.selectedDay !== today) return;
+
+      const oldest = ui.recentLoadedDays[ui.recentLoadedDays.length - 1];
+      const prev = addDaysYmd(oldest, -1);
+
+      // Always add the prior day to the set (even if empty), but stop at min entry day
+      const minYmd = minEntryYmd(state.entries);
+      if (minYmd && prev < minYmd) return;
+
+      ui.recentLoadedDays.push(prev);
+      renderEntries();
+    });
+
+    // Settings button
+    document.getElementById("btnOpenSettings").addEventListener("click", openSettings);
+    document.getElementById("btnCloseSettings").addEventListener("click", closeSettings);
+    document.getElementById("btnDoneSettings").addEventListener("click", closeSettings);
+    document.getElementById("settingsOverlay").addEventListener("click", (ev) => {
+      if (ev.target.id === "settingsOverlay") closeSettings();
+    });
+
+    // Goal toggle (settings)
     const goalSwitch = document.getElementById("goalSwitch");
     goalSwitch.addEventListener("click", toggleGoal);
     goalSwitch.addEventListener("keydown", (ev) => {
@@ -1826,12 +1631,10 @@
         state.settings.goalKcal = Math.round(v);
       }
       saveSettings(state.settings);
-      refreshHeaderPills();
-      refreshAddKPIs();
-      refreshDash();
+      refreshAll();
     });
 
-    // Dashboard buttons
+    // Export / Import (settings)
     document.getElementById("btnExport").addEventListener("click", exportData);
     document.getElementById("btnImport").addEventListener("click", () => {
       document.getElementById("importFile").click();
@@ -1843,48 +1646,18 @@
       ev.target.value = "";
     });
 
+    // Clear all (settings)
     document.getElementById("btnClearAll").addEventListener("click", () => {
-      const ok = confirm("Clear all entries from this device? This cannot be undone.");
+      const ok = confirm("Clear all entries? This cannot be undone.");
       if (!ok) return;
       state.entries = [];
       saveEntries(state.entries);
-
-      // Reset to today view
-      chartEndDate = dateAtNoonLocal(new Date());
-      selectedDayYMD = null;
-      recentAnchorYMD = ymdFromDateLocal(new Date());
-      recentDaysShown = 1;
-
-      refreshDash();
-      refreshAddKPIs();
-      toast("Cleared all.");
+      resetRecentToToday();
+      refreshAll();
+      toast("Cleared.");
     });
 
-    // See more (adds one prior calendar day)
-    document.getElementById("btnSeeMore").addEventListener("click", () => {
-      recentDaysShown = clamp(recentDaysShown + 1, 1, 60);
-      refreshDash();
-    });
-
-    // Chart navigation
-    document.getElementById("btnChartPrev").addEventListener("click", () => {
-      chartEndDate = addDaysLocal(chartEndDate, -7);
-      refreshDash();
-    });
-    document.getElementById("btnChartNext").addEventListener("click", () => {
-      chartEndDate = addDaysLocal(chartEndDate, +7);
-      refreshDash();
-    });
-    document.getElementById("btnChartToday").addEventListener("click", () => {
-      chartEndDate = dateAtNoonLocal(new Date());
-      selectedDayYMD = null;
-      recentAnchorYMD = ymdFromDateLocal(new Date());
-      recentDaysShown = 1;
-      refreshDash();
-      toast("Today view");
-    });
-
-    // Modal controls
+    // Edit modal controls
     document.getElementById("btnCloseModal").addEventListener("click", closeEditModal);
     document.getElementById("modalOverlay").addEventListener("click", (ev) => {
       if (ev.target.id === "modalOverlay") closeEditModal();
@@ -1898,8 +1671,8 @@
 
     document.getElementById("btnAddItem").addEventListener("click", () => {
       const box = document.getElementById("itemsEditor");
-      const helper = box.querySelector(".help");
-      if (helper) helper.remove();
+      const helper = box.querySelector("div");
+      if (helper && helper.textContent === "—") helper.remove();
 
       const row = document.createElement("div");
       row.className = "itemrow";
@@ -1907,7 +1680,7 @@
 
       const name = document.createElement("input");
       name.type = "text";
-      name.placeholder = "Item name";
+      name.placeholder = "Item";
 
       const kcal = document.createElement("input");
       kcal.type = "number";
@@ -1926,31 +1699,16 @@
       row.appendChild(kcal);
       row.appendChild(del);
       box.appendChild(row);
-
       name.focus({ preventScroll: false });
     });
 
-    // Hash routing
-    window.addEventListener("hashchange", routeFromHash);
-
-    // Init
+    /***********************
+     * Init
+     ***********************/
     (function init(){
-      if (!location.hash) location.hash = "#add";
-      routeFromHash();
-
       applyGoalUI();
-
-      refreshHeaderPills();
-      refreshAddKPIs();
-
-      // Always start dashboard list in "today only" mode unless user already picked a day in this session
-      chartEndDate = dateAtNoonLocal(new Date());
-      selectedDayYMD = null;
-      recentAnchorYMD = ymdFromDateLocal(new Date());
-      recentDaysShown = 1;
-
-      refreshDash();
-      if ((location.hash||"").toLowerCase().includes("view")) refreshDash();
+      refreshAll();
+      setAddOpen(false);
     })();
   </script>
 </body>
