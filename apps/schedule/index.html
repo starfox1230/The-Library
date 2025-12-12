@@ -1,3 +1,9 @@
+New info from E (not on the calendar images you sent earlier):
+	•	E is off (vacation) Jan 6–9 (Tue–Fri).
+	•	E requested academic half day on Dec 24 PM.
+
+Updated webapp HTML (only change is adding these events to the events array in defaultData):
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -465,10 +471,6 @@
 (() => {
   const STORAGE_KEY = "rotationScheduleData.v1";
 
-  // ------------------------------------------------------------
-  // Default data
-  // Names are last-name initials (S -> 2 letters): Sc, Sh
-  // ------------------------------------------------------------
   const defaultData = {
     meta: {
       title: "Rotation Roles",
@@ -486,7 +488,6 @@
       { name: "Sh", role: "" }
     ],
 
-    // Global closures (everyone off)
     closedDates: [
       { date: "2025-12-25", label: "Holiday (closed)", source: "manual" },
       { date: "2025-12-26", label: "Holiday (closed)", source: "manual" },
@@ -494,11 +495,7 @@
       { date: "2026-01-02", label: "Holiday (closed)", source: "manual" }
     ],
 
-    // Availability exceptions / notes
-    // segment: AM | PM | ALL | NOTE | TBD
-    // type: VAC | AWAY | SICK | ADMIN | APPT | NOTE
     events: [
-      // From calendar
       { person: "Sc", date: "2025-12-22", segment: "PM",  type: "SICK",  label: "Sick",     status: "confirmed", source: "calendar" },
       { person: "P",  date: "2025-12-24", segment: "ALL", type: "VAC",   label: "Vacation", status: "confirmed", source: "calendar" },
 
@@ -508,16 +505,13 @@
       { person: "J",  date: "2025-12-25", segment: "ALL", type: "AWAY",  label: "Away",     status: "confirmed", source: "calendar" },
       { person: "J",  date: "2025-12-26", segment: "ALL", type: "VAC",   label: "Vacation", status: "confirmed", source: "calendar" },
 
-      // Notes
       { person: "J",  date: "2025-12-17", segment: "NOTE", type: "NOTE", label: "2nd Call Short Weekday", status: "confirmed", source: "calendar" },
       { person: "Sh", date: "2025-12-23", segment: "NOTE", type: "NOTE", label: "2nd Call Short Weekday", status: "confirmed", source: "calendar" },
       { person: "E",  date: "2026-01-05", segment: "NOTE", type: "NOTE", label: "2nd Call Short Weekday", status: "confirmed", source: "calendar" },
       { person: "P",  date: "2026-01-02", segment: "NOTE", type: "NOTE", label: "1st Call Short Week",    status: "confirmed", source: "calendar" },
 
-      // Weekend note (only informational; editor still shows it)
       { person: "Sh", date: "2025-12-21", segment: "ALL", type: "NOTE", label: "Baylor Shift", status: "confirmed", source: "calendar" },
 
-      // From emails
       { person: "R",  date: "2025-12-29", segment: "ALL", type: "VAC", label: "Vacation", status: "confirmed", source: "email" },
       { person: "R",  date: "2025-12-30", segment: "ALL", type: "VAC", label: "Vacation", status: "confirmed", source: "email" },
       { person: "R",  date: "2025-12-31", segment: "ALL", type: "VAC", label: "Vacation", status: "confirmed", source: "email" },
@@ -530,16 +524,19 @@
       { person: "Sh", date: "2025-12-22", segment: "AM", type: "APPT",  label: "Doctor appt", status: "confirmed", source: "email" },
       { person: "Sh", date: "2025-12-24", segment: "AM", type: "ADMIN", label: "Half admin",  status: "requested", source: "email" },
 
-      { person: "Sh", date: null, segment: "TBD", type: "APPT", label: "Dentist appt (not finalized)", status: "tentative", source: "email" }
+      { person: "Sh", date: null, segment: "TBD", type: "APPT", label: "Dentist appt (not finalized)", status: "tentative", source: "email" },
+
+      /* NEW FROM E (email) */
+      { person: "E",  date: "2025-12-24", segment: "PM",  type: "NOTE", label: "Academic half day", status: "requested", source: "email" },
+      { person: "E",  date: "2026-01-06", segment: "ALL", type: "VAC",  label: "Vacation", status: "confirmed", source: "email" },
+      { person: "E",  date: "2026-01-07", segment: "ALL", type: "VAC",  label: "Vacation", status: "confirmed", source: "email" },
+      { person: "E",  date: "2026-01-08", segment: "ALL", type: "VAC",  label: "Vacation", status: "confirmed", source: "email" },
+      { person: "E",  date: "2026-01-09", segment: "ALL", type: "VAC",  label: "Vacation", status: "confirmed", source: "email" }
     ],
 
-    // Role plan overrides (filled/edited by you). If missing for a date, the app auto-fills.
     rolePlan: {}
   };
 
-  // ----------------------------
-  // Dates (UTC-safe)
-  // ----------------------------
   const DAY = 24 * 60 * 60 * 1000;
   const dowNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   const weekdays = ["Mon","Tue","Wed","Thu","Fri"];
@@ -566,15 +563,11 @@
     return `Week of ${a} – ${b}, ${y}`;
   }
 
-  // ----------------------------
-  // Load/save
-  // ----------------------------
   function loadData(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
       if(!raw) return structuredClone(defaultData);
       const parsed = JSON.parse(raw);
-      // merge minimally so new keys exist
       return {
         ...structuredClone(defaultData),
         ...parsed,
@@ -592,9 +585,6 @@
 
   let data = loadData();
 
-  // ----------------------------
-  // Helpers: availability
-  // ----------------------------
   const ABSENT_TYPES = new Set(["VAC","AWAY","SICK"]);
   const NOTE_TYPES = new Set(["NOTE","ADMIN","APPT","SICK"]);
 
@@ -624,7 +614,6 @@
     const absent = new Set();
     for(const p of allPeople()){
       const evs = eventsForPersonDate(p, iso);
-      // full-day absences
       for(const e of evs){
         if(e.segment === "ALL" && ABSENT_TYPES.has(e.type)){
           absent.add(p);
@@ -652,11 +641,6 @@
     return { closed, absent: [...absent], present, notes };
   }
 
-  // ----------------------------
-  // Auto role assignment
-  // Goal: Sc on IR. Maximize J + Sh as Float when possible.
-  // Week-based defaults: Fluoro=P, MSK=R, US=E when available.
-  // ----------------------------
   const ROLE_ORDER = ["IR","Fluoro","MSK","US"];
   const ROLE_COLORS = {
     IR: "var(--r-ir)",
@@ -685,25 +669,21 @@
     };
 
     if(closed){
-      // no assignments needed
       return { ...base, closed: true, closedLabel: closed };
     }
 
     const presentSet = new Set(present);
     const used = new Set();
 
-    // lock IR to Sc when possible
     if(presentSet.has("Sc")){
       base.roles.IR = "Sc";
       used.add("Sc");
     }
 
-    // primary pool for core roles
-    const corePool = ["P","R","E"];              // prefer these for Fluoro/MSK/US
-    const floatPref = ["Sh","J"];                // prefer to keep these floating
-    const fallback = present.filter(p => !floatPref.includes(p)); // non-float fallback
+    const corePool = ["P","R","E"];
+    const floatPref = ["Sh","J"];
+    const fallback = present.filter(p => !floatPref.includes(p));
 
-    // if IR not assigned (Sc absent), pick from core first, then non-float, then floatPref
     if(!base.roles.IR){
       const pick = pickFirst(corePool.filter(p=>presentSet.has(p)), used)
         || pickFirst(fallback.filter(p=>presentSet.has(p)), used)
@@ -713,7 +693,6 @@
       if(pick) used.add(pick);
     }
 
-    // week-style defaults (if present)
     const desired = { Fluoro:"P", MSK:"R", US:"E" };
     for(const role of ["Fluoro","MSK","US"]){
       const want = desired[role];
@@ -723,7 +702,6 @@
       }
     }
 
-    // fill any missing core roles, using remaining present; try to avoid Sh/J if possible
     for(const role of ["Fluoro","MSK","US"]){
       if(base.roles[role]) continue;
 
@@ -737,9 +715,7 @@
       if(pick) used.add(pick);
     }
 
-    // everyone else present -> Float
     base.Float = present.filter(p => !used.has(p)).sort((a,b)=>{
-      // keep Sh/J first visually
       const w = (x)=> (x==="Sh"||x==="J") ? 0 : 1;
       return w(a)-w(b) || a.localeCompare(b);
     });
@@ -748,10 +724,8 @@
   }
 
   function getPlanForDate(iso){
-    // rolePlan stores overrides ONLY (what you saved); if none, auto.
     const saved = data.rolePlan?.[iso];
     if(saved){
-      // normalize
       return {
         date: iso,
         roles: { IR: saved.roles?.IR || null, Fluoro: saved.roles?.Fluoro || null, MSK: saved.roles?.MSK || null, US: saved.roles?.US || null },
@@ -770,9 +744,6 @@
     saveData(data);
   }
 
-  // ----------------------------
-  // Week navigation
-  // ----------------------------
   let weekIndex = 0;
   function currentWeekStart(){
     const list = data.meta.weekStarts || [];
@@ -789,9 +760,6 @@
     return out;
   }
 
-  // ----------------------------
-  // UI elements
-  // ----------------------------
   const elWeekLabel = document.getElementById("weekLabel");
   const elRangeLabel = document.getElementById("rangeLabel");
   const elWeekGrid = document.getElementById("weekGrid");
@@ -839,7 +807,6 @@
       `;
       const headerRight = avail.closed ? `<div class="badgeClosed">Closed</div>` : "";
 
-      // Slots
       const roleLine = (role, person) => {
         const color = ROLE_COLORS[role];
         const value = person ? `<div class="slotValue">${esc(person)}</div>` : `<div class="slotValue muted">—</div>`;
@@ -864,7 +831,6 @@
         `;
       };
 
-      // Compact availability notes (only show if exists)
       const noteChips = (avail.notes || []).length
         ? `<div class="slot" style="justify-content:flex-start; gap:8px;">
              <div class="slotLeft">${pill("var(--c-note)")}<div class="slotLabel">Notes</div></div>
@@ -895,7 +861,6 @@
 
     elWeekGrid.innerHTML = html;
 
-    // click handlers
     document.querySelectorAll(".dayCard").forEach(card => {
       card.addEventListener("click", () => {
         const { iso } = JSON.parse(decodeURIComponent(card.dataset.payload));
@@ -904,9 +869,6 @@
     });
   }
 
-  // ----------------------------
-  // Auto-fill week / clear week
-  // ----------------------------
   document.getElementById("autoWeek").addEventListener("click", () => {
     const ws = currentWeekStart();
     const dates = weekDates(ws);
@@ -927,9 +889,6 @@
     render();
   });
 
-  // ----------------------------
-  // Week navigation
-  // ----------------------------
   document.getElementById("prevWeek").addEventListener("click", () => {
     weekIndex = Math.max(0, weekIndex - 1);
     render();
@@ -948,9 +907,6 @@
     }
   });
 
-  // ----------------------------
-  // Day editor modal
-  // ----------------------------
   const dayBackdrop = document.getElementById("dayBackdrop");
   const dayTitle = document.getElementById("dayTitle");
   const dayNotes = document.getElementById("dayNotes");
@@ -1002,8 +958,6 @@
 
     const avail = availabilitySummary(iso);
     const plan = structuredClone(getPlanForDate(iso));
-
-    // if closed, keep editor read-only-ish but still editable
     editingPlan = plan;
 
     dayTitle.textContent = `Edit • ${formatDateLong(iso)}`;
@@ -1026,7 +980,6 @@
     toggleMulti(fFloat, people, floatSet);
     toggleMulti(fAbsent, people, absentSet);
 
-    // notes panel
     const notes = avail.notes || [];
     const closed = avail.closed;
     const absent = avail.absent || [];
@@ -1059,7 +1012,6 @@
           else if(!presentSet.has(roleVals[r])) issues.push(`${r} assigned to ${roleVals[r]} but they are marked absent.`);
         }
 
-        // duplicates
         const used = {};
         for(const [r,p] of Object.entries(roleVals)){
           if(!p) continue;
@@ -1073,7 +1025,6 @@
       dayWarnings.textContent = issues.length ? issues.join(" ") : "No issues detected.";
     }
 
-    // track changes
     const syncFromUI = () => {
       const floatNow = [...fFloat.querySelectorAll(".miniBtn.on")].map(b => b.textContent);
       const absentNow = [...fAbsent.querySelectorAll(".miniBtn.on")].map(b => b.textContent);
@@ -1088,7 +1039,6 @@
     };
 
     [fIR,fFluoro,fMSK,fUS].forEach(sel => sel.addEventListener("change", () => { syncFromUI(); recomputeWarnings(); }));
-    // multi buttons already re-render; recompute via click capture
     dayBackdrop.addEventListener("click", (e) => {
       if(e.target.classList && e.target.classList.contains("miniBtn")){
         setTimeout(() => { syncFromUI(); recomputeWarnings(); }, 0);
@@ -1107,13 +1057,11 @@
   document.getElementById("autoDay").addEventListener("click", () => {
     if(!editingISO) return;
     editingPlan = autoAssignForDate(editingISO);
-    // re-open to refresh UI
     openDayEditor(editingISO);
   });
 
   document.getElementById("clearDay").addEventListener("click", () => {
     if(!editingISO) return;
-    // remove override
     if(data.rolePlan && data.rolePlan[editingISO]) delete data.rolePlan[editingISO];
     saveData(data);
     dayBackdrop.style.display = "none";
@@ -1127,7 +1075,6 @@
     render();
   });
 
-  // ESC closes modals
   window.addEventListener("keydown", (e) => {
     if(e.key !== "Escape") return;
     if(dayBackdrop.style.display === "flex") dayBackdrop.style.display = "none";
@@ -1135,9 +1082,6 @@
     if(exportBackdrop.style.display === "flex") exportBackdrop.style.display = "none";
   });
 
-  // ----------------------------
-  // JSON editor modal
-  // ----------------------------
   const editorBackdrop = document.getElementById("editorBackdrop");
   const jsonEditor = document.getElementById("jsonEditor");
   const editorMsg = document.getElementById("editorMsg");
@@ -1192,9 +1136,6 @@
     }
   });
 
-  // ----------------------------
-  // Export modal
-  // ----------------------------
   const exportBackdrop = document.getElementById("exportBackdrop");
   const exportMenuBtn = document.getElementById("exportMenuBtn");
   const closeExportBtn = document.getElementById("closeExport");
@@ -1278,9 +1219,6 @@
     downloadFile("rotation_expanded_weekdays.json", JSON.stringify(expandedRows(), null, 2), "application/json");
   });
 
-  // ----------------------------
-  // Initial render
-  // ----------------------------
   render();
 })();
 </script>
