@@ -351,7 +351,7 @@
       width:100%;
       border-collapse:separate;
       border-spacing:0;
-      min-width: 760px;
+      min-width: 640px;
       font-size:12px;
     }
     th, td{
@@ -442,7 +442,7 @@
       </div>
       <div class="modalBody">
         <div class="small" style="margin-bottom:10px;">
-          Counts are in <b>half-days</b>; “Days” is half-days ÷ 2.
+          Counts are in <b>days</b> (0.5 = half-day).
         </div>
         <div class="tableWrap">
           <table id="statsTable"></table>
@@ -571,7 +571,7 @@
 
 <script>
 (() => {
-  const STORAGE_KEY = "rotationScheduleData.v3_ampm_scroll_stats";
+  const STORAGE_KEY = "rotationScheduleData.v4_balanced_daysOnlyStats";
 
   const defaultData = {
     meta: {
@@ -597,7 +597,6 @@
       { date: "2026-01-02", label: "Holiday (closed)" }
     ],
 
-    /* Base absences (segment is AM, PM, or ALL). Types are intentionally not tracked. */
     absences: [
       { person: "Sc", date: "2025-12-22", segment: "PM", source: "calendar" },
 
@@ -752,89 +751,6 @@
     return null;
   }
 
-  function autoAssignHalf(iso, half){
-    const avail = availabilitySummary(iso);
-    if(avail.closed){
-      return {
-        roles: { IR:null, Fluoro:null, MSK:null, US:null },
-        Float: [],
-        Absent: allPeople().slice().sort()
-      };
-    }
-
-    const present = avail.byHalf[half].present;
-    const absent = avail.byHalf[half].absent;
-
-    const presentSet = new Set(present);
-    const used = new Set();
-
-    const plan = {
-      roles: { IR:null, Fluoro:null, MSK:null, US:null },
-      Float: [],
-      Absent: absent.slice()
-    };
-
-    // IR rule:
-    // - If Sc present -> Sc
-    // - Else -> E, then Sh, then J (first available)
-    if(presentSet.has("Sc")){
-      plan.roles.IR = "Sc";
-      used.add("Sc");
-    } else {
-      const irFallback = pickFirst(["E","Sh","J"].filter(p=>presentSet.has(p)), used);
-      if(irFallback){
-        plan.roles.IR = irFallback;
-        used.add(irFallback);
-      } else {
-        const any = pickFirst(present, used);
-        plan.roles.IR = any;
-        if(any) used.add(any);
-      }
-    }
-
-    // Prefer to keep Sh/J floating by assigning P/R/E to Fluoro/MSK/US when possible
-    const floatPref = ["Sh","J"];
-    const desired = { Fluoro:"P", MSK:"R", US:"E" };
-
-    for(const role of ["Fluoro","MSK","US"]){
-      const want = desired[role];
-      if(want && presentSet.has(want) && !used.has(want)){
-        plan.roles[role] = want;
-        used.add(want);
-      }
-    }
-
-    for(const role of ["Fluoro","MSK","US"]){
-      if(plan.roles[role]) continue;
-
-      const nonFloat = present.filter(p => !floatPref.includes(p) && !used.has(p));
-      const pick =
-        pickFirst(nonFloat, used) ||
-        pickFirst(floatPref.filter(p=>presentSet.has(p)), used) ||
-        pickFirst(present, used);
-
-      plan.roles[role] = pick;
-      if(pick) used.add(pick);
-    }
-
-    plan.Float = present.filter(p => !used.has(p)).sort((a,b)=>{
-      const w = (x)=> (x==="Sh"||x==="J") ? 0 : 1;
-      return w(a)-w(b) || a.localeCompare(b);
-    });
-
-    return plan;
-  }
-
-  function autoAssignForDate(iso){
-    const avail = availabilitySummary(iso);
-    return {
-      closed: !!avail.closed,
-      closedLabel: avail.closed || null,
-      AM: autoAssignHalf(iso, "AM"),
-      PM: autoAssignHalf(iso, "PM")
-    };
-  }
-
   function normalizeDayPlan(plan){
     const normHalf = (h) => {
       const roles = h?.roles || {};
@@ -869,6 +785,177 @@
     saveData(data);
   }
 
+  function rangeDatesWeekdays(){
+    const start = parseISO(data.meta.rangeStart);
+    const end = parseISO(data.meta.rangeEnd);
+    const out = [];
+    for(let t = start.getTime(); t <= end.getTime(); t += DAY){
+      const iso = isoDate(new Date(t));
+      if(weekdays.includes(dayName(iso))) out.push(iso);
+    }
+    return out;
+  }
+
+  // -------------------------
+  // BALANCING LOGIC (NEW)
+  // -------------------------
+  function initRoleCountsDays(){
+    const counts = {};
+    for(const p of allPeople()){
+      counts[p] = { IR:0, Fluoro:0, MSK:0, US:0, Float:0, Absent:0 };
+    }
+    return counts;
+  }
+
+  function applyHalfToCounts(counts, iso, half, planForIso){
+    const avail = availabilitySummary(iso);
+    if(avail.closed) return;
+
+    const rolesHalf = (half==="AM" ? planForIso.AM.roles : planForIso.PM.roles);
+    const floatHalf = (half==="AM" ? planForIso.AM.Float : planForIso.PM.Float) || [];
+    const absentHalf = (avail.byHalf[half].absent || []);
+
+    for(const [role, person] of Object.entries(rolesHalf)){
+      if(person && counts[person]) counts[person][role] += 0.5;
+    }
+    for(const p of floatHalf){
+      if(counts[p]) counts[p].Float += 0.5;
+    }
+    for(const p of absentHalf){
+      if(counts[p]) counts[p].Absent += 0.5;
+    }
+  }
+
+  function computeCountsSoFarDays(excludeISO=null){
+    const counts = initRoleCountsDays();
+    const dates = rangeDatesWeekdays().slice().sort();
+    for(const iso of dates){
+      if(excludeISO && iso === excludeISO) continue;
+      const plan = normalizeDayPlan(data.rolePlan?.[iso] || autoAssignForDate(iso));
+      applyHalfToCounts(counts, iso, "AM", plan);
+      applyHalfToCounts(counts, iso, "PM", plan);
+    }
+    return counts;
+  }
+
+  function scoreForNonIRCandidate(counts, person, role){
+    // balance Fluoro/MSK/US across non-Sc people; keep J/Sh floating if possible
+    const r = role;
+    const roleDays = counts[person][r] || 0;
+    const totalNonIR = (counts[person].Fluoro||0) + (counts[person].MSK||0) + (counts[person].US||0);
+    // role-weight slightly higher to prevent “15 days of Fluoro”
+    return (roleDays * 3) + (totalNonIR * 1);
+  }
+
+  function pickBalancedCandidate(counts, candidates, role){
+    let best = null;
+    let bestScore = Infinity;
+    for(const p of candidates){
+      const s = scoreForNonIRCandidate(counts, p, role);
+      if(s < bestScore || (s === bestScore && p.localeCompare(best) < 0)){
+        best = p; bestScore = s;
+      }
+    }
+    return best;
+  }
+
+  function autoAssignHalfBalanced(iso, half, counts){
+    const avail = availabilitySummary(iso);
+    if(avail.closed){
+      return {
+        roles: { IR:null, Fluoro:null, MSK:null, US:null },
+        Float: [],
+        Absent: allPeople().slice().sort()
+      };
+    }
+
+    const present = avail.byHalf[half].present;
+    const absent = avail.byHalf[half].absent;
+    const presentSet = new Set(present);
+    const used = new Set();
+
+    const plan = {
+      roles: { IR:null, Fluoro:null, MSK:null, US:null },
+      Float: [],
+      Absent: absent.slice()
+    };
+
+    // IR rule: Sc if present; else E -> Sh -> J -> anyone
+    if(presentSet.has("Sc")){
+      plan.roles.IR = "Sc";
+      used.add("Sc");
+    } else {
+      const fallback = pickFirst(["E","Sh","J"].filter(p=>presentSet.has(p)), used) || pickFirst(present, used);
+      plan.roles.IR = fallback || null;
+      if(fallback) used.add(fallback);
+    }
+
+    // Non-IR roles: try to balance across everyone except Sc; keep J/Sh floating unless needed
+    const primaryPool = present.filter(p => p !== "Sc" && p !== "J" && p !== "Sh" && !used.has(p));
+    const secondaryPool = present.filter(p => (p === "J" || p === "Sh") && !used.has(p));
+    const lastResortPool = present.filter(p => p === "Sc" && !used.has(p));
+
+    for(const role of ["Fluoro","MSK","US"]){
+      let pick = null;
+
+      if(primaryPool.length){
+        pick = pickBalancedCandidate(counts, primaryPool, role);
+      } else if(secondaryPool.length){
+        pick = pickBalancedCandidate(counts, secondaryPool, role);
+      } else if(lastResortPool.length){
+        pick = lastResortPool[0];
+      } else {
+        pick = pickFirst(present, used);
+      }
+
+      plan.roles[role] = pick || null;
+      if(pick){
+        used.add(pick);
+        // remove from pools
+        for(const arr of [primaryPool, secondaryPool, lastResortPool]){
+          const idx = arr.indexOf(pick);
+          if(idx >= 0) arr.splice(idx,1);
+        }
+        // update counts immediately for better within-day balancing
+        if(counts[pick]) counts[pick][role] += 0.5;
+      }
+    }
+
+    plan.Float = present
+      .filter(p => !used.has(p))
+      .sort((a,b)=>{
+        const w = (x)=> (x==="Sh"||x==="J") ? 0 : 1;
+        return w(a)-w(b) || a.localeCompare(b);
+      });
+
+    // track float for within-week balancing (not required, but keeps stats accurate)
+    for(const p of plan.Float){
+      if(counts[p]) counts[p].Float += 0.5;
+    }
+    for(const p of plan.Absent){
+      if(counts[p]) counts[p].Absent += 0.5;
+    }
+    if(plan.roles.IR && counts[plan.roles.IR]) counts[plan.roles.IR].IR += 0.5;
+
+    return plan;
+  }
+
+  function autoAssignForDate(iso, countsOverride=null){
+    const avail = availabilitySummary(iso);
+    const counts = countsOverride || computeCountsSoFarDays(iso); // exclude this day by default
+    if(avail.closed){
+      return {
+        closed: true,
+        closedLabel: avail.closed,
+        AM: { roles:{IR:null,Fluoro:null,MSK:null,US:null}, Float:[], Absent: allPeople().slice().sort() },
+        PM: { roles:{IR:null,Fluoro:null,MSK:null,US:null}, Float:[], Absent: allPeople().slice().sort() }
+      };
+    }
+    const AM = autoAssignHalfBalanced(iso, "AM", counts);
+    const PM = autoAssignHalfBalanced(iso, "PM", counts);
+    return { closed:false, closedLabel:null, AM, PM };
+  }
+
   function esc(s){
     return String(s)
       .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
@@ -890,14 +977,18 @@
     return list.map(p => `<span class="chip">${esc(p)}</span>`).join("");
   }
 
-  // modal helpers (locks background scroll)
+  // modal helpers
+  const statsBackdrop = document.getElementById("statsBackdrop");
+  const exportBackdrop = document.getElementById("exportBackdrop");
+  const editorBackdrop = document.getElementById("editorBackdrop");
+  const dayBackdrop = document.getElementById("dayBackdrop");
+
   function openModal(backdrop){
     backdrop.style.display = "flex";
     document.body.classList.add("modalOpen");
   }
   function closeModal(backdrop){
     backdrop.style.display = "none";
-    // if no other modals open, unlock
     const anyOpen =
       statsBackdrop.style.display === "flex" ||
       exportBackdrop.style.display === "flex" ||
@@ -1014,11 +1105,34 @@
     });
   }
 
+  // Auto-fill week: balance using counts across already-scheduled days + progresses within week
   document.getElementById("autoWeek").addEventListener("click", () => {
     const ws = currentWeekStart();
     const dates = weekDates(ws);
+
+    // counts from everything except the days we’re about to re-fill
+    const counts = computeCountsSoFarDays(null);
     for(const iso of dates){
-      setPlanForDate(iso, autoAssignForDate(iso));
+      // remove any existing entries for these dates from counts by recomputing cleaner:
+      // simplest reliable behavior: rebuild counts excluding this whole week, then fill in order
+    }
+    const datesSet = new Set(dates);
+    const cleanCounts = initRoleCountsDays();
+    const allDates = rangeDatesWeekdays().slice().sort();
+    for(const iso of allDates){
+      if(datesSet.has(iso)) continue;
+      const plan = normalizeDayPlan(data.rolePlan?.[iso] || autoAssignForDate(iso));
+      applyHalfToCounts(cleanCounts, iso, "AM", plan);
+      applyHalfToCounts(cleanCounts, iso, "PM", plan);
+    }
+
+    // now fill the week sequentially, updating counts as we assign
+    for(const iso of dates){
+      const plan = autoAssignForDate(iso, cleanCounts);
+      setPlanForDate(iso, plan);
+      // counts already updated inside autoAssignHalfBalanced, but ensure consistency:
+      applyHalfToCounts(cleanCounts, iso, "AM", plan);
+      applyHalfToCounts(cleanCounts, iso, "PM", plan);
     }
     render();
   });
@@ -1058,7 +1172,6 @@
   });
 
   // Day editor
-  const dayBackdrop = document.getElementById("dayBackdrop");
   const dayTitle = document.getElementById("dayTitle");
   const dayWarnings = document.getElementById("dayWarnings");
 
@@ -1085,7 +1198,7 @@
 
   let editingISO = null;
   let editingPlan = null;
-  let editingOverrides = null; // { person: {AM:boolean, PM:boolean} }
+  let editingOverrides = null;
 
   function setSelectOptions(sel, people){
     sel.innerHTML = "";
@@ -1141,7 +1254,6 @@
   function effectiveAbsentUsingEditing(iso, half){
     const closed = closedLabelForDate(iso);
     if(closed) return new Set(allPeople());
-
     const base = baseAbsentForHalf(iso, half);
     for(const p of Object.keys(editingOverrides || {})){
       if(editingOverrides[p]?.[half]) base.add(p);
@@ -1177,7 +1289,6 @@
       dayWarnings.textContent = "Day is closed. Assignments are optional.";
       return;
     }
-
     const issues = [];
     for(const half of HALVES){
       const presentSet = new Set(presentUsingEditing(editingISO, half));
@@ -1267,9 +1378,11 @@
   document.getElementById("closeDay").addEventListener("click", () => closeModal(dayBackdrop));
   dayBackdrop.addEventListener("click", (e) => { if(e.target === dayBackdrop) closeModal(dayBackdrop); });
 
+  // Auto-fill day uses balanced counts excluding this day
   document.getElementById("autoDay").addEventListener("click", () => {
     if(!editingISO) return;
-    editingPlan = autoAssignForDate(editingISO);
+    const counts = computeCountsSoFarDays(editingISO);
+    editingPlan = autoAssignForDate(editingISO, counts);
     openDayEditor(editingISO);
   });
 
@@ -1303,14 +1416,8 @@
   });
 
   // JSON editor
-  const editorBackdrop = document.getElementById("editorBackdrop");
   const jsonEditor = document.getElementById("jsonEditor");
   const editorMsg = document.getElementById("editorMsg");
-  const openEditorBtn = document.getElementById("openEditor");
-  const closeEditorBtn = document.getElementById("closeEditor");
-  const saveChangesBtn = document.getElementById("saveChanges");
-  const discardChangesBtn = document.getElementById("discardChanges");
-  const resetDataBtn = document.getElementById("resetData");
 
   let editorOriginal = "";
 
@@ -1322,16 +1429,16 @@
     jsonEditor.focus();
   }
 
-  openEditorBtn.addEventListener("click", openEditorModal);
-  closeEditorBtn.addEventListener("click", () => closeModal(editorBackdrop));
+  document.getElementById("openEditor").addEventListener("click", openEditorModal);
+  document.getElementById("closeEditor").addEventListener("click", () => closeModal(editorBackdrop));
   editorBackdrop.addEventListener("click", (e) => { if(e.target === editorBackdrop) closeModal(editorBackdrop); });
 
-  discardChangesBtn.addEventListener("click", () => {
+  document.getElementById("discardChanges").addEventListener("click", () => {
     jsonEditor.value = editorOriginal;
     editorMsg.textContent = "Discarded changes (not saved).";
   });
 
-  resetDataBtn.addEventListener("click", () => {
+  document.getElementById("resetData").addEventListener("click", () => {
     data = structuredCloneSafe(defaultData);
     saveData(data);
     editorOriginal = JSON.stringify(data, null, 2);
@@ -1340,7 +1447,7 @@
     render();
   });
 
-  saveChangesBtn.addEventListener("click", () => {
+  document.getElementById("saveChanges").addEventListener("click", () => {
     try{
       const parsed = JSON.parse(jsonEditor.value);
       if(!parsed.meta || !parsed.people || !parsed.absences || !parsed.closedDates){
@@ -1359,15 +1466,8 @@
   });
 
   // Export
-  const exportBackdrop = document.getElementById("exportBackdrop");
-  const exportMenuBtn = document.getElementById("exportMenuBtn");
-  const closeExportBtn = document.getElementById("closeExport");
-  const exportConfigJsonBtn = document.getElementById("exportConfigJson");
-  const exportExpandedCsvBtn = document.getElementById("exportExpandedCsv");
-  const exportExpandedJsonBtn = document.getElementById("exportExpandedJson");
-
-  exportMenuBtn.addEventListener("click", () => openModal(exportBackdrop));
-  closeExportBtn.addEventListener("click", () => closeModal(exportBackdrop));
+  document.getElementById("exportMenuBtn").addEventListener("click", () => openModal(exportBackdrop));
+  document.getElementById("closeExport").addEventListener("click", () => closeModal(exportBackdrop));
   exportBackdrop.addEventListener("click", (e) => { if(e.target === exportBackdrop) closeModal(exportBackdrop); });
 
   function downloadFile(filename, content, mime){
@@ -1382,20 +1482,9 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  exportConfigJsonBtn.addEventListener("click", () => {
+  document.getElementById("exportConfigJson").addEventListener("click", () => {
     downloadFile("rotation_config_ampm.json", JSON.stringify(data, null, 2), "application/json");
   });
-
-  function rangeDatesWeekdays(){
-    const start = parseISO(data.meta.rangeStart);
-    const end = parseISO(data.meta.rangeEnd);
-    const out = [];
-    for(let t = start.getTime(); t <= end.getTime(); t += DAY){
-      const iso = isoDate(new Date(t));
-      if(weekdays.includes(dayName(iso))) out.push(iso);
-    }
-    return out;
-  }
 
   function expandedRows(){
     const dates = rangeDatesWeekdays();
@@ -1446,59 +1535,28 @@
     return lines.join("\n");
   }
 
-  exportExpandedCsvBtn.addEventListener("click", () => {
+  document.getElementById("exportExpandedCsv").addEventListener("click", () => {
     downloadFile("rotation_expanded_weekdays_ampm.csv", toCSV(expandedRows()), "text/csv");
   });
 
-  exportExpandedJsonBtn.addEventListener("click", () => {
+  document.getElementById("exportExpandedJson").addEventListener("click", () => {
     downloadFile("rotation_expanded_weekdays_ampm.json", JSON.stringify(expandedRows(), null, 2), "application/json");
   });
 
-  // Stats
-  const statsBackdrop = document.getElementById("statsBackdrop");
-  const openStatsBtn = document.getElementById("openStats");
-  const closeStatsBtn = document.getElementById("closeStats");
-  const refreshStatsBtn = document.getElementById("refreshStats");
+  // Stats (DAYS ONLY)
   const statsTable = document.getElementById("statsTable");
 
-  function computeStats(){
-    const people = allPeople();
-    const roles = ["IR","Fluoro","MSK","US","Float","Absent"];
+  function computeStatsDays(){
+    const counts = initRoleCountsDays();
+    const dates = rangeDatesWeekdays().slice().sort();
 
-    const counts = {};
-    for(const p of people){
-      counts[p] = {};
-      for(const r of roles) counts[p][r] = 0;
-    }
-
-    const dates = rangeDatesWeekdays();
     for(const iso of dates){
-      const avail = availabilitySummary(iso);
-      if(avail.closed) continue;
-
       const plan = getPlanForDate(iso);
-
-      for(const half of HALVES){
-        const rolesHalf = (half==="AM" ? plan.AM.roles : plan.PM.roles);
-        const floatHalf = (half==="AM" ? plan.AM.Float : plan.PM.Float) || [];
-        const absentHalf = avail.byHalf[half].absent || [];
-
-        // Assigned roles
-        for(const [role, person] of Object.entries(rolesHalf)){
-          if(person && counts[person]) counts[person][role] += 1; // half-day
-        }
-        // Float membership
-        for(const p of floatHalf){
-          if(counts[p]) counts[p].Float += 1;
-        }
-        // Absent
-        for(const p of absentHalf){
-          if(counts[p]) counts[p].Absent += 1;
-        }
-      }
+      applyHalfToCounts(counts, iso, "AM", plan);
+      applyHalfToCounts(counts, iso, "PM", plan);
     }
 
-    return { counts, roles, people };
+    return { counts, roles: ["IR","Fluoro","MSK","US","Float","Absent"], people: allPeople() };
   }
 
   function roleHeader(role){
@@ -1515,32 +1573,29 @@
   }
 
   function renderStats(){
-    const { counts, roles, people } = computeStats();
-
-    const cols = ["Person", ...roles.map(r => r + "_HALF"), ...roles.map(r => r + "_DAYS")];
+    const { counts, roles, people } = computeStatsDays();
 
     const th = `
       <thead>
         <tr>
           <th>Person</th>
-          ${roles.map(r => `<th>${roleHeader(r)}<div class="mutedCell" style="font-weight:800;margin-top:2px;">Half-days</div></th>`).join("")}
           ${roles.map(r => `<th>${roleHeader(r)}<div class="mutedCell" style="font-weight:800;margin-top:2px;">Days</div></th>`).join("")}
         </tr>
       </thead>
     `;
 
+    const fmt = (x) => (Math.round(x*10)/10).toFixed(1); // 0.5 increments show cleanly
     const tdRow = (p) => {
-      const halfCells = roles.map(r => `<td class="num">${counts[p][r]}</td>`).join("");
-      const dayCells  = roles.map(r => `<td class="num mutedCell">${(counts[p][r]/2).toFixed(1)}</td>`).join("");
-      return `<tr><td><b>${p}</b></td>${halfCells}${dayCells}</tr>`;
+      const cells = roles.map(r => `<td class="num">${fmt(counts[p][r] || 0)}</td>`).join("");
+      return `<tr><td><b>${p}</b></td>${cells}</tr>`;
     };
 
     statsTable.innerHTML = th + `<tbody>${people.map(tdRow).join("")}</tbody>`;
   }
 
-  openStatsBtn.addEventListener("click", () => { renderStats(); openModal(statsBackdrop); });
-  refreshStatsBtn.addEventListener("click", () => renderStats());
-  closeStatsBtn.addEventListener("click", () => closeModal(statsBackdrop));
+  document.getElementById("openStats").addEventListener("click", () => { renderStats(); openModal(statsBackdrop); });
+  document.getElementById("refreshStats").addEventListener("click", () => renderStats());
+  document.getElementById("closeStats").addEventListener("click", () => closeModal(statsBackdrop));
   statsBackdrop.addEventListener("click", (e) => { if(e.target === statsBackdrop) closeModal(statsBackdrop); });
 
   // Init
