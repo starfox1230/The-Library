@@ -36,6 +36,7 @@
         radial-gradient(1000px 700px at 70% 90%, rgba(34,197,94,.10), transparent 55%),
         linear-gradient(180deg, var(--bg0), var(--bg1));
     }
+    body.modalOpen{ overflow:hidden; }
 
     .app{max-width:1280px;margin:18px auto 28px;padding:0 14px;}
 
@@ -193,7 +194,7 @@
     .slotValue.muted{color: rgba(233,238,252,.55); font-weight: 750;}
 
     .halfChip{
-      display:inline-flex;align-items:center;gap:6px;
+      display:inline-flex;align-items:center;gap:8px;
       padding: 6px 8px;border-radius: 999px;
       font-size: 11px;font-weight: 900;letter-spacing:.2px;
       border: 1px solid rgba(255,255,255,.12);
@@ -202,12 +203,13 @@
     }
     .halfChip .k{
       display:inline-flex;align-items:center;justify-content:center;
-      width:18px;height:18px;border-radius:999px;
+      width:28px;height:18px;border-radius:999px;
       border:1px solid rgba(255,255,255,.14);
       background: rgba(0,0,0,.12);
       font-size: 10px;
       color: rgba(233,238,252,.85);
       font-weight: 950;
+      letter-spacing:.6px;
     }
 
     .chip{
@@ -225,23 +227,34 @@
       background: rgba(0,0,0,.55);
       display:none; align-items:center; justify-content:center;
       z-index: 50; padding: 16px;
+      overscroll-behavior: contain;
     }
     .modal{
       width: min(1020px, 100%);
+      max-height: calc(100vh - 32px);
       border-radius: 22px;
       background: rgba(15,22,48,.92);
       border: 1px solid rgba(255,255,255,.12);
       box-shadow: 0 26px 80px rgba(0,0,0,.55);
       overflow:hidden;
+      display:flex;
+      flex-direction:column;
     }
     .modalHeader{
       padding: 12px 14px;
       display:flex;align-items:center;justify-content:space-between;gap:12px;
       border-bottom: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.03);
+      flex: 0 0 auto;
     }
     .modalHeader .h{font-weight: 900; font-size: 13px; letter-spacing:.2px;}
-    .modalBody{padding: 12px 14px 14px;}
+    .modalBody{
+      padding: 12px 14px 14px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      flex: 1 1 auto;
+    }
 
     textarea.json{
       width: 100%;
@@ -327,6 +340,42 @@
     .halfHeader .t{font-size:12px;font-weight:950;letter-spacing:.2px;color:rgba(233,238,252,.90);}
     .halfHeader .p{font-size:12px;color:var(--muted);}
 
+    /* stats table */
+    .tableWrap{
+      overflow:auto;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      background: rgba(0,0,0,.10);
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      min-width: 760px;
+      font-size:12px;
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      text-align:right;
+      white-space:nowrap;
+    }
+    th:first-child, td:first-child{ text-align:left; position:sticky; left:0; background: rgba(15,22,48,.92); }
+    thead th{
+      position:sticky; top:0;
+      background: rgba(15,22,48,.96);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      z-index:2;
+      font-weight:950;
+      color: rgba(233,238,252,.92);
+    }
+    tbody tr:hover td{ background: rgba(255,255,255,.03); }
+    .num{ font-variant-numeric: tabular-nums; }
+    .mutedCell{ color: rgba(233,238,252,.62); }
+    .roleHdr{
+      display:inline-flex;align-items:center;gap:6px;
+    }
+    .roleDot{ width:9px;height:9px;border-radius:99px; box-shadow:0 0 0 3px rgba(255,255,255,.06); }
   </style>
 </head>
 <body>
@@ -349,6 +398,7 @@
           <button class="btn" id="autoWeek">Auto-fill week</button>
           <button class="btn danger" id="clearWeek">Clear week</button>
 
+          <button class="btn" id="openStats">Stats</button>
           <button class="btn primary" id="exportMenuBtn">Export</button>
           <button class="btn" id="openEditor">Edit data</button>
         </div>
@@ -377,6 +427,27 @@
       </div>
 
       <div class="weekGrid" id="weekGrid"></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="modalBackdrop" id="statsBackdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modalHeader">
+        <div class="h">Stats (auto-calculated from current calendar)</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+          <button class="btn" id="refreshStats">Refresh</button>
+          <button class="btn" id="closeStats">Close</button>
+        </div>
+      </div>
+      <div class="modalBody">
+        <div class="small" style="margin-bottom:10px;">
+          Counts are in <b>half-days</b>; “Days” is half-days ÷ 2.
+        </div>
+        <div class="tableWrap">
+          <table id="statsTable"></table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -476,7 +547,7 @@
 
           <div class="card">
             <h3>AM / PM absences (edit)</h3>
-            <div class="small">Toggle a person absent for AM and/or PM. This updates <b>availabilityOverrides</b> for the day (does not delete your base absences).</div>
+            <div class="small">Toggle a person absent for AM and/or PM. This updates <b>availabilityOverrides</b> for the day.</div>
             <div class="hr"></div>
 
             <div class="small" style="margin-bottom:6px;"><b>AM</b></div>
@@ -490,7 +561,7 @@
             <div class="hr"></div>
             <div class="small" id="overrideStatus"></div>
             <div class="small" style="margin-top:8px;">
-              Tip: Closures (holiday) override everything. For closures, assignments are optional.
+              Tip: Closures (holiday) override everything.
             </div>
           </div>
         </div>
@@ -500,7 +571,7 @@
 
 <script>
 (() => {
-  const STORAGE_KEY = "rotationScheduleData.v2_ampm";
+  const STORAGE_KEY = "rotationScheduleData.v3_ampm_scroll_stats";
 
   const defaultData = {
     meta: {
@@ -528,7 +599,6 @@
 
     /* Base absences (segment is AM, PM, or ALL). Types are intentionally not tracked. */
     absences: [
-      /* From calendar / messages */
       { person: "Sc", date: "2025-12-22", segment: "PM", source: "calendar" },
 
       { person: "P",  date: "2025-12-24", segment: "ALL", source: "calendar" },
@@ -555,17 +625,11 @@
       { person: "E",  date: "2026-01-08", segment: "ALL", source: "email" },
       { person: "E",  date: "2026-01-09", segment: "ALL", source: "email" },
 
-      /* R academic half day on Jan 6: not specified AM/PM in message, defaulting to PM (edit in overrides if needed) */
+      /* R academic half day on Jan 6: not specified AM/PM in message, defaulting to PM */
       { person: "R",  date: "2026-01-06", segment: "PM", source: "email" }
     ],
 
-    /* Overrides you set in the day editor. Shape:
-       availabilityOverrides: { "YYYY-MM-DD": { "Person": { AM: true/false, PM: true/false } } }
-       where true means absent that half.
-    */
     availabilityOverrides: {},
-
-    /* rolePlan: { "YYYY-MM-DD": { AM:{roles:{...}, Float:[]}, PM:{...}, closed?:bool, closedLabel?:string } } */
     rolePlan: {}
   };
 
@@ -661,8 +725,6 @@
     if(closed) return new Set(allPeople());
     const base = baseAbsentForHalf(iso, half);
     const over = overrideAbsentForHalf(iso, half);
-    // Overrides add absences; you can also "un-absent" by clearing override and editing base in JSON if needed.
-    // (Keeping it simple: overrides only add.)
     for(const p of over) base.add(p);
     return base;
   }
@@ -712,28 +774,28 @@
       Absent: absent.slice()
     };
 
-    // Default IR = Sc if present
+    // IR rule:
+    // - If Sc present -> Sc
+    // - Else -> E, then Sh, then J (first available)
     if(presentSet.has("Sc")){
       plan.roles.IR = "Sc";
       used.add("Sc");
+    } else {
+      const irFallback = pickFirst(["E","Sh","J"].filter(p=>presentSet.has(p)), used);
+      if(irFallback){
+        plan.roles.IR = irFallback;
+        used.add(irFallback);
+      } else {
+        const any = pickFirst(present, used);
+        plan.roles.IR = any;
+        if(any) used.add(any);
+      }
     }
 
-    const corePool = ["P","R","E"];
+    // Prefer to keep Sh/J floating by assigning P/R/E to Fluoro/MSK/US when possible
     const floatPref = ["Sh","J"];
-    const fallback = present.filter(p => !floatPref.includes(p));
-
-    if(!plan.roles.IR){
-      const pick =
-        pickFirst(corePool.filter(p=>presentSet.has(p)), used) ||
-        pickFirst(fallback.filter(p=>presentSet.has(p)), used) ||
-        pickFirst(floatPref.filter(p=>presentSet.has(p)), used) ||
-        pickFirst(present, used);
-      plan.roles.IR = pick;
-      if(pick) used.add(pick);
-    }
-
-    // Prefer to keep Sh/J floating by assigning P/R/E to Fluoro/MSK/US when present
     const desired = { Fluoro:"P", MSK:"R", US:"E" };
+
     for(const role of ["Fluoro","MSK","US"]){
       const want = desired[role];
       if(want && presentSet.has(want) && !used.has(want)){
@@ -765,17 +827,15 @@
 
   function autoAssignForDate(iso){
     const avail = availabilitySummary(iso);
-    const out = {
+    return {
       closed: !!avail.closed,
       closedLabel: avail.closed || null,
       AM: autoAssignHalf(iso, "AM"),
       PM: autoAssignHalf(iso, "PM")
     };
-    return out;
   }
 
   function normalizeDayPlan(plan){
-    // Ensure required keys exist and values are consistent
     const normHalf = (h) => {
       const roles = h?.roles || {};
       return {
@@ -819,15 +879,31 @@
     return `<span class="slotPill" style="background:${color}"></span>`;
   }
 
-  function halfValueChip(k, v){
+  function halfValueChip(label, v){
     const value = v ? esc(v) : "—";
     const muted = v ? "" : " style=\"opacity:.65\"";
-    return `<span class="halfChip"${muted}><span class="k">${esc(k)}</span>${value}</span>`;
+    return `<span class="halfChip"${muted}><span class="k">${esc(label)}</span>${value}</span>`;
   }
 
   function listChips(list){
     if(!list || !list.length) return `<span class="slotValue muted">—</span>`;
     return list.map(p => `<span class="chip">${esc(p)}</span>`).join("");
+  }
+
+  // modal helpers (locks background scroll)
+  function openModal(backdrop){
+    backdrop.style.display = "flex";
+    document.body.classList.add("modalOpen");
+  }
+  function closeModal(backdrop){
+    backdrop.style.display = "none";
+    // if no other modals open, unlock
+    const anyOpen =
+      statsBackdrop.style.display === "flex" ||
+      exportBackdrop.style.display === "flex" ||
+      editorBackdrop.style.display === "flex" ||
+      dayBackdrop.style.display === "flex";
+    if(!anyOpen) document.body.classList.remove("modalOpen");
   }
 
   let weekIndex = 0;
@@ -842,7 +918,7 @@
     const out = [];
     for(let i=0;i<7;i++){
       const iso = isoDate(addDays(start, i));
-      if(weekdays.includes(dayName(iso))) out.push(iso);
+      if(["Mon","Tue","Wed","Thu","Fri"].includes(dayName(iso))) out.push(iso);
     }
     return out;
   }
@@ -871,7 +947,7 @@
       const headerLeft = `
         <div>
           <div class="d1">${esc(dayName(iso))}</div>
-          <div class="d2">${esc(formatDateLong(iso).replace(/^[A-Za-z]{3},\s/,""))}</div>
+          <div class="d2">${esc(formatDateLong(iso).replace(/^[A-Za-z]{3},\\s/,""))}</div>
         </div>
       `;
       const headerRight = avail.closed ? `<div class="badgeClosed">Closed</div>` : "";
@@ -884,7 +960,7 @@
         const same = am && pm && am === pm;
         const value = same
           ? `<div class="slotValue">${esc(am)}</div>`
-          : `<div class="slotValueWrap">${halfValueChip("A", am)}${halfValueChip("P", pm)}</div>`;
+          : `<div class="slotValueWrap">${halfValueChip("AM", am)}${halfValueChip("PM", pm)}</div>`;
 
         return `
           <div class="slot">
@@ -898,7 +974,7 @@
         const same = JSON.stringify(amList||[]) === JSON.stringify(pmList||[]);
         const value = same
           ? `<div class="slotValueWrap">${listChips(amList)}</div>`
-          : `<div class="slotValueWrap">${halfValueChip("A", (amList||[]).join(" ") || null)}${halfValueChip("P", (pmList||[]).join(" ") || null)}</div>`;
+          : `<div class="slotValueWrap">${halfValueChip("AM", (amList||[]).join(" ") || null)}${halfValueChip("PM", (pmList||[]).join(" ") || null)}</div>`;
 
         return `
           <div class="slot">
@@ -974,9 +1050,10 @@
       render();
     }
     if(e.key === "Escape"){
-      if(dayBackdrop.style.display === "flex") dayBackdrop.style.display = "none";
-      if(editorBackdrop.style.display === "flex") editorBackdrop.style.display = "none";
-      if(exportBackdrop.style.display === "flex") exportBackdrop.style.display = "none";
+      if(dayBackdrop.style.display === "flex") closeModal(dayBackdrop);
+      if(editorBackdrop.style.display === "flex") closeModal(editorBackdrop);
+      if(exportBackdrop.style.display === "flex") closeModal(exportBackdrop);
+      if(statsBackdrop.style.display === "flex") closeModal(statsBackdrop);
     }
   });
 
@@ -1066,11 +1143,9 @@
     if(closed) return new Set(allPeople());
 
     const base = baseAbsentForHalf(iso, half);
-    const over = new Set();
     for(const p of Object.keys(editingOverrides || {})){
-      if(editingOverrides[p]?.[half]) over.add(p);
+      if(editingOverrides[p]?.[half]) base.add(p);
     }
-    for(const p of over) base.add(p);
     return base;
   }
 
@@ -1096,21 +1171,46 @@
     overrideStatus.textContent = hasAny ? "Overrides will be saved for this day." : "No overrides currently set for this day.";
   }
 
+  function recomputeWarnings(){
+    const closed = !!closedLabelForDate(editingISO);
+    if(closed){
+      dayWarnings.textContent = "Day is closed. Assignments are optional.";
+      return;
+    }
+
+    const issues = [];
+    for(const half of HALVES){
+      const presentSet = new Set(presentUsingEditing(editingISO, half));
+      const roles = (half==="AM" ? editingPlan.AM.roles : editingPlan.PM.roles);
+
+      for(const [roleKey, person] of Object.entries(roles)){
+        if(!person) issues.push(`${half}: ${roleKey} is unassigned.`);
+        else if(!presentSet.has(person)) issues.push(`${half}: ${roleKey} assigned to ${person} but they are absent ${half}.`);
+      }
+
+      const used = {};
+      for(const [r,p] of Object.entries(roles)){
+        if(!p) continue;
+        used[p] = used[p] ? [...used[p], r] : [r];
+      }
+      for(const [p,rs] of Object.entries(used)){
+        if(rs.length > 1) issues.push(`${half}: ${p} assigned to multiple roles (${rs.join(", ")}).`);
+      }
+    }
+
+    dayWarnings.textContent = issues.length ? issues.join(" ") : "No issues detected.";
+  }
+
   function openDayEditor(iso){
     editingISO = iso;
 
     const people = allPeople();
-    const avail = availabilitySummary(iso);
-    const closed = !!avail.closed;
-
     editingPlan = structuredCloneSafe(getPlanForDate(iso));
-    // Start overrides from stored overrides for day, or empty.
     const existing = data.availabilityOverrides?.[iso] ? structuredCloneSafe(data.availabilityOverrides[iso]) : {};
     editingOverrides = existing;
 
     dayTitle.textContent = `Edit • ${formatDateLong(iso)}`;
 
-    // Selects
     [amIR,amFluoro,amMSK,amUS,pmIR,pmFluoro,pmMSK,pmUS].forEach(sel => setSelectOptions(sel, people));
 
     amIR.value = editingPlan.AM.roles.IR || "";
@@ -1123,7 +1223,6 @@
     pmMSK.value = editingPlan.PM.roles.MSK || "";
     pmUS.value = editingPlan.PM.roles.US || "";
 
-    // Multi-select lists
     const amFloatSet = new Set(editingPlan.AM.Float || []);
     const amAbsentSet = new Set(editingPlan.AM.Absent || []);
     toggleMulti(amFloat, people, amFloatSet);
@@ -1134,7 +1233,6 @@
     toggleMulti(pmFloat, people, pmFloatSet);
     toggleMulti(pmAbsent, people, pmAbsentSet);
 
-    // Absence toggles (overrides)
     renderAbsenceToggles("AM", absToggleAM);
     renderAbsenceToggles("PM", absTogglePM);
 
@@ -1147,35 +1245,6 @@
 
       editingPlan.PM.Float = [...pmFloat.querySelectorAll(".miniBtn.on")].map(b=>b.textContent);
       editingPlan.PM.Absent = [...pmAbsent.querySelectorAll(".miniBtn.on")].map(b=>b.textContent);
-    }
-
-    function recomputeWarnings(){
-      if(closed){
-        dayWarnings.textContent = "Day is closed. Assignments are optional.";
-        return;
-      }
-
-      const issues = [];
-      for(const half of HALVES){
-        const presentSet = new Set(presentUsingEditing(iso, half));
-        const roles = (half==="AM" ? editingPlan.AM.roles : editingPlan.PM.roles);
-
-        for(const [roleKey, person] of Object.entries(roles)){
-          if(!person) issues.push(`${half}: ${roleKey} is unassigned.`);
-          else if(!presentSet.has(person)) issues.push(`${half}: ${roleKey} assigned to ${person} but they are absent ${half}.`);
-        }
-
-        const used = {};
-        for(const [r,p] of Object.entries(roles)){
-          if(!p) continue;
-          used[p] = used[p] ? [...used[p], r] : [r];
-        }
-        for(const [p,rs] of Object.entries(used)){
-          if(rs.length > 1) issues.push(`${half}: ${p} assigned to multiple roles (${rs.join(", ")}).`);
-        }
-      }
-
-      dayWarnings.textContent = issues.length ? issues.join(" ") : "No issues detected.";
     }
 
     [amIR,amFluoro,amMSK,amUS,pmIR,pmFluoro,pmMSK,pmUS].forEach(sel => {
@@ -1192,16 +1261,15 @@
     updatePresenceLabels();
     recomputeWarnings();
 
-    dayBackdrop.style.display = "flex";
+    openModal(dayBackdrop);
   }
 
-  document.getElementById("closeDay").addEventListener("click", () => dayBackdrop.style.display = "none");
-  dayBackdrop.addEventListener("click", (e) => { if(e.target === dayBackdrop) dayBackdrop.style.display = "none"; });
+  document.getElementById("closeDay").addEventListener("click", () => closeModal(dayBackdrop));
+  dayBackdrop.addEventListener("click", (e) => { if(e.target === dayBackdrop) closeModal(dayBackdrop); });
 
   document.getElementById("autoDay").addEventListener("click", () => {
     if(!editingISO) return;
     editingPlan = autoAssignForDate(editingISO);
-    // keep overrides as-is
     openDayEditor(editingISO);
   });
 
@@ -1210,17 +1278,15 @@
     if(data.rolePlan && data.rolePlan[editingISO]) delete data.rolePlan[editingISO];
     if(data.availabilityOverrides && data.availabilityOverrides[editingISO]) delete data.availabilityOverrides[editingISO];
     saveData(data);
-    dayBackdrop.style.display = "none";
+    closeModal(dayBackdrop);
     render();
   });
 
   document.getElementById("saveDay").addEventListener("click", () => {
     if(!editingISO || !editingPlan) return;
 
-    // Save role plan
     setPlanForDate(editingISO, editingPlan);
 
-    // Save overrides (only if any toggles on)
     const cleaned = {};
     for(const p of Object.keys(editingOverrides || {})){
       const v = editingOverrides[p] || {};
@@ -1232,7 +1298,7 @@
 
     saveData(data);
 
-    dayBackdrop.style.display = "none";
+    closeModal(dayBackdrop);
     render();
   });
 
@@ -1252,13 +1318,13 @@
     editorOriginal = JSON.stringify(data, null, 2);
     jsonEditor.value = editorOriginal;
     editorMsg.textContent = "Edits are stored in this browser (local storage).";
-    editorBackdrop.style.display = "flex";
+    openModal(editorBackdrop);
     jsonEditor.focus();
   }
 
   openEditorBtn.addEventListener("click", openEditorModal);
-  closeEditorBtn.addEventListener("click", () => editorBackdrop.style.display = "none");
-  editorBackdrop.addEventListener("click", (e) => { if(e.target === editorBackdrop) editorBackdrop.style.display = "none"; });
+  closeEditorBtn.addEventListener("click", () => closeModal(editorBackdrop));
+  editorBackdrop.addEventListener("click", (e) => { if(e.target === editorBackdrop) closeModal(editorBackdrop); });
 
   discardChangesBtn.addEventListener("click", () => {
     jsonEditor.value = editorOriginal;
@@ -1300,9 +1366,9 @@
   const exportExpandedCsvBtn = document.getElementById("exportExpandedCsv");
   const exportExpandedJsonBtn = document.getElementById("exportExpandedJson");
 
-  exportMenuBtn.addEventListener("click", () => exportBackdrop.style.display = "flex");
-  closeExportBtn.addEventListener("click", () => exportBackdrop.style.display = "none");
-  exportBackdrop.addEventListener("click", (e) => { if(e.target === exportBackdrop) exportBackdrop.style.display = "none"; });
+  exportMenuBtn.addEventListener("click", () => openModal(exportBackdrop));
+  closeExportBtn.addEventListener("click", () => closeModal(exportBackdrop));
+  exportBackdrop.addEventListener("click", (e) => { if(e.target === exportBackdrop) closeModal(exportBackdrop); });
 
   function downloadFile(filename, content, mime){
     const blob = new Blob([content], {type: mime});
@@ -1387,6 +1453,95 @@
   exportExpandedJsonBtn.addEventListener("click", () => {
     downloadFile("rotation_expanded_weekdays_ampm.json", JSON.stringify(expandedRows(), null, 2), "application/json");
   });
+
+  // Stats
+  const statsBackdrop = document.getElementById("statsBackdrop");
+  const openStatsBtn = document.getElementById("openStats");
+  const closeStatsBtn = document.getElementById("closeStats");
+  const refreshStatsBtn = document.getElementById("refreshStats");
+  const statsTable = document.getElementById("statsTable");
+
+  function computeStats(){
+    const people = allPeople();
+    const roles = ["IR","Fluoro","MSK","US","Float","Absent"];
+
+    const counts = {};
+    for(const p of people){
+      counts[p] = {};
+      for(const r of roles) counts[p][r] = 0;
+    }
+
+    const dates = rangeDatesWeekdays();
+    for(const iso of dates){
+      const avail = availabilitySummary(iso);
+      if(avail.closed) continue;
+
+      const plan = getPlanForDate(iso);
+
+      for(const half of HALVES){
+        const rolesHalf = (half==="AM" ? plan.AM.roles : plan.PM.roles);
+        const floatHalf = (half==="AM" ? plan.AM.Float : plan.PM.Float) || [];
+        const absentHalf = avail.byHalf[half].absent || [];
+
+        // Assigned roles
+        for(const [role, person] of Object.entries(rolesHalf)){
+          if(person && counts[person]) counts[person][role] += 1; // half-day
+        }
+        // Float membership
+        for(const p of floatHalf){
+          if(counts[p]) counts[p].Float += 1;
+        }
+        // Absent
+        for(const p of absentHalf){
+          if(counts[p]) counts[p].Absent += 1;
+        }
+      }
+    }
+
+    return { counts, roles, people };
+  }
+
+  function roleHeader(role){
+    const map = {
+      IR:   { label:"IR", color:"var(--r-ir)" },
+      Fluoro:{ label:"Fluoro", color:"var(--r-fluoro)" },
+      MSK:  { label:"MSK", color:"var(--r-msk)" },
+      US:   { label:"US", color:"var(--r-us)" },
+      Float:{ label:"Float", color:"var(--r-float)" },
+      Absent:{ label:"Absent", color:"var(--r-absent)" }
+    };
+    const x = map[role] || {label:role, color:"rgba(255,255,255,.35)"};
+    return `<span class="roleHdr"><span class="roleDot" style="background:${x.color}"></span>${x.label}</span>`;
+  }
+
+  function renderStats(){
+    const { counts, roles, people } = computeStats();
+
+    const cols = ["Person", ...roles.map(r => r + "_HALF"), ...roles.map(r => r + "_DAYS")];
+
+    const th = `
+      <thead>
+        <tr>
+          <th>Person</th>
+          ${roles.map(r => `<th>${roleHeader(r)}<div class="mutedCell" style="font-weight:800;margin-top:2px;">Half-days</div></th>`).join("")}
+          ${roles.map(r => `<th>${roleHeader(r)}<div class="mutedCell" style="font-weight:800;margin-top:2px;">Days</div></th>`).join("")}
+        </tr>
+      </thead>
+    `;
+
+    const tdRow = (p) => {
+      const halfCells = roles.map(r => `<td class="num">${counts[p][r]}</td>`).join("");
+      const dayCells  = roles.map(r => `<td class="num mutedCell">${(counts[p][r]/2).toFixed(1)}</td>`).join("");
+      return `<tr><td><b>${p}</b></td>${halfCells}${dayCells}</tr>`;
+    };
+
+    statsTable.innerHTML = th + `<tbody>${people.map(tdRow).join("")}</tbody>`;
+  }
+
+  openStatsBtn.addEventListener("click", () => { renderStats(); openModal(statsBackdrop); });
+  refreshStatsBtn.addEventListener("click", () => renderStats());
+  closeStatsBtn.addEventListener("click", () => closeModal(statsBackdrop));
+  statsBackdrop.addEventListener("click", (e) => { if(e.target === statsBackdrop) closeModal(statsBackdrop); });
 
   // Init
   render();
