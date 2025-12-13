@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Rotation Scheduler (Phone)</title>
+  <title>Rotation Scheduler (Calendar Grid)</title>
   <style>
     :root{
       --bg:#0b1020;
@@ -54,8 +54,7 @@
     }
 
     .wrap{
-      max-width: 880px;
-      margin: 0 auto;
+      width: 100%;
       padding: 14px 12px 18px;
     }
 
@@ -65,6 +64,10 @@
       background:var(--panel);
       box-shadow: var(--shadow);
       overflow:hidden;
+      margin-bottom: 20px;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .topHead{
@@ -184,7 +187,7 @@
     .tableWrap{
       overflow:auto;
       -webkit-overflow-scrolling:touch;
-      max-height: 38vh;
+      max-height: 25vh;
     }
     table{ width:100%; border-collapse:collapse; min-width: 820px; }
     th, td{
@@ -216,60 +219,74 @@
       min-width: 320px;
       white-space: normal;
     }
-    td.warn{
-      color: rgba(255,255,255,.92);
-      font-weight: 950;
-    }
-    td.warn .pill{
-      display:inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(239,68,68,.45);
-      background: rgba(239,68,68,.12);
-      font-size: 11px;
-      font-weight: 950;
-    }
-    tr:last-child td{ border-bottom:none; }
 
+    /* GRID SCROLL CONTAINER */
+    .gridScroll {
+      overflow-x: auto;
+      padding-bottom: 20px;
+      /* Smooth scrolling */
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* THE GRID ITSELF */
     .main{
-      margin-top: 12px;
       display:grid;
+      /* 5 Columns (Mon-Fri) */
+      grid-template-columns: repeat(5, 1fr);
       gap: 12px;
+      /* Force width so it doesn't crush on mobile */
+      min-width: 1500px; 
+    }
+
+    /* COLUMN HEADERS */
+    .colHead {
+      text-align: center;
+      font-weight: 950;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
     }
 
     .dayCard{
       border: 1px solid var(--border);
       background: var(--panel2);
-      border-radius: 18px;
+      border-radius: 12px;
       box-shadow: var(--shadow);
       overflow:hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
     .dayCard.issue{
       outline: 3px solid var(--danger);
-      outline-offset: 2px;
+      outline-offset: -1px;
       box-shadow: 0 18px 65px rgba(239,68,68,.10);
     }
 
     .dayTop{
-      padding: 10px 12px;
+      padding: 8px 10px;
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
-      gap:10px;
+      gap:8px;
       border-bottom:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.18);
     }
-    .dateBlock .dow{ font-weight: 950; font-size: 13px; letter-spacing:.2px; }
-    .dateBlock .md{ margin-top: 2px; font-size: 12px; color: var(--muted); font-weight: 850; }
+    .dateBlock .dow{ display:none; } /* Hide DoW in card since we have headers */
+    .dateBlock .md{ font-size: 13px; color: var(--text); font-weight: 900; }
 
-    .badges{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .badges{ display:flex; gap:4px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
 
     .badge{
-      padding: 6px 8px;
+      padding: 4px 6px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.06);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 950;
       letter-spacing: .2px;
       white-space:nowrap;
@@ -281,76 +298,75 @@
     .badge.locked{ border-color: rgba(148,163,184,.35); background: rgba(148,163,184,.10); }
 
     .dayBody{
-      padding: 10px 12px 12px;
+      padding: 8px;
       display:grid;
-      gap: 10px;
+      gap: 8px;
+      flex: 1;
     }
 
     .half{
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.12);
-      border-radius: 16px;
+      border-radius: 8px;
       overflow:hidden;
     }
     .halfHead{
-      padding: 9px 10px;
+      padding: 6px 8px;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap: 10px;
+      gap: 5px;
       border-bottom:1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.03);
     }
     .halfHead .label{
       font-weight: 950;
-      font-size: 12px;
-      letter-spacing: .8px;
+      font-size: 11px;
+      letter-spacing: .5px;
       text-transform: uppercase;
       color: rgba(255,255,255,.86);
     }
     .halfHead .abs{
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 850;
       color: var(--muted);
       text-align:right;
-      line-height: 1.25;
+      line-height: 1.1;
+      max-width: 120px;
     }
 
     .roles{
-      padding: 10px 10px 10px;
+      padding: 6px;
       display:grid;
-      gap: 8px;
+      gap: 5px;
     }
 
     .roleRow{
-      border-radius: 14px;
+      border-radius: 6px;
       border: 1px solid rgba(255,255,255,.10);
       overflow:hidden;
     }
     .roleRow.missing{
       outline: 2px solid var(--danger);
-      outline-offset: 2px;
+      outline-offset: 1px;
       background: var(--danger2);
     }
 
     .roleBar{
-      padding: 8px 9px;
+      padding: 4px 6px;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap: 8px;
+      gap: 4px;
       font-weight: 950;
-      letter-spacing: .9px;
+      letter-spacing: .5px;
       text-transform: uppercase;
-      font-size: 11px;
+      font-size: 10px;
     }
     .roleBar .right{
       display:flex;
-      gap:8px;
+      gap:4px;
       align-items:center;
-      text-transform:none;
-      letter-spacing:.2px;
-      font-weight:900;
     }
 
     .miniBtn{
@@ -359,39 +375,39 @@
       background: rgba(0,0,0,.18);
       color: rgba(255,255,255,.92);
       font-weight: 950;
-      font-size: 11px;
-      padding: 6px 8px;
-      border-radius: 10px;
+      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 6px;
       cursor:pointer;
       user-select:none;
       touch-action: manipulation;
     }
 
     .slot{
-      padding: 8px 8px 9px;
+      padding: 4px;
       background: rgba(0,0,0,.12);
       display:flex;
       flex-wrap:wrap;
-      gap: 7px;
-      min-height: 44px;
+      gap: 4px;
+      min-height: 38px;
     }
     .slot.dropTarget{
       outline: 2px dashed rgba(255,255,255,.35);
-      outline-offset: 2px;
+      outline-offset: -2px;
       background: rgba(255,255,255,.06);
     }
 
     .chip{
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding: 8px 10px;
+      gap:4px;
+      padding: 4px 6px;
       border-radius: 999px;
       border: 1px solid var(--chip-b);
       background: var(--chip);
       color: rgba(255,255,255,.94);
       font-weight: 950;
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: .2px;
       user-select:none;
       cursor: grab;
@@ -401,7 +417,7 @@
 
     .chip.selected{
       outline: 2px solid rgba(255,255,255,.55);
-      outline-offset: 2px;
+      outline-offset: 1px;
       background: rgba(255,255,255,.10);
     }
 
@@ -416,12 +432,12 @@
       border:none;
       background: rgba(255,255,255,.08);
       color: rgba(255,255,255,.92);
-      width: 22px;
-      height: 22px;
+      width: 16px;
+      height: 16px;
       border-radius: 999px;
       font-weight: 950;
-      font-size: 12px;
-      line-height: 22px;
+      font-size: 10px;
+      line-height: 16px;
       text-align:center;
       cursor:pointer;
       touch-action: manipulation;
@@ -527,7 +543,7 @@
         <div class="title">
           <div class="h1">Rotation Scheduler</div>
           <div class="sub">
-            Default behavior: <b>days are linked</b> (a.m. = p.m.) unless absences force a split.
+            <b>View:</b> 5-Day Calendar Grid (Scroll horizontally).<br>
             Tap a name (select), then tap a role slot to move/copy.
           </div>
         </div>
@@ -566,7 +582,10 @@
       </div>
     </div>
 
-    <div class="main" id="days"></div>
+    <!-- Calendar Grid Wrap -->
+    <div class="gridScroll">
+      <div class="main" id="days"></div>
+    </div>
   </div>
 
   <!-- Picker sheet -->
@@ -686,11 +705,6 @@
     }
     function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
-    /******************************************************************
-     * IMPORTANT FIX:
-     * If the day does NOT need splitting (absences identical), then a.m. and p.m.
-     * must be identical. We enforce that here by mirroring p.m. = a.m.
-     ******************************************************************/
     function normalizeLinkedDays(schedule, dayMode){
       for(const date of DAYS_ORDER){
         if(CLOSED_DATES.has(date)) continue;
@@ -704,7 +718,7 @@
     }
 
     /******************************************************************
-     * DEFAULT SCHEDULE (no half-day splits unless absences force it)
+     * DEFAULT SCHEDULE
      ******************************************************************/
     const DEFAULT_SCHEDULE = (() => {
       const s = {};
@@ -716,7 +730,7 @@
         }
       }
 
-      // Week 1: linked day (same a.m./p.m.)
+      // Week 1
       for(const d of ["2025-12-15","2025-12-16","2025-12-17","2025-12-18","2025-12-19"]){
         s[d].am.IR = ["Zach","Daniel"];
         s[d].am.Fluoro = ["Caroline"];
@@ -725,41 +739,38 @@
         s[d].am.Float = ["Sterling"];
       }
 
-      // 12/22 MUST split (Zach absent p.m.; Omid absent a.m.; Sterling absent all day)
+      // 12/22
       s["2025-12-22"].am.IR = ["Zach"];
       s["2025-12-22"].am.Fluoro = ["Mina"];
       s["2025-12-22"].am.MSK = ["Daniel"];
       s["2025-12-22"].am.US = ["Caroline"];
       s["2025-12-22"].am.Float = [];
-
-      s["2025-12-22"].pm.IR = ["Mina"];          // Zach absent p.m.
+      s["2025-12-22"].pm.IR = ["Mina"];
       s["2025-12-22"].pm.Fluoro = ["Daniel"];
       s["2025-12-22"].pm.MSK = ["Caroline"];
       s["2025-12-22"].pm.US = ["Omid"];
       s["2025-12-22"].pm.Float = [];
 
-      // 12/23 linked (Sterling absent full day)
+      // 12/23
       s["2025-12-23"].am.IR = ["Zach"];
       s["2025-12-23"].am.Fluoro = ["Mina"];
       s["2025-12-23"].am.MSK = ["Daniel"];
       s["2025-12-23"].am.US = ["Caroline"];
       s["2025-12-23"].am.Float = ["Omid"];
 
-      // 12/24 MUST split (Caroline full day absent; Omid absent a.m.; Mina absent p.m.; Sterling absent full day)
+      // 12/24
       s["2025-12-24"].am.IR = ["Zach"];
       s["2025-12-24"].am.Fluoro = ["Mina"];
       s["2025-12-24"].am.MSK = ["Daniel"];
       s["2025-12-24"].am.US = [];
       s["2025-12-24"].am.Float = [];
-
       s["2025-12-24"].pm.IR = ["Zach"];
       s["2025-12-24"].pm.Fluoro = ["Daniel"];
       s["2025-12-24"].pm.MSK = ["Omid"];
       s["2025-12-24"].pm.US = [];
       s["2025-12-24"].pm.Float = [];
 
-      // 12/29–12/31 linked (Daniel + Omid absent full days). Swap Mina/Sterling already applied:
-      // Fluoro: Sterling, US: Mina
+      // 12/29–12/31
       for(const d of ["2025-12-29","2025-12-30","2025-12-31"]){
         s[d].am.IR = ["Zach"];
         s[d].am.Fluoro = ["Sterling"];
@@ -768,41 +779,40 @@
         s[d].am.Float = [];
       }
 
-      // 1/5 linked
+      // 1/5
       s["2026-01-05"].am.IR = ["Zach"];
       s["2026-01-05"].am.Fluoro = ["Daniel"];
       s["2026-01-05"].am.MSK = ["Mina"];
       s["2026-01-05"].am.US = ["Caroline"];
       s["2026-01-05"].am.Float = ["Omid","Sterling"];
 
-      // 1/6 MUST split (Daniel absent p.m.; Mina absent full day)
+      // 1/6
       s["2026-01-06"].am.IR = ["Zach"];
       s["2026-01-06"].am.Fluoro = ["Daniel"];
       s["2026-01-06"].am.MSK = ["Sterling"];
       s["2026-01-06"].am.US = ["Omid"];
       s["2026-01-06"].am.Float = ["Caroline"];
-
       s["2026-01-06"].pm.IR = ["Zach"];
       s["2026-01-06"].pm.Fluoro = ["Omid"];
       s["2026-01-06"].pm.MSK = ["Sterling"];
       s["2026-01-06"].pm.US = [];
       s["2026-01-06"].pm.Float = ["Caroline"];
 
-      // 1/7 linked (Mina absent full day)
+      // 1/7
       s["2026-01-07"].am.IR = ["Zach"];
       s["2026-01-07"].am.Fluoro = ["Daniel"];
       s["2026-01-07"].am.MSK = ["Caroline"];
       s["2026-01-07"].am.US = ["Omid"];
       s["2026-01-07"].am.Float = ["Sterling"];
 
-      // 1/8 linked (Mina absent full day)
+      // 1/8
       s["2026-01-08"].am.IR = ["Zach"];
       s["2026-01-08"].am.Fluoro = ["Daniel"];
       s["2026-01-08"].am.MSK = ["Caroline"];
       s["2026-01-08"].am.US = ["Omid"];
       s["2026-01-08"].am.Float = ["Sterling"];
 
-      // 1/9 linked (Zach absent full day; Mina absent full day)
+      // 1/9
       s["2026-01-09"].am.IR = ["Omid"];
       s["2026-01-09"].am.Fluoro = ["Daniel"];
       s["2026-01-09"].am.MSK = ["Caroline"];
@@ -812,14 +822,9 @@
       return s;
     })();
 
-    /******************************************************************
-     * DEFAULT LOCK RULES
-     ******************************************************************/
-
     const FIRST_WEEK_DATES = new Set(["2025-12-15","2025-12-16","2025-12-17","2025-12-18","2025-12-19"]);
 
     function enforceDefaults(schedule, defaultsOn){
-      // Always enforce "no split unless required" first.
       normalizeLinkedDays(schedule, state.dayMode);
 
       if(!defaultsOn) return;
@@ -829,21 +834,15 @@
         const day = schedule[date];
         for(const half of ["am","pm"]){
           const h = day[half];
-
-          // remove absent people from all roles
           for(const role of ROLES){
             h[role] = h[role].filter(p => !isAbsent(p, date, half));
           }
-
-          // Zach must be on IR if present
           const zachPresent = !isAbsent("Zach", date, half);
           if(zachPresent){
             if(!h.IR.includes("Zach")) h.IR.unshift("Zach");
           }else{
             h.IR = h.IR.filter(p => p !== "Zach");
           }
-
-          // Daniel on IR first week if present
           if(FIRST_WEEK_DATES.has(date)){
             const danPresent = !isAbsent("Daniel", date, half);
             if(danPresent){
@@ -854,23 +853,20 @@
           }
         }
       }
-
-      // Re-apply no-split rule again (in case defaults changed a.m. only on linked days)
       normalizeLinkedDays(schedule, state.dayMode);
     }
 
     /******************************************************************
-     * STATE + STORAGE
+     * STATE
      ******************************************************************/
 
-    const STORAGE_KEY = "rotation_scheduler_v3_nosplit";
+    const STORAGE_KEY = "rotation_scheduler_v4_grid";
     let state = {
       schedule: clone(DEFAULT_SCHEDULE),
       defaultsOn: true,
       copyMode: false,
       selected: null,
       sheetCtx: null,
-      // dayMode[date] = "linked" | "split" (only meaningful when absences do NOT force a split)
       dayMode: {}
     };
 
@@ -926,7 +922,7 @@
     }
     function fmtMDY(iso){
       const d = new Date(iso + "T00:00:00Z");
-      return d.toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric", timeZone:"UTC" });
+      return d.toLocaleDateString(undefined, { month:"short", day:"numeric", timeZone:"UTC" });
     }
 
     function toast(msg){
@@ -971,11 +967,6 @@
       state.schedule[date][half][role] = [...arr, person];
     }
 
-    /******************************************************************
-     * EDIT BEHAVIOR:
-     * - If day is linked, edits apply to both halves (and we also normalize p.m.=a.m.)
-     * - If day must split (absences differ), edits can be half-specific.
-     ******************************************************************/
     function halvesForEdit(date, half){
       return (getDayMode(date) === "linked") ? ["am","pm"] : [half];
     }
@@ -1151,7 +1142,7 @@
         pickHint.innerHTML = `<b>Selected:</b> none • <b>Mode:</b> ${esc(mode)} • Tap a role slot to place.`;
         return;
       }
-      const fromTxt = sel.from ? `${sel.from.date} ${sel.from.half === "am" ? "a.m." : "p.m."} ${sel.from.role}` : "picker";
+      const fromTxt = sel.from ? `${fmtMDY(sel.from.date)} ${sel.from.half === "am" ? "AM" : "PM"} ${sel.from.role}` : "picker";
       pickHint.innerHTML = `<b>Selected:</b> ${esc(sel.person)} • <b>Mode:</b> ${esc(mode)} • <b>From:</b> ${esc(fromTxt)} • Tap a role slot to place.`;
     }
 
@@ -1183,10 +1174,8 @@
       const h = state.schedule[date][half];
       const missing = REQUIRED.includes(role) && (!h[role] || h[role].length === 0);
       const rowCls = ["roleRow", missing ? "missing" : ""].join(" ");
-
       const bg = roleColor(role);
       const bd = roleBorder(role);
-
       const chips = (h[role] || []).map(p => chipHTML(p, {date,half,role}, isAbsent(p,date,half))).join("");
 
       return `
@@ -1194,8 +1183,8 @@
           <div class="roleBar" style="background:${bg};border-bottom:1px solid ${bd}">
             <div>${esc(role)}</div>
             <div class="right">
-              <button class="miniBtn" data-add="1" data-date="${esc(date)}" data-half="${esc(half)}" data-role="${esc(role)}" type="button">+ Add</button>
-              <button class="miniBtn" data-clear="1" data-date="${esc(date)}" data-half="${esc(half)}" data-role="${esc(role)}" type="button">Clear</button>
+              <button class="miniBtn" data-add="1" data-date="${esc(date)}" data-half="${esc(half)}" data-role="${esc(role)}" type="button">+</button>
+              <button class="miniBtn" data-clear="1" data-date="${esc(date)}" data-half="${esc(half)}" data-role="${esc(role)}" type="button">C</button>
             </div>
           </div>
           <div class="slot"
@@ -1203,7 +1192,7 @@
                data-date="${esc(date)}"
                data-half="${esc(half)}"
                data-role="${esc(role)}">
-            ${chips || `<span style="color:rgba(255,255,255,.55);font-weight:850;font-size:12px;">—</span>`}
+            ${chips || ``}
           </div>
         </div>
       `;
@@ -1211,12 +1200,12 @@
 
     function halfHTML(date, half){
       const abs = absentList(date, half);
-      const absTxt = abs.length ? `Absent: ${abs.join(", ")}` : `Absent: —`;
+      const absTxt = abs.length ? `${abs.join(", ")}` : `—`;
       return `
         <div class="half">
           <div class="halfHead">
-            <div class="label">${half === "am" ? "a.m." : "p.m."}</div>
-            <div class="abs">${esc(absTxt)}</div>
+            <div class="label">${half === "am" ? "AM" : "PM"}</div>
+            <div class="abs">Abs: ${esc(absTxt)}</div>
           </div>
           <div class="roles">
             ${ROLES.map(r => roleRowHTML(date, half, r)).join("")}
@@ -1227,17 +1216,16 @@
 
     function dayHeaderBadges(date){
       if(CLOSED_DATES.has(date)) return `<span class="badge closed">Closed</span>`;
-
       const issue = dayHasIssue(date);
       const mustSplit = dayMustSplit(date);
       const mode = getDayMode(date);
 
       const modeBadge = mustSplit
-        ? `<span class="badge locked">Split (absences)</span>`
-        : `<span class="badge linked" data-toggle-daymode="1" data-date="${esc(date)}">${mode === "linked" ? "Linked (whole day)" : "Split (manual)"}</span>`;
+        ? `<span class="badge locked">Locked</span>`
+        : `<span class="badge linked" data-toggle-daymode="1" data-date="${esc(date)}">${mode === "linked" ? "Link" : "Split"}</span>`;
 
       return `
-        ${issue ? `<span class="badge issue">Coverage issue</span>` : `<span class="badge ok">OK</span>`}
+        ${issue ? `<span class="badge issue">!</span>` : `<span class="badge ok">OK</span>`}
         ${modeBadge}
       `;
     }
@@ -1247,27 +1235,20 @@
         return `
           <div class="dayCard">
             <div class="dayTop">
-              <div class="dateBlock">
-                <div class="dow">${esc(dowLabel(date))}</div>
-                <div class="md">${esc(fmtMDY(date))}</div>
-              </div>
+              <div class="dateBlock"><div class="md">${esc(fmtMDY(date))}</div></div>
               <div class="badges">${dayHeaderBadges(date)}</div>
             </div>
             <div class="dayBody">
-              <div class="hintBar" style="margin:0;">Closed day. No assignments.</div>
+              <div class="hintBar" style="margin:0;">Closed</div>
             </div>
           </div>
         `;
       }
-
       const issue = dayHasIssue(date);
       return `
         <div class="dayCard ${issue ? "issue" : ""}">
           <div class="dayTop">
-            <div class="dateBlock">
-              <div class="dow">${esc(dowLabel(date))}</div>
-              <div class="md">${esc(fmtMDY(date))}</div>
-            </div>
+            <div class="dateBlock"><div class="md">${esc(fmtMDY(date))}</div></div>
             <div class="badges">${dayHeaderBadges(date)}</div>
           </div>
           <div class="dayBody">
@@ -1279,9 +1260,7 @@
     }
 
     function render(){
-      // Ensure no half-day role switching on linked days
       enforceDefaults(state.schedule, state.defaultsOn);
-
       document.getElementById("lockBtn").classList.toggle("toggled", state.defaultsOn);
       document.getElementById("lockBtn").textContent = `Defaults: ${state.defaultsOn ? "ON" : "OFF"}`;
       document.getElementById("copyBtn").textContent = `Mode: ${state.copyMode ? "Copy" : "Move"}`;
@@ -1289,12 +1268,20 @@
       renderStats();
       renderHint();
 
-      daysEl.innerHTML = DAYS_ORDER.map(dayHTML).join("");
+      // Headers + Days
+      const headers = `
+        <div class="colHead">Monday</div>
+        <div class="colHead">Tuesday</div>
+        <div class="colHead">Wednesday</div>
+        <div class="colHead">Thursday</div>
+        <div class="colHead">Friday</div>
+      `;
+      daysEl.innerHTML = headers + DAYS_ORDER.map(dayHTML).join("");
       attachHandlers();
     }
 
     /******************************************************************
-     * PICKER SHEET (+ Add)
+     * INTERACTION
      ******************************************************************/
 
     const sheetBackdrop = document.getElementById("sheetBackdrop");
@@ -1306,15 +1293,15 @@
       state.sheetCtx = ctx;
       const {date, half, role} = ctx;
       const halves = halvesForEdit(date, half);
-      const halfLabel = (halves.length === 2) ? "whole day (linked)" : (half === "am" ? "a.m." : "p.m.");
+      const halfLabel = (halves.length === 2) ? "whole day" : (half === "am" ? "AM" : "PM");
 
       sheetTitle.textContent = `Add to ${role} (${halfLabel})`;
-      sheetSub.textContent = `${fmtMDY(date)} • Unavailable people are disabled.`;
+      sheetSub.textContent = `${fmtMDY(date)} • Unavailable dimmed.`;
 
       sheetPeople.innerHTML = PEOPLE.map(p=>{
         const disabled = !canPlaceInAllHalves(p, date, halves);
         const already = halves.every(h => state.schedule[date][h][role].includes(p));
-        const label = already ? `${p} (already)` : p;
+        const label = already ? `${p} (in)` : p;
 
         return `
           <span class="chip ${disabled ? "disabled" : ""}"
@@ -1337,10 +1324,6 @@
       state.sheetCtx = null;
     }
 
-    /******************************************************************
-     * EVENT HANDLERS
-     ******************************************************************/
-
     let dragData = null;
 
     function attachHandlers(){
@@ -1353,7 +1336,7 @@
           setDayMode(date, next);
           enforceDefaults(state.schedule, state.defaultsOn);
           save();
-          toast(next === "linked" ? "Day linked (a.m.=p.m.)." : "Day split (manual halves).");
+          toast(next === "linked" ? "Linked." : "Split.");
           render();
         });
       });
@@ -1369,10 +1352,8 @@
           for(const h of halvesForEdit(date, half)){
             removeFromSlot(date, h, role, person);
           }
-
           enforceDefaults(state.schedule, state.defaultsOn);
           save();
-
           if(state.selected && state.selected.person === person && state.selected.from
              && state.selected.from.date === date && state.selected.from.half === half && state.selected.from.role === role){
             state.selected = null;
@@ -1384,15 +1365,12 @@
       document.querySelectorAll("[data-chip='1']").forEach(ch=>{
         ch.addEventListener("click", (e)=>{
           if(e.target && e.target.closest && e.target.closest("[data-x='1']")) return;
-
           const person = ch.getAttribute("data-person");
           const date = ch.getAttribute("data-date");
           const half = ch.getAttribute("data-half");
           const role = ch.getAttribute("data-role");
-
           const same = state.selected && state.selected.person === person && state.selected.from
             && state.selected.from.date === date && state.selected.from.half === half && state.selected.from.role === role;
-
           state.selected = same ? null : { person, from:{date,half,role} };
           render();
         }, { passive:false });
@@ -1416,12 +1394,9 @@
           const date = slot.getAttribute("data-date");
           const half = slot.getAttribute("data-half");
           const role = slot.getAttribute("data-role");
-
           if(!state.selected) return;
-
           const person = state.selected.person;
           const from = state.selected.from;
-
           const ok = moveOrCopy(person, from, {date,half,role});
           if(ok){
             state.selected = null;
@@ -1444,12 +1419,7 @@
             try{ data = JSON.parse(e.dataTransfer.getData("text/plain")); }catch(_){}
           }
           if(!data) return;
-
-          const date = slot.getAttribute("data-date");
-          const half = slot.getAttribute("data-half");
-          const role = slot.getAttribute("data-role");
-
-          moveOrCopy(data.person, data.from, {date,half,role});
+          moveOrCopy(data.person, data.from, {date:slot.getAttribute("data-date"), half:slot.getAttribute("data-half"), role:slot.getAttribute("data-role")});
           dragData = null;
           state.selected = null;
           render();
@@ -1471,11 +1441,9 @@
           const date = btn.getAttribute("data-date");
           const half = btn.getAttribute("data-half");
           const role = btn.getAttribute("data-role");
-
           for(const h of halvesForEdit(date, half)){
             state.schedule[date][h][role] = [];
           }
-
           enforceDefaults(state.schedule, state.defaultsOn);
           save();
           render();
@@ -1483,18 +1451,15 @@
       });
     }
 
-    // Sheet controls
     document.getElementById("sheetClose").addEventListener("click", closeSheet);
     document.getElementById("sheetCancel").addEventListener("click", closeSheet);
     sheetBackdrop.addEventListener("click", (e)=>{
       if(e.target === sheetBackdrop) closeSheet();
     });
 
-    // Picker (event delegation)
     sheetPeople.addEventListener("click", (e)=>{
       const chip = e.target.closest && e.target.closest("[data-pick='1']");
       if(!chip) return;
-
       const person = chip.getAttribute("data-person");
       const date = chip.getAttribute("data-date");
       const half = chip.getAttribute("data-half");
@@ -1502,23 +1467,17 @@
       const halves = halvesForEdit(date, half);
 
       if(!canPlaceInAllHalves(person, date, halves)){
-        toast(`${person} is unavailable for the whole day (linked) or that half-day.`);
+        toast(`${person} is unavailable.`);
         return;
       }
-
       for(const h of halves){
         addToSlot(date, h, role, person);
       }
-
       enforceDefaults(state.schedule, state.defaultsOn);
       save();
       closeSheet();
       render();
     });
-
-    /******************************************************************
-     * TOP BUTTONS
-     ******************************************************************/
 
     document.getElementById("lockBtn").addEventListener("click", ()=>{
       state.defaultsOn = !state.defaultsOn;
@@ -1539,7 +1498,7 @@
       enforceDefaults(state.schedule, state.defaultsOn);
       save();
       render();
-      toast("Reset to current setup.");
+      toast("Reset.");
     });
 
     document.getElementById("clearBtn").addEventListener("click", ()=>{
@@ -1553,12 +1512,12 @@
       enforceDefaults(state.schedule, state.defaultsOn);
       save();
       render();
-      toast("Cleared all assignments.");
+      toast("Cleared.");
     });
 
     document.getElementById("exportBtn").addEventListener("click", ()=>{
       const payload = {
-        version: 3,
+        version: 4,
         exported_at: new Date().toISOString(),
         schedule: state.schedule,
         defaultsOn: state.defaultsOn,
@@ -1569,12 +1528,12 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "rotation_schedule.json";
+      a.download = "rotation_grid.json";
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast("Exported JSON.");
+      toast("Exported.");
     });
 
     const importFile = document.getElementById("importFile");
@@ -1582,7 +1541,6 @@
       importFile.value = "";
       importFile.click();
     });
-
     importFile.addEventListener("change", async ()=>{
       const file = importFile.files && importFile.files[0];
       if(!file) return;
@@ -1595,19 +1553,15 @@
         if(typeof obj.copyMode === "boolean") state.copyMode = obj.copyMode;
         state.dayMode = obj.dayMode || {};
         state.selected = null;
-
         enforceDefaults(state.schedule, state.defaultsOn);
         save();
         render();
         toast("Imported.");
       }catch(e){
-        toast("Import failed (bad JSON).");
+        toast("Import failed.");
       }
     });
 
-    /******************************************************************
-     * INIT
-     ******************************************************************/
     load();
     render();
   </script>
