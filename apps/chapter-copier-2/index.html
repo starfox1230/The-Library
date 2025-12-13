@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chapter Copier 2</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #1e1e1e;
+      --accent: #ff6f61;
+      --text: #e0e0e0;
+      --text-muted: #a0a0a0;
+      --toast-bg: rgba(0, 0, 0, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .container {
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      max-width: 520px;
+      width: 100%;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      margin-top: 0.25rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+
+    select:focus, button:focus {
+      outline: 2px solid var(--accent);
+    }
+
+    select:hover, button:hover {
+      background: #242424;
+      cursor: pointer;
+    }
+
+    textarea {
+      margin-top: 1rem;
+      width: 100%;
+      height: 260px;
+      padding: 1rem;
+      border-radius: 8px;
+      border: none;
+      background: #2a2a2a;
+      color: var(--text);
+      resize: vertical;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      background: var(--toast-bg);
+      color: var(--text);
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chapter Copier 2</h1>
+    <label for="chapterSelect">Choose a chapter:</label>
+    <select id="chapterSelect"></select>
+
+    <label for="sectionSelect">Choose a subsection:</label>
+    <select id="sectionSelect"></select>
+
+    <button id="copyButton">Copy Selection</button>
+    <textarea id="chapterText" readonly placeholder="Section text will appear here…"></textarea>
+  </div>
+
+  <div id="toast" class="toast">Copied to clipboard!</div>
+
+  <script>
+    const chapterSelect = document.getElementById('chapterSelect');
+    const sectionSelect = document.getElementById('sectionSelect');
+    const copyButton = document.getElementById('copyButton');
+    const chapterText = document.getElementById('chapterText');
+    const toast = document.getElementById('toast');
+
+    const folderName = "Beowulf's Marvelous Book of Moderna American History Quarter 1";
+    const encodedFolder = encodeURIComponent(folderName);
+    const manifestPath = './manifest.json';
+
+    let manifest = [];
+
+    async function loadManifest() {
+      try {
+        const response = await fetch(manifestPath);
+        manifest = await response.json();
+        populateChapterOptions();
+      } catch (error) {
+        console.error('Failed to load manifest', error);
+        showToast('Unable to load chapters');
+      }
+    }
+
+    function populateChapterOptions() {
+      chapterSelect.innerHTML = '';
+      manifest.forEach(chapter => {
+        const option = document.createElement('option');
+        option.value = chapter.key;
+        option.textContent = chapter.label;
+        chapterSelect.appendChild(option);
+      });
+      if (manifest.length) {
+        chapterSelect.value = manifest[0].key;
+        populateSectionOptions();
+      }
+    }
+
+    function populateSectionOptions() {
+      const chapter = manifest.find(item => item.key === chapterSelect.value);
+      sectionSelect.innerHTML = '';
+      if (!chapter) return;
+
+      chapter.sections.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section.file;
+        option.textContent = section.title;
+        sectionSelect.appendChild(option);
+      });
+
+      if (chapter.sections.length) {
+        sectionSelect.value = chapter.sections[0].file;
+        loadSectionText();
+      }
+    }
+
+    async function loadSectionText() {
+      const chapter = manifest.find(item => item.key === chapterSelect.value);
+      if (!chapter) return;
+      const section = chapter.sections.find(item => item.file === sectionSelect.value);
+      if (!section) return;
+
+      const sectionPath = `${encodedFolder}/${encodeURIComponent(section.file)}`;
+      try {
+        const response = await fetch(sectionPath);
+        const text = await response.text();
+        chapterText.value = text;
+      } catch (error) {
+        console.error('Failed to load section text', error);
+        chapterText.value = '';
+        showToast('Unable to load selection');
+      }
+    }
+
+    async function copySection() {
+      const text = chapterText.value;
+      if (!text) return;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const temp = document.createElement('textarea');
+          temp.value = text;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand('copy');
+          document.body.removeChild(temp);
+        }
+        const sectionLabel = sectionSelect.options[sectionSelect.selectedIndex]?.textContent || 'selection';
+        showToast(`Copied: ${sectionLabel}`);
+      } catch (error) {
+        console.error('Copy failed', error);
+        showToast('Failed to copy');
+      }
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    chapterSelect.addEventListener('change', populateSectionOptions);
+    sectionSelect.addEventListener('change', loadSectionText);
+    copyButton.addEventListener('click', copySection);
+
+    loadManifest();
+  </script>
+</body>
+</html>
