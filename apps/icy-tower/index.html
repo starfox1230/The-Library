@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icy Tower Clone</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: "Verdana", sans-serif;
+      overflow: hidden;
+      color: white;
+      user-select: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 600px;
+      height: 800px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      overflow: hidden;
+    }
+
+    .background {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #630808;
+      background-image:
+        linear-gradient(335deg, rgba(0, 0, 0, 0.3) 23px, transparent 23px),
+        linear-gradient(155deg, rgba(0, 0, 0, 0.3) 23px, transparent 23px),
+        linear-gradient(335deg, rgba(0, 0, 0, 0.3) 23px, transparent 23px),
+        linear-gradient(155deg, rgba(0, 0, 0, 0.3) 23px, transparent 23px);
+      background-size: 58px 58px;
+      background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px;
+      z-index: 0;
+    }
+
+    .pillar {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.2);
+      border-left: 5px solid #444;
+      border-right: 5px solid #444;
+      z-index: 1;
+    }
+
+    canvas {
+      position: relative;
+      z-index: 2;
+      display: block;
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .title-screen {
+      text-align: center;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 40px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+      pointer-events: auto;
+    }
+
+    h1 {
+      font-family: "Comic Sans MS", "Chalkboard SE", sans-serif;
+      font-size: 60px;
+      margin: 0;
+      background: linear-gradient(to bottom, #00ffff, #0000ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 2px 2px 0px #fff;
+      letter-spacing: -2px;
+    }
+
+    .btn {
+      background: linear-gradient(to bottom, #444, #222);
+      border: 2px solid #888;
+      color: white;
+      padding: 15px 30px;
+      font-size: 24px;
+      margin-top: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      font-family: inherit;
+    }
+    .btn:hover {
+      background: #555;
+      border-color: #fff;
+    }
+
+    .controls-hint {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      text-align: left;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      text-shadow: 2px 2px 0 #000;
+      font-size: 20px;
+      width: 95%;
+      display: flex;
+      justify-content: space-between;
+      z-index: 12;
+      pointer-events: none;
+    }
+
+    #combo-meter {
+      position: absolute;
+      left: 20px;
+      top: 100px;
+      width: 15px;
+      height: 150px;
+      background: #333;
+      border: 2px solid white;
+      display: none;
+      z-index: 12;
+      pointer-events: none;
+    }
+
+    #combo-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(to top, red, yellow);
+      height: 0%;
+      transition: height 0.1s linear;
+    }
+
+    .floating-text {
+      position: absolute;
+      font-weight: bold;
+      font-size: 40px;
+      font-family: "Comic Sans MS", sans-serif;
+      text-shadow: 3px 3px 0 #000;
+      pointer-events: none;
+      animation: floatUp 1.5s forwards;
+      white-space: nowrap;
+      z-index: 50;
+    }
+
+    @keyframes floatUp {
+      0% { transform: scale(0.5) translateY(0); opacity: 0; }
+      20% { transform: scale(1.2) translateY(0); opacity: 1; }
+      40% { transform: scale(1.0) translateY(0); opacity: 1; }
+      100% { transform: scale(1.0) translateY(-100px); opacity: 0; }
+    }
+
+    /* --- Settings Button + Panel --- */
+    #settings-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 25;
+      pointer-events: auto;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      background: rgba(0, 0, 0, 0.55);
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    #settings-btn:hover { border-color: #fff; }
+
+    #settings-panel {
+      position: absolute;
+      top: 64px;
+      right: 10px;
+      z-index: 30;
+      pointer-events: auto;
+      width: 320px;
+      max-height: 680px;
+      overflow: auto;
+      background: rgba(0, 0, 0, 0.82);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      border-radius: 12px;
+      padding: 12px 12px 14px;
+      display: none;
+      box-shadow: 0 0 18px rgba(0, 0, 0, 0.7);
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .settings-title {
+      font-weight: bold;
+      font-size: 16px;
+      font-family: "Courier New", monospace;
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .settings-mini-btn {
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .settings-mini-btn:hover { border-color: #fff; }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 1fr 84px;
+      gap: 10px;
+      align-items: center;
+      margin: 8px 0;
+    }
+
+    .setting-label {
+      font-size: 12px;
+      color: #ddd;
+      line-height: 1.2;
+    }
+
+    .setting-value {
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      color: #fff;
+      text-align: right;
+      opacity: 0.95;
+    }
+
+    .setting-slider {
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .setting-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div class="background"></div>
+    <div class="pillar"></div>
+
+    <canvas id="gameCanvas" width="600" height="800"></canvas>
+
+    <div class="hud" id="hud" style="display:none;">
+      <div id="score-display">SCORE: 0</div>
+      <div id="floor-display">FLOOR: 0</div>
+    </div>
+
+    <div id="combo-meter">
+      <div id="combo-fill"></div>
+    </div>
+
+    <button id="settings-btn" title="Settings">⚙️</button>
+
+    <div id="settings-panel">
+      <div class="settings-header">
+        <div class="settings-title">FEEL SETTINGS</div>
+        <div class="settings-actions">
+          <button class="settings-mini-btn" id="settings-reset">Reset</button>
+          <button class="settings-mini-btn" id="settings-close">Close</button>
+        </div>
+      </div>
+      <div id="settings-body"></div>
+    </div>
+
+    <div id="ui-layer">
+      <div id="start-screen" class="title-screen">
+        <h1>ICY TOWER</h1>
+        <p>HTML5 CLONE</p>
+        <button class="btn" onclick="startGame()">START GAME</button>
+        <div class="controls-hint">Arrows to Move &bull; Space to Jump</div>
+        <div class="controls-hint">Space also starts/restarts</div>
+      </div>
+
+      <div id="game-over-screen" class="title-screen" style="display:none;">
+        <h1 style="font-size:40px; color:red;">GAME OVER</h1>
+        <p id="final-score">Score: 0</p>
+        <p id="final-floor">Floor: 0</p>
+        <button class="btn" onclick="resetGame()">PLAY AGAIN</button>
+        <div class="controls-hint">Press Space to play again</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ------------------ Live-tunable Feel Config ------------------
+    const STORAGE_KEY = "icy_tower_feel_v1";
+
+    const DEFAULT_CFG = {
+      GRAVITY: 0.8,
+
+      MAX_SPEED: 14,
+
+      GROUND_ACCEL: 0.65,
+      GROUND_DECEL: 0.55,
+      GROUND_SLIDE: 0.88,
+
+      AIR_ACCEL_SAME: 0.30,
+      AIR_ACCEL_OPP: 0.85,
+      AIR_BRAKE_DAMP: 0.90,
+      AIR_DRAG: 0.995,
+
+      JUMP_FORCE_BASE: 11,
+      JUMP_FORCE_MAX: 22,
+
+      WALL_BOUNCE_DAMP: 0.85
+    };
+
+    function loadCfg() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { ...DEFAULT_CFG };
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_CFG, ...parsed };
+      } catch {
+        return { ...DEFAULT_CFG };
+      }
+    }
+
+    function saveCfg() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(CFG));
+    }
+
+    const CFG = loadCfg();
+
+    // ------------------ Jump responsiveness helpers ------------------
+    // Coyote time = a few frames of grace after leaving ledge.
+    // Jump buffer = if you press slightly early, it jumps on the next valid grounded frame.
+    const COYOTE_FRAMES = 7;        // ~115ms @ 60fps
+    const JUMP_BUFFER_FRAMES = 7;   // ~115ms @ 60fps
+    let coyoteTimer = 0;
+    let jumpBufferTimer = 0;
+
+    // --- Audio System (Web Audio API - No files) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === "jump") {
+        osc.type = "square";
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(320, now + 0.10);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+        osc.start(now);
+        osc.stop(now + 0.10);
+      } else if (type === "land") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(110, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.05);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === "combo") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.30);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.30);
+        osc.start(now);
+        osc.stop(now + 0.30);
+      } else if (type === "gameover") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 1.00);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.linearRampToValueAtTime(0, now + 1.00);
+        osc.start(now);
+        osc.stop(now + 1.00);
+      }
+    }
+
+    // Continuous grounded “rumble/run” loop
+    let rumbleSrc = null;
+    let rumbleGain = null;
+    let rumbleFilter = null;
+
+    function startRumbleLoop() {
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      if (rumbleSrc) return;
+
+      const sr = audioCtx.sampleRate;
+      const seconds = 1.0;
+      const buffer = audioCtx.createBuffer(1, Math.floor(sr * seconds), sr);
+      const data = buffer.getChannelData(0);
+
+      let last = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = (Math.random() * 2 - 1) * 0.08;
+        last = (last + white) * 0.98;
+        data[i] = last;
+      }
+
+      rumbleSrc = audioCtx.createBufferSource();
+      rumbleSrc.buffer = buffer;
+      rumbleSrc.loop = true;
+
+      rumbleFilter = audioCtx.createBiquadFilter();
+      rumbleFilter.type = "lowpass";
+      rumbleFilter.frequency.value = 220;
+
+      rumbleGain = audioCtx.createGain();
+      rumbleGain.gain.value = 0.0;
+
+      rumbleSrc.connect(rumbleFilter);
+      rumbleFilter.connect(rumbleGain);
+      rumbleGain.connect(audioCtx.destination);
+
+      rumbleSrc.start();
+    }
+
+    function stopRumbleLoop() {
+      if (!rumbleSrc) return;
+      try { rumbleSrc.stop(); } catch {}
+      try { rumbleSrc.disconnect(); } catch {}
+      try { rumbleFilter.disconnect(); } catch {}
+      try { rumbleGain.disconnect(); } catch {}
+      rumbleSrc = null;
+      rumbleGain = null;
+      rumbleFilter = null;
+    }
+
+    function setRumbleActive(active, intensity01) {
+      if (!active) {
+        stopRumbleLoop();
+        return;
+      }
+      startRumbleLoop();
+      if (rumbleGain) {
+        const v = 0.015 + 0.035 * Math.max(0, Math.min(1, intensity01));
+        rumbleGain.gain.setTargetAtTime(v, audioCtx.currentTime, 0.03);
+      }
+    }
+
+    // --- Game Constants ---
+    const CANVAS_WIDTH = 600;
+    const CANVAS_HEIGHT = 800;
+
+    const WALL_THICKNESS = 25;
+    const PLAY_AREA_WIDTH = CANVAS_WIDTH - (WALL_THICKNESS * 2);
+    const PLATFORM_HEIGHT = 20;
+    const SEGMENT_SIZE = PLAY_AREA_WIDTH / 28;
+
+    // --- State Variables ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let gameState = "MENU"; // MENU, PLAYING, GAMEOVER
+    let frames = 0;
+
+    const player = {
+      x: CANVAS_WIDTH / 2,
+      y: CANVAS_HEIGHT - 100,
+      width: 30,
+      height: 30,
+      vx: 0,
+      vy: 0,
+      grounded: false,
+      facingRight: true,
+      lastFloor: 0,
+      currentFloor: 0,
+      spin: 0
+    };
+
+    let groundPlatform = null;
+
+    // Camera
+    let cameraY = 0;
+    let autoScrollSpeed = 0;
+    let autoScrollBase = 0;
+
+    // Platforms
+    let platforms = [];
+
+    // Inputs
+    const keys = { ArrowLeft: false, ArrowRight: false, Space: false };
+    let prevSpace = false;
+
+    // Scoring & combos
+    let score = 0;
+    let comboCount = 0;
+    let comboTimer = 0;
+    const COMBO_TIME_LIMIT = 180;
+
+    // --- Platform generation ---
+    function initPlatforms() {
+      platforms = [];
+      platforms.push({
+        x: WALL_THICKNESS,
+        y: CANVAS_HEIGHT - 40,
+        w: PLAY_AREA_WIDTH,
+        h: PLATFORM_HEIGHT,
+        floorNum: 0
+      });
+      for (let i = 1; i < 20; i++) generatePlatform(i);
+    }
+
+    function generatePlatform(floorIndex) {
+      let widthSegments;
+      if (floorIndex % 50 === 0) {
+        widthSegments = 28;
+      } else {
+        widthSegments = Math.floor(Math.random() * 14) + 5;
+        if (floorIndex > 100) widthSegments -= 1;
+        if (floorIndex > 300) widthSegments -= 1;
+        widthSegments = Math.max(widthSegments, 4);
+      }
+
+      const widthPx = widthSegments * SEGMENT_SIZE;
+      const maxX = WALL_THICKNESS + PLAY_AREA_WIDTH - widthPx;
+      const minX = WALL_THICKNESS;
+
+      const xPos = Math.random() * (maxX - minX) + minX;
+
+      const prevY = (floorIndex === 1) ? (CANVAS_HEIGHT - 40) : platforms[platforms.length - 1].y;
+      const gap = 85 + (Math.random() * 20);
+
+      platforms.push({
+        x: xPos,
+        y: prevY - gap,
+        w: widthPx,
+        h: PLATFORM_HEIGHT,
+        floorNum: floorIndex
+      });
+    }
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    // inclusive overlap so "edge standing" doesn't drop you early
+    function overlapsPlatformX(p) {
+      return (player.x + player.width >= p.x) && (player.x <= p.x + p.w);
+    }
+
+    // --- Game control ---
+    function startGame() {
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("game-over-screen").style.display = "none";
+      document.getElementById("hud").style.display = "flex";
+      document.getElementById("combo-meter").style.display = "block";
+
+      resetPlayer();
+      initPlatforms();
+
+      score = 0;
+      cameraY = 0;
+      autoScrollBase = 0;
+      autoScrollSpeed = 0;
+      comboCount = 0;
+      comboTimer = 0;
+
+      gameState = "PLAYING";
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resetPlayer() {
+      player.x = CANVAS_WIDTH / 2;
+      player.y = CANVAS_HEIGHT - 100;
+      player.vx = 0;
+      player.vy = 0;
+      player.grounded = false;
+      player.facingRight = true;
+      player.currentFloor = 0;
+      player.lastFloor = 0;
+      player.spin = 0;
+      groundPlatform = null;
+
+      coyoteTimer = 0;
+      jumpBufferTimer = 0;
+
+      prevSpace = false;
+      updateHUD();
+    }
+
+    function resetGame() {
+      startGame();
+    }
+
+    window.startGame = startGame;
+    window.resetGame = resetGame;
+
+    // --- Input handling (Space starts/restarts too) ---
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.key === " ") {
+        keys.Space = true;
+
+        if (gameState === "MENU") startGame();
+        else if (gameState === "GAMEOVER") resetGame();
+
+        e.preventDefault();
+      }
+
+      if (e.key === "ArrowLeft") keys.ArrowLeft = true;
+      if (e.key === "ArrowRight") keys.ArrowRight = true;
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "Space" || e.key === " ") keys.Space = false;
+      if (e.key === "ArrowLeft") keys.ArrowLeft = false;
+      if (e.key === "ArrowRight") keys.ArrowRight = false;
+    });
+
+    function doJump() {
+      const speedRatio = Math.abs(player.vx) / Math.max(0.001, CFG.MAX_SPEED);
+      const jumpBoost = (CFG.JUMP_FORCE_MAX - CFG.JUMP_FORCE_BASE) * speedRatio;
+
+      player.vy = -(CFG.JUMP_FORCE_BASE + jumpBoost);
+      player.grounded = false;
+      groundPlatform = null;
+
+      coyoteTimer = 0;
+      jumpBufferTimer = 0;
+
+      player.spin = 0.15 + 0.55 * speedRatio;
+      playSound("jump");
+    }
+
+    // --- Core update ---
+    function update() {
+      if (gameState !== "PLAYING") return;
+
+      const wasGrounded = player.grounded;
+      const dir = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
+      const spaceJustPressed = keys.Space && !prevSpace;
+
+      // timers
+      if (player.grounded) coyoteTimer = COYOTE_FRAMES;
+      else if (coyoteTimer > 0) coyoteTimer--;
+
+      if (jumpBufferTimer > 0) jumpBufferTimer--;
+      if (spaceJustPressed) jumpBufferTimer = JUMP_BUFFER_FRAMES;
+
+      // 0) If grounded, verify we’re still on the same platform (with coyote if we leave)
+      if (player.grounded && groundPlatform) {
+        if (!platforms.includes(groundPlatform) || !overlapsPlatformX(groundPlatform)) {
+          player.grounded = false;
+          groundPlatform = null;
+          coyoteTimer = COYOTE_FRAMES;
+        } else {
+          // Sticky ground: lock to platform top, no gravity integration
+          player.vy = 0;
+          player.y = groundPlatform.y - player.height;
+        }
+      }
+
+      // 1) Horizontal movement (ground vs air)
+      if (player.grounded) {
+        if (dir !== 0) {
+          player.vx += dir * CFG.GROUND_ACCEL;
+          player.facingRight = dir > 0;
+        } else {
+          player.vx *= CFG.GROUND_SLIDE;
+          if (Math.abs(player.vx) < CFG.GROUND_DECEL) player.vx = 0;
+          else player.vx -= Math.sign(player.vx) * CFG.GROUND_DECEL;
+        }
+      } else {
+        if (dir !== 0) {
+          const sameDir = Math.sign(player.vx) === dir || player.vx === 0;
+          if (sameDir) {
+            player.vx += dir * CFG.AIR_ACCEL_SAME;
+          } else {
+            player.vx *= CFG.AIR_BRAKE_DAMP;
+            player.vx += dir * CFG.AIR_ACCEL_OPP;
+          }
+          player.facingRight = dir > 0;
+        }
+        player.vx *= CFG.AIR_DRAG;
+      }
+
+      player.vx = clamp(player.vx, -CFG.MAX_SPEED, CFG.MAX_SPEED);
+
+      // 2) Apply X, wall bounce
+      player.x += player.vx;
+
+      if (player.x < WALL_THICKNESS) {
+        player.x = WALL_THICKNESS;
+        player.vx = -player.vx * CFG.WALL_BOUNCE_DAMP;
+      } else if (player.x + player.width > CANVAS_WIDTH - WALL_THICKNESS) {
+        player.x = CANVAS_WIDTH - WALL_THICKNESS - player.width;
+        player.vx = -player.vx * CFG.WALL_BOUNCE_DAMP;
+      }
+
+      // 2b) After moving, if we slid past the edge, trigger coyote-time
+      if (player.grounded && groundPlatform && !overlapsPlatformX(groundPlatform)) {
+        player.grounded = false;
+        groundPlatform = null;
+        coyoteTimer = COYOTE_FRAMES;
+      }
+
+      // 3) Buffered + coyote jump (instant + reliable at edges)
+      const canJumpNow = player.grounded || coyoteTimer > 0;
+      if (jumpBufferTimer > 0 && canJumpNow) {
+        doJump();
+      }
+
+      // 4) Vertical physics + landing (only when airborne)
+      if (!player.grounded) {
+        const prevY = player.y;
+        const prevBottom = prevY + player.height;
+
+        player.vy += CFG.GRAVITY;
+        player.y += player.vy;
+
+        if (player.vy >= 0) {
+          const currBottom = player.y + player.height;
+
+          for (let p of platforms) {
+            if (prevBottom <= p.y && currBottom >= p.y) {
+              // inclusive-ish landing overlap
+              if (player.x + player.width >= p.x && player.x <= p.x + p.w) {
+                player.y = p.y - player.height;
+                player.vy = 0;
+                player.grounded = true;
+                groundPlatform = p;
+
+                coyoteTimer = COYOTE_FRAMES;
+
+                if (!wasGrounded) playSound("land");
+                handleLanding(p.floorNum);
+
+                // Jump buffer: if space was pressed slightly before landing, jump immediately
+                if (jumpBufferTimer > 0) {
+                  doJump();
+                }
+
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // 5) Camera & auto-scroll
+      const targetCamY = player.y - (CANVAS_HEIGHT * 0.6);
+      if (targetCamY < cameraY) cameraY = targetCamY;
+
+      if (player.currentFloor > 4) {
+        autoScrollBase += 0.0005;
+        autoScrollSpeed = 1.0 + autoScrollBase;
+        cameraY -= autoScrollSpeed;
+      }
+
+      // 6) Platform management
+      const highestPlat = platforms[platforms.length - 1];
+      if (highestPlat.y > cameraY - 100) generatePlatform(highestPlat.floorNum + 1);
+      if (platforms[0].y > cameraY + CANVAS_HEIGHT + 200) platforms.shift();
+
+      // 7) Fail state
+      if (player.y > cameraY + CANVAS_HEIGHT) gameOver();
+
+      // 8) Combo updates
+      if (comboTimer > 0) {
+        comboTimer--;
+        const pct = (comboTimer / COMBO_TIME_LIMIT) * 100;
+        document.getElementById("combo-fill").style.height = pct + "%";
+        if (comboTimer <= 0) endCombo();
+      } else {
+        document.getElementById("combo-fill").style.height = "0%";
+      }
+
+      // 9) Ground rumble loop
+      const intensity = Math.min(1, Math.abs(player.vx) / Math.max(0.001, CFG.MAX_SPEED));
+      setRumbleActive(player.grounded, intensity);
+
+      prevSpace = keys.Space;
+    }
+
+    function handleLanding(floorNum) {
+      if (floorNum > player.lastFloor) {
+        const floorDiff = floorNum - player.lastFloor;
+        score += 10 * floorDiff;
+
+        if (floorDiff >= 2) {
+          if (comboCount === 0) comboCount = floorDiff;
+          else comboCount += floorDiff;
+          comboTimer = COMBO_TIME_LIMIT;
+        } else {
+          endCombo();
+        }
+
+        player.lastFloor = floorNum;
+        player.currentFloor = floorNum;
+      } else if (floorNum < player.lastFloor) {
+        endCombo();
+        player.lastFloor = floorNum;
+        player.currentFloor = floorNum;
+      }
+
+      updateHUD();
+    }
+
+    function endCombo() {
+      if (comboCount > 0) {
+        const bonus = comboCount * comboCount;
+        score += bonus;
+
+        spawnFloatingText(getComboText(comboCount), player.x, player.y - 50, getColorForCombo(comboCount));
+        playSound("combo");
+
+        comboCount = 0;
+        comboTimer = 0;
+        updateHUD();
+      }
+    }
+
+    function getComboText(count) {
+      if (count < 5) return "Good!";
+      if (count < 15) return "Sweet!";
+      if (count < 25) return "Great!";
+      if (count < 35) return "Super!";
+      if (count < 50) return "Wow!";
+      return "No Way!";
+    }
+
+    function getColorForCombo(count) {
+      if (count < 5) return "#ffff00";
+      if (count < 15) return "#ffaa00";
+      if (count < 25) return "#ff0000";
+      if (count < 35) return "#ff00ff";
+      return "#00ffff";
+    }
+
+    function spawnFloatingText(text, x, y, color) {
+      const container = document.getElementById("game-container");
+      const el = document.createElement("div");
+      el.className = "floating-text";
+      el.innerText = text;
+      el.style.color = color;
+
+      const rect = canvas.getBoundingClientRect();
+      const crect = container.getBoundingClientRect();
+      const screenX = (rect.left - crect.left) + x;
+      const screenY = (rect.top - crect.top) + (y - cameraY);
+
+      el.style.left = screenX + "px";
+      el.style.top = screenY + "px";
+
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 1500);
+    }
+
+    function gameOver() {
+      gameState = "GAMEOVER";
+      stopRumbleLoop();
+      playSound("gameover");
+      document.getElementById("hud").style.display = "none";
+      document.getElementById("combo-meter").style.display = "none";
+      document.getElementById("game-over-screen").style.display = "block";
+      document.getElementById("final-score").innerText = "Score: " + score;
+      document.getElementById("final-floor").innerText = "Floor: " + player.currentFloor;
+    }
+
+    function updateHUD() {
+      document.getElementById("score-display").innerText = "SCORE: " + score;
+      document.getElementById("floor-display").innerText = "FLOOR: " + player.currentFloor;
+    }
+
+    // --- Rendering ---
+    function draw() {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      ctx.save();
+      ctx.translate(0, -cameraY);
+
+      platforms.forEach(p => {
+        const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+        grad.addColorStop(0, "#fff");
+        grad.addColorStop(0.5, "#aaccff");
+        grad.addColorStop(1, "#6688cc");
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+
+        ctx.strokeStyle = "#4466aa";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+
+        if (p.floorNum % 50 === 0) {
+          ctx.fillStyle = "#000";
+          ctx.font = "12px Arial";
+          ctx.fillText(p.floorNum, p.x + 5, p.y + 15);
+        }
+      });
+
+      ctx.save();
+      ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+
+      if (!player.grounded) {
+        ctx.rotate((player.vx * 0.03) + player.spin);
+        player.spin *= 0.98;
+      } else {
+        player.spin = 0;
+      }
+
+      ctx.scale(player.facingRight ? 1 : -1, 1);
+
+      ctx.fillStyle = "#eee";
+      ctx.beginPath();
+      ctx.ellipse(0, 5, 10, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#333";
+      ctx.fillRect(-8, 10, 16, 8);
+
+      ctx.fillStyle = "#ffccaa";
+      ctx.beginPath();
+      ctx.arc(0, -5, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#0055aa";
+      ctx.beginPath();
+      ctx.arc(0, -8, 11, Math.PI, 0);
+      ctx.rect(-11, -8, 22, 5);
+      ctx.fill();
+
+      ctx.fillStyle = "#4488ff";
+      ctx.beginPath();
+      ctx.arc(0, -14, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.arc(3, -5, 1, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(2, -2, 4, 0.2, 1.2);
+      ctx.stroke();
+
+      ctx.restore();
+
+      if (platforms[0] && platforms[0].y > cameraY && platforms[0].y < cameraY + CANVAS_HEIGHT) {
+        ctx.fillStyle = "yellow";
+        ctx.font = "bold 30px Impact";
+        ctx.textAlign = "center";
+        ctx.fillText("START", CANVAS_WIDTH / 2, platforms[0].y + 50);
+      }
+
+      ctx.restore();
+
+      if (gameState === "PLAYING" && player.currentFloor > 5) {
+        const dangerZone = (cameraY + CANVAS_HEIGHT) - player.y;
+        if (dangerZone < 100) {
+          const alpha = 1 - (dangerZone / 100);
+          ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.5})`;
+          ctx.fillRect(0, CANVAS_HEIGHT - 100, CANVAS_WIDTH, 100);
+
+          ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+          ctx.font = "bold 40px Impact";
+          ctx.textAlign = "center";
+          ctx.fillText("HURRY UP!", CANVAS_WIDTH / 2, CANVAS_HEIGHT - 30);
+        }
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      frames++;
+      if (gameState !== "GAMEOVER") requestAnimationFrame(gameLoop);
+    }
+
+    // ------------------ Settings UI ------------------
+    const SETTINGS_SCHEMA = [
+      { key: "GRAVITY", label: "Gravity", min: 0.3, max: 1.6, step: 0.01 },
+
+      { key: "MAX_SPEED", label: "Max run speed", min: 6, max: 24, step: 0.1 },
+
+      { key: "GROUND_ACCEL", label: "Ground acceleration", min: 0.1, max: 1.4, step: 0.01 },
+      { key: "GROUND_DECEL", label: "Ground decel (no input)", min: 0.05, max: 1.5, step: 0.01 },
+      { key: "GROUND_SLIDE", label: "Ground slide (mult)", min: 0.70, max: 0.99, step: 0.001 },
+
+      { key: "AIR_ACCEL_SAME", label: "Air steer (same dir)", min: 0.05, max: 0.8, step: 0.01 },
+      { key: "AIR_ACCEL_OPP", label: "Air brake/steer (opp dir)", min: 0.10, max: 1.6, step: 0.01 },
+      { key: "AIR_BRAKE_DAMP", label: "Air brake damping", min: 0.70, max: 0.99, step: 0.001 },
+      { key: "AIR_DRAG", label: "Air drag", min: 0.96, max: 0.999, step: 0.001 },
+
+      { key: "JUMP_FORCE_BASE", label: "Jump base", min: 6, max: 18, step: 0.1 },
+      { key: "JUMP_FORCE_MAX", label: "Jump max", min: 10, max: 30, step: 0.1 },
+
+      { key: "WALL_BOUNCE_DAMP", label: "Wall bounce damping", min: 0.50, max: 1.00, step: 0.01 }
+    ];
+
+    function fmt(v, step) {
+      const s = String(step);
+      const decimals = s.includes(".") ? (s.length - s.indexOf(".") - 1) : 0;
+      return Number(v).toFixed(decimals);
+    }
+
+    function buildSettingsUI() {
+      const body = document.getElementById("settings-body");
+      body.innerHTML = "";
+
+      for (const s of SETTINGS_SCHEMA) {
+        const row = document.createElement("div");
+        row.className = "setting-row";
+
+        const left = document.createElement("div");
+
+        const label = document.createElement("div");
+        label.className = "setting-label";
+        label.textContent = s.label;
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.className = "setting-slider";
+        slider.min = s.min;
+        slider.max = s.max;
+        slider.step = s.step;
+        slider.value = CFG[s.key];
+
+        left.appendChild(label);
+        left.appendChild(slider);
+
+        const val = document.createElement("div");
+        val.className = "setting-value";
+        val.textContent = fmt(CFG[s.key], s.step);
+
+        slider.addEventListener("input", () => {
+          CFG[s.key] = Number(slider.value);
+          val.textContent = fmt(CFG[s.key], s.step);
+          saveCfg();
+        });
+
+        row.appendChild(left);
+        row.appendChild(val);
+        body.appendChild(row);
+      }
+
+      const div = document.createElement("div");
+      div.className = "setting-divider";
+      body.appendChild(div);
+
+      const hint = document.createElement("div");
+      hint.className = "setting-label";
+      hint.style.color = "#aaa";
+      hint.textContent = "Applies instantly. Auto-saves to localStorage.";
+      body.appendChild(hint);
+    }
+
+    function closeSettings() {
+      document.getElementById("settings-panel").style.display = "none";
+    }
+
+    function toggleSettings() {
+      const panel = document.getElementById("settings-panel");
+      panel.style.display = (panel.style.display === "block") ? "none" : "block";
+    }
+
+    document.getElementById("settings-btn").addEventListener("click", toggleSettings);
+    document.getElementById("settings-close").addEventListener("click", closeSettings);
+
+    document.getElementById("settings-reset").addEventListener("click", () => {
+      for (const k of Object.keys(DEFAULT_CFG)) CFG[k] = DEFAULT_CFG[k];
+      saveCfg();
+      buildSettingsUI();
+    });
+
+    buildSettingsUI();
+
+    // Initial render
+    platforms = [];
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillStyle = "#fff";
+    ctx.font = "20px Verdana";
+    ctx.textAlign = "center";
+    ctx.fillText("Press Start (or Space) to Play", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+  </script>
+</body>
+</html>
