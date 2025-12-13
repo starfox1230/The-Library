@@ -670,6 +670,42 @@
 
   function structuredCloneSafe(x){ return JSON.parse(JSON.stringify(x)); }
 
+  function isValidISODateString(iso){
+    return typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  }
+
+  function deriveWeekStarts(meta){
+    const startISO = meta?.rangeStart;
+    const endISO = meta?.rangeEnd;
+    if(!isValidISODateString(startISO) || !isValidISODateString(endISO)) return null;
+
+    const start = parseISO(startISO);
+    const end = parseISO(endISO);
+    if(isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+
+    const starts = [];
+    let d = new Date(start.getTime());
+    // shift back to the Monday of the start week
+    while(d.getUTCDay() !== 1){ d = addDays(d, -1); }
+
+    while(d.getTime() <= end.getTime()){
+      starts.push(isoDate(d));
+      d = addDays(d, 7);
+    }
+
+    return starts.length ? starts : null;
+  }
+
+  function normalizeWeekStarts(meta){
+    const cleaned = (meta.weekStarts || []).filter(iso => isValidISODateString(iso));
+    if(cleaned.length) return cleaned;
+
+    const derived = deriveWeekStarts(meta);
+    if(derived && derived.length) return derived;
+
+    return structuredCloneSafe(defaultData.meta.weekStarts || []);
+  }
+
   function loadData(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -692,6 +728,13 @@
   function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
 
   let data = loadData();
+
+  // Safeguard against cleared/empty weekStarts so the calendar renders
+  const normalizedWeekStarts = normalizeWeekStarts(data.meta);
+  if(JSON.stringify(data.meta.weekStarts || []) !== JSON.stringify(normalizedWeekStarts)){
+    data.meta.weekStarts = normalizedWeekStarts;
+    saveData(data);
+  }
 
   function allPeople(){ return (data.people || []).map(p => p.name); }
 
