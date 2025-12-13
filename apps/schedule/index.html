@@ -7,8 +7,12 @@
   <style>
     :root{
       --bg:#0b1020;
-      --panel:rgba(255,255,255,.06);
-      --panel2:rgba(255,255,255,.04);
+      /* Default dark card (Week 1, 3) */
+      --panel:rgba(255,255,255,.05);
+      
+      /* Lighter card for alternating weeks (Week 2, 4) */
+      --panel-even: rgba(255,255,255,.11);
+      
       --border:rgba(255,255,255,.10);
       --text:#eef3ff;
       --muted:rgba(255,255,255,.72);
@@ -61,7 +65,7 @@
     .top{
       border:1px solid var(--border);
       border-radius:18px;
-      background:var(--panel);
+      background: rgba(255,255,255,.06);
       box-shadow: var(--shadow);
       overflow:hidden;
       margin-bottom: 20px;
@@ -224,7 +228,6 @@
     .gridScroll {
       overflow-x: auto;
       padding-bottom: 20px;
-      /* Smooth scrolling */
       -webkit-overflow-scrolling: touch;
     }
 
@@ -233,8 +236,9 @@
       display:grid;
       /* 5 Columns (Mon-Fri) */
       grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
-      /* Force width so it doesn't crush on mobile */
+      /* Increased row-gap to help separate weeks */
+      row-gap: 24px;
+      column-gap: 12px;
       min-width: 1500px; 
     }
 
@@ -251,24 +255,58 @@
       margin-bottom: 4px;
     }
 
+    /* DAY CARDS */
     .dayCard{
       border: 1px solid var(--border);
-      background: var(--panel2);
       border-radius: 12px;
       box-shadow: var(--shadow);
       overflow:hidden;
       display: flex;
       flex-direction: column;
       height: 100%;
+      position: relative;
     }
+    
+    /* DEFAULT (Odd Weeks): Darker */
+    .dayCard.oddWeek {
+      background: var(--panel);
+    }
+    
+    /* ALTERNATE (Even Weeks): Lighter/Tinted */
+    .dayCard.evenWeek {
+      background: var(--panel-even);
+      border-color: rgba(255,255,255,.16);
+    }
+
     .dayCard.issue{
       outline: 3px solid var(--danger);
       outline-offset: -1px;
       box-shadow: 0 18px 65px rgba(239,68,68,.10);
     }
 
+    /* Week Label (Only on Mondays) */
+    .weekLabel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.7);
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-bottom-right-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      z-index: 2;
+    }
+    .dayCard.evenWeek .weekLabel {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
     .dayTop{
       padding: 8px 10px;
+      padding-top: 14px; /* Space for week label on Mon */
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -276,7 +314,6 @@
       border-bottom:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.18);
     }
-    .dateBlock .dow{ display:none; } /* Hide DoW in card since we have headers */
     .dateBlock .md{ font-size: 13px; color: var(--text); font-weight: 900; }
 
     .badges{ display:flex; gap:4px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
@@ -544,7 +581,7 @@
           <div class="h1">Rotation Scheduler</div>
           <div class="sub">
             <b>View:</b> 5-Day Calendar Grid (Scroll horizontally).<br>
-            Tap a name (select), then tap a role slot to move/copy.
+            Alternating bands and "Week" labels indicate weekly blocks.
           </div>
         </div>
         <div class="btnRow">
@@ -1230,10 +1267,22 @@
       `;
     }
 
-    function dayHTML(date){
+    function dayHTML(date, index){
+      // Calculate week number (1-based)
+      // Every 5 days = 1 week
+      const weekNum = Math.floor(index / 5) + 1;
+      const isEvenWeek = (weekNum % 2 === 0);
+      const weekClass = isEvenWeek ? "evenWeek" : "oddWeek";
+      
+      // Add a label for the first day of the week (Monday)
+      // index % 5 === 0 means it's the first column
+      const showWeekLabel = (index % 5 === 0);
+      const weekLabelHTML = showWeekLabel ? `<div class="weekLabel">Week ${weekNum}</div>` : "";
+
       if(CLOSED_DATES.has(date)){
         return `
-          <div class="dayCard">
+          <div class="dayCard ${weekClass}">
+            ${weekLabelHTML}
             <div class="dayTop">
               <div class="dateBlock"><div class="md">${esc(fmtMDY(date))}</div></div>
               <div class="badges">${dayHeaderBadges(date)}</div>
@@ -1246,7 +1295,8 @@
       }
       const issue = dayHasIssue(date);
       return `
-        <div class="dayCard ${issue ? "issue" : ""}">
+        <div class="dayCard ${weekClass} ${issue ? "issue" : ""}">
+          ${weekLabelHTML}
           <div class="dayTop">
             <div class="dateBlock"><div class="md">${esc(fmtMDY(date))}</div></div>
             <div class="badges">${dayHeaderBadges(date)}</div>
@@ -1276,7 +1326,8 @@
         <div class="colHead">Thursday</div>
         <div class="colHead">Friday</div>
       `;
-      daysEl.innerHTML = headers + DAYS_ORDER.map(dayHTML).join("");
+      // Pass index to dayHTML to calculate weeks
+      daysEl.innerHTML = headers + DAYS_ORDER.map((d, i) => dayHTML(d, i)).join("");
       attachHandlers();
     }
 
