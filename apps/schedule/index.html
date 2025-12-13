@@ -527,8 +527,7 @@
         <div class="title">
           <div class="h1">Rotation Scheduler</div>
           <div class="sub">
-            Default behavior: for most days, <b>a.m. and p.m. are linked</b> so edits apply to the whole day (keeps roles the same).
-            Days with half-day absences are automatically <b>split</b>.
+            Default behavior: <b>days are linked</b> (a.m. = p.m.) unless absences force a split.
             Tap a name (select), then tap a role slot to move/copy.
           </div>
         </div>
@@ -593,12 +592,12 @@
 
   <script>
     /******************************************************************
-     * DATA: dates, people, absences, and initial schedule (current setup)
+     * DATA
      ******************************************************************/
 
     const PEOPLE = ["Zach","Daniel","Caroline","Mina","Sterling","Omid"];
     const ROLES = ["IR","Fluoro","MSK","US","Float"];
-    const REQUIRED = ["IR","Fluoro","MSK","US"]; // Float is not required
+    const REQUIRED = ["IR","Fluoro","MSK","US"];
 
     const ROLE_META = {
       IR:     { bg:"rgba(37, 99, 235, .42)",  bd:"rgba(37, 99, 235, .85)" },
@@ -626,30 +625,36 @@
       };
     }
 
+    // Zach: half sick p.m. 12/22; full sick day 1/9
     addAbs("2025-12-22", { pm:["Zach"] });
     addAbs("2026-01-09", { am:["Zach"], pm:["Zach"] });
 
+    // Sterling: vacation 12/22–12/24 (full days)
     addAbs("2025-12-22", { am:["Sterling"], pm:["Sterling"] });
     addAbs("2025-12-23", { am:["Sterling"], pm:["Sterling"] });
     addAbs("2025-12-24", { am:["Sterling"], pm:["Sterling"] });
 
+    // Omid: dr appt a.m. 12/22; half admin a.m. 12/24; vacation 12/29–12/31
     addAbs("2025-12-22", { am:["Omid"] });
     addAbs("2025-12-24", { am:["Omid"] });
     addAbs("2025-12-29", { am:["Omid"], pm:["Omid"] });
     addAbs("2025-12-30", { am:["Omid"], pm:["Omid"] });
     addAbs("2025-12-31", { am:["Omid"], pm:["Omid"] });
 
+    // Daniel: vacation 12/29–12/31; academic half-day Jan 6 (p.m.)
     addAbs("2025-12-29", { am:["Daniel"], pm:["Daniel"] });
     addAbs("2025-12-30", { am:["Daniel"], pm:["Daniel"] });
     addAbs("2025-12-31", { am:["Daniel"], pm:["Daniel"] });
     addAbs("2026-01-06", { pm:["Daniel"] });
 
+    // Mina: half academic day 12/24 (p.m.); off Jan 6–9
     addAbs("2025-12-24", { pm:["Mina"] });
     addAbs("2026-01-06", { am:["Mina"], pm:["Mina"] });
     addAbs("2026-01-07", { am:["Mina"], pm:["Mina"] });
     addAbs("2026-01-08", { am:["Mina"], pm:["Mina"] });
     addAbs("2026-01-09", { am:["Mina"], pm:["Mina"] });
 
+    // Caroline: academic half day Jan 6 (full day off per earlier note) + Dec 24 full day off from calendar snapshot
     addAbs("2025-12-24", { am:["Caroline"], pm:["Caroline"] });
 
     function isAbsent(person, date, half){
@@ -673,7 +678,7 @@
       for(let i=0;i<am.length;i++){
         if(am[i] !== pm[i]) return true;
       }
-      return false;
+      return false; // absences identical => no reason to split the day
     }
 
     function emptyHalf(){
@@ -681,6 +686,26 @@
     }
     function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
+    /******************************************************************
+     * IMPORTANT FIX:
+     * If the day does NOT need splitting (absences identical), then a.m. and p.m.
+     * must be identical. We enforce that here by mirroring p.m. = a.m.
+     ******************************************************************/
+    function normalizeLinkedDays(schedule, dayMode){
+      for(const date of DAYS_ORDER){
+        if(CLOSED_DATES.has(date)) continue;
+        if(dayMustSplit(date)) continue; // must keep halves independent
+        const mode = (dayMode && dayMode[date]) ? dayMode[date] : "linked";
+        if(mode !== "linked") continue;
+
+        // Mirror: p.m. assignments must match a.m.
+        schedule[date].pm = clone(schedule[date].am);
+      }
+    }
+
+    /******************************************************************
+     * DEFAULT SCHEDULE (no half-day splits unless absences force it)
+     ******************************************************************/
     const DEFAULT_SCHEDULE = (() => {
       const s = {};
       for(const d of DAYS_ORDER){
@@ -691,40 +716,36 @@
         }
       }
 
+      // Week 1: linked day (same a.m./p.m.)
       for(const d of ["2025-12-15","2025-12-16","2025-12-17","2025-12-18","2025-12-19"]){
         s[d].am.IR = ["Zach","Daniel"];
         s[d].am.Fluoro = ["Caroline"];
         s[d].am.MSK = ["Mina"];
         s[d].am.US = ["Omid"];
         s[d].am.Float = ["Sterling"];
-
-        s[d].pm.IR = ["Zach","Daniel"];
-        s[d].pm.Fluoro = ["Caroline"];
-        s[d].pm.MSK = ["Mina"];
-        s[d].pm.US = ["Sterling"];
-        s[d].pm.Float = ["Omid"];
       }
 
+      // 12/22 MUST split (Zach absent p.m.; Omid absent a.m.; Sterling absent all day)
       s["2025-12-22"].am.IR = ["Zach"];
       s["2025-12-22"].am.Fluoro = ["Mina"];
       s["2025-12-22"].am.MSK = ["Daniel"];
       s["2025-12-22"].am.US = ["Caroline"];
       s["2025-12-22"].am.Float = [];
 
-      s["2025-12-22"].pm.IR = ["Mina"];
+      s["2025-12-22"].pm.IR = ["Mina"];          // Zach absent p.m.
       s["2025-12-22"].pm.Fluoro = ["Daniel"];
       s["2025-12-22"].pm.MSK = ["Caroline"];
       s["2025-12-22"].pm.US = ["Omid"];
       s["2025-12-22"].pm.Float = [];
 
-      for(const half of ["am","pm"]){
-        s["2025-12-23"][half].IR = ["Zach"];
-        s["2025-12-23"][half].Fluoro = ["Mina"];
-        s["2025-12-23"][half].MSK = ["Daniel"];
-        s["2025-12-23"][half].US = ["Caroline"];
-        s["2025-12-23"][half].Float = ["Omid"];
-      }
+      // 12/23 linked (Sterling absent full day)
+      s["2025-12-23"].am.IR = ["Zach"];
+      s["2025-12-23"].am.Fluoro = ["Mina"];
+      s["2025-12-23"].am.MSK = ["Daniel"];
+      s["2025-12-23"].am.US = ["Caroline"];
+      s["2025-12-23"].am.Float = ["Omid"];
 
+      // 12/24 MUST split (Caroline full day absent; Omid absent a.m.; Mina absent p.m.; Sterling absent full day)
       s["2025-12-24"].am.IR = ["Zach"];
       s["2025-12-24"].am.Fluoro = ["Mina"];
       s["2025-12-24"].am.MSK = ["Daniel"];
@@ -737,39 +758,24 @@
       s["2025-12-24"].pm.US = [];
       s["2025-12-24"].pm.Float = [];
 
-      // 12/29–12/31 base, then swap Mina <-> Sterling
+      // 12/29–12/31 linked (Daniel + Omid absent full days). Swap Mina/Sterling already applied:
+      // Fluoro: Sterling, US: Mina
       for(const d of ["2025-12-29","2025-12-30","2025-12-31"]){
-        for(const half of ["am","pm"]){
-          s[d][half].IR = ["Zach"];
-          s[d][half].Fluoro = ["Mina"];
-          s[d][half].MSK = ["Caroline"];
-          s[d][half].US = ["Sterling"];
-          s[d][half].Float = [];
-        }
-      }
-      for(const d of ["2025-12-29","2025-12-30"]){
-        s[d].pm.US = ["Mina"];
-        s[d].pm.Float = ["Sterling"];
+        s[d].am.IR = ["Zach"];
+        s[d].am.Fluoro = ["Sterling"];
+        s[d].am.MSK = ["Caroline"];
+        s[d].am.US = ["Mina"];
+        s[d].am.Float = [];
       }
 
-      const swapDates = ["2025-12-29","2025-12-30","2025-12-31"];
-      for(const d of swapDates){
-        for(const half of ["am","pm"]){
-          for(const role of ROLES){
-            const arr = s[d][half][role];
-            s[d][half][role] = arr.map(x => x === "Mina" ? "Sterling" : (x === "Sterling" ? "Mina" : x));
-          }
-        }
-      }
+      // 1/5 linked
+      s["2026-01-05"].am.IR = ["Zach"];
+      s["2026-01-05"].am.Fluoro = ["Daniel"];
+      s["2026-01-05"].am.MSK = ["Mina"];
+      s["2026-01-05"].am.US = ["Caroline"];
+      s["2026-01-05"].am.Float = ["Omid","Sterling"];
 
-      for(const half of ["am","pm"]){
-        s["2026-01-05"][half].IR = ["Zach"];
-        s["2026-01-05"][half].Fluoro = ["Daniel"];
-        s["2026-01-05"][half].MSK = ["Mina"];
-        s["2026-01-05"][half].US = ["Caroline"];
-        s["2026-01-05"][half].Float = ["Omid","Sterling"];
-      }
-
+      // 1/6 MUST split (Daniel absent p.m.; Mina absent full day)
       s["2026-01-06"].am.IR = ["Zach"];
       s["2026-01-06"].am.Fluoro = ["Daniel"];
       s["2026-01-06"].am.MSK = ["Sterling"];
@@ -782,32 +788,26 @@
       s["2026-01-06"].pm.US = [];
       s["2026-01-06"].pm.Float = ["Caroline"];
 
-      for(const half of ["am","pm"]){
-        s["2026-01-07"][half].IR = ["Zach"];
-        s["2026-01-07"][half].Fluoro = ["Daniel"];
-        s["2026-01-07"][half].MSK = ["Caroline"];
-        s["2026-01-07"][half].US = ["Omid"];
-        s["2026-01-07"][half].Float = ["Sterling"];
-      }
-      for(const half of ["am","pm"]){
-        s["2026-01-08"][half].IR = ["Zach"];
-        s["2026-01-08"][half].Fluoro = ["Daniel"];
-        s["2026-01-08"][half].MSK = ["Caroline"];
-        s["2026-01-08"][half].US = ["Omid"];
-        s["2026-01-08"][half].Float = ["Sterling"];
-      }
+      // 1/7 linked (Mina absent full day)
+      s["2026-01-07"].am.IR = ["Zach"];
+      s["2026-01-07"].am.Fluoro = ["Daniel"];
+      s["2026-01-07"].am.MSK = ["Caroline"];
+      s["2026-01-07"].am.US = ["Omid"];
+      s["2026-01-07"].am.Float = ["Sterling"];
 
+      // 1/8 linked (Mina absent full day)
+      s["2026-01-08"].am.IR = ["Zach"];
+      s["2026-01-08"].am.Fluoro = ["Daniel"];
+      s["2026-01-08"].am.MSK = ["Caroline"];
+      s["2026-01-08"].am.US = ["Omid"];
+      s["2026-01-08"].am.Float = ["Sterling"];
+
+      // 1/9 linked (Zach absent full day; Mina absent full day)
       s["2026-01-09"].am.IR = ["Omid"];
       s["2026-01-09"].am.Fluoro = ["Daniel"];
       s["2026-01-09"].am.MSK = ["Caroline"];
       s["2026-01-09"].am.US = ["Sterling"];
       s["2026-01-09"].am.Float = [];
-
-      s["2026-01-09"].pm.IR = ["Omid"];
-      s["2026-01-09"].pm.Fluoro = ["Sterling"];
-      s["2026-01-09"].pm.MSK = ["Daniel"];
-      s["2026-01-09"].pm.US = [];
-      s["2026-01-09"].pm.Float = ["Caroline"];
 
       return s;
     })();
@@ -819,6 +819,9 @@
     const FIRST_WEEK_DATES = new Set(["2025-12-15","2025-12-16","2025-12-17","2025-12-18","2025-12-19"]);
 
     function enforceDefaults(schedule, defaultsOn){
+      // Always enforce "no split unless required" first.
+      normalizeLinkedDays(schedule, state.dayMode);
+
       if(!defaultsOn) return;
 
       for(const date of DAYS_ORDER){
@@ -851,27 +854,25 @@
           }
         }
       }
+
+      // Re-apply no-split rule again (in case defaults changed a.m. only on linked days)
+      normalizeLinkedDays(schedule, state.dayMode);
     }
 
     /******************************************************************
      * STATE + STORAGE
      ******************************************************************/
 
-    const STORAGE_KEY = "rotation_scheduler_v2_linkedDays";
+    const STORAGE_KEY = "rotation_scheduler_v3_nosplit";
     let state = {
       schedule: clone(DEFAULT_SCHEDULE),
       defaultsOn: true,
       copyMode: false,
       selected: null,
       sheetCtx: null,
-      // dayMode[date] = "linked" | "split" (only user choice for days that do NOT must-split)
+      // dayMode[date] = "linked" | "split" (only meaningful when absences do NOT force a split)
       dayMode: {}
     };
-
-    function defaultDayMode(date){
-      // Must split if absences differ, otherwise default linked.
-      return dayMustSplit(date) ? "split" : "linked";
-    }
 
     function getDayMode(date){
       if(dayMustSplit(date)) return "split";
@@ -955,26 +956,9 @@
     function roleColor(role){ return ROLE_META[role]?.bg || "rgba(255,255,255,.06)"; }
     function roleBorder(role){ return ROLE_META[role]?.bd || "rgba(255,255,255,.16)"; }
 
-    /******************************************************************
-     * LINKED-DAY HELPERS
-     ******************************************************************/
-
-    function halvesForEdit(date, half){
-      // If linked day, edits should apply to BOTH halves, regardless of whether the user clicked AM or PM.
-      const mode = getDayMode(date);
-      return mode === "linked" ? ["am","pm"] : [half];
-    }
-
     function canPlace(person, date, half){
       if(CLOSED_DATES.has(date)) return false;
       if(isAbsent(person, date, half)) return false;
-      return true;
-    }
-
-    function canPlaceInAllHalves(person, date, halves){
-      for(const h of halves){
-        if(!canPlace(person, date, h)) return false;
-      }
       return true;
     }
 
@@ -982,22 +966,25 @@
       const arr = state.schedule[date][half][role];
       state.schedule[date][half][role] = arr.filter(p => p !== person);
     }
-
     function addToSlot(date, half, role, person){
       const arr = state.schedule[date][half][role];
       state.schedule[date][half][role] = [...arr, person];
     }
 
-    function removeFromSlotLinkedAware(date, half, role, person){
-      for(const h of halvesForEdit(date, half)){
-        removeFromSlot(date, h, role, person);
-      }
+    /******************************************************************
+     * EDIT BEHAVIOR:
+     * - If day is linked, edits apply to both halves (and we also normalize p.m.=a.m.)
+     * - If day must split (absences differ), edits can be half-specific.
+     ******************************************************************/
+    function halvesForEdit(date, half){
+      return (getDayMode(date) === "linked") ? ["am","pm"] : [half];
     }
 
-    function addToSlotLinkedAware(date, half, role, person){
-      for(const h of halvesForEdit(date, half)){
-        addToSlot(date, h, role, person);
+    function canPlaceInAllHalves(person, date, halves){
+      for(const h of halves){
+        if(!canPlace(person, date, h)) return false;
       }
+      return true;
     }
 
     function moveOrCopy(person, from, to){
@@ -1010,13 +997,11 @@
       }
 
       if(from && !state.copyMode){
-        // If the FROM day is linked, remove from both halves of that day; otherwise only that half.
         for(const h of halvesForEdit(from.date, from.half)){
           removeFromSlot(from.date, h, from.role, person);
         }
       }
 
-      // Add to destination (linked-aware)
       for(const h of targetHalves){
         addToSlot(date, h, role, person);
       }
@@ -1118,9 +1103,6 @@
       const stats = computeStats();
       const fmt = (n) => (Math.round(n*10)/10).toFixed(1).replace(".0","");
 
-      const floatDiff = Math.abs((stats["Sterling"]?.Float||0) - (stats["Omid"]?.Float||0));
-      const floatWarn = floatDiff > 0.5;
-
       statsEl.innerHTML = `
         <table>
           <thead>
@@ -1133,7 +1115,6 @@
               <th>Float</th>
               <th>Absence</th>
               <th style="text-align:left">Absence dates</th>
-              <th style="text-align:left">Note</th>
             </tr>
           </thead>
           <tbody>
@@ -1144,14 +1125,6 @@
                 if(comp.fullRanges.length) parts.push(comp.fullRanges.join(", "));
                 if(comp.partial.length) parts.push(comp.partial.join(", "));
                 const dates = parts.length ? parts.join("; ") : "—";
-
-                let note = "—";
-                if(p === "Sterling" || p === "Omid"){
-                  if(floatWarn){
-                    note = `<span class="pill">S vs O float diff: ${esc(fmt(floatDiff))} days</span>`;
-                  }
-                }
-
                 return `
                   <tr>
                     <td class="name">${esc(p)}</td>
@@ -1162,7 +1135,6 @@
                     <td>${fmt(stats[p].Float)}</td>
                     <td>${fmt(stats[p].Absence)}</td>
                     <td class="absDates">${esc(dates)}</td>
-                    <td class="warn" style="text-align:left;">${note}</td>
                   </tr>
                 `;
               }).join("")
@@ -1257,8 +1229,8 @@
       if(CLOSED_DATES.has(date)) return `<span class="badge closed">Closed</span>`;
 
       const issue = dayHasIssue(date);
-      const mode = getDayMode(date);
       const mustSplit = dayMustSplit(date);
+      const mode = getDayMode(date);
 
       const modeBadge = mustSplit
         ? `<span class="badge locked">Split (absences)</span>`
@@ -1307,6 +1279,9 @@
     }
 
     function render(){
+      // Ensure no half-day role switching on linked days
+      enforceDefaults(state.schedule, state.defaultsOn);
+
       document.getElementById("lockBtn").classList.toggle("toggled", state.defaultsOn);
       document.getElementById("lockBtn").textContent = `Defaults: ${state.defaultsOn ? "ON" : "OFF"}`;
       document.getElementById("copyBtn").textContent = `Mode: ${state.copyMode ? "Copy" : "Move"}`;
@@ -1331,7 +1306,6 @@
       state.sheetCtx = ctx;
       const {date, half, role} = ctx;
       const halves = halvesForEdit(date, half);
-
       const halfLabel = (halves.length === 2) ? "whole day (linked)" : (half === "am" ? "a.m." : "p.m.");
 
       sheetTitle.textContent = `Add to ${role} (${halfLabel})`;
@@ -1370,7 +1344,6 @@
     let dragData = null;
 
     function attachHandlers(){
-      // Toggle day mode (linked/split) when allowed
       document.querySelectorAll("[data-toggle-daymode='1']").forEach(b=>{
         b.addEventListener("click", ()=>{
           const date = b.getAttribute("data-date");
@@ -1378,7 +1351,9 @@
           const cur = getDayMode(date);
           const next = (cur === "linked") ? "split" : "linked";
           setDayMode(date, next);
-          toast(next === "linked" ? "Day linked (whole-day edits)." : "Day split (manual halves).");
+          enforceDefaults(state.schedule, state.defaultsOn);
+          save();
+          toast(next === "linked" ? "Day linked (a.m.=p.m.)." : "Day split (manual halves).");
           render();
         });
       });
@@ -1391,8 +1366,9 @@
           const half = btn.getAttribute("data-half");
           const role = btn.getAttribute("data-role");
 
-          // Remove linked-aware
-          removeFromSlotLinkedAware(date, half, role, person);
+          for(const h of halvesForEdit(date, half)){
+            removeFromSlot(date, h, role, person);
+          }
 
           enforceDefaults(state.schedule, state.defaultsOn);
           save();
@@ -1445,15 +1421,6 @@
 
           const person = state.selected.person;
           const from = state.selected.from;
-
-          if(from && !state.copyMode && from.date === date && from.role === role){
-            // If clicking same role in same day, we still treat as "cancel" when linked or same half
-            if(getDayMode(date) === "linked" || from.half === half){
-              state.selected = null;
-              render();
-              return;
-            }
-          }
 
           const ok = moveOrCopy(person, from, {date,half,role});
           if(ok){
@@ -1591,7 +1558,7 @@
 
     document.getElementById("exportBtn").addEventListener("click", ()=>{
       const payload = {
-        version: 2,
+        version: 3,
         exported_at: new Date().toISOString(),
         schedule: state.schedule,
         defaultsOn: state.defaultsOn,
@@ -1628,6 +1595,7 @@
         if(typeof obj.copyMode === "boolean") state.copyMode = obj.copyMode;
         state.dayMode = obj.dayMode || {};
         state.selected = null;
+
         enforceDefaults(state.schedule, state.defaultsOn);
         save();
         render();
