@@ -3,27 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Matilda Lesson Hopper</title>
+  <title>Matilda — 100 Easy Lessons</title>
   <style>
     :root{
       --bg:#070812;
       --panel:rgba(255,255,255,.08);
+      --panel2:rgba(255,255,255,.12);
       --text:rgba(255,255,255,.92);
       --muted:rgba(255,255,255,.65);
       --shadow: 0 16px 40px rgba(0,0,0,.45);
+      --ok:#34d399;
+      --next:#8b5cf6;
     }
-    html,body{height:100%; margin:0; background:
-      radial-gradient(1200px 700px at 20% 10%, rgba(139,92,246,.35), transparent 60%),
-      radial-gradient(900px 600px at 80% 15%, rgba(34,211,238,.25), transparent 55%),
-      radial-gradient(900px 700px at 40% 80%, rgba(251,113,133,.18), transparent 60%),
-      var(--bg);
+    html,body{
+      height:100%; margin:0;
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(139,92,246,.35), transparent 60%),
+        radial-gradient(900px 600px at 80% 15%, rgba(34,211,238,.25), transparent 55%),
+        radial-gradient(900px 700px at 40% 80%, rgba(251,113,133,.18), transparent 60%),
+        var(--bg);
       color:var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       overflow:hidden;
+      -webkit-tap-highlight-color: transparent;
     }
     #app{position:fixed; inset:0; display:flex; flex-direction:column;}
     #topbar{
-      display:flex; gap:10px; align-items:center; padding:12px; z-index:5;
+      display:flex; gap:10px; align-items:center;
+      padding:12px; z-index:5;
     }
     .chip{
       background:var(--panel);
@@ -33,10 +40,9 @@
       box-shadow: var(--shadow);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      display:flex; align-items:center; gap:10px;
       user-select:none;
     }
-    .title{font-weight:800; letter-spacing:.2px}
+    .title{font-weight:900; letter-spacing:.2px}
     .sub{font-size:12px; color:var(--muted)}
     #progressWrap{flex:1; min-width:0;}
     .bar{
@@ -52,27 +58,12 @@
       border-radius:999px;
       transition: width 420ms cubic-bezier(.2,.8,.2,1);
     }
-    .seg{display:flex; gap:6px; padding:6px;}
-    .seg button{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.06);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:999px;
-      font-weight:800;
-      cursor:pointer;
-    }
-    .seg button.active{
-      background:linear-gradient(135deg, rgba(34,211,238,.22), rgba(139,92,246,.25));
-      border-color:rgba(34,211,238,.35);
-    }
-
     #canvasWrap{position:relative; flex:1; min-height:0;}
     canvas{display:block; width:100%; height:100%;}
 
     #dock{
-      display:flex; gap:10px; padding:12px; justify-content:space-between; align-items:center; z-index:5;
+      display:flex; gap:10px; padding:12px;
+      justify-content:space-between; align-items:center; z-index:5;
     }
     .btn{
       border:none; cursor:pointer; color:var(--text);
@@ -80,14 +71,18 @@
       background:linear-gradient(135deg, rgba(34,211,238,.25), rgba(139,92,246,.30));
       border:1px solid rgba(255,255,255,.14);
       box-shadow: var(--shadow);
-      font-weight:900;
-      min-width: 180px;
+      font-weight:950;
+      min-width: 200px;
       user-select:none;
-      -webkit-tap-highlight-color: transparent;
     }
-    .btn.secondary{min-width:auto; background:rgba(255,255,255,.07);}
+    .btn.secondary{
+      min-width:auto;
+      background:rgba(255,255,255,.07);
+      padding:14px 14px;
+    }
     .btn:active{transform: translateY(1px);}
 
+    /* Overlays */
     .overlay{position:fixed; inset:0; display:none; place-items:center; z-index:20;
       background:rgba(0,0,0,.55);
       backdrop-filter: blur(8px);
@@ -107,76 +102,54 @@
     .actions{display:flex; gap:10px; justify-content:flex-end; padding:10px 6px 6px;}
     .mini{min-width:auto; padding:12px 14px; border-radius:14px;}
     .row{display:flex; gap:10px; padding:10px 6px; align-items:center; flex-wrap:wrap;}
-    label{font-size:13px; color:var(--muted); font-weight:800}
+    label{font-size:13px; color:var(--muted); font-weight:900}
     input[type="number"]{
-      width:92px; padding:10px 10px;
+      width:110px; padding:10px 10px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,.14);
       background:rgba(255,255,255,.07);
       color:var(--text);
-      font-weight:900;
+      font-weight:950;
       outline:none;
     }
-
     #toast{
       position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
       padding:12px 14px; border-radius:999px;
       background:rgba(0,0,0,.62);
       border:1px solid rgba(255,255,255,.12);
       color:var(--text);
-      font-weight:900;
-      display:none;
-      z-index:30;
+      font-weight:950;
+      display:none; z-index:30;
       box-shadow: var(--shadow);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       max-width: calc(100vw - 28px);
       text-align:center;
       user-select:none;
+      white-space:nowrap;
     }
     #toast.show{display:block;}
-
-    /* Simple debug banner for script errors / missing WebGL */
-    #debug{
-      position:fixed; top:12px; left:12px; right:12px;
-      background:rgba(0,0,0,.65);
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:14px;
-      padding:10px 12px;
-      font-size:12px;
-      color:rgba(255,255,255,.85);
-      display:none;
-      z-index:999;
-      white-space:pre-wrap;
-    }
-    #debug.show{display:block;}
   </style>
 </head>
 <body>
-  <div id="debug"></div>
-
   <div id="app">
     <div id="topbar">
       <div class="chip">
-        <div>
-          <div class="title" id="seriesTitle">Easy Lessons</div>
-          <div class="sub" id="seriesSub">Lesson <span id="currentLessonText">1</span> / 100</div>
-        </div>
+        <div class="title">Matilda</div>
+        <div class="sub">Teach Your Child to Read in 100 Easy Lessons</div>
       </div>
 
-      <div class="chip" id="progressWrap">
-        <div style="width:100%">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
-            <div class="title">Overall</div>
-            <div class="sub" id="overallText">0 / 200</div>
-          </div>
-          <div class="bar"><i id="overallBar"></i></div>
+      <div class="chip" id="progressWrap" style="padding:10px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+          <div class="title">Progress</div>
+          <div class="sub"><span id="progressText">0 / 100</span></div>
         </div>
+        <div class="bar"><i id="progressBar"></i></div>
       </div>
 
-      <div class="chip seg">
-        <button id="btnEasy" class="active" type="button">Easy</button>
-        <button id="btnTCR" type="button">Teacher</button>
+      <div class="chip">
+        <div class="title">Lesson</div>
+        <div class="sub"><span id="currentLessonText">1</span> / 100</div>
       </div>
     </div>
 
@@ -204,20 +177,13 @@
   <div class="overlay" id="settingsOverlay">
     <div class="modal">
       <h2>Settings</h2>
-      <p>Hold the gear for ~1 second to open (parent-only).</p>
+      <p>Hold the gear for ~1 second to open (parent-only). Set where you are.</p>
 
       <div class="row">
-        <label for="easyCurrent">Easy current</label>
-        <input id="easyCurrent" type="number" min="1" max="100" />
-        <label for="easyCompleted">Easy completed up to</label>
-        <input id="easyCompleted" type="number" min="0" max="100" />
-      </div>
-
-      <div class="row">
-        <label for="tcrCurrent">Teacher current</label>
-        <input id="tcrCurrent" type="number" min="1" max="100" />
-        <label for="tcrCompleted">Teacher completed up to</label>
-        <input id="tcrCompleted" type="number" min="0" max="100" />
+        <label for="currentInput">Current lesson</label>
+        <input id="currentInput" type="number" min="1" max="100" />
+        <label for="completedInput">Completed up to</label>
+        <input id="completedInput" type="number" min="0" max="100" />
       </div>
 
       <div class="actions">
@@ -229,89 +195,45 @@
 
   <div id="toast"></div>
 
-  <!-- Use non-module Three.js (more reliable across iOS Safari / content blockers) -->
+  <!-- Three.js non-module (more reliable on iOS/local files) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
   <script>
     /**************
-     * Debug helpers
-     **************/
-    const debug = document.getElementById("debug");
-    function showDebug(msg){
-      debug.textContent = msg;
-      debug.classList.add("show");
-    }
-    window.addEventListener("error", (e)=>{
-      showDebug("JavaScript error:\n" + (e.message || e.error || "Unknown error"));
-    });
-
-    // WebGL check
-    (function(){
-      try{
-        const c = document.createElement("canvas");
-        const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
-        if(!gl) showDebug("WebGL is not available on this device/browser. Try a different browser or disable Low Power Mode/content blockers.");
-      }catch(err){
-        showDebug("WebGL check failed:\n" + err);
-      }
-    })();
-
-    /**************
      * State
      **************/
-    const STORAGE_KEY = "matildaLessonHopper_v2";
-    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+    const STORAGE_KEY = "matilda_100_easy_lessons_v1";
+    const clamp = (n,min,max)=>Math.max(min, Math.min(max, n));
 
     function defaultState(){
-      return {
-        easy: { current: 1, completedUpTo: 0 },
-        teacher: { current: 1, completedUpTo: 0 },
-        activeSeries: "easy"
-      };
+      return { current: 1, completedUpTo: 0 };
     }
     function loadState(){
       try{
         const raw = localStorage.getItem(STORAGE_KEY);
         if(!raw) return defaultState();
         const s = JSON.parse(raw);
-        for(const k of ["easy","teacher"]){
-          s[k] = s[k] || {};
-          s[k].current = clamp(Number(s[k].current || 1), 1, 100);
-          s[k].completedUpTo = clamp(Number(s[k].completedUpTo || 0), 0, 100);
-        }
-        s.activeSeries = (s.activeSeries === "teacher") ? "teacher" : "easy";
-        return s;
+        return {
+          current: clamp(Number(s.current||1), 1, 100),
+          completedUpTo: clamp(Number(s.completedUpTo||0), 0, 100)
+        };
       }catch{
         return defaultState();
       }
     }
-    function saveState(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
+    function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
     let state = loadState();
-
-    function seriesKey(){ return state.activeSeries; }
-    function seriesLabel(){ return seriesKey()==="easy" ? "Easy Lessons" : "Teacher-Child Read"; }
-    function seriesShort(){ return seriesKey()==="easy" ? "Easy" : "Teacher"; }
-    function currentLesson(){ return state[seriesKey()].current; }
-    function completedUpTo(){ return state[seriesKey()].completedUpTo; }
-    function overallCompleted(){ return state.easy.completedUpTo + state.teacher.completedUpTo; }
-    function unlocked(){ return state.easy.completedUpTo>=100 && state.teacher.completedUpTo>=100; }
 
     /**************
      * UI
      **************/
     const $ = (id)=>document.getElementById(id);
-    const seriesTitleEl = $("seriesTitle");
-    const currentLessonTextEl = $("currentLessonText");
-    const overallTextEl = $("overallText");
-    const overallBarEl = $("overallBar");
-    const btnEasy = $("btnEasy");
-    const btnTCR = $("btnTCR");
+    const progressText = $("progressText");
+    const progressBar = $("progressBar");
+    const currentLessonText = $("currentLessonText");
     const completeBtn = $("completeBtn");
 
     const confirmOverlay = $("confirmOverlay");
-    const confirmTitle = $("confirmTitle");
     const confirmText = $("confirmText");
     const confirmNo = $("confirmNo");
     const confirmYes = $("confirmYes");
@@ -320,10 +242,8 @@
     const settingsOverlay = $("settingsOverlay");
     const settingsClose = $("settingsClose");
     const settingsSave = $("settingsSave");
-    const easyCurrent = $("easyCurrent");
-    const easyCompleted = $("easyCompleted");
-    const tcrCurrent = $("tcrCurrent");
-    const tcrCompleted = $("tcrCompleted");
+    const currentInput = $("currentInput");
+    const completedInput = $("completedInput");
 
     const toast = $("toast");
     let toastTimer=null;
@@ -335,23 +255,15 @@
     }
 
     function updateUI(){
-      seriesTitleEl.textContent = seriesLabel();
-      currentLessonTextEl.textContent = String(currentLesson());
-      const oc = overallCompleted();
-      overallTextEl.textContent = `${oc} / 200`;
-      overallBarEl.style.width = `${(oc/200)*100}%`;
-      btnEasy.classList.toggle("active", seriesKey()==="easy");
-      btnTCR.classList.toggle("active", seriesKey()==="teacher");
-      completeBtn.textContent = unlocked() ? "🎉 Trampoline Unlocked!" : "✅ Complete Lesson";
+      progressText.textContent = `${state.completedUpTo} / 100`;
+      progressBar.style.width = `${(state.completedUpTo/100)*100}%`;
+      currentLessonText.textContent = String(state.current);
+      completeBtn.textContent = (state.completedUpTo>=100) ? "🎉 Finished! (Lesson 100)" : "✅ Complete Lesson";
     }
 
-    btnEasy.onclick = ()=>{ state.activeSeries="easy"; saveState(); updateUI(); refreshNodeStyles(); hopToLesson(currentLesson(), false); };
-    btnTCR.onclick = ()=>{ state.activeSeries="teacher"; saveState(); updateUI(); refreshNodeStyles(); hopToLesson(currentLesson(), false); };
-
     completeBtn.onclick = ()=>{
-      const cur = currentLesson();
-      confirmTitle.textContent = unlocked() ? "All done!" : "Complete lesson?";
-      confirmText.textContent = `Did we finish Lesson ${cur} (${seriesShort()})?`;
+      const cur = state.current;
+      confirmText.textContent = `Did we finish Lesson ${cur}?`;
       confirmOverlay.classList.add("show");
     };
     confirmNo.onclick = ()=>confirmOverlay.classList.remove("show");
@@ -361,35 +273,33 @@
     };
 
     function completeCurrentLesson(){
-      const key = seriesKey();
-      const cur = state[key].current;
-      state[key].completedUpTo = Math.max(state[key].completedUpTo, cur);
-      state[key].current = clamp(cur+1, 1, 100);
+      const cur = state.current;
+      state.completedUpTo = Math.max(state.completedUpTo, cur);
+      state.current = clamp(cur+1, 1, 100);
       saveState();
       updateUI();
       refreshNodeStyles();
-      hopToLesson(state[key].current, true);
-      if(unlocked()) showToast("Trampoline Time unlocked!");
+      hopToLesson(state.current, true);
+      if(state.completedUpTo>=100) showToast("Goal reached!");
+      else if(cur % 10 === 0) showToast(`⭐ Lesson ${cur}!`);
       else showToast("Nice work!");
     }
 
-    // Parent-only settings: hold gear ~1s
+    // Parent-only settings hold (~1s)
     let holdTimer=null;
     function startHold(){
       holdTimer=setTimeout(()=>{
-        easyCurrent.value = state.easy.current;
-        easyCompleted.value = state.easy.completedUpTo;
-        tcrCurrent.value = state.teacher.current;
-        tcrCompleted.value = state.teacher.completedUpTo;
+        currentInput.value = state.current;
+        completedInput.value = state.completedUpTo;
         settingsOverlay.classList.add("show");
-        showToast("Parent settings");
+        showToast("Settings");
       }, 900);
     }
     function endHold(){
       if(holdTimer){
         clearTimeout(holdTimer);
         holdTimer=null;
-        showToast("Hold to open settings");
+        showToast("Hold to open");
       }
     }
     settingsBtn.addEventListener("touchstart",(e)=>{e.preventDefault(); startHold();},{passive:false});
@@ -401,20 +311,18 @@
     settingsClose.onclick = ()=>settingsOverlay.classList.remove("show");
     settingsOverlay.onclick = (e)=>{ if(e.target===settingsOverlay) settingsOverlay.classList.remove("show"); };
     settingsSave.onclick = ()=>{
-      state.easy.current = clamp(Number(easyCurrent.value||1), 1, 100);
-      state.easy.completedUpTo = clamp(Number(easyCompleted.value||0), 0, 100);
-      state.teacher.current = clamp(Number(tcrCurrent.value||1), 1, 100);
-      state.teacher.completedUpTo = clamp(Number(tcrCompleted.value||0), 0, 100);
+      state.current = clamp(Number(currentInput.value||1), 1, 100);
+      state.completedUpTo = clamp(Number(completedInput.value||0), 0, 100);
       saveState();
       updateUI();
       settingsOverlay.classList.remove("show");
       refreshNodeStyles();
-      hopToLesson(currentLesson(), false);
+      hopToLesson(state.current, false);
       showToast("Saved");
     };
 
     /**************
-     * Three.js
+     * Three.js scene
      **************/
     const canvas = $("c");
     const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
@@ -423,37 +331,32 @@
     renderer.toneMappingExposure = 1.05;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 300);
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 500);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-    scene.add(ambient);
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 1.25); key.position.set(8, 12, 6); scene.add(key);
+    const rim = new THREE.DirectionalLight(0x88ccff, 0.6); rim.position.set(-10, 7, -8); scene.add(rim);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
-    keyLight.position.set(8, 12, 6);
-    scene.add(keyLight);
-
-    const rim = new THREE.DirectionalLight(0x88ccff, 0.6);
-    rim.position.set(-10, 7, -8);
-    scene.add(rim);
-
+    // Floor
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(220,220),
-      new THREE.MeshStandardMaterial({color:0x0b0c18, roughness:0.95, metalness:0.0, emissive:0x0b0c18, emissiveIntensity:0.8})
+      new THREE.PlaneGeometry(260,260),
+      new THREE.MeshStandardMaterial({color:0x0b0c18, roughness:0.95, metalness:0.0, emissive:0x0b0c18, emissiveIntensity:0.85})
     );
     floor.rotation.x = -Math.PI/2;
-    floor.position.y = -1.2;
+    floor.position.y = -1.35;
     scene.add(floor);
 
     // Sparkles
     const sparkleGeo = new THREE.BufferGeometry();
-    const sparkleCount = 700;
+    const sparkleCount = 800;
     const sparklePos = new Float32Array(sparkleCount*3);
     for(let i=0;i<sparkleCount;i++){
-      const r = 28*Math.random();
+      const r = 34*Math.random();
       const a = Math.random()*Math.PI*2;
-      sparklePos[i*3+0] = Math.cos(a)*r + (Math.random()-0.5)*6;
-      sparklePos[i*3+1] = Math.random()*10 + 0.5;
-      sparklePos[i*3+2] = Math.sin(a)*r + (Math.random()-0.5)*6;
+      sparklePos[i*3+0] = Math.cos(a)*r + (Math.random()-0.5)*8;
+      sparklePos[i*3+1] = Math.random()*11 + 0.5;
+      sparklePos[i*3+2] = Math.sin(a)*r + (Math.random()-0.5)*8;
     }
     sparkleGeo.setAttribute("position", new THREE.BufferAttribute(sparklePos,3));
     const sparkles = new THREE.Points(sparkleGeo, new THREE.PointsMaterial({color:0xffffff, size:0.06, transparent:true, opacity:0.5}));
@@ -464,20 +367,24 @@
     scene.add(pathGroup);
 
     const nodes = [];     // {idx, disc, ring, pos}
-    const pickables = []; // discs only
+    const pickables = []; // discs for raycast
 
-    const nodeBaseMat = new THREE.MeshStandardMaterial({color:0x1b1f3a, roughness:0.35, metalness:0.25});
-    const nodeDoneMat = new THREE.MeshStandardMaterial({color:0x2ee6b6, roughness:0.25, metalness:0.2, emissive:0x133d35, emissiveIntensity:0.8});
-    const nodeNextMat = new THREE.MeshStandardMaterial({color:0x7c3aed, roughness:0.22, metalness:0.3, emissive:0x2a0f6a, emissiveIntensity:1.1});
-    const ringGeo = new THREE.TorusGeometry(0.78, 0.08, 12, 48);
-
+    // Bigger spacing: helix-ish path around a gentle spiral
+    // This gives “nice spacing” and lets you rotate around and see the path.
     function nodePosition(i){
       const t = (i-1)/99;                 // 0..1
-      const ang = t * Math.PI * 1.85;
-      const radius = 10.5;
-      const w = Math.sin(t*Math.PI*6)*0.55;
-      return new THREE.Vector3(Math.cos(ang)*radius + w, 0, Math.sin(ang)*radius);
+      const turns = 1.55;                 // how much it wraps
+      const ang = t * Math.PI * 2 * turns;
+      const radius = 10.5 + t*7.0;        // spiral outward
+      const y = (t - 0.5) * 2.4;          // gentle vertical variation
+      return new THREE.Vector3(Math.cos(ang)*radius, y, Math.sin(ang)*radius);
     }
+
+    const nodeBaseMat = new THREE.MeshStandardMaterial({color:0x1b1f3a, roughness:0.35, metalness:0.25});
+    const nodeDoneMat = new THREE.MeshStandardMaterial({color:0x34d399, roughness:0.25, metalness:0.2, emissive:0x133d35, emissiveIntensity:0.95});
+    const nodeNextMat = new THREE.MeshStandardMaterial({color:0x8b5cf6, roughness:0.22, metalness:0.3, emissive:0x2a0f6a, emissiveIntensity:1.25});
+
+    const ringGeo = new THREE.TorusGeometry(0.86, 0.10, 12, 64);
 
     function rebuildPath(){
       while(pathGroup.children.length) pathGroup.remove(pathGroup.children[0]);
@@ -487,17 +394,16 @@
       for(let i=1;i<=100;i++){
         const pos = nodePosition(i);
 
-        const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.82,0.82,0.22,32), nodeBaseMat);
+        const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.92,0.92,0.24,40), nodeBaseMat);
         disc.position.copy(pos);
-        disc.position.y = -0.05;
         disc.userData.idx = i;
         pathGroup.add(disc);
         pickables.push(disc);
 
         const ring = new THREE.Mesh(ringGeo, nodeBaseMat);
         ring.position.copy(pos);
-        ring.position.y = 0.10;
         ring.rotation.x = Math.PI/2;
+        ring.userData.idx = i;
         pathGroup.add(ring);
 
         nodes.push({idx:i, disc, ring, pos});
@@ -505,58 +411,14 @@
       refreshNodeStyles();
     }
 
-    // Ball
-    const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.6, 40, 40),
-      new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.18, metalness:0.25, emissive:0x22104a, emissiveIntensity:0.45})
-    );
-    scene.add(ball);
-
-    const ballRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.75,0.06,12,48),
-      new THREE.MeshStandardMaterial({color:0x22d3ee, emissive:0x22d3ee, emissiveIntensity:1.4, roughness:0.35, metalness:0.0})
-    );
-    ballRing.rotation.x = Math.PI/2;
-    scene.add(ballRing);
-
-    // Confetti burst (simple points)
-    const burstCount = 220;
-    const burstGeo = new THREE.BufferGeometry();
-    const burstPos = new Float32Array(burstCount*3);
-    const burstVel = new Float32Array(burstCount*3);
-    for(let i=0;i<burstCount;i++){
-      burstPos[i*3+1] = -999;
-      burstVel[i*3+0] = (Math.random()-0.5)*8;
-      burstVel[i*3+1] = Math.random()*10 + 6;
-      burstVel[i*3+2] = (Math.random()-0.5)*8;
-    }
-    burstGeo.setAttribute("position", new THREE.BufferAttribute(burstPos,3));
-    const burstMat = new THREE.PointsMaterial({color:0xffffff, size:0.12, transparent:true, opacity:0.9});
-    const burst = new THREE.Points(burstGeo, burstMat);
-    scene.add(burst);
-    let burstActive=false, burstT=0;
-    function triggerBurst(at){
-      burstActive=true; burstT=0;
-      const posAttr = burst.geometry.getAttribute("position");
-      for(let i=0;i<burstCount;i++){
-        posAttr.array[i*3+0] = at.x;
-        posAttr.array[i*3+1] = at.y + 0.2;
-        posAttr.array[i*3+2] = at.z;
-        burstVel[i*3+0] = (Math.random()-0.5)*8;
-        burstVel[i*3+1] = Math.random()*10 + 6;
-        burstVel[i*3+2] = (Math.random()-0.5)*8;
-      }
-      posAttr.needsUpdate = true;
-      burstMat.opacity = 0.95;
-    }
-
     function refreshNodeStyles(){
-      const cur = currentLesson();
-      const done = completedUpTo();
+      const done = state.completedUpTo;
       const next = clamp(done+1, 1, 100);
 
-      const lo = cur - 10;
-      const hi = cur + 14;
+      // show a roomy window so it feels like you can “look around”
+      const cur = state.current;
+      const lo = cur - 18;
+      const hi = cur + 22;
 
       for(const n of nodes){
         const i = n.idx;
@@ -568,60 +430,127 @@
         n.ring.material = mat;
 
         const far = (i < lo || i > hi);
-        const s = far ? 0.6 : 1.0;
+        const s = far ? 0.65 : 1.0;
         n.disc.scale.setScalar(s);
         n.ring.scale.setScalar(s);
 
-        const tooFar = (i < cur - 24 || i > cur + 28);
+        // keep more visible than before; only hide very far away
+        const tooFar = (i < cur - 40 || i > cur + 44);
         n.disc.visible = !tooFar;
         n.ring.visible = !tooFar;
       }
     }
 
+    // Ball
+    const ball = new THREE.Mesh(
+      new THREE.SphereGeometry(0.65, 44, 44),
+      new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.16, metalness:0.25, emissive:0x22104a, emissiveIntensity:0.5})
+    );
+    scene.add(ball);
+
+    const ballRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.85,0.07,12,64),
+      new THREE.MeshStandardMaterial({color:0x22d3ee, emissive:0x22d3ee, emissiveIntensity:1.45, roughness:0.35, metalness:0.0})
+    );
+    ballRing.rotation.x = Math.PI/2;
+    scene.add(ballRing);
+
     function setBallAtLesson(idx){
       const p = nodes[idx-1]?.pos;
       if(!p) return;
-      ball.position.set(p.x, 0.9, p.z);
-      ballRing.position.copy(ball.position);
-      ballRing.position.y = 0.9;
+      ball.position.set(p.x, p.y + 1.05, p.z);
+      ballRing.position.set(p.x, p.y + 1.05, p.z);
     }
 
-    // Camera follow
-    function focusCameraOnLesson(idx, snap){
+    // Confetti burst
+    const burstCount = 260;
+    const burstGeo = new THREE.BufferGeometry();
+    const burstPos = new Float32Array(burstCount*3);
+    const burstVel = new Float32Array(burstCount*3);
+    for(let i=0;i<burstCount;i++){
+      burstPos[i*3+1] = -999;
+      burstVel[i*3+0] = (Math.random()-0.5)*8;
+      burstVel[i*3+1] = Math.random()*10 + 6;
+      burstVel[i*3+2] = (Math.random()-0.5)*8;
+    }
+    burstGeo.setAttribute("position", new THREE.BufferAttribute(burstPos,3));
+    const burstMat = new THREE.PointsMaterial({color:0xffffff, size:0.12, transparent:true, opacity:0.92});
+    const burst = new THREE.Points(burstGeo, burstMat);
+    scene.add(burst);
+
+    let burstActive=false, burstT=0;
+    function triggerBurst(at){
+      burstActive=true; burstT=0;
+      const posAttr = burst.geometry.getAttribute("position");
+      for(let i=0;i<burstCount;i++){
+        posAttr.array[i*3+0] = at.x;
+        posAttr.array[i*3+1] = at.y + 0.3;
+        posAttr.array[i*3+2] = at.z;
+        burstVel[i*3+0] = (Math.random()-0.5)*8;
+        burstVel[i*3+1] = Math.random()*10 + 6;
+        burstVel[i*3+2] = (Math.random()-0.5)*8;
+      }
+      posAttr.needsUpdate = true;
+      burstMat.opacity = 0.95;
+    }
+
+    // Camera orbit controls (simple, touch-friendly)
+    // Drag to rotate, pinch to zoom, two-finger drag to pan (basic).
+    const orbit = {
+      yaw: 0.8,
+      pitch: 0.35,
+      dist: 26,
+      target: new THREE.Vector3(0,0,0),
+      vyaw: 0,
+      vpitch: 0
+    };
+
+    function focusTargetOnLesson(idx, snap){
       const p = nodes[idx-1]?.pos;
       if(!p) return;
-
-      const prev = nodes[Math.max(0, idx-2)]?.pos || p;
-      const dir = p.clone().sub(prev).normalize();
-      const side = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
-
-      const target = p.clone();
-      const camPos = p.clone().add(new THREE.Vector3(0, 9.5, 16)).add(side.multiplyScalar(6));
-
-      camera.userData.target = target;
-      camera.userData.camPos = camPos;
-
+      orbit.target.copy(p);
       if(snap){
-        camera.position.copy(camPos);
-        camera.lookAt(target);
+        orbit.yaw = 0.8;
+        orbit.pitch = 0.35;
+        orbit.dist = 26;
       }
     }
 
+    function updateCamera(dt){
+      // inertia
+      orbit.vyaw *= Math.pow(0.02, dt);
+      orbit.vpitch *= Math.pow(0.02, dt);
+      orbit.yaw += orbit.vyaw;
+      orbit.pitch = clamp(orbit.pitch + orbit.vpitch, -0.25, 1.2);
+
+      const cp = Math.cos(orbit.pitch);
+      const sp = Math.sin(orbit.pitch);
+      const cy = Math.cos(orbit.yaw);
+      const sy = Math.sin(orbit.yaw);
+
+      const x = orbit.target.x + orbit.dist * (cp * sy);
+      const y = orbit.target.y + orbit.dist * (sp) + 6.0;
+      const z = orbit.target.z + orbit.dist * (cp * cy);
+
+      camera.position.lerp(new THREE.Vector3(x,y,z), 1 - Math.pow(0.001, dt));
+      camera.lookAt(orbit.target);
+    }
+
     // Hop animation
-    let hopAnim = null; // {from,to,t,duration,burst}
+    let hopAnim=null;
     function hopToLesson(idx, withBurst){
       const p = nodes[idx-1]?.pos;
       if(!p) return;
       const from = ball.position.clone();
-      const to = new THREE.Vector3(p.x, 0.9, p.z);
+      const to = new THREE.Vector3(p.x, p.y + 1.05, p.z);
       const dist = from.distanceTo(to);
-      const duration = clamp(0.45 + dist*0.03, 0.45, 0.9);
+      const duration = clamp(0.50 + dist*0.02, 0.50, 0.95);
       hopAnim = {from, to, t:0, duration, burst:withBurst};
-      focusCameraOnLesson(idx, false);
+      focusTargetOnLesson(idx, false);
     }
 
     /**************
-     * Picking (click/tap nodes)
+     * Picking nodes
      **************/
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -637,19 +566,15 @@
       pointer.y = -(y / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(pointer, camera);
-
-      const candidates = pickables.filter(o=>o.visible);
-      const hits = raycaster.intersectObjects(candidates, false);
+      const hits = raycaster.intersectObjects(pickables.filter(o=>o.visible), false);
       if(!hits.length) return;
 
       const idx = hits[0].object.userData.idx;
       if(!idx) return;
 
-      const done = completedUpTo();
-      const next = clamp(done+1, 1, 100);
-
-      if(idx === next || idx <= done){
-        state[seriesKey()].current = idx;
+      const next = clamp(state.completedUpTo + 1, 1, 100);
+      if(idx === next || idx <= state.completedUpTo){
+        state.current = idx;
         saveState();
         updateUI();
         refreshNodeStyles();
@@ -664,6 +589,70 @@
     canvas.addEventListener("touchstart", (e)=>{ e.preventDefault(); pick(e); }, {passive:false});
 
     /**************
+     * Orbit interaction
+     **************/
+    let isDragging=false;
+    let lastX=0, lastY=0;
+    let activeTouches=0;
+    let pinchStartDist=0;
+    let distStart=0;
+
+    function touchDist(t0,t1){
+      const dx = t0.clientX - t1.clientX;
+      const dy = t0.clientY - t1.clientY;
+      return Math.sqrt(dx*dx + dy*dy);
+    }
+
+    canvas.addEventListener("mousedown", (e)=>{
+      isDragging=true; lastX=e.clientX; lastY=e.clientY;
+    });
+    window.addEventListener("mouseup", ()=>{isDragging=false;});
+    window.addEventListener("mousemove", (e)=>{
+      if(!isDragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX=e.clientX; lastY=e.clientY;
+      orbit.vyaw += dx * 0.004;
+      orbit.vpitch += -dy * 0.0032;
+    });
+
+    canvas.addEventListener("wheel", (e)=>{
+      e.preventDefault();
+      orbit.dist = clamp(orbit.dist + e.deltaY*0.02, 14, 54);
+    }, {passive:false});
+
+    canvas.addEventListener("touchstart", (e)=>{
+      activeTouches = e.touches.length;
+      if(activeTouches===1){
+        isDragging=true;
+        lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+      }else if(activeTouches===2){
+        isDragging=false;
+        pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+        distStart = orbit.dist;
+      }
+    }, {passive:true});
+
+    canvas.addEventListener("touchmove", (e)=>{
+      if(e.touches.length===1 && isDragging){
+        const dx = e.touches[0].clientX - lastX;
+        const dy = e.touches[0].clientY - lastY;
+        lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+        orbit.vyaw += dx * 0.004;
+        orbit.vpitch += -dy * 0.0032;
+      }else if(e.touches.length===2){
+        const d = touchDist(e.touches[0], e.touches[1]);
+        const ratio = pinchStartDist / Math.max(40, d);
+        orbit.dist = clamp(distStart * ratio, 14, 54);
+      }
+    }, {passive:true});
+
+    canvas.addEventListener("touchend", ()=>{
+      isDragging=false;
+      activeTouches=0;
+    }, {passive:true});
+
+    /**************
      * Resize + init
      **************/
     function resize(){
@@ -675,28 +664,19 @@
     }
     window.addEventListener("resize", resize);
 
-    // Build scene after layout has happened (fixes “nothing renders / nothing clickable” issues)
     function init(){
       resize();
-      camera.position.set(0, 9.5, 16);
-
+      camera.position.set(0, 18, 28);
       rebuildPath();
       updateUI();
-
-      // snap camera + ball
-      setBallAtLesson(currentLesson());
-      focusCameraOnLesson(currentLesson(), true);
-
-      // if Three didn't load for any reason, show debug
-      if(typeof THREE === "undefined"){
-        showDebug("Three.js failed to load. If you have a content blocker, disable it for this file.");
-      }
+      setBallAtLesson(state.current);
+      focusTargetOnLesson(state.current, true);
       requestAnimationFrame(tick);
     }
     setTimeout(init, 0);
 
     /**************
-     * Render loop
+     * Loop
      **************/
     let last = performance.now();
     function tick(now){
@@ -705,20 +685,12 @@
 
       sparkles.rotation.y += dt*0.08;
 
-      // camera smooth
-      if(camera.userData.camPos){
-        camera.position.lerp(camera.userData.camPos, 1 - Math.pow(0.001, dt));
-      }
-      if(camera.userData.target){
-        camera.lookAt(camera.userData.target);
-      }
-
-      // hop
+      // Ball hop / idle bounce
       if(hopAnim){
         hopAnim.t += dt;
         const u = clamp(hopAnim.t / hopAnim.duration, 0, 1);
-        const e = u < 0.5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3)/2; // ease in-out
-        const arc = Math.sin(u*Math.PI) * 2.1;
+        const e = u < 0.5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3)/2;
+        const arc = Math.sin(u*Math.PI) * 2.2;
 
         const p = hopAnim.from.clone().lerp(hopAnim.to, e);
         p.y += arc;
@@ -728,25 +700,24 @@
         ball.scale.set(stretch, squash, stretch);
 
         ball.position.copy(p);
-        ballRing.position.set(p.x, 0.9, p.z);
+        ballRing.position.copy(p);
         ballRing.rotation.z = now*0.001;
 
-        if(u >= 1){
+        if(u>=1){
           ball.scale.set(1,1,1);
           ball.position.copy(hopAnim.to);
-          ballRing.position.set(hopAnim.to.x, 0.9, hopAnim.to.z);
+          ballRing.position.copy(hopAnim.to);
           if(hopAnim.burst) triggerBurst(ball.position);
-          hopAnim = null;
+          hopAnim=null;
         }
       }else{
-        // idle bounce
         const t = now*0.001;
-        ball.position.y = 0.9 + Math.sin(t*2.2)*0.10;
-        ballRing.position.set(ball.position.x, 0.9, ball.position.z);
+        ball.position.y = (nodes[state.current-1]?.pos?.y ?? 0) + 1.05 + Math.sin(t*2.2)*0.10;
+        ballRing.position.set(ball.position.x, (nodes[state.current-1]?.pos?.y ?? 0) + 1.05, ball.position.z);
         ballRing.rotation.z = t*0.9;
       }
 
-      // confetti
+      // Confetti
       if(burstActive){
         burstT += dt;
         const posAttr = burst.geometry.getAttribute("position");
@@ -766,6 +737,7 @@
         }
       }
 
+      updateCamera(dt);
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
     }
