@@ -1,774 +1,1425 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Matilda Lesson Hopper</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Library</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Optional: Add icon library like Font Awesome if you prefer icons over emojis -->
+  <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> -->
+
   <style>
-    :root{
-      --bg:#070812;
-      --panel:rgba(255,255,255,.08);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --shadow: 0 16px 40px rgba(0,0,0,.45);
-    }
-    html,body{height:100%; margin:0; background:
-      radial-gradient(1200px 700px at 20% 10%, rgba(139,92,246,.35), transparent 60%),
-      radial-gradient(900px 600px at 80% 15%, rgba(34,211,238,.25), transparent 55%),
-      radial-gradient(900px 700px at 40% 80%, rgba(251,113,133,.18), transparent 60%),
-      var(--bg);
-      color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      overflow:hidden;
-    }
-    #app{position:fixed; inset:0; display:flex; flex-direction:column;}
-    #topbar{
-      display:flex; gap:10px; align-items:center; padding:12px; z-index:5;
-    }
-    .chip{
-      background:var(--panel);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:999px;
-      padding:10px 12px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      display:flex; align-items:center; gap:10px;
-      user-select:none;
-    }
-    .title{font-weight:800; letter-spacing:.2px}
-    .sub{font-size:12px; color:var(--muted)}
-    #progressWrap{flex:1; min-width:0;}
-    .bar{
-      height:12px; border-radius:999px;
-      background:rgba(255,255,255,.10);
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.10);
-      margin-top:8px;
-    }
-    .bar > i{
-      display:block; height:100%; width:0%;
-      background:linear-gradient(90deg, rgba(34,211,238,.95), rgba(139,92,246,.95), rgba(251,113,133,.95));
-      border-radius:999px;
-      transition: width 420ms cubic-bezier(.2,.8,.2,1);
-    }
-    .seg{display:flex; gap:6px; padding:6px;}
-    .seg button{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.06);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:999px;
-      font-weight:800;
-      cursor:pointer;
-    }
-    .seg button.active{
-      background:linear-gradient(135deg, rgba(34,211,238,.22), rgba(139,92,246,.25));
-      border-color:rgba(34,211,238,.35);
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    #canvasWrap{position:relative; flex:1; min-height:0;}
-    canvas{display:block; width:100%; height:100%;}
-
-    #dock{
-      display:flex; gap:10px; padding:12px; justify-content:space-between; align-items:center; z-index:5;
-    }
-    .btn{
-      border:none; cursor:pointer; color:var(--text);
-      padding:14px 16px; border-radius:16px;
-      background:linear-gradient(135deg, rgba(34,211,238,.25), rgba(139,92,246,.30));
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow: var(--shadow);
-      font-weight:900;
-      min-width: 180px;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn.secondary{min-width:auto; background:rgba(255,255,255,.07);}
-    .btn:active{transform: translateY(1px);}
-
-    .overlay{position:fixed; inset:0; display:none; place-items:center; z-index:20;
-      background:rgba(0,0,0,.55);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-    .overlay.show{display:grid;}
-    .modal{
-      width:min(560px, calc(100vw - 28px));
-      border-radius:24px;
-      background:rgba(10,10,18,.78);
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow: 0 26px 70px rgba(0,0,0,.6);
-      padding:16px;
-    }
-    .modal h2{margin:4px 6px 6px; font-size:18px}
-    .modal p{margin:0 6px 12px; color:var(--muted); font-size:13px; line-height:1.35}
-    .actions{display:flex; gap:10px; justify-content:flex-end; padding:10px 6px 6px;}
-    .mini{min-width:auto; padding:12px 14px; border-radius:14px;}
-    .row{display:flex; gap:10px; padding:10px 6px; align-items:center; flex-wrap:wrap;}
-    label{font-size:13px; color:var(--muted); font-weight:800}
-    input[type="number"]{
-      width:92px; padding:10px 10px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.07);
-      color:var(--text);
-      font-weight:900;
-      outline:none;
+    :root {
+      --bg-dark: #1a1a1a;
+      --bg-medium: #2c2c2c;
+      --bg-light: #3f3f3f;
+      --text-light: #e0e0e0;
+      --text-medium: #aaaaaa;
+      --accent-color: #00bfff; /* Deep Sky Blue - adjust as desired */
+      --accent-hover: #009acd;
+      --border-color: #444444;
+      --shadow-color: rgba(0, 0, 0, 0.5);
     }
 
-    #toast{
-      position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
-      padding:12px 14px; border-radius:999px;
-      background:rgba(0,0,0,.62);
-      border:1px solid rgba(255,255,255,.12);
-      color:var(--text);
-      font-weight:900;
-      display:none;
-      z-index:30;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      max-width: calc(100vw - 28px);
-      text-align:center;
-      user-select:none;
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-medium) 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--text-light);
+      position: relative;
     }
-    #toast.show{display:block;}
 
-    /* Simple debug banner for script errors / missing WebGL */
-    #debug{
-      position:fixed; top:12px; left:12px; right:12px;
-      background:rgba(0,0,0,.65);
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:14px;
-      padding:10px 12px;
-      font-size:12px;
-      color:rgba(255,255,255,.85);
-      display:none;
-      z-index:999;
-      white-space:pre-wrap;
+    header {
+      text-align: center;
+      padding: 40px 20px 20px 20px;
     }
-    #debug.show{display:block;}
+
+    header h1 {
+      font-size: 2.8em;
+      margin-bottom: 10px;
+      color: var(--text-light);
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    header p {
+      font-size: 1.1em;
+      color: var(--text-medium);
+    }
+
+    nav {
+      width: 100%;
+      background: rgba(30, 30, 30, 0.9);
+      padding: 10px 0;
+      box-shadow: 0 2px 5px var(--shadow-color);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    /* --- NEW: Styles for View Controls --- */
+    .view-controls {
+      text-align: center;
+      padding: 10px 0;
+      background: rgba(44, 44, 44, 0.5);
+    }
+
+    .app-search {
+      text-align: center;
+      padding: 8px 0 14px;
+      background: rgba(44, 44, 44, 0.35);
+    }
+
+    .app-search input {
+      width: min(420px, 92%);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-light);
+      font-size: 0.95em;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .app-search input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.18);
+    }
+
+    .view-toggle {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-medium);
+      padding: 8px 16px;
+      margin: 0 5px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+
+    .view-toggle:hover {
+      background-color: var(--bg-light);
+      color: var(--text-light);
+    }
+
+    .view-toggle.active {
+      background-color: var(--accent-color);
+      color: var(--bg-dark);
+      border-color: var(--accent-color);
+    }
+
+    /* --- MODIFIED: For scrolling and drag functionality --- */
+    .app-list {
+      display: flex;
+      overflow-x: auto;
+      padding: 15px 25px;
+      gap: 20px;
+      list-style: none;
+      justify-content: flex-start; /* Changed from 'center' to allow full scroll */
+      cursor: grab;
+      user-select: none; /* Prevents text selection during drag */
+    }
+
+    .app-list.grabbing {
+        cursor: grabbing;
+    }
+
+    /* --- NEW: Hides non-favorite apps --- */
+    .app-list li.hidden {
+      display: none;
+    }
+
+    .app-list li.filter-hidden {
+      display: none;
+    }
+
+    .app-list li.case-timer-link {
+      order: 999;
+      margin-left: auto;
+    }
+
+    .app-list::-webkit-scrollbar { display: none; }
+    .app-list { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* --- MODIFIED: For favorite star positioning --- */
+    .app-link {
+      background: var(--bg-light);
+      border-radius: 10px;
+      padding: 30px 25px 15px 25px; /* Adjusted top padding for the star */
+      min-width: 140px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--text-light);
+      box-shadow: 0 3px 6px var(--shadow-color);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+      position: relative; /* Required for star positioning */
+    }
+
+    .app-link:hover,
+    .app-link.active {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px var(--shadow-color);
+      background-color: var(--bg-medium);
+      border-color: var(--accent-color);
+    }
+
+    .app-link span.emoji {
+      font-size: 2.2em;
+    }
+
+    .app-link span.text {
+      font-size: 1em;
+      font-weight: 700;
+    }
+
+    /* --- NEW: Styles for the Favorite Star --- */
+    .favorite-star {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 1.6em;
+      cursor: pointer;
+      color: var(--text-medium);
+      transition: color 0.2s, transform 0.2s;
+      z-index: 5;
+    }
+
+    .favorite-star:hover {
+      transform: scale(1.2);
+    }
+
+    .favorite-star.favorited {
+      color: #ffc107; /* Gold color for favorited star */
+    }
+
+
+    /* Styles for the Collapsible Generator Section */
+    #generator-details {
+        width: 90%;
+        max-width: 1200px;
+        margin: 30px auto;
+        background: var(--bg-medium);
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 10px var(--shadow-color);
+        overflow: hidden;
+    }
+    #generator-summary {
+        padding: 15px 25px;
+        cursor: pointer;
+        font-size: 1.5em;
+        font-weight: 700;
+        color: var(--text-light);
+        list-style: none;
+        outline: none;
+        background-color: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s ease;
+    }
+    #generator-summary:hover {
+        background-color: var(--bg-medium);
+    }
+    #generator-details[open] > #generator-summary {
+       border-bottom: 1px solid var(--border-color);
+    }
+    #generator-summary::-webkit-details-marker { display: none; }
+
+    .generator-content {
+        padding: 25px;
+    }
+
+    /* Styles for the form elements within the generator */
+    .generator-content label {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--text-medium);
+        font-size: 0.9em;
+    }
+    .generator-content input[type="text"],
+    .generator-content textarea {
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-light);
+        color: var(--text-light);
+        font-size: 1em;
+        margin-bottom: 15px;
+    }
+    /* Style placeholder text */
+    .generator-content input[type="text"]::placeholder,
+    .generator-content textarea::placeholder {
+        color: var(--text-medium);
+        opacity: 0.7; /* Make placeholder slightly fainter */
+    }
+
+     .generator-content textarea {
+        background: var(--bg-dark);
+        font-family: monospace;
+        font-size: 0.9em;
+        resize: vertical;
+        min-height: 150px; /* Ensure textarea has a decent minimum height */
+     }
+    .generator-content .input-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+    #generateBtn {
+        display: block;
+        width: 100%;
+        padding: 12px 20px;
+        background-color: var(--accent-color);
+        color: var(--bg-dark);
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1.1em;
+        font-weight: 700;
+        transition: background-color 0.3s ease;
+        margin-top: 10px;
+    }
+    #generateBtn:hover {
+        background-color: var(--accent-hover);
+    }
+
+    /* Styles for the output area */
+    #outputArea {
+        margin-top: 30px;
+        background: var(--bg-dark);
+        padding: 15px;
+        border-radius: 8px;
+        display: none; /* Initially hidden */
+        border: 1px solid var(--bg-light);
+        color: var(--text-medium);
+    }
+    #outputArea h3 {
+        color: var(--accent-color);
+        margin-bottom: 20px;
+        font-size: 1.3em;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    #outputArea .output-block {
+        margin-bottom: 25px;
+        padding: 15px;
+        background-color: rgba(44, 44, 44, 0.3);
+        border-radius: 5px;
+    }
+     #outputArea .output-block:last-child {
+        margin-bottom: 0;
+    }
+
+    /* --- Formatting Fix for Instructions --- */
+    #outputArea p {
+        display: block; /* Ensure paragraphs behave as blocks */
+        width: 100%;   /* Prevent wrapping issues */
+        margin-bottom: 1em; /* Standard bottom margin for spacing */
+        line-height: 1.6;
+    }
+    /* Specific spacing for paragraph *before* a code container */
+    #outputArea p + .code-container {
+        margin-top: 0; /* Remove default top margin if p already has margin-bottom */
+    }
+    /* Specific spacing for paragraph *after* a code container */
+     #outputArea .code-container + p {
+        margin-top: 1em; /* Add space above paragraph following code */
+     }
+    /* --- NEW: Style for instruction text + copy button --- */
+    .instruction-with-copy {
+        display: flex;
+        align-items: center; /* Vertically center text and button */
+        justify-content: space-between; /* Push button to the right */
+        gap: 15px; /* Space between text and button */
+        margin-bottom: 1em; /* Standard bottom margin */
+    }
+    .instruction-with-copy p {
+        margin-bottom: 0; /* Remove default margin from p inside flex */
+        flex-grow: 1; /* Allow text to take up available space */
+        /* width: auto; Reset width if previously set to 100% */
+    }
+    .instruction-with-copy .copy-btn {
+        margin-left: 0; /* Remove margin-left: auto if it was there */
+        flex-shrink: 0; /* Prevent button from shrinking */
+    }
+    /* --- End NEW Style --- */
+
+
+    #outputArea code { /* Inline code style */
+        color: var(--text-light);
+        background: var(--bg-light);
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 0.95em;
+    }
+    #outputArea .code-container { /* Container for code block + copy button */
+        display: flex;
+        flex-direction: row; /* Ensure items are side-by-side */
+        align-items: flex-start;
+        gap: 10px;
+        background: var(--bg-light);
+        padding: 12px;
+        border-radius: 5px;
+        /* Removed margin-top/bottom here, handled by adjacent p tags or containers now */
+        border: 1px solid var(--border-color);
+        width: 100%; /* Ensure container takes full width */
+    }
+     #outputArea .code-container code, /* file path */
+     #outputArea .code-container pre { /* list item */
+        flex-grow: 1; /* Allow code/pre to take available space */
+        margin: 0;
+        padding: 0;
+        background: none;
+        border: none;
+        color: var(--text-light);
+        font-family: monospace;
+        line-height: 1.5;
+        min-width: 0; /* Allow shrinking if needed */
+     }
+     #outputArea .code-container code#filePathOutput {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        align-self: center;
+     }
+     #outputArea .code-container pre > code { /* code inside pre */
+        display: block;
+        padding: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 250px;
+        overflow-y: auto;
+        font-size: 0.9em;
+        background: none;
+        border: none;
+     }
+    .copy-btn {
+        padding: 6px 12px;
+        background-color: var(--bg-medium);
+        color: var(--text-light);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: background-color 0.2s, color 0.2s;
+        white-space: nowrap;
+        margin-left: auto; /* Push to the right by default */
+        flex-shrink: 0; /* Prevent button shrinking */
+        align-self: flex-start;
+    }
+    .copy-btn:hover {
+        background-color: var(--bg-light);
+        border-color: var(--text-medium);
+    }
+    /* Final note styling */
+     #outputArea .final-note {
+        font-size: 0.9em;
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+        color: var(--text-medium);
+     }
+
+
+    /* Rest of your existing styles */
+    footer {
+      margin-top: auto;
+      padding: 25px;
+      text-align: center;
+      background: rgba(30, 30, 30, 0.8);
+      width: 100%;
+      box-shadow: 0 -2px 5px var(--shadow-color);
+      border-top: 1px solid var(--border-color);
+    }
+
+    footer p {
+      color: var(--text-medium);
+      margin-bottom: 15px;
+    }
+
+    .iframe-container {
+      position: relative;
+      width: 90%;
+      max-width: 1200px;
+      height: 75vh;
+      border: 1px solid var(--border-color);
+      margin: 25px auto;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px var(--shadow-color);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      background-color: var(--bg-dark);
+    }
+
+    .iframe-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      cursor: pointer;
+      z-index: 1;
+      transition: opacity 0.3s;
+    }
+
+    .iframe-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background-color: #ffffff;
+    }
+
+    .home-button {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 9999;
+      display: none;
+      background: var(--bg-light);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      box-shadow: 0 2px 5px var(--shadow-color);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 38px;
+      text-align: center;
+      color: var(--text-light);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .home-button:hover {
+      transform: scale(1.1);
+      background-color: var(--bg-medium);
+    }
+
+    .iframe-container.fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9998;
+      margin: 0;
+      border-radius: 0;
+      max-width: none;
+      border: none;
+      background: var(--bg-dark);
+    }
+
+    .iframe-container.fullscreen .iframe-overlay {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .full-page-button {
+      position: relative;
+      background-color: var(--accent-color);
+      border: none;
+      border-radius: 25px;
+      padding: 12px 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: background-color 0.3s, transform 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1em;
+      font-weight: 700;
+      color: var(--bg-dark);
+    }
+
+    .full-page-button:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+      transform: scale(1.05);
+    }
+
+    .full-page-button:disabled {
+      background-color: var(--bg-light);
+      color: var(--text-medium);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .full-page-button span {
+        font-size: 1.2em;
+    }
+
+    @media (max-width: 768px) {
+      header h1 { font-size: 2.2em; }
+      header p { font-size: 1em; }
+      .app-list { padding: 10px 15px; gap: 15px; }
+      .app-link { min-width: 120px; padding: 25px 20px 12px 20px; } /* Adjusted padding for mobile */
+      .iframe-container { height: 65vh; width: 95%; }
+      .full-page-button { padding: 10px 20px; font-size: 0.9em; }
+      .home-button { width: 35px; height: 35px; font-size: 18px; line-height: 33px; top: 10px; left: 10px;}
+      #generator-summary { font-size: 1.3em; padding: 12px 20px;}
+      .generator-content { padding: 20px; }
+      .generator-content .input-grid { grid-template-columns: 1fr; }
+      #outputArea .output-block { padding: 12px; }
+      #outputArea .code-container { padding: 10px; }
+      /* Ensure paragraphs have space even on mobile */
+      #outputArea p { margin-bottom: 0.8em; }
+      #outputArea .code-container + p { margin-top: 0.8em; }
+      /* Ensure instruction-with-copy looks okay */
+      .instruction-with-copy { flex-wrap: wrap; /* Allow wrap on small screens */ }
+    }
+
   </style>
 </head>
 <body>
-  <div id="debug"></div>
+  <header>
+    <h1>The Library</h1>
+    <p>My Personal Project Hub & Toolkit</p>
+  </header>
 
-  <div id="app">
-    <div id="topbar">
-      <div class="chip">
-        <div>
-          <div class="title" id="seriesTitle">Easy Lessons</div>
-          <div class="sub" id="seriesSub">Lesson <span id="currentLessonText">1</span> / 100</div>
-        </div>
-      </div>
+  <nav>
+    <!-- NEW: View Controls -->
+    <div class="view-controls">
+      <button class="view-toggle active" data-view="all">All Apps</button>
+      <button class="view-toggle" data-view="favorites">Favorites ★</button>
+    </div>
+    <div class="app-search">
+      <input type="text" id="appSearch" placeholder="Filter apps by name..." aria-label="Filter apps by name">
+    </div>
+    <ul class="app-list">
+      <!-- ADD YOUR APPS HERE -->
+      <li><a href="apps/ACR-Contrast-Reaction/index.html" class="app-link"><span class="emoji">💉</span><span class="text">ACR Contrast Reaction</span></a></li>
+      <li><a href="apps/Radionuclides/index.html" class="app-link"><span class="emoji">☢️</span><span class="text">Radionuclides</span></a></li>
+      <li><a href="apps/ACLS/index.html" class="app-link"><span class="emoji">📊</span><span class="text">ACLS</span></a></li>
+      <li><a href="apps/Core-Gynecology-Qs/index.html" class="app-link"><span class="emoji">💕</span><span class="text">Gynecology Qs</span></a></li>
+      <li><a href="apps/QuizApp/index.html" class="app-link"><span class="emoji">🛠📄</span><span class="text">QuizApp</span></a></li>
+      <li><a href="apps/Glycolysis/index.html" class="app-link"><span class="emoji">🦠</span><span class="text">Glycolysis</span></a></li>
+      <li><a href="apps/code-snippets/index.html" class="app-link"><span class="emoji">💻</span><span class="text">Code Snippets</span></a></li>
+      <li>
+        <a href="apps/call-timer-display-only/index.html" class="app-link">
+          <span class="emoji">⏰</span>
+          <span class="text">Call Timer -- Display Only</span>
+        </a>
+      </li>
+      <li class="case-timer-link">
+        <a href="apps/case-timer/index.html" class="app-link">
+          <span class="emoji">⏱️</span>
+          <span class="text">Case Timer</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/call-prep-tracker/index.html" class="app-link">
+          <span class="emoji">💪</span>
+          <span class="text">Call Prep Tracker</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/ir-tracker/index.html" class="app-link">
+          <span class="emoji">💉</span>
+          <span class="text">IR Tracker</span>
+        </a>
+      </li>
+      <!-- Add more app links as needed -->
+      <li>
+        <a href="apps/extra-axial-brain-tumor/index.html" class="app-link">
+          <span class="emoji">🧠</span>
+          <span class="text">Extra-Axial Brain Tumor</span>
+        </a>
+      </li>
 
-      <div class="chip" id="progressWrap">
-        <div style="width:100%">
-          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
-            <div class="title">Overall</div>
-            <div class="sub" id="overallText">0 / 200</div>
+      <li>
+        <a href="apps/intramedullary-spinal-cord-tumors/index.html" class="app-link">
+          <span class="emoji">🧠</span>
+          <span class="text">Intramedullary Spinal Cord Tumors</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/intramedullary-tumor-mimics/index.html" class="app-link">
+          <span class="emoji">😷</span>
+          <span class="text">intramedullary tumor mimics</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/sid-lecture-epilepsy/index.html" class="app-link">
+          <span class="emoji">🫨</span>
+          <span class="text">Sid Lecture Epilepsy</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/arthritis-core-quiz/index.html" class="app-link">
+          <span class="emoji">🦴</span>
+          <span class="text">Arthritis - Core Quiz</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/suprahyoid-neck/index.html" class="app-link">
+          <span class="emoji">🙆‍♀️</span>
+          <span class="text">Suprahyoid Neck</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/space-invaders/index.html" class="app-link">
+          <span class="emoji">👾</span>
+          <span class="text">Space Invaders</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/teens/index.html" class="app-link">
+          <span class="emoji">🧮</span>
+          <span class="text">Teens</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/2nd-call-report-database/index.html" class="app-link">
+          <span class="emoji">🫀</span>
+          <span class="text">2nd Call Report Database</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/casestacks-notes/index.html" class="app-link">
+          <span class="emoji">📝</span>
+          <span class="text">CaseStacks Notes</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/scripture-copier/index.html" class="app-link">
+          <span class="emoji">📖</span>
+          <span class="text">Scripture Copier</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/cavernous-sinus/index.html" class="app-link">
+          <span class="emoji">🚀</span>
+          <span class="text">Cavernous Sinus</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/cavernous-sinus-algorithm/index.html" class="app-link">
+          <span class="emoji">🚀</span>
+          <span class="text">Cavernous Sinus Algorithm</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/quiz-generator/index.html" class="app-link">
+          <span class="emoji">🚀</span>
+          <span class="text">Quiz Generator</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/report-search/index.html" class="app-link">
+          <span class="emoji">🔎</span>
+          <span class="text">Report Search</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/youtube-launchpad/index.html" class="app-link">
+          <span class="emoji">▶️</span>
+          <span class="text">Youtube Launchpad</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/informatics-1-2/index.html" class="app-link">
+          <span class="emoji">💻💾</span>
+          <span class="text">Informatics 1-2</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/amandas-to-do-list/index.html" class="app-link">
+          <span class="emoji">✅</span>
+          <span class="text">Amanda’s To-Do List</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/sterlings-to-do-list/index.html" class="app-link">
+          <span class="emoji">✅</span>
+          <span class="text">Sterling’s To-Do List</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/search-pattern/index.html" class="app-link">
+          <span class="emoji">👀</span>
+          <span class="text">Search Pattern</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/sight-words/index.html" class="app-link">
+          <span class="emoji">🚀</span>
+          <span class="text">Sight Words</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/chapter-copier/index.html" class="app-link">
+          <span class="emoji">📘</span>
+          <span class="text">Chapter Copier</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/chapter-splicer/index.html" class="app-link">
+          <span class="emoji">📗</span>
+          <span class="text">Chapter Splicer</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/core-studying/index.html" class="app-link">
+          <span class="emoji">⚕️</span>
+          <span class="text">Core Studying</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/core-studying/study-organizer.html" class="app-link">
+          <span class="emoji">🗓️📚</span>
+          <span class="text">Study Organizer</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/cardiac-nuclear-imaging/index.html" class="app-link">
+          <span class="emoji">🫀☢️</span>
+          <span class="text">Cardiac Nuclear Imaging</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/core-study-plan/index.html" class="app-link">
+          <span class="emoji">🚀📚📖</span>
+          <span class="text">Core Study Plan</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/quiz-competition/index.html" class="app-link">
+          <span class="emoji">🎮🎮</span>
+          <span class="text">Quiz Competition</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/social-media-tracker/index.html" class="app-link">
+          <span class="emoji">🍅 📲</span>
+          <span class="text">Social Media Tracker</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/night-facts/index.html" class="app-link">
+          <span class="emoji">🌙</span>
+          <span class="text">Night Facts</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/art-nightstand/index.html" class="app-link">
+          <span class="emoji">🎨</span>
+          <span class="text">Art Nightstand</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/age/index.html" class="app-link">
+          <span class="emoji">👶</span>
+          <span class="text">Age</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/birthdays/index.html" class="app-link">
+          <span class="emoji">🎂</span>
+          <span class="text">Birthdays</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/moonlighting/index.html" class="app-link">
+          <span class="emoji">💵</span>
+          <span class="text">Moonlighting</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/myocardial-segments/index.html" class="app-link">
+          <span class="emoji">🫀</span>
+          <span class="text">Myocardial Segments</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/physics-questions/index.html" class="app-link">
+          <span class="emoji">❓❔</span>
+          <span class="text">Physics Questions</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/scripture-copier/general_conference.html" class="app-link">
+          <span class="emoji">🧑‍🏫</span>
+          <span class="text">General Conference</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/anki-card-creation-helper/index.html" class="app-link">
+          <span class="emoji">✏️</span>
+          <span class="text">Anki Card Creation Helper</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/cervical-spine-mr-tool/index.html" class="app-link">
+          <span class="emoji">🚀</span>
+          <span class="text">Cervical Spine MR Tool</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/mr-lumbar-spine-tool/index.html" class="app-link">
+          <span class="emoji">🚀</span>
+          <span class="text">MR Lumbar Spine Tool</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/reward-tracker/index.html" class="app-link">
+          <span class="emoji">🦖🦕</span>
+          <span class="text">Reward-Tracker</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/airp-full-roster/index.html" class="app-link">
+          <span class="emoji">🏫🏫</span>
+          <span class="text">AIRP Full Roster</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/airp-dashboard/index.html" class="app-link">
+          <span class="emoji">⭐🏫⭐</span>
+          <span class="text">AIRP Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/renal-osteodystrophy/index.html" class="app-link">
+          <span class="emoji">🦴🫘</span>
+          <span class="text">Renal Osteodystrophy</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/radflow/index.html" class="app-link">
+          <span class="emoji">⚡🚀⚡</span>
+          <span class="text">RadFlow</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/report-generators/index.html" class="app-link">
+          <span class="emoji">👨🏻‍🔬</span>
+          <span class="text">Report Generators</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/cardiact-shunt-timeline/index.html" class="app-link">
+          <span class="emoji">🫀 📊</span>
+          <span class="text">Cardiact Shunt Timeline</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/digital-hearth-christmas-gift-giving/index.html" class="app-link">
+          <span class="emoji">🎄❄️🌟</span>
+          <span class="text">Digital Hearth Christmas Gift Giving</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/radiology-anki-quest/index.html" class="app-link">
+          <span class="emoji">🩻</span>
+          <span class="text">Radiology Anki Quest</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/anki-apkg-upload-apps/index.html" class="app-link">
+          <span class="emoji">🎴</span>
+          <span class="text">Anki APKG Upload Apps</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/lumbar-mri-generator-fixed/index.html" class="app-link">
+          <span class="emoji">🦴</span>
+          <span class="text">Lumbar MRI Generator (Fixed)</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/schedule/index.html" class="app-link">
+          <span class="emoji">🇺🇸</span>
+          <span class="text">Schedule</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/smilories/index.html" class="app-link">
+          <span class="emoji">😊 🥗</span>
+          <span class="text">Smilories</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/icy-tower/index.html" class="app-link">
+          <span class="emoji">🧊🧊</span>
+          <span class="text">Icy Tower</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/chapter-copier-2/index.html" class="app-link">
+          <span class="emoji">📑</span>
+          <span class="text">Chapter Copier 2</span>
+        </a>
+      </li>
+      <li>
+        <a href="apps/tyctr-100-lessons/index.html" class="app-link">
+          <span class="emoji">🥳🥳</span>
+          <span class="text">TYCTR 100 Lessons</span>
+        </a>
+      </li>
+      <!-- ADD NEW APPS ABOVE THIS LINE -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->
+      <!-- 🍀🎊🐞🐞🐞🎊🎊🎊🐞🐰🐰🐞 -->      
+    </ul>
+  </nav>
+
+  <!-- ========= Collapsible App Snippet Generator Start ========= -->
+  <details id="generator-details">
+      <summary id="generator-summary">Create New App Snippet</summary>
+      <div class="generator-content">
+          <div class="input-grid">
+              <div>
+                  <label for="appName">App Name (for link & folder):</label>
+                  <input type="text" id="appName" placeholder="My Awesome Tool">
+              </div>
+              <div>
+                  <label for="appEmoji">Emoji (optional):</label>
+                  <!-- Added placeholder to emoji input -->
+                  <input type="text" id="appEmoji" placeholder="🚀">
+              </div>
           </div>
-          <div class="bar"><i id="overallBar"></i></div>
-        </div>
+
+          <div>
+              <label for="appCode">Paste HTML Code for new index.html:</label>
+              <!-- Uses placeholder attribute, no default content -->
+              <textarea id="appCode" rows="12"
+                        placeholder="<!DOCTYPE html>
+<html lang="en">
+</textarea>
+          </div>
+
+          <button id="generateBtn">Generate Snippets & Instructions</button>
+
+          <div id="outputArea">
+              <h3>GitHub Instructions:</h3>
+
+              <div class="output-block">
+                  <p>1. Create a new file on GitHub named:</p>
+                  <div class="code-container">
+                      <code id="filePathOutput"></code>
+                      <button class="copy-btn" data-target="filePathOutput" title="Copy File Path">Copy</button>
+                  </div><br>
+              
+                   <!-- START MODIFIED SECTION FOR STEP 2 -->
+                  <div class="instruction-with-copy">
+                      <p>2. Paste the HTML code you entered above into this new file and commit it.</p><br>
+                      <button class="copy-btn" data-target="appCode" title="Copy Inputted HTML">Copy Code</button>
+                  </div>
+                  <!-- END MODIFIED SECTION FOR STEP 2 -->
+              </div>
+
+              <div class="output-block">
+                  <p>3. Edit your main <code>index.html</code> file on GitHub.</p>
+                  <p>4. Find the line <code>&lt;!-- ADD NEW APPS ABOVE THIS LINE --&gt;</code> within the <code>&lt;ul class="app-list"&gt;</code>.</p>
+                  <p>5. Paste the following code directly <strong>above</strong> that comment line:</p><br>
+                  <div class="code-container">
+                      <pre><code id="listItemOutput"></code></pre>
+                      <button class="copy-btn" data-target="listItemOutput" title="Copy List Item HTML">Copy</button>
+                  </div>
+                   <br><p>6. Commit the changes to <code>index.html</code>.</p>
+              </div>
+               <p class="final-note">After committing both files, refresh this page. Your new app should appear in the list!</p>
+          </div>
       </div>
+  </details>
+  <!-- ========= Collapsible App Snippet Generator End ========= -->
 
-      <div class="chip seg">
-        <button id="btnEasy" class="active" type="button">Easy</button>
-        <button id="btnTCR" type="button">Teacher</button>
-      </div>
-    </div>
 
-    <div id="canvasWrap">
-      <canvas id="c"></canvas>
-    </div>
-
-    <div id="dock">
-      <button class="btn" id="completeBtn" type="button">✅ Complete Lesson</button>
-      <button class="btn secondary" id="settingsBtn" type="button">⚙️</button>
-    </div>
+  <div class="iframe-container">
+    <div class="iframe-overlay"></div>
+    <iframe id="app-frame" src="" title="Loaded Application Frame"></iframe>
+    <!-- Home button for exiting fullscreen iframe -->
+    <button class="home-button" title="Exit Fullscreen">🏠</button>
   </div>
 
-  <div class="overlay" id="confirmOverlay">
-    <div class="modal">
-      <h2 id="confirmTitle">Complete lesson?</h2>
-      <p id="confirmText">Did we finish Lesson 1?</p>
-      <div class="actions">
-        <button class="btn mini" id="confirmNo" type="button">Not yet</button>
-        <button class="btn mini" id="confirmYes" type="button">Yes!</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="overlay" id="settingsOverlay">
-    <div class="modal">
-      <h2>Settings</h2>
-      <p>Hold the gear for ~1 second to open (parent-only).</p>
-
-      <div class="row">
-        <label for="easyCurrent">Easy current</label>
-        <input id="easyCurrent" type="number" min="1" max="100" />
-        <label for="easyCompleted">Easy completed up to</label>
-        <input id="easyCompleted" type="number" min="0" max="100" />
-      </div>
-
-      <div class="row">
-        <label for="tcrCurrent">Teacher current</label>
-        <input id="tcrCurrent" type="number" min="1" max="100" />
-        <label for="tcrCompleted">Teacher completed up to</label>
-        <input id="tcrCompleted" type="number" min="0" max="100" />
-      </div>
-
-      <div class="actions">
-        <button class="btn mini" id="settingsClose" type="button">Close</button>
-        <button class="btn mini" id="settingsSave" type="button">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast"></div>
-
-  <!-- Use non-module Three.js (more reliable across iOS Safari / content blockers) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <footer>
+    <p>© <script>document.write(new Date().getFullYear())</script> Your Name Here. All rights reserved.</p> <!-- Remember to change Your Name Here -->
+    <button id="open-full-page" class="full-page-button" disabled>
+      <span>🔗</span> <!-- Link emoji -->
+      <span>Open Full Page</span>
+    </button>
+  </footer>
 
   <script>
-    /**************
-     * Debug helpers
-     **************/
-    const debug = document.getElementById("debug");
-    function showDebug(msg){
-      debug.textContent = msg;
-      debug.classList.add("show");
+    // ========= Original App Loading and Fullscreen Logic =========
+    let currentApp = '';
+    const iframeContainer = document.querySelector('.iframe-container');
+    const overlay = document.querySelector('.iframe-overlay');
+    const homeButton = document.querySelector('.home-button');
+    const iframe = document.getElementById('app-frame');
+    const fullPageButton = document.getElementById('open-full-page');
+    const appLinks = document.querySelectorAll('.app-list .app-link');
+
+    function loadApp(appPath, linkElement) {
+      if (typeof appPath !== 'string' || appPath.trim() === '') {
+          console.error("Invalid app path provided:", appPath);
+          iframe.src = 'about:blank'; currentApp = ''; updateFullPageButton();
+          appLinks.forEach(link => link.classList.remove('active')); return;
+      }
+      const normalizePath = (path) => { try { return new URL(path, window.location.href).pathname; } catch (e) { return path.replace(/^\/+|\/+$/g, ''); } };
+      const normalizedNewPath = normalizePath(appPath);
+      const normalizedCurrentPath = iframe.src ? normalizePath(iframe.src) : '';
+
+      if (normalizedCurrentPath === normalizedNewPath && !iframe.src.endsWith('about:blank') && iframe.src !== '') {
+          appLinks.forEach(link => link.classList.remove('active'));
+          if (linkElement) { linkElement.classList.add('active'); } return;
+      }
+      console.log("Loading app:", normalizedNewPath);
+      iframe.src = appPath; currentApp = appPath;
+      appLinks.forEach(link => link.classList.remove('active'));
+      if (linkElement) { linkElement.classList.add('active'); }
+      updateFullPageButton();
+      if (iframeContainer.classList.contains('fullscreen')) { exitFullscreen(); }
     }
-    window.addEventListener("error", (e)=>{
-      showDebug("JavaScript error:\n" + (e.message || e.error || "Unknown error"));
+    function updateFullPageButton() { fullPageButton.disabled = !currentApp || currentApp === 'about:blank'; }
+    appLinks.forEach(link => { link.addEventListener('click', function(e) { e.preventDefault(); const appPath = this.getAttribute('href'); loadApp(appPath, this); }); });
+    fullPageButton.addEventListener('click', () => { if (currentApp && !fullPageButton.disabled) { const fullUrl = new URL(currentApp, window.location.href).href; window.open(fullUrl, '_blank'); } });
+    overlay.addEventListener('click', () => { if (currentApp && currentApp !== 'about:blank') { iframeContainer.classList.add('fullscreen'); document.body.style.overflow = 'hidden'; homeButton.style.display = 'block'; } });
+    function exitFullscreen() { iframeContainer.classList.remove('fullscreen'); document.body.style.overflow = ''; homeButton.style.display = 'none'; }
+    homeButton.addEventListener('click', (e) => { e.preventDefault(); exitFullscreen(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && iframeContainer.classList.contains('fullscreen')) { exitFullscreen(); } });
+    if (appLinks.length > 0) { const firstAppLink = appLinks[0]; const firstAppPath = firstAppLink.getAttribute('href'); loadApp(firstAppPath, firstAppLink); } else { iframe.src = 'about:blank'; updateFullPageButton(); }
+    // ========= End Original App Loading Logic =========
+
+
+    // ========= App Snippet Generator Script =========
+    const generatorDetails = document.getElementById('generator-details');
+    const generateBtn = document.getElementById('generateBtn');
+    const appNameInput = document.getElementById('appName');
+    const appEmojiInput = document.getElementById('appEmoji');
+    const appCodeInput = document.getElementById('appCode');
+    const outputArea = document.getElementById('outputArea');
+    const filePathOutput = document.getElementById('filePathOutput');
+    const listItemOutput = document.getElementById('listItemOutput');
+    const copyBtns = document.querySelectorAll('.copy-btn'); // Select ALL copy buttons
+
+    generateBtn.addEventListener('click', () => {
+        const appName = appNameInput.value.trim();
+        const appCode = appCodeInput.value.trim();
+        const appEmoji = appEmojiInput.value.trim() || appEmojiInput.placeholder || '📄'; // Use placeholder if value empty
+
+        if (!appName) { alert('Please enter an App Name.'); appNameInput.focus(); return; }
+        if (!appCode) { alert('Please paste the HTML code for the new app.'); appCodeInput.focus(); return; }
+
+        const folderName = appName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+        if (!folderName) { alert('Could not generate a valid folder name...'); appNameInput.focus(); return; }
+
+        const filePath = `apps/${folderName}/index.html`;
+        const listItemHTML = `
+      <li>
+        <a href="${filePath}" class="app-link">
+          <span class="emoji">${appEmoji}</span>
+          <span class="text">${appName}</span>
+        </a>
+      </li>`;
+
+        filePathOutput.textContent = filePath;
+        listItemOutput.textContent = listItemHTML.trim(); // Use textContent for pre/code
+
+        // Make output visible *before* trying to scroll to it
+        outputArea.style.display = 'block';
+        generatorDetails.open = true; // Ensure details section is open
+
+        // Use requestAnimationFrame to ensure the element is visible before scrolling
+        requestAnimationFrame(() => {
+             outputArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
     });
 
-    // WebGL check
-    (function(){
-      try{
-        const c = document.createElement("canvas");
-        const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
-        if(!gl) showDebug("WebGL is not available on this device/browser. Try a different browser or disable Low Power Mode/content blockers.");
-      }catch(err){
-        showDebug("WebGL check failed:\n" + err);
-      }
-    })();
+    // Updated copy logic for ALL copy buttons
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const targetElement = document.getElementById(targetId);
 
-    /**************
-     * State
-     **************/
-    const STORAGE_KEY = "matildaLessonHopper_v2";
-    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+            if (targetElement) {
+                let textToCopy;
 
-    function defaultState(){
-      return {
-        easy: { current: 1, completedUpTo: 0 },
-        teacher: { current: 1, completedUpTo: 0 },
-        activeSeries: "easy"
-      };
-    }
-    function loadState(){
-      try{
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if(!raw) return defaultState();
-        const s = JSON.parse(raw);
-        for(const k of ["easy","teacher"]){
-          s[k] = s[k] || {};
-          s[k].current = clamp(Number(s[k].current || 1), 1, 100);
-          s[k].completedUpTo = clamp(Number(s[k].completedUpTo || 0), 0, 100);
+                // --- MODIFIED: Check element type to get correct content ---
+                if (targetElement.nodeName === 'TEXTAREA' || targetElement.nodeName === 'INPUT') {
+                    textToCopy = targetElement.value; // Use .value for form elements
+                } else {
+                    textToCopy = targetElement.textContent; // Use .textContent for others (like code, pre)
+                }
+                // --- END MODIFICATION ---
+
+                // Only try to copy if there's actually text
+                if (textToCopy) {
+                     navigator.clipboard.writeText(textToCopy).then(() => {
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Copied!';
+                        btn.style.backgroundColor = '#28a745'; // Success green
+                        btn.style.color = '#ffffff';
+                        btn.disabled = true;
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.style.backgroundColor = ''; // Revert style
+                            btn.style.color = '';
+                            btn.disabled = false;
+                        }, 1500); // Revert after 1.5 seconds
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Error';
+                        btn.style.backgroundColor = '#dc3545'; // Error red
+                        btn.style.color = '#ffffff';
+                        btn.disabled = true;
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.style.backgroundColor = ''; // Revert style
+                            btn.style.color = '';
+                            btn.disabled = false;
+                        }, 2000); // Revert after 2 seconds
+                    });
+                } else {
+                    console.warn("Attempted to copy empty content from:", targetId);
+                    // Optionally provide feedback that there was nothing to copy
+                }
+            } else {
+                console.error("Copy target element not found:", targetId);
+            }
+        });
+    });
+    // ========= End App Snippet Generator Script =========
+
+
+    // ========= NEW: Favorites, View Toggle, and Drag-to-Scroll Logic =========
+    document.addEventListener('DOMContentLoaded', () => {
+        const appListContainer = document.querySelector('.app-list');
+        const allAppListItems = document.querySelectorAll('.app-list li');
+        const viewToggles = document.querySelectorAll('.view-toggle');
+        const searchInput = document.getElementById('appSearch');
+        const VIEW_STORAGE_KEY = 'appListViewPreference';
+        let favorites = JSON.parse(localStorage.getItem('favoriteApps')) || [];
+        let currentView = null;
+        let searchTerm = '';
+
+        // 1. Initialize: Add stars and apply favorite status from localStorage
+        function initializeFavorites() {
+            allAppListItems.forEach(li => {
+                const link = li.querySelector('a');
+                if (!link) return;
+
+                const appIdentifier = link.getAttribute('href');
+                const star = document.createElement('span');
+                star.className = 'favorite-star';
+                star.title = 'Add to favorites';
+                star.innerHTML = '☆'; // Default: empty star
+                link.prepend(star);
+
+                if (favorites.includes(appIdentifier)) {
+                    star.classList.add('favorited');
+                    star.innerHTML = '★'; // Favorited: filled star
+                }
+
+                star.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent navigating to app
+                    e.stopPropagation(); // Stop click from reaching the link
+                    toggleFavorite(appIdentifier, star);
+                });
+            });
         }
-        s.activeSeries = (s.activeSeries === "teacher") ? "teacher" : "easy";
-        return s;
-      }catch{
-        return defaultState();
-      }
-    }
-    function saveState(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-    let state = loadState();
 
-    function seriesKey(){ return state.activeSeries; }
-    function seriesLabel(){ return seriesKey()==="easy" ? "Easy Lessons" : "Teacher-Child Read"; }
-    function seriesShort(){ return seriesKey()==="easy" ? "Easy" : "Teacher"; }
-    function currentLesson(){ return state[seriesKey()].current; }
-    function completedUpTo(){ return state[seriesKey()].completedUpTo; }
-    function overallCompleted(){ return state.easy.completedUpTo + state.teacher.completedUpTo; }
-    function unlocked(){ return state.easy.completedUpTo>=100 && state.teacher.completedUpTo>=100; }
-
-    /**************
-     * UI
-     **************/
-    const $ = (id)=>document.getElementById(id);
-    const seriesTitleEl = $("seriesTitle");
-    const currentLessonTextEl = $("currentLessonText");
-    const overallTextEl = $("overallText");
-    const overallBarEl = $("overallBar");
-    const btnEasy = $("btnEasy");
-    const btnTCR = $("btnTCR");
-    const completeBtn = $("completeBtn");
-
-    const confirmOverlay = $("confirmOverlay");
-    const confirmTitle = $("confirmTitle");
-    const confirmText = $("confirmText");
-    const confirmNo = $("confirmNo");
-    const confirmYes = $("confirmYes");
-
-    const settingsBtn = $("settingsBtn");
-    const settingsOverlay = $("settingsOverlay");
-    const settingsClose = $("settingsClose");
-    const settingsSave = $("settingsSave");
-    const easyCurrent = $("easyCurrent");
-    const easyCompleted = $("easyCompleted");
-    const tcrCurrent = $("tcrCurrent");
-    const tcrCompleted = $("tcrCompleted");
-
-    const toast = $("toast");
-    let toastTimer=null;
-    function showToast(msg){
-      toast.textContent = msg;
-      toast.classList.add("show");
-      clearTimeout(toastTimer);
-      toastTimer=setTimeout(()=>toast.classList.remove("show"), 1100);
-    }
-
-    function updateUI(){
-      seriesTitleEl.textContent = seriesLabel();
-      currentLessonTextEl.textContent = String(currentLesson());
-      const oc = overallCompleted();
-      overallTextEl.textContent = `${oc} / 200`;
-      overallBarEl.style.width = `${(oc/200)*100}%`;
-      btnEasy.classList.toggle("active", seriesKey()==="easy");
-      btnTCR.classList.toggle("active", seriesKey()==="teacher");
-      completeBtn.textContent = unlocked() ? "🎉 Trampoline Unlocked!" : "✅ Complete Lesson";
-    }
-
-    btnEasy.onclick = ()=>{ state.activeSeries="easy"; saveState(); updateUI(); refreshNodeStyles(); hopToLesson(currentLesson(), false); };
-    btnTCR.onclick = ()=>{ state.activeSeries="teacher"; saveState(); updateUI(); refreshNodeStyles(); hopToLesson(currentLesson(), false); };
-
-    completeBtn.onclick = ()=>{
-      const cur = currentLesson();
-      confirmTitle.textContent = unlocked() ? "All done!" : "Complete lesson?";
-      confirmText.textContent = `Did we finish Lesson ${cur} (${seriesShort()})?`;
-      confirmOverlay.classList.add("show");
-    };
-    confirmNo.onclick = ()=>confirmOverlay.classList.remove("show");
-    confirmYes.onclick = ()=>{
-      confirmOverlay.classList.remove("show");
-      completeCurrentLesson();
-    };
-
-    function completeCurrentLesson(){
-      const key = seriesKey();
-      const cur = state[key].current;
-      state[key].completedUpTo = Math.max(state[key].completedUpTo, cur);
-      state[key].current = clamp(cur+1, 1, 100);
-      saveState();
-      updateUI();
-      refreshNodeStyles();
-      hopToLesson(state[key].current, true);
-      if(unlocked()) showToast("Trampoline Time unlocked!");
-      else showToast("Nice work!");
-    }
-
-    // Parent-only settings: hold gear ~1s
-    let holdTimer=null;
-    function startHold(){
-      holdTimer=setTimeout(()=>{
-        easyCurrent.value = state.easy.current;
-        easyCompleted.value = state.easy.completedUpTo;
-        tcrCurrent.value = state.teacher.current;
-        tcrCompleted.value = state.teacher.completedUpTo;
-        settingsOverlay.classList.add("show");
-        showToast("Parent settings");
-      }, 900);
-    }
-    function endHold(){
-      if(holdTimer){
-        clearTimeout(holdTimer);
-        holdTimer=null;
-        showToast("Hold to open settings");
-      }
-    }
-    settingsBtn.addEventListener("touchstart",(e)=>{e.preventDefault(); startHold();},{passive:false});
-    settingsBtn.addEventListener("touchend",(e)=>{e.preventDefault(); endHold();},{passive:false});
-    settingsBtn.addEventListener("mousedown",(e)=>{e.preventDefault(); startHold();});
-    settingsBtn.addEventListener("mouseup",(e)=>{e.preventDefault(); endHold();});
-    settingsBtn.addEventListener("mouseleave",()=>{ if(holdTimer){clearTimeout(holdTimer); holdTimer=null;} });
-
-    settingsClose.onclick = ()=>settingsOverlay.classList.remove("show");
-    settingsOverlay.onclick = (e)=>{ if(e.target===settingsOverlay) settingsOverlay.classList.remove("show"); };
-    settingsSave.onclick = ()=>{
-      state.easy.current = clamp(Number(easyCurrent.value||1), 1, 100);
-      state.easy.completedUpTo = clamp(Number(easyCompleted.value||0), 0, 100);
-      state.teacher.current = clamp(Number(tcrCurrent.value||1), 1, 100);
-      state.teacher.completedUpTo = clamp(Number(tcrCompleted.value||0), 0, 100);
-      saveState();
-      updateUI();
-      settingsOverlay.classList.remove("show");
-      refreshNodeStyles();
-      hopToLesson(currentLesson(), false);
-      showToast("Saved");
-    };
-
-    /**************
-     * Three.js
-     **************/
-    const canvas = $("c");
-    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 300);
-
-    const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-    scene.add(ambient);
-
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
-    keyLight.position.set(8, 12, 6);
-    scene.add(keyLight);
-
-    const rim = new THREE.DirectionalLight(0x88ccff, 0.6);
-    rim.position.set(-10, 7, -8);
-    scene.add(rim);
-
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(220,220),
-      new THREE.MeshStandardMaterial({color:0x0b0c18, roughness:0.95, metalness:0.0, emissive:0x0b0c18, emissiveIntensity:0.8})
-    );
-    floor.rotation.x = -Math.PI/2;
-    floor.position.y = -1.2;
-    scene.add(floor);
-
-    // Sparkles
-    const sparkleGeo = new THREE.BufferGeometry();
-    const sparkleCount = 700;
-    const sparklePos = new Float32Array(sparkleCount*3);
-    for(let i=0;i<sparkleCount;i++){
-      const r = 28*Math.random();
-      const a = Math.random()*Math.PI*2;
-      sparklePos[i*3+0] = Math.cos(a)*r + (Math.random()-0.5)*6;
-      sparklePos[i*3+1] = Math.random()*10 + 0.5;
-      sparklePos[i*3+2] = Math.sin(a)*r + (Math.random()-0.5)*6;
-    }
-    sparkleGeo.setAttribute("position", new THREE.BufferAttribute(sparklePos,3));
-    const sparkles = new THREE.Points(sparkleGeo, new THREE.PointsMaterial({color:0xffffff, size:0.06, transparent:true, opacity:0.5}));
-    scene.add(sparkles);
-
-    // Path
-    const pathGroup = new THREE.Group();
-    scene.add(pathGroup);
-
-    const nodes = [];     // {idx, disc, ring, pos}
-    const pickables = []; // discs only
-
-    const nodeBaseMat = new THREE.MeshStandardMaterial({color:0x1b1f3a, roughness:0.35, metalness:0.25});
-    const nodeDoneMat = new THREE.MeshStandardMaterial({color:0x2ee6b6, roughness:0.25, metalness:0.2, emissive:0x133d35, emissiveIntensity:0.8});
-    const nodeNextMat = new THREE.MeshStandardMaterial({color:0x7c3aed, roughness:0.22, metalness:0.3, emissive:0x2a0f6a, emissiveIntensity:1.1});
-    const ringGeo = new THREE.TorusGeometry(0.78, 0.08, 12, 48);
-
-    function nodePosition(i){
-      const t = (i-1)/99;                 // 0..1
-      const ang = t * Math.PI * 1.85;
-      const radius = 10.5;
-      const w = Math.sin(t*Math.PI*6)*0.55;
-      return new THREE.Vector3(Math.cos(ang)*radius + w, 0, Math.sin(ang)*radius);
-    }
-
-    function rebuildPath(){
-      while(pathGroup.children.length) pathGroup.remove(pathGroup.children[0]);
-      nodes.length = 0;
-      pickables.length = 0;
-
-      for(let i=1;i<=100;i++){
-        const pos = nodePosition(i);
-
-        const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.82,0.82,0.22,32), nodeBaseMat);
-        disc.position.copy(pos);
-        disc.position.y = -0.05;
-        disc.userData.idx = i;
-        pathGroup.add(disc);
-        pickables.push(disc);
-
-        const ring = new THREE.Mesh(ringGeo, nodeBaseMat);
-        ring.position.copy(pos);
-        ring.position.y = 0.10;
-        ring.rotation.x = Math.PI/2;
-        pathGroup.add(ring);
-
-        nodes.push({idx:i, disc, ring, pos});
-      }
-      refreshNodeStyles();
-    }
-
-    // Ball
-    const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.6, 40, 40),
-      new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.18, metalness:0.25, emissive:0x22104a, emissiveIntensity:0.45})
-    );
-    scene.add(ball);
-
-    const ballRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.75,0.06,12,48),
-      new THREE.MeshStandardMaterial({color:0x22d3ee, emissive:0x22d3ee, emissiveIntensity:1.4, roughness:0.35, metalness:0.0})
-    );
-    ballRing.rotation.x = Math.PI/2;
-    scene.add(ballRing);
-
-    // Confetti burst (simple points)
-    const burstCount = 220;
-    const burstGeo = new THREE.BufferGeometry();
-    const burstPos = new Float32Array(burstCount*3);
-    const burstVel = new Float32Array(burstCount*3);
-    for(let i=0;i<burstCount;i++){
-      burstPos[i*3+1] = -999;
-      burstVel[i*3+0] = (Math.random()-0.5)*8;
-      burstVel[i*3+1] = Math.random()*10 + 6;
-      burstVel[i*3+2] = (Math.random()-0.5)*8;
-    }
-    burstGeo.setAttribute("position", new THREE.BufferAttribute(burstPos,3));
-    const burstMat = new THREE.PointsMaterial({color:0xffffff, size:0.12, transparent:true, opacity:0.9});
-    const burst = new THREE.Points(burstGeo, burstMat);
-    scene.add(burst);
-    let burstActive=false, burstT=0;
-    function triggerBurst(at){
-      burstActive=true; burstT=0;
-      const posAttr = burst.geometry.getAttribute("position");
-      for(let i=0;i<burstCount;i++){
-        posAttr.array[i*3+0] = at.x;
-        posAttr.array[i*3+1] = at.y + 0.2;
-        posAttr.array[i*3+2] = at.z;
-        burstVel[i*3+0] = (Math.random()-0.5)*8;
-        burstVel[i*3+1] = Math.random()*10 + 6;
-        burstVel[i*3+2] = (Math.random()-0.5)*8;
-      }
-      posAttr.needsUpdate = true;
-      burstMat.opacity = 0.95;
-    }
-
-    function refreshNodeStyles(){
-      const cur = currentLesson();
-      const done = completedUpTo();
-      const next = clamp(done+1, 1, 100);
-
-      const lo = cur - 10;
-      const hi = cur + 14;
-
-      for(const n of nodes){
-        const i = n.idx;
-        let mat = nodeBaseMat;
-        if(i <= done) mat = nodeDoneMat;
-        else if(i === next) mat = nodeNextMat;
-
-        n.disc.material = mat;
-        n.ring.material = mat;
-
-        const far = (i < lo || i > hi);
-        const s = far ? 0.6 : 1.0;
-        n.disc.scale.setScalar(s);
-        n.ring.scale.setScalar(s);
-
-        const tooFar = (i < cur - 24 || i > cur + 28);
-        n.disc.visible = !tooFar;
-        n.ring.visible = !tooFar;
-      }
-    }
-
-    function setBallAtLesson(idx){
-      const p = nodes[idx-1]?.pos;
-      if(!p) return;
-      ball.position.set(p.x, 0.9, p.z);
-      ballRing.position.copy(ball.position);
-      ballRing.position.y = 0.9;
-    }
-
-    // Camera follow
-    function focusCameraOnLesson(idx, snap){
-      const p = nodes[idx-1]?.pos;
-      if(!p) return;
-
-      const prev = nodes[Math.max(0, idx-2)]?.pos || p;
-      const dir = p.clone().sub(prev).normalize();
-      const side = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
-
-      const target = p.clone();
-      const camPos = p.clone().add(new THREE.Vector3(0, 9.5, 16)).add(side.multiplyScalar(6));
-
-      camera.userData.target = target;
-      camera.userData.camPos = camPos;
-
-      if(snap){
-        camera.position.copy(camPos);
-        camera.lookAt(target);
-      }
-    }
-
-    // Hop animation
-    let hopAnim = null; // {from,to,t,duration,burst}
-    function hopToLesson(idx, withBurst){
-      const p = nodes[idx-1]?.pos;
-      if(!p) return;
-      const from = ball.position.clone();
-      const to = new THREE.Vector3(p.x, 0.9, p.z);
-      const dist = from.distanceTo(to);
-      const duration = clamp(0.45 + dist*0.03, 0.45, 0.9);
-      hopAnim = {from, to, t:0, duration, burst:withBurst};
-      focusCameraOnLesson(idx, false);
-    }
-
-    /**************
-     * Picking (click/tap nodes)
-     **************/
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-
-    function pick(ev){
-      const rect = canvas.getBoundingClientRect();
-      const cx = (ev.touches ? ev.touches[0].clientX : ev.clientX);
-      const cy = (ev.touches ? ev.touches[0].clientY : ev.clientY);
-      const x = cx - rect.left;
-      const y = cy - rect.top;
-
-      pointer.x = (x / rect.width) * 2 - 1;
-      pointer.y = -(y / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(pointer, camera);
-
-      const candidates = pickables.filter(o=>o.visible);
-      const hits = raycaster.intersectObjects(candidates, false);
-      if(!hits.length) return;
-
-      const idx = hits[0].object.userData.idx;
-      if(!idx) return;
-
-      const done = completedUpTo();
-      const next = clamp(done+1, 1, 100);
-
-      if(idx === next || idx <= done){
-        state[seriesKey()].current = idx;
-        saveState();
-        updateUI();
-        refreshNodeStyles();
-        hopToLesson(idx, false);
-        showToast(idx === next ? `Go to Lesson ${idx}` : `Review Lesson ${idx}`);
-      }else{
-        showToast("Finish the next one first");
-      }
-    }
-
-    canvas.addEventListener("mousedown", pick);
-    canvas.addEventListener("touchstart", (e)=>{ e.preventDefault(); pick(e); }, {passive:false});
-
-    /**************
-     * Resize + init
-     **************/
-    function resize(){
-      const w = canvas.clientWidth || window.innerWidth;
-      const h = canvas.clientHeight || window.innerHeight;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-    window.addEventListener("resize", resize);
-
-    // Build scene after layout has happened (fixes “nothing renders / nothing clickable” issues)
-    function init(){
-      resize();
-      camera.position.set(0, 9.5, 16);
-
-      rebuildPath();
-      updateUI();
-
-      // snap camera + ball
-      setBallAtLesson(currentLesson());
-      focusCameraOnLesson(currentLesson(), true);
-
-      // if Three didn't load for any reason, show debug
-      if(typeof THREE === "undefined"){
-        showDebug("Three.js failed to load. If you have a content blocker, disable it for this file.");
-      }
-      requestAnimationFrame(tick);
-    }
-    setTimeout(init, 0);
-
-    /**************
-     * Render loop
-     **************/
-    let last = performance.now();
-    function tick(now){
-      const dt = Math.min(0.033, (now-last)/1000);
-      last = now;
-
-      sparkles.rotation.y += dt*0.08;
-
-      // camera smooth
-      if(camera.userData.camPos){
-        camera.position.lerp(camera.userData.camPos, 1 - Math.pow(0.001, dt));
-      }
-      if(camera.userData.target){
-        camera.lookAt(camera.userData.target);
-      }
-
-      // hop
-      if(hopAnim){
-        hopAnim.t += dt;
-        const u = clamp(hopAnim.t / hopAnim.duration, 0, 1);
-        const e = u < 0.5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3)/2; // ease in-out
-        const arc = Math.sin(u*Math.PI) * 2.1;
-
-        const p = hopAnim.from.clone().lerp(hopAnim.to, e);
-        p.y += arc;
-
-        const squash = 1 - Math.sin(u*Math.PI) * 0.22;
-        const stretch = 1 + Math.sin(u*Math.PI) * 0.28;
-        ball.scale.set(stretch, squash, stretch);
-
-        ball.position.copy(p);
-        ballRing.position.set(p.x, 0.9, p.z);
-        ballRing.rotation.z = now*0.001;
-
-        if(u >= 1){
-          ball.scale.set(1,1,1);
-          ball.position.copy(hopAnim.to);
-          ballRing.position.set(hopAnim.to.x, 0.9, hopAnim.to.z);
-          if(hopAnim.burst) triggerBurst(ball.position);
-          hopAnim = null;
+        // 2. Toggle Favorite Status and Save
+        function toggleFavorite(appIdentifier, starElement) {
+            const isFavorited = favorites.includes(appIdentifier);
+            if (isFavorited) {
+                favorites = favorites.filter(id => id !== appIdentifier);
+                starElement.classList.remove('favorited');
+                starElement.innerHTML = '☆';
+            } else {
+                favorites.push(appIdentifier);
+                starElement.classList.add('favorited');
+                starElement.innerHTML = '★';
+            }
+            localStorage.setItem('favoriteApps', JSON.stringify(favorites));
+            applyFilters();
         }
-      }else{
-        // idle bounce
-        const t = now*0.001;
-        ball.position.y = 0.9 + Math.sin(t*2.2)*0.10;
-        ballRing.position.set(ball.position.x, 0.9, ball.position.z);
-        ballRing.rotation.z = t*0.9;
-      }
 
-      // confetti
-      if(burstActive){
-        burstT += dt;
-        const posAttr = burst.geometry.getAttribute("position");
-        const g = -16.0;
-        for(let i=0;i<burstCount;i++){
-          posAttr.array[i*3+0] += burstVel[i*3+0]*dt;
-          posAttr.array[i*3+1] += burstVel[i*3+1]*dt;
-          posAttr.array[i*3+2] += burstVel[i*3+2]*dt;
-          burstVel[i*3+1] += g*dt;
-        }
-        posAttr.needsUpdate = true;
-        burstMat.opacity = Math.max(0, 0.95 - burstT*0.55);
-        if(burstT > 1.6){
-          burstActive=false;
-          for(let i=0;i<burstCount;i++) posAttr.array[i*3+1] = -999;
-          posAttr.needsUpdate = true;
-        }
-      }
+        // 3. Apply favorites view and text filter together
+        function applyFilters() {
+            const normalizedTerm = searchTerm.trim().toLowerCase();
 
-      renderer.render(scene, camera);
-      requestAnimationFrame(tick);
-    }
+            allAppListItems.forEach(li => {
+                const link = li.querySelector('a');
+                if (!link) return;
+
+                const appIdentifier = link.getAttribute('href');
+                const inFavoritesView = currentView === 'favorites';
+                const matchesFavorite = !inFavoritesView || favorites.includes(appIdentifier);
+                const labelText = li.querySelector('.text')?.textContent.toLowerCase() || '';
+                const matchesSearch = !normalizedTerm || labelText.includes(normalizedTerm);
+
+                if (matchesFavorite) {
+                    li.classList.remove('hidden');
+                } else {
+                    li.classList.add('hidden');
+                }
+
+                if (matchesSearch) {
+                    li.classList.remove('filter-hidden');
+                } else {
+                    li.classList.add('filter-hidden');
+                }
+            });
+        }
+
+        function setActiveView(view, { persist = true } = {}) {
+            const normalizedView = view === 'favorites' ? 'favorites' : 'all';
+
+            if (currentView === normalizedView) {
+                if (persist) {
+                    localStorage.setItem(VIEW_STORAGE_KEY, normalizedView);
+                }
+                return;
+            }
+
+            currentView = normalizedView;
+
+            viewToggles.forEach(toggle => {
+                const toggleView = toggle.getAttribute('data-view');
+                if (toggleView === normalizedView) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+            });
+
+            applyFilters();
+
+            if (persist) {
+                localStorage.setItem(VIEW_STORAGE_KEY, normalizedView);
+            }
+        }
+
+        viewToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const view = toggle.getAttribute('data-view');
+                setActiveView(view);
+            });
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (event) => {
+                searchTerm = event.target.value;
+                applyFilters();
+            });
+        }
+
+        // 4. Drag-to-Scroll for PC
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        appListContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            appListContainer.classList.add('grabbing');
+            startX = e.pageX - appListContainer.offsetLeft;
+            scrollLeft = appListContainer.scrollLeft;
+        });
+        appListContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+            appListContainer.classList.remove('grabbing');
+        });
+        appListContainer.addEventListener('mouseup', () => {
+            isDown = false;
+            appListContainer.classList.remove('grabbing');
+        });
+        appListContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - appListContainer.offsetLeft;
+            const walk = (x - startX) * 2; // Multiplier for faster scrolling
+            appListContainer.scrollLeft = scrollLeft - walk;
+        });
+
+        // Determine initial view preference before applying filters
+        const savedView = localStorage.getItem(VIEW_STORAGE_KEY);
+        const initialView = savedView === 'favorites' ? 'favorites' : 'all';
+
+        // Run initialization
+        initializeFavorites();
+        setActiveView(initialView, { persist: false });
+        applyFilters();
+    });
+    // ========= End New Logic =========
+
   </script>
 </body>
 </html>
