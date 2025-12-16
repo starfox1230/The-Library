@@ -1,0 +1,2112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Goals • Daily Tracker</title>
+  <style>
+    :root{
+      --bg0:#070a12;
+      --bg1:#0b1020;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.085);
+      --stroke: rgba(255,255,255,.10);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --muted2: rgba(255,255,255,.45);
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --radius: 18px;
+      --radius2: 14px;
+      --pad: 14px;
+      --safeTop: env(safe-area-inset-top);
+      --safeBottom: env(safe-area-inset-bottom);
+      --accentA: #74c0fc;
+      --accentB: #b197fc;
+      --danger: #ff6b6b;
+      --ok: #51cf66;
+      --warn: #ffd43b;
+      --tap: rgba(255,255,255,.08);
+      --tap2: rgba(255,255,255,.12);
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    body.friendMode{
+      --accentA: #ffd43b;
+      --accentB: #ff922b;
+    }
+
+    html, body{
+      height:100%;
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(116,192,252,.22), transparent 55%),
+                  radial-gradient(900px 600px at 80% 10%, rgba(177,151,252,.18), transparent 55%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
+      color: var(--text);
+      margin:0;
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      -webkit-text-size-adjust: 100%;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+    body.friendMode{
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(255,212,59,.20), transparent 55%),
+                  radial-gradient(900px 600px at 80% 10%, rgba(255,146,43,.16), transparent 55%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
+    }
+
+    *{ box-sizing:border-box; }
+    button, input, textarea{
+      font-family:inherit;
+      font-size:16px;
+    }
+    a{ color:inherit; text-decoration:none; }
+    ::selection{ background: rgba(116,192,252,.22); }
+    .noSelect{
+      -webkit-user-select:none;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      padding: calc(var(--safeTop) + 12px) 16px 10px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+    .brand .titleRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .brand .title{
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size:18px;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brand .subtitle{
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.2;
+    }
+    .pill{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.04);
+      padding: 7px 10px;
+      border-radius: 999px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color: var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .pill.friend{
+      border-color: rgba(255,212,59,.32);
+      background: rgba(255,212,59,.10);
+      color: rgba(255,255,255,.88);
+    }
+    .topActions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+    .iconBtn{
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.25);
+      cursor:pointer;
+      touch-action: manipulation;
+    }
+    .iconBtn:active{ transform: translateY(1px); background: rgba(255,255,255,.07); }
+    .iconBtn[disabled]{ opacity:.45; cursor:not-allowed; }
+    .iconBtn[disabled]:active{ transform:none; background: rgba(255,255,255,.04); }
+
+    .content{
+      flex:1;
+      overflow:auto;
+      padding: 0 16px calc(88px + var(--safeBottom));
+      scrollbar-width: none;
+    }
+    .content::-webkit-scrollbar{ width:0; height:0; }
+
+    .grid{ display:grid; gap:12px; }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.045));
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      padding: var(--pad);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .cardHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .cardHeader .h{
+      font-weight:800;
+      font-size:14px;
+      letter-spacing:.15px;
+    }
+    .cardHeader .sub{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+    }
+
+    .progressRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .ring{
+      width:64px;
+      height:64px;
+      display:grid;
+      place-items:center;
+      border-radius:999px;
+      position:relative;
+      flex:0 0 auto;
+      background: rgba(255,255,255,.03);
+      border:1px solid var(--stroke);
+      overflow:hidden;
+    }
+    .ring::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius:999px;
+      background: conic-gradient(from -90deg, rgba(116,192,252,.95) 0deg, rgba(177,151,252,.95) var(--pdeg), rgba(255,255,255,.08) var(--pdeg));
+      filter: saturate(1.2);
+    }
+    body.friendMode .ring::before{
+      background: conic-gradient(from -90deg, rgba(255,212,59,.95) 0deg, rgba(255,146,43,.92) var(--pdeg), rgba(255,255,255,.08) var(--pdeg));
+    }
+    .ring::after{
+      content:"";
+      position:absolute;
+      inset:7px;
+      border-radius:999px;
+      background: rgba(10,14,26,.85);
+      border:1px solid rgba(255,255,255,.07);
+    }
+    .ring span{
+      position:relative;
+      font-weight:900;
+      font-size:14px;
+      letter-spacing:.2px;
+    }
+    .stats{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+    .stats .big{
+      display:flex;
+      align-items:baseline;
+      gap:8px;
+      min-width:0;
+    }
+    .stats .big .pct{ font-weight:900; font-size:18px; }
+    .stats .big .meta{
+      color: var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .stats .mini{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .goalList{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+    .goalItem{
+      border:1px solid rgba(255,255,255,.09);
+      background: rgba(255,255,255,.035);
+      border-radius: 16px;
+      padding: 10px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .goalLeft{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      flex:1;
+    }
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background: var(--c, rgba(116,192,252,.9));
+      box-shadow: 0 0 0 4px rgba(255,255,255,.04);
+      flex:0 0 auto;
+    }
+    .goalText{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .goalName{
+      font-weight:800;
+      font-size:14px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .goalMeta{ color: var(--muted); font-size:12px; margin-top:2px; }
+
+    .toggle{
+      width:56px;
+      height:34px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.11);
+      background: rgba(255,255,255,.05);
+      position:relative;
+      cursor:pointer;
+      flex:0 0 auto;
+      touch-action: manipulation;
+    }
+    .toggle::after{
+      content:"";
+      width:28px;
+      height:28px;
+      position:absolute;
+      top:50%;
+      left:3px;
+      transform: translateY(-50%);
+      border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      transition: left .18s ease, background .18s ease;
+    }
+    .toggle.on{
+      background: rgba(81,207,102,.16);
+      border-color: rgba(81,207,102,.28);
+    }
+    .toggle.on::after{
+      left: 25px;
+      background: rgba(81,207,102,.75);
+      border-color: rgba(81,207,102,.55);
+    }
+    .toggle:active{ background: rgba(255,255,255,.07); }
+    .toggle[disabled]{ opacity:.45; cursor:not-allowed; }
+    .toggle[disabled]:active{ background: rgba(255,255,255,.05); }
+
+    .shareBtns{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex:0 0 auto;
+    }
+
+    .empty{
+      padding: 16px;
+      color: var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+
+    /* Calendar */
+    .calHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .calHeader .month{
+      font-weight:900;
+      font-size:15px;
+      letter-spacing:.2px;
+    }
+    .calBtns{ display:flex; gap:8px; }
+    .calBtn{
+      width:40px;
+      height:38px;
+      border-radius:14px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      touch-action: manipulation;
+    }
+    .calBtn:active{ transform: translateY(1px); background: rgba(255,255,255,.07); }
+    .calBtn[disabled]{ opacity:.45; cursor:not-allowed; }
+    .calBtn[disabled]:active{ transform:none; background: rgba(255,255,255,.04); }
+
+    .dow{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap:8px;
+      margin-bottom:8px;
+      color: var(--muted2);
+      font-size:11px;
+      letter-spacing:.12px;
+    }
+    .dow div{ text-align:center; padding:4px 0; }
+
+    .calGrid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap:8px;
+    }
+    .dayCell{
+      height:46px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.09);
+      background: rgba(255,255,255,.03);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      cursor:pointer;
+      touch-action: manipulation;
+      overflow:hidden;
+    }
+    .dayCell .n{
+      font-weight:900;
+      font-size:13px;
+      letter-spacing:.1px;
+      position:relative;
+      z-index:1;
+    }
+    .dayCell.out{ opacity:.35; }
+    .dayCell.today{
+      outline: 2px solid rgba(116,192,252,.55);
+      outline-offset: 1px;
+    }
+    body.friendMode .dayCell.today{
+      outline: 2px solid rgba(255,212,59,.55);
+    }
+    .dayCell::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: var(--fill, transparent);
+      opacity: .92;
+    }
+    .dayCell::after{
+      content:"";
+      position:absolute;
+      inset:-40% -40%;
+      background: radial-gradient(circle at 30% 10%, rgba(255,255,255,.14), transparent 55%);
+      opacity:.35;
+      transform: rotate(12deg);
+      pointer-events:none;
+    }
+    .dayBadge{
+      position:absolute;
+      bottom:6px;
+      right:6px;
+      font-size:10px;
+      color: rgba(255,255,255,.86);
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.12);
+      padding: 2px 6px;
+      border-radius: 999px;
+      z-index:1;
+    }
+
+    /* Goals view list */
+    .goalRow{
+      border:1px solid rgba(255,255,255,.09);
+      background: rgba(255,255,255,.035);
+      border-radius: 16px;
+      padding: 12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      cursor:pointer;
+      touch-action: manipulation;
+    }
+    .goalRow:active{ background: rgba(255,255,255,.06); }
+    .goalActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex:0 0 auto;
+    }
+    .miniBtn{
+      border:1px solid rgba(255,255,255,.11);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 14px;
+      cursor:pointer;
+      touch-action: manipulation;
+      font-size:13px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+    .miniBtn:active{ transform: translateY(1px); background: rgba(255,255,255,.07); }
+    .miniBtn.danger{
+      border-color: rgba(255,107,107,.32);
+      background: rgba(255,107,107,.12);
+    }
+    .miniBtn.warn{
+      border-color: rgba(255,212,59,.34);
+      background: rgba(255,212,59,.11);
+    }
+    .miniBtn[disabled]{ opacity:.45; cursor:not-allowed; }
+    .miniBtn[disabled]:active{ transform:none; background: rgba(255,255,255,.04); }
+
+    /* Bottom nav */
+    .nav{
+      position:fixed;
+      left:0; right:0;
+      bottom:0;
+      padding: 10px 14px calc(10px + var(--safeBottom));
+      background: linear-gradient(180deg, rgba(10,14,26,0), rgba(10,14,26,.75) 30%, rgba(10,14,26,.92));
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .navInner{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .navBtn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      border-radius: 16px;
+      padding: 12px 10px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+      letter-spacing:.15px;
+      cursor:pointer;
+      touch-action: manipulation;
+    }
+    .navBtn.on{
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(116,192,252,.14), rgba(177,151,252,.10));
+      border-color: rgba(116,192,252,.26);
+    }
+    body.friendMode .navBtn.on{
+      background: linear-gradient(180deg, rgba(255,212,59,.16), rgba(255,146,43,.12));
+      border-color: rgba(255,212,59,.28);
+    }
+    .navBtn:active{ transform: translateY(1px); background: rgba(255,255,255,.07); }
+
+    /* Modal */
+    .modalWrap{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 14px;
+      padding-bottom: calc(14px + var(--safeBottom));
+      z-index:50;
+    }
+    .modalWrap.show{ display:flex; }
+    .modal{
+      width:min(720px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.06));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 22px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .modalTop{
+      padding: 14px 14px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .modalTop .mh{
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .modalBody{
+      padding: 14px;
+      display:grid;
+      gap:10px;
+    }
+    .field{ display:grid; gap:6px; }
+    .label{
+      font-size:12px;
+      color: var(--muted);
+      letter-spacing:.12px;
+      font-weight:800;
+    }
+    .input{
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      outline:none;
+    }
+    textarea.input{
+      min-height: 160px;
+      resize: vertical;
+      line-height: 1.35;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .row2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .modalActions{
+      display:flex;
+      gap:10px;
+      padding: 12px 14px 14px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      flex-wrap:wrap;
+    }
+    .primary{
+      flex:1;
+      border:1px solid rgba(116,192,252,.35);
+      background: linear-gradient(180deg, rgba(116,192,252,.20), rgba(177,151,252,.14));
+      color: var(--text);
+      padding: 12px 12px;
+      border-radius: 16px;
+      font-weight:900;
+      cursor:pointer;
+      touch-action: manipulation;
+      min-width: 140px;
+    }
+    body.friendMode .primary{
+      border-color: rgba(255,212,59,.35);
+      background: linear-gradient(180deg, rgba(255,212,59,.18), rgba(255,146,43,.12));
+    }
+    .secondary{
+      flex:1;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding: 12px 12px;
+      border-radius: 16px;
+      font-weight:900;
+      cursor:pointer;
+      touch-action: manipulation;
+      min-width: 140px;
+    }
+    .primary:active, .secondary:active{ transform: translateY(1px); }
+    .dangerBtn{
+      border:1px solid rgba(255,107,107,.35);
+      background: rgba(255,107,107,.12);
+    }
+
+    .hide{ display:none !important; }
+    .muted{ color: var(--muted); }
+    .mono{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+    @media (min-width: 760px){
+      .content{ padding-left: 20px; padding-right: 20px; }
+      .topbar{ padding-left: 20px; padding-right: 20px; }
+      .nav{ padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body class="noSelect">
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="titleRow">
+          <div class="title" id="brandTitle">Goals</div>
+          <div class="pill friend hide" id="friendPill">👥 Friend view • read-only</div>
+        </div>
+        <div class="subtitle" id="subtitle">Today</div>
+      </div>
+
+      <div class="topActions">
+        <button class="iconBtn" id="friendBtn" aria-label="View a friend's streak">
+          <span>👥</span><span style="font-weight:900;">Friend</span>
+        </button>
+        <button class="iconBtn" id="addBtn" aria-label="Add goal">
+          <span>＋</span><span style="font-weight:900;">Add</span>
+        </button>
+        <button class="iconBtn" id="settingsBtn" aria-label="Settings">
+          <span>⚙️</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <!-- Dashboard -->
+      <div class="grid" id="view-dashboard">
+        <div class="card">
+          <div class="cardHeader">
+            <div>
+              <div class="h" id="todayHeader">Today</div>
+              <div class="sub" id="todaySub">—</div>
+            </div>
+            <div class="pill mono" id="overallStreakPill">🔥 0-day streak</div>
+          </div>
+
+          <div class="progressRow">
+            <div class="ring mono" id="ring" style="--pdeg: 0deg;"><span id="ringText">0%</span></div>
+            <div class="stats">
+              <div class="big">
+                <div class="pct mono" id="todayPct">0%</div>
+                <div class="meta mono" id="todayMeta">0/0 completed</div>
+              </div>
+              <div class="mini">
+                <div class="pill mono" id="bestStreakPill">🏅 Best: 0</div>
+                <div class="pill mono" id="goalsCountPill">🎯 Goals: 0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="goalList" id="todayGoalList"></div>
+          <div class="empty hide" id="todayEmpty">
+            Add a goal, then tap the toggle each day. Your calendar will fill in automatically.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHeader">
+            <div>
+              <div class="h">Quick view</div>
+              <div class="sub" id="quickViewSub">Tap any day in the calendar to edit that date.</div>
+            </div>
+            <div class="pill mono" id="monthFillPill">📅 This month: —</div>
+          </div>
+          <div id="miniCalendar"></div>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="grid hide" id="view-calendar">
+        <div class="card">
+          <div class="calHeader">
+            <div class="month" id="calMonthLabel">—</div>
+            <div class="calBtns">
+              <button class="calBtn" id="calPrev" aria-label="Previous month">‹</button>
+              <button class="calBtn" id="calToday" aria-label="Go to today">•</button>
+              <button class="calBtn" id="calNext" aria-label="Next month">›</button>
+            </div>
+          </div>
+          <div class="dow">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+          <div class="calGrid" id="calGrid"></div>
+        </div>
+      </div>
+
+      <!-- Goals -->
+      <div class="grid hide" id="view-goals">
+        <div class="card">
+          <div class="cardHeader">
+            <div>
+              <div class="h">Your goals</div>
+              <div class="sub" id="goalsViewSub">Tap a goal to see its calendar and streak.</div>
+            </div>
+            <div class="pill mono" id="goalsHintPill">Local only</div>
+          </div>
+          <div class="grid" style="gap:10px;" id="goalsList"></div>
+          <div class="empty hide" id="goalsEmpty">No goals yet. Tap “Add”.</div>
+        </div>
+
+        <div class="card hide" id="goalDetailCard">
+          <div class="cardHeader">
+            <div>
+              <div class="h" id="goalDetailTitle">Goal</div>
+              <div class="sub mono" id="goalDetailSub">—</div>
+            </div>
+            <div class="pill mono" id="goalDetailStreak">🔥 0</div>
+          </div>
+
+          <div class="calHeader">
+            <div class="month" id="goalCalMonthLabel">—</div>
+            <div class="calBtns">
+              <button class="calBtn" id="goalCalPrev" aria-label="Previous month">‹</button>
+              <button class="calBtn" id="goalCalToday" aria-label="Go to today">•</button>
+              <button class="calBtn" id="goalCalNext" aria-label="Next month">›</button>
+            </div>
+          </div>
+          <div class="dow">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+          <div class="calGrid" id="goalCalGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="navInner">
+        <button class="navBtn on" id="navDash">Today</button>
+        <button class="navBtn" id="navCal">Calendar</button>
+        <button class="navBtn" id="navGoals">Goals</button>
+      </div>
+    </div>
+
+    <!-- Modal: Add/Edit Goal -->
+    <div class="modalWrap" id="goalModalWrap" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Goal editor">
+        <div class="modalTop">
+          <div class="mh" id="goalModalTitle">Add goal</div>
+          <button class="miniBtn" id="goalModalClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modalBody">
+          <div class="field">
+            <div class="label">Name</div>
+            <input class="input" id="goalNameInput" placeholder="e.g., Exercise, Read, Scripture, Journal" maxlength="60" />
+          </div>
+          <div class="row2">
+            <div class="field">
+              <div class="label">Color</div>
+              <input class="input" id="goalColorInput" type="color" value="#74c0fc" />
+            </div>
+            <div class="field">
+              <div class="label">Optional short label</div>
+              <input class="input" id="goalShortInput" placeholder="e.g., Gym" maxlength="12" />
+            </div>
+          </div>
+          <div class="muted" style="font-size:12px; line-height:1.35;">
+            Data is saved only on this device (local storage). Add to Home Screen for the most app-like feel.
+          </div>
+        </div>
+        <div class="modalActions">
+          <button class="secondary" id="goalModalCancel">Cancel</button>
+          <button class="primary" id="goalModalSave">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Day editor (toggle goals for a specific date) -->
+    <div class="modalWrap" id="dayModalWrap" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Day editor">
+        <div class="modalTop">
+          <div>
+            <div class="mh" id="dayModalTitle">Day</div>
+            <div class="muted mono" style="font-size:12px;" id="dayModalSub">—</div>
+          </div>
+          <button class="miniBtn" id="dayModalClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modalBody">
+          <div class="pill mono" id="dayModalPct">0%</div>
+          <div class="goalList" id="dayGoalList"></div>
+          <div class="empty hide" id="dayEmpty">No goals yet.</div>
+        </div>
+        <div class="modalActions">
+          <button class="secondary" id="dayModalDone">Done</button>
+          <button class="primary" id="dayModalAll">Mark all</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Friend view -->
+    <div class="modalWrap" id="friendModalWrap" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Friend view">
+        <div class="modalTop">
+          <div class="mh">View a friend’s streak</div>
+          <button class="miniBtn" id="friendModalClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modalBody">
+          <div class="muted" style="font-size:12px; line-height:1.35;">
+            Paste your friend’s exported JSON. This does not change your data. Friend view is read-only.
+          </div>
+          <div class="field">
+            <div class="label">Friend JSON</div>
+            <textarea class="input" id="friendJsonInput" placeholder='Paste JSON here...'></textarea>
+          </div>
+          <div class="muted" style="font-size:12px; line-height:1.35;" id="friendParseMsg"></div>
+        </div>
+        <div class="modalActions">
+          <button class="secondary" id="friendModalCancel">Cancel</button>
+          <button class="primary" id="friendModalView">View friend</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Settings -->
+    <div class="modalWrap" id="settingsModalWrap" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Settings">
+        <div class="modalTop">
+          <div class="mh">Settings</div>
+          <button class="miniBtn" id="settingsModalClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modalBody">
+          <div class="card" style="box-shadow:none; margin:0; padding:12px; border-radius:16px;">
+            <div class="h" style="font-weight:900; font-size:13px; margin-bottom:6px;">Backup</div>
+            <div class="muted" style="font-size:12px; line-height:1.35; margin-bottom:10px;">
+              Export your data to save it elsewhere. You can restore later by importing the JSON.
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="miniBtn" id="downloadBtn">⬇️ Download .json</button>
+              <button class="miniBtn" id="copyAllBtn">📋 Copy JSON</button>
+            </div>
+          </div>
+
+          <div class="card" style="box-shadow:none; margin:0; padding:12px; border-radius:16px;">
+            <div class="h" style="font-weight:900; font-size:13px; margin-bottom:6px;">Restore</div>
+            <div class="muted" style="font-size:12px; line-height:1.35; margin-bottom:10px;">
+              Paste JSON you previously exported to replace your local data on this device.
+            </div>
+            <div class="field">
+              <div class="label">Import JSON</div>
+              <textarea class="input" id="importJsonInput" placeholder='Paste your exported JSON here...'></textarea>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="miniBtn warn" id="importBtn">♻️ Import (replace)</button>
+            </div>
+            <div class="muted" style="font-size:12px; line-height:1.35;" id="importMsg"></div>
+          </div>
+
+          <div class="card" style="box-shadow:none; margin:0; padding:12px; border-radius:16px;">
+            <div class="h" style="font-weight:900; font-size:13px; margin-bottom:6px;">Danger zone</div>
+            <div class="muted" style="font-size:12px; line-height:1.35; margin-bottom:10px;">
+              Clears all goals and history on this device only.
+            </div>
+            <button class="miniBtn danger" id="clearBtn">🗑️ Clear all data</button>
+          </div>
+        </div>
+        <div class="modalActions">
+          <button class="secondary" id="settingsModalDone">Done</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /***********************
+     * Anti double-tap zoom (iOS)
+     ***********************/
+    (function preventDoubleTapZoom(){
+      let lastTouchEnd = 0;
+      document.addEventListener("touchend", function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, { passive: false });
+      document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, { passive: false });
+    })();
+
+    /***********************
+     * Storage / State
+     ***********************/
+    const STORAGE_KEY = "goals_daily_tracker_v2";
+    const SHARE_GOAL_ID = "__share_to_friend__";
+
+    function todayISO(){ return isoFromDate(new Date()); }
+    function isoFromDate(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+    function dateFromISO(iso){
+      const [y,m,d] = iso.split("-").map(Number);
+      return new Date(y, m-1, d);
+    }
+    function addDaysISO(iso, delta){
+      const d = dateFromISO(iso);
+      d.setDate(d.getDate()+delta);
+      return isoFromDate(d);
+    }
+    function prettyDate(iso){
+      const d = dateFromISO(iso);
+      return d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric", year:"numeric" });
+    }
+    function prettyMonthYear(d){
+      return d.toLocaleDateString(undefined, { month:"long", year:"numeric" });
+    }
+
+    function defaultState(){
+      return {
+        version: 2,
+        goals: [],
+        completions: {} // { "YYYY-MM-DD": { [goalId]: true } }
+      };
+    }
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        if(!parsed || typeof parsed !== "object") return defaultState();
+        if(!parsed.goals) parsed.goals = [];
+        if(!parsed.completions) parsed.completions = {};
+        if(!parsed.version) parsed.version = 2;
+        return parsed;
+      }catch{
+        return defaultState();
+      }
+    }
+    function saveState(){
+      ensureShareGoal(state);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // Self data (saved)
+    let state = loadState();
+
+    // Friend data (in-memory only)
+    let friendState = null;
+
+    // Mode: "self" or "friend"
+    let appMode = "self";
+
+    function activeState(){
+      return (appMode === "friend" && friendState) ? friendState : state;
+    }
+    function canEdit(){
+      return appMode === "self";
+    }
+
+    /***********************
+     * Ensure the default "Send to a friend" goal exists (and stays last)
+     ***********************/
+    function ensureShareGoal(s){
+      if(!s || !Array.isArray(s.goals)) return;
+      // remove duplicates
+      const filtered = [];
+      let found = null;
+      for(const g of s.goals){
+        if(g && g.id === SHARE_GOAL_ID){
+          if(!found) found = g;
+          continue;
+        }
+        filtered.push(g);
+      }
+      const shareGoal = found || {
+        id: SHARE_GOAL_ID,
+        name: "Send to a friend",
+        short: "Share",
+        color: "#ffd43b",
+        type: "share",
+        locked: true,
+        createdAt: todayISO()
+      };
+      // normalize
+      shareGoal.id = SHARE_GOAL_ID;
+      shareGoal.type = "share";
+      shareGoal.locked = true;
+      shareGoal.name = "Send to a friend";
+      shareGoal.short = shareGoal.short || "Share";
+      shareGoal.color = shareGoal.color || "#ffd43b";
+
+      // keep last
+      s.goals = [...filtered, shareGoal];
+    }
+
+    ensureShareGoal(state);
+    saveState();
+
+    /***********************
+     * Derived helpers
+     ***********************/
+    function getDayMap(s, iso){
+      if(!s.completions[iso]) s.completions[iso] = {};
+      return s.completions[iso];
+    }
+    function isDone(s, iso, goalId){
+      const m = s.completions[iso];
+      return !!(m && m[goalId]);
+    }
+    function setDoneSelf(iso, goalId, val){
+      const m = getDayMap(state, iso);
+      if(val) m[goalId] = true;
+      else delete m[goalId];
+      saveState();
+    }
+
+    function totalGoals(s){
+      return (s.goals || []).length;
+    }
+    function dayCounts(s, iso){
+      const t = totalGoals(s);
+      if(t === 0) return { done: 0, total: 0, pct: 0 };
+      let done = 0;
+      for(const g of s.goals){
+        if(isDone(s, iso, g.id)) done++;
+      }
+      const pct = Math.round((done / t) * 100);
+      return { done, total: t, pct };
+    }
+
+    function pctToFill(pct){
+      const hue = 6 + (pct * 1.24); // 6..130 approx
+      const a = 0.22 + (pct/100)*0.24; // 0.22..0.46
+      return `linear-gradient(180deg, hsla(${hue}, 90%, 55%, ${a}), hsla(${hue}, 90%, 48%, ${a*0.92}))`;
+    }
+
+    function overallStreakEndingAt(s, iso){
+      let streak = 0;
+      let cur = iso;
+      while(true){
+        const c = dayCounts(s, cur);
+        if(c.total === 0) break;
+        if(c.pct !== 100) break;
+        streak++;
+        cur = addDaysISO(cur, -1);
+      }
+      return streak;
+    }
+
+    function goalStreakEndingAt(s, goalId, iso){
+      let streak = 0;
+      let cur = iso;
+      while(true){
+        if(!isDone(s, cur, goalId)) break;
+        streak++;
+        cur = addDaysISO(cur, -1);
+      }
+      return streak;
+    }
+
+    function bestOverallStreakInHistory(s){
+      const keys = Object.keys(s.completions || {});
+      const allDays = new Set(keys);
+      allDays.add(todayISO());
+      const arr = Array.from(allDays).sort();
+      let best = 0, cur = 0, prev = null;
+      for(const iso of arr){
+        const c = dayCounts(s, iso);
+        const ok = c.total > 0 && c.pct === 100;
+        if(ok){
+          if(prev && addDaysISO(prev, 1) === iso) cur++;
+          else cur = 1;
+          best = Math.max(best, cur);
+        }else{
+          cur = 0;
+        }
+        prev = iso;
+      }
+      return best;
+    }
+
+    function bestGoalStreak(s, goalId){
+      const keys = Object.keys(s.completions || {});
+      const allDays = new Set(keys);
+      allDays.add(todayISO());
+      const arr = Array.from(allDays).sort();
+      let best = 0, cur = 0, prev = null;
+      for(const iso of arr){
+        const ok = isDone(s, iso, goalId);
+        if(ok){
+          if(prev && addDaysISO(prev, 1) === iso) cur++;
+          else cur = 1;
+          best = Math.max(best, cur);
+        }else{
+          cur = 0;
+        }
+        prev = iso;
+      }
+      return best;
+    }
+
+    /***********************
+     * Export / import formats
+     ***********************/
+    function exportPackage(s){
+      return {
+        app: "GoalsDailyTracker",
+        exported_at: new Date().toISOString(),
+        payload: s
+      };
+    }
+    function stringifyExport(s){
+      return JSON.stringify(exportPackage(s), null, 2);
+    }
+    function parseIncomingJSON(raw){
+      const obj = JSON.parse(raw);
+      // wrapper?
+      if(obj && typeof obj === "object" && obj.payload && obj.payload.goals && obj.payload.completions){
+        return obj.payload;
+      }
+      // direct state?
+      if(obj && typeof obj === "object" && obj.goals && obj.completions){
+        return obj;
+      }
+      throw new Error("Not a recognized export format.");
+    }
+    function validateStateShape(s){
+      if(!s || typeof s !== "object") throw new Error("Invalid object.");
+      if(!Array.isArray(s.goals)) throw new Error("Missing goals array.");
+      if(typeof s.completions !== "object" || !s.completions) throw new Error("Missing completions map.");
+      // normalize goal objects
+      s.goals = s.goals
+        .filter(g => g && typeof g === "object" && typeof g.id === "string")
+        .map(g => ({
+          id: String(g.id),
+          name: String(g.name || "Goal"),
+          short: String(g.short || "").slice(0,12),
+          color: String(g.color || "#74c0fc"),
+          type: g.type === "share" ? "share" : "normal",
+          locked: !!g.locked,
+          createdAt: String(g.createdAt || "")
+        }));
+      // normalize completions values (truthy)
+      for(const day of Object.keys(s.completions)){
+        const m = s.completions[day];
+        if(!m || typeof m !== "object"){
+          delete s.completions[day];
+          continue;
+        }
+        for(const k of Object.keys(m)){
+          if(!m[k]) delete m[k];
+          else m[k] = true;
+        }
+      }
+      // ensure share goal last
+      ensureShareGoal(s);
+      return s;
+    }
+
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        return true;
+      }catch{
+        // fallback
+        try{
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          ta.style.top = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        }catch{
+          return false;
+        }
+      }
+    }
+
+    /***********************
+     * UI refs
+     ***********************/
+    const brandTitle = document.getElementById("brandTitle");
+    const friendPill = document.getElementById("friendPill");
+    const subtitle = document.getElementById("subtitle");
+    const addBtn = document.getElementById("addBtn");
+    const friendBtn = document.getElementById("friendBtn");
+    const settingsBtn = document.getElementById("settingsBtn");
+
+    const viewDash = document.getElementById("view-dashboard");
+    const viewCal = document.getElementById("view-calendar");
+    const viewGoals = document.getElementById("view-goals");
+
+    const navDash = document.getElementById("navDash");
+    const navCal = document.getElementById("navCal");
+    const navGoals = document.getElementById("navGoals");
+
+    const todayHeader = document.getElementById("todayHeader");
+    const todaySub = document.getElementById("todaySub");
+    const ring = document.getElementById("ring");
+    const ringText = document.getElementById("ringText");
+    const todayPct = document.getElementById("todayPct");
+    const todayMeta = document.getElementById("todayMeta");
+    const overallStreakPill = document.getElementById("overallStreakPill");
+    const bestStreakPill = document.getElementById("bestStreakPill");
+    const goalsCountPill = document.getElementById("goalsCountPill");
+    const todayGoalList = document.getElementById("todayGoalList");
+    const todayEmpty = document.getElementById("todayEmpty");
+    const monthFillPill = document.getElementById("monthFillPill");
+    const miniCalendar = document.getElementById("miniCalendar");
+    const quickViewSub = document.getElementById("quickViewSub");
+
+    // Calendar view
+    const calMonthLabel = document.getElementById("calMonthLabel");
+    const calGrid = document.getElementById("calGrid");
+    const calPrev = document.getElementById("calPrev");
+    const calNext = document.getElementById("calNext");
+    const calToday = document.getElementById("calToday");
+
+    // Goals view
+    const goalsList = document.getElementById("goalsList");
+    const goalsEmpty = document.getElementById("goalsEmpty");
+    const goalsViewSub = document.getElementById("goalsViewSub");
+    const goalDetailCard = document.getElementById("goalDetailCard");
+    const goalDetailTitle = document.getElementById("goalDetailTitle");
+    const goalDetailSub = document.getElementById("goalDetailSub");
+    const goalDetailStreak = document.getElementById("goalDetailStreak");
+    const goalCalMonthLabel = document.getElementById("goalCalMonthLabel");
+    const goalCalGrid = document.getElementById("goalCalGrid");
+    const goalCalPrev = document.getElementById("goalCalPrev");
+    const goalCalNext = document.getElementById("goalCalNext");
+    const goalCalToday = document.getElementById("goalCalToday");
+
+    // Modals
+    const goalModalWrap = document.getElementById("goalModalWrap");
+    const goalModalTitle = document.getElementById("goalModalTitle");
+    const goalModalClose = document.getElementById("goalModalClose");
+    const goalModalCancel = document.getElementById("goalModalCancel");
+    const goalModalSave = document.getElementById("goalModalSave");
+    const goalNameInput = document.getElementById("goalNameInput");
+    const goalColorInput = document.getElementById("goalColorInput");
+    const goalShortInput = document.getElementById("goalShortInput");
+
+    const dayModalWrap = document.getElementById("dayModalWrap");
+    const dayModalTitle = document.getElementById("dayModalTitle");
+    const dayModalSub = document.getElementById("dayModalSub");
+    const dayModalClose = document.getElementById("dayModalClose");
+    const dayModalDone = document.getElementById("dayModalDone");
+    const dayModalAll = document.getElementById("dayModalAll");
+    const dayModalPct = document.getElementById("dayModalPct");
+    const dayGoalList = document.getElementById("dayGoalList");
+    const dayEmpty = document.getElementById("dayEmpty");
+
+    const friendModalWrap = document.getElementById("friendModalWrap");
+    const friendModalClose = document.getElementById("friendModalClose");
+    const friendModalCancel = document.getElementById("friendModalCancel");
+    const friendModalView = document.getElementById("friendModalView");
+    const friendJsonInput = document.getElementById("friendJsonInput");
+    const friendParseMsg = document.getElementById("friendParseMsg");
+
+    const settingsModalWrap = document.getElementById("settingsModalWrap");
+    const settingsModalClose = document.getElementById("settingsModalClose");
+    const settingsModalDone = document.getElementById("settingsModalDone");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const copyAllBtn = document.getElementById("copyAllBtn");
+    const importJsonInput = document.getElementById("importJsonInput");
+    const importBtn = document.getElementById("importBtn");
+    const importMsg = document.getElementById("importMsg");
+    const clearBtn = document.getElementById("clearBtn");
+
+    /***********************
+     * Navigation
+     ***********************/
+    function setView(which){
+      viewDash.classList.add("hide");
+      viewCal.classList.add("hide");
+      viewGoals.classList.add("hide");
+      navDash.classList.remove("on");
+      navCal.classList.remove("on");
+      navGoals.classList.remove("on");
+
+      if(which === "dash"){
+        viewDash.classList.remove("hide");
+        navDash.classList.add("on");
+        subtitle.textContent = (appMode === "friend") ? "Friend • Today" : "Today";
+      }
+      if(which === "cal"){
+        viewCal.classList.remove("hide");
+        navCal.classList.add("on");
+        subtitle.textContent = (appMode === "friend") ? "Friend • Calendar" : "Calendar";
+      }
+      if(which === "goals"){
+        viewGoals.classList.remove("hide");
+        navGoals.classList.add("on");
+        subtitle.textContent = (appMode === "friend") ? "Friend • Goals" : "Goals";
+      }
+      renderAll();
+    }
+    navDash.addEventListener("click", ()=>setView("dash"));
+    navCal.addEventListener("click", ()=>setView("cal"));
+    navGoals.addEventListener("click", ()=>setView("goals"));
+
+    function enterFriendMode(newFriendState){
+      friendState = newFriendState;
+      appMode = "friend";
+      document.body.classList.add("friendMode");
+      friendPill.classList.remove("hide");
+      brandTitle.textContent = "Goals";
+      todayHeader.textContent = "Friend";
+      addBtn.disabled = true;
+      settingsBtn.disabled = true;
+      quickViewSub.textContent = "Tap any day to inspect that date (read-only).";
+      goalsViewSub.textContent = "Tap a goal to see its calendar and streak (read-only).";
+      setView("dash");
+    }
+
+    function exitFriendMode(){
+      friendState = null;
+      appMode = "self";
+      document.body.classList.remove("friendMode");
+      friendPill.classList.add("hide");
+      todayHeader.textContent = "Today";
+      addBtn.disabled = false;
+      settingsBtn.disabled = false;
+      quickViewSub.textContent = "Tap any day in the calendar to edit that date.";
+      goalsViewSub.textContent = "Tap a goal to see its calendar and streak.";
+      setView("dash");
+    }
+
+    /***********************
+     * Goal modal
+     ***********************/
+    let editingGoalId = null;
+
+    function openGoalModal(goalId=null){
+      if(!canEdit()) return;
+      editingGoalId = goalId;
+      if(goalId){
+        const g = state.goals.find(x=>x.id===goalId);
+        if(g?.locked) return;
+        goalModalTitle.textContent = "Edit goal";
+        goalNameInput.value = g?.name || "";
+        goalColorInput.value = g?.color || "#74c0fc";
+        goalShortInput.value = g?.short || "";
+      }else{
+        goalModalTitle.textContent = "Add goal";
+        goalNameInput.value = "";
+        goalColorInput.value = "#74c0fc";
+        goalShortInput.value = "";
+      }
+      goalModalWrap.classList.add("show");
+      goalModalWrap.setAttribute("aria-hidden","false");
+      setTimeout(()=>goalNameInput.focus(), 50);
+    }
+    function closeGoalModal(){
+      goalModalWrap.classList.remove("show");
+      goalModalWrap.setAttribute("aria-hidden","true");
+      editingGoalId = null;
+    }
+
+    addBtn.addEventListener("click", ()=>openGoalModal(null));
+    goalModalClose.addEventListener("click", closeGoalModal);
+    goalModalCancel.addEventListener("click", closeGoalModal);
+    goalModalWrap.addEventListener("click", (e)=>{
+      if(e.target === goalModalWrap) closeGoalModal();
+    });
+
+    function uid(){
+      return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+    }
+
+    goalModalSave.addEventListener("click", ()=>{
+      if(!canEdit()) return;
+      const name = goalNameInput.value.trim();
+      const color = goalColorInput.value || "#74c0fc";
+      const short = goalShortInput.value.trim();
+      if(!name){
+        goalNameInput.focus();
+        return;
+      }
+      if(editingGoalId){
+        const g = state.goals.find(x=>x.id===editingGoalId);
+        if(g && !g.locked){
+          g.name = name;
+          g.color = color;
+          g.short = short;
+          g.type = "normal";
+        }
+      }else{
+        // insert before share goal (so share remains last)
+        const shareIdx = state.goals.findIndex(g=>g.id===SHARE_GOAL_ID);
+        const newGoal = { id: uid(), name, short, color, createdAt: todayISO(), type:"normal", locked:false };
+        if(shareIdx >= 0) state.goals.splice(shareIdx, 0, newGoal);
+        else state.goals.push(newGoal);
+      }
+      saveState();
+      closeGoalModal();
+      renderAll();
+    });
+
+    /***********************
+     * Day modal (edit/inspect a date)
+     ***********************/
+    let editingDayISO = null;
+
+    function openDayModal(iso){
+      editingDayISO = iso;
+      dayModalTitle.textContent = (appMode === "friend") ? "Friend day" : "Edit day";
+      dayModalSub.textContent = prettyDate(iso);
+      dayModalWrap.classList.add("show");
+      dayModalWrap.setAttribute("aria-hidden","false");
+      renderDayModal();
+    }
+    function closeDayModal(){
+      dayModalWrap.classList.remove("show");
+      dayModalWrap.setAttribute("aria-hidden","true");
+      editingDayISO = null;
+    }
+    dayModalClose.addEventListener("click", closeDayModal);
+    dayModalDone.addEventListener("click", closeDayModal);
+    dayModalWrap.addEventListener("click", (e)=>{
+      if(e.target === dayModalWrap) closeDayModal();
+    });
+
+    dayModalAll.addEventListener("click", ()=>{
+      if(!editingDayISO) return;
+      if(!canEdit()) return;
+      const s = activeState();
+      const c = dayCounts(s, editingDayISO);
+      if(c.total === 0) return;
+      const markTo = (c.pct === 100) ? false : true;
+      for(const g of state.goals){
+        setDoneSelf(editingDayISO, g.id, markTo);
+      }
+      renderAll();
+      renderDayModal();
+    });
+
+    function renderDayModal(){
+      if(!editingDayISO) return;
+      const s = activeState();
+      const c = dayCounts(s, editingDayISO);
+      dayModalPct.textContent = `${c.pct}%  •  ${c.done}/${c.total}`;
+
+      // mark-all only in self mode
+      dayModalAll.disabled = !canEdit();
+      dayModalAll.textContent = canEdit() ? "Mark all" : "Read-only";
+
+      dayGoalList.innerHTML = "";
+      if((s.goals || []).length === 0){
+        dayEmpty.classList.remove("hide");
+        return;
+      }
+      dayEmpty.classList.add("hide");
+
+      for(const g of s.goals){
+        const done = isDone(s, editingDayISO, g.id);
+        const item = document.createElement("div");
+        item.className = "goalItem";
+
+        const left = document.createElement("div");
+        left.className = "goalLeft";
+
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        dot.style.setProperty("--c", g.color || "#74c0fc");
+
+        const text = document.createElement("div");
+        text.className = "goalText";
+
+        const name = document.createElement("div");
+        name.className = "goalName";
+        name.textContent = g.name;
+
+        const meta = document.createElement("div");
+        meta.className = "goalMeta mono";
+        const st = goalStreakEndingAt(s, g.id, editingDayISO);
+        meta.textContent = `Streak ending here: ${st}`;
+
+        text.appendChild(name);
+        text.appendChild(meta);
+
+        left.appendChild(dot);
+        left.appendChild(text);
+
+        if(g.id === SHARE_GOAL_ID){
+          const badge = document.createElement("div");
+          badge.className = "pill mono";
+          badge.textContent = done ? "✅ done" : "—";
+          item.appendChild(left);
+          item.appendChild(badge);
+        }else{
+          const toggle = document.createElement("button");
+          toggle.className = "toggle" + (done ? " on" : "");
+          toggle.setAttribute("aria-label", done ? "Mark incomplete" : "Mark complete");
+          toggle.disabled = !canEdit();
+          toggle.addEventListener("click", ()=>{
+            if(!canEdit()) return;
+            setDoneSelf(editingDayISO, g.id, !done);
+            renderAll();
+            renderDayModal();
+          });
+
+          item.appendChild(left);
+          item.appendChild(toggle);
+        }
+
+        dayGoalList.appendChild(item);
+      }
+    }
+
+    /***********************
+     * Friend modal
+     ***********************/
+    function openFriendModal(){
+      friendParseMsg.textContent = "";
+      friendJsonInput.value = "";
+      friendModalWrap.classList.add("show");
+      friendModalWrap.setAttribute("aria-hidden","false");
+      setTimeout(()=>friendJsonInput.focus(), 50);
+    }
+    function closeFriendModal(){
+      friendModalWrap.classList.remove("show");
+      friendModalWrap.setAttribute("aria-hidden","true");
+    }
+    friendBtn.addEventListener("click", ()=>{
+      if(appMode === "friend"){
+        // quick exit when already in friend mode
+        if(confirm("Exit friend view and return to your data?")) exitFriendMode();
+        return;
+      }
+      openFriendModal();
+    });
+    friendModalClose.addEventListener("click", closeFriendModal);
+    friendModalCancel.addEventListener("click", closeFriendModal);
+    friendModalWrap.addEventListener("click", (e)=>{
+      if(e.target === friendModalWrap) closeFriendModal();
+    });
+
+    friendModalView.addEventListener("click", ()=>{
+      try{
+        const raw = friendJsonInput.value.trim();
+        if(!raw) throw new Error("Paste JSON first.");
+        const parsed = parseIncomingJSON(raw);
+        const normalized = validateStateShape(parsed);
+        closeFriendModal();
+        enterFriendMode(normalized);
+      }catch(err){
+        friendParseMsg.textContent = String(err?.message || err);
+      }
+    });
+
+    /***********************
+     * Settings modal
+     ***********************/
+    function openSettingsModal(){
+      if(!canEdit()) return;
+      importMsg.textContent = "";
+      importJsonInput.value = "";
+      settingsModalWrap.classList.add("show");
+      settingsModalWrap.setAttribute("aria-hidden","false");
+    }
+    function closeSettingsModal(){
+      settingsModalWrap.classList.remove("show");
+      settingsModalWrap.setAttribute("aria-hidden","true");
+    }
+    settingsBtn.addEventListener("click", openSettingsModal);
+    settingsModalClose.addEventListener("click", closeSettingsModal);
+    settingsModalDone.addEventListener("click", closeSettingsModal);
+    settingsModalWrap.addEventListener("click", (e)=>{
+      if(e.target === settingsModalWrap) closeSettingsModal();
+    });
+
+    downloadBtn.addEventListener("click", ()=>{
+      if(!canEdit()) return;
+      const text = stringifyExport(state);
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `goals-tracker-${todayISO()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    copyAllBtn.addEventListener("click", async ()=>{
+      if(!canEdit()) return;
+      const ok = await copyText(stringifyExport(state));
+      copyAllBtn.textContent = ok ? "✅ Copied" : "⚠️ Copy failed";
+      setTimeout(()=>copyAllBtn.textContent = "📋 Copy JSON", 1200);
+    });
+
+    importBtn.addEventListener("click", ()=>{
+      if(!canEdit()) return;
+      try{
+        const raw = importJsonInput.value.trim();
+        if(!raw) throw new Error("Paste JSON first.");
+        const parsed = parseIncomingJSON(raw);
+        const normalized = validateStateShape(parsed);
+        if(!confirm("Import will replace ALL local data on this device. Continue?")) return;
+        state = normalized;
+        saveState();
+        importMsg.textContent = "Imported successfully.";
+        renderAll();
+      }catch(err){
+        importMsg.textContent = String(err?.message || err);
+      }
+    });
+
+    clearBtn.addEventListener("click", ()=>{
+      if(!canEdit()) return;
+      if(!confirm("This will clear ALL data on this device. Continue?")) return;
+      if(!confirm("Second confirmation: Are you sure?")) return;
+      const typed = prompt('Type DELETE to confirm clearing all data:');
+      if(typed !== "DELETE") return;
+      state = defaultState();
+      ensureShareGoal(state);
+      saveState();
+      closeSettingsModal();
+      renderAll();
+    });
+
+    /***********************
+     * Sharing goal actions
+     ***********************/
+    function markShareDone(){
+      if(!canEdit()) return;
+      const iso = todayISO();
+      setDoneSelf(iso, SHARE_GOAL_ID, true);
+    }
+
+    async function shareCopy(){
+      const text = stringifyExport(state);
+      const ok = await copyText(text);
+      markShareDone();
+      renderAll();
+      return ok;
+    }
+
+    async function shareEmail(){
+      const text = stringifyExport(state);
+      // attempt clipboard too
+      await copyText(text);
+      // mailto
+      const subject = `My goals streak (${todayISO()})`;
+      const body =
+`Here is my GoalsDailyTracker JSON export.
+Paste it into “Friend” on your device to view my streak/calendar.
+
+---BEGIN JSON---
+${text}
+---END JSON---`;
+      const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      markShareDone();
+      renderAll();
+      window.location.href = url;
+    }
+
+    /***********************
+     * Calendar helpers
+     ***********************/
+    function renderCalendarInto(container, year, month, opts){
+      const compact = !!opts.compact;
+      const onDay = opts.onDay;
+      const s = activeState();
+
+      const first = new Date(year, month, 1);
+      const firstDow = first.getDay(); // 0=Sun
+      const start = new Date(year, month, 1 - firstDow);
+      const today = todayISO();
+
+      for(let i=0;i<42;i++){
+        const d = new Date(start);
+        d.setDate(start.getDate()+i);
+        const iso = isoFromDate(d);
+        const inMonth = (d.getMonth() === month);
+        const c = dayCounts(s, iso);
+
+        const cell = document.createElement("div");
+        cell.className = "dayCell" + (inMonth ? "" : " out") + (iso === today ? " today" : "");
+        cell.style.setProperty("--fill", c.total > 0 ? pctToFill(c.pct) : "transparent");
+
+        const n = document.createElement("div");
+        n.className = "n mono";
+        n.textContent = d.getDate();
+        cell.appendChild(n);
+
+        if(!compact && c.total > 0){
+          const badge = document.createElement("div");
+          badge.className = "dayBadge mono";
+          badge.textContent = `${c.pct}%`;
+          cell.appendChild(badge);
+        }
+
+        cell.addEventListener("click", ()=> onDay(iso));
+        container.appendChild(cell);
+      }
+    }
+
+    /***********************
+     * Calendar view (overall)
+     ***********************/
+    let calYear = (new Date()).getFullYear();
+    let calMonth = (new Date()).getMonth();
+
+    calPrev.addEventListener("click", ()=>{
+      calMonth--;
+      if(calMonth < 0){ calMonth = 11; calYear--; }
+      renderCalendarView();
+    });
+    calNext.addEventListener("click", ()=>{
+      calMonth++;
+      if(calMonth > 11){ calMonth = 0; calYear++; }
+      renderCalendarView();
+    });
+    calToday.addEventListener("click", ()=>{
+      const d = new Date();
+      calYear = d.getFullYear();
+      calMonth = d.getMonth();
+      renderCalendarView();
+    });
+
+    function renderCalendarView(){
+      calMonthLabel.textContent = prettyMonthYear(new Date(calYear, calMonth, 1));
+      calGrid.innerHTML = "";
+      renderCalendarInto(calGrid, calYear, calMonth, { compact:false, onDay: openDayModal });
+    }
+
+    /***********************
+     * Goals view + goal detail calendar
+     ***********************/
+    let selectedGoalId = null;
+    let goalCalYear = (new Date()).getFullYear();
+    let goalCalMonth = (new Date()).getMonth();
+
+    goalCalPrev.addEventListener("click", ()=>{
+      goalCalMonth--;
+      if(goalCalMonth < 0){ goalCalMonth = 11; goalCalYear--; }
+      renderGoalDetail();
+    });
+    goalCalNext.addEventListener("click", ()=>{
+      goalCalMonth++;
+      if(goalCalMonth > 11){ goalCalMonth = 0; goalCalYear++; }
+      renderGoalDetail();
+    });
+    goalCalToday.addEventListener("click", ()=>{
+      const d = new Date();
+      goalCalYear = d.getFullYear();
+      goalCalMonth = d.getMonth();
+      renderGoalDetail();
+    });
+
+    function renderGoalsView(){
+      const s = activeState();
+      goalsList.innerHTML = "";
+
+      if((s.goals || []).length === 0){
+        goalsEmpty.classList.remove("hide");
+        goalDetailCard.classList.add("hide");
+        return;
+      }
+      goalsEmpty.classList.add("hide");
+
+      for(const g of s.goals){
+        const row = document.createElement("div");
+        row.className = "goalRow";
+
+        const left = document.createElement("div");
+        left.className = "goalLeft";
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        dot.style.setProperty("--c", g.color || "#74c0fc");
+        const text = document.createElement("div");
+        text.className = "goalText";
+        const name = document.createElement("div");
+        name.className = "goalName";
+        name.textContent = g.name;
+        const meta = document.createElement("div");
+        meta.className = "goalMeta mono";
+        const st = goalStreakEndingAt(s, g.id, todayISO());
+        const best = bestGoalStreak(s, g.id);
+        meta.textContent = `Streak: ${st}  •  Best: ${best}`;
+        text.appendChild(name);
+        text.appendChild(meta);
+        left.appendChild(dot);
+        left.appendChild(text);
+
+        const actions = document.createElement("div");
+        actions.className = "goalActions";
+
+        if(canEdit() && !g.locked && g.id !== SHARE_GOAL_ID){
+          const edit = document.createElement("button");
+          edit.className = "miniBtn";
+          edit.textContent = "Edit";
+          edit.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            openGoalModal(g.id);
+          });
+
+          const del = document.createElement("button");
+          del.className = "miniBtn danger";
+          del.textContent = "Delete";
+          del.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            if(!confirm(`Delete goal "${g.name}"?`)) return;
+            state.goals = state.goals.filter(x=>x.id !== g.id);
+            for(const dayIso of Object.keys(state.completions)){
+              if(state.completions[dayIso] && state.completions[dayIso][g.id]) delete state.completions[dayIso][g.id];
+            }
+            if(selectedGoalId === g.id) selectedGoalId = null;
+            saveState();
+            renderAll();
+          });
+
+          actions.appendChild(edit);
+          actions.appendChild(del);
+        }else{
+          const ro = document.createElement("div");
+          ro.className = "pill mono";
+          ro.textContent = (appMode === "friend") ? "Read-only" : (g.id === SHARE_GOAL_ID ? "Pinned" : "—");
+          actions.appendChild(ro);
+        }
+
+        row.appendChild(left);
+        row.appendChild(actions);
+
+        row.addEventListener("click", ()=>{
+          selectedGoalId = g.id;
+          const d = new Date();
+          goalCalYear = d.getFullYear();
+          goalCalMonth = d.getMonth();
+          renderGoalDetail();
+          goalDetailCard.scrollIntoView({ behavior:"smooth", block:"start" });
+        });
+
+        goalsList.appendChild(row);
+      }
+
+      renderGoalDetail();
+    }
+
+    function renderGoalDetail(){
+      const s = activeState();
+      if(!selectedGoalId){
+        goalDetailCard.classList.add("hide");
+        return;
+      }
+      const g = (s.goals || []).find(x=>x.id===selectedGoalId);
+      if(!g){
+        goalDetailCard.classList.add("hide");
+        return;
+      }
+
+      goalDetailCard.classList.remove("hide");
+      goalDetailTitle.textContent = g.name;
+
+      const st = goalStreakEndingAt(s, g.id, todayISO());
+      const best = bestGoalStreak(s, g.id);
+      goalDetailSub.textContent = `Today streak: ${st}  •  Best: ${best}`;
+      goalDetailStreak.textContent = `🔥 ${st}`;
+
+      goalCalMonthLabel.textContent = prettyMonthYear(new Date(goalCalYear, goalCalMonth, 1));
+      goalCalGrid.innerHTML = "";
+
+      const first = new Date(goalCalYear, goalCalMonth, 1);
+      const firstDow = first.getDay();
+      const start = new Date(goalCalYear, goalCalMonth, 1 - firstDow);
+      const today = todayISO();
+
+      for(let i=0;i<42;i++){
+        const d = new Date(start);
+        d.setDate(start.getDate()+i);
+        const iso = isoFromDate(d);
+        const inMonth = (d.getMonth() === goalCalMonth);
+        const done = isDone(s, iso, g.id);
+
+        const cell = document.createElement("div");
+        cell.className = "dayCell" + (inMonth ? "" : " out") + (iso === today ? " today" : "");
+        cell.style.setProperty("--fill", done ? pctToFill(100) : "transparent");
+
+        const n = document.createElement("div");
+        n.className = "n mono";
+        n.textContent = d.getDate();
+        cell.appendChild(n);
+
+        cell.addEventListener("click", ()=>{
+          if(!canEdit()) {
+            openDayModal(iso);
+            return;
+          }
+          // toggle only if editing self data
+          if(g.id === SHARE_GOAL_ID) return;
+          setDoneSelf(iso, g.id, !done);
+          renderAll();
+        });
+
+        goalCalGrid.appendChild(cell);
+      }
+    }
+
+    /***********************
+     * Dashboard render
+     ***********************/
+    function renderDashboard(){
+      const s = activeState();
+      const iso = todayISO();
+
+      todaySub.textContent = prettyDate(iso);
+      goalsCountPill.textContent = `🎯 Goals: ${totalGoals(s)}`;
+
+      const c = dayCounts(s, iso);
+      const deg = Math.round((c.pct/100) * 360);
+      ring.style.setProperty("--pdeg", `${deg}deg`);
+      ringText.textContent = `${c.pct}%`;
+      todayPct.textContent = `${c.pct}%`;
+      todayMeta.textContent = `${c.done}/${c.total} completed`;
+
+      const oStreak = overallStreakEndingAt(s, iso);
+      overallStreakPill.textContent = `🔥 ${oStreak}-day streak`;
+      bestStreakPill.textContent = `🏅 Best: ${bestOverallStreakInHistory(s)}`;
+
+      // Month fill stat
+      const now = new Date();
+      const y = now.getFullYear(), m = now.getMonth();
+      const start = new Date(y, m, 1);
+      const end = new Date(y, m+1, 0);
+      const days = end.getDate();
+      let sum = 0;
+      for(let i=1;i<=days;i++){
+        const di = new Date(y, m, i);
+        const isoDay = isoFromDate(di);
+        sum += dayCounts(s, isoDay).pct;
+      }
+      const avg = days ? Math.round(sum/days) : 0;
+      monthFillPill.textContent = `📅 This month avg: ${avg}%`;
+
+      // Today list
+      todayGoalList.innerHTML = "";
+      if((s.goals || []).length === 0){
+        todayEmpty.classList.remove("hide");
+      }else{
+        todayEmpty.classList.add("hide");
+        for(const g of s.goals){
+          const done = isDone(s, iso, g.id);
+          const st = goalStreakEndingAt(s, g.id, iso);
+          const best = bestGoalStreak(s, g.id);
+
+          const item = document.createElement("div");
+          item.className = "goalItem";
+
+          const left = document.createElement("div");
+          left.className = "goalLeft";
+
+          const dot = document.createElement("div");
+          dot.className = "dot";
+          dot.style.setProperty("--c", g.color || "#74c0fc");
+
+          const text = document.createElement("div");
+          text.className = "goalText";
+
+          const name = document.createElement("div");
+          name.className = "goalName";
+          name.textContent = g.name;
+
+          const meta = document.createElement("div");
+          meta.className = "goalMeta mono";
+          meta.textContent = `Streak: ${st}  •  Best: ${best}`;
+
+          text.appendChild(name);
+          text.appendChild(meta);
+
+          left.appendChild(dot);
+          left.appendChild(text);
+
+          item.appendChild(left);
+
+          if(g.id === SHARE_GOAL_ID){
+            const btns = document.createElement("div");
+            btns.className = "shareBtns";
+
+            const emailBtn = document.createElement("button");
+            emailBtn.className = "miniBtn";
+            emailBtn.textContent = done ? "✅ Email" : "Email";
+            emailBtn.disabled = !canEdit();
+            emailBtn.addEventListener("click", async ()=>{
+              await shareEmail();
+            });
+
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "miniBtn";
+            copyBtn.textContent = done ? "✅ Copy" : "Copy";
+            copyBtn.disabled = !canEdit();
+            copyBtn.addEventListener("click", async ()=>{
+              const ok = await shareCopy();
+              copyBtn.textContent = ok ? "✅ Copied" : "⚠️ Copy failed";
+              setTimeout(()=>renderAll(), 900);
+            });
+
+            btns.appendChild(emailBtn);
+            btns.appendChild(copyBtn);
+            item.appendChild(btns);
+          }else{
+            const toggle = document.createElement("button");
+            toggle.className = "toggle" + (done ? " on" : "");
+            toggle.setAttribute("aria-label", done ? "Mark incomplete" : "Mark complete");
+            toggle.disabled = !canEdit();
+            toggle.addEventListener("click", ()=>{
+              if(!canEdit()) return;
+              setDoneSelf(iso, g.id, !done);
+              renderAll();
+            });
+            item.appendChild(toggle);
+          }
+
+          todayGoalList.appendChild(item);
+        }
+      }
+
+      // Mini calendar (current month)
+      miniCalendar.innerHTML = "";
+      const mini = document.createElement("div");
+      mini.className = "calGrid";
+      mini.style.gap = "8px";
+      mini.style.marginTop = "8px";
+      renderCalendarInto(mini, now.getFullYear(), now.getMonth(), { compact:true, onDay: openDayModal });
+      miniCalendar.appendChild(mini);
+    }
+
+    /***********************
+     * Mode-sensitive top UI
+     ***********************/
+    function renderModeChrome(){
+      friendPill.classList.toggle("hide", appMode !== "friend");
+      friendBtn.innerHTML = (appMode === "friend")
+        ? `<span>↩︎</span><span style="font-weight:900;">Back</span>`
+        : `<span>👥</span><span style="font-weight:900;">Friend</span>`;
+      addBtn.disabled = !canEdit();
+      settingsBtn.disabled = !canEdit();
+    }
+
+    /***********************
+     * Render all
+     ***********************/
+    function renderAll(){
+      renderModeChrome();
+      renderDashboard();
+      renderCalendarView();
+      renderGoalsView();
+      // if day modal open, re-render it to reflect mode and state
+      if(editingDayISO) renderDayModal();
+    }
+
+    /***********************
+     * Start
+     ***********************/
+    {
+      const d = new Date();
+      calYear = d.getFullYear();
+      calMonth = d.getMonth();
+    }
+    setView("dash");
+    renderAll();
+  </script>
+</body>
+</html>
