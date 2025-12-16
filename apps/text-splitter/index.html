@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Character Block Splitter</title>
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --text:#e8eefc;
+      --muted:#a9b4d6;
+      --accent:#7aa2ff;
+      --border:rgba(255,255,255,0.10);
+      --shadow: 0 12px 30px rgba(0,0,0,0.35);
+      --radius:16px;
+      --radius2:12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,0.20), transparent 55%),
+                  radial-gradient(900px 600px at 85% 20%, rgba(167,139,250,0.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{ max-width: 980px; margin:0 auto; padding: 18px 14px 28px; }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .title{ display:flex; flex-direction:column; gap:4px; }
+    h1{ font-size:18px; margin:0; letter-spacing:0.2px; }
+    .subtitle{ font-size:13px; color:var(--muted); line-height:1.3; }
+
+    .btn{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform 0.05s ease, border-color 0.15s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{ border-color: rgba(122,162,255,0.45); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(122,162,255,0.35);
+      background: linear-gradient(180deg, rgba(122,162,255,0.22), rgba(122,162,255,0.10));
+    }
+    .btn.small{ padding:8px 10px; border-radius: 10px; font-size: 13px; }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+      color:var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* Views */
+    .view{ display:none; }
+    .view.active{ display:block; }
+
+    /* Cards */
+    .card{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:12px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.10);
+    }
+    .cardHead .left{ display:flex; flex-direction:column; gap:3px; }
+    .cardHead .label{ font-size:13px; color: var(--muted); }
+    .meta{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px; color: var(--muted); }
+
+    textarea{
+      width:100%;
+      min-height: 360px;
+      resize: vertical;
+      border:0;
+      outline:none;
+      background: transparent;
+      color: var(--text);
+      padding: 12px;
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Block list */
+    details.block{
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      overflow:hidden;
+      background: rgba(255,255,255,0.03);
+    }
+    details.block > summary{
+      list-style:none;
+      cursor:pointer;
+      padding: 12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      user-select:none;
+      background: rgba(0,0,0,0.10);
+    }
+    details.block > summary::-webkit-details-marker{ display:none; }
+    .summaryLeft{ display:flex; align-items:center; gap:10px; min-width: 0; }
+    .sumTitle{ font-weight:600; font-size: 14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sumRight{ display:flex; align-items:center; gap:8px; flex: 0 0 auto; }
+    .kpi{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 8px;
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      background: rgba(0,0,0,0.12);
+      white-space: nowrap;
+    }
+    .blockBody{
+      padding: 10px 12px 12px;
+      border-top:1px solid rgba(255,255,255,0.08);
+    }
+    pre{
+      margin:0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(0,0,0,0.18);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: rgba(232,238,252,0.95);
+      max-height: 280px;
+      overflow:auto;
+    }
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 16px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .toast.show{
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* Top-right actions + settings popover */
+    .topActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .popover{
+      position: absolute;
+      top: 44px;
+      right: 0;
+      width: 320px;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(10,14,26,0.92);
+      backdrop-filter: blur(10px);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 10px 10px 12px;
+      display:none;
+      z-index: 50;
+    }
+    .popover.show{ display:block; }
+    .popTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 6px 6px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .field{ display:flex; flex-direction:column; gap:6px; flex: 1 1 140px; min-width: 140px; }
+    .field label{ font-size: 12px; color: var(--muted); }
+    input[type="number"], select{
+      width:100%;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 10px;
+      outline:none;
+      font-family: var(--sans);
+      font-size: 14px;
+    }
+    input[type="number"]:focus, select:focus{ border-color: rgba(122,162,255,0.45); }
+    .hr{ height:1px; background: rgba(255,255,255,0.10); margin: 10px 0; }
+    .note{ font-size: 12px; color: var(--muted); line-height:1.35; margin-top: 8px; }
+
+    /* Small usability tweaks */
+    .ghost{
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Character Block Splitter</h1>
+        <div class="subtitle">Submit text → see blocks. Use Edit to change text, or New to start over.</div>
+      </div>
+
+      <div class="topActions" id="topActions">
+        <button id="editBtn" class="btn small" type="button" style="display:none;">Edit</button>
+        <button id="newBtn" class="btn small" type="button" style="display:none;">New</button>
+
+        <button id="settingsBtn" class="btn small ghost" type="button" aria-expanded="false">Settings</button>
+
+        <div id="settingsPopover" class="popover" role="dialog" aria-label="Settings">
+          <div class="popTitle">
+            <span>Settings (saved locally)</span>
+            <button id="closeSettingsBtn" class="btn small" type="button">Close</button>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="chunkSize">Characters per block (N)</label>
+              <input id="chunkSize" type="number" min="1" step="1" />
+            </div>
+
+            <div class="field">
+              <label for="autoSplit">Auto-split while typing</label>
+              <select id="autoSplit">
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <label for="minutes">Estimate minutes</label>
+              <input id="minutes" type="number" min="1" step="1" value="7" />
+            </div>
+
+            <div class="field">
+              <label for="wpm">Words per minute</label>
+              <select id="wpm">
+                <option value="130">130</option>
+                <option value="150" selected>150</option>
+                <option value="170">170</option>
+                <option value="200">200</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="cpw">Chars per word</label>
+              <select id="cpw">
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <button id="applyEstimateBtn" class="btn small primary" type="button">Set N from estimate</button>
+            <button id="setDefaultBtn" class="btn small" type="button">Reset</button>
+          </div>
+
+          <div class="note" id="estNote">Default estimate: 7 min ≈ 6,300 chars.</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- INPUT VIEW -->
+    <section id="inputView" class="view active">
+      <div class="card">
+        <div class="cardHead">
+          <div class="left">
+            <div class="label">Input text</div>
+            <div class="meta">
+              <span class="pill" id="totalCharsPill">Total: 0 chars</span>
+              <span class="pill" id="chunkCharsPill">Block size: 0 chars</span>
+              <span class="pill" id="estPill">Est: 7 min ≈ 6,300 chars</span>
+            </div>
+          </div>
+          <div class="row">
+            <button id="submitBtn" class="btn primary small" type="button">Submit</button>
+            <button id="clearBtn" class="btn small" type="button">Clear</button>
+          </div>
+        </div>
+
+        <textarea id="inputText" placeholder="Paste or type your text here..."></textarea>
+      </div>
+    </section>
+
+    <!-- BLOCKS VIEW -->
+    <section id="blocksView" class="view">
+      <div class="card">
+        <div class="cardHead">
+          <div class="left">
+            <div class="label">Blocks</div>
+            <div class="meta">
+              <span class="pill" id="blocksMeta">0 blocks</span>
+              <span class="pill" id="blocksTotalMeta">Total: 0 chars</span>
+            </div>
+          </div>
+          <div class="row">
+            <button id="copyAllBtn" class="btn small" type="button">Copy all (joined)</button>
+          </div>
+        </div>
+
+        <div id="blocksContainer" style="padding:12px; display:flex; flex-direction:column; gap:10px;"></div>
+
+        <div style="padding:0 12px 12px;">
+          <div class="note" id="warnNote" style="display:none;">
+            Block size is larger than your total text, so you will only get 1 block.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="toast" class="toast">Copied.</div>
+  </div>
+
+  <script>
+    (function(){
+      const LS_KEYS = {
+        chunkSize: "char_splitter_chunk_size",
+        autoSplit: "char_splitter_autosplit",
+        wpm: "char_splitter_wpm",
+        cpw: "char_splitter_cpw",
+        minutes: "char_splitter_minutes"
+      };
+
+      function estimateChars(minutes, wpm, charsPerWord){
+        return Math.round(minutes * wpm * (charsPerWord + 1)); // +1 for spaces
+      }
+
+      const els = {
+        inputView: document.getElementById("inputView"),
+        blocksView: document.getElementById("blocksView"),
+
+        editBtn: document.getElementById("editBtn"),
+        newBtn: document.getElementById("newBtn"),
+
+        settingsBtn: document.getElementById("settingsBtn"),
+        settingsPopover: document.getElementById("settingsPopover"),
+        closeSettingsBtn: document.getElementById("closeSettingsBtn"),
+        topActions: document.getElementById("topActions"),
+
+        inputText: document.getElementById("inputText"),
+        submitBtn: document.getElementById("submitBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+
+        totalCharsPill: document.getElementById("totalCharsPill"),
+        chunkCharsPill: document.getElementById("chunkCharsPill"),
+        estPill: document.getElementById("estPill"),
+        estNote: document.getElementById("estNote"),
+
+        chunkSize: document.getElementById("chunkSize"),
+        autoSplit: document.getElementById("autoSplit"),
+        minutes: document.getElementById("minutes"),
+        wpm: document.getElementById("wpm"),
+        cpw: document.getElementById("cpw"),
+        applyEstimateBtn: document.getElementById("applyEstimateBtn"),
+        setDefaultBtn: document.getElementById("setDefaultBtn"),
+
+        blocksContainer: document.getElementById("blocksContainer"),
+        blocksMeta: document.getElementById("blocksMeta"),
+        blocksTotalMeta: document.getElementById("blocksTotalMeta"),
+        warnNote: document.getElementById("warnNote"),
+        copyAllBtn: document.getElementById("copyAllBtn"),
+
+        toast: document.getElementById("toast")
+      };
+
+      let blocks = []; // array of strings
+
+      function setView(which){
+        const isInput = which === "input";
+        els.inputView.classList.toggle("active", isInput);
+        els.blocksView.classList.toggle("active", !isInput);
+
+        els.editBtn.style.display = isInput ? "none" : "inline-block";
+        els.newBtn.style.display = isInput ? "none" : "inline-block";
+
+        closeSettings();
+      }
+
+      function showToast(msg){
+        els.toast.textContent = msg;
+        els.toast.classList.add("show");
+        window.clearTimeout(showToast._t);
+        showToast._t = window.setTimeout(()=>els.toast.classList.remove("show"), 1100);
+      }
+
+      async function copyToClipboard(text){
+        try{
+          await navigator.clipboard.writeText(text);
+          showToast("Copied.");
+        }catch(e){
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          showToast("Copied.");
+        }
+      }
+
+      function updateEstimateUI(){
+        const minutes = Math.max(1, parseInt(els.minutes.value,10) || 7);
+        const wpm = Math.max(80, parseInt(els.wpm.value,10) || 150);
+        const cpw = Math.max(3, parseInt(els.cpw.value,10) || 5);
+        const est = estimateChars(minutes, wpm, cpw);
+        els.estPill.textContent = `Est: ${minutes} min ≈ ${est.toLocaleString()} chars`;
+        els.estNote.textContent = `Estimate: ${minutes} min at ${wpm} WPM, ${cpw} chars/word (+spaces) ≈ ${est.toLocaleString()} chars.`;
+      }
+
+      function updateChunkPill(){
+        const n = parseInt(els.chunkSize.value, 10) || 0;
+        els.chunkCharsPill.textContent = `Block size: ${n.toLocaleString()} chars`;
+      }
+
+      function loadSettings(){
+        const savedChunk = parseInt(localStorage.getItem(LS_KEYS.chunkSize), 10);
+        const savedAuto = localStorage.getItem(LS_KEYS.autoSplit);
+        const savedWpm = localStorage.getItem(LS_KEYS.wpm);
+        const savedCpw = localStorage.getItem(LS_KEYS.cpw);
+        const savedMin = localStorage.getItem(LS_KEYS.minutes);
+
+        const defMinutes = savedMin ? parseInt(savedMin,10) : 7;
+        const defWpm = savedWpm ? savedWpm : "150";
+        const defCpw = savedCpw ? savedCpw : "5";
+        const defChunk = Number.isFinite(savedChunk) && savedChunk > 0
+          ? savedChunk
+          : estimateChars(defMinutes, parseInt(defWpm,10), parseInt(defCpw,10));
+
+        els.minutes.value = String(defMinutes);
+        els.wpm.value = String(defWpm);
+        els.cpw.value = String(defCpw);
+        els.chunkSize.value = String(defChunk);
+        els.autoSplit.value = (savedAuto === "off") ? "off" : "on";
+
+        updateEstimateUI();
+        updateChunkPill();
+      }
+
+      function saveSettings(){
+        const n = parseInt(els.chunkSize.value, 10);
+        if(Number.isFinite(n) && n > 0){
+          localStorage.setItem(LS_KEYS.chunkSize, String(n));
+        }
+        localStorage.setItem(LS_KEYS.autoSplit, els.autoSplit.value);
+        localStorage.setItem(LS_KEYS.wpm, els.wpm.value);
+        localStorage.setItem(LS_KEYS.cpw, els.cpw.value);
+        localStorage.setItem(LS_KEYS.minutes, els.minutes.value);
+      }
+
+      function splitIntoBlocks(text, blockSize){
+        const out = [];
+        if(!text) return out;
+        for(let i=0; i<text.length; i+=blockSize){
+          out.push(text.slice(i, i+blockSize));
+        }
+        return out;
+      }
+
+      function renderBlocks(){
+        const text = els.inputText.value || "";
+        const n = Math.max(1, parseInt(els.chunkSize.value, 10) || 1);
+
+        blocks = splitIntoBlocks(text, n);
+
+        // meta
+        els.blocksMeta.textContent = `${blocks.length.toLocaleString()} block${blocks.length===1 ? "" : "s"}`;
+        els.blocksTotalMeta.textContent = `Total: ${text.length.toLocaleString()} chars`;
+        els.totalCharsPill.textContent = `Total: ${text.length.toLocaleString()} chars`;
+        els.warnNote.style.display = (text.length > 0 && n > text.length) ? "block" : "none";
+        updateChunkPill();
+
+        // clear + rebuild list
+        els.blocksContainer.innerHTML = "";
+
+        blocks.forEach((chunk, idx) => {
+          const blockNum = idx + 1;
+
+          const details = document.createElement("details");
+          details.className = "block";
+
+          const summary = document.createElement("summary");
+
+          const left = document.createElement("div");
+          left.className = "summaryLeft";
+
+          const title = document.createElement("div");
+          title.className = "sumTitle";
+          title.textContent = `Block ${blockNum}`;
+
+          left.appendChild(title);
+
+          const right = document.createElement("div");
+          right.className = "sumRight";
+
+          const kpi = document.createElement("span");
+          kpi.className = "kpi";
+          kpi.textContent = `${chunk.length.toLocaleString()} chars`;
+
+          const copyBtn = document.createElement("button");
+          copyBtn.className = "btn small";
+          copyBtn.type = "button";
+          copyBtn.textContent = "Copy";
+          copyBtn.addEventListener("click", (e)=>{
+            e.preventDefault(); // prevent toggling the details
+            e.stopPropagation();
+            copyToClipboard(chunk);
+          });
+
+          right.appendChild(kpi);
+          right.appendChild(copyBtn);
+
+          summary.appendChild(left);
+          summary.appendChild(right);
+
+          const body = document.createElement("div");
+          body.className = "blockBody";
+
+          const pre = document.createElement("pre");
+          pre.textContent = chunk;
+
+          body.appendChild(pre);
+
+          details.appendChild(summary);
+          details.appendChild(body);
+
+          els.blocksContainer.appendChild(details);
+        });
+
+        saveSettings();
+      }
+
+      // Settings popover behavior (overlay; does not move layout)
+      function openSettings(){
+        els.settingsPopover.classList.add("show");
+        els.settingsBtn.setAttribute("aria-expanded", "true");
+      }
+      function closeSettings(){
+        els.settingsPopover.classList.remove("show");
+        els.settingsBtn.setAttribute("aria-expanded", "false");
+      }
+      function toggleSettings(){
+        if(els.settingsPopover.classList.contains("show")) closeSettings();
+        else openSettings();
+      }
+
+      els.settingsBtn.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        toggleSettings();
+      });
+      els.closeSettingsBtn.addEventListener("click", closeSettings);
+
+      // Click outside closes
+      document.addEventListener("click", (e)=>{
+        if(!els.settingsPopover.classList.contains("show")) return;
+        const clickedInside = els.settingsPopover.contains(e.target) || els.settingsBtn.contains(e.target);
+        if(!clickedInside) closeSettings();
+      });
+      // Escape closes
+      document.addEventListener("keydown", (e)=>{
+        if(e.key === "Escape") closeSettings();
+      });
+
+      // Submit => blocks view
+      els.submitBtn.addEventListener("click", ()=>{
+        renderBlocks();
+        setView("blocks");
+      });
+
+      // Edit => back to input view (keep text)
+      els.editBtn.addEventListener("click", ()=> setView("input"));
+
+      // New => clear and go input
+      els.newBtn.addEventListener("click", ()=>{
+        els.inputText.value = "";
+        renderBlocks();
+        setView("input");
+      });
+
+      els.clearBtn.addEventListener("click", ()=>{
+        els.inputText.value = "";
+        els.totalCharsPill.textContent = "Total: 0 chars";
+      });
+
+      // Auto split while typing (only updates blocks when in input view, if enabled)
+      let typingTimer = null;
+      els.inputText.addEventListener("input", ()=>{
+        const len = (els.inputText.value || "").length;
+        els.totalCharsPill.textContent = `Total: ${len.toLocaleString()} chars`;
+        if(els.autoSplit.value === "on"){
+          window.clearTimeout(typingTimer);
+          typingTimer = window.setTimeout(()=> {
+            if(els.blocksView.classList.contains("active")) return;
+            // keep it cheap: only compute blocks in background; do not switch views
+            renderBlocks();
+          }, 160);
+        }
+      });
+
+      // Settings updates
+      els.chunkSize.addEventListener("input", ()=>{
+        updateChunkPill();
+        saveSettings();
+      });
+      els.autoSplit.addEventListener("change", saveSettings);
+
+      els.minutes.addEventListener("input", ()=>{ updateEstimateUI(); saveSettings(); });
+      els.wpm.addEventListener("change", ()=>{ updateEstimateUI(); saveSettings(); });
+      els.cpw.addEventListener("change", ()=>{ updateEstimateUI(); saveSettings(); });
+
+      els.applyEstimateBtn.addEventListener("click", ()=>{
+        const minutes = Math.max(1, parseInt(els.minutes.value,10) || 7);
+        const wpm = Math.max(80, parseInt(els.wpm.value,10) || 150);
+        const cpw = Math.max(3, parseInt(els.cpw.value,10) || 5);
+        const est = estimateChars(minutes, wpm, cpw);
+        els.chunkSize.value = String(est);
+        updateEstimateUI();
+        updateChunkPill();
+        saveSettings();
+      });
+
+      els.setDefaultBtn.addEventListener("click", ()=>{
+        els.minutes.value = "7";
+        els.wpm.value = "150";
+        els.cpw.value = "5";
+        const est = estimateChars(7, 150, 5);
+        els.chunkSize.value = String(est);
+        updateEstimateUI();
+        updateChunkPill();
+        saveSettings();
+      });
+
+      // Copy all
+      els.copyAllBtn.addEventListener("click", ()=>{
+        const joined = blocks.join("\n\n");
+        copyToClipboard(joined);
+      });
+
+      // Init
+      loadSettings();
+      updateEstimateUI();
+      updateChunkPill();
+      setView("input");
+    })();
+  </script>
+</body>
+</html>
