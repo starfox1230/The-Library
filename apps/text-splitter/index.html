@@ -442,6 +442,8 @@
       let blocks = []; // array of strings
       let typingTimer = null;
       let isAutoPasting = false;
+      let autoSubmitAfterPaste = false;
+      let autoSubmitResetTimer = null;
 
       function scrollPageToTop(){
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -467,6 +469,19 @@
 
         closeSettings();
         scrollPageToTop();
+      }
+
+      function submitAndShowBlocks(){
+        renderBlocks();
+        setView("blocks");
+      }
+
+      function armAutoSubmitAfterNextPaste(){
+        autoSubmitAfterPaste = true;
+        window.clearTimeout(autoSubmitResetTimer);
+        autoSubmitResetTimer = window.setTimeout(()=>{
+          autoSubmitAfterPaste = false;
+        }, 15000);
       }
 
       function showToast(msg){
@@ -704,10 +719,7 @@
       });
 
       // Submit => blocks view
-      els.submitBtn.addEventListener("click", ()=>{
-        renderBlocks();
-        setView("blocks");
-      });
+      els.submitBtn.addEventListener("click", submitAndShowBlocks);
 
       // Edit => back to input view (keep text)
       els.editBtn.addEventListener("click", ()=> setView("input"));
@@ -727,7 +739,16 @@
       // Auto split while typing (only updates blocks when in input view, if enabled)
       els.inputText.addEventListener("input", ()=> updateTotalsAndMaybeRender());
 
-      els.inputText.addEventListener("paste", keepInputAtTop);
+      els.inputText.addEventListener("paste", ()=>{
+        keepInputAtTop();
+        if(!autoSubmitAfterPaste) return;
+        window.clearTimeout(autoSubmitResetTimer);
+        autoSubmitAfterPaste = false;
+        window.setTimeout(()=>{
+          if((els.inputText.value || "").trim().length === 0) return;
+          submitAndShowBlocks();
+        }, 0);
+      });
       els.inputText.setAttribute("inputmode", "none");
 
       // Settings updates
@@ -770,8 +791,13 @@
       });
 
       // Manual paste helper
-      els.pasteBtn.addEventListener("click", ()=>{
-        attemptClipboardFill({showFallback: true, notifyOnEmpty: true, forceRender: true});
+      els.pasteBtn.addEventListener("click", async ()=>{
+        armAutoSubmitAfterNextPaste();
+        const pasted = await attemptClipboardFill({showFallback: true, notifyOnEmpty: true, forceRender: false});
+        if(!pasted) return;
+        autoSubmitAfterPaste = false;
+        window.clearTimeout(autoSubmitResetTimer);
+        submitAndShowBlocks();
       });
 
       // Init
