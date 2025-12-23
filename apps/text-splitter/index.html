@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Character Block Splitter</title>
   <style>
     :root{
@@ -26,6 +26,7 @@
                   var(--bg);
       color:var(--text);
       min-height:100vh;
+      touch-action: manipulation;
     }
     .wrap{ max-width: 980px; margin:0 auto; padding: 18px 14px 28px; }
 
@@ -103,7 +104,7 @@
       color: var(--text);
       padding: 12px;
       font-family: var(--sans);
-      font-size: 14px;
+      font-size: 16px;
       line-height: 1.5;
     }
 
@@ -224,7 +225,7 @@
       padding: 10px 10px;
       outline:none;
       font-family: var(--sans);
-      font-size: 14px;
+      font-size: 16px;
     }
     input[type="number"]:focus, select:focus{ border-color: rgba(122,162,255,0.45); }
     .hr{ height:1px; background: rgba(255,255,255,0.10); margin: 10px 0; }
@@ -414,6 +415,20 @@
 
       let blocks = []; // array of strings
 
+      function scrollPageToTop(){
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
+
+      function keepInputAtTop(){
+        requestAnimationFrame(()=>{
+          els.inputText.scrollTop = 0;
+          if(typeof els.inputText.setSelectionRange === "function"){
+            els.inputText.setSelectionRange(0, 0);
+          }
+          scrollPageToTop();
+        });
+      }
+
       function setView(which){
         const isInput = which === "input";
         els.inputView.classList.toggle("active", isInput);
@@ -423,6 +438,7 @@
         els.newBtn.style.display = isInput ? "none" : "inline-block";
 
         closeSettings();
+        scrollPageToTop();
       }
 
       function showToast(msg){
@@ -644,6 +660,7 @@
           }, 160);
         }
       });
+      els.inputText.addEventListener("paste", keepInputAtTop);
 
       // Settings updates
       els.chunkSize.addEventListener("input", ()=>{
