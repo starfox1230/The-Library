@@ -235,6 +235,22 @@
     .ghost{
       background: transparent;
     }
+    .pasteHelper{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 0 12px 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pasteHelper .actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex: 0 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -329,6 +345,12 @@
         </div>
 
         <textarea id="inputText" placeholder="Paste or type your text here..."></textarea>
+        <div id="pasteHelper" class="pasteHelper">
+          <div id="pasteHelperText" class="note" style="margin:0;">Tap Paste to insert your clipboard text here without opening the keyboard.</div>
+          <div class="actions">
+            <button id="pasteBtn" class="btn small" type="button">Paste from clipboard</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -410,10 +432,16 @@
         warnNote: document.getElementById("warnNote"),
         copyAllBtn: document.getElementById("copyAllBtn"),
 
-        toast: document.getElementById("toast")
+        toast: document.getElementById("toast"),
+
+        pasteHelper: document.getElementById("pasteHelper"),
+        pasteHelperText: document.getElementById("pasteHelperText"),
+        pasteBtn: document.getElementById("pasteBtn")
       };
 
       let blocks = []; // array of strings
+      let typingTimer = null;
+      let isAutoPasting = false;
 
       function scrollPageToTop(){
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -446,6 +474,14 @@
         els.toast.classList.add("show");
         window.clearTimeout(showToast._t);
         showToast._t = window.setTimeout(()=>els.toast.classList.remove("show"), 1100);
+      }
+
+      function showPasteHelper(message){
+        if(message) els.pasteHelperText.textContent = message;
+        els.pasteHelper.style.display = "flex";
+      }
+      function hidePasteHelper(){
+        els.pasteHelper.style.display = "none";
       }
 
       async function copyToClipboard(text){
@@ -519,6 +555,52 @@
           out.push(text.slice(i, i+blockSize));
         }
         return out;
+      }
+
+      function updateTotalsAndMaybeRender({forceRender = false} = {}){
+        const len = (els.inputText.value || "").length;
+        els.totalCharsPill.textContent = `Total: ${len.toLocaleString()} chars`;
+        if(forceRender){
+          renderBlocks();
+          return;
+        }
+        if(els.autoSplit.value === "on"){
+          window.clearTimeout(typingTimer);
+          typingTimer = window.setTimeout(()=> {
+            if(els.blocksView.classList.contains("active")) return;
+            renderBlocks();
+          }, 160);
+        }
+      }
+
+      async function attemptClipboardFill({showFallback = true, notifyOnEmpty = false, forceRender = true} = {}){
+        if(isAutoPasting) return false;
+
+        if(!navigator.clipboard || typeof navigator.clipboard.readText !== "function"){
+          if(showFallback) showPasteHelper("Clipboard access isn't available here. Use Paste to insert your text.");
+          return false;
+        }
+
+        isAutoPasting = true;
+        try{
+          const text = await navigator.clipboard.readText();
+          if(!text){
+            if(showFallback) showPasteHelper("Clipboard is empty. Copy text first, then tap Paste.");
+            if(notifyOnEmpty) showToast("Clipboard is empty.");
+            return false;
+          }
+          els.inputText.value = text;
+          hidePasteHelper();
+          updateTotalsAndMaybeRender({forceRender});
+          showToast("Pasted from clipboard.");
+          return true;
+        }catch(err){
+          if(showFallback) showPasteHelper("Allow clipboard access, then use Paste to insert your text.");
+          showToast("Clipboard access was blocked.");
+          return false;
+        }finally{
+          isAutoPasting = false;
+        }
       }
 
       function renderBlocks(){
@@ -638,31 +720,32 @@
       els.newBtn.addEventListener("click", ()=>{
         els.inputText.value = "";
         renderBlocks();
+        hidePasteHelper();
         setView("input");
       });
 
       els.clearBtn.addEventListener("click", ()=>{
         els.inputText.value = "";
         els.totalCharsPill.textContent = "Total: 0 chars";
+        hidePasteHelper();
       });
 
       // Auto split while typing (only updates blocks when in input view, if enabled)
-      let typingTimer = null;
-      els.inputText.addEventListener("input", ()=>{
-        const len = (els.inputText.value || "").length;
-        els.totalCharsPill.textContent = `Total: ${len.toLocaleString()} chars`;
-        if(els.autoSplit.value === "on"){
-          window.clearTimeout(typingTimer);
-          typingTimer = window.setTimeout(()=> {
-            if(els.blocksView.classList.contains("active")) return;
-            // keep it cheap: only compute blocks in background; do not switch views
-            renderBlocks();
-          }, 160);
-        }
-      });
-      els.inputText.addEventListener("focus", keepInputAtTop);
-      els.inputText.addEventListener("pointerdown", scrollPageToTop);
+      els.inputText.addEventListener("input", ()=> updateTotalsAndMaybeRender());
+
+      function handleInputTap(e){
+        const pointerType = e.pointerType || (e.type === "touchstart" ? "touch" : "mouse");
+        const isMouse = pointerType === "mouse";
+        if(isMouse) return; // keep desktop typing behavior
+        e.preventDefault();
+        els.inputText.blur();
+        scrollPageToTop();
+        attemptClipboardFill({showFallback: true, notifyOnEmpty: true, forceRender: true});
+      }
+      els.inputText.addEventListener("pointerdown", handleInputTap);
+      els.inputText.addEventListener("touchstart", handleInputTap, {passive:false});
       els.inputText.addEventListener("paste", keepInputAtTop);
+      els.inputText.setAttribute("inputmode", "none");
 
       // Settings updates
       els.chunkSize.addEventListener("input", ()=>{
@@ -701,6 +784,11 @@
       els.copyAllBtn.addEventListener("click", ()=>{
         const joined = blocks.join("\n\n");
         copyToClipboard(joined);
+      });
+
+      // Manual paste helper
+      els.pasteBtn.addEventListener("click", ()=>{
+        attemptClipboardFill({showFallback: true, notifyOnEmpty: true, forceRender: true});
       });
 
       // Init
