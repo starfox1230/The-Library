@@ -151,6 +151,33 @@
     }
     #scripture-links a:hover, #manual-links a:hover { background: var(--input-border); opacity: 0.9; }
 
+    /* Version picker modal */
+    .version-modal {
+      position: fixed; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.7);
+      z-index: 1200; padding: 16px;
+    }
+    .version-modal.open { display: flex; }
+    .version-card {
+      width: min(380px, 100%);
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      padding: 18px;
+    }
+    .version-card h2 { margin: 0 0 6px; font-size: 1.1rem; }
+    .version-card p { margin: 0 0 12px; color: #cfcfcf; font-size: 0.95rem; }
+    .version-options { display: grid; gap: 8px; }
+    .version-option {
+      padding: 10px 12px; border-radius: var(--radius);
+      border: 1px solid var(--input-border); background: var(--input-bg);
+      color: var(--text); font-weight: 600; text-align: left; cursor: pointer;
+    }
+    .version-option[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .version-option:hover { background: #2d2d2d; }
+
     @media (min-width:600px) { .actions { justify-content: space-between; } }
   </style>
 </head>
@@ -227,6 +254,19 @@
     <iframe id="embed-iframe" src="" allow="fullscreen"></iframe>
   </div>
 
+  <div id="version-modal" class="version-modal" aria-hidden="true">
+    <div class="version-card" role="dialog" aria-modal="true" aria-labelledby="version-modal-title">
+      <h2 id="version-modal-title">Choose Bible version</h2>
+      <p>Open this Bible reference with:</p>
+      <div class="version-options">
+        <button class="version-option" data-version="KJV">KJV (Gospel Library)</button>
+        <button class="version-option" data-version="NRSVUE">NRSVUE (YouVersion)</button>
+        <button class="version-option" data-version="NIV">NIV (YouVersion)</button>
+        <button class="version-option" data-version="NIRV">NIRV (YouVersion)</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
     /* ===== Menu / embed ===== */
@@ -257,6 +297,104 @@
       link.addEventListener('click', e=>{ e.preventDefault(); openEmbed(link.dataset.url); });
     });
     embedCloseBtn.addEventListener('click', closeEmbed);
+
+    /* ===== Bible version picker ===== */
+    const versionModal = document.getElementById('version-modal');
+    const versionOptions = Array.from(document.querySelectorAll('.version-option'));
+    let pendingScriptureHref = null;
+    const versionStorageKey = 'cfm-bible-version-choice';
+
+    const YOUVERSION_TRANSLATIONS = {
+      NRSVUE: { bibleId: 3523, versionCode: 'NRSVUE' },
+      NIV:    { bibleId: 111,  versionCode: 'NIV' },
+      NIRV:   { bibleId: 110,  versionCode: 'NIRV' }
+    };
+
+    // YouVersion/Bible.com format: https://www.bible.com/bible/{bibleId}/{USFM}.{chapter}[.{verseOrRange}].{versionCode}
+    const CHURCH_SLUG_TO_USFM = {
+      // Old Testament
+      'gen':'GEN','ex':'EXO','lev':'LEV','num':'NUM','deut':'DEU','josh':'JOS','judg':'JDG','ruth':'RUT',
+      '1-sam':'1SA','2-sam':'2SA','1-kgs':'1KI','2-kgs':'2KI','1-chr':'1CH','2-chr':'2CH','ezra':'EZR','neh':'NEH',
+      'esth':'EST','job':'JOB','ps':'PSA','prov':'PRO','eccl':'ECC','song':'SNG','isa':'ISA','jer':'JER','lam':'LAM',
+      'ezek':'EZK','dan':'DAN','hosea':'HOS','joel':'JOL','amos':'AMO','obad':'OBA','jonah':'JON','micah':'MIC',
+      'nahum':'NAM','hab':'HAB','zeph':'ZEP','hag':'HAG','zech':'ZEC','mal':'MAL',
+
+      // New Testament
+      'matt':'MAT','mark':'MRK','luke':'LUK','john':'JHN','acts':'ACT','rom':'ROM','1-cor':'1CO','2-cor':'2CO',
+      'gal':'GAL','eph':'EPH','philip':'PHP','col':'COL','1-thes':'1TH','2-thes':'2TH','1-tim':'1TI','2-tim':'2TI',
+      'titus':'TIT','philem':'PHM','heb':'HEB','james':'JAS','1-pet':'1PE','2-pet':'2PE','1-jn':'1JN','2-jn':'2JN',
+      '3-jn':'3JN','jude':'JUD','rev':'REV'
+    };
+
+    function openScriptureInGospelLibrary(href){ window.open(href, '_blank'); }
+
+    function buildYouVersionUrl(churchHref, versionKey){
+      const cfg = YOUVERSION_TRANSLATIONS[versionKey];
+      if (!cfg) return null;
+      let url;
+      try { url = new URL(churchHref, window.location.origin); }
+      catch { return null; }
+      const parts = url.pathname.split('/').filter(Boolean);
+      const idx = parts.findIndex(p => p === 'ot' || p === 'nt');
+      if (idx === -1 || !parts[idx+1] || !parts[idx+2]) return null;
+      const bookSlug = parts[idx+1];
+      const chapterSegment = parts[idx+2];
+      const usfm = CHURCH_SLUG_TO_USFM[bookSlug];
+      if (!usfm) return null;
+
+      let chapter = chapterSegment;
+      let verseRange = '';
+      if (chapter.includes('.')){
+        const [ch, rest] = chapter.split('.', 2);
+        chapter = ch;
+        verseRange = rest;
+      }
+      const chapterNum = parseInt(chapter, 10);
+      if (!Number.isFinite(chapterNum)) return null;
+      const ref = verseRange ? `${usfm}.${chapterNum}.${verseRange}` : `${usfm}.${chapterNum}`;
+      return `https://www.bible.com/bible/${cfg.bibleId}/${ref}.${cfg.versionCode}`;
+    }
+
+    function openVersionPicker(href){
+      pendingScriptureHref = href;
+      const lastChoice = localStorage.getItem(versionStorageKey);
+      versionOptions.forEach(btn => btn.setAttribute('aria-current', String(btn.dataset.version === lastChoice)));
+      versionModal.classList.add('open');
+      versionModal.setAttribute('aria-hidden', 'false');
+    }
+    function closeVersionPicker(){
+      versionModal.classList.remove('open');
+      versionModal.setAttribute('aria-hidden', 'true');
+      pendingScriptureHref = null;
+    }
+
+    versionOptions.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!pendingScriptureHref) { closeVersionPicker(); return; }
+        const choice = btn.dataset.version;
+        localStorage.setItem(versionStorageKey, choice);
+        closeVersionPicker();
+        if (choice === 'KJV') { openScriptureInGospelLibrary(pendingScriptureHref); return; }
+        const youVersionUrl = buildYouVersionUrl(pendingScriptureHref, choice);
+        if (youVersionUrl) { window.open(youVersionUrl, '_blank'); }
+        else { openScriptureInGospelLibrary(pendingScriptureHref); }
+      });
+    });
+
+    versionModal.addEventListener('click', e => { if (e.target === versionModal) closeVersionPicker(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && versionModal.classList.contains('open')) closeVersionPicker(); });
+
+    document.addEventListener('click', evt => {
+      const anchor = evt.target.closest('a');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href') || '';
+      if (!href.includes('/study/scriptures/')) return;
+      const isBible = href.includes('/study/scriptures/ot/') || href.includes('/study/scriptures/nt/');
+      if (!isBible) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+      openVersionPicker(href);
+    }, true);
 
     /* ===== Helpers ===== */
     const parseDate = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
