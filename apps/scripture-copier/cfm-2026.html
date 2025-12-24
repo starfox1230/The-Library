@@ -325,6 +325,7 @@
       '3-jn':'3JN','jude':'JUD','rev':'REV'
     };
 
+    // Keep KJV in new tab as it might be a standard web link
     function openScriptureInGospelLibrary(href){ window.open(href, '_blank'); }
 
     function buildYouVersionUrl(churchHref, versionKey){
@@ -369,7 +370,6 @@
 
     versionOptions.forEach(btn => {
       btn.addEventListener('click', () => {
-        // FIX: Capture the href BEFORE closing picker (which clears it)
         const hrefToOpen = pendingScriptureHref;
         if (!hrefToOpen) { closeVersionPicker(); return; }
         
@@ -377,11 +377,19 @@
         localStorage.setItem(versionStorageKey, choice);
         closeVersionPicker();
         
-        if (choice === 'KJV') { openScriptureInGospelLibrary(hrefToOpen); return; }
+        if (choice === 'KJV') {
+          openScriptureInGospelLibrary(hrefToOpen);
+          return;
+        }
         
         const youVersionUrl = buildYouVersionUrl(hrefToOpen, choice);
-        if (youVersionUrl) { window.open(youVersionUrl, '_blank'); }
-        else { openScriptureInGospelLibrary(hrefToOpen); }
+        if (youVersionUrl) {
+          // Use location.href to avoid creating a blank tab.
+          // If App is installed, OS switches app. If not, current tab navigates to website.
+          window.location.href = youVersionUrl; 
+        } else {
+          openScriptureInGospelLibrary(hrefToOpen);
+        }
       });
     });
 
