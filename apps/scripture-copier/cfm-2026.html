@@ -216,7 +216,6 @@
       </nav>
 
       <div class="top-row">
-        <!-- The pill is now the visual shell; the date input overlays it fully and triggers the native picker -->
         <div id="today-pill" class="pill" title="Tap to change date">
           <input id="date-input" type="date" class="pill-input-overlay" aria-label="Choose date">
           <span>Today:</span>
@@ -370,14 +369,19 @@
 
     versionOptions.forEach(btn => {
       btn.addEventListener('click', () => {
-        if (!pendingScriptureHref) { closeVersionPicker(); return; }
+        // FIX: Capture the href BEFORE closing picker (which clears it)
+        const hrefToOpen = pendingScriptureHref;
+        if (!hrefToOpen) { closeVersionPicker(); return; }
+        
         const choice = btn.dataset.version;
         localStorage.setItem(versionStorageKey, choice);
         closeVersionPicker();
-        if (choice === 'KJV') { openScriptureInGospelLibrary(pendingScriptureHref); return; }
-        const youVersionUrl = buildYouVersionUrl(pendingScriptureHref, choice);
+        
+        if (choice === 'KJV') { openScriptureInGospelLibrary(hrefToOpen); return; }
+        
+        const youVersionUrl = buildYouVersionUrl(hrefToOpen, choice);
         if (youVersionUrl) { window.open(youVersionUrl, '_blank'); }
-        else { openScriptureInGospelLibrary(pendingScriptureHref); }
+        else { openScriptureInGospelLibrary(hrefToOpen); }
       });
     });
 
