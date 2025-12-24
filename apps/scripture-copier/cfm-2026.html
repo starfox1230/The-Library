@@ -179,6 +179,11 @@
     .version-option:hover { background: #2d2d2d; }
 
     @media (min-width:600px) { .actions { justify-content: space-between; } }
+
+    /* Copy modal */
+    .copy-modal .version-card { max-width: 420px; }
+    .copy-options { flex-direction: column; gap: 8px; }
+    .copy-options .version-option { width: 100%; }
   </style>
 </head>
 <body>
@@ -261,6 +266,16 @@
         <button class="version-option" data-version="NRSVUE">NRSVUE</button>
         <button class="version-option" data-version="NIV">NIV</button>
         <button class="version-option" data-version="NIRV">NIRV</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="copy-modal" class="version-modal copy-modal" aria-hidden="true">
+    <div class="version-card copy-card" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
+      <h2 id="copy-modal-title">Copy options</h2>
+      <div class="version-options copy-options">
+        <button id="copy-manual-only" class="version-option">Copy manual</button>
+        <button id="copy-manual-reading" class="version-option">Copy manual + weekly reading</button>
       </div>
     </div>
   </div>
@@ -439,6 +454,38 @@
       }
     };
 
+    function showCopiedMessage(){
+      copyBtn.textContent = 'Copied!';
+      setTimeout(()=>copyBtn.textContent='Copy', 1500);
+    }
+
+    function fallbackCopy(text){
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      temp.setAttribute('readonly','');
+      temp.style.position = 'absolute';
+      temp.style.left = '-9999px';
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+
+    async function copyTextToClipboard(text){
+      if (!text.trim()) return;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          fallbackCopy(text);
+        }
+        showCopiedMessage();
+      } catch {
+        fallbackCopy(text);
+        showCopiedMessage();
+      }
+    }
+
     /* ===== State ===== */
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2026.json').then(r=>r.json());
@@ -460,6 +507,9 @@
     const nextBtn = document.getElementById('next-btn');
     const toggleBtn = document.getElementById('toggle-btn');
     const copyBtn = document.getElementById('copy-btn');
+    const copyModal = document.getElementById('copy-modal');
+    const copyManualOnlyBtn = document.getElementById('copy-manual-only');
+    const copyManualReadingBtn = document.getElementById('copy-manual-reading');
 
     const segBtns = Array.from(document.querySelectorAll('.seg-btn'));
     const todayDateSpan = document.getElementById('today-date');
@@ -518,13 +568,27 @@
     });
 
     copyBtn.addEventListener('click', async ()=>{
-      const text = contentTA.value || '';
-      if (!text.trim()) return;
-      try {
-        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-        else { contentTA.select(); document.execCommand('copy'); contentTA.setSelectionRange(0,0); }
-        copyBtn.textContent = 'Copied!'; setTimeout(()=>copyBtn.textContent='Copy', 1500);
-      } catch { contentTA.select(); document.execCommand('copy'); copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent='Copy',1500); }
+      if (viewMode === 'manual') {
+        openCopyModal();
+        return;
+      }
+      await copyTextToClipboard(contentTA.value || '');
+    });
+
+    copyModal.addEventListener('click', (e)=>{
+      if (e.target === copyModal) closeCopyModal();
+    });
+
+    copyManualOnlyBtn.addEventListener('click', async ()=>{
+      const text = await getManualTextForCopy();
+      await copyTextToClipboard(text);
+      closeCopyModal();
+    });
+
+    copyManualReadingBtn.addEventListener('click', async ()=>{
+      const manualPlusReading = await getManualAndWeeklyReadingText();
+      await copyTextToClipboard(manualPlusReading);
+      closeCopyModal();
     });
 
     // Initial render
@@ -573,6 +637,16 @@
     function autoResizeTA(){
       contentTA.style.height = 'auto';
       contentTA.style.height = contentTA.scrollHeight + 'px';
+    }
+
+    function openCopyModal(){
+      copyModal.classList.add('open');
+      copyModal.setAttribute('aria-hidden','false');
+    }
+
+    function closeCopyModal(){
+      copyModal.classList.remove('open');
+      copyModal.setAttribute('aria-hidden','true');
     }
 
     function buildReadings(wk){
@@ -641,6 +715,18 @@
       return manualCache[i];
     }
 
+    async function getManualTextForCopy(){
+      const man = await loadManual(cw);
+      return man.text || '';
+    }
+
+    async function getManualAndWeeklyReadingText(){
+      const manualText = await getManualTextForCopy();
+      const { flat } = await loadWeek(cw);
+      const readingText = buildWeekReadingText(flat);
+      return [manualText, readingText].filter(Boolean).join('\n\n');
+    }
+
     /* ---- Manual link helper: compute CFM 2026 Old Testament manual URL for a week ---- */
     function getManualUrlForWeek(i){
       const wk = schedule[i] || {};
@@ -674,6 +760,16 @@
         if (a.bookDisplay !== b.bookDisplay) return a.bookDisplay.localeCompare(b.bookDisplay);
         return a.chapter - b.chapter;
       });
+    }
+
+    function buildWeekReadingText(flat){
+      if (!flat || !flat.length) return '';
+      const groups = groupByChapter(flat);
+      let out = '';
+      for (const g of groups){
+        out += `${g.bookDisplay} ${g.chapter}\n\n` + g.verses.map(v=>`${v.verse}. ${v.text}`).join('\n') + '\n\n';
+      }
+      return out.trim();
     }
 
     function renderLinksForDay(arr){
