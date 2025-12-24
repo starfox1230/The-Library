@@ -384,17 +384,25 @@
     versionModal.addEventListener('click', e => { if (e.target === versionModal) closeVersionPicker(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && versionModal.classList.contains('open')) closeVersionPicker(); });
 
-    document.addEventListener('click', evt => {
-      const anchor = evt.target.closest('a');
-      if (!anchor) return;
-      const href = anchor.href || anchor.getAttribute('href') || '';
-      if (!href.includes('/study/scriptures/')) return;
-      const isBible = href.includes('/study/scriptures/ot/') || href.includes('/study/scriptures/nt/');
-      if (!isBible) return;
-      evt.preventDefault();
-      evt.stopPropagation();
-      openVersionPicker(href);
-    }, true);
+      document.addEventListener('click', evt => {
+        const anchor = evt.target.closest('a');
+        if (!anchor) return;
+
+        const targetHref = anchor.getAttribute('href');
+        if (!targetHref || targetHref === '#') return;
+
+        // Preserve the original attribute-based href when the element already has an absolute href set
+        if (anchor.href !== targetHref) {
+          anchor.href = targetHref;
+        }
+
+        if (!targetHref.includes('/study/scriptures/')) return;
+        const isBible = targetHref.includes('/study/scriptures/ot/') || targetHref.includes('/study/scriptures/nt/');
+        if (!isBible) return;
+        evt.preventDefault();
+        evt.stopPropagation();
+        openVersionPicker(targetHref);
+      }, true);
 
     /* ===== Helpers ===== */
     const parseDate = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
