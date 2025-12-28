@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Holland Archive</title>
+<title>Jeffrey R. Holland Tracker</title>
 <style>
   :root {
     --bg: #0b0f14;
@@ -11,8 +11,8 @@
     --card-2: #0e1520;
     --text: #e6f1ff;
     --muted: #9fb3c8;
-    --accent: #ff5e5e; /* Changed accent to a "crimson" feel for Holland's distinct style */
-    --accent-2: #ff9e9e;
+    --accent: #37e3ff;
+    --accent-2: #6df2ff;
     --danger: #ff6b6b;
     --good: #2fe6a5;
     --shadow: 0 10px 30px rgba(0,0,0,.35);
@@ -29,7 +29,7 @@
   .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
 
   header { display: grid; gap: 12px; margin-bottom: 12px; }
-  .titlebar { display:flex; align-items:center; justify-content:space-between; }
+  .titlebar { display:flex; align-items:center; justify-content:space-between; flex-wrap: wrap; gap: 10px; }
   .titlebar h1 { margin:0; font-size: 20px; letter-spacing:.3px; }
   .btn {
     background: var(--card);
@@ -45,13 +45,13 @@
   .btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
   .btn.icon { padding: 8px; width: 40px; height: 40px; justify-content: center; }
 
-  /* Controls Row */
-  .control-row { display: flex; gap: 8px; margin: 6px 0 12px; }
-  
+  .bar { background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
+  .controls { display:flex; gap:8px; flex-wrap: wrap; }
+
   /* Progress */
   .progress { display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
   .progress-bar { flex:1; height: 10px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
-  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(255, 94, 94,.35) inset; transition: width .25s ease; }
+  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width .25s ease; }
   .progress pct { font-variant-numeric: tabular-nums; }
 
   /* Next Up */
@@ -65,10 +65,12 @@
   /* View buttons */
   .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
   .seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
-  .seg.active { color: var(--text); border-color: rgba(255, 94, 94,.5); box-shadow: 0 0 0 2px rgba(255, 94, 94,.12) inset; }
+  .seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
 
   /* Category Filters (collapsible) */
+  .filterbar { margin: 6px 0 12px; }
   .filter-panel[hidden] { display: none !important; }
+
   .filter-panel {
     display: grid;
     grid-template-columns: repeat(2, minmax(0,1fr));
@@ -90,9 +92,9 @@
   .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
   .chk span { flex: 1; }
 
-  #btnFilterToggle, #btnSortToggle { flex: 1; justify-content: space-between; }
+  #btnFilterToggle { width: 100%; justify-content: space-between; }
 
-  /* Talks list */
+  /* Talks list - redesigned row layout */
   .list { display: grid; gap:10px; }
   .row {
     display: grid;
@@ -125,6 +127,7 @@
   .row-title button { all: unset; color: var(--text); cursor: pointer; }
   .row-title button:hover { text-decoration: underline; }
   .row-speaker { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-date { font-size: 12px; color: var(--accent); opacity: 0.8; margin-top: 2px; }
 
   .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
 
@@ -165,8 +168,9 @@
   <div class="wrap">
     <header>
       <div class="titlebar">
-        <h1>Holland Archive</h1>
+        <h1>Holland Talks</h1>
         <div class="controls">
+          <button class="btn small ghost" id="btnSort">Sort: Newest</button>
           <button class="btn small ghost" id="btnSettings">Settings</button>
         </div>
       </div>
@@ -194,20 +198,16 @@
       <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
     </div>
 
-    <div class="control-row">
-      <button class="btn" id="btnFilterToggle" type="button" aria-expanded="false">
-        <span>Type</span><span aria-hidden="true">▾</span>
+    <div class="filterbar">
+      <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
+        <span>Filters</span><span aria-hidden="true">▾</span>
       </button>
-      <button class="btn" id="btnSortToggle" type="button">
-        <span id="sortLabel">Oldest First</span><span aria-hidden="true">⇅</span>
-      </button>
-    </div>
-
-    <div id="filterPanel" class="filter-panel" hidden>
-      <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
-      <label class="chk"><input type="checkbox" id="catGC"> <span>Gen. Conf</span></label>
-      <label class="chk"><input type="checkbox" id="catBYU"> <span>BYU / Educ</span></label>
-      <label class="chk"><input type="checkbox" id="catOther"> <span>CES / Other</span></label>
+      <div id="filterPanel" class="filter-panel" hidden>
+        <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
+        <label class="chk"><input type="checkbox" id="catGC"> <span>General Conference</span></label>
+        <label class="chk"><input type="checkbox" id="catBYU"> <span>BYU Speeches</span></label>
+        <label class="chk"><input type="checkbox" id="catCES"> <span>CES & Other</span></label>
+      </div>
     </div>
 
     <section class="list" id="list"></section>
@@ -216,6 +216,7 @@
       <button class="btn small" id="btnDownload">Download All</button>
       <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
       <input id="fileRestore" type="file" accept="application/json" hidden />
+      <button class="btn small" id="btnEmail">Email Export</button>
       <button class="btn small" id="btnNotesDownload">Notes → File</button>
       <button class="btn small" id="btnNotesCopy">Notes → Clipboard</button>
     </section>
@@ -227,7 +228,7 @@
       <button class="btn small ghost" id="closeNotes">Close</button>
     </div>
     <div class="modal-body">
-      <textarea class="notes" id="notesArea" placeholder="Insights, impressions, or quotes…"></textarea>
+      <textarea class="notes" id="notesArea" placeholder="Quick thoughts…"></textarea>
     </div>
   </dialog>
 
@@ -235,152 +236,134 @@
 
 <script>
 // -----------------------------
-// Data: Jeffrey R. Holland Archive
+// Data: Jeffrey R. Holland Talks
 // -----------------------------
 const talks = [
-  // --- Chapter 1: BYU Years ---
-  {date:"1974-06-02", title:"Borne upon Eagles’ Wings", context:"BYU Devotional", videoId:"_MISSING_1", linkInfo:"Text Only"},
-  {date:"1974-08-20", title:"Call upon God", context:"BYU Devotional", videoId:"_MISSING_2", linkInfo:"Text Only"},
-  {date:"1976-09-26", title:"Remembered and Nourished by the Good Word of God", context:"BYU Devotional", videoId:"_MISSING_3", linkInfo:"Text Only"},
-  {date:"1977-03-08", title:"Soul-Butter and Hogwash: Mark Twain and Frontier Religion", context:"BYU Devotional", videoId:"_MISSING_4", linkInfo:"Text Only"},
-  {date:"1979-02-20", title:"“Mirror, Mirror, on the Wall”: A Look at the “Me Decade”", context:"BYU Devotional", videoId:"_MISSING_5", linkInfo:"Text Only"},
-  {date:"1980-03-18", title:"For Times of Trouble", context:"BYU Devotional", videoId:"nKAGTJIPTyQ"},
-  {date:"1981-08-25", title:"“That Our Children May Know”", context:"BYU Devotional", videoId:"F6gKo6JPWmE"},
-  {date:"1981-09-08", title:"Virtus et Veritas", context:"BYU Devotional", videoId:"_MISSING_6"},
-  {date:"1982-02-02", title:"The Inconvenient Messiah", context:"BYU Devotional", videoId:"EV9TFXDtBJg"},
-  {date:"1982-09-07", title:"“A Faithful Friend Is a Strong Defense”", context:"BYU Devotional", videoId:"_MISSING_7"},
-  {date:"1983-01-18", title:"However Long and Hard the Road", context:"BYU Devotional", videoId:"_MISSING_8"},
-  {date:"1983-08-31", title:"The First One Thousand Days", context:"BYU Devotional", videoId:"PLe2P9GOHURjpqEt2h0KwR6T629MNFf1Kj"}, 
-  {date:"1984-01-31", title:"A Robe, a Ring, and a Fatted Calf", context:"BYU Devotional", videoId:"_MISSING_9"},
-  {date:"1984-09-11", title:"“In the Thick of Life’s Urgencies”", context:"BYU Devotional", videoId:"_MISSING_10"},
-  {date:"1985-01-15", title:"Terror, Triumph, and a Wedding Feast", context:"BYU Devotional", videoId:"ktiiv144yS8"}, 
-  {date:"1985-03-27", title:"“On the Lord’s Errand”", context:"BYU Devotional", videoId:"_MISSING_11"},
-  {date:"1985-09-10", title:"Nailing Our Colors to the Mast", context:"BYU Devotional", videoId:"s5UkBm9mFHM"},
-  {date:"1986-01-21", title:"Oh, Lord, Keep My Rudder True", context:"BYU Devotional", videoId:"cLKZJylpRBY"},
-  {date:"1987-01-13", title:"The Bitter Cup and the Bloody Baptism", context:"BYU Devotional", videoId:"_MISSING_12"},
-  {date:"1988-01-12", title:"Of Souls, Symbols, and Sacraments", context:"BYU Devotional", videoId:"e5HYo2OMP2Q"},
-  {date:"1989-01-17", title:"The Will of the Father", context:"BYU Devotional", videoId:"_MISSING_13"},
+  // General Conference
+  {title:"And Now I See", date:"October 2025", type:"gc", videoId:"dOoW-9p1rvQ"},
+  {title:"As a Little Child", date:"April 2025", type:"gc", videoId:"0u99kLy0cHg"},
+  {title:"“I Am He”", date:"October 2024", type:"gc", videoId:"LqOBM4iGbbU"},
+  {title:"Motions of a Hidden Fire", date:"April 2024", type:"gc", videoId:"2UwEMFoVIsM"},
+  {title:"Lifted Up upon the Cross", date:"October 2022", type:"gc", videoId:"HvpNSgoqBlc"},
+  {title:"Fear Not: Believe Only!", date:"April 2022", type:"gc", videoId:"nKAGTJIPTyQ"},
+  {title:"The Greatest Possession", date:"October 2021", type:"gc", videoId:"jBqtxDpoYnE"},
+  {title:"Not as the World Giveth", date:"April 2021", type:"gc", videoId:"U01sQ2tEVhY"},
+  {title:"Waiting on the Lord", date:"October 2020", type:"gc", videoId:"qMjMJS6DGPw"},
+  {title:"A Perfect Brightness of Hope", date:"April 2020", type:"gc", videoId:"TKs0ISgF_uc"},
+  {title:"The Message, the Meaning, and the Multitude", date:"October 2019", type:"gc", videoId:"cOFFpk4q3LY"},
+  {title:"Behold the Lamb of God", date:"April 2019", type:"gc", videoId:"6ccgyxWA2WM"},
+  {title:"The Ministry of Reconciliation", date:"October 2018", type:"gc", videoId:"Ye3ND5onRtI"},
+  {title:"“Be With and Strengthen Them”", date:"April 2018", type:"gc", videoId:"vreIzfntOik"},
+  {title:"Be Ye Therefore Perfect—Eventually", date:"October 2017", type:"gc", videoId:"_IuPBFjD2oQ"},
+  {title:"Songs Sung and Unsung", date:"April 2017", type:"gc", videoId:"cgq5yUgZUro"},
+  {title:"Emissaries to the Church", date:"October 2016", type:"gc", videoId:"46zTbZlP_d0"},
+  {title:"Tomorrow the Lord Will Do Wonders among You", date:"April 2016", type:"gc", videoId:"GFLyLHa6vtE"},
+  {title:"Behold Thy Mother", date:"October 2015", type:"gc", videoId:"JBxte7rrk7A"},
+  {title:"Where Justice, Love, and Mercy Meet", date:"April 2015", type:"gc", videoId:"zmmn6zlWc3c"},
+  {title:"Are We Not All Beggars?", date:"October 2014", type:"gc", videoId:"bdM9AOuqt2U"},
+  {title:"The Cost—and Blessings—of Discipleship", date:"April 2014", type:"gc", videoId:"wnoRZr5CJXc"},
+  {title:"Like a Broken Vessel", date:"October 2013", type:"gc", videoId:"hw4zk1cHWjI"},
+  {title:"“Lord, I Believe”", date:"April 2013", type:"gc", videoId:"QLuHOnh6kIg"},
+  {title:"The First Great Commandment", date:"October 2012", type:"gc", videoId:"XyVg4LB7Ysc"},
+  {title:"The Laborers in the Vineyard", date:"April 2012", type:"gc", videoId:"gYQ6998NXIk"},
+  {title:"We Are All Enlisted", date:"October 2011", type:"gc", videoId:"TY4Io9PPONI"},
+  {title:"An Ensign to the Nations", date:"April 2011", type:"gc", videoId:"IRLCptUsi_U"},
+  {title:"Because of Your Faith", date:"October 2010", type:"gc", videoId:"Lv4pTAw_3wM"},
+  {title:"Place No More for the Enemy of My Soul", date:"April 2010", type:"gc", videoId:"71vlgwLp4mI"},
+  {title:"Safety for the Soul", date:"October 2009", type:"gc", videoId:"2gAOrQBXEks"},
+  {title:"None Were with Him", date:"April 2009", type:"gc", videoId:"4kcgnmO2Aho"},
+  {title:"The Ministry of Angels", date:"October 2008", type:"gc", videoId:"TGy3dY6Z7ks"},
+  {title:"“My Words … Never Cease”", date:"April 2008", type:"gc", videoId:"941x5P9Hdv4"},
+  {title:"The Only True God and Jesus Christ Whom He Hath Sent", date:"October 2007", type:"gc", videoId:"8B2pqYPAtmM"},
+  {title:"The Tongue of Angels", date:"April 2007", type:"gc", videoId:"ca86xohUuCE"},
+  {title:"Prophets in the Land Again", date:"October 2006", type:"gc", videoId:"TKJbwMMeZqw"},
+  {title:"Broken Things to Mend", date:"April 2006", type:"gc", videoId:"oSSKqBDbb54"},
+  {title:"To Young Women", date:"October 2005", type:"gc", videoId:"kwrPvkTq1xI"},
+  {title:"Prophets, Seers, and Revelators", date:"October 2004", type:"gc", videoId:"-iALHlmJIpw"},
+  {title:"“Abide in Me”", date:"April 2004", type:"gc", videoId:"3cdiKtVQ6VM"},
+  {title:"The Grandeur of God", date:"October 2003", type:"gc", videoId:"4qR-vaMPFog"},
+  {title:"A Prayer for the Children", date:"April 2003", type:"gc", videoId:"rAuczvrCpVo"},
+  {title:"Called to Serve", date:"October 2002", type:"gc", videoId:"mg8DU1o_6YE"},
+  {title:"The Other Prodigal", date:"April 2002", type:"gc", videoId:"kz8oNXJ6Cl0"},
+  {title:"“Like a Watered Garden”", date:"October 2001", type:"gc", videoId:"-26g4W8eZGc"},
+  {title:"“Witnesses unto Me”", date:"April 2001", type:"gc", videoId:"wQqUzsb6pdI"},
+  {title:"“Sanctify Yourselves”", date:"October 2000", type:"gc", videoId:"JvvQNlCJhvA"},
+  {title:"As Doves to Our Windows", date:"April 2000", type:"gc", videoId:"JTcOM6pjFgc"},
+  {title:"“An High Priest of Good Things to Come”", date:"October 1999", type:"gc", videoId:"sy6U419yPoo"},
+  {title:"The Hands of the Fathers", date:"April 1999", type:"gc", videoId:"rsMpIW4L0YA"},
+  {title:"Personal Purity", date:"October 1998", type:"gc", videoId:"auwUjmf1jlA"},
+  {title:"“A Teacher Come from God”", date:"April 1998", type:"gc", videoId:"XM6VYkXsd4o"},
+  {title:"“He Hath Filled the Hungry with Good Things”", date:"October 1997", type:"gc", videoId:"7x84wLiP3Uk"},
+  {title:"“Because She Is a Mother”", date:"April 1997", type:"gc", videoId:"WqMlLk21vb0"},
+  {title:"“The Peaceable Things of the Kingdom”", date:"October 1996", type:"gc", videoId:"elrs-PZr7bk"},
+  {title:"A Handful of Meal and a Little Oil", date:"April 1996", type:"gc", videoId:"vGCsoVO6agM"},
+  {title:"“This Do in Remembrance of Me”", date:"October 1995", type:"gc", videoId:"OUxt68PBhJM"},
+  {title:"Our Priesthood Legacy", date:"April 1995", type:"gc", videoId:"p63D_p03Jd8"},
+  {title:"Miracles of the Restoration", date:"October 1994", type:"gc", videoId:"xykBrU-oCJA"},
+  {title:"“Look to God and Live”", date:"October 1993", type:"gc", videoId:"4leAy4zFjKo"},
+  {title:"“He Loved Them unto the End”", date:"October 1989", type:"gc", videoId:"Pddtp-ZgFho"},
+  {title:"Within the Clasp of Your Arms", date:"April 1983", type:"gc", videoId:"LEi4IXiIjB4"},
+  
+  // BYU Speeches
+  {title:"“A Saint Through the Atonement of Christ the Lord”", date:"January 2022", type:"byu", videoId:"v9paJQccr64"},
+  {title:"The Second Half of the Second Century of BYU", date:"August 2021", type:"byu", videoId:"5tOuMIYlzvA"},
+  {title:"Banishing All Shadows", date:"April 2018", type:"byu", videoId:"g6wv46sKjFo"},
+  {title:"Religion: Bound by Loving Ties", date:"August 2016", type:"byu", videoId:"KCwQy7Mcqm4"},
+  {title:"“Remember Lot’s Wife”", date:"January 2009", type:"byu", videoId:"NY4Cs2VfUsY"},
+  {title:"Terror, Triumph, and a Wedding Feast", date:"September 2004", type:"byu", videoId:"ktiiv144yS8"},
+  {title:"How Do I Love Thee?", date:"February 2000", type:"byu", videoId:"eM3mlgLAlMs"},
+  {title:"“Cast Not Away Therefore Your Confidence”", date:"March 1999", type:"byu", videoId:"pCSs4f9DlVM"},
+  {title:"“Come unto Me”", date:"March 1997", type:"byu", videoId:"CvECof6uIkA"},
+  {title:"The Will of the Father", date:"January 1989", type:"byu", videoId:"ISWofagrWcg"},
+  {title:"Of Souls, Symbols, and Sacraments", date:"January 1988", type:"byu", videoId:"e5HYo2OMP2Q"},
+  {title:"Oh, Lord, Keep My Rudder True", date:"January 1986", type:"byu", videoId:"cLKZJylpRBY"},
+  {title:"Nailing Our Colors to the Mast", date:"September 1985", type:"byu", videoId:"s5UkBm9mFHM"},
+  {title:"A Robe, a Ring, and a Fatted Calf", date:"January 1984", type:"byu", videoId:"slz0eQE-HSw"},
+  {title:"However Long and Hard the Road", date:"January 1983", type:"byu", videoId:"rHKe9EqB5vE"},
+  {title:"For Times of Trouble", date:"March 1980", type:"byu", videoId:"nKAGTJIPTyQ"},
 
-  // --- Chapter 2: Apostolic Witness (1994-2004) ---
-  {date:"1994-10-01", title:"Miracles of the Restoration", context:"General Conference", videoId:"ppDKNJ-NawM"},
-  {date:"1995-04-01", title:"Our Priesthood Legacy", context:"General Conference", videoId:"3gM5l5k6Q_E"}, 
-  {date:"1995-10-01", title:"“This Do in Remembrance of Me”", context:"General Conference", videoId:"OUxt68PBhJM"},
-  {date:"1996-04-01", title:"“A Handful of Meal and a Little Oil”", context:"General Conference", videoId:"vGCsoVO6agM"},
-  {date:"1996-10-01", title:"The Peaceable Things of the Kingdom", context:"General Conference", videoId:"elrs-PZr7bk"},
-  {date:"1997-03-02", title:"“Cast Not Away Therefore Your Confidence”", context:"BYU Devotional", videoId:"pCSs4f9DlVM"},
-  {date:"1997-04-01", title:"“Because She Is a Mother”", context:"General Conference", videoId:"kLqFqXmG_2o"},
-  {date:"1997-10-01", title:"“He Hath Filled the Hungry with Good Things”", context:"General Conference", videoId:"7x84wLiP3Uk"},
-  {date:"1998-04-01", title:"“A Teacher Come from God”", context:"General Conference", videoId:"3T1AiXxEBS4"},
-  {date:"1998-10-01", title:"Personal Purity", context:"General Conference", videoId:"M8ztQaxGmWw"},
-  {date:"1999-03-02", title:"How Do I Love Thee?", context:"BYU Devotional", videoId:"_MISSING_14"}, 
-  {date:"1999-04-01", title:"The Hands of the Fathers", context:"General Conference", videoId:"_MISSING_15"},
-  {date:"1999-10-01", title:"“An High Priest of Good Things to Come”", context:"General Conference", videoId:"sy6U419yPoo"},
-  {date:"2000-02-15", title:"Terror, Triumph, and a Wedding Feast (Reprise)", context:"BYU Devotional", videoId:"ktiiv144yS8"},
-  {date:"2000-10-01", title:"Sanctify Yourselves", context:"General Conference", videoId:"XrFAlKapOCY"},
-  {date:"2001-04-01", title:"“Witnesses unto Me”", context:"General Conference", videoId:"_MISSING_16"},
-  {date:"2001-10-01", title:"“Like a Watered Garden”", context:"General Conference", videoId:"_MISSING_17"},
-  {date:"2002-04-01", title:"The Other Prodigal", context:"General Conference", videoId:"kz8oNXJ6Cl0"},
-  {date:"2002-10-01", title:"Called to Serve", context:"General Conference", videoId:"mg8DU1o_6YE"},
-  {date:"2003-04-01", title:"A Prayer for the Children", context:"General Conference", videoId:"F6gKo6JPWmE"}, 
-  {date:"2003-10-01", title:"The Grandeur of God", context:"General Conference", videoId:"y66q1c0r8-c"},
-  {date:"2004-04-01", title:"“Abide in Me”", context:"General Conference", videoId:"_MISSING_18"},
-  {date:"2004-09-12", title:"Lessons from Liberty Jail", context:"CES Devotional", videoId:"2fOw820ApUQ"},
-  {date:"2004-10-01", title:"Prophets in the Land Again", context:"General Conference", videoId:"_MISSING_19"},
-
-  // --- Chapter 3: Apologetic Era (2005-2012) ---
-  {date:"2005-04-01", title:"Our Most Important Step", context:"General Conference", videoId:"_MISSING_20"},
-  {date:"2005-10-01", title:"To Young Women", context:"General Conference", videoId:"_MISSING_21"},
-  {date:"2006-04-01", title:"Broken Things to Mend", context:"General Conference", videoId:"oSSKqBDbb54"},
-  {date:"2006-10-01", title:"Prophets in the Land Again (2006)", context:"General Conference", videoId:"_MISSING_22"},
-  {date:"2007-04-01", title:"The Tongue of Angels", context:"General Conference", videoId:"ca86xohUuCE"},
-  {date:"2007-10-01", title:"The Only True God and Jesus Christ Whom He Hath Sent", context:"General Conference", videoId:"_MISSING_23"},
-  {date:"2008-04-01", title:"My Words... Never Cease", context:"General Conference", videoId:"_MISSING_24"},
-  {date:"2008-09-07", title:"Lessons from Liberty Jail (Rebroadcast)", context:"CES Devotional", videoId:"2fOw820ApUQ"},
-  {date:"2008-10-01", title:"The Ministry of Angels", context:"General Conference", videoId:"jbmRPENVwLw"},
-  {date:"2009-01-13", title:"“Remember Lot’s Wife”: Faith Is for the Future", context:"BYU Devotional", videoId:"NY4Cs2VfUsY"},
-  {date:"2009-04-01", title:"None Were with Him", context:"General Conference", videoId:"EpFhS0dAduc"},
-  {date:"2009-10-01", title:"Safety for the Soul", context:"General Conference", videoId:"2gAOrQBXEks"},
-  {date:"2010-04-01", title:"Place No More for the Enemy of My Soul", context:"General Conference", videoId:"_MISSING_25"},
-  {date:"2010-10-01", title:"Because of Your Faith", context:"General Conference", videoId:"_MISSING_26"},
-  {date:"2011-01-11", title:"Feed My Sheep (Don't You Dare Go Home)", context:"MTC Devotional", videoId:"TT3rpoifKe4"},
-  {date:"2011-04-01", title:"An Ensign to the Nations", context:"General Conference", videoId:"_MISSING_27"},
-  {date:"2011-10-01", title:"We Are All Enlisted", context:"General Conference", videoId:"_MISSING_28"},
-  {date:"2011-12-17", title:"A Parable of BYU–Hawaii", context:"BYU-Hawaii Devotional", videoId:"_MISSING_29"},
-  {date:"2012-04-01", title:"The Laborers in the Vineyard", context:"General Conference", videoId:"QLuHOnh6kIg"},
-  {date:"2012-09-09", title:"Israel, Israel, God Is Calling", context:"CES Devotional", videoId:"vGt4wXcJjA4"},
-  {date:"2012-10-01", title:"The First Great Commandment", context:"General Conference", videoId:"JBxte7rrk7A"},
-
-  // --- Chapter 4: Compassion & Mental Health (2013-2019) ---
-  {date:"2013-04-01", title:"“Lord, I Believe”", context:"General Conference", videoId:"WtTv_ze5sGk"},
-  {date:"2013-10-01", title:"Like a Broken Vessel", context:"General Conference", videoId:"kNAx2Rgq-uI"},
-  {date:"2014-04-01", title:"The Cost—and Blessings—of Discipleship", context:"General Conference", videoId:"_MISSING_30"},
-  {date:"2014-09-23", title:"Lean Into the Wind", context:"BYU Devotional", videoId:"_MISSING_31"},
-  {date:"2014-10-01", title:"Are We Not All Beggars?", context:"General Conference", videoId:"_MISSING_32"},
-  {date:"2015-02-26", title:"Chapman University Speech", context:"Special Event", videoId:"SfEf71v5zP8"},
-  {date:"2015-04-01", title:"Where Justice, Love, and Mercy Meet", context:"General Conference", videoId:"_MISSING_33"},
-  {date:"2015-09-15", title:"Remember", context:"BYU Devotional", videoId:"_MISSING_34"},
-  {date:"2015-10-01", title:"Behold Thy Mother", context:"General Conference", videoId:"_MISSING_35"},
-  {date:"2016-04-01", title:"Tomorrow the Lord Will Do Wonders among You", context:"General Conference", videoId:"Jlm8GWFdrLQ"},
-  {date:"2016-08-16", title:"Religion: Bound by Loving Ties", context:"BYU Devotional", videoId:"_MISSING_36"},
-  {date:"2016-10-01", title:"Emissaries to the Church", context:"General Conference", videoId:"_MISSING_37"},
-  {date:"2017-03-04", title:"Face to Face with President Eyring & Elder Holland", context:"Youth Broadcast", videoId:"b43FW7F_MD8"},
-  {date:"2017-04-01", title:"Songs Sung and Unsung", context:"General Conference", videoId:"_MISSING_38"},
-  {date:"2017-10-01", title:"Be Ye Therefore Perfect—Eventually", context:"General Conference", videoId:"A4LiYbntP_g"},
-  {date:"2018-04-01", title:"“Be With and Strengthen Them”", context:"General Conference", videoId:"_MISSING_39"},
-  {date:"2018-04-26", title:"Banishing All Shadows", context:"BYU Devotional", videoId:"_MISSING_40"},
-  {date:"2018-10-01", title:"The Ministry of Reconciliation", context:"General Conference", videoId:"_MISSING_41"},
-  {date:"2019-04-01", title:"Behold the Lamb of God", context:"General Conference", videoId:"_MISSING_42"},
-  {date:"2019-10-01", title:"The Message, the Meaning, and the Multitude", context:"General Conference", videoId:"_MISSING_43"},
-  {date:"2019-10-23", title:"Zion: Temples of Learning and Temples of Faith", context:"BYU-Hawaii Devotional", videoId:"_MISSING_44"},
-
-  // --- Chapter 5: Leadership in Crisis (2020-2025) ---
-  {date:"2020-04-01", title:"A Perfect Brightness of Hope", context:"General Conference", videoId:"_MISSING_45"},
-  {date:"2020-05-12", title:"To Every Thing There Is a Season", context:"BYU-Hawaii Devotional", videoId:"_MISSING_46"},
-  {date:"2020-10-01", title:"Waiting on the Lord", context:"General Conference", videoId:"_MISSING_47"},
-  {date:"2020-12-01", title:"First Presidency Christmas Devotional", context:"Christmas Devotional", videoId:"_MISSING_48"},
-  {date:"2021-04-01", title:"Not as the World Giveth", context:"General Conference", videoId:"_MISSING_49"},
-  {date:"2021-05-07", title:"Young Adult Devotional (Europe/Africa)", context:"Area Broadcast", videoId:"BYHAUeI3vvE"},
-  {date:"2021-08-23", title:"The Second Half of the Second Century of BYU", context:"BYU Conference", videoId:"5tOuMIYlzvA"},
-  {date:"2021-10-01", title:"The Greatest Possession", context:"General Conference", videoId:"jBqtxDpoYnE"},
-  {date:"2021-10-19", title:"A Historic and Special Day", context:"BYU-Hawaii Devotional", videoId:"_MISSING_50"},
-  {date:"2022-01-09", title:"Philippines YSA Devotional", context:"Area Broadcast", videoId:"REbTIB1XGnE"},
-  {date:"2022-01-18", title:"“A Saint Through the Atonement of Christ the Lord”", context:"BYU Devotional", videoId:"v9paJQccr64"},
-  {date:"2022-01-23", title:"Europe Area Devotional", context:"Area Broadcast", videoId:"QjHL0PzuVAw"},
-  {date:"2022-04-01", title:"Fear Not: Believe Only!", context:"General Conference", videoId:"_MISSING_51"},
-  {date:"2022-10-01", title:"Lifted Up upon the Cross", context:"General Conference", videoId:"_MISSING_52"},
-  {date:"2023-01-08", title:"Worldwide Devotional for Young Adults", context:"Worldwide Broadcast", videoId:"DdP3TAFPd2w"},
-  {date:"2023-09-01", title:"Philippines Family Week Devotional", context:"Area Broadcast", videoId:"tEtAYG8X3Wk"},
-  {date:"2024-04-01", title:"Motions of a Hidden Fire", context:"General Conference", videoId:"_MISSING_53"},
-  {date:"2024-10-01", title:"“I Am He”", context:"General Conference", videoId:"LqOBM4iGbbU"},
-  {date:"2025-04-01", title:"Motions of a Hidden Fire (2025)", context:"General Conference", videoId:"QLuHOnh6kIg"} // Check date consistency with list
+  // CES & Other
+  {title:"Worldwide Devotional for Young Adults", date:"January 2023", type:"ces", videoId:"DdP3TAFPd2w"},
+  {title:"Israel, Israel, God Is Calling", date:"September 2012", type:"ces", videoId:"vGt4wXcJjA4"},
+  {title:"Lessons from Liberty Jail", date:"September 2008", type:"ces", videoId:"2fOw820ApUQ"}
 ];
 
-// Determine categories for filtering
-const CAT_GC = new Set(["General Conference"]);
-const CAT_BYU = new Set(["BYU Devotional", "BYU-Hawaii Devotional", "BYU Conference"]);
+// Helper to create sortable date integers (e.g. "October 2025" -> 202510)
+const monthMap = { "January":1, "February":2, "March":3, "April":4, "May":5, "June":6, "July":7, "August":8, "September":9, "October":10, "November":11, "December":12, "Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12 };
 
-function getCategory(ctx){
-  if (CAT_GC.has(ctx)) return 'gc';
-  if (CAT_BYU.has(ctx)) return 'byu';
-  return 'other'; // CES, Area, Special
+function parseDateVal(dStr) {
+  const parts = dStr.split(" ");
+  if(parts.length < 2) return 0;
+  const y = parseInt(parts[1]);
+  const m = monthMap[parts[0]] || 0;
+  return (y * 100) + m;
 }
-talks.forEach(t => { t.category = getCategory(t.context || ""); });
+
+// Add derived properties
+talks.forEach((t, i) => {
+  t.speaker = "Jeffrey R. Holland"; 
+  t.sortVal = parseDateVal(t.date);
+  t.originalIndex = i; // fallback sort
+});
 
 // -----------------------------
 // State & Persistence
 // -----------------------------
-const STORAGE_KEY = "holland:archive:state";
+const STORAGE_KEY = "jrh-tracker:state";
 const DEFAULT_STATE = {
   version: 1,
-  watched: [],
+  watched: [], 
   favorites: [],
   notes: {},
-  watchCounts: {},
+  watchCounts: {}, 
+  round: 1,
+  seenAt: {}, 
+  seenSeq: 0,
   ui: {
-    filter: 'need',
-    filterOpen: false,
-    sortOrder: 'asc', // 'asc' = Oldest First (Chronological), 'desc' = Newest First
-    cats: { all: true, gc: false, byu: false, other: false }
+    filter: 'need',       // need | all | seen | faves
+    sort: 'newest',       // newest | oldest
+    filterOpen: false,    
+    cats: { all: true, gc: false, byu: false, ces: false } 
   }
 };
 
@@ -389,11 +372,10 @@ function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return { ...DEFAULT_STATE };
     const obj = JSON.parse(raw);
-    if(!obj.watchCounts) obj.watchCounts = {};
+    // Migrations / Safety
     obj.ui = obj.ui || {};
-    if(typeof obj.ui.filter !== 'string') obj.ui.filter = 'need';
-    if(typeof obj.ui.sortOrder !== 'string') obj.ui.sortOrder = 'asc';
-    obj.ui.cats = obj.ui.cats || { all: true, gc: false, byu: false, other: false };
+    obj.ui.cats = obj.ui.cats || { all: true, gc: false, byu: false, ces: false };
+    if(!obj.ui.sort) obj.ui.sort = 'newest';
     return obj;
   } catch(e){
     console.warn('Failed to parse state', e); return { ...DEFAULT_STATE };
@@ -419,6 +401,17 @@ const setWatched = (id, val, {incrementCount=false}={}) => {
   if(!val && was){
     state.watched = state.watched.filter(x => x!==id);
   }
+  if(val){
+    state.seenSeq = (state.seenSeq||0) + 1;
+    state.seenAt[id] = state.seenSeq;
+  } else {
+    if(state.seenAt){ delete state.seenAt[id]; }
+  }
+  if(state.watched.length === talks.length){
+    state.round += 1;
+    state.watched = [];
+    toast(`All talks watched! Starting round ${state.round}.`);
+  }
   saveState(state);
   renderAll();
 };
@@ -427,9 +420,9 @@ const isFav = (id) => state.favorites.includes(id);
 const toggleFav = (id) => { state.favorites = isFav(id) ? state.favorites.filter(x=>x!==id) : [...state.favorites, id]; saveState(state); renderAll(); };
 
 function nextUnwatched(){
-  // Logic: Find next unwatched based on current SORT order
-  const list = filteredTalks(true); // get list ignoring watched filter
-  for(const t of list){ if(!isWatched(t.videoId)) return t; }
+  // Find top unwatched based on current sort
+  const sorted = getSortedList(talks);
+  for(const t of sorted){ if(!isWatched(t.videoId)) return t; }
   return null;
 }
 
@@ -444,30 +437,25 @@ const nextThumb = document.getElementById('nextThumb');
 const nextTitle = document.getElementById('nextTitle');
 const btnPlayNext = document.getElementById('btnPlayNext');
 
-// Controls
+// Category filter elements
 const btnFilterToggle = document.getElementById('btnFilterToggle');
-const btnSortToggle = document.getElementById('btnSortToggle');
-const sortLabel = document.getElementById('sortLabel');
 const filterPanel = document.getElementById('filterPanel');
-const catAll   = document.getElementById('catAll');
+const catAll = document.getElementById('catAll');
 const catGC = document.getElementById('catGC');
-const catBYU= document.getElementById('catBYU');
-const catOther = document.getElementById('catOther');
+const catBYU = document.getElementById('catBYU');
+const catCES = document.getElementById('catCES');
+const btnSort = document.getElementById('btnSort');
 
 function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
 
-// Robust thumbnail loader
 function loadThumb(img, videoId) {
-  if(videoId.startsWith('_MISSING')){
-    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' style='background:%23101823'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23345' font-family='sans-serif' font-size='2'%3EArchive%3C/text%3E%3C/svg%3E";
-    return;
-  }
   const reliableThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const highResThumb = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
   img.setAttribute('referrerpolicy', 'no-referrer');
   const tester = new Image();
-  tester.onload = () => { img.src = reliableThumb; };
+  tester.onload = () => { img.src = tester.naturalWidth < 300 ? reliableThumb : highResThumb; };
   tester.onerror = () => { img.src = reliableThumb; };
-  tester.src = reliableThumb;
+  tester.src = highResThumb;
 }
 
 function renderProgress(){
@@ -482,26 +470,33 @@ function renderNextUp(){
   nextUp.hidden = false;
   nextTitle.textContent = t.title;
   loadThumb(nextThumb, t.videoId);
-  btnPlayNext.onclick = (event) => { event.preventDefault(); openYouTubeAppAndMark(t); };
-  nextUp.querySelector('.thumb').onclick = (event) => { event.preventDefault(); openYouTubeAppAndMark(t); };
+  const openFn = (event) => { event.preventDefault(); openYouTubeAppAndMark(t); };
+  btnPlayNext.onclick = openFn;
+  nextUp.querySelector('.thumb').onclick = openFn;
 }
 
 function rowHTML(t){
   const watched = isWatched(t.videoId);
   const fav = isFav(t.videoId);
   const count = state.watchCounts[t.videoId] || 0;
-  const missing = t.videoId.startsWith('_MISSING');
   
+  // Format details
+  let typeLabel = "Talk";
+  if(t.type === 'gc') typeLabel = "General Conference";
+  if(t.type === 'byu') typeLabel = "BYU Speech";
+  if(t.type === 'ces') typeLabel = "CES/Other";
+
   return `
     <div class="row" data-id="${t.videoId}">
-      <div class="thumb-sm" title="${missing ? 'No Video Available' : 'Open in YouTube'}">
-        <img class="rthumb" alt="Thumb">
+      <div class="thumb-sm" title="Open in YouTube">
+        <img class="rthumb" alt="Thumbnail">
       </div>
       <div class="row-main">
         <div class="row-title">
-          <button class="link-open" ${missing ? 'disabled' : ''}>${t.title}</button>
+          <button class="link-open" data-id="${t.videoId}">${t.title}</button>
         </div>
-        <div class="row-speaker">${t.date} • ${t.context}</div>
+        <div class="row-speaker">${typeLabel}</div>
+        <div class="row-date">${t.date}</div>
       </div>
       <div class="row-actions">
         <div class="countpill" title="Times watched">
@@ -509,6 +504,7 @@ function rowHTML(t){
           <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
           <button class="plus" aria-label="increase">+</button>
         </div>
+        <button class="iconbtn copy" title="Copy transcript">📋</button>
         <button class="iconbtn notes" title="Notes">📝</button>
         <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">★</span></button>
         <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'✓':''}</div>
@@ -520,64 +516,67 @@ function rowHTML(t){
 function currentFilter(){ return (state.ui && state.ui.filter) ? state.ui.filter : 'need'; }
 
 function applyCategoryFilter(arr){
-  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
-  if (c.all || (!c.gc && !c.byu && !c.other)) return arr; 
+  const c = state.ui.cats;
+  if (c.all || (!c.gc && !c.byu && !c.ces)) return arr; 
 
   return arr.filter(t => {
-    if (c.gc  && t.category === 'gc')  return true;
-    if (c.byu && t.category === 'byu') return true;
-    if (c.other  && t.category === 'other')  return true;
+    if (c.gc  && t.type === 'gc')  return true;
+    if (c.byu && t.type === 'byu') return true;
+    if (c.ces && t.type === 'ces') return true;
     return false;
   });
 }
 
-function filteredTalks(ignoreStatus=false){
-  // 1. Sort base array first based on Date
-  let base = [...talks];
-  const order = state.ui.sortOrder || 'asc';
-  
-  base.sort((a,b) => {
-    const da = new Date(a.date);
-    const db = new Date(b.date);
-    return order === 'asc' ? da - db : db - da;
+function getSortedList(arr) {
+  const s = state.ui.sort || 'newest';
+  return [...arr].sort((a,b) => {
+    if(s === 'newest') return b.sortVal - a.sortVal;
+    if(s === 'oldest') return a.sortVal - b.sortVal;
+    return 0;
   });
+}
+
+function filteredTalks(){
+  // 1. Filter by Status (Need/Seen/All/Fav)
+  const f = currentFilter();
+  let base;
+  if(f==='need')  base = talks.filter(t=>!isWatched(t.videoId));
+  else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
+  else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
+  else base = talks; 
 
   // 2. Filter by Category
-  base = applyCategoryFilter(base);
+  const catFiltered = applyCategoryFilter(base);
 
-  // 3. Filter by Status (unless ignored for NextUp logic)
-  if(ignoreStatus) return base;
-
-  const f = currentFilter();
-  if(f==='need')  return base.filter(t=>!isWatched(t.videoId));
-  if(f==='seen')  return base.filter(t=>isWatched(t.videoId));
-  if(f==='faves') return base.filter(t=>isFav(t.videoId));
-  return base; // 'all'
+  // 3. Sort
+  if(f==='seen' && (!state.ui.sort || state.ui.sort === 'newest')){
+    // Special case: If viewing "Seen", default to "Recently Watched" unless specific date sort requested?
+    // Actually user requested date sort capability. Let's stick to date sort for consistency unless specific "seen order" is needed.
+    // However, usually "Seen" lists are useful when sorted by "When I watched it". 
+    // Let's stick to the Global Sort (Date) to keep it simple as requested.
+  }
+  return getSortedList(catFiltered);
 }
 
 function renderList(){
-  const finalTalks = filteredTalks();
-  listEl.innerHTML = finalTalks.map(rowHTML).join('');
-  
+  listEl.innerHTML = filteredTalks().map(rowHTML).join('');
   listEl.querySelectorAll('.row').forEach(row => {
     const id = row.dataset.id;
     const t = talks.find(x=>x.videoId===id);
     const img = row.querySelector('.rthumb');
     if (img) loadThumb(img, id);
 
-    if(!id.startsWith('_MISSING')){
-        row.querySelector('.link-open').onclick = (e) => { e.preventDefault(); openYouTubeAppAndMark(t); };
-        row.querySelector('.thumb-sm').onclick = (e) => { e.preventDefault(); openYouTubeAppAndMark(t); };
-    }
+    const openFn = (event) => { event.preventDefault(); openYouTubeAppAndMark(t); };
+    row.querySelector('.link-open').onclick = openFn;
+    row.querySelector('.thumb-sm').onclick = openFn;
 
+    row.querySelector('.copy').onclick = () => toast('Transcript not linked.');
     row.querySelector('.notes').onclick = () => openNotes(id, t.title);
     row.querySelector('.fav').onclick = () => toggleFav(id);
     row.querySelector('.check').onclick = () => {
       const now = !isWatched(id);
       setWatched(id, now, {incrementCount: now});
     };
-    
-    // Count controls
     const minus = row.querySelector('.minus');
     const plus = row.querySelector('.plus');
     const input = row.querySelector('.count');
@@ -599,29 +598,29 @@ function renderFilters(){
 }
 
 function renderCategoryUI(){
-  const open = !!(state.ui && state.ui.filterOpen);
+  const open = !!state.ui.filterOpen;
   filterPanel.hidden = !open;
   btnFilterToggle.setAttribute('aria-expanded', String(open));
   btnFilterToggle.querySelector('span:last-child').textContent = open ? '▴' : '▾';
 
-  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
-  catAll.checked    = !!c.all;
-  catGC.checked  = !!c.gc;
-  catBYU.checked = !!c.byu;
-  catOther.checked  = !!c.other;
+  const c = state.ui.cats;
+  if(catAll) catAll.checked = !!c.all;
+  if(catGC)  catGC.checked  = !!c.gc;
+  if(catBYU) catBYU.checked = !!c.byu;
+  if(catCES) catCES.checked = !!c.ces;
 }
 
 function renderSortUI(){
-    const order = state.ui.sortOrder;
-    sortLabel.textContent = order === 'asc' ? 'Oldest First' : 'Newest First';
+  const s = state.ui.sort || 'newest';
+  btnSort.textContent = s === 'newest' ? "Sort: Newest" : "Sort: Oldest";
 }
 
 function renderAll(){
   renderProgress();
+  renderSortUI();
   renderNextUp();
   renderFilters();
   renderCategoryUI();
-  renderSortUI();
   renderList();
 }
 
@@ -629,33 +628,18 @@ function renderAll(){
 // Deep Link + Auto Mark
 // -----------------------------
 function openYouTubeAppAndMark(t){
-  if(t.videoId.startsWith('_MISSING')){
-      toast('Video link unavailable for this archive.');
-      return;
-  }
   setWatched(t.videoId, true, {incrementCount:true});
-  
   const ua = navigator.userAgent || '';
   const isiOS = /iPad|iPhone|iPod/.test(ua);
   const isAndroid = /Android/.test(ua);
-  
-  if(isiOS){ 
-    window.location.href = `youtube://www.youtube.com/watch?v=${t.videoId}`; 
-  } else if(isAndroid){ 
-    window.location.href = `vnd.youtube:${t.videoId}`; 
-  } else {
-    window.open(`https://www.youtube.com/watch?v=${t.videoId}`, '_blank');
-  }
-}
+  let appUrl = null;
 
-// -----------------------------
-// Sort Toggle
-// -----------------------------
-btnSortToggle.onclick = () => {
-    state.ui.sortOrder = state.ui.sortOrder === 'asc' ? 'desc' : 'asc';
-    saveState(state);
-    renderAll();
-};
+  if(isiOS){ appUrl = `youtube://www.youtube.com/watch?v=${t.videoId}`; }
+  else if(isAndroid){ appUrl = `vnd.youtube:${t.videoId}`; }
+  
+  if(appUrl){ window.location.href = appUrl; }
+  else { window.open(`https://www.youtube.com/watch?v=${t.videoId}`, '_blank'); }
+}
 
 // -----------------------------
 // Notes Modal
@@ -668,7 +652,7 @@ let currentNotesVid = null;
 
 function openNotes(videoId, title){
   currentNotesVid = videoId;
-  notesTitle.textContent = title;
+  notesTitle.textContent = title + ' — Notes';
   notesArea.value = state.notes[videoId] || '';
   notesModal.showModal();
 }
@@ -689,55 +673,73 @@ notesArea.addEventListener('input', () => {
 // Exports / Backup
 // -----------------------------
 function getFullState(){ return state; }
-document.getElementById('btnDownload').onclick = () => {
+
+function downloadAll(){
   const blob = new Blob([JSON.stringify(getFullState(), null, 2)], {type:'application/json'});
   const a = document.createElement('a');
-  a.download = 'holland-archive-backup.json';
+  a.download = 'jrh-tracker-backup.json';
   a.href = URL.createObjectURL(blob);
-  a.click();
-};
-
-document.getElementById('btnNotesCopy').onclick = async () => {
-    const parts = [];
-    talks.forEach(t => {
-        const n = (state.notes[t.videoId]||'').trim();
-        if(n) parts.push(`## ${t.title} (${t.date})\n${n}\n`);
-    });
-    const txt = parts.join('\n') || "No notes yet.";
-    await navigator.clipboard.writeText(txt);
-    toast('Notes copied to clipboard.');
-};
-
-// -----------------------------
-// Filter Logic Wiring
-// -----------------------------
-btnFilterToggle.onclick = () => {
-    state.ui.filterOpen = !state.ui.filterOpen;
-    saveState(state);
-    renderCategoryUI();
-};
-
-function onCatChange(ev){
-  const id = ev.target.id;
-  if (id === 'catAll' && catAll.checked) {
-    state.ui.cats = { all:true, gc:false, byu:false, other:false };
-  } else {
-    state.ui.cats.all = false;
-    state.ui.cats.gc  = !!catGC.checked;
-    state.ui.cats.byu = !!catBYU.checked;
-    state.ui.cats.other  = !!catOther.checked;
-    if (!state.ui.cats.gc && !state.ui.cats.byu && !state.ui.cats.other) {
-      state.ui.cats = { all:true, gc:false, byu:false, other:false };
-    }
-  }
-  saveState(state);
-  renderAll();
+  a.click(); URL.revokeObjectURL(a.href);
 }
 
-[catAll, catGC, catBYU, catOther].forEach(el => el.addEventListener('change', onCatChange));
+async function emailExport(){
+  try{
+    const blob = new Blob([JSON.stringify(getFullState())], {type:'application/json'});
+    const file = new File([blob], 'jrh-tracker-backup.json', {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:'Holland Tracker Backup', text:'Backup file' });
+      return;
+    }
+  }catch(_){}
+  const body = encodeURIComponent(JSON.stringify(getFullState(), null, 2));
+  window.location.href = `mailto:?subject=Holland%20Tracker%20Backup&body=${body}`;
+}
+
+function restoreFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(data.watched){ // simple validation
+        state = { ...DEFAULT_STATE, ...data, ui: { ...DEFAULT_STATE.ui, ...data.ui } };
+        saveState(state); renderAll(); toast('Restore complete.');
+      } else { toast('Backup not recognized.'); }
+    }catch(e){ toast('Invalid file.'); }
+  };
+  reader.readAsText(file);
+}
+
+function notesOnlyText(){
+  const parts = [];
+  for(const t of talks){
+    const n = (state.notes[t.videoId]||'').trim();
+    if(n){ parts.push(`${t.title} (${t.date})\n${n}\n`); }
+  }
+  return parts.join('\n');
+}
+
+document.getElementById('btnDownload').onclick = downloadAll;
+document.getElementById('btnEmail').onclick = emailExport;
+document.getElementById('btnNotesDownload').onclick = () => {
+  const txt = notesOnlyText() || '— No notes yet —';
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.download = 'jrh-notes.txt';
+  a.href = URL.createObjectURL(blob);
+  a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById('btnNotesCopy').onclick = async () => {
+  const txt = notesOnlyText();
+  if(!txt){ toast('No notes yet.'); return; }
+  await navigator.clipboard.writeText(txt); toast('Notes copied.');
+};
+document.getElementById('fileRestore').addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0]; if(f) restoreFromFile(f);
+  e.target.value = '';
+});
 
 // -----------------------------
-// Toast
+// UI Logic
 // -----------------------------
 const toastEl = document.getElementById('toast');
 let toastTimer = null;
@@ -747,9 +749,44 @@ function toast(msg){
   toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 1800);
 }
 
-// -----------------------------
+// Filter Toggles
+btnFilterToggle.onclick = () => {
+  state.ui.filterOpen = !state.ui.filterOpen;
+  saveState(state);
+  renderCategoryUI();
+};
+
+function onCatChange(ev){
+  const id = ev.target.id;
+  if (id === 'catAll' && catAll.checked) {
+    state.ui.cats = { all:true, gc:false, byu:false, ces:false };
+  } else {
+    state.ui.cats.all = false;
+    state.ui.cats.gc  = !!catGC.checked;
+    state.ui.cats.byu = !!catBYU.checked;
+    state.ui.cats.ces = !!catCES.checked;
+    if (!state.ui.cats.gc && !state.ui.cats.byu && !state.ui.cats.ces) {
+      state.ui.cats.all = true;
+    }
+  }
+  saveState(state);
+  renderAll();
+}
+[catAll, catGC, catBYU, catCES].forEach(el => el.addEventListener('change', onCatChange));
+
+// Sort Toggle
+btnSort.onclick = () => {
+  state.ui.sort = (state.ui.sort === 'newest') ? 'oldest' : 'newest';
+  saveState(state);
+  renderAll();
+};
+
+// Settings
+document.getElementById('btnSettings').onclick = () => {
+  toast('Scroll down for Backup & Notes options.');
+};
+
 // Init
-// -----------------------------
 renderAll();
 </script>
 </body>
