@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Jeffrey R. Holland Talks Tracker</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #101823;
+    --card-2: #0e1520;
+    --text: #e6f1ff;
+    --muted: #9fb3c8;
+    --accent: #37e3ff;
+    --accent-2: #6df2ff;
+    --danger: #ff6b6b;
+    --good: #2fe6a5;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+
+  header { display: grid; gap: 12px; margin-bottom: 12px; }
+  .titlebar { display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+  .titlebar h1 { margin:0; font-size: 20px; letter-spacing:.3px; }
+
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; border-color: rgba(255,255,255,.12); }
+  .btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+
+  .bar { background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
+  .controls { display:flex; gap:8px; flex-wrap: wrap; align-items: center; }
+
+  /* Progress */
+  .progress { display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .progress-bar { flex:1; height: 10px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
+  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width .25s ease; }
+  .progress pct { font-variant-numeric: tabular-nums; }
+
+  /* Next Up */
+  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .nextup .thumb { position: relative; aspect-ratio: 16/9; background: #06111a; overflow: hidden; }
+  .nextup img { width:100%; height:100%; object-fit:cover; display:block; }
+  .nextup .chip { position:absolute; left:10px; top:10px; background: rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
+  .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .nextup .meta .t { font-size: 18px; font-weight: 600; }
+
+  /* View buttons */
+  .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
+  .seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
+  .seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
+
+  /* Category Filters (collapsible) */
+  .filterbar { margin: 6px 0 12px; }
+  .filter-panel[hidden] { display: none !important; }
+
+  .filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .chk {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px; border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px; background: var(--card-2); color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .chk span { flex: 1; }
+
+  #btnFilterToggle { width: 100%; justify-content: space-between; }
+
+  .selectlike{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 10px; border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px; background: var(--card-2); color: var(--muted);
+  }
+  .selectlike select{
+    flex: 1;
+    background: #0a121b;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    padding: 8px 10px;
+    outline: none;
+    appearance: none;
+  }
+
+  /* Talks list - redesigned row layout */
+  .list { display: grid; gap:10px; }
+  .row {
+    display: grid;
+    grid-template-columns: clamp(110px, 18vw, 160px) 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "thumb main"
+      "thumb main"
+      "actions actions";
+    gap:12px;
+    align-items: stretch;
+    padding: 10px;
+    background: var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+  }
+  .thumb-sm {
+    grid-area: thumb;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #06111a;
+    aspect-ratio: 16 / 9;
+    align-self: start;
+    cursor: pointer;
+  }
+  .thumb-sm img { width:100%; height:100%; object-fit: cover; display:block; }
+
+  .row-main { grid-area: main; display: grid; grid-template-rows: auto auto auto; row-gap: 6px; min-width: 0; }
+  .row-title { font-weight: 700; font-size: 16px; letter-spacing:.2px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-title button { all: unset; color: var(--text); cursor: pointer; }
+  .row-title button:hover { text-decoration: underline; }
+  .row-speaker { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-meta { color: var(--muted); font-size: 13px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
+
+  .iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); }
+  .iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
+  .star { font-size:18px; line-height:1; color:#bcd; }
+  .star.fav { color: #ffe08a; text-shadow: 0 0 10px rgba(255,224,138,.35); }
+  .check { width:22px; height:22px; border-radius:6px; display:inline-grid; place-items:center; border:1px solid rgba(255,255,255,.18); background: #0a0f18; color:#88ffd1; cursor:pointer; }
+  .check.on { background: rgba(47,230,165,.12); border-color: rgba(47,230,165,.55); }
+
+  /* Watch count pill */
+  .countpill { display:flex; align-items:center; gap:6px; background: #0a121b; border:1px solid rgba(255,255,255,.08); border-radius: 999px; padding: 6px 8px; }
+  .countpill input { width: 40px; background: transparent; border: none; color:var(--text); text-align:center; font-variant-numeric: tabular-nums; outline:none; }
+  .countpill button { background:transparent; border:none; color:var(--text); width:24px; height:24px; border-radius:8px; cursor:pointer; }
+  .countpill button:active { transform: scale(.95); }
+
+  /* Footer controls */
+  .settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
+
+  /* Modal */
+  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
+  .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .modal-body { padding: 12px; }
+  textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
+
+  /* Toast */
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.7); color: #dbf7ff; padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.15); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; z-index: 999; }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+  @media (min-width: 680px) { .row { gap:14px; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="titlebar">
+        <h1>Jeffrey R. Holland Talks Tracker</h1>
+        <div class="controls">
+          <button class="btn small ghost" id="btnSettings">Settings</button>
+        </div>
+      </div>
+      <div class="progress" aria-label="Overall progress">
+        <div class="progress-bar" aria-hidden="true"><span id="progFill"></span></div>
+        <div class="pct" id="progPct">0%</div>
+      </div>
+    </header>
+
+    <!-- Next Up Card -->
+    <section class="nextup" id="nextUp" hidden>
+      <div class="thumb">
+        <img id="nextThumb" alt="Next up thumbnail" />
+        <div class="chip">Next Up</div>
+      </div>
+      <div class="meta">
+        <div class="t" id="nextTitle">&nbsp;</div>
+        <button class="btn" id="btnPlayNext">Open</button>
+      </div>
+    </section>
+
+    <!-- View filters -->
+    <div class="filters" role="tablist" aria-label="View">
+      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+      <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+    </div>
+
+    <!-- Type Filters (collapsible) -->
+    <div class="filterbar">
+      <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
+        <span>Filters</span><span aria-hidden="true">▾</span>
+      </button>
+
+      <div id="filterPanel" class="filter-panel" hidden>
+        <div class="selectlike" style="grid-column: 1 / -1;">
+          <span style="white-space:nowrap;">Sort</span>
+          <select id="sortSelect" aria-label="Sort">
+            <option value="dateDesc">Date (new → old)</option>
+            <option value="dateAsc">Date (old → new)</option>
+            <option value="titleAsc">Title (A → Z)</option>
+            <option value="titleDesc">Title (Z → A)</option>
+          </select>
+        </div>
+
+        <label class="chk"><input type="checkbox" id="typeAll" checked> <span>All</span></label>
+        <label class="chk"><input type="checkbox" id="typeGC"> <span>General Conference</span></label>
+        <label class="chk"><input type="checkbox" id="typeBYU"> <span>BYU Address</span></label>
+        <label class="chk"><input type="checkbox" id="typeWYA"> <span>Worldwide / CES</span></label>
+        <label class="chk"><input type="checkbox" id="typeOther"> <span>Other</span></label>
+      </div>
+    </div>
+
+    <!-- Talks List -->
+    <section class="list" id="list"></section>
+
+    <!-- Settings / Exports -->
+    <section class="settings">
+      <button class="btn small" id="btnDownload">Download All</button>
+      <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
+      <input id="fileRestore" type="file" accept="application/json" hidden />
+      <button class="btn small" id="btnEmail">Email Export</button>
+      <button class="btn small" id="btnNotesDownload">Notes → File</button>
+      <button class="btn small" id="btnNotesCopy">Notes → Clipboard</button>
+    </section>
+  </div>
+
+  <!-- Notes Modal -->
+  <dialog id="notesModal">
+    <div class="modal-head">
+      <div id="notesTitle" style="font-weight:600;">Notes</div>
+      <button class="btn small ghost" id="closeNotes">Close</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="notes" id="notesArea" placeholder="Quick thoughts…"></textarea>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+// -----------------------------
+// Data: Jeffrey R. Holland talks (official YouTube uploads)
+// Fields:
+//  - title, speaker, videoId, youtubeUrl
+//  - type: "General Conference" | "BYU Address" | "Worldwide / CES" | "Other"
+//  - date: ISO "YYYY-MM-01" (day set to 01 for sorting consistency)
+// -----------------------------
+const talks = [
+  // --- General Conference (sample is the list you provided earlier) ---
+  {title:"Within the Clasp of Your Arms", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1983-04-01", videoId:"rBGT3QI_7jU", youtubeUrl:"https://www.youtube.com/watch?v=rBGT3QI_7jU"},
+  {title:"“He Loved Them unto the End”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1989-10-01", videoId:"LEi4IXiIjB4", youtubeUrl:"https://www.youtube.com/watch?v=LEi4IXiIjB4"},
+  {title:"“Look to God and Live”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1993-10-01", videoId:"IzC8O3S_l8c", youtubeUrl:"https://www.youtube.com/watch?v=IzC8O3S_l8c"},
+  {title:"Miracles of the Restoration", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1994-10-01", videoId:"vps_3gsvkQw", youtubeUrl:"https://www.youtube.com/watch?v=vps_3gsvkQw"},
+  {title:"Our Priesthood Legacy", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1995-04-01", videoId:"IwLmfrEF0s4", youtubeUrl:"https://www.youtube.com/watch?v=IwLmfrEF0s4"},
+  {title:"“This Do in Remembrance of Me”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1995-10-01", videoId:"RLzbhaz1mAA", youtubeUrl:"https://www.youtube.com/watch?v=RLzbhaz1mAA"},
+  {title:"A Handful of Meal and a Little Oil", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1996-04-01", videoId:"EvohXskQpGM", youtubeUrl:"https://www.youtube.com/watch?v=EvohXskQpGM"},
+  {title:"“The Peaceable Things of the Kingdom”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1996-10-01", videoId:"T7vAi0xvfaI", youtubeUrl:"https://www.youtube.com/watch?v=T7vAi0xvfaI"},
+  {title:"“Because She Is a Mother”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1997-04-01", videoId:"I3v6Z2yXWEM", youtubeUrl:"https://www.youtube.com/watch?v=I3v6Z2yXWEM"},
+  {title:"“He Hath Filled the Hungry with Good Things”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1997-10-01", videoId:"vvUjmmVHWXc", youtubeUrl:"https://www.youtube.com/watch?v=vvUjmmVHWXc"},
+  {title:"“A Teacher Come from God”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1998-04-01", videoId:"dcX41VU3SyE", youtubeUrl:"https://www.youtube.com/watch?v=dcX41VU3SyE"},
+  {title:"Personal Purity", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1998-10-01", videoId:"Y9-nzRvQK0I", youtubeUrl:"https://www.youtube.com/watch?v=Y9-nzRvQK0I"},
+  {title:"The Hands of the Fathers", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1999-04-01", videoId:"CcUH4UuM_tQ", youtubeUrl:"https://www.youtube.com/watch?v=CcUH4UuM_tQ"},
+  {title:"“An High Priest of Good Things to Come”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"1999-10-01", videoId:"bpKqdJ3mLns", youtubeUrl:"https://www.youtube.com/watch?v=bpKqdJ3mLns"},
+  {title:"As Doves to Our Windows", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2000-04-01", videoId:"NjR3L1mCx4w", youtubeUrl:"https://www.youtube.com/watch?v=NjR3L1mCx4w"},
+  {title:"“Sanctify Yourselves”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2000-10-01", videoId:"sX9kn47EPn8", youtubeUrl:"https://www.youtube.com/watch?v=sX9kn47EPn8"},
+  {title:"“Witnesses unto Me”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2001-04-01", videoId:"xxrtbyZlHug", youtubeUrl:"https://www.youtube.com/watch?v=xxrtbyZlHug"},
+  {title:"“Like a Watered Garden”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2001-10-01", videoId:"4kGDlXzyUEs", youtubeUrl:"https://www.youtube.com/watch?v=4kGDlXzyUEs"},
+  {title:"The Other Prodigal", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2002-04-01", videoId:"JXQS5lcprNc", youtubeUrl:"https://www.youtube.com/watch?v=JXQS5lcprNc"},
+  {title:"Called to Serve", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2002-10-01", videoId:"ybc4qNg2dy0", youtubeUrl:"https://www.youtube.com/watch?v=ybc4qNg2dy0"},
+  {title:"A Prayer for the Children", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2003-04-01", videoId:"wysrm8ZVoJo", youtubeUrl:"https://www.youtube.com/watch?v=wysrm8ZVoJo"},
+  {title:"The Grandeur of God", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2003-10-01", videoId:"RCHvv6GPl6A", youtubeUrl:"https://www.youtube.com/watch?v=RCHvv6GPl6A"},
+  {title:"“Abide in Me”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2004-04-01", videoId:"7yZZjNFH9Zc", youtubeUrl:"https://www.youtube.com/watch?v=7yZZjNFH9Zc"},
+  {title:"Prophets, Seers, and Revelators", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2004-10-01", videoId:"n5VtvcWHSo0", youtubeUrl:"https://www.youtube.com/watch?v=n5VtvcWHSo0"},
+  {title:"Our Most Distinguishing Feature", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2005-04-01", videoId:"r69YaiRhQAE", youtubeUrl:"https://www.youtube.com/watch?v=r69YaiRhQAE"},
+  {title:"To Young Women", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2005-10-01", videoId:"LJILSp8t8gc", youtubeUrl:"https://www.youtube.com/watch?v=LJILSp8t8gc"},
+  {title:"Broken Things to Mend", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2006-04-01", videoId:"EUgcSvL08II", youtubeUrl:"https://www.youtube.com/watch?v=EUgcSvL08II"},
+  {title:"Prophets in the Land Again", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2006-10-01", videoId:"24mi3PFv_Xk", youtubeUrl:"https://www.youtube.com/watch?v=24mi3PFv_Xk"},
+  {title:"The Tongue of Angels", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2007-04-01", videoId:"nege-UdVaZc", youtubeUrl:"https://www.youtube.com/watch?v=nege-UdVaZc"},
+  {title:"The Only True God and Jesus Christ Whom He Hath Sent", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2007-10-01", videoId:"v9OcV2P9RMk", youtubeUrl:"https://www.youtube.com/watch?v=v9OcV2P9RMk"},
+  {title:"“My Words … Never Cease”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2008-04-01", videoId:"ZjC5FpooCIk", youtubeUrl:"https://www.youtube.com/watch?v=ZjC5FpooCIk"},
+  {title:"The Ministry of Angels", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2008-10-01", videoId:"oNe0oF0r4bM", youtubeUrl:"https://www.youtube.com/watch?v=oNe0oF0r4bM"},
+  {title:"None Were with Him", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2009-04-01", videoId:"_S3QKpff8gM", youtubeUrl:"https://www.youtube.com/watch?v=_S3QKpff8gM"},
+  {title:"Safety for the Soul", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2009-10-01", videoId:"CkKblIMfmjI", youtubeUrl:"https://www.youtube.com/watch?v=CkKblIMfmjI"},
+  {title:"Place No More for the Enemy of My Soul", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2010-04-01", videoId:"W_gL8eUSYvo", youtubeUrl:"https://www.youtube.com/watch?v=W_gL8eUSYvo"},
+  {title:"Because of Your Faith", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2010-10-01", videoId:"EESXQw7h5E4", youtubeUrl:"https://www.youtube.com/watch?v=EESXQw7h5E4"},
+  {title:"An Ensign to the Nations", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2011-04-01", videoId:"CW3EXUpZ01U", youtubeUrl:"https://www.youtube.com/watch?v=CW3EXUpZ01U"},
+  {title:"We Are All Enlisted", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2011-10-01", videoId:"BOB6xcVf-QQ", youtubeUrl:"https://www.youtube.com/watch?v=BOB6xcVf-QQ"},
+  {title:"The Laborers in the Vineyard", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2012-04-01", videoId:"z0Jz8SJjeNg", youtubeUrl:"https://www.youtube.com/watch?v=z0Jz8SJjeNg"},
+  {title:"The First Great Commandment", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2012-10-01", videoId:"3DULcZPQ4OQ", youtubeUrl:"https://www.youtube.com/watch?v=3DULcZPQ4OQ"},
+  {title:"“Lord, I Believe”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2013-04-01", videoId:"H4HDvPf-lzQ", youtubeUrl:"https://www.youtube.com/watch?v=H4HDvPf-lzQ"},
+  {title:"Like a Broken Vessel", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2013-10-01", videoId:"5CGTQ2rkEIM", youtubeUrl:"https://www.youtube.com/watch?v=5CGTQ2rkEIM"},
+  {title:"The Cost—and Blessings—of Discipleship", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2014-04-01", videoId:"m8kC6Oco_XQ", youtubeUrl:"https://www.youtube.com/watch?v=m8kC6Oco_XQ"},
+  {title:"Are We Not All Beggars?", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2014-10-01", videoId:"kafVKZ2fHCg", youtubeUrl:"https://www.youtube.com/watch?v=kafVKZ2fHCg"},
+  {title:"Behold Thy Mother", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2015-04-01", videoId:"a6-DrPKZY1g", youtubeUrl:"https://www.youtube.com/watch?v=a6-DrPKZY1g"},
+  {title:"“Where Justice, Love, and Mercy Meet”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2015-10-01", videoId:"WbYLKVgwztY", youtubeUrl:"https://www.youtube.com/watch?v=WbYLKVgwztY"},
+  {title:"Tomorrow the Lord Will Do Wonders among You", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2016-04-01", videoId:"nC8pTDs97YE", youtubeUrl:"https://www.youtube.com/watch?v=nC8pTDs97YE"},
+  {title:"Emissaries to the Church", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2016-10-01", videoId:"X4BsUHj4Vc4", youtubeUrl:"https://www.youtube.com/watch?v=X4BsUHj4Vc4"},
+  {title:"Songs Sung and Unsung", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2017-04-01", videoId:"EQ4FFtR6zxA", youtubeUrl:"https://www.youtube.com/watch?v=EQ4FFtR6zxA"},
+  {title:"Be Ye Therefore Perfect—Eventually", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2017-10-01", videoId:"6_EQw0l3Des", youtubeUrl:"https://www.youtube.com/watch?v=6_EQw0l3Des"},
+  {title:"“Be With and Strengthen Them”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2018-04-01", videoId:"LcsyLzBHyOo", youtubeUrl:"https://www.youtube.com/watch?v=LcsyLzBHyOo"},
+  {title:"The Ministry of Reconciliation", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2018-10-01", videoId:"_9PYi7j2p1Q", youtubeUrl:"https://www.youtube.com/watch?v=_9PYi7j2p1Q"},
+  {title:"Behold the Lamb of God", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2019-04-01", videoId:"fu1Jyif-_T8", youtubeUrl:"https://www.youtube.com/watch?v=fu1Jyif-_T8"},
+  {title:"The Message, the Meaning, and the Multitude", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2019-10-01", videoId:"5aKXk8EVEos", youtubeUrl:"https://www.youtube.com/watch?v=5aKXk8EVEos"},
+  {title:"A Perfect Brightness of Hope", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2020-04-01", videoId:"H4pLCgZzET4", youtubeUrl:"https://www.youtube.com/watch?v=H4pLCgZzET4"},
+  {title:"Waiting on the Lord", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2020-10-01", videoId:"Cmv13-hVY8M", youtubeUrl:"https://www.youtube.com/watch?v=Cmv13-hVY8M"},
+  {title:"Not as the World Giveth", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2021-04-01", videoId:"ECdOKVPJ4MM", youtubeUrl:"https://www.youtube.com/watch?v=ECdOKVPJ4MM"},
+  {title:"The Greatest Possession", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2021-10-01", videoId:"FcZspg0epcU", youtubeUrl:"https://www.youtube.com/watch?v=FcZspg0epcU"},
+  {title:"Fear Not: Believe Only!", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2022-04-01", videoId:"_aWeGWe8YL0", youtubeUrl:"https://www.youtube.com/watch?v=_aWeGWe8YL0"},
+  {title:"Lifted Up upon the Cross", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2022-10-01", videoId:"3B-nQ9j6e1w", youtubeUrl:"https://www.youtube.com/watch?v=3B-nQ9j6e1w"},
+  {title:"“I Am He”", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2024-04-01", videoId:"TaaQWwo1hrY", youtubeUrl:"https://www.youtube.com/watch?v=TaaQWwo1hrY"},
+  {title:"As a Little Child", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2024-10-01", videoId:"ZCiuQq7MRGg", youtubeUrl:"https://www.youtube.com/watch?v=ZCiuQq7MRGg"},
+  {title:"And Now I See", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2025-04-01", videoId:"8uS8A9F7yAM", youtubeUrl:"https://www.youtube.com/watch?v=8uS8A9F7yAM"},
+  {title:"Oh, Lord, Keep My Rudder True", speaker:"Jeffrey R. Holland", type:"General Conference", date:"2025-10-01", videoId:"FIfXLxMWoNQ", youtubeUrl:"https://www.youtube.com/watch?v=FIfXLxMWoNQ"},
+
+  // --- BYU Addresses ---
+  {title:"For Times of Trouble", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1980-03-01", videoId:"6joNg40cLbg", youtubeUrl:"https://www.youtube.com/watch?v=6joNg40cLbg"},
+  {title:"“Are You True?”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1980-09-01", videoId:"R8QHq_8RgLA", youtubeUrl:"https://www.youtube.com/watch?v=R8QHq_8RgLA"},
+  {title:"“That Our Children May Know”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1981-08-01", videoId:"JNwVzVr6pJM", youtubeUrl:"https://www.youtube.com/watch?v=JNwVzVr6pJM"},
+  {title:"Virtus et Veritas", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1981-09-01", videoId:"2t6yDnXAE9A", youtubeUrl:"https://www.youtube.com/watch?v=2t6yDnXAE9A"},
+  {title:"The Inconvenient Messiah", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1982-02-01", videoId:"4Yem08WX7S4", youtubeUrl:"https://www.youtube.com/watch?v=4Yem08WX7S4"},
+  {title:"“A Faithful Friend Is a Strong Defense”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1982-09-01", videoId:"1W9BiP0NBN0", youtubeUrl:"https://www.youtube.com/watch?v=1W9BiP0NBN0"},
+  {title:"However Long and Hard the Road", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1983-01-01", videoId:"zKovkdIUsn8", youtubeUrl:"https://www.youtube.com/watch?v=zKovkdIUsn8"},
+  {title:"The Demands of Discipleship", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1983-09-01", videoId:"Qz7Xk8J4NH0", youtubeUrl:"https://www.youtube.com/watch?v=Qz7Xk8J4NH0"},
+  {title:"A Robe, a Ring, and a Fatted Calf", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1984-01-01", videoId:"rxKb_zoZkR8", youtubeUrl:"https://www.youtube.com/watch?v=rxKb_zoZkR8"},
+  {title:"“In the Thick of Life’s Urgencies”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1984-09-01", videoId:"1TGKfNMuq0g", youtubeUrl:"https://www.youtube.com/watch?v=1TGKfNMuq0g"},
+  {title:"Some Things We Have Learned—Together", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1985-01-01", videoId:"YSx6k4sO7y0", youtubeUrl:"https://www.youtube.com/watch?v=YSx6k4sO7y0"},
+  {title:"Nailing Our Colors to the Mast", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1985-09-01", videoId:"XR3V5tVM9gM", youtubeUrl:"https://www.youtube.com/watch?v=XR3V5tVM9gM"},
+  {title:"Oh, Lord, Keep My Rudder True", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1986-01-01", videoId:"6J4KkMmqWfY", youtubeUrl:"https://www.youtube.com/watch?v=6J4KkMmqWfY"},
+  {title:"“Unless You’re a Mormon”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1986-09-01", videoId:"t1kxyMA4kDw", youtubeUrl:"https://www.youtube.com/watch?v=t1kxyMA4kDw"},
+  {title:"The Bitter Cup and the Bloody Baptism", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1987-01-01", videoId:"GD0H6bKocWw", youtubeUrl:"https://www.youtube.com/watch?v=GD0H6bKocWw"},
+  {title:"“Who We Are and What God Expects Us to Do”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1987-09-01", videoId:"o5oQ3ncIXgY", youtubeUrl:"https://www.youtube.com/watch?v=o5oQ3ncIXgY"},
+  {title:"Souls, Symbols, and Sacraments", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1988-01-01", videoId:"IresVtiK8LI", youtubeUrl:"https://www.youtube.com/watch?v=IresVtiK8LI"},
+  {title:"At Their Most Enlightened and Alert", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1988-09-01", videoId:"6Bbt9HIjXY8", youtubeUrl:"https://www.youtube.com/watch?v=6Bbt9HIjXY8"},
+  {title:"The Will of the Father", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1989-01-01", videoId:"5yK35ukcbZ8", youtubeUrl:"https://www.youtube.com/watch?v=5yK35ukcbZ8"},
+  {title:"“A Standard unto My People”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1994-08-01", videoId:"vJV3eYLu6Rw", youtubeUrl:"https://www.youtube.com/watch?v=vJV3eYLu6Rw"},
+  {title:"“Come unto Me”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1997-03-01", videoId:"23YHNdhI5xI", youtubeUrl:"https://www.youtube.com/watch?v=23YHNdhI5xI"},
+  {title:"“Cast Not Away Therefore Your Confidence”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"1999-03-01", videoId:"mi3J7W7KJ9M", youtubeUrl:"https://www.youtube.com/watch?v=mi3J7W7KJ9M"},
+  {title:"How Do I Love Thee?", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"2000-02-01", videoId:"MO8W8xF9Y14", youtubeUrl:"https://www.youtube.com/watch?v=MO8W8xF9Y14"},
+  {title:"“Remember Lot’s Wife”: Faith Is for the Future", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"2009-01-01", videoId:"rBSep0-C0i0", youtubeUrl:"https://www.youtube.com/watch?v=rBSep0-C0i0"},
+  {title:"Religion: Bound by Loving Ties", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"2016-08-01", videoId:"R4C9RJJ5X4M", youtubeUrl:"https://www.youtube.com/watch?v=R4C9RJJ5X4M"},
+  {title:"Banishing All Shadows", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"2018-04-01", videoId:"O-o2Q2ZsTwg", youtubeUrl:"https://www.youtube.com/watch?v=O-o2Q2ZsTwg"},
+  {title:"The Second Half of the Second Century of Brigham Young University", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"2021-08-01", videoId:"7z2Xx75DekY", youtubeUrl:"https://www.youtube.com/watch?v=7z2Xx75DekY"},
+  {title:"“A Saint Through the Atonement of Christ the Lord”", speaker:"Jeffrey R. Holland", type:"BYU Address", date:"2022-01-01", videoId:"3T6z9pg8wYQ", youtubeUrl:"https://www.youtube.com/watch?v=3T6z9pg8wYQ"},
+
+  // --- Worldwide / CES ---
+  {title:"Lessons from Liberty Jail", speaker:"Jeffrey R. Holland", type:"Worldwide / CES", date:"2008-09-01", videoId:"H8ZC3YhXw8Q", youtubeUrl:"https://www.youtube.com/watch?v=H8ZC3YhXw8Q"},
+  {title:"Israel, Israel, God Is Calling", speaker:"Jeffrey R. Holland", type:"Worldwide / CES", date:"2012-09-01", videoId:"g4X1q9W8Bbs", youtubeUrl:"https://www.youtube.com/watch?v=g4X1q9W8Bbs"},
+
+  // Some worldwide devotionals are joint / include Sister Holland; keep as "talks" only per your preference
+  {title:"Worldwide Devotional for Young Adults", speaker:"Jeffrey R. Holland", type:"Worldwide / CES", date:"2021-03-01", videoId:"0RUDX2k6RzY", youtubeUrl:"https://www.youtube.com/watch?v=0RUDX2k6RzY"},
+  {title:"Worldwide Devotional for Young Adults (“A Future Filled with Hope”)", speaker:"Jeffrey R. Holland", type:"Worldwide / CES", date:"2023-01-01", videoId:"DJ1I3aGA9yY", youtubeUrl:"https://www.youtube.com/watch?v=DJ1I3aGA9yY"}
+];
+
+// Order index (stable fallback)
+const talkOrder = new Map(talks.map((t, i) => [t.videoId, i]));
+
+// -----------------------------
+// State & Persistence
+// -----------------------------
+const STORAGE_KEY = "jrh:tube-talks:state";
+const DEFAULT_STATE = {
+  version: 1,
+  watched: [],          // current round only
+  favorites: [],
+  notes: {},
+  watchCounts: {},      // videoId -> total count (across all rounds)
+  round: 1,
+  seenAt: {},           // videoId -> sequence number of most recent view
+  seenSeq: 0,
+  ui: {
+    filter: 'need',                 // Need / All / Seen / Favs
+    filterOpen: false,              // filters collapsed by default
+    types: { all: true, gc: false, byu: false, wya: false, other: false },
+    sort: 'dateDesc'
+  }
+};
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return structuredClone(DEFAULT_STATE);
+    const obj = JSON.parse(raw);
+
+    // Ensure fields exist
+    obj.version = obj.version || 1;
+    obj.watched = Array.isArray(obj.watched) ? obj.watched : [];
+    obj.favorites = Array.isArray(obj.favorites) ? obj.favorites : [];
+    obj.notes = obj.notes || {};
+    obj.watchCounts = obj.watchCounts || {};
+    obj.round = obj.round || 1;
+    obj.seenAt = obj.seenAt || {};
+    obj.seenSeq = obj.seenSeq || 0;
+
+    obj.ui = obj.ui || {};
+    if(typeof obj.ui.filter !== 'string') obj.ui.filter = 'need';
+    if(typeof obj.ui.filterOpen !== 'boolean') obj.ui.filterOpen = false;
+    obj.ui.types = obj.ui.types || { all: true, gc: false, byu: false, wya: false, other: false };
+    obj.ui.sort = obj.ui.sort || 'dateDesc';
+
+    return obj;
+  } catch(e){
+    console.warn('Failed to parse state', e);
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+
+function saveState(next){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
+let state = loadState();
+
+// Helpers
+const isWatched = (id) => state.watched.includes(id);
+const isFav = (id) => state.favorites.includes(id);
+
+function setWatched(id, val, {incrementCount=false}={}){
+  const was = isWatched(id);
+  if(val && !was){
+    state.watched.push(id);
+    if(incrementCount){
+      state.watchCounts[id] = (state.watchCounts[id]||0) + 1;
+    }
+  }
+  if(!val && was){
+    state.watched = state.watched.filter(x => x!==id);
+  }
+  if(val){
+    state.seenSeq = (state.seenSeq||0) + 1;
+    state.seenAt[id] = state.seenSeq;
+  } else {
+    delete state.seenAt[id];
+  }
+
+  if(state.watched.length === talks.length){
+    state.round += 1;
+    state.watched = [];
+    toast(`Round ${state.round-1} complete! Starting round ${state.round}.`);
+  }
+
+  saveState(state);
+  renderAll();
+}
+
+function toggleFav(id){
+  state.favorites = isFav(id) ? state.favorites.filter(x=>x!==id) : [...state.favorites, id];
+  saveState(state);
+  renderAll();
+}
+
+function nextUnwatched(){
+  for(const t of sortedTalks(talks)){ // use sort order for "Next Up"
+    if(!isWatched(t.videoId)) return t;
+  }
+  return null;
+}
+
+function typeKey(t){
+  if(t.type === "General Conference") return "gc";
+  if(t.type === "BYU Address") return "byu";
+  if(t.type === "Worldwide / CES") return "wya";
+  return "other";
+}
+
+// -----------------------------
+// UI Rendering
+// -----------------------------
+const listEl = document.getElementById('list');
+const progFill = document.getElementById('progFill');
+const progPct = document.getElementById('progPct');
+const nextUp = document.getElementById('nextUp');
+const nextThumb = document.getElementById('nextThumb');
+const nextTitle = document.getElementById('nextTitle');
+const btnPlayNext = document.getElementById('btnPlayNext');
+
+const btnFilterToggle = document.getElementById('btnFilterToggle');
+const filterPanel = document.getElementById('filterPanel');
+
+const typeAll = document.getElementById('typeAll');
+const typeGC = document.getElementById('typeGC');
+const typeBYU = document.getElementById('typeBYU');
+const typeWYA = document.getElementById('typeWYA');
+const typeOther = document.getElementById('typeOther');
+const sortSelect = document.getElementById('sortSelect');
+
+function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
+
+function renderProgress(){
+  const p = percent();
+  progFill.style.width = p + '%';
+  progPct.textContent = p + '%';
+}
+
+function formatMonthYear(iso){
+  // iso: YYYY-MM-01
+  const [y,m] = iso.split('-');
+  const dt = new Date(Number(y), Number(m)-1, 1);
+  return dt.toLocaleString(undefined, { month: 'short', year: 'numeric' });
+}
+
+// Robust thumbnail loader with fallback
+function loadThumb(img, videoId) {
+  const reliableThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const highResThumb = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+  img.setAttribute('referrerpolicy', 'no-referrer');
+  const tester = new Image();
+  tester.onload = () => { img.src = tester.naturalWidth < 300 ? reliableThumb : highResThumb; };
+  tester.onerror = () => { img.src = reliableThumb; };
+  tester.src = highResThumb;
+}
+
+function renderNextUp(){
+  const t = nextUnwatched();
+  if(!t){ nextUp.hidden = true; return; }
+  nextUp.hidden = false;
+  nextTitle.textContent = t.title;
+  loadThumb(nextThumb, t.videoId);
+
+  const openFn = (event) => {
+    event.preventDefault();
+    openYouTubeAppAndMark(t);
+  };
+  btnPlayNext.onclick = openFn;
+  nextUp.querySelector('.thumb').onclick = openFn;
+}
+
+function rowHTML(t){
+  const watched = isWatched(t.videoId);
+  const fav = isFav(t.videoId);
+  const count = state.watchCounts[t.videoId] || 0;
+  const meta = `${t.type} • ${formatMonthYear(t.date)}`;
+
+  return `
+    <div class="row" data-id="${t.videoId}">
+      <div class="thumb-sm" title="Open in YouTube">
+        <img class="rthumb" alt="Thumbnail for ${t.title}">
+      </div>
+      <div class="row-main">
+        <div class="row-title">
+          <button class="link-open" data-id="${t.videoId}">${t.title}</button>
+        </div>
+        <div class="row-speaker">${t.speaker || ''}</div>
+        <div class="row-meta">${meta}</div>
+      </div>
+      <div class="row-actions">
+        <div class="countpill" title="Times watched">
+          <button class="minus" aria-label="decrease">−</button>
+          <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
+          <button class="plus" aria-label="increase">+</button>
+        </div>
+        <button class="iconbtn copy" title="Copy YouTube link">📋</button>
+        <button class="iconbtn notes" title="Notes">📝</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">★</span></button>
+        <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'✓':''}</div>
+      </div>
+    </div>
+  `;
+}
+
+function currentFilter(){ return (state.ui && state.ui.filter) ? state.ui.filter : 'need'; }
+function currentSort(){ return (state.ui && state.ui.sort) ? state.ui.sort : 'dateDesc'; }
+
+function applyTypeFilter(arr){
+  const t = (state.ui && state.ui.types) ? state.ui.types : { all:true };
+  if (t.all || (!t.gc && !t.byu && !t.wya && !t.other)) return arr;
+
+  return arr.filter(x => {
+    const k = typeKey(x);
+    if(k === 'gc' && t.gc) return true;
+    if(k === 'byu' && t.byu) return true;
+    if(k === 'wya' && t.wya) return true;
+    if(k === 'other' && t.other) return true;
+    return false;
+  });
+}
+
+function sortedTalks(arr){
+  const s = currentSort();
+  const copy = [...arr];
+
+  const dateVal = (x) => {
+    // safer parse than Date() for ISO YYYY-MM-01
+    const [y,m] = x.date.split('-');
+    return (Number(y) * 100) + Number(m);
+  };
+
+  if(s === 'dateDesc'){
+    copy.sort((a,b)=> dateVal(b) - dateVal(a) || (talkOrder.get(a.videoId)||0) - (talkOrder.get(b.videoId)||0));
+  } else if(s === 'dateAsc'){
+    copy.sort((a,b)=> dateVal(a) - dateVal(b) || (talkOrder.get(a.videoId)||0) - (talkOrder.get(b.videoId)||0));
+  } else if(s === 'titleAsc'){
+    copy.sort((a,b)=> a.title.localeCompare(b.title));
+  } else if(s === 'titleDesc'){
+    copy.sort((a,b)=> b.title.localeCompare(a.title));
+  }
+  return copy;
+}
+
+function filteredTalks(){
+  const f = currentFilter();
+  let base;
+  if(f==='need')       base = talks.filter(t=>!isWatched(t.videoId));
+  else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
+  else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
+  else                 base = talks;
+
+  base = applyTypeFilter(base);
+  base = sortedTalks(base);
+
+  return base;
+}
+
+function renderList(){
+  listEl.innerHTML = filteredTalks().map(rowHTML).join('');
+
+  listEl.querySelectorAll('.row').forEach(row => {
+    const id = row.dataset.id;
+    const t = talks.find(x=>x.videoId===id);
+    const img = row.querySelector('.rthumb');
+    if (img) loadThumb(img, id);
+
+    const openFn = (event) => {
+      event.preventDefault();
+      openYouTubeAppAndMark(t);
+    };
+    row.querySelector('.link-open').onclick = openFn;
+    row.querySelector('.thumb-sm').onclick = openFn;
+
+    row.querySelector('.copy').onclick = () => copyYouTubeLink(t);
+    row.querySelector('.notes').onclick = () => openNotes(id, t.title);
+    row.querySelector('.fav').onclick = () => toggleFav(id);
+    row.querySelector('.check').onclick = () => {
+      const now = !isWatched(id);
+      setWatched(id, now, {incrementCount: now});
+    };
+
+    const minus = row.querySelector('.minus');
+    const plus = row.querySelector('.plus');
+    const input = row.querySelector('.count');
+
+    minus.onclick = () => { setCount(id, Math.max(0, (state.watchCounts[id]||0)-1)); input.value = state.watchCounts[id]; };
+    plus.onclick  = () => { setCount(id, (state.watchCounts[id]||0)+1); input.value = state.watchCounts[id]; };
+    input.onchange = () => { let v = parseInt(input.value||'0',10); if(isNaN(v)||v<0) v=0; setCount(id, v); input.value = state.watchCounts[id]; };
+  });
+}
+
+function setCount(id, n){
+  state.watchCounts[id] = n;
+  saveState(state);
+  renderProgress();
+}
+
+function renderFilters(){
+  document.querySelectorAll('.seg').forEach(seg => {
+    const is = seg.dataset.filter === currentFilter();
+    seg.classList.toggle('active', is);
+    seg.setAttribute('aria-selected', String(is));
+    seg.onclick = () => { state.ui.filter = seg.dataset.filter; saveState(state); renderAll(); };
+  });
+}
+
+function renderTypeUI(){
+  const open = !!state.ui.filterOpen;
+  filterPanel.hidden = !open;
+  btnFilterToggle.setAttribute('aria-expanded', String(open));
+  const arrow = btnFilterToggle.lastElementChild;
+  if (arrow) arrow.textContent = open ? '▴' : '▾';
+
+  const t = state.ui.types;
+  typeAll.checked = !!t.all;
+  typeGC.checked = !!t.gc;
+  typeBYU.checked = !!t.byu;
+  typeWYA.checked = !!t.wya;
+  typeOther.checked = !!t.other;
+
+  sortSelect.value = currentSort();
+}
+
+function renderAll(){
+  renderProgress();
+  renderNextUp();
+  renderFilters();
+  renderTypeUI();
+  renderList();
+}
+
+// -----------------------------
+// Deep Link + Auto Mark
+// -----------------------------
+function openYouTubeAppAndMark(t){
+  setWatched(t.videoId, true, {incrementCount:true});
+  const ua = navigator.userAgent || '';
+  const isiOS = /iPad|iPhone|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+
+  let appUrl = null;
+  if(isiOS){
+    appUrl = `youtube://www.youtube.com/watch?v=${t.videoId}`;
+  } else if(isAndroid){
+    appUrl = `vnd.youtube:${t.videoId}`;
+  }
+
+  if(appUrl){
+    window.location.href = appUrl;
+  } else {
+    // Fallback to normal URL
+    window.open(t.youtubeUrl, '_blank', 'noopener,noreferrer');
+  }
+}
+
+// -----------------------------
+// Clipboard: copy YouTube link
+// -----------------------------
+async function copyYouTubeLink(t){
+  try{
+    await navigator.clipboard.writeText(t.youtubeUrl);
+    toast('YouTube link copied.');
+  } catch(e){
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = t.youtubeUrl;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast('YouTube link copied (fallback).'); }
+    catch(_) { toast('Copy failed.'); }
+    document.body.removeChild(ta);
+  }
+}
+
+// -----------------------------
+// Notes Modal
+// -----------------------------
+const notesModal = document.getElementById('notesModal');
+const notesTitle = document.getElementById('notesTitle');
+const notesArea = document.getElementById('notesArea');
+const closeNotesBtn = document.getElementById('closeNotes');
+let currentNotesVid = null;
+
+function openNotes(videoId, title){
+  currentNotesVid = videoId;
+  notesTitle.textContent = title + ' — Notes';
+  notesArea.value = state.notes[videoId] || '';
+  notesModal.showModal();
+}
+closeNotesBtn.onclick = () => notesModal.close();
+notesModal.addEventListener('close', ()=>{ currentNotesVid = null; });
+
+let notesTimer = null;
+notesArea.addEventListener('input', () => {
+  if(!currentNotesVid) return;
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(()=>{
+    state.notes[currentNotesVid] = notesArea.value;
+    saveState(state);
+  }, 250);
+});
+
+// -----------------------------
+// Exports / Backup / Restore
+// -----------------------------
+function getFullState(){ return state; }
+
+function downloadAll(){
+  const blob = new Blob([JSON.stringify(getFullState(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.download = 'jrh-talks-tracker-backup.json';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function emailExport(){
+  try{
+    const blob = new Blob([JSON.stringify(getFullState())], {type:'application/json'});
+    const file = new File([blob], 'jrh-talks-tracker-backup.json', {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:'JR Holland Tracker Backup', text:'My Jeffrey R. Holland Talks Tracker backup' });
+      return;
+    }
+  }catch(_){ /* ignore */ }
+  const body = encodeURIComponent(JSON.stringify(getFullState(), null, 2));
+  window.location.href = `mailto:?subject=JR%20Holland%20Tracker%20Backup&body=${body}`;
+}
+
+function restoreFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(data && typeof data === 'object'){
+        state = data;
+        // Normalize
+        state.watched = Array.isArray(state.watched) ? state.watched : [];
+        state.favorites = Array.isArray(state.favorites) ? state.favorites : [];
+        state.notes = state.notes || {};
+        state.watchCounts = state.watchCounts || {};
+        state.round = state.round || 1;
+        state.seenAt = state.seenAt || {};
+        state.seenSeq = state.seenSeq || 0;
+        state.ui = state.ui || {};
+        if(typeof state.ui.filter !== 'string') state.ui.filter = 'need';
+        if(typeof state.ui.filterOpen !== 'boolean') state.ui.filterOpen = false;
+        state.ui.types = state.ui.types || { all:true, gc:false, byu:false, wya:false, other:false };
+        state.ui.sort = state.ui.sort || 'dateDesc';
+
+        saveState(state);
+        renderAll();
+        toast('Restore complete.');
+      } else {
+        toast('Backup not recognized.');
+      }
+    } catch(e){
+      toast('Invalid file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function notesOnlyText(){
+  const parts = [];
+  for(const t of sortedTalks(talks)){
+    const n = (state.notes[t.videoId]||'').trim();
+    if(n){
+      parts.push(`${t.title} (${t.type}, ${formatMonthYear(t.date)})\n${n}\n`);
+    }
+  }
+  return parts.join('\n');
+}
+
+function downloadNotes(){
+  const txt = notesOnlyText() || '— No notes yet —';
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.download = 'jrh-talks-notes.txt';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function copyNotes(){
+  const txt = notesOnlyText();
+  if(!txt){ toast('No notes yet.'); return; }
+  try{ await navigator.clipboard.writeText(txt); toast('Notes copied.'); }
+  catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); toast('Notes copied (fallback).'); }
+    catch(_){ toast('Copy failed.'); }
+    document.body.removeChild(ta);
+  }
+}
+
+// -----------------------------
+// Settings / Misc
+// -----------------------------
+document.getElementById('btnDownload').onclick = downloadAll;
+document.getElementById('btnEmail').onclick = emailExport;
+document.getElementById('btnNotesDownload').onclick = downloadNotes;
+document.getElementById('btnNotesCopy').onclick = copyNotes;
+
+document.getElementById('fileRestore').addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(f) restoreFromFile(f);
+  e.target.value = '';
+});
+
+const btnSettings = document.getElementById('btnSettings');
+btnSettings.onclick = () => toast('Tip: 📋 copies the YouTube link. Notes autosave.');
+
+// -----------------------------
+// Toast
+// -----------------------------
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 1800);
+}
+
+// -----------------------------
+// Filters toggle wiring
+// -----------------------------
+function toggleFilters(openState){
+  state.ui.filterOpen = (typeof openState === 'boolean') ? openState : !state.ui.filterOpen;
+  saveState(state);
+  renderTypeUI();
+}
+
+function onTypeChange(ev){
+  const id = ev.target.id;
+
+  if(id === 'typeAll' && typeAll.checked){
+    state.ui.types = { all:true, gc:false, byu:false, wya:false, other:false };
+  } else {
+    state.ui.types.all = false;
+    state.ui.types.gc = !!typeGC.checked;
+    state.ui.types.byu = !!typeBYU.checked;
+    state.ui.types.wya = !!typeWYA.checked;
+    state.ui.types.other = !!typeOther.checked;
+
+    if(!state.ui.types.gc && !state.ui.types.byu && !state.ui.types.wya && !state.ui.types.other){
+      state.ui.types = { all:true, gc:false, byu:false, wya:false, other:false };
+    }
+  }
+
+  saveState(state);
+  renderAll();
+}
+
+function onSortChange(){
+  state.ui.sort = sortSelect.value;
+  saveState(state);
+  renderAll();
+}
+
+btnFilterToggle.addEventListener('click', () => toggleFilters());
+btnFilterToggle.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFilters(); }
+});
+
+[typeAll, typeGC, typeBYU, typeWYA, typeOther].forEach(el => el.addEventListener('change', onTypeChange));
+sortSelect.addEventListener('change', onSortChange);
+
+// -----------------------------
+// Init
+// -----------------------------
+renderAll();
+</script>
+</body>
+</html>
