@@ -420,9 +420,12 @@ const isFav = (id) => state.favorites.includes(id);
 const toggleFav = (id) => { state.favorites = isFav(id) ? state.favorites.filter(x=>x!==id) : [...state.favorites, id]; saveState(state); renderAll(); };
 
 function nextUnwatched(){
-  // Find top unwatched based on current sort
-  const sorted = getSortedList(talks);
-  for(const t of sorted){ if(!isWatched(t.videoId)) return t; }
+  // UPDATED: Now respects whatever the user is actively viewing
+  // This means if I am filtering by "BYU" and "Oldest", it shows the oldest unwatched BYU talk.
+  const visibleTalks = filteredTalks(); 
+  for(const t of visibleTalks){ 
+    if(!isWatched(t.videoId)) return t; 
+  }
   return null;
 }
 
@@ -549,12 +552,6 @@ function filteredTalks(){
   const catFiltered = applyCategoryFilter(base);
 
   // 3. Sort
-  if(f==='seen' && (!state.ui.sort || state.ui.sort === 'newest')){
-    // Special case: If viewing "Seen", default to "Recently Watched" unless specific date sort requested?
-    // Actually user requested date sort capability. Let's stick to date sort for consistency unless specific "seen order" is needed.
-    // However, usually "Seen" lists are useful when sorted by "When I watched it". 
-    // Let's stick to the Global Sort (Date) to keep it simple as requested.
-  }
   return getSortedList(catFiltered);
 }
 
@@ -618,7 +615,9 @@ function renderSortUI(){
 function renderAll(){
   renderProgress();
   renderSortUI();
-  renderNextUp();
+  // IMPORTANT: The order matters. renderFilters() sets active class, but renderNextUp() relies on filteredTalks()
+  // which relies on state. So as long as state is updated, nextUp is correct.
+  renderNextUp(); 
   renderFilters();
   renderCategoryUI();
   renderList();
