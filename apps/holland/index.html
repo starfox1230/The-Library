@@ -3,485 +3,754 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Jeffrey R. Holland Talk Tracker</title>
+<title>Holland Archive</title>
 <style>
-:root {
---bg: #0b0f14;
---card: #101823;
---card-2: #0e1520;
---text: #e6f1ff;
---muted: #9fb3c8;
---accent: #37e3ff;
---accent-2: #6df2ff;
---danger: #ff6b6b;
---good: #2fe6a5;
---shadow: 0 10px 30px rgba(0,0,0,.35);
---radius: 18px;
-}
- * { box-sizing: border-box; }
-   html, body { height: 100%; }
-   body {
-   margin: 0; background: var(--bg); color: var(--text);
-   font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
-   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-   }
-   a { color: var(--accent); text-decoration: none; }
-   .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
-header { display: grid; gap: 12px; margin-bottom: 12px; }
-.titlebar { display:flex; align-items:center; justify-content:space-between; flex-wrap: wrap; gap: 10px; }
-.titlebar h1 { margin:0; font-size: 20px; letter-spacing:.3px; }
-.btn {
-background: var(--card);
-color: var(--text);
-border: 1px solid rgba(255,255,255,.06);
-border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
-display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-transition: transform.06s ease, background.2s ease, border-color.2s ease;
--webkit-tap-highlight-color: transparent;
-}
-.btn:active { transform: scale(.98); }
-.btn.ghost { background: transparent; border-color: rgba(255,255,255,.12); }
-.btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
-.btn.icon { padding: 8px; width: 40px; height: 40px; justify-content: center; }
-/* Sort Select */
-.sort-select {
-background: var(--card); color: var(--text);
-border: 1px solid rgba(255,255,255,.12);
-border-radius: 10px; padding: 8px 10px; font-size: 14px; outline: none; cursor: pointer;
-}
-.bar { background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
-.controls { display:flex; gap:8px; flex-wrap: wrap; }
-/* Progress */
-.progress { display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
-.progress-bar { flex:1; height: 10px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
-.progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width.25s ease; }
-.progress pct { font-variant-numeric: tabular-nums; }
-/* Next Up */
-.nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
-.nextup.thumb { position: relative; aspect-ratio: 16/9; background: #06111a; overflow: hidden; cursor: pointer; }
-.nextup img { width:100%; height:100%; object-fit:cover; display:block; }
-.nextup.chip { position:absolute; left:10px; top:10px; background: rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
-.nextup.meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.nextup.meta.t { font-size: 18px; font-weight: 600; }
-/* View buttons */
-.filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
-.seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
-.seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
-/* Category Filters (collapsible) */
-.filterbar { margin: 6px 0 12px; display: flex; gap: 8px; flex-direction: column; }
-.filter-panel[hidden] { display: none!important; }
-.filter-panel {
-display: grid;
-grid-template-columns: repeat(2, minmax(0,1fr));
-gap: 8px;
-padding: 10px;
-margin-top: 8px;
-background: var(--card);
-border: 1px solid rgba(255,255,255,.06);
-border-radius: var(--radius);
-box-shadow: var(--shadow);
-}
-.chk {
-display: flex; align-items: center; gap: 8px;
-padding: 10px; border:1px solid rgba(255,255,255,.08);
-border-radius: 12px; background: var(--card-2); color: var(--muted);
-cursor: pointer; user-select: none;
-}
-.chk input { accent-color: var(--accent); width: 18px; height: 18px; }
-.chk span { flex: 1; font-size: 14px; }
-#btnFilterToggle { width: 100%; justify-content: space-between; }
-/* Talks list */
-.list { display: grid; gap:10px; }
-.row {
-display: grid;
-grid-template-columns: clamp(110px, 18vw, 160px) 1fr;
-grid-template-rows: auto auto auto;
-grid-template-areas:
-"thumb main"
-"thumb main"
-"actions actions";
-gap:12px;
-align-items: stretch;
-padding: 10px;
-background: var(--card);
-border:1px solid rgba(255,255,255,.06);
-border-radius: 14px;
-}
-.thumb-sm {
-grid-area: thumb;
-border-radius: 10px;
-overflow: hidden;
-background: #06111a;
-aspect-ratio: 16 / 9;
-align-self: start;
-cursor: pointer;
-}
-.thumb-sm img { width:100%; height:100%; object-fit: cover; display:block; }
-.row-main { grid-area: main; display: grid; grid-template-rows: auto auto; row-gap: 6px; min-width: 0; }
-.row-title { font-weight: 700; font-size: 16px; letter-spacing:.2px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-title button { all: unset; color: var(--text); cursor: pointer; }
-.row-title button:hover { text-decoration: underline; }
-.row-speaker { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; display:flex; gap:6px; align-items:center; }
-.tag { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.1); color: var(--muted); border: 1px solid rgba(255,255,255,.05); }
-.row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
-.iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); }
-.iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
-.star { font-size:18px; line-height:1; color:#bcd; }
-.star.fav { color: #ffe08a; text-shadow: 0 0 10px rgba(255,224,138,.35); }
-.check { width:22px; height:22px; border-radius:6px; display:inline-grid; place-items:center; border:1px solid rgba(255,255,255,.18); background: #0a0f18; color:#88ffd1; cursor:pointer; }
-.check.on { background: rgba(47,230,165,.12); border-color: rgba(47,230,165,.55); }
-/* Watch count pill */
-.countpill { display:flex; align-items:center; gap:6px; background: #0a121b; border:1px solid rgba(255,255,255,.08); border-radius: 999px; padding: 6px 8px; }
-.countpill input { width: 40px; background: transparent; border: none; color:var(--text); text-align:center; font-variant-numeric: tabular-nums; outline:none; }
-.countpill button { background:transparent; border:none; color:var(--text); width:24px; height:24px; border-radius:8px; cursor:pointer; }
-.countpill button:active { transform: scale(.95); }
-/* Footer controls */
-.settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
-/* Modal */
-dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
-dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
-.modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.modal-body { padding: 12px; }
-textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
-/* Toast */
-.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.7); color: #dbf7ff; padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.15); opacity:0; pointer-events:none; transition: opacity.2s ease, transform.2s ease; z-index: 999; }
-.toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
-/* Fine tweaks */
-@media (min-width: 680px) {
-.row { gap:14px; }
-}
+  :root {
+    --bg: #0b0f14;
+    --card: #101823;
+    --card-2: #0e1520;
+    --text: #e6f1ff;
+    --muted: #9fb3c8;
+    --accent: #ff5e5e; /* Changed accent to a "crimson" feel for Holland's distinct style */
+    --accent-2: #ff9e9e;
+    --danger: #ff6b6b;
+    --good: #2fe6a5;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+
+  header { display: grid; gap: 12px; margin-bottom: 12px; }
+  .titlebar { display:flex; align-items:center; justify-content:space-between; }
+  .titlebar h1 { margin:0; font-size: 20px; letter-spacing:.3px; }
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; border-color: rgba(255,255,255,.12); }
+  .btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+  .btn.icon { padding: 8px; width: 40px; height: 40px; justify-content: center; }
+
+  /* Controls Row */
+  .control-row { display: flex; gap: 8px; margin: 6px 0 12px; }
+  
+  /* Progress */
+  .progress { display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .progress-bar { flex:1; height: 10px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
+  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(255, 94, 94,.35) inset; transition: width .25s ease; }
+  .progress pct { font-variant-numeric: tabular-nums; }
+
+  /* Next Up */
+  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .nextup .thumb { position: relative; aspect-ratio: 16/9; background: #06111a; overflow: hidden; }
+  .nextup img { width:100%; height:100%; object-fit:cover; display:block; }
+  .nextup .chip { position:absolute; left:10px; top:10px; background: rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
+  .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .nextup .meta .t { font-size: 18px; font-weight: 600; }
+
+  /* View buttons */
+  .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
+  .seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
+  .seg.active { color: var(--text); border-color: rgba(255, 94, 94,.5); box-shadow: 0 0 0 2px rgba(255, 94, 94,.12) inset; }
+
+  /* Category Filters (collapsible) */
+  .filter-panel[hidden] { display: none !important; }
+  .filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .chk {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px; border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px; background: var(--card-2); color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .chk span { flex: 1; }
+
+  #btnFilterToggle, #btnSortToggle { flex: 1; justify-content: space-between; }
+
+  /* Talks list */
+  .list { display: grid; gap:10px; }
+  .row {
+    display: grid;
+    grid-template-columns: clamp(110px, 18vw, 160px) 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "thumb main"
+      "thumb main"
+      "actions actions";
+    gap:12px;
+    align-items: stretch;
+    padding: 10px;
+    background: var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+  }
+  .thumb-sm {
+    grid-area: thumb;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #06111a;
+    aspect-ratio: 16 / 9;
+    align-self: start;
+    cursor: pointer;
+  }
+  .thumb-sm img { width:100%; height:100%; object-fit: cover; display:block; }
+
+  .row-main { grid-area: main; display: grid; grid-template-rows: auto auto; row-gap: 6px; min-width: 0; }
+  .row-title { font-weight: 700; font-size: 16px; letter-spacing:.2px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-title button { all: unset; color: var(--text); cursor: pointer; }
+  .row-title button:hover { text-decoration: underline; }
+  .row-speaker { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
+
+  .iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); }
+  .iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
+  .star { font-size:18px; line-height:1; color:#bcd; }
+  .star.fav { color: #ffe08a; text-shadow: 0 0 10px rgba(255,224,138,.35); }
+  .check { width:22px; height:22px; border-radius:6px; display:inline-grid; place-items:center; border:1px solid rgba(255,255,255,.18); background: #0a0f18; color:#88ffd1; cursor:pointer; }
+  .check.on { background: rgba(47,230,165,.12); border-color: rgba(47,230,165,.55); }
+
+  /* Watch count pill */
+  .countpill { display:flex; align-items:center; gap:6px; background: #0a121b; border:1px solid rgba(255,255,255,.08); border-radius: 999px; padding: 6px 8px; }
+  .countpill input { width: 40px; background: transparent; border: none; color:var(--text); text-align:center; font-variant-numeric: tabular-nums; outline:none; }
+  .countpill button { background:transparent; border:none; color:var(--text); width:24px; height:24px; border-radius:8px; cursor:pointer; }
+  .countpill button:active { transform: scale(.95); }
+
+  /* Footer controls */
+  .settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
+
+  /* Modal */
+  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
+  .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .modal-body { padding: 12px; }
+  textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
+
+  /* Toast */
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.7); color: #dbf7ff; padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.15); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; z-index: 999; }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+  /* Fine tweaks */
+  @media (min-width: 680px) {
+    .row { gap:14px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-<header>
-<div class="titlebar">
-<h1>Jeffrey R. Holland Tracker</h1>
-<div style="display:flex; gap:8px;">
-<select id="sortOrder" class="sort-select">
-<option value="newest">Newest First</option>
-<option value="oldest">Oldest First</option>
-</select>
-<button class="btn small ghost" id="btnSettings">Settings</button>
-</div>
-</div>
-<div class="progress" aria-label="Overall progress">
-<div class="progress-bar" aria-hidden="true"><span id="progFill"></span></div>
-<div class="pct" id="progPct">0%</div>
-</div>
-</header>
-<section class="nextup" id="nextUp" hidden>
-<div class="thumb">
-<img id="nextThumb" alt="Next up thumbnail" />
-<div class="chip">Next Up</div>
-</div>
-<div class="meta">
-<div class="t" id="nextTitle"> </div>
-<button class="btn" id="btnPlayNext">Open</button>
-</div>
-</section>
-<div class="filters" role="tablist" aria-label="View">
-<div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
-<div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
-<div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
-<div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
-</div>
-<div class="filterbar">
-<button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
-<span>Talk Types</span><span aria-hidden="true">▾</span>
-</button>
-<div id="filterPanel" class="filter-panel" hidden>
-<label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
-<label class="chk"><input type="checkbox" id="catGC"> <span>General Conference</span></label>
-<label class="chk"><input type="checkbox" id="catBYU"> <span>BYU Speeches</span></label>
-<label class="chk"><input type="checkbox" id="catOther"> <span>CES & Other</span></label>
-</div>
-</div>
-<section class="list" id="list"></section>
-<section class="settings">
-<button class="btn small" id="btnDownload">Download Backup</button>
-<label class="btn small" for="fileRestore" style="cursor:pointer;">Restore</label>
-<input id="fileRestore" type="file" accept="application/json" hidden />
-<button class="btn small" id="btnNotesDownload">Export Notes</button>
-</section>
-</div>
-<dialog id="notesModal">
-<div class="modal-head">
-<div id="notesTitle" style="font-weight:600;">Notes</div>
-<button class="btn small ghost" id="closeNotes">Close</button>
-</div>
-<div class="modal-body">
-<textarea class="notes" id="notesArea" placeholder="Thoughts, impressions, favorite quotes..."></textarea>
-</div>
-</dialog>
-<div class="toast" id="toast"></div>
+  <div class="wrap">
+    <header>
+      <div class="titlebar">
+        <h1>Holland Archive</h1>
+        <div class="controls">
+          <button class="btn small ghost" id="btnSettings">Settings</button>
+        </div>
+      </div>
+      <div class="progress" aria-label="Overall progress">
+        <div class="progress-bar" aria-hidden="true"><span id="progFill"></span></div>
+        <div class="pct" id="progPct">0%</div>
+      </div>
+    </header>
+
+    <section class="nextup" id="nextUp" hidden>
+      <div class="thumb">
+        <img id="nextThumb" alt="Next up thumbnail" />
+        <div class="chip">Next Up</div>
+      </div>
+      <div class="meta">
+        <div class="t" id="nextTitle">&nbsp;</div>
+        <button class="btn" id="btnPlayNext">Open</button>
+      </div>
+    </section>
+
+    <div class="filters" role="tablist" aria-label="View">
+      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+      <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+    </div>
+
+    <div class="control-row">
+      <button class="btn" id="btnFilterToggle" type="button" aria-expanded="false">
+        <span>Type</span><span aria-hidden="true">▾</span>
+      </button>
+      <button class="btn" id="btnSortToggle" type="button">
+        <span id="sortLabel">Oldest First</span><span aria-hidden="true">⇅</span>
+      </button>
+    </div>
+
+    <div id="filterPanel" class="filter-panel" hidden>
+      <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
+      <label class="chk"><input type="checkbox" id="catGC"> <span>Gen. Conf</span></label>
+      <label class="chk"><input type="checkbox" id="catBYU"> <span>BYU / Educ</span></label>
+      <label class="chk"><input type="checkbox" id="catOther"> <span>CES / Other</span></label>
+    </div>
+
+    <section class="list" id="list"></section>
+
+    <section class="settings">
+      <button class="btn small" id="btnDownload">Download All</button>
+      <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
+      <input id="fileRestore" type="file" accept="application/json" hidden />
+      <button class="btn small" id="btnNotesDownload">Notes → File</button>
+      <button class="btn small" id="btnNotesCopy">Notes → Clipboard</button>
+    </section>
+  </div>
+
+  <dialog id="notesModal">
+    <div class="modal-head">
+      <div id="notesTitle" style="font-weight:600;">Notes</div>
+      <button class="btn small ghost" id="closeNotes">Close</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="notes" id="notesArea" placeholder="Insights, impressions, or quotes…"></textarea>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
 <script>
 // -----------------------------
-// Data: Jeffrey R. Holland Talks
+// Data: Jeffrey R. Holland Archive
 // -----------------------------
-const talks =;
+const talks = [
+  // --- Chapter 1: BYU Years ---
+  {date:"1974-06-02", title:"Borne upon Eagles’ Wings", context:"BYU Devotional", videoId:"_MISSING_1", linkInfo:"Text Only"},
+  {date:"1974-08-20", title:"Call upon God", context:"BYU Devotional", videoId:"_MISSING_2", linkInfo:"Text Only"},
+  {date:"1976-09-26", title:"Remembered and Nourished by the Good Word of God", context:"BYU Devotional", videoId:"_MISSING_3", linkInfo:"Text Only"},
+  {date:"1977-03-08", title:"Soul-Butter and Hogwash: Mark Twain and Frontier Religion", context:"BYU Devotional", videoId:"_MISSING_4", linkInfo:"Text Only"},
+  {date:"1979-02-20", title:"“Mirror, Mirror, on the Wall”: A Look at the “Me Decade”", context:"BYU Devotional", videoId:"_MISSING_5", linkInfo:"Text Only"},
+  {date:"1980-03-18", title:"For Times of Trouble", context:"BYU Devotional", videoId:"nKAGTJIPTyQ"},
+  {date:"1981-08-25", title:"“That Our Children May Know”", context:"BYU Devotional", videoId:"F6gKo6JPWmE"},
+  {date:"1981-09-08", title:"Virtus et Veritas", context:"BYU Devotional", videoId:"_MISSING_6"},
+  {date:"1982-02-02", title:"The Inconvenient Messiah", context:"BYU Devotional", videoId:"EV9TFXDtBJg"},
+  {date:"1982-09-07", title:"“A Faithful Friend Is a Strong Defense”", context:"BYU Devotional", videoId:"_MISSING_7"},
+  {date:"1983-01-18", title:"However Long and Hard the Road", context:"BYU Devotional", videoId:"_MISSING_8"},
+  {date:"1983-08-31", title:"The First One Thousand Days", context:"BYU Devotional", videoId:"PLe2P9GOHURjpqEt2h0KwR6T629MNFf1Kj"}, 
+  {date:"1984-01-31", title:"A Robe, a Ring, and a Fatted Calf", context:"BYU Devotional", videoId:"_MISSING_9"},
+  {date:"1984-09-11", title:"“In the Thick of Life’s Urgencies”", context:"BYU Devotional", videoId:"_MISSING_10"},
+  {date:"1985-01-15", title:"Terror, Triumph, and a Wedding Feast", context:"BYU Devotional", videoId:"ktiiv144yS8"}, 
+  {date:"1985-03-27", title:"“On the Lord’s Errand”", context:"BYU Devotional", videoId:"_MISSING_11"},
+  {date:"1985-09-10", title:"Nailing Our Colors to the Mast", context:"BYU Devotional", videoId:"s5UkBm9mFHM"},
+  {date:"1986-01-21", title:"Oh, Lord, Keep My Rudder True", context:"BYU Devotional", videoId:"cLKZJylpRBY"},
+  {date:"1987-01-13", title:"The Bitter Cup and the Bloody Baptism", context:"BYU Devotional", videoId:"_MISSING_12"},
+  {date:"1988-01-12", title:"Of Souls, Symbols, and Sacraments", context:"BYU Devotional", videoId:"e5HYo2OMP2Q"},
+  {date:"1989-01-17", title:"The Will of the Father", context:"BYU Devotional", videoId:"_MISSING_13"},
+
+  // --- Chapter 2: Apostolic Witness (1994-2004) ---
+  {date:"1994-10-01", title:"Miracles of the Restoration", context:"General Conference", videoId:"ppDKNJ-NawM"},
+  {date:"1995-04-01", title:"Our Priesthood Legacy", context:"General Conference", videoId:"3gM5l5k6Q_E"}, 
+  {date:"1995-10-01", title:"“This Do in Remembrance of Me”", context:"General Conference", videoId:"OUxt68PBhJM"},
+  {date:"1996-04-01", title:"“A Handful of Meal and a Little Oil”", context:"General Conference", videoId:"vGCsoVO6agM"},
+  {date:"1996-10-01", title:"The Peaceable Things of the Kingdom", context:"General Conference", videoId:"elrs-PZr7bk"},
+  {date:"1997-03-02", title:"“Cast Not Away Therefore Your Confidence”", context:"BYU Devotional", videoId:"pCSs4f9DlVM"},
+  {date:"1997-04-01", title:"“Because She Is a Mother”", context:"General Conference", videoId:"kLqFqXmG_2o"},
+  {date:"1997-10-01", title:"“He Hath Filled the Hungry with Good Things”", context:"General Conference", videoId:"7x84wLiP3Uk"},
+  {date:"1998-04-01", title:"“A Teacher Come from God”", context:"General Conference", videoId:"3T1AiXxEBS4"},
+  {date:"1998-10-01", title:"Personal Purity", context:"General Conference", videoId:"M8ztQaxGmWw"},
+  {date:"1999-03-02", title:"How Do I Love Thee?", context:"BYU Devotional", videoId:"_MISSING_14"}, 
+  {date:"1999-04-01", title:"The Hands of the Fathers", context:"General Conference", videoId:"_MISSING_15"},
+  {date:"1999-10-01", title:"“An High Priest of Good Things to Come”", context:"General Conference", videoId:"sy6U419yPoo"},
+  {date:"2000-02-15", title:"Terror, Triumph, and a Wedding Feast (Reprise)", context:"BYU Devotional", videoId:"ktiiv144yS8"},
+  {date:"2000-10-01", title:"Sanctify Yourselves", context:"General Conference", videoId:"XrFAlKapOCY"},
+  {date:"2001-04-01", title:"“Witnesses unto Me”", context:"General Conference", videoId:"_MISSING_16"},
+  {date:"2001-10-01", title:"“Like a Watered Garden”", context:"General Conference", videoId:"_MISSING_17"},
+  {date:"2002-04-01", title:"The Other Prodigal", context:"General Conference", videoId:"kz8oNXJ6Cl0"},
+  {date:"2002-10-01", title:"Called to Serve", context:"General Conference", videoId:"mg8DU1o_6YE"},
+  {date:"2003-04-01", title:"A Prayer for the Children", context:"General Conference", videoId:"F6gKo6JPWmE"}, 
+  {date:"2003-10-01", title:"The Grandeur of God", context:"General Conference", videoId:"y66q1c0r8-c"},
+  {date:"2004-04-01", title:"“Abide in Me”", context:"General Conference", videoId:"_MISSING_18"},
+  {date:"2004-09-12", title:"Lessons from Liberty Jail", context:"CES Devotional", videoId:"2fOw820ApUQ"},
+  {date:"2004-10-01", title:"Prophets in the Land Again", context:"General Conference", videoId:"_MISSING_19"},
+
+  // --- Chapter 3: Apologetic Era (2005-2012) ---
+  {date:"2005-04-01", title:"Our Most Important Step", context:"General Conference", videoId:"_MISSING_20"},
+  {date:"2005-10-01", title:"To Young Women", context:"General Conference", videoId:"_MISSING_21"},
+  {date:"2006-04-01", title:"Broken Things to Mend", context:"General Conference", videoId:"oSSKqBDbb54"},
+  {date:"2006-10-01", title:"Prophets in the Land Again (2006)", context:"General Conference", videoId:"_MISSING_22"},
+  {date:"2007-04-01", title:"The Tongue of Angels", context:"General Conference", videoId:"ca86xohUuCE"},
+  {date:"2007-10-01", title:"The Only True God and Jesus Christ Whom He Hath Sent", context:"General Conference", videoId:"_MISSING_23"},
+  {date:"2008-04-01", title:"My Words... Never Cease", context:"General Conference", videoId:"_MISSING_24"},
+  {date:"2008-09-07", title:"Lessons from Liberty Jail (Rebroadcast)", context:"CES Devotional", videoId:"2fOw820ApUQ"},
+  {date:"2008-10-01", title:"The Ministry of Angels", context:"General Conference", videoId:"jbmRPENVwLw"},
+  {date:"2009-01-13", title:"“Remember Lot’s Wife”: Faith Is for the Future", context:"BYU Devotional", videoId:"NY4Cs2VfUsY"},
+  {date:"2009-04-01", title:"None Were with Him", context:"General Conference", videoId:"EpFhS0dAduc"},
+  {date:"2009-10-01", title:"Safety for the Soul", context:"General Conference", videoId:"2gAOrQBXEks"},
+  {date:"2010-04-01", title:"Place No More for the Enemy of My Soul", context:"General Conference", videoId:"_MISSING_25"},
+  {date:"2010-10-01", title:"Because of Your Faith", context:"General Conference", videoId:"_MISSING_26"},
+  {date:"2011-01-11", title:"Feed My Sheep (Don't You Dare Go Home)", context:"MTC Devotional", videoId:"TT3rpoifKe4"},
+  {date:"2011-04-01", title:"An Ensign to the Nations", context:"General Conference", videoId:"_MISSING_27"},
+  {date:"2011-10-01", title:"We Are All Enlisted", context:"General Conference", videoId:"_MISSING_28"},
+  {date:"2011-12-17", title:"A Parable of BYU–Hawaii", context:"BYU-Hawaii Devotional", videoId:"_MISSING_29"},
+  {date:"2012-04-01", title:"The Laborers in the Vineyard", context:"General Conference", videoId:"QLuHOnh6kIg"},
+  {date:"2012-09-09", title:"Israel, Israel, God Is Calling", context:"CES Devotional", videoId:"vGt4wXcJjA4"},
+  {date:"2012-10-01", title:"The First Great Commandment", context:"General Conference", videoId:"JBxte7rrk7A"},
+
+  // --- Chapter 4: Compassion & Mental Health (2013-2019) ---
+  {date:"2013-04-01", title:"“Lord, I Believe”", context:"General Conference", videoId:"WtTv_ze5sGk"},
+  {date:"2013-10-01", title:"Like a Broken Vessel", context:"General Conference", videoId:"kNAx2Rgq-uI"},
+  {date:"2014-04-01", title:"The Cost—and Blessings—of Discipleship", context:"General Conference", videoId:"_MISSING_30"},
+  {date:"2014-09-23", title:"Lean Into the Wind", context:"BYU Devotional", videoId:"_MISSING_31"},
+  {date:"2014-10-01", title:"Are We Not All Beggars?", context:"General Conference", videoId:"_MISSING_32"},
+  {date:"2015-02-26", title:"Chapman University Speech", context:"Special Event", videoId:"SfEf71v5zP8"},
+  {date:"2015-04-01", title:"Where Justice, Love, and Mercy Meet", context:"General Conference", videoId:"_MISSING_33"},
+  {date:"2015-09-15", title:"Remember", context:"BYU Devotional", videoId:"_MISSING_34"},
+  {date:"2015-10-01", title:"Behold Thy Mother", context:"General Conference", videoId:"_MISSING_35"},
+  {date:"2016-04-01", title:"Tomorrow the Lord Will Do Wonders among You", context:"General Conference", videoId:"Jlm8GWFdrLQ"},
+  {date:"2016-08-16", title:"Religion: Bound by Loving Ties", context:"BYU Devotional", videoId:"_MISSING_36"},
+  {date:"2016-10-01", title:"Emissaries to the Church", context:"General Conference", videoId:"_MISSING_37"},
+  {date:"2017-03-04", title:"Face to Face with President Eyring & Elder Holland", context:"Youth Broadcast", videoId:"b43FW7F_MD8"},
+  {date:"2017-04-01", title:"Songs Sung and Unsung", context:"General Conference", videoId:"_MISSING_38"},
+  {date:"2017-10-01", title:"Be Ye Therefore Perfect—Eventually", context:"General Conference", videoId:"A4LiYbntP_g"},
+  {date:"2018-04-01", title:"“Be With and Strengthen Them”", context:"General Conference", videoId:"_MISSING_39"},
+  {date:"2018-04-26", title:"Banishing All Shadows", context:"BYU Devotional", videoId:"_MISSING_40"},
+  {date:"2018-10-01", title:"The Ministry of Reconciliation", context:"General Conference", videoId:"_MISSING_41"},
+  {date:"2019-04-01", title:"Behold the Lamb of God", context:"General Conference", videoId:"_MISSING_42"},
+  {date:"2019-10-01", title:"The Message, the Meaning, and the Multitude", context:"General Conference", videoId:"_MISSING_43"},
+  {date:"2019-10-23", title:"Zion: Temples of Learning and Temples of Faith", context:"BYU-Hawaii Devotional", videoId:"_MISSING_44"},
+
+  // --- Chapter 5: Leadership in Crisis (2020-2025) ---
+  {date:"2020-04-01", title:"A Perfect Brightness of Hope", context:"General Conference", videoId:"_MISSING_45"},
+  {date:"2020-05-12", title:"To Every Thing There Is a Season", context:"BYU-Hawaii Devotional", videoId:"_MISSING_46"},
+  {date:"2020-10-01", title:"Waiting on the Lord", context:"General Conference", videoId:"_MISSING_47"},
+  {date:"2020-12-01", title:"First Presidency Christmas Devotional", context:"Christmas Devotional", videoId:"_MISSING_48"},
+  {date:"2021-04-01", title:"Not as the World Giveth", context:"General Conference", videoId:"_MISSING_49"},
+  {date:"2021-05-07", title:"Young Adult Devotional (Europe/Africa)", context:"Area Broadcast", videoId:"BYHAUeI3vvE"},
+  {date:"2021-08-23", title:"The Second Half of the Second Century of BYU", context:"BYU Conference", videoId:"5tOuMIYlzvA"},
+  {date:"2021-10-01", title:"The Greatest Possession", context:"General Conference", videoId:"jBqtxDpoYnE"},
+  {date:"2021-10-19", title:"A Historic and Special Day", context:"BYU-Hawaii Devotional", videoId:"_MISSING_50"},
+  {date:"2022-01-09", title:"Philippines YSA Devotional", context:"Area Broadcast", videoId:"REbTIB1XGnE"},
+  {date:"2022-01-18", title:"“A Saint Through the Atonement of Christ the Lord”", context:"BYU Devotional", videoId:"v9paJQccr64"},
+  {date:"2022-01-23", title:"Europe Area Devotional", context:"Area Broadcast", videoId:"QjHL0PzuVAw"},
+  {date:"2022-04-01", title:"Fear Not: Believe Only!", context:"General Conference", videoId:"_MISSING_51"},
+  {date:"2022-10-01", title:"Lifted Up upon the Cross", context:"General Conference", videoId:"_MISSING_52"},
+  {date:"2023-01-08", title:"Worldwide Devotional for Young Adults", context:"Worldwide Broadcast", videoId:"DdP3TAFPd2w"},
+  {date:"2023-09-01", title:"Philippines Family Week Devotional", context:"Area Broadcast", videoId:"tEtAYG8X3Wk"},
+  {date:"2024-04-01", title:"Motions of a Hidden Fire", context:"General Conference", videoId:"_MISSING_53"},
+  {date:"2024-10-01", title:"“I Am He”", context:"General Conference", videoId:"LqOBM4iGbbU"},
+  {date:"2025-04-01", title:"Motions of a Hidden Fire (2025)", context:"General Conference", videoId:"QLuHOnh6kIg"} // Check date consistency with list
+];
+
+// Determine categories for filtering
+const CAT_GC = new Set(["General Conference"]);
+const CAT_BYU = new Set(["BYU Devotional", "BYU-Hawaii Devotional", "BYU Conference"]);
+
+function getCategory(ctx){
+  if (CAT_GC.has(ctx)) return 'gc';
+  if (CAT_BYU.has(ctx)) return 'byu';
+  return 'other'; // CES, Area, Special
+}
+talks.forEach(t => { t.category = getCategory(t.context || ""); });
+
 // -----------------------------
 // State & Persistence
 // -----------------------------
-const STORAGE_KEY = "jrh-tracker-state-v1";
+const STORAGE_KEY = "holland:archive:state";
 const DEFAULT_STATE = {
-watched:,
-favorites:,
-notes: {},
-watchCounts: {},
-ui: {
-filter: 'need',
-filterOpen: false,
-sort: 'newest',
-cats: { all: true, gc: false, byu: false, other: false }
-}
+  version: 1,
+  watched: [],
+  favorites: [],
+  notes: {},
+  watchCounts: {},
+  ui: {
+    filter: 'need',
+    filterOpen: false,
+    sortOrder: 'asc', // 'asc' = Oldest First (Chronological), 'desc' = Newest First
+    cats: { all: true, gc: false, byu: false, other: false }
+  }
 };
+
 function loadState(){
-try {
-const raw = localStorage.getItem(STORAGE_KEY);
-const obj = raw? JSON.parse(raw) : {...DEFAULT_STATE };
-if(!obj.ui) obj.ui = {...DEFAULT_STATE.ui };
-if(!obj.watchCounts) obj.watchCounts = {};
-return obj;
-} catch(e){ return {...DEFAULT_STATE }; }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return { ...DEFAULT_STATE };
+    const obj = JSON.parse(raw);
+    if(!obj.watchCounts) obj.watchCounts = {};
+    obj.ui = obj.ui || {};
+    if(typeof obj.ui.filter !== 'string') obj.ui.filter = 'need';
+    if(typeof obj.ui.sortOrder !== 'string') obj.ui.sortOrder = 'asc';
+    obj.ui.cats = obj.ui.cats || { all: true, gc: false, byu: false, other: false };
+    return obj;
+  } catch(e){
+    console.warn('Failed to parse state', e); return { ...DEFAULT_STATE };
+  }
 }
-function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+function saveState(next){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
 let state = loadState();
+
+// Helpers
+const isWatched = (id) => state.watched.includes(id);
+const setWatched = (id, val, {incrementCount=false}={}) => {
+  const was = isWatched(id);
+  if(val && !was){
+    state.watched.push(id);
+    if(incrementCount){
+      state.watchCounts[id] = (state.watchCounts[id]||0)+1;
+    }
+  }
+  if(!val && was){
+    state.watched = state.watched.filter(x => x!==id);
+  }
+  saveState(state);
+  renderAll();
+};
+
+const isFav = (id) => state.favorites.includes(id);
+const toggleFav = (id) => { state.favorites = isFav(id) ? state.favorites.filter(x=>x!==id) : [...state.favorites, id]; saveState(state); renderAll(); };
+
+function nextUnwatched(){
+  // Logic: Find next unwatched based on current SORT order
+  const list = filteredTalks(true); // get list ignoring watched filter
+  for(const t of list){ if(!isWatched(t.videoId)) return t; }
+  return null;
+}
+
 // -----------------------------
-// UI Logic
+// UI Rendering
 // -----------------------------
 const listEl = document.getElementById('list');
+const progFill = document.getElementById('progFill');
+const progPct = document.getElementById('progPct');
 const nextUp = document.getElementById('nextUp');
 const nextThumb = document.getElementById('nextThumb');
 const nextTitle = document.getElementById('nextTitle');
-const sortSelect = document.getElementById('sortOrder');
-// Filters
-const catAll = document.getElementById('catAll');
-const catGC = document.getElementById('catGC');
-const catBYU = document.getElementById('catBYU');
-const catOther = document.getElementById('catOther');
-const filterPanel = document.getElementById('filterPanel');
+const btnPlayNext = document.getElementById('btnPlayNext');
+
+// Controls
 const btnFilterToggle = document.getElementById('btnFilterToggle');
-// Helper
-const isWatched = (id) => state.watched.includes(id);
-const isFav = (id) => state.favorites.includes(id);
-function getSortedTalks() {
-const s = state.ui.sort |
-| 'newest';
-return [...talks].sort((a,b) => {
-return s === 'newest'
-? b.date.localeCompare(a.date)
-: a.date.localeCompare(b.date);
-});
+const btnSortToggle = document.getElementById('btnSortToggle');
+const sortLabel = document.getElementById('sortLabel');
+const filterPanel = document.getElementById('filterPanel');
+const catAll   = document.getElementById('catAll');
+const catGC = document.getElementById('catGC');
+const catBYU= document.getElementById('catBYU');
+const catOther = document.getElementById('catOther');
+
+function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
+
+// Robust thumbnail loader
+function loadThumb(img, videoId) {
+  if(videoId.startsWith('_MISSING')){
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' style='background:%23101823'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23345' font-family='sans-serif' font-size='2'%3EArchive%3C/text%3E%3C/svg%3E";
+    return;
+  }
+  const reliableThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  img.setAttribute('referrerpolicy', 'no-referrer');
+  const tester = new Image();
+  tester.onload = () => { img.src = reliableThumb; };
+  tester.onerror = () => { img.src = reliableThumb; };
+  tester.src = reliableThumb;
 }
-function getFilteredTalks() {
-let base = getSortedTalks();
-const f = state.ui.filter;
-const c = state.ui.cats;
-// View Filter
-if(f === 'need') base = base.filter(t =>!isWatched(t.videoId));
-else if(f === 'seen') base = base.filter(t => isWatched(t.videoId));
-else if(f === 'faves') base = base.filter(t => isFav(t.videoId));
-// Category Filter
-if(!c.all) {
-base = base.filter(t => {
-if(c.gc && t.type === 'gc') return true;
-if(c.byu && t.type === 'byu') return true;
-if(c.other && t.type === 'other') return true;
-return false;
-});
+
+function renderProgress(){
+  const p = percent();
+  progFill.style.width = p + '%';
+  progPct.textContent = p + '%';
 }
-return base;
+
+function renderNextUp(){
+  const t = nextUnwatched();
+  if(!t){ nextUp.hidden = true; return; }
+  nextUp.hidden = false;
+  nextTitle.textContent = t.title;
+  loadThumb(nextThumb, t.videoId);
+  btnPlayNext.onclick = (event) => { event.preventDefault(); openYouTubeAppAndMark(t); };
+  nextUp.querySelector('.thumb').onclick = (event) => { event.preventDefault(); openYouTubeAppAndMark(t); };
 }
-function renderList() {
-const filtered = getFilteredTalks();
-listEl.innerHTML = filtered.map(t => {
-const watched = isWatched(t.videoId);
-const fav = isFav(t.videoId);
-const count = state.watchCounts[t.videoId] |
-| 0;
-const typeLabel = t.type === 'gc'? 'General Conference' : t.type === 'byu'? 'BYU Speech' : 'Devotional';
-return  <div class="row" data-id="${t.videoId}"> <div class="thumb-sm" onclick="openVideo('${t.videoId}')"> <img loading="lazy" src="[https://i.ytimg.com/vi/$](https://i.ytimg.com/vi/$){t.videoId}/mqdefault.jpg" alt="thumb"> </div> <div class="row-main"> <div class="row-title"> <button onclick="openVideo('${t.videoId}')">${t.title}</button> </div> <div class="row-speaker"> <span class="tag">${typeLabel}</span> <span>${t.date}</span> </div> </div> <div class="row-actions"> <div class="countpill"> <button onclick="updateCount('${t.videoId}', -1)">−</button> <input disabled value="${count}" /> <button onclick="updateCount('${t.videoId}', 1)">+</button> </div> <button class="iconbtn" onclick="openNotes('${t.videoId}', '${t.title.replace(/'/g, "&apos;")}')">📝</button> <button class="iconbtn" onclick="toggleFav('${t.videoId}')"> <span class="star ${fav?'fav':''}">★</span> </button> <div class="check ${watched?'on':''}" onclick="toggleWatched('${t.videoId}')"> ${watched?'✓':''} </div> </div> </div>;
-}).join('');
+
+function rowHTML(t){
+  const watched = isWatched(t.videoId);
+  const fav = isFav(t.videoId);
+  const count = state.watchCounts[t.videoId] || 0;
+  const missing = t.videoId.startsWith('_MISSING');
+  
+  return `
+    <div class="row" data-id="${t.videoId}">
+      <div class="thumb-sm" title="${missing ? 'No Video Available' : 'Open in YouTube'}">
+        <img class="rthumb" alt="Thumb">
+      </div>
+      <div class="row-main">
+        <div class="row-title">
+          <button class="link-open" ${missing ? 'disabled' : ''}>${t.title}</button>
+        </div>
+        <div class="row-speaker">${t.date} • ${t.context}</div>
+      </div>
+      <div class="row-actions">
+        <div class="countpill" title="Times watched">
+          <button class="minus" aria-label="decrease">−</button>
+          <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
+          <button class="plus" aria-label="increase">+</button>
+        </div>
+        <button class="iconbtn notes" title="Notes">📝</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">★</span></button>
+        <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'✓':''}</div>
+      </div>
+    </div>
+  `;
 }
-function renderProgress() {
-const pct = Math.round((state.watched.length / talks.length) * 100);
-document.getElementById('progFill').style.width = pct + '%';
-document.getElementById('progPct').textContent = pct + '%';
+
+function currentFilter(){ return (state.ui && state.ui.filter) ? state.ui.filter : 'need'; }
+
+function applyCategoryFilter(arr){
+  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
+  if (c.all || (!c.gc && !c.byu && !c.other)) return arr; 
+
+  return arr.filter(t => {
+    if (c.gc  && t.category === 'gc')  return true;
+    if (c.byu && t.category === 'byu') return true;
+    if (c.other  && t.category === 'other')  return true;
+    return false;
+  });
 }
-function renderNextUp() {
-// Logic: First unwatched item based on current sort/filter
-const next = getFilteredTalks().find(t =>!isWatched(t.videoId));
-if(!next) { nextUp.hidden = true; return; }
-nextUp.hidden = false;
-nextTitle.textContent = next.title;
-nextThumb.src = https://i.ytimg.com/vi/${next.videoId}/hqdefault.jpg;
-document.getElementById('btnPlayNext').onclick = () => openVideo(next.videoId);
-nextUp.querySelector('.thumb').onclick = () => openVideo(next.videoId);
+
+function filteredTalks(ignoreStatus=false){
+  // 1. Sort base array first based on Date
+  let base = [...talks];
+  const order = state.ui.sortOrder || 'asc';
+  
+  base.sort((a,b) => {
+    const da = new Date(a.date);
+    const db = new Date(b.date);
+    return order === 'asc' ? da - db : db - da;
+  });
+
+  // 2. Filter by Category
+  base = applyCategoryFilter(base);
+
+  // 3. Filter by Status (unless ignored for NextUp logic)
+  if(ignoreStatus) return base;
+
+  const f = currentFilter();
+  if(f==='need')  return base.filter(t=>!isWatched(t.videoId));
+  if(f==='seen')  return base.filter(t=>isWatched(t.videoId));
+  if(f==='faves') return base.filter(t=>isFav(t.videoId));
+  return base; // 'all'
 }
-function renderUI() {
-renderList();
-renderProgress();
-renderNextUp();
-// Update Filter Tabs
-document.querySelectorAll('.seg').forEach(el => {
-el.classList.toggle('active', el.dataset.filter === state.ui.filter);
-});
-// Update Cat Checkboxes
-catAll.checked = state.ui.cats.all;
-catGC.checked = state.ui.cats.gc;
-catBYU.checked = state.ui.cats.byu;
-catOther.checked = state.ui.cats.other;
-// Sort
-sortSelect.value = state.ui.sort;
+
+function renderList(){
+  const finalTalks = filteredTalks();
+  listEl.innerHTML = finalTalks.map(rowHTML).join('');
+  
+  listEl.querySelectorAll('.row').forEach(row => {
+    const id = row.dataset.id;
+    const t = talks.find(x=>x.videoId===id);
+    const img = row.querySelector('.rthumb');
+    if (img) loadThumb(img, id);
+
+    if(!id.startsWith('_MISSING')){
+        row.querySelector('.link-open').onclick = (e) => { e.preventDefault(); openYouTubeAppAndMark(t); };
+        row.querySelector('.thumb-sm').onclick = (e) => { e.preventDefault(); openYouTubeAppAndMark(t); };
+    }
+
+    row.querySelector('.notes').onclick = () => openNotes(id, t.title);
+    row.querySelector('.fav').onclick = () => toggleFav(id);
+    row.querySelector('.check').onclick = () => {
+      const now = !isWatched(id);
+      setWatched(id, now, {incrementCount: now});
+    };
+    
+    // Count controls
+    const minus = row.querySelector('.minus');
+    const plus = row.querySelector('.plus');
+    const input = row.querySelector('.count');
+    minus.onclick = () => { setCount(id, Math.max(0, (state.watchCounts[id]||0)-1)); input.value = state.watchCounts[id]; };
+    plus.onclick = () => { setCount(id, (state.watchCounts[id]||0)+1); input.value = state.watchCounts[id]; };
+    input.onchange = () => { let v = parseInt(input.value||'0',10); if(isNaN(v)||v<0) v=0; setCount(id, v); input.value = state.watchCounts[id]; };
+  });
 }
+
+function setCount(id, n){ state.watchCounts[id] = n; saveState(state); renderProgress(); }
+
+function renderFilters(){
+  document.querySelectorAll('.seg').forEach(seg => {
+    const is = seg.dataset.filter === currentFilter();
+    seg.classList.toggle('active', is);
+    seg.setAttribute('aria-selected', String(is));
+    seg.onclick = () => { state.ui.filter = seg.dataset.filter; saveState(state); renderAll(); };
+  });
+}
+
+function renderCategoryUI(){
+  const open = !!(state.ui && state.ui.filterOpen);
+  filterPanel.hidden = !open;
+  btnFilterToggle.setAttribute('aria-expanded', String(open));
+  btnFilterToggle.querySelector('span:last-child').textContent = open ? '▴' : '▾';
+
+  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
+  catAll.checked    = !!c.all;
+  catGC.checked  = !!c.gc;
+  catBYU.checked = !!c.byu;
+  catOther.checked  = !!c.other;
+}
+
+function renderSortUI(){
+    const order = state.ui.sortOrder;
+    sortLabel.textContent = order === 'asc' ? 'Oldest First' : 'Newest First';
+}
+
+function renderAll(){
+  renderProgress();
+  renderNextUp();
+  renderFilters();
+  renderCategoryUI();
+  renderSortUI();
+  renderList();
+}
+
 // -----------------------------
-// Actions
+// Deep Link + Auto Mark
 // -----------------------------
-function openVideo(id) {
-// Auto-mark watched
-if(!isWatched(id)) {
-state.watched.push(id);
-state.watchCounts[id] = (state.watchCounts[id]||0) + 1;
-saveState(state);
-renderUI();
+function openYouTubeAppAndMark(t){
+  if(t.videoId.startsWith('_MISSING')){
+      toast('Video link unavailable for this archive.');
+      return;
+  }
+  setWatched(t.videoId, true, {incrementCount:true});
+  
+  const ua = navigator.userAgent || '';
+  const isiOS = /iPad|iPhone|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+  
+  if(isiOS){ 
+    window.location.href = `youtube://www.youtube.com/watch?v=${t.videoId}`; 
+  } else if(isAndroid){ 
+    window.location.href = `vnd.youtube:${t.videoId}`; 
+  } else {
+    window.open(`https://www.youtube.com/watch?v=${t.videoId}`, '_blank');
+  }
 }
-// Deep link
-const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-if(isiOS) window.location.href = youtube://www.youtube.com/watch?v=${id};
-else window.location.href = https://www.youtube.com/watch?v=${id};
-}
-function toggleWatched(id) {
-if(isWatched(id)) {
-state.watched = state.watched.filter(x => x!== id);
-} else {
-state.watched.push(id);
-state.watchCounts[id] = (state.watchCounts[id]||0) + 1;
-}
-saveState(state);
-renderUI();
-}
-function toggleFav(id) {
-if(isFav(id)) state.favorites = state.favorites.filter(x => x!== id);
-else state.favorites.push(id);
-saveState(state);
-renderUI();
-}
-function updateCount(id, delta) {
-const current = state.watchCounts[id] |
-| 0;
-const next = Math.max(0, current + delta);
-state.watchCounts[id] = next;
-saveState(state);
-renderUI();
-}
+
 // -----------------------------
-// Notes
+// Sort Toggle
 // -----------------------------
-let currentNoteId = null;
+btnSortToggle.onclick = () => {
+    state.ui.sortOrder = state.ui.sortOrder === 'asc' ? 'desc' : 'asc';
+    saveState(state);
+    renderAll();
+};
+
+// -----------------------------
+// Notes Modal
+// -----------------------------
 const notesModal = document.getElementById('notesModal');
+const notesTitle = document.getElementById('notesTitle');
 const notesArea = document.getElementById('notesArea');
-window.openNotes = function(id, title) {
-currentNoteId = id;
-document.getElementById('notesTitle').textContent = title;
-notesArea.value = state.notes[id] |
-| '';
-notesModal.showModal();
-};
-document.getElementById('closeNotes').onclick = () => notesModal.close();
-notesArea.addEventListener('input', (e) => {
-if(currentNoteId) {
-state.notes[currentNoteId] = e.target.value;
-saveState(state);
+const closeNotesBtn = document.getElementById('closeNotes');
+let currentNotesVid = null;
+
+function openNotes(videoId, title){
+  currentNotesVid = videoId;
+  notesTitle.textContent = title;
+  notesArea.value = state.notes[videoId] || '';
+  notesModal.showModal();
 }
+closeNotesBtn.onclick = () => notesModal.close();
+notesModal.addEventListener('close', ()=>{ currentNotesVid = null; });
+
+let notesTimer = null;
+notesArea.addEventListener('input', () => {
+  if(!currentNotesVid) return;
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(()=>{
+    state.notes[currentNotesVid] = notesArea.value;
+    saveState(state);
+  }, 250);
 });
+
 // -----------------------------
-// Event Listeners (Filters/Sort)
+// Exports / Backup
 // -----------------------------
-document.querySelectorAll('.seg').forEach(el => {
-el.onclick = () => {
-state.ui.filter = el.dataset.filter;
-saveState(state);
-renderUI();
-};
-});
-sortSelect.onchange = (e) => {
-state.ui.sort = e.target.value;
-saveState(state);
-renderUI();
-}
-// Category Toggle Logic
-function updateCats(clickedId) {
-if(clickedId === 'catAll') {
-state.ui.cats = { all: true, gc: false, byu: false, other: false };
-} else {
-state.ui.cats[clickedId.replace('cat','').toLowerCase()] = document.getElementById(clickedId).checked;
-// Uncheck All if any specific is checked
-if(state.ui.cats.gc |
-| state.ui.cats.byu |
-| state.ui.cats.other) {
-state.ui.cats.all = false;
-}
-// Check All if nothing else is checked
-if(!state.ui.cats.gc &&!state.ui.cats.byu &&!state.ui.cats.other) {
-state.ui.cats.all = true;
-}
-}
-saveState(state);
-renderUI();
-}
-.forEach(el => {
-el.onchange = (e) => updateCats(e.target.id);
-});
-btnFilterToggle.onclick = () => {
-const hidden = filterPanel.hidden;
-filterPanel.hidden =!hidden;
-btnFilterToggle.querySelector('span:last-child').textContent = hidden? '▴' : '▾';
-};
-// -----------------------------
-// Settings / Utils
-// -----------------------------
-function toast(msg) {
-const t = document.getElementById('toast');
-t.textContent = msg;
-t.classList.add('show');
-setTimeout(() => t.classList.remove('show'), 2000);
-}
+function getFullState(){ return state; }
 document.getElementById('btnDownload').onclick = () => {
-const blob = new Blob(, {type:'application/json'});
-const a = document.createElement('a');
-a.download = 'jrh-tracker-backup.json';
-a.href = URL.createObjectURL(blob);
-a.click();
+  const blob = new Blob([JSON.stringify(getFullState(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.download = 'holland-archive-backup.json';
+  a.href = URL.createObjectURL(blob);
+  a.click();
 };
-document.getElementById('fileRestore').onchange = (e) => {
-const f = e.target.files;
-if(!f) return;
-const r = new FileReader();
-r.onload = (ev) => {
-try {
-state = JSON.parse(ev.target.result);
-saveState(state);
-renderUI();
-toast('Restored successfully');
-} catch(err) { toast('Invalid file'); }
+
+document.getElementById('btnNotesCopy').onclick = async () => {
+    const parts = [];
+    talks.forEach(t => {
+        const n = (state.notes[t.videoId]||'').trim();
+        if(n) parts.push(`## ${t.title} (${t.date})\n${n}\n`);
+    });
+    const txt = parts.join('\n') || "No notes yet.";
+    await navigator.clipboard.writeText(txt);
+    toast('Notes copied to clipboard.');
 };
-r.readAsText(f);
+
+// -----------------------------
+// Filter Logic Wiring
+// -----------------------------
+btnFilterToggle.onclick = () => {
+    state.ui.filterOpen = !state.ui.filterOpen;
+    saveState(state);
+    renderCategoryUI();
 };
-document.getElementById('btnNotesDownload').onclick = () => {
-let txt = "Jeffrey R. Holland Study Notes\n\n";
-talks.forEach(t => {
-const n = state.notes[t.videoId];
-if(n) txt += ## ${t.title} (${t.date})\n${n}\n\n;
-});
-const blob = new Blob([txt], {type:'text/plain'});
-const a = document.createElement('a');
-a.download = 'jrh-notes.txt';
-a.href = URL.createObjectURL(blob);
-a.click();
-};
+
+function onCatChange(ev){
+  const id = ev.target.id;
+  if (id === 'catAll' && catAll.checked) {
+    state.ui.cats = { all:true, gc:false, byu:false, other:false };
+  } else {
+    state.ui.cats.all = false;
+    state.ui.cats.gc  = !!catGC.checked;
+    state.ui.cats.byu = !!catBYU.checked;
+    state.ui.cats.other  = !!catOther.checked;
+    if (!state.ui.cats.gc && !state.ui.cats.byu && !state.ui.cats.other) {
+      state.ui.cats = { all:true, gc:false, byu:false, other:false };
+    }
+  }
+  saveState(state);
+  renderAll();
+}
+
+[catAll, catGC, catBYU, catOther].forEach(el => el.addEventListener('change', onCatChange));
+
+// -----------------------------
+// Toast
+// -----------------------------
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 1800);
+}
+
+// -----------------------------
 // Init
-renderUI();
+// -----------------------------
+renderAll();
 </script>
 </body>
 </html>
