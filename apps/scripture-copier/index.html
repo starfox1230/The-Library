@@ -302,21 +302,36 @@
     const copyBtn  = document.getElementById('copy-btn');
     const outTA    = document.getElementById('scripture-text');
 
+    const STORAGE_KEY = 'sc_lastSelection';
+    let pendingInitSelection = loadSavedSelection();
+
     // populate volumes, books, chapters, as before
     const bookToVol = {};
     volumeOrder.forEach(v => structure[v].books.forEach(b => bookToVol[b.id] = v));
 
     volumeOrder.forEach(v => volSel.add(new Option(structure[v].display, v)));
-    volSel.value = 'doctrineandcovenants';
+    const initialVolume = (pendingInitSelection && structure[pendingInitSelection.volume])
+      ? pendingInitSelection.volume
+      : 'oldtestament';
+
+    volSel.value = initialVolume;
 
     volSel.addEventListener('change', () => {
       bookSel.innerHTML = '';
       structure[volSel.value].books.forEach(b => bookSel.add(new Option(b.display, b.id)));
+
+      if (pendingInitSelection && pendingInitSelection.volume === volSel.value) {
+        const validBook = structure[volSel.value].books.some(b => b.id === pendingInitSelection.book);
+        if (validBook) bookSel.value = pendingInitSelection.book;
+      }
+
       bookSel.dispatchEvent(new Event('change'));
+      persistSelection();
     });
 
-    bookSel.addEventListener('change', populateChapters);
-    startSel.addEventListener('change', updateEndOptions);
+    bookSel.addEventListener('change', () => { populateChapters(); persistSelection(); });
+    startSel.addEventListener('change', () => { updateEndOptions(); persistSelection(); });
+    endSel.addEventListener('change', persistSelection);
     volSel.dispatchEvent(new Event('change'));
 
     async function populateChapters() {
@@ -326,8 +341,22 @@
         const max = js.chapters.length;
         startSel.dataset.max = max;
         for (let i=1;i<=max;i++) startSel.add(new Option(i,i));
-        startSel.value = 1;
+        const initMatch = pendingInitSelection && pendingInitSelection.book === bookSel.value
+          ? pendingInitSelection
+          : null;
+
+        const desiredStart = initMatch && Number.isFinite(initMatch.start) ? initMatch.start : 1;
+        startSel.value = (desiredStart >=1 && desiredStart <= max) ? desiredStart : 1;
+
         updateEndOptions();
+
+        const desiredEnd = initMatch && Number.isFinite(initMatch.end) ? initMatch.end : '';
+        if (desiredEnd !== '' && desiredEnd >= parseInt(startSel.value,10) && desiredEnd <= max) {
+          endSel.value = desiredEnd;
+        }
+
+        if (initMatch) pendingInitSelection = null;
+        persistSelection();
       } catch {
         startSel.add(new Option(1,1));
         endSel.add(new Option('(optional)',''));
@@ -368,6 +397,25 @@
       document.execCommand('copy');
       alert('Copied to clipboard!');
     });
+
+    function loadSavedSelection(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); }
+      catch { return null; }
+    }
+
+    function persistSelection(){
+      const payload = {
+        volume: volSel.value,
+        book: bookSel.value,
+        start: parseInt(startSel.value,10) || 1,
+        end: endSel.value === '' ? '' : parseInt(endSel.value,10)
+      };
+
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }
+      catch { /* ignore quota errors */ }
+    }
   });
   </script>
 </body>
