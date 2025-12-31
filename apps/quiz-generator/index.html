@@ -250,7 +250,6 @@ Example format:
         </div>
     </div>
 
-    <!-- Modal for viewing past sessions on the main page -->
     <div id="main-sessions-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn">&times;</button>
@@ -286,7 +285,10 @@ Example format:
             sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
             sessionStorage.setItem('loadQuizTitle', sessionData.title);
 
+            // FIX: Encode JSON to prevent template literal breakage from special characters
             const sessionDataJSON = JSON.stringify(sessionData);
+            const encodedSessionData = encodeURIComponent(sessionDataJSON);
+
             const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="en">
@@ -543,7 +545,9 @@ Example format:
 
     // --- Session Loading Logic ---
     let activeSessionData;
-    const embeddedSessionData = ${sessionDataJSON};
+    // FIX: Safely decode JSON injected via URI component to avoid syntax errors from special chars
+    const embeddedSessionData = JSON.parse(decodeURIComponent("${encodedSessionData}"));
+    
     const loadTitle = sessionStorage.getItem('loadQuizTitle');
     if (loadTitle) {
         const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
@@ -587,7 +591,7 @@ Example format:
         questionDropdownList.innerHTML = '';
         quizData.forEach((question, idx) => {
             const btn = document.createElement('button');
-            btn.textContent = `Question ${idx + 1}`;
+            btn.textContent = \`Question \${idx + 1}\`;
             if (idx === currentQuestionIndex) btn.classList.add('active');
             const answer = userAnswers[idx];
             const pill = document.createElement('span');
@@ -612,7 +616,7 @@ Example format:
     }
 
     function updateQuestionCounter() {
-        questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+        questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
         buildQuestionDropdown();
     }
 
@@ -702,7 +706,7 @@ Example format:
             const card = document.createElement('div');
             card.classList.add('result-card');
             const title = document.createElement('h4');
-            title.textContent = `Question ${item.index + 1}`;
+            title.textContent = \`Question \${item.index + 1}\`;
             const meta = document.createElement('div');
             meta.classList.add('result-meta');
             const statusTag = document.createElement('span');
@@ -711,14 +715,14 @@ Example format:
             else if (item.isCorrect) { statusTag.textContent = 'Correct'; statusTag.classList.add('tag-correct'); }
             else { statusTag.textContent = 'Incorrect'; statusTag.classList.add('tag-incorrect'); }
             const chosen = document.createElement('span');
-            chosen.textContent = `Chosen: ${item.selected ?? '—'}`;
+            chosen.textContent = \`Chosen: \${item.selected ?? '—'}\`;
             meta.append(statusTag, chosen);
             const questionText = document.createElement('div');
             questionText.textContent = item.question;
             const answerText = document.createElement('div');
-            answerText.textContent = `Correct answer: ${item.correctAnswer}`;
+            answerText.textContent = \`Correct answer: \${item.correctAnswer}\`;
             const explanationText = document.createElement('div');
-            explanationText.innerHTML = `<strong>Explanation:</strong> ${item.explanation || 'No explanation provided.'}`;
+            explanationText.innerHTML = \`<strong>Explanation:</strong> \${item.explanation || 'No explanation provided.'}\`;
             card.append(title, meta, questionText, answerText, explanationText);
             resultsListElement.appendChild(card);
         });
@@ -742,7 +746,7 @@ Example format:
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob); a.download = fileName;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
+        setTimeout(() => URL.revokeObjectURL(a.href), 100);
     }
     function populateAndShowPastSessions() {
         const pastSessions = sortSessionsByDate(JSON.parse(localStorage.getItem('pastQuizSessions')) || []);
@@ -822,9 +826,26 @@ Example format:
     // Universal Panel Closing
     document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
     document.querySelectorAll('.close-button-x').forEach(b => b.addEventListener('click', e => hidePanel(document.getElementById(e.currentTarget.dataset.target))));
+
+    // FIX: Back Button Logic
+    // Since document.write wipes the original window state, we need a new popstate listener
+    // in the generated code to detect when the user presses back to return to the generator.
+    window.addEventListener('popstate', (event) => {
+        if (!event.state || event.state.view !== 'quiz') {
+            const original = sessionStorage.getItem('originalGeneratorHTML');
+            if (original) {
+                document.open();
+                document.write(original);
+                document.close();
+            } else {
+                window.location.reload();
+            }
+        }
+    });
     
     // --- Initial Load ---
-    quizTitleEl.textContent = activeSessionData.title.split(' ').slice(1).join(' '); // Show AI title without date
+    // FIX: Better regex to remove date stamp without deleting one-word titles
+    quizTitleEl.textContent = activeSessionData.title.replace(/^\\d{4}\\.\\d{2}\\.\\d{2}\\s+/, '') || activeSessionData.title; 
     loadQuestion();
 <\/script>
 </body>
