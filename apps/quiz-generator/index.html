@@ -261,6 +261,14 @@ Example format:
 
     <script>
         // --- Global Helper Functions ---
+        function extractSessionDate(title) {
+            const datePart = (title || '').split(' ')[0];
+            const parsed = Date.parse(datePart.replace(/\./g, '-'));
+            return isNaN(parsed) ? 0 : parsed;
+        }
+        function sortSessionsByDate(sessions) {
+            return [...sessions].sort((a, b) => extractSessionDate(b.title) - extractSessionDate(a.title));
+        }
         function provideCopyFeedback(button) {
             const originalText = button.textContent;
             button.textContent = 'Copied!';
@@ -322,7 +330,59 @@ Example format:
             font-family: 'Orbitron', sans-serif; color: var(--bright-blue); margin-bottom: 25px;
             text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
         }
-        #question-counter { font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; }
+        #question-counter { font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; cursor: pointer; }
+        .question-dropdown {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .question-dropdown-panel {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            background: #1f1f35;
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            z-index: 50;
+            display: none;
+        }
+        .question-dropdown-panel.open { display: block; }
+        .question-dropdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid #3a3a5e;
+            color: #c0c0fa;
+        }
+        .question-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px;
+        }
+        .question-list button {
+            background: #262648;
+            color: #d0d0fc;
+            border: 1px solid #3a3a5e;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .question-list button:hover { background: #30305a; transform: translateY(-1px); }
+        .question-list button.active { border-color: var(--bright-blue); box-shadow: 0 0 8px rgba(138, 138, 255, 0.4); }
+        .status-pill { padding: 4px 8px; border-radius: 12px; font-size: 0.8em; }
+        .status-unanswered { background: #3a3a5e; color: #f0f0ff; }
+        .status-correct { background: #1f7a3f; color: #fff; }
+        .status-incorrect { background: #9a2532; color: #fff; }
         #question-text {
             font-size: 1.3em; color: #f0f0ff; margin-bottom: 30px;
             line-height: 1.6; min-height: 60px;
@@ -362,6 +422,19 @@ Example format:
         .nav-button:disabled { background: #5a5a7e; cursor: not-allowed; opacity: 0.6; box-shadow: none; transform: none; }
         #completion-message { margin-top: 40px; flex-grow: 1; display: none; flex-direction: column; justify-content: center; align-items: center; }
         #completion-message h2 { font-family: 'Orbitron', sans-serif; color: #28a745; text-shadow: 0 0 8px rgba(40, 167, 69, 0.5); }
+        #results-controls { display: none; flex-direction: column; gap: 15px; margin-top: 20px; width: 100%; }
+        #results-filters { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .filter-button { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--dim-blue); background: none; color: var(--bright-blue); cursor: pointer; transition: all 0.2s ease; }
+        .filter-button.active, .filter-button:hover { background: linear-gradient(45deg, var(--base-blue), var(--bright-blue)); color: #fff; }
+        #copy-results-btn { align-self: center; }
+        #results-list { display: grid; gap: 12px; max-height: 320px; overflow-y: auto; padding: 10px; border: 1px solid #3a3a5e; border-radius: 10px; background: #19192c; }
+        .result-card { border: 1px solid #3a3a5e; border-radius: 8px; padding: 12px; background: #202035; text-align: left; }
+        .result-card h4 { margin: 0 0 8px 0; color: #f0f0ff; }
+        .result-meta { font-size: 0.9em; color: #b0b0d0; margin-bottom: 6px; display: flex; gap: 10px; align-items: center; }
+        .answer-tag { padding: 3px 8px; border-radius: 12px; font-size: 0.85em; }
+        .tag-correct { background: #1f7a3f; color: #fff; }
+        .tag-incorrect { background: #9a2532; color: #fff; }
+        .tag-unanswered { background: #3a3a5e; color: #fff; }
 
         /* Panel & Modal Styles */
         .panel-overlay {
@@ -410,7 +483,16 @@ Example format:
     <div class="quiz-container">
         <div class="quiz-content">
             <h1 id="quiz-title">Generated Quiz</h1>
-            <div id="question-counter"></div>
+            <div class="question-dropdown">
+                <div id="question-counter"></div>
+                <div id="question-dropdown" class="question-dropdown-panel">
+                    <div class="question-dropdown-header">
+                        <span>Select a question</span>
+                        <button id="close-question-dropdown" class="secondary-button" style="padding:4px 10px; min-width: auto;">Close</button>
+                    </div>
+                    <div id="question-dropdown-list" class="question-list"></div>
+                </div>
+            </div>
             <div id="question-text">Loading question...</div>
             <div id="answer-options" class="options-container"></div>
             <div id="explanation" class="explanation-container" style="display: none;"></div>
@@ -418,6 +500,15 @@ Example format:
         <div id="completion-message">
             <h2>Quiz Complete!</h2>
             <p>You have finished all the questions.</p>
+            <div id="results-controls">
+                <div id="results-filters">
+                    <button class="filter-button active" data-filter="all">All</button>
+                    <button class="filter-button" data-filter="correct">Correct</button>
+                    <button class="filter-button" data-filter="incorrect">Incorrect</button>
+                </div>
+                <button id="copy-results-btn" class="copy-button">Copy Visible Results</button>
+                <div id="results-list"></div>
+            </div>
         </div>
         <div class="navigation-buttons">
             <button id="prev-button" class="nav-button">Previous</button>
@@ -429,6 +520,27 @@ Example format:
     <div id="past-sessions-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="past-sessions-panel">&times;</button><h2>Select a Past Quiz</h2><ul id="past-sessions-list"></ul></div></div>
 
 <script>
+    // --- Utility Helpers ---
+    function extractSessionDate(title) {
+        const datePart = (title || '').split(' ')[0];
+        const parsed = Date.parse(datePart.replace(/\./g, '-'));
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    function sortSessionsByDate(sessions) {
+        return [...sessions].sort((a, b) => extractSessionDate(b.title) - extractSessionDate(a.title));
+    }
+    function copyWithFeedback(button, text) {
+        const original = button.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            button.textContent = 'Copied!';
+            button.classList.add('copied-feedback');
+            setTimeout(() => {
+                button.textContent = original;
+                button.classList.remove('copied-feedback');
+            }, 1200);
+        }).catch(() => alert('Copy failed. Please try again.'));
+    }
+
     // --- Session Loading Logic ---
     let activeSessionData;
     const embeddedSessionData = ${sessionDataJSON};
@@ -446,6 +558,9 @@ Example format:
     // --- DOM Elements ---
     const quizTitleEl = document.getElementById('quiz-title');
     const questionCounterElement = document.getElementById('question-counter');
+    const questionDropdownPanel = document.getElementById('question-dropdown');
+    const questionDropdownList = document.getElementById('question-dropdown-list');
+    const closeQuestionDropdownBtn = document.getElementById('close-question-dropdown');
     const questionTextElement = document.getElementById('question-text');
     const answerOptionsElement = document.getElementById('answer-options');
     const explanationElement = document.getElementById('explanation');
@@ -458,10 +573,48 @@ Example format:
     const profilePanelEl = document.getElementById('profile-panel');
     const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
     const pastSessionsListEl = document.getElementById('past-sessions-list');
+    const resultsControlsElement = document.getElementById('results-controls');
+    const resultsListElement = document.getElementById('results-list');
+    const resultsFilterButtons = document.querySelectorAll('.filter-button');
+    const copyResultsBtn = document.getElementById('copy-results-btn');
 
     // --- Quiz State ---
     let currentQuestionIndex = 0;
     let userAnswers = new Array(quizData.length).fill(null);
+
+    function buildQuestionDropdown() {
+        if (!questionDropdownList) return;
+        questionDropdownList.innerHTML = '';
+        quizData.forEach((question, idx) => {
+            const btn = document.createElement('button');
+            btn.textContent = `Question ${idx + 1}`;
+            if (idx === currentQuestionIndex) btn.classList.add('active');
+            const answer = userAnswers[idx];
+            const pill = document.createElement('span');
+            pill.classList.add('status-pill');
+            if (!answer) { pill.textContent = 'Unanswered'; pill.classList.add('status-unanswered'); }
+            else if (answer.isCorrect) { pill.textContent = 'Correct'; pill.classList.add('status-correct'); }
+            else { pill.textContent = 'Incorrect'; pill.classList.add('status-incorrect'); }
+            btn.appendChild(pill);
+            btn.addEventListener('click', () => {
+                currentQuestionIndex = idx;
+                loadQuestion();
+                toggleQuestionDropdown(false);
+            });
+            questionDropdownList.appendChild(btn);
+        });
+    }
+
+    function toggleQuestionDropdown(forceState) {
+        const shouldOpen = forceState !== undefined ? forceState : !questionDropdownPanel.classList.contains('open');
+        if (shouldOpen) { buildQuestionDropdown(); }
+        questionDropdownPanel.classList.toggle('open', shouldOpen);
+    }
+
+    function updateQuestionCounter() {
+        questionCounterElement.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+        buildQuestionDropdown();
+    }
 
     // --- Core Quiz Functions ---
     function loadQuestion() {
@@ -473,7 +626,7 @@ Example format:
         explanationElement.innerHTML = '';
         answerOptionsElement.innerHTML = '';
         const currentQuestion = quizData[currentQuestionIndex];
-        questionCounterElement.textContent = \`Question \${currentQuestionIndex + 1} of \${quizData.length}\`;
+        updateQuestionCounter();
         questionTextElement.textContent = currentQuestion.question;
         currentQuestion.options.forEach(option => {
             const button = document.createElement('button');
@@ -510,18 +663,75 @@ Example format:
         });
         explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
         explanationElement.style.display = 'block';
+        updateQuestionCounter();
     }
     function goToNextQuestion() {
          if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
-         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; showCompletion(); } 
+         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; showCompletion(); }
     }
     function goToPreviousQuestion() { if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); } }
+    function gatherResults() {
+        return quizData.map((q, idx) => {
+            const answer = userAnswers[idx];
+            return {
+                index: idx,
+                question: q.question,
+                correctAnswer: q.correctAnswer,
+                explanation: q.explanation,
+                selected: answer ? answer.selected : null,
+                isCorrect: answer ? answer.isCorrect : null
+            };
+        });
+    }
+    let currentResultsFilter = 'all';
+    function renderResults(filter = 'all') {
+        currentResultsFilter = filter;
+        const filtered = gatherResults().filter(entry => {
+            if (filter === 'correct') return entry.isCorrect === true;
+            if (filter === 'incorrect') return entry.isCorrect === false;
+            return true;
+        });
+        resultsListElement.innerHTML = '';
+        if (filtered.length === 0) {
+            const empty = document.createElement('div');
+            empty.textContent = 'No questions to show for this filter yet.';
+            resultsListElement.appendChild(empty);
+            return;
+        }
+        filtered.forEach(item => {
+            const card = document.createElement('div');
+            card.classList.add('result-card');
+            const title = document.createElement('h4');
+            title.textContent = `Question ${item.index + 1}`;
+            const meta = document.createElement('div');
+            meta.classList.add('result-meta');
+            const statusTag = document.createElement('span');
+            statusTag.classList.add('answer-tag');
+            if (item.isCorrect === null) { statusTag.textContent = 'Unanswered'; statusTag.classList.add('tag-unanswered'); }
+            else if (item.isCorrect) { statusTag.textContent = 'Correct'; statusTag.classList.add('tag-correct'); }
+            else { statusTag.textContent = 'Incorrect'; statusTag.classList.add('tag-incorrect'); }
+            const chosen = document.createElement('span');
+            chosen.textContent = `Chosen: ${item.selected ?? '—'}`;
+            meta.append(statusTag, chosen);
+            const questionText = document.createElement('div');
+            questionText.textContent = item.question;
+            const answerText = document.createElement('div');
+            answerText.textContent = `Correct answer: ${item.correctAnswer}`;
+            const explanationText = document.createElement('div');
+            explanationText.innerHTML = `<strong>Explanation:</strong> ${item.explanation || 'No explanation provided.'}`;
+            card.append(title, meta, questionText, answerText, explanationText);
+            resultsListElement.appendChild(card);
+        });
+    }
     function showCompletion() {
         quizContentElement.style.display = 'none';
         navigationButtonsElement.style.display = 'none';
         completionMessageElement.style.display = 'flex';
         let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
         completionMessageElement.querySelector('p').textContent = \`You answered \${correctCount} out of \${quizData.length} questions correctly.\`;
+        resultsControlsElement.style.display = 'flex';
+        renderResults(currentResultsFilter);
+        toggleQuestionDropdown(false);
     }
 
     // --- Panel & Session Management Functions ---
@@ -535,7 +745,7 @@ Example format:
         URL.revokeObjectURL(a.href);
     }
     function populateAndShowPastSessions() {
-        const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+        const pastSessions = sortSessionsByDate(JSON.parse(localStorage.getItem('pastQuizSessions')) || []);
         pastSessionsListEl.innerHTML = '';
         if (pastSessions.length === 0) {
             pastSessionsListEl.innerHTML = '<li>No past quizzes found.</li>';
@@ -583,9 +793,24 @@ Example format:
     }
 
     // --- Event Listeners ---
+    questionCounterElement.addEventListener('click', (e) => { e.stopPropagation(); toggleQuestionDropdown(); });
+    closeQuestionDropdownBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleQuestionDropdown(false); });
+    document.addEventListener('click', (e) => {
+        if (!questionDropdownPanel.contains(e.target) && e.target !== questionCounterElement) toggleQuestionDropdown(false);
+    });
     prevButton.addEventListener('click', goToPreviousQuestion);
     nextButton.addEventListener('click', goToNextQuestion);
     profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
+
+    resultsFilterButtons.forEach(btn => btn.addEventListener('click', () => {
+        resultsFilterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderResults(btn.dataset.filter);
+    }));
+    copyResultsBtn.addEventListener('click', () => {
+        const textToCopy = Array.from(resultsListElement.children).map(el => el.innerText).join('\n\n');
+        copyWithFeedback(copyResultsBtn, textToCopy || '');
+    });
 
     // Profile Panel Listeners
     document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
@@ -672,7 +897,7 @@ Example format:
             const closeModalBtn = mainSessionsModal.querySelector('.modal-close-btn');
 
             viewPastSessionsBtn.addEventListener('click', () => {
-                const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
+                const pastSessions = sortSessionsByDate(JSON.parse(localStorage.getItem('pastQuizSessions')) || []);
                 sessionsList.innerHTML = '';
                 if (pastSessions.length === 0) {
                     sessionsList.innerHTML = '<li>No past quizzes found.</li>';
