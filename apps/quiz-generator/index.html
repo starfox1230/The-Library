@@ -280,14 +280,20 @@ Example format:
             }, 1500);
         }
 
+        // --- ENCODING HELPER ---
+        // Safely encodes Unicode strings to Base64 to prevent syntax errors in generated code
+        function safeBtoa(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
         function launchQuiz(sessionData) {
             const currentGeneratorHTML = document.documentElement.outerHTML;
             sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
             sessionStorage.setItem('loadQuizTitle', sessionData.title);
 
-            // FIX: Encode JSON to prevent template literal breakage from special characters
+            // FIX: Use Base64 encoding to prevent JSON syntax errors during injection
             const sessionDataJSON = JSON.stringify(sessionData);
-            const encodedSessionData = encodeURIComponent(sessionDataJSON);
+            const base64SessionData = safeBtoa(sessionDataJSON);
 
             const htmlTemplate = `
 <!DOCTYPE html>
@@ -543,19 +549,41 @@ Example format:
         }).catch(() => alert('Copy failed. Please try again.'));
     }
 
+    // --- DECODING HELPER ---
+    function safeAtob(str) {
+        return decodeURIComponent(escape(window.atob(str)));
+    }
+
     // --- Session Loading Logic ---
     let activeSessionData;
-    // FIX: Safely decode JSON injected via URI component to avoid syntax errors from special chars
-    const embeddedSessionData = JSON.parse(decodeURIComponent("${encodedSessionData}"));
+    const embeddedBase64 = "\${base64SessionData}";
+    let embeddedSessionData = null;
+    
+    try {
+        if (embeddedBase64) {
+             embeddedSessionData = JSON.parse(safeAtob(embeddedBase64));
+        }
+    } catch(e) {
+        console.error("Error decoding embedded session:", e);
+    }
     
     const loadTitle = sessionStorage.getItem('loadQuizTitle');
     if (loadTitle) {
         const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
         const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
+        // FIX: Ensure sessionToLoad is valid, otherwise fall back
         activeSessionData = sessionToLoad ? sessionToLoad : embeddedSessionData;
     } else {
         activeSessionData = embeddedSessionData;
     }
+
+    // FIX: Critical error check to prevent endless loading screen
+    if (!activeSessionData || !Array.isArray(activeSessionData.questions)) {
+        document.getElementById('question-text').textContent = "Error: Could not load quiz data. Please return to the generator and try again.";
+        document.getElementById('question-text').style.color = "#ff6666";
+        throw new Error("Quiz data is missing or malformed.");
+    }
+
     const quizData = activeSessionData.questions;
     document.title = activeSessionData.title;
 
@@ -827,9 +855,7 @@ Example format:
     document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
     document.querySelectorAll('.close-button-x').forEach(b => b.addEventListener('click', e => hidePanel(document.getElementById(e.currentTarget.dataset.target))));
 
-    // FIX: Back Button Logic
-    // Since document.write wipes the original window state, we need a new popstate listener
-    // in the generated code to detect when the user presses back to return to the generator.
+    // Back button restoration
     window.addEventListener('popstate', (event) => {
         if (!event.state || event.state.view !== 'quiz') {
             const original = sessionStorage.getItem('originalGeneratorHTML');
@@ -844,7 +870,6 @@ Example format:
     });
     
     // --- Initial Load ---
-    // FIX: Better regex to remove date stamp without deleting one-word titles
     quizTitleEl.textContent = activeSessionData.title.replace(/^\\d{4}\\.\\d{2}\\.\\d{2}\\s+/, '') || activeSessionData.title; 
     loadQuestion();
 <\/script>
