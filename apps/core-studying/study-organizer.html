@@ -186,6 +186,14 @@
     .day-nav { display: flex; gap: 8px; align-items: center; }
     .day-actions { display: flex; align-items: center; gap: 12px; }
 
+    .day-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
     .char-count-badge {
       font-size: 0.85rem;
       color: var(--muted);
@@ -243,14 +251,14 @@
       align-items: center;
       justify-content: flex-end;
     }
-    .section-actions .split-btn {
+    .split-btn {
       background: #21262d;
       color: #c084fc;
       border: 1px solid var(--border);
       padding: 8px 12px;
       font-size: 0.85rem;
     }
-    .section-actions .split-btn:hover:not(:disabled) {
+    .split-btn:hover:not(:disabled) {
       background: #30363d;
       color: #d8b4fe;
     }
@@ -411,11 +419,17 @@
           <button id="next-day" class="secondary">▶</button>
           <button id="today-btn">Today</button>
         </div>
-        
+
         <div class="day-actions">
           <button id="copy-day-btn" class="secondary">Copy Full Day</button>
+          <button id="split-day-btn" class="split-btn">Split</button>
           <div id="day-char-count" class="char-count-badge">0 chars</div>
         </div>
+      </div>
+
+      <div class="day-tools">
+        <button id="gpt-read-btn">GPT Read</button>
+        <button id="gem-qa-btn" class="secondary">Gem Q&A</button>
       </div>
 
       <div id="day-content"></div>
@@ -442,6 +456,9 @@ let currentBookPath = '';
 let currentPlan = null;
 let currentDayIndex = 0;
 let runtimeTextCache = {};
+
+const GPT_READ_URL = 'https://chatgpt.com/g/g-p-68d551179e20819199aaa83585b01711-read-to-me-2-0/project';
+const GEM_QA_URL = 'https://gemini.google.com/gem/1FxM5xfj9hMAgImyzCFPr02Ly9Ft6H1ZA?usp=sharing';
 
 // UI Refs
 const els = {
@@ -476,9 +493,12 @@ const els = {
   dayJumper: document.getElementById('day-jumper'),
   todayBtn: document.getElementById('today-btn'),
   copyDayBtn: document.getElementById('copy-day-btn'),
+  splitDayBtn: document.getElementById('split-day-btn'),
   dayCharCount: document.getElementById('day-char-count'),
   dayContent: document.getElementById('day-content'),
-  dayCard: document.getElementById('day-card')
+  dayCard: document.getElementById('day-card'),
+  gptReadBtn: document.getElementById('gpt-read-btn'),
+  gemQaBtn: document.getElementById('gem-qa-btn')
 };
 
 async function init() {
@@ -1045,27 +1065,57 @@ async function copyText(text, btn) {
   } catch (e) { console.error(e); }
 }
 
+async function getFullDayText() {
+  const day = currentPlan.days[currentDayIndex];
+  if (!day || !day.sections.length) return '';
+  let full = "";
+  for (const sec of day.sections) {
+    const k = currentPlan.book + '_' + sec.file;
+    let txt = runtimeTextCache[k];
+    if (!txt) {
+       const url = encodePath(`${currentBookPath}/${sec.file}`);
+       const res = await fetch(url);
+       txt = await res.text();
+       runtimeTextCache[k] = txt;
+    }
+    full += `# ${sec.fullTitle}\n${txt}\n\n`;
+  }
+  return full;
+}
+
 async function copyFullDay() {
   const day = currentPlan.days[currentDayIndex];
   if (!day || !day.sections.length) return;
   const orig = els.copyDayBtn.textContent; els.copyDayBtn.textContent = "Gathering...";
   try {
-    let full = "";
-    for (const sec of day.sections) {
-      const k = currentPlan.book + '_' + sec.file;
-      let txt = runtimeTextCache[k];
-      if (!txt) {
-         const url = encodePath(`${currentBookPath}/${sec.file}`);
-         const res = await fetch(url);
-         txt = await res.text();
-         runtimeTextCache[k] = txt;
-      }
-      full += `# ${sec.fullTitle}\n${txt}\n\n`;
-    }
+    const full = await getFullDayText();
     await navigator.clipboard.writeText(full);
     els.copyDayBtn.textContent = "Copied!"; els.copyDayBtn.classList.add('success');
     setTimeout(() => { els.copyDayBtn.textContent = orig; els.copyDayBtn.classList.remove('success'); }, 1500);
   } catch (e) { els.copyDayBtn.textContent = "Error"; }
+}
+
+async function splitFullDay() {
+  const day = currentPlan.days[currentDayIndex];
+  if (!day || !day.sections.length) return;
+  const btn = els.splitDayBtn;
+  const orig = btn.textContent;
+  btn.textContent = "Preparing...";
+  btn.disabled = true;
+  try {
+    const full = await getFullDayText();
+    await navigator.clipboard.writeText(full);
+    btn.textContent = "Copied!"; btn.classList.add('success');
+    window.open('../text-splitter/index.html', '_blank');
+  } catch (e) {
+    btn.textContent = "Error";
+  } finally {
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('success');
+      btn.disabled = false;
+    }, 1500);
+  }
 }
 
 function getTodayIndex() {
@@ -1112,6 +1162,9 @@ els.prevDay.addEventListener('click', () => setDay(currentDayIndex - 1));
 els.nextDay.addEventListener('click', () => setDay(currentDayIndex + 1));
 els.todayBtn.addEventListener('click', () => setDay(getTodayIndex(), true));
 els.copyDayBtn.addEventListener('click', copyFullDay);
+els.splitDayBtn.addEventListener('click', splitFullDay);
+els.gptReadBtn.addEventListener('click', () => window.open(GPT_READ_URL, '_blank'));
+els.gemQaBtn.addEventListener('click', () => window.open(GEM_QA_URL, '_blank'));
 els.setupHeader.addEventListener('click', toggleSetupPanel);
 els.setupToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSetupPanel(); });
 
