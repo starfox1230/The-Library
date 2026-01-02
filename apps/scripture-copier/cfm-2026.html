@@ -97,38 +97,115 @@
     .menu-item-open > .submenu { max-height: 500px; }
     .menu-item-open > .submenu-trigger::after { transform: rotate(90deg); }
 
-    /* Floating play button */
+    /* Floating YouTube-style button */
     .floating-play-btn {
       position: fixed;
       top: 12px;
       right: 12px;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: none;
-      background: radial-gradient(circle at 30% 30%, #ff8a80, #e53935 55%, #b71c1c);
+      width: 46px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.25);
+      background: linear-gradient(180deg, #ff0000 0%, #e00000 100%);
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 20px rgba(229, 57, 53, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
       cursor: pointer;
       z-index: 2000;
+      padding: 0;
     }
     .floating-play-btn:active { transform: translateY(1px); }
     .floating-play-btn .play-icon {
       width: 0;
       height: 0;
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-left: 14px solid #fff;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-left: 12px solid #fff;
       margin-left: 2px;
-      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+      filter: none;
+    }
+
+    /* Favorites menu */
+    .favorite-menu {
+      position: fixed;
+      top: 56px;
+      right: 12px;
+      width: min(260px, 90vw);
+      background: #b71c1c;
+      color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      border: 1px solid rgba(0,0,0,0.35);
+      display: none;
+      z-index: 1900;
+      overflow: hidden;
+    }
+    .favorite-menu.open { display: block; }
+    .favorite-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.2);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .favorite-menu-close {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .favorite-menu ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .favorite-menu li {
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .favorite-menu li:first-child { border-top: none; }
+    .favorite-menu a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      padding: 12px;
+      font-weight: 600;
+    }
+    .favorite-menu a:hover { background: rgba(0,0,0,0.12); }
+    .favorite-menu .empty-state {
+      padding: 14px 12px;
+      font-size: 0.95rem;
+      opacity: 0.9;
+      text-align: center;
     }
 
     .youtube-highlight {
       box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.8), 0 0 12px rgba(255, 82, 82, 0.9);
       border-radius: var(--radius);
+    }
+
+    .youtube-option-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+    }
+    .youtube-option-row .youtube-entry {
+      padding: 0;
+      flex: 1;
+    }
+    .youtube-option-row .favorite-checkbox {
+      accent-color: var(--accent);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
     }
 
     /* Fullscreen embed */
@@ -224,6 +301,14 @@
   <button id="quick-youtube-btn" class="floating-play-btn" aria-label="Open YouTube menu">
     <span class="play-icon" aria-hidden="true"></span>
   </button>
+  <div id="favorite-menu" class="favorite-menu" aria-label="Favorite YouTube links" aria-hidden="true">
+    <div class="favorite-menu-header">
+      <span>Favorites</span>
+      <button id="favorite-menu-close" class="favorite-menu-close" aria-label="Close favorite menu">×</button>
+    </div>
+    <ul id="favorite-list"></ul>
+    <div class="empty-state">No favorites yet. Mark YouTube links to add them here.</div>
+  </div>
   <div class="container">
     <div class="title-nav">
       <h1 id="dropdown-btn">Come Follow Me 2026 ▾</h1>
@@ -243,15 +328,45 @@
           <li class="has-submenu youtube-menu">
             <span class="submenu-trigger">YouTube</span>
             <ul class="submenu">
-              <li><a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLmwhKQDUQ16h9rvianjjfidUUAYSjLW4y&si=fdzsWmgpHnsf6nvN">Follow Him</a></li>
-              <li><a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLeJgxN1WpXSDs5RFKCU4601&si=7X0m6VoGbbmXbalZ">Finding Christ in the Old Testament</a></li>
-              <li><a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLH0Szn1yYNeeVFodkI9J_WEATHQCwRZ0u">Bible Project</a></li>
-              <li><a class="youtube-entry" href="youtube://youtube.com/playlist?list=PLw_Vkm1zYbIErlYwD_spUSOn800Mo6Ed_&si=-Xf75yPmim7KRfdB">CFM with FAIR</a></li>
+              <li>
+                <div class="youtube-option-row">
+                  <input type="checkbox" class="favorite-checkbox" data-title="Follow Him" data-href="youtube://www.youtube.com/playlist?list=PLmwhKQDUQ16h9rvianjjfidUUAYSjLW4y&si=fdzsWmgpHnsf6nvN" aria-label="Favorite Follow Him">
+                  <a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLmwhKQDUQ16h9rvianjjfidUUAYSjLW4y&si=fdzsWmgpHnsf6nvN">Follow Him</a>
+                </div>
+              </li>
+              <li>
+                <div class="youtube-option-row">
+                  <input type="checkbox" class="favorite-checkbox" data-title="Finding Christ in the Old Testament" data-href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLeJgxN1WpXSDs5RFKCU4601&si=7X0m6VoGbbmXbalZ" aria-label="Favorite Finding Christ in the Old Testament">
+                  <a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLeJgxN1WpXSDs5RFKCU4601&si=7X0m6VoGbbmXbalZ">Finding Christ in the Old Testament</a>
+                </div>
+              </li>
+              <li>
+                <div class="youtube-option-row">
+                  <input type="checkbox" class="favorite-checkbox" data-title="Bible Project" data-href="youtube://www.youtube.com/playlist?list=PLH0Szn1yYNeeVFodkI9J_WEATHQCwRZ0u" aria-label="Favorite Bible Project">
+                  <a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLH0Szn1yYNeeVFodkI9J_WEATHQCwRZ0u">Bible Project</a>
+                </div>
+              </li>
+              <li>
+                <div class="youtube-option-row">
+                  <input type="checkbox" class="favorite-checkbox" data-title="CFM with FAIR" data-href="youtube://youtube.com/playlist?list=PLw_Vkm1zYbIErlYwD_spUSOn800Mo6Ed_&si=-Xf75yPmim7KRfdB" aria-label="Favorite CFM with FAIR">
+                  <a class="youtube-entry" href="youtube://youtube.com/playlist?list=PLw_Vkm1zYbIErlYwD_spUSOn800Mo6Ed_&si=-Xf75yPmim7KRfdB">CFM with FAIR</a>
+                </div>
+              </li>
               <li class="has-submenu">
                 <span class="submenu-trigger">Copy YouTube Transcript</span>
                 <ul class="submenu">
-                  <li><a href="#" class="embed-link youtube-entry" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a></li>
-                  <li><a class="youtube-entry" href="https://tactiq.io/tools/youtube-transcript" target="_blank" rel="noopener">Tactiq.io</a></li>
+                  <li>
+                    <div class="youtube-option-row">
+                      <input type="checkbox" class="favorite-checkbox" data-title="YouTube Transcript.io" data-href="https://www.youtube-transcript.io/" aria-label="Favorite YouTube Transcript.io">
+                      <a href="#" class="embed-link youtube-entry" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a>
+                    </div>
+                  </li>
+                  <li>
+                    <div class="youtube-option-row">
+                      <input type="checkbox" class="favorite-checkbox" data-title="Tactiq.io" data-href="https://tactiq.io/tools/youtube-transcript" aria-label="Favorite Tactiq.io">
+                      <a class="youtube-entry" href="https://tactiq.io/tools/youtube-transcript" target="_blank" rel="noopener">Tactiq.io</a>
+                    </div>
+                  </li>
                 </ul>
               </li>
             </ul>
@@ -327,6 +442,11 @@
     const youtubeMenuItem = ddMenu.querySelector('.youtube-menu');
     const youtubeEntries = Array.from(ddMenu.querySelectorAll('.youtube-entry'));
     const quickYoutubeBtn = document.getElementById('quick-youtube-btn');
+    const favoriteMenu = document.getElementById('favorite-menu');
+    const favoriteList = document.getElementById('favorite-list');
+    const favoriteMenuClose = document.getElementById('favorite-menu-close');
+    const favoriteEmpty = favoriteMenu.querySelector('.empty-state');
+    const favoriteCheckboxes = Array.from(document.querySelectorAll('.favorite-checkbox'));
 
     function closeMenu(){
       ddMenu.style.display = 'none';
@@ -336,6 +456,7 @@
 
     function openMenu(opts = {}){
       const { expandYoutube = false, highlightYoutube = false } = opts;
+      closeFavoriteMenu();
       ddMenu.style.display = 'block';
       if (expandYoutube && youtubeMenuItem){
         youtubeMenuItem.classList.add('menu-item-open');
@@ -345,12 +466,82 @@
       }
     }
 
+    const favoriteStorageKey = 'cfm-2026-favorite-youtube';
+    let favoriteLinks = loadFavoritesFromStorage();
+
+    function loadFavoritesFromStorage(){
+      try {
+        const parsed = JSON.parse(localStorage.getItem(favoriteStorageKey) || '[]');
+        if (Array.isArray(parsed)) return parsed.filter(item => item && item.href);
+      } catch {}
+      return [];
+    }
+
+    function saveFavorites(){
+      localStorage.setItem(favoriteStorageKey, JSON.stringify(favoriteLinks));
+    }
+
+    function closeFavoriteMenu(){
+      favoriteMenu.classList.remove('open');
+      favoriteMenu.setAttribute('aria-hidden', 'true');
+    }
+
+    function openFavoriteMenu(){
+      closeMenu();
+      renderFavoritesMenu();
+      favoriteMenu.classList.add('open');
+      favoriteMenu.setAttribute('aria-hidden', 'false');
+    }
+
+    function syncFavoriteCheckboxes(){
+      favoriteCheckboxes.forEach(cb => {
+        cb.checked = favoriteLinks.some(item => item.href === cb.dataset.href);
+      });
+    }
+
+    function renderFavoritesMenu(){
+      favoriteList.innerHTML = '';
+      if (!favoriteLinks.length){
+        favoriteEmpty.style.display = 'block';
+        return;
+      }
+      favoriteEmpty.style.display = 'none';
+
+      favoriteLinks.forEach(item => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = item.href;
+        link.textContent = item.title || 'Favorite link';
+        link.className = 'youtube-entry';
+        li.appendChild(link);
+        favoriteList.appendChild(li);
+      });
+    }
+
+    function updateFavoriteListFromCheckbox(cb){
+      const href = cb.dataset.href;
+      const title = cb.dataset.title || cb.closest('.youtube-option-row')?.querySelector('.youtube-entry')?.textContent?.trim() || 'Favorite link';
+
+      if (cb.checked){
+        if (!favoriteLinks.some(item => item.href === href)) {
+          favoriteLinks.push({ href, title });
+        }
+      } else {
+        favoriteLinks = favoriteLinks.filter(item => item.href !== href);
+      }
+      saveFavorites();
+      renderFavoritesMenu();
+    }
+
     ddTitle.addEventListener('click', e => {
       e.stopPropagation();
       const isOpen = ddMenu.style.display === 'block';
       isOpen ? closeMenu() : openMenu();
     });
-    document.addEventListener('click', closeMenu);
+    document.addEventListener('click', () => {
+      closeMenu();
+      closeFavoriteMenu();
+    });
     ddMenu.addEventListener('click', e => {
       e.stopPropagation();
       const trigger = e.target.closest('.submenu-trigger');
@@ -364,13 +555,30 @@
 
     quickYoutubeBtn.addEventListener('click', e => {
       e.stopPropagation();
-      openMenu({ expandYoutube: true, highlightYoutube: true });
+      if (favoriteMenu.classList.contains('open')) closeFavoriteMenu();
+      else openFavoriteMenu();
     });
+
+    favoriteMenuClose.addEventListener('click', e => {
+      e.stopPropagation();
+      closeFavoriteMenu();
+    });
+
+    favoriteMenu.addEventListener('click', e => e.stopPropagation());
+
+    favoriteCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        updateFavoriteListFromCheckbox(cb);
+      });
+    });
+
+    syncFavoriteCheckboxes();
+    renderFavoritesMenu();
 
     const embedModal = document.getElementById('embed-modal');
     const embedIframe = document.getElementById('embed-iframe');
     const embedCloseBtn = document.getElementById('embed-close');
-    function openEmbed(url){ embedIframe.src = url; embedModal.style.display='block'; closeMenu(); }
+    function openEmbed(url){ embedIframe.src = url; embedModal.style.display='block'; closeMenu(); closeFavoriteMenu(); }
     function closeEmbed(){ embedIframe.src='about:blank'; embedModal.style.display='none'; }
     document.querySelectorAll('.embed-link').forEach(link=>{
       link.addEventListener('click', e=>{ e.preventDefault(); openEmbed(link.dataset.url); });
