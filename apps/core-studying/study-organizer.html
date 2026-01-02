@@ -179,9 +179,8 @@
       gap: 10px;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+      padding-bottom: 8px;
     }
     .day-nav { display: flex; gap: 8px; align-items: center; }
     .day-actions { display: flex; align-items: center; gap: 12px; }
@@ -246,10 +245,17 @@
     }
     .section-actions {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .section-action-row {
+      display: flex;
       gap: 8px;
       align-items: center;
       justify-content: flex-end;
+      flex-wrap: wrap;
     }
     .split-btn {
       background: #21262d;
@@ -1027,7 +1033,26 @@ async function setDay(idx, scrollToDay = false) {
 
       const actionStack = document.createElement('div');
       actionStack.className = 'section-actions';
-      actionStack.append(cpBtn, splitBtn);
+
+      const primaryRow = document.createElement('div');
+      primaryRow.className = 'section-action-row';
+      primaryRow.append(cpBtn, splitBtn);
+
+      const aiRow = document.createElement('div');
+      aiRow.className = 'section-action-row';
+
+      const sectionGptBtn = document.createElement('button');
+      sectionGptBtn.className = 'secondary';
+      sectionGptBtn.textContent = 'GPT Read';
+      sectionGptBtn.onclick = () => copyAndOpen(() => sec.text, sectionGptBtn, GPT_READ_URL);
+
+      const sectionGemBtn = document.createElement('button');
+      sectionGemBtn.className = 'secondary';
+      sectionGemBtn.textContent = 'Gem Q&A';
+      sectionGemBtn.onclick = () => copyAndOpen(() => sec.text, sectionGemBtn, GEM_QA_URL);
+
+      aiRow.append(sectionGptBtn, sectionGemBtn);
+      actionStack.append(primaryRow, aiRow);
 
       const controls = document.createElement('div');
       controls.className = 'section-controls';
@@ -1098,6 +1123,28 @@ async function copyFullDay() {
   } catch (e) { els.copyDayBtn.textContent = "Error"; }
 }
 
+async function copyAndOpen(getTextFn, btn, url) {
+  if (!btn || !getTextFn) return;
+  const original = btn.textContent;
+  btn.textContent = 'Copying...';
+  btn.disabled = true;
+  try {
+    const text = await getTextFn();
+    if (!text) throw new Error('No text to copy');
+    await navigator.clipboard.writeText(text);
+    btn.textContent = 'Opening...';
+    window.open(url, '_blank');
+  } catch (e) {
+    console.error(e);
+    btn.textContent = 'Error';
+  } finally {
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.disabled = false;
+    }, 1200);
+  }
+}
+
 async function splitFullDay() {
   const day = currentPlan.days[currentDayIndex];
   if (!day || !day.sections.length) return;
@@ -1166,13 +1213,9 @@ els.nextDay.addEventListener('click', () => setDay(currentDayIndex + 1));
 els.todayBtn.addEventListener('click', () => setDay(getTodayIndex(), true));
 els.copyDayBtn.addEventListener('click', copyFullDay);
 els.splitDayBtn.addEventListener('click', splitFullDay);
-els.gptReadBtn.addEventListener('click', () => {
-  window.location.href = GPT_READ_URL;
-});
+els.gptReadBtn.addEventListener('click', () => copyAndOpen(getFullDayText, els.gptReadBtn, GPT_READ_URL));
 
-els.gemQaBtn.addEventListener('click', () => {
-  window.location.href = GEM_QA_URL;
-});
+els.gemQaBtn.addEventListener('click', () => copyAndOpen(getFullDayText, els.gemQaBtn, GEM_QA_URL));
 
 els.ttsBtn.addEventListener('click', () => {
   window.open(TTS_URL, '_blank');
