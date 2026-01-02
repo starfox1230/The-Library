@@ -97,6 +97,40 @@
     .menu-item-open > .submenu { max-height: 500px; }
     .menu-item-open > .submenu-trigger::after { transform: rotate(90deg); }
 
+    /* Floating play button */
+    .floating-play-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: radial-gradient(circle at 30% 30%, #ff8a80, #e53935 55%, #b71c1c);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(229, 57, 53, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      z-index: 2000;
+    }
+    .floating-play-btn:active { transform: translateY(1px); }
+    .floating-play-btn .play-icon {
+      width: 0;
+      height: 0;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-left: 14px solid #fff;
+      margin-left: 2px;
+      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+    }
+
+    .youtube-highlight {
+      box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.8), 0 0 12px rgba(255, 82, 82, 0.9);
+      border-radius: var(--radius);
+    }
+
     /* Fullscreen embed */
     .embed-modal {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -187,6 +221,9 @@
   </style>
 </head>
 <body>
+  <button id="quick-youtube-btn" class="floating-play-btn" aria-label="Open YouTube menu">
+    <span class="play-icon" aria-hidden="true"></span>
+  </button>
   <div class="container">
     <div class="title-nav">
       <h1 id="dropdown-btn">Come Follow Me 2026 ▾</h1>
@@ -203,17 +240,18 @@
               <li><a href="https://starfox1230.github.io/memorize/" target="_blank" rel="noopener">Memorize</a></li>
             </ul>
           </li>
-          <li class="has-submenu">
+          <li class="has-submenu youtube-menu">
             <span class="submenu-trigger">YouTube</span>
             <ul class="submenu">
-              <li><a href="youtube://www.youtube.com/playlist?list=PLmwhKQDUQ16h9rvianjjfidUUAYSjLW4y&si=fdzsWmgpHnsf6nvN">Follow Him</a></li>
-              <li><a href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLeJgxN1WpXSDs5RFKCU4601&si=7X0m6VoGbbmXbalZ">Finding Christ in the Old Testament</a></li>
-              <li><a href="youtube://www.youtube.com/playlist?list=PLH0Szn1yYNeeVFodkI9J_WEATHQCwRZ0u">Bible Project</a></li>
+              <li><a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLmwhKQDUQ16h9rvianjjfidUUAYSjLW4y&si=fdzsWmgpHnsf6nvN">Follow Him</a></li>
+              <li><a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLhfh21X9suLeJgxN1WpXSDs5RFKCU4601&si=7X0m6VoGbbmXbalZ">Finding Christ in the Old Testament</a></li>
+              <li><a class="youtube-entry" href="youtube://www.youtube.com/playlist?list=PLH0Szn1yYNeeVFodkI9J_WEATHQCwRZ0u">Bible Project</a></li>
+              <li><a class="youtube-entry" href="youtube://youtube.com/playlist?list=PLw_Vkm1zYbIErlYwD_spUSOn800Mo6Ed_&si=-Xf75yPmim7KRfdB">CFM with FAIR</a></li>
               <li class="has-submenu">
                 <span class="submenu-trigger">Copy YouTube Transcript</span>
                 <ul class="submenu">
-                  <li><a href="#" class="embed-link" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a></li>
-                  <li><a href="https://tactiq.io/tools/youtube-transcript" target="_blank" rel="noopener">Tactiq.io</a></li>
+                  <li><a href="#" class="embed-link youtube-entry" data-url="https://www.youtube-transcript.io/">YouTube Transcript.io</a></li>
+                  <li><a class="youtube-entry" href="https://tactiq.io/tools/youtube-transcript" target="_blank" rel="noopener">Tactiq.io</a></li>
                 </ul>
               </li>
             </ul>
@@ -245,7 +283,7 @@
     </div>
 
     <div class="actions">
-      <button id="toggle-btn" disabled>Show Sections</button>
+      <button id="toggle-btn" disabled>Show Chapters</button>
       <button id="copy-btn" disabled>Copy</button>
     </div>
 
@@ -286,11 +324,33 @@
     /* ===== Menu / embed ===== */
     const ddTitle = document.getElementById('dropdown-btn');
     const ddMenu = document.getElementById('dropdown-menu');
+    const youtubeMenuItem = ddMenu.querySelector('.youtube-menu');
+    const youtubeEntries = Array.from(ddMenu.querySelectorAll('.youtube-entry'));
+    const quickYoutubeBtn = document.getElementById('quick-youtube-btn');
+
+    function closeMenu(){
+      ddMenu.style.display = 'none';
+      youtubeMenuItem?.classList.remove('menu-item-open');
+      youtubeEntries.forEach(a => a.classList.remove('youtube-highlight'));
+    }
+
+    function openMenu(opts = {}){
+      const { expandYoutube = false, highlightYoutube = false } = opts;
+      ddMenu.style.display = 'block';
+      if (expandYoutube && youtubeMenuItem){
+        youtubeMenuItem.classList.add('menu-item-open');
+      }
+      if (highlightYoutube){
+        youtubeEntries.forEach(a => a.classList.add('youtube-highlight'));
+      }
+    }
+
     ddTitle.addEventListener('click', e => {
       e.stopPropagation();
-      ddMenu.style.display = ddMenu.style.display === 'block' ? 'none' : 'block';
+      const isOpen = ddMenu.style.display === 'block';
+      isOpen ? closeMenu() : openMenu();
     });
-    document.addEventListener('click', () => { ddMenu.style.display = 'none'; });
+    document.addEventListener('click', closeMenu);
     ddMenu.addEventListener('click', e => {
       e.stopPropagation();
       const trigger = e.target.closest('.submenu-trigger');
@@ -302,10 +362,15 @@
       parentLi.classList.toggle('menu-item-open');
     });
 
+    quickYoutubeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      openMenu({ expandYoutube: true, highlightYoutube: true });
+    });
+
     const embedModal = document.getElementById('embed-modal');
     const embedIframe = document.getElementById('embed-iframe');
     const embedCloseBtn = document.getElementById('embed-close');
-    function openEmbed(url){ embedIframe.src = url; embedModal.style.display='block'; ddMenu.style.display='none'; }
+    function openEmbed(url){ embedIframe.src = url; embedModal.style.display='block'; closeMenu(); }
     function closeEmbed(){ embedIframe.src='about:blank'; embedModal.style.display='none'; }
     document.querySelectorAll('.embed-link').forEach(link=>{
       link.addEventListener('click', e=>{ e.preventDefault(); openEmbed(link.dataset.url); });
@@ -833,7 +898,7 @@
         const arr = assigns[dayIdx] || [];
         const hasContent = arr.length>0;
         toggleBtn.disabled = !hasContent;
-        toggleBtn.textContent = (displayMode==='verses') ? 'Show Sections' : 'Show Verses';
+        toggleBtn.textContent = (displayMode==='verses') ? 'Show Chapters' : 'Show Verses';
         copyBtn.disabled = !hasContent;
 
         manualLinks.style.display = '';
@@ -870,7 +935,7 @@
       if (viewMode==='week'){
         const hasContent = flat.length>0;
         toggleBtn.disabled = true;
-        toggleBtn.textContent = 'Show Sections';
+        toggleBtn.textContent = 'Show Chapters';
         copyBtn.disabled = !hasContent;
 
         manualLinks.style.display = '';
@@ -896,7 +961,7 @@
 
       if (viewMode==='manual'){
         toggleBtn.disabled = true;
-        toggleBtn.textContent = 'Show Sections';
+        toggleBtn.textContent = 'Show Chapters';
         scriptureLinks.style.display = 'none';
         manualLinks.style.display = '';
 
