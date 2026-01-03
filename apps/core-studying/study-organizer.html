@@ -242,14 +242,34 @@
       white-space: nowrap;
     }
 
+    /* Layout Update: Stack Toggles on top of Buttons */
     .section-controls {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: start;
-      gap: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
     }
-    .section-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
-    .section-action-row { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* Make the button group a single horizontal row */
+    .section-actions {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+    }
+
+    /* Reset the action row to not interfere with flex layout */
+    .section-action-row {
+      display: contents; /* Allows children to sit directly in the .section-actions flex container */
+    }
+
+    /* Ensure buttons don't shrink too small */
+    .section-actions button {
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
     .split-btn {
       background: #21262d;
       color: #c084fc;
@@ -932,37 +952,49 @@ function updateCalendarCellColor(cell, day) {
   
   const total = day.sections.length;
   
-  // 1. Calculate Raw Counts
-  const rawReadCount = day.sections.filter(s => s.read).length;
+  // 1. Calculate Basic Counts
+  const readCount = day.sections.filter(s => s.read).length;
   const ankiCount = day.sections.filter(s => s.anki).length;
   
-  // 2. Effective Listen Logic: 
-  // If I read it, I effectively listened to it (input phase complete).
-  const effectiveListenCount = day.sections.filter(s => s.listen || s.read).length;
-
-  const readPct = rawReadCount / total;
-  const ankiPct = ankiCount / total;
-  const listenPct = effectiveListenCount / total;
-
-  // 3. Define Colors (Matches the Toggle Button Colors)
-  // Listen = #d29922 (Orange), Read = #3fb950 (Green), Anki = #58a6ff (Blue)
+  // 2. Calculate "Listen" Relevance
+  // Listen is only required for sections that are NOT read.
+  const sectionsNeedingListen = total - readCount;
   
-  // You can stick to your complex getGradientColor function if you prefer the Red->Green heatmap,
-  // but for "Status Completion" simple toggle colors are usually cleaner. 
-  // Let's use your existing heat-map logic for uniformity OR switch to solid status colors.
-  // Below uses your existing getGradientColor for consistency with the rest of the app:
-  const cListen = getGradientColor(listenPct); 
+  // Count how many of those specific sections were actually listened to.
+  // We exclude sections that are already read to avoid double counting visual progress.
+  const relevantListenCount = day.sections.filter(s => s.listen && !s.read).length;
+
+  // 3. Calculate Widths
+  // If 100% read -> Listen Width = 0%.
+  // If 0% read -> Listen Width = 33.33%.
+  const listenWidthPct = (sectionsNeedingListen / total) * 33.33;
+  
+  // The remaining space is split equally between Read and Anki
+  const remainder = 100 - listenWidthPct;
+  const readWidthPct = remainder / 2;
+  
+  // 4. Calculate Colors (Status)
+  let listenPct = 0;
+  if (sectionsNeedingListen > 0) {
+    listenPct = relevantListenCount / sectionsNeedingListen;
+  }
+  
+  const readPct = readCount / total;
+  const ankiPct = ankiCount / total;
+
+  const cListen = getGradientColor(listenPct);
   const cRead = getGradientColor(readPct);
   const cAnki = getGradientColor(ankiPct);
+
+  // Gradient Stops
+  const stop1 = listenWidthPct; 
+  const stop2 = listenWidthPct + readWidthPct;
   
-  // 4. LOGIC SWITCH:
-  // If the day is 100% Read, we switch to 2-Column Mode (Read | Anki).
-  if (readPct === 1) {
-    cell.style.background = `linear-gradient(90deg, ${cRead} 50%, ${cAnki} 50%)`;
-  } else {
-    // Standard 3-Column Mode (Listen | Read | Anki)
-    cell.style.background = `linear-gradient(90deg, ${cListen} 33.33%, ${cRead} 33.33% 66.66%, ${cAnki} 66.66%)`;
-  }
+  cell.style.background = `linear-gradient(90deg, 
+    ${cListen} ${stop1}%, 
+    ${cRead} ${stop1}% ${stop2}%, 
+    ${cAnki} ${stop2}%
+  )`;
   
   cell.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
 }
@@ -1101,11 +1133,17 @@ async function setDay(idx, scrollToDay = false) {
 
       grp.append(btnListen, btnRead, btnAnki);
 
+      // --- Buttons Row ---
+      const actionStack = document.createElement('div');
+      actionStack.className = 'section-actions';
+
+      // 1. Copy
       const cpBtn = document.createElement('button');
       cpBtn.className = 'secondary';
       cpBtn.textContent = 'Copy';
       cpBtn.onclick = (e) => copyText(sec.text, e.target);
 
+      // 2. Split
       const splitBtn = document.createElement('button');
       splitBtn.className = 'split-btn';
       splitBtn.textContent = 'Split';
@@ -1114,32 +1152,24 @@ async function setDay(idx, scrollToDay = false) {
         window.open('../text-splitter/index.html', '_blank');
       };
 
-      const actionStack = document.createElement('div');
-      actionStack.className = 'section-actions';
-
-      const primaryRow = document.createElement('div');
-      primaryRow.className = 'section-action-row';
-      primaryRow.append(cpBtn, splitBtn);
-
-      const aiRow = document.createElement('div');
-      aiRow.className = 'section-action-row';
-
+      // 3. GPT Read
       const sectionGptBtn = document.createElement('button');
       sectionGptBtn.className = 'secondary';
       sectionGptBtn.textContent = 'GPT Read';
       sectionGptBtn.onclick = () => copyAndOpen(() => sec.text, sectionGptBtn, GPT_READ_URL);
 
+      // 4. Gem Q&A
       const sectionGemBtn = document.createElement('button');
       sectionGemBtn.className = 'secondary';
       sectionGemBtn.textContent = 'Gem Q&A';
       sectionGemBtn.onclick = () => copyAndOpen(() => sec.text, sectionGemBtn, GEM_QA_URL);
 
-      aiRow.append(sectionGptBtn, sectionGemBtn);
-      actionStack.append(primaryRow, aiRow);
+      // Append all to the single row container
+      actionStack.append(cpBtn, splitBtn, sectionGptBtn, sectionGemBtn);
 
       const controls = document.createElement('div');
       controls.className = 'section-controls';
-      controls.append(grp, actionStack);
+      controls.append(grp, actionStack); // Toggles on top, Buttons below
 
       head.append(headerTop, controls);
       
@@ -1211,12 +1241,19 @@ async function copyAndOpen(getTextFn, btn, url) {
   const original = btn.textContent;
   btn.textContent = 'Copying...';
   btn.disabled = true;
+  
   try {
+    // 1. Perform Copy
     const text = await getTextFn();
-    if (!text) throw new Error('No text to copy');
+    if (!text) throw new Error('No text');
     await navigator.clipboard.writeText(text);
-    btn.textContent = 'Opening...';
+    
+    // 2. Open Immediately
+    // We do not wait for a "loading" state. We just pop the URL.
+    // This allows mobile devices to recognize the link intent (e.g. opening the ChatGPT app)
     window.open(url, '_blank');
+    
+    btn.textContent = 'Opened!';
   } catch (e) {
     console.error(e);
     btn.textContent = 'Error';
