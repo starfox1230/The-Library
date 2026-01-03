@@ -264,22 +264,61 @@
 
     .checklist-group {
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      background: rgba(0,0,0,0.2);
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
+      gap: 8px;
+      /* Remove old background/border if you prefer a cleaner look, 
+         or keep it to group them. Let's keep it clean: */
+      background: transparent;
+      border: none;
+      padding: 0;
     }
-    .chk-label {
+
+    .toggle-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      padding: 6px 14px;
+      border-radius: 20px; /* Pill shape */
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
       user-select: none;
     }
-    .chk-label input { width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; }
+
+    .toggle-btn:hover {
+      border-color: #8b949e;
+      color: #c9d1d9;
+    }
+
+    /* Active States */
+    .toggle-btn.active {
+      border-color: transparent;
+      color: #0d1117; /* Dark text on bright background */
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .toggle-btn.t-listen.active {
+      background: #d29922; /* Yellow/Orange for Listen */
+    }
+
+    .toggle-btn.t-read.active {
+      background: #3fb950; /* Green for Read */
+    }
+
+    .toggle-btn.t-anki.active {
+      background: #58a6ff; /* Blue for Anki */
+    }
+
+    /* Dim Listen if Read is present (handled via JS adding a class or inline style, 
+       but we can also just use opacity if we add a class like .dimmed) */
+    .toggle-btn.dimmed {
+      opacity: 0.4;
+      pointer-events: none; /* Optional: prevent clicking if you want to force Read-only */
+    }
 
     .section-content { padding: 12px; overflow-x: auto; }
     pre {
@@ -397,14 +436,10 @@
       <div id="calendar-wrapper" class="calendar-container hidden">
         <div id="real-calendar-root"></div>
         <div class="cal-legend">
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #f85149 50%, #21262d 50%)"></div> Read (0%)</div>
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #3fb950 50%, #21262d 50%)"></div> Read (100%)</div>
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #f85149 50%)"></div> Anki (0%)</div>
-          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #3fb950 50%)"></div> Anki (100%)</div>
-          <div class="legend-item" style="border-left: 1px solid var(--border); padding-left: 10px; margin-left: 5px;">
-            <div class="legend-box" style="background: #3fb950"></div> Light Load
-          </div>
-          <div class="legend-item"><div class="legend-box" style="background: #f85149"></div> Heavy Load</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #d29922 33%, #d29922 33% 66%, #21262d 66%)"></div> Listen</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #3fb950 33%, #3fb950 33% 66%, #21262d 66%)"></div> Read</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #3fb950 50%, #58a6ff 50%)"></div> Read (2-Col)</div>
+          <div class="legend-item"><div class="legend-box" style="background: linear-gradient(90deg, #21262d 50%, #58a6ff 50%)"></div> Anki</div>
         </div>
       </div>
     </div>
@@ -695,9 +730,9 @@ async function generatePlan() {
         file: sec.file,
         fullTitle: sec.fullTitle,
         length: text.length,
-        // DUAL CHECKBOX STATE
-        read: false, 
-        anki: false 
+        listen: false,
+        read: false,
+        anki: false
       });
     }
 
@@ -763,6 +798,11 @@ async function generatePlan() {
 function loadPlan(id) {
   currentPlan = appData.savedPlans[id];
   if (!currentPlan) return;
+  currentPlan.days.forEach(d => {
+    d.sections.forEach(sec => {
+      if (sec.listen === undefined) sec.listen = false;
+    });
+  });
   appData.lastActiveId = id;
   saveData();
   if (booksData[currentPlan.book]) currentBookPath = booksData[currentPlan.book].basePath;
@@ -891,16 +931,39 @@ function updateCalendarCellColor(cell, day) {
   }
   
   const total = day.sections.length;
-  const readCount = day.sections.filter(s => s.read).length;
+  
+  // 1. Calculate Raw Counts
+  const rawReadCount = day.sections.filter(s => s.read).length;
   const ankiCount = day.sections.filter(s => s.anki).length;
   
-  const readPct = readCount / total;
-  const ankiPct = ankiCount / total;
+  // 2. Effective Listen Logic: 
+  // If I read it, I effectively listened to it (input phase complete).
+  const effectiveListenCount = day.sections.filter(s => s.listen || s.read).length;
 
+  const readPct = rawReadCount / total;
+  const ankiPct = ankiCount / total;
+  const listenPct = effectiveListenCount / total;
+
+  // 3. Define Colors (Matches the Toggle Button Colors)
+  // Listen = #d29922 (Orange), Read = #3fb950 (Green), Anki = #58a6ff (Blue)
+  
+  // You can stick to your complex getGradientColor function if you prefer the Red->Green heatmap,
+  // but for "Status Completion" simple toggle colors are usually cleaner. 
+  // Let's use your existing heat-map logic for uniformity OR switch to solid status colors.
+  // Below uses your existing getGradientColor for consistency with the rest of the app:
+  const cListen = getGradientColor(listenPct); 
   const cRead = getGradientColor(readPct);
   const cAnki = getGradientColor(ankiPct);
   
-  cell.style.background = `linear-gradient(90deg, ${cRead} 50%, ${cAnki} 50%)`;
+  // 4. LOGIC SWITCH:
+  // If the day is 100% Read, we switch to 2-Column Mode (Read | Anki).
+  if (readPct === 1) {
+    cell.style.background = `linear-gradient(90deg, ${cRead} 50%, ${cAnki} 50%)`;
+  } else {
+    // Standard 3-Column Mode (Listen | Read | Anki)
+    cell.style.background = `linear-gradient(90deg, ${cListen} 33.33%, ${cRead} 33.33% 66.66%, ${cAnki} 66.66%)`;
+  }
+  
   cell.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
 }
 
@@ -992,24 +1055,51 @@ async function setDay(idx, scrollToDay = false) {
       
       const grp = document.createElement('div');
       grp.className = 'checklist-group';
-      
-      const lRead = document.createElement('label');
-      lRead.className = 'chk-label';
-      const cRead = document.createElement('input');
-      cRead.type = 'checkbox';
-      cRead.checked = day.sections[sIdx].read || false;
-      cRead.onchange = () => toggleCheck(idx, sIdx, 'read', cRead.checked);
-      lRead.append(cRead, "Read");
 
-      const lAnki = document.createElement('label');
-      lAnki.className = 'chk-label';
-      const cAnki = document.createElement('input');
-      cAnki.type = 'checkbox';
-      cAnki.checked = day.sections[sIdx].anki || false;
-      cAnki.onchange = () => toggleCheck(idx, sIdx, 'anki', cAnki.checked);
-      lAnki.append(cAnki, "Anki");
+      // Helper to create a toggle button
+      const createToggle = (label, type, isChecked, onClick) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `toggle-btn t-${type} ${isChecked ? 'active' : ''}`;
+        btn.textContent = label;
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          btn.classList.toggle('active');
+          onClick();
+        };
+        return btn;
+      };
 
-      grp.append(lRead, lAnki);
+      // 1. LISTEN Toggle
+      const isListen = day.sections[sIdx].listen || false;
+      const btnListen = createToggle('Listen', 'listen', isListen, () => {
+        const current = day.sections[sIdx].listen || false;
+        toggleCheck(idx, sIdx, 'listen', !current);
+      });
+
+      // 2. READ Toggle
+      const isRead = day.sections[sIdx].read || false;
+      const btnRead = createToggle('Read', 'read', isRead, () => {
+        const current = day.sections[sIdx].read || false;
+        toggleCheck(idx, sIdx, 'read', !current);
+        // Re-render day to apply "dimming" logic to Listen button
+        setDay(idx, false); 
+      });
+
+      // 3. ANKI Toggle
+      const isAnki = day.sections[sIdx].anki || false;
+      const btnAnki = createToggle('Anki', 'anki', isAnki, () => {
+        const current = day.sections[sIdx].anki || false;
+        toggleCheck(idx, sIdx, 'anki', !current);
+      });
+
+      // Dimming Logic: If Read is active, dim Listen
+      if (isRead) {
+        btnListen.classList.add('dimmed');
+        btnListen.title = "Read implies Listen";
+      }
+
+      grp.append(btnListen, btnRead, btnAnki);
 
       const cpBtn = document.createElement('button');
       cpBtn.className = 'secondary';
