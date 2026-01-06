@@ -389,6 +389,27 @@ Example format:
         }
         .nav-button:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5); }
         .nav-button:disabled { background: #5a5a7e; cursor: not-allowed; opacity: 0.6; box-shadow: none; transform: none; }
+
+        .favorite-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--bright-blue);
+            background: rgba(74, 74, 245, 0.1);
+            color: #f5d742;
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: all 0.2s ease;
+        }
+        .favorite-toggle:hover { background: rgba(74, 74, 245, 0.2); box-shadow: 0 0 10px rgba(245, 215, 66, 0.5); }
+        .favorite-toggle.active { background: rgba(245, 215, 66, 0.2); box-shadow: 0 0 12px rgba(245, 215, 66, 0.7); }
+
+        .favorite-mark { color: #f5d742; margin-left: 6px; }
         
         /* Review Screen Styles */
         #completion-message { margin-top: 0px; flex-grow: 1; display: none; flex-direction: column; align-items: center; width: 100%; }
@@ -467,7 +488,8 @@ Example format:
     </div>
 
     <div class="quiz-container">
-        
+        <button id="favorite-toggle" class="favorite-toggle" aria-pressed="false" title="Save question to favorites">☆</button>
+
         <div id="navigator-overlay" class="navigator-overlay">
             <div class="navigator-grid" id="navigator-grid"></div>
             <button class="navigator-close" id="navigator-close">Close Menu</button>
@@ -488,6 +510,7 @@ Example format:
                 <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="correct">Correct</button>
                 <button class="filter-btn" data-filter="incorrect">Incorrect</button>
+                <button class="filter-btn" data-filter="favorites">Favorites</button>
                 <button id="copy-review-btn" class="copy-review-btn">Copy Listed Items</button>
             </div>
 
@@ -533,6 +556,7 @@ Example format:
     const profilePanelEl = document.getElementById('profile-panel');
     const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
     const pastSessionsListEl = document.getElementById('past-sessions-list');
+    const favoriteToggle = document.getElementById('favorite-toggle');
     
     // Navigator Elements
     const navigatorOverlay = document.getElementById('navigator-overlay');
@@ -548,8 +572,26 @@ Example format:
     let currentQuestionIndex = 0;
     let userAnswers = new Array(quizData.length).fill(null);
     let currentFilter = 'all';
+    let favoriteQuestions = new Set();
 
     // --- Core Quiz Functions ---
+    function updateFavoriteButton() {
+        const isFavorite = favoriteQuestions.has(currentQuestionIndex);
+        favoriteToggle.classList.toggle('active', isFavorite);
+        favoriteToggle.textContent = isFavorite ? '★' : '☆';
+        favoriteToggle.setAttribute('aria-pressed', isFavorite);
+        favoriteToggle.title = isFavorite ? 'Remove from favorites' : 'Save question to favorites';
+        favoriteToggle.removeAttribute('aria-hidden');
+        favoriteToggle.style.display = currentQuestionIndex >= quizData.length ? 'none' : 'grid';
+    }
+
+    function toggleFavorite() {
+        if (currentQuestionIndex >= quizData.length) return;
+        if (favoriteQuestions.has(currentQuestionIndex)) favoriteQuestions.delete(currentQuestionIndex);
+        else favoriteQuestions.add(currentQuestionIndex);
+        updateFavoriteButton();
+    }
+
     function loadQuestion() {
         // Ensure UI is in Quiz Mode
         if (currentQuestionIndex >= quizData.length) { showCompletion(); return; }
@@ -589,6 +631,7 @@ Example format:
             explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
             explanationElement.style.display = 'block';
         }
+        updateFavoriteButton();
         updateNavButtonStates();
     }
 
@@ -659,7 +702,9 @@ Example format:
         quizContentElement.style.display = 'none';
         navigationButtonsElement.style.display = 'none';
         completionMessageElement.style.display = 'flex';
-        
+        favoriteToggle.style.display = 'none';
+        favoriteToggle.setAttribute('aria-hidden', 'true');
+
         let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
         document.getElementById('final-score').textContent = \`Score: \${correctCount} / \${quizData.length}\`;
         
@@ -680,10 +725,12 @@ Example format:
             const ua = userAnswers[index];
             const isCorrect = ua && ua.isCorrect;
             const isAnswered = ua !== null;
-            
+            const isFavorite = favoriteQuestions.has(index);
+
             // Filter Logic
             if (filter === 'correct' && !isCorrect) return;
             if (filter === 'incorrect' && (isCorrect || !isAnswered)) return; // Show incorrect and unanswered in "incorrect" or just incorrect? Usually just incorrect.
+            if (filter === 'favorites' && !isFavorite) return;
 
             const card = document.createElement('div');
             card.classList.add('review-card');
@@ -691,7 +738,7 @@ Example format:
             else card.classList.add('incorrect-card');
 
             // Building the HTML string for the card
-            let html = \`<div class="review-q">\${index + 1}. \${q.question}</div>\`;
+            let html = \`<div class="review-q">\${index + 1}. \${q.question}\${isFavorite ? ' <span class="favorite-mark" title="Favorited">★</span>' : ''}</div>\`;
             
             // User Answer
             if (ua) {
@@ -722,12 +769,14 @@ Example format:
             const ua = userAnswers[index];
             const isCorrect = ua && ua.isCorrect;
             const isAnswered = ua !== null;
+            const isFavorite = favoriteQuestions.has(index);
 
             if (currentFilter === 'correct' && !isCorrect) return;
             if (currentFilter === 'incorrect' && (isCorrect || !isAnswered)) return;
+            if (currentFilter === 'favorites' && !isFavorite) return;
 
             count++;
-            textToCopy += \`Q\${index + 1}: \${q.question}\\n\`;
+            textToCopy += \`Q\${index + 1}: \${q.question}\${isFavorite ? ' ★' : ''}\\n\`;
             textToCopy += \`Your Answer: \${ua ? ua.selected : "Skipped"} (\${isCorrect ? 'Correct' : 'Incorrect'})\\n\`;
             if(!isCorrect) textToCopy += \`Correct Answer: \${q.correctAnswer}\\n\`;
             textToCopy += \`Explanation: \${q.explanation}\\n\`;
@@ -805,6 +854,7 @@ Example format:
     // --- Event Listeners ---
     prevButton.addEventListener('click', goToPreviousQuestion);
     nextButton.addEventListener('click', goToNextQuestion);
+    favoriteToggle.addEventListener('click', toggleFavorite);
     
     // Navigator Listeners
     questionCounterElement.addEventListener('click', toggleNavigator);
