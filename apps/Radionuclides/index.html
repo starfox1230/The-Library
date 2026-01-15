@@ -147,6 +147,37 @@
       max-width: 100%;
       margin-bottom: 0.5rem;
     }
+    .filters {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .filter-group label {
+      font-size: 0.9rem;
+      color: #cfd3d6;
+    }
+    .filter-group select,
+    .filter-group input[type="range"] {
+      width: 100%;
+      padding: 0.6rem;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--primary-color);
+      border-radius: var(--border-radius-sm);
+      color: #e0e0e0;
+    }
+    .filter-group input[type="range"] {
+      padding: 0;
+      accent-color: var(--primary-color);
+    }
+    .filter-value {
+      font-size: 0.85rem;
+      color: #e0e0e0;
+    }
   </style>
 </head>
 <body>
@@ -188,6 +219,26 @@
   <div id="search-app">
     <h1>Radionuclide Explorer</h1>
     <input type="text" id="search-input" placeholder="Type to search radionuclides…" />
+    <div class="filters">
+      <div class="filter-group">
+        <label for="decay-filter">Decay method</label>
+        <select id="decay-filter">
+          <option value="any">Any</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="photon-filter">Photon energy</label>
+        <input type="range" id="photon-filter" min="0" max="0" step="1" value="0" list="photon-filter-options" />
+        <datalist id="photon-filter-options"></datalist>
+        <div class="filter-value" id="photon-filter-value">Any</div>
+      </div>
+      <div class="filter-group">
+        <label for="half-life-filter">Half-life</label>
+        <input type="range" id="half-life-filter" min="0" max="0" step="1" value="0" list="half-life-filter-options" />
+        <datalist id="half-life-filter-options"></datalist>
+        <div class="filter-value" id="half-life-filter-value">Any</div>
+      </div>
+    </div>
     <div id="search-results"></div>
     <div class="controls">
       <button type="button" onclick="toggleSearchApp(event)">← Back to Flashcards</button>
@@ -262,6 +313,18 @@
 
     // Cache which slug we've loaded (avoid reloading if user toggles)
     let loadedSlug = null;
+
+    const decayFilterEl = document.getElementById("decay-filter");
+    const photonFilterEl = document.getElementById("photon-filter");
+    const photonFilterOptionsEl = document.getElementById("photon-filter-options");
+    const photonFilterValueEl = document.getElementById("photon-filter-value");
+    const halfLifeFilterEl = document.getElementById("half-life-filter");
+    const halfLifeFilterOptionsEl = document.getElementById("half-life-filter-options");
+    const halfLifeFilterValueEl = document.getElementById("half-life-filter-value");
+
+    const decayOptions = buildUniqueOptions(data.map(item => item.decay));
+    const photonOptions = buildOrderedOptions(data.map(item => item.photons), getPhotonSortValue);
+    const halfLifeOptions = buildOrderedOptions(data.map(item => item.halfLife), getHalfLifeSortValue);
 
     /* ===============================
        Core UI
@@ -362,11 +425,106 @@
 
     // Live filtering
     document.getElementById('search-input').addEventListener('input', filterRadionuclides);
+    decayFilterEl.addEventListener('change', filterRadionuclides);
+    photonFilterEl.addEventListener('input', handlePhotonFilterInput);
+    halfLifeFilterEl.addEventListener('input', handleHalfLifeFilterInput);
+
+    function setupSearchFilters() {
+      decayOptions.forEach(option => {
+        const item = document.createElement("option");
+        item.value = option;
+        item.textContent = option;
+        decayFilterEl.appendChild(item);
+      });
+
+      configureSlider({
+        sliderEl: photonFilterEl,
+        datalistEl: photonFilterOptionsEl,
+        valueEl: photonFilterValueEl,
+        options: photonOptions
+      });
+
+      configureSlider({
+        sliderEl: halfLifeFilterEl,
+        datalistEl: halfLifeFilterOptionsEl,
+        valueEl: halfLifeFilterValueEl,
+        options: halfLifeOptions
+      });
+    }
+
+    function configureSlider({ sliderEl, datalistEl, valueEl, options }) {
+      sliderEl.min = 0;
+      sliderEl.max = options.length;
+      sliderEl.step = 1;
+      sliderEl.value = 0;
+      datalistEl.innerHTML = options
+        .map((option, index) => `<option value="${index + 1}" label="${option}"></option>`)
+        .join('');
+      valueEl.textContent = "Any";
+    }
+
+    function handlePhotonFilterInput() {
+      photonFilterValueEl.textContent = getSliderSelection(photonFilterEl, photonOptions);
+      filterRadionuclides();
+    }
+
+    function handleHalfLifeFilterInput() {
+      halfLifeFilterValueEl.textContent = getSliderSelection(halfLifeFilterEl, halfLifeOptions);
+      filterRadionuclides();
+    }
+
+    function getSliderSelection(sliderEl, options) {
+      const value = Number(sliderEl.value);
+      return value === 0 ? "Any" : options[value - 1];
+    }
+
+    function buildUniqueOptions(values) {
+      return [...new Set(values)];
+    }
+
+    function buildOrderedOptions(values, getSortValue) {
+      const uniqueValues = [...new Set(values)];
+      return uniqueValues.sort((a, b) => getSortValue(a) - getSortValue(b));
+    }
+
+    function getPhotonSortValue(value) {
+      const match = value.match(/[\d.]+/);
+      if (!match) return Number.POSITIVE_INFINITY;
+      return Number.parseFloat(match[0]);
+    }
+
+    function getHalfLifeSortValue(value) {
+      const match = value.match(/([\d.]+)\s*(seconds?|minutes?|hours?|days?)/i);
+      if (!match) return Number.POSITIVE_INFINITY;
+      const amount = Number.parseFloat(match[1]);
+      const unit = match[2].toLowerCase();
+      const multipliers = {
+        second: 1,
+        seconds: 1,
+        minute: 60,
+        minutes: 60,
+        hour: 3600,
+        hours: 3600,
+        day: 86400,
+        days: 86400
+      };
+      return amount * (multipliers[unit] || 1);
+    }
+
     function filterRadionuclides() {
       const q   = document.getElementById('search-input').value.toLowerCase();
       const out = document.getElementById('search-results');
+      const decayFilter = decayFilterEl.value;
+      const photonFilter = getSliderSelection(photonFilterEl, photonOptions);
+      const halfLifeFilter = getSliderSelection(halfLifeFilterEl, halfLifeOptions);
       out.innerHTML = '';
-      data.filter(item => item.name.toLowerCase().includes(q))
+      data.filter(item => {
+            const matchesName = item.name.toLowerCase().includes(q);
+            const matchesDecay = decayFilter === "any" || item.decay === decayFilter;
+            const matchesPhoton = photonFilter === "Any" || item.photons === photonFilter;
+            const matchesHalfLife = halfLifeFilter === "Any" || item.halfLife === halfLifeFilter;
+            return matchesName && matchesDecay && matchesPhoton && matchesHalfLife;
+          })
           .forEach(item => {
             const div = document.createElement('div');
             div.className = 'result-item';
@@ -546,6 +704,8 @@
         }
         containerEl.focus();
       }, 150);
+
+      setupSearchFilters();
     };
   </script>
 </body>
