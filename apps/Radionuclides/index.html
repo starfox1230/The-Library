@@ -322,8 +322,8 @@
     const halfLifeFilterOptionsEl = document.getElementById("half-life-filter-options");
     const halfLifeFilterValueEl = document.getElementById("half-life-filter-value");
 
-    const decayOptions = buildUniqueOptions(data.map(item => item.decay));
-    const photonOptions = buildOrderedOptions(data.map(item => item.photons), getPhotonSortValue);
+    const decayOptions = buildUniqueOptions(data.map(item => getPredominantDecay(item.decay))).sort();
+    const photonOptions = buildPhotonOptions(data);
     const halfLifeOptions = buildOrderedOptions(data.map(item => item.halfLife), getHalfLifeSortValue);
 
     /* ===============================
@@ -441,7 +441,8 @@
         sliderEl: photonFilterEl,
         datalistEl: photonFilterOptionsEl,
         valueEl: photonFilterValueEl,
-        options: photonOptions
+        options: photonOptions,
+        formatLabel: value => `${value} keV`
       });
 
       configureSlider({
@@ -452,19 +453,20 @@
       });
     }
 
-    function configureSlider({ sliderEl, datalistEl, valueEl, options }) {
+    function configureSlider({ sliderEl, datalistEl, valueEl, options, formatLabel = value => value }) {
       sliderEl.min = 0;
       sliderEl.max = options.length;
       sliderEl.step = 1;
       sliderEl.value = 0;
       datalistEl.innerHTML = options
-        .map((option, index) => `<option value="${index + 1}" label="${option}"></option>`)
+        .map((option, index) => `<option value="${index + 1}" label="${formatLabel(option)}"></option>`)
         .join('');
       valueEl.textContent = "Any";
     }
 
     function handlePhotonFilterInput() {
-      photonFilterValueEl.textContent = getSliderSelection(photonFilterEl, photonOptions);
+      const selection = getSliderSelection(photonFilterEl, photonOptions);
+      photonFilterValueEl.textContent = selection === "Any" ? "Any" : `${selection} keV`;
       filterRadionuclides();
     }
 
@@ -479,18 +481,48 @@
     }
 
     function buildUniqueOptions(values) {
-      return [...new Set(values)];
+      return [...new Set(values.filter(Boolean))];
+    }
+
+    function getPredominantDecay(decay) {
+      if (!decay) return null;
+      const normalized = decay.toLowerCase();
+      if (normalized.includes("beta") && (normalized.includes("⁺") || normalized.includes("+") || normalized.includes("positron") || normalized.includes("β+"))) {
+        return "Beta+ / Positron Emission Predominant";
+      }
+      if (normalized.includes("positron")) {
+        return "Beta+ / Positron Emission Predominant";
+      }
+      if (normalized.includes("beta") && (normalized.includes("⁻") || normalized.includes("-") || normalized.includes("β-"))) {
+        return "Beta- Predominant";
+      }
+      if (normalized.includes("electron capture")) {
+        return "Electron Capture Predominant";
+      }
+      if (normalized.includes("isomeric transition")) {
+        return "Isomeric Transition Predominant";
+      }
+      if (normalized.includes("alpha")) {
+        return "Alpha Predominant";
+      }
+      return "Other Predominant";
+    }
+
+    function buildPhotonOptions(items) {
+      const energies = items.flatMap(item => extractPhotonEnergies(item.photons));
+      return [...new Set(energies)].sort((a, b) => a - b);
+    }
+
+    function extractPhotonEnergies(value) {
+      if (!value) return [];
+      const matches = value.match(/[\d.]+/g);
+      if (!matches) return [];
+      return matches.map(match => Number.parseFloat(match)).filter(number => Number.isFinite(number));
     }
 
     function buildOrderedOptions(values, getSortValue) {
       const uniqueValues = [...new Set(values)];
       return uniqueValues.sort((a, b) => getSortValue(a) - getSortValue(b));
-    }
-
-    function getPhotonSortValue(value) {
-      const match = value.match(/[\d.]+/);
-      if (!match) return Number.POSITIVE_INFINITY;
-      return Number.parseFloat(match[0]);
     }
 
     function getHalfLifeSortValue(value) {
@@ -520,8 +552,8 @@
       out.innerHTML = '';
       data.filter(item => {
             const matchesName = item.name.toLowerCase().includes(q);
-            const matchesDecay = decayFilter === "any" || item.decay === decayFilter;
-            const matchesPhoton = photonFilter === "Any" || item.photons === photonFilter;
+            const matchesDecay = decayFilter === "any" || getPredominantDecay(item.decay) === decayFilter;
+            const matchesPhoton = photonFilter === "Any" || extractPhotonEnergies(item.photons).includes(photonFilter);
             const matchesHalfLife = halfLifeFilter === "Any" || item.halfLife === halfLifeFilter;
             return matchesName && matchesDecay && matchesPhoton && matchesHalfLife;
           })
