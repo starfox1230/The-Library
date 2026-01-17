@@ -326,6 +326,7 @@
     const decayOptions = buildUniqueOptions(data.map(item => getPredominantDecay(item.decay))).sort();
     const photonOptions = buildPhotonOptions(data);
     const halfLifeOptions = buildOrderedOptions(data.map(item => item.halfLife), getHalfLifeSortValue);
+    const NOTES_FALLBACK = "None";
 
     /* ===============================
        Core UI
@@ -514,6 +515,28 @@
       return [...new Set(energies)].sort((a, b) => a - b);
     }
 
+    async function loadNotesFromDeck() {
+      try {
+        const response = await fetch("./deck.json", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("Failed to load deck data.");
+        }
+        const deck = await response.json();
+        const noteMap = new Map(
+          deck.map(entry => [entry.name, (entry.otherFacts || "").trim()])
+        );
+        data.forEach(item => {
+          const note = noteMap.get(item.name);
+          item.notes = note ? note : NOTES_FALLBACK;
+        });
+      } catch (error) {
+        data.forEach(item => {
+          item.notes = NOTES_FALLBACK;
+        });
+        console.warn("Unable to load deck notes.", error);
+      }
+    }
+
     function extractPhotonEnergies(value) {
       if (!value) return [];
       const matches = value.match(/[\d.]+/g);
@@ -569,6 +592,7 @@
               <p><strong>Decay:</strong> ${item.decay}</p>
               <p><strong>Photons:</strong> ${item.photons}</p>
               <p><strong>Half-life:</strong> ${item.halfLife}</p>
+              <p><strong>Notes:</strong> ${item.notes || NOTES_FALLBACK}</p>
             `;
             out.appendChild(div);
           });
@@ -720,7 +744,7 @@
     /* ===============================
        Boot
        =============================== */
-    window.onload = () => {
+    window.onload = async () => {
       containerEl.classList.add('fade-out');
       answerEl.classList.add("hidden");
       hintEl.classList.add("hidden");
@@ -728,6 +752,8 @@
       additionalControlsEl.classList.add("hidden");
       additionalGridEl.classList.add("hidden");
       additionalStatusEl.textContent = "";
+
+      await loadNotesFromDeck();
 
       setTimeout(() => {
         if (questions.length > 0) {
