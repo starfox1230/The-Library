@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Q/A/Explanation Scroller</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#111827;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --line:#253047;
+      --accent:#60a5fa;
+      --warn:#f59e0b;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:rgba(11,15,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--line);
+      padding:8px 10px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .pill{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      color:var(--text);
+      border-radius:999px;
+      padding:8px 12px;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .pill[aria-pressed="true"]{
+      border-color:rgba(96,165,250,0.55);
+      box-shadow:0 0 0 2px rgba(96,165,250,0.15) inset;
+    }
+    .pill.secondary{
+      color:var(--muted);
+    }
+    .pill.primary{
+      border-color:rgba(96,165,250,0.55);
+    }
+    .spacer{flex:1}
+    .badge{
+      color:var(--muted);
+      font-size:12px;
+      padding:0 6px;
+    }
+
+    .wrap{
+      max-width:960px;
+      margin:0 auto;
+      padding:12px 10px 40px;
+    }
+
+    textarea{
+      width:100%;
+      min-height:180px;
+      resize:vertical;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      color:var(--text);
+      border-radius:12px;
+      padding:12px;
+      outline:none;
+    }
+    textarea:focus{
+      border-color:rgba(96,165,250,0.65);
+      box-shadow:0 0 0 3px rgba(96,165,250,0.12);
+    }
+    .controls{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:10px 0 14px;
+      align-items:center;
+    }
+    .hint{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:6px;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:10px;
+    }
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:14px;
+      padding:12px;
+    }
+    .cardHeader{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .qText{
+      flex:1;
+      font-size:15px;
+      font-weight:650;
+      letter-spacing:0.1px;
+      white-space:pre-wrap;
+    }
+    .favBtn{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--muted);
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      user-select:none;
+      line-height:1;
+    }
+    .favBtn.faved{
+      color:var(--warn);
+      border-color:rgba(245,158,11,0.55);
+      box-shadow:0 0 0 2px rgba(245,158,11,0.12) inset;
+    }
+    details{
+      border-top:1px solid rgba(37,48,71,0.7);
+      margin-top:10px;
+      padding-top:10px;
+    }
+    summary{
+      cursor:pointer;
+      user-select:none;
+      color:var(--accent);
+      font-weight:650;
+      outline:none;
+      list-style:none;
+    }
+    summary::-webkit-details-marker{display:none}
+    .content{
+      margin-top:8px;
+      color:var(--text);
+      white-space:pre-wrap;
+    }
+    .empty{
+      border:1px dashed var(--line);
+      color:var(--muted);
+      border-radius:14px;
+      padding:14px;
+      margin-top:12px;
+    }
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(17,24,39,0.95);
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:10px 14px;
+      color:var(--text);
+      font-size:13px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 180ms ease;
+      z-index:20;
+    }
+    .toast.show{opacity:1}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only favorites">Favorites only</button>
+    <button id="copyFavs" class="pill primary" title="Copy favorites to clipboard">Copy favorites</button>
+    <span class="spacer"></span>
+    <span id="counts" class="badge">0 items</span>
+  </div>
+
+  <div class="wrap">
+    <textarea id="input" placeholder="Paste your content here (Question:/Answer:/Explanation: blocks)"></textarea>
+
+    <div class="controls">
+      <button id="parseBtn" class="pill primary">Parse / Refresh</button>
+      <button id="loadSampleBtn" class="pill secondary">Load sample (from this page)</button>
+      <button id="clearBtn" class="pill secondary">Clear</button>
+      <span class="hint">
+        Expected blocks: <span class="mono">Question:</span> … <span class="mono">Answer:</span> … <span class="mono">Explanation:</span> …
+        (lines like <span class="mono">5, 4, 3, 2, 1.</span> and <span class="mono">[attachment_#]</span> are ignored)
+      </span>
+    </div>
+
+    <div id="list" class="list"></div>
+    <div id="empty" class="empty" style="display:none">No questions parsed yet.</div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const els = {
+    input: document.getElementById('input'),
+    parseBtn: document.getElementById('parseBtn'),
+    loadSampleBtn: document.getElementById('loadSampleBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    list: document.getElementById('list'),
+    empty: document.getElementById('empty'),
+    toggleFavView: document.getElementById('toggleFavView'),
+    copyFavs: document.getElementById('copyFavs'),
+    counts: document.getElementById('counts'),
+    toast: document.getElementById('toast'),
+  };
+
+  const STORAGE = {
+    favs: 'qa_favorites_v1',
+    lastInput: 'qa_last_input_v1'
+  };
+
+  let state = {
+    items: [],
+    favSet: new Set(),
+    favOnly: false,
+  };
+
+  function showToast(msg){
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => els.toast.classList.remove('show'), 1400);
+  }
+
+  function safeIdFromQuestion(q){
+    // Simple deterministic id (not crypto): normalize and hash.
+    const s = (q || '').trim().toLowerCase().replace(/\s+/g,' ');
+    let h = 2166136261;
+    for (let i=0; i<s.length; i++){
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return 'q_' + (h >>> 0).toString(16);
+  }
+
+  function loadFavs(){
+    try{
+      const raw = localStorage.getItem(STORAGE.favs);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) state.favSet = new Set(arr);
+    }catch(e){}
+  }
+
+  function saveFavs(){
+    try{
+      localStorage.setItem(STORAGE.favs, JSON.stringify(Array.from(state.favSet)));
+    }catch(e){}
+  }
+
+  function saveLastInput(){
+    try{
+      localStorage.setItem(STORAGE.lastInput, els.input.value || '');
+    }catch(e){}
+  }
+
+  function loadLastInput(){
+    try{
+      const v = localStorage.getItem(STORAGE.lastInput);
+      if (v) els.input.value = v;
+    }catch(e){}
+  }
+
+  function isIgnorableLine(line){
+    const t = line.trim();
+    if (!t) return false;
+
+    // rating lines like "5, 4, 3, 2, 1." or "5,4,3,2,1"
+    if (/^\d\s*,\s*\d\s*,\s*\d\s*,\s*\d\s*,\s*\d\s*\.?\s*$/.test(t)) return true;
+
+    // attachment markers like "[attachment_0](attachment)" or "[attachment_0]"
+    if (/^\[attachment_\d+\](\(.+\))?\s*$/.test(t)) return true;
+
+    return false;
+  }
+
+  function parseInput(raw){
+    const text = (raw || '').replace(/\r\n/g, '\n');
+    const lines = text.split('\n');
+
+    const items = [];
+    let cur = null;
+    let mode = null; // 'q' | 'a' | 'e'
+
+    function pushCur(){
+      if (!cur) return;
+      const q = (cur.question || '').trim();
+      const a = (cur.answer || '').trim();
+      const e = (cur.explanation || '').trim();
+
+      if (!q) return;
+
+      const id = safeIdFromQuestion(q);
+      items.push({ id, question: q, answer: a, explanation: e });
+    }
+
+    for (let i=0; i<lines.length; i++){
+      const line = lines[i];
+
+      if (isIgnorableLine(line)) continue;
+
+      const trimmed = line.trim();
+
+      // Detect field headers (case sensitive as provided, but allow mild variance)
+      const mQ = /^Question:\s*(.*)\s*$/.exec(line);
+      const mA = /^Answer:\s*(.*)\s*$/.exec(line);
+      const mE = /^Explanation:\s*(.*)\s*$/.exec(line);
+
+      if (mQ){
+        // new question starts -> push previous
+        pushCur();
+        cur = { question: mQ[1] || '', answer: '', explanation: '' };
+        mode = 'q';
+        continue;
+      }
+      if (mA){
+        if (!cur) cur = { question: '', answer: '', explanation: '' };
+        cur.answer = (mA[1] || '');
+        mode = 'a';
+        continue;
+      }
+      if (mE){
+        if (!cur) cur = { question: '', answer: '', explanation: '' };
+        cur.explanation = (mE[1] || '');
+        mode = 'e';
+        continue;
+      }
+
+      // Ignore stray attachment markdown lines even if they don't match earlier regex
+      if (/^\s*\[attachment_\d+\]/.test(trimmed)) continue;
+
+      // Accumulate multiline content
+      if (cur && mode){
+        // Skip lines that are only punctuation
+        if (/^\s*[.·•-]\s*$/.test(line)) continue;
+
+        if (mode === 'q') cur.question += (cur.question ? '\n' : '') + line;
+        if (mode === 'a') cur.answer += (cur.answer ? '\n' : '') + line;
+        if (mode === 'e') cur.explanation += (cur.explanation ? '\n' : '') + line;
+      }
+    }
+
+    pushCur();
+    return items;
+  }
+
+  function render(){
+    const itemsAll = state.items;
+    const items = state.favOnly
+      ? itemsAll.filter(it => state.favSet.has(it.id))
+      : itemsAll;
+
+    els.list.innerHTML = '';
+    els.empty.style.display = items.length ? 'none' : 'block';
+
+    const total = itemsAll.length;
+    const favCount = state.favSet.size;
+
+    els.counts.textContent = state.favOnly
+      ? `${items.length} favorites shown (of ${total})`
+      : `${total} items (${favCount} favorites)`;
+
+    for (const it of items){
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const head = document.createElement('div');
+      head.className = 'cardHeader';
+
+      const q = document.createElement('div');
+      q.className = 'qText';
+      q.textContent = it.question;
+
+      const fav = document.createElement('button');
+      fav.className = 'favBtn' + (state.favSet.has(it.id) ? ' faved' : '');
+      fav.type = 'button';
+      fav.title = 'Toggle favorite';
+      fav.textContent = state.favSet.has(it.id) ? '★' : '☆';
+
+      fav.addEventListener('click', () => {
+        if (state.favSet.has(it.id)) state.favSet.delete(it.id);
+        else state.favSet.add(it.id);
+        saveFavs();
+        render();
+      });
+
+      head.appendChild(q);
+      head.appendChild(fav);
+
+      const ans = document.createElement('details');
+      const ansSum = document.createElement('summary');
+      ansSum.textContent = 'Answer';
+      const ansBody = document.createElement('div');
+      ansBody.className = 'content';
+      ansBody.textContent = it.answer || '(No answer parsed.)';
+      ans.appendChild(ansSum);
+      ans.appendChild(ansBody);
+
+      const exp = document.createElement('details');
+      const expSum = document.createElement('summary');
+      expSum.textContent = 'Explanation';
+      const expBody = document.createElement('div');
+      expBody.className = 'content';
+      expBody.textContent = it.explanation || '(No explanation parsed.)';
+      exp.appendChild(expSum);
+      exp.appendChild(expBody);
+
+      card.appendChild(head);
+      card.appendChild(ans);
+      card.appendChild(exp);
+
+      els.list.appendChild(card);
+    }
+  }
+
+  function formatFavoritesText(){
+    const favs = state.items.filter(it => state.favSet.has(it.id));
+    if (!favs.length) return '';
+
+    return favs.map(it => {
+      const parts = [];
+      parts.push(`Question: ${it.question}`);
+      parts.push(`Answer: ${it.answer || ''}`);
+      parts.push(`Explanation: ${it.explanation || ''}`);
+      return parts.join('\n');
+    }).join('\n\n');
+  }
+
+  async function copyTextToClipboard(text){
+    // Prefer modern clipboard API; fallback to hidden textarea.
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      }catch(_){
+        return false;
+      }
+    }
+  }
+
+  function parseAndRender(){
+    const raw = els.input.value || '';
+    state.items = parseInput(raw);
+    // Keep favorites for items that still exist (optional cleanup)
+    const ids = new Set(state.items.map(x => x.id));
+    state.favSet = new Set(Array.from(state.favSet).filter(id => ids.has(id)));
+    saveFavs();
+    saveLastInput();
+    render();
+    showToast(`Parsed ${state.items.length} question(s).`);
+  }
+
+  // Events
+  els.parseBtn.addEventListener('click', parseAndRender);
+
+  els.toggleFavView.addEventListener('click', () => {
+    state.favOnly = !state.favOnly;
+    els.toggleFavView.setAttribute('aria-pressed', state.favOnly ? 'true' : 'false');
+    render();
+  });
+
+  els.copyFavs.addEventListener('click', async () => {
+    const text = formatFavoritesText();
+    if (!text){
+      showToast('No favorites to copy.');
+      return;
+    }
+    const ok = await copyTextToClipboard(text);
+    showToast(ok ? 'Favorites copied.' : 'Copy failed.');
+  });
+
+  els.clearBtn.addEventListener('click', () => {
+    els.input.value = '';
+    state.items = [];
+    saveLastInput();
+    render();
+    showToast('Cleared.');
+  });
+
+  els.loadSampleBtn.addEventListener('click', () => {
+    els.input.value = SAMPLE_TEXT.trim();
+    parseAndRender();
+  });
+
+  // Init
+  loadFavs();
+  loadLastInput();
+  // Auto-parse if there is stored input
+  if ((els.input.value || '').trim()){
+    state.items = parseInput(els.input.value);
+  }
+  render();
+
+  // Sample text (includes a few from your example)
+  const SAMPLE_TEXT = `
+Question: What is the most frequently fractured tarsal bone?
+5, 4, 3, 2, 1.
+Answer: The calcaneus is the most fractured tarsal bone.
+Explanation: These fractures are usually intra-articular, accounting for seventy-five percent of cases.
+
+Question: What is the Terry Thomas sign?
+5, 4, 3, 2, 1.
+Answer: The Terry Thomas sign is a gap between the scaphoid and lunate seen on plain film.
+Explanation: A gap wider than three millimeters indicates a scapholunate ligament tear or dissociation.
+
+[attachment_0](attachment)
+
+Question: What is a Colles Fracture?
+5, 4, 3, 2, 1.
+Answer: A Colles fracture is an extra-articular fracture of the distal radial metaphysis with dorsal angulation.
+Explanation: It creates a "dinner fork deformity" and is commonly seen in older adults with osteoporosis.
+`;
+})();
+</script>
+</body>
+</html>
