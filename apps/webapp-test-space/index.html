@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Effective Dose Dash</title>
+  <style>
+    :root{
+      --bg:#070A12;
+      --panel:#0E1430;
+      --panel2:#0B1024;
+      --text:#EAF0FF;
+      --muted:#A9B3D6;
+      --good:#2CFFB6;
+      --bad:#FF4D6D;
+      --accent:#7C5CFF;
+      --accent2:#33D6FF;
+      --shadow: 0 20px 60px rgba(0,0,0,.55);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1000px 600px at 15% 10%, rgba(124,92,255,.35), transparent 55%),
+        radial-gradient(900px 600px at 85% 20%, rgba(51,214,255,.25), transparent 60%),
+        radial-gradient(900px 700px at 50% 95%, rgba(44,255,182,.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .app{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, rgba(14,20,48,.92), rgba(11,16,36,.92));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    header{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 18px;
+      background: linear-gradient(90deg, rgba(124,92,255,.22), rgba(51,214,255,.16), rgba(44,255,182,.10));
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      line-height:1.1;
+    }
+    .title h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.3px;
+    }
+    .title .sub{
+      font-size:12px;
+      color:rgba(234,240,255,.78);
+    }
+    .hud{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px;
+      justify-content:flex-end;
+    }
+    .pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:12px;
+      color:rgba(234,240,255,.92);
+      user-select:none;
+      white-space:nowrap;
+    }
+    .pill strong{ font-weight:700; color:var(--text); }
+    .btn{
+      cursor:pointer;
+      border:none;
+      padding:9px 12px;
+      border-radius: 12px;
+      font-weight:700;
+      background: rgba(255,255,255,.10);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+    }
+    .btn:hover{ background: rgba(255,255,255,.14); }
+    .btn:active{ transform: scale(.98); }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(124,92,255,.85), rgba(51,214,255,.55));
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn.danger{
+      background: rgba(255,77,109,.18);
+      border-color: rgba(255,77,109,.35);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+      padding:14px;
+    }
+    @media (max-width: 860px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+    .card{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      overflow:hidden;
+    }
+    .card .card-h{
+      padding:14px 14px 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.10);
+    }
+    .card .card-h h2{
+      margin:0;
+      font-size:14px;
+      color:rgba(234,240,255,.92);
+      letter-spacing:.2px;
+    }
+    .tag{
+      font-size:11px;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.07);
+      color:rgba(234,240,255,.85);
+      white-space:nowrap;
+    }
+    .prompt{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .procedure{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:.1px;
+      line-height:1.2;
+    }
+    .region{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      color:rgba(234,240,255,.85);
+      font-size:12px;
+    }
+    .spark{
+      width:10px; height:10px; border-radius:50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 18px rgba(124,92,255,.55), 0 0 18px rgba(51,214,255,.35);
+      display:inline-block;
+    }
+    .question{
+      margin-top:2px;
+      font-size:14px;
+      color:rgba(234,240,255,.90);
+    }
+    .choices{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      padding: 0 14px 14px;
+    }
+    @media (max-width: 520px){
+      .choices{ grid-template-columns: 1fr; }
+    }
+    .choice{
+      cursor:pointer;
+      padding:12px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.12);
+      color: rgba(234,240,255,.92);
+      font-weight:800;
+      letter-spacing:.2px;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+      position:relative;
+      overflow:hidden;
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .choice:hover{
+      background: rgba(255,255,255,.10);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .choice:active{ transform: scale(.99); }
+    .choice.correct{
+      background: rgba(44,255,182,.14);
+      border-color: rgba(44,255,182,.50);
+      box-shadow: 0 0 0 2px rgba(44,255,182,.10) inset;
+    }
+    .choice.wrong{
+      background: rgba(255,77,109,.14);
+      border-color: rgba(255,77,109,.45);
+      box-shadow: 0 0 0 2px rgba(255,77,109,.10) inset;
+    }
+    .choice.disabled{
+      opacity:.75;
+      pointer-events:none;
+    }
+    .side{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .modeRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:14px;
+    }
+    .toggle{
+      flex:1;
+      min-width:180px;
+      padding:12px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .toggle .left{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+    }
+    .toggle .left .name{ font-weight:900; font-size:13px; }
+    .toggle .left .desc{ font-size:12px; color:rgba(234,240,255,.70); }
+    .switch{
+      width:44px; height:26px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+      position:relative;
+      cursor:pointer;
+      flex: 0 0 auto;
+    }
+    .knob{
+      width:22px; height:22px; border-radius:50%;
+      position:absolute; top:1px; left:1px;
+      background: rgba(255,255,255,.82);
+      transition: left .18s ease, background .18s ease;
+    }
+    .switch.on{
+      background: linear-gradient(135deg, rgba(124,92,255,.75), rgba(51,214,255,.50));
+      border-color: rgba(255,255,255,.22);
+    }
+    .switch.on .knob{ left:21px; background: rgba(255,255,255,.95); }
+    .stats{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .stat{
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+      padding:12px;
+    }
+    .stat .k{ font-size:11px; color:rgba(234,240,255,.70); }
+    .stat .v{ font-size:18px; font-weight:900; margin-top:4px; }
+    .msg{
+      padding: 0 14px 14px;
+      color:rgba(234,240,255,.85);
+      font-size:12px;
+      line-height:1.35;
+      min-height: 36px;
+    }
+    .studyWrap{ padding:14px; }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    th,td{
+      text-align:left;
+      padding:10px 10px;
+      font-size:12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    th{
+      background: rgba(255,255,255,.08);
+      color: rgba(234,240,255,.92);
+      font-weight:900;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    td{ color: rgba(234,240,255,.84); background: rgba(0,0,0,.10); }
+    tr:last-child td{ border-bottom:none; }
+    .mono{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+    .toast{
+      position:absolute;
+      left:14px;
+      bottom:14px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.35);
+      color: rgba(234,240,255,.90);
+      font-size:12px;
+      opacity:0;
+      transform: translateY(8px);
+      transition: opacity .18s ease, transform .18s ease;
+      pointer-events:none;
+      max-width: calc(100% - 28px);
+    }
+    .toast.show{ opacity:1; transform: translateY(0); }
+    canvas.fx{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .kbd{
+      font-size:11px;
+      padding:2px 6px;
+      border-radius:8px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.14);
+      color: rgba(234,240,255,.92);
+      margin-left:6px;
+      font-weight:900;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <canvas class="fx" id="fx"></canvas>
+
+    <header>
+      <div class="title">
+        <h1>Effective Dose Dash</h1>
+        <div class="sub">Match each imaging exam to its approximate effective dose or background-radiation equivalent.</div>
+      </div>
+
+      <div class="hud">
+        <div class="pill">Score: <strong id="score">0</strong></div>
+        <div class="pill">Streak: <strong id="streak">0</strong></div>
+        <button class="btn" id="skipBtn" title="Skip this question">Skip <span class="kbd">S</span></button>
+        <button class="btn danger" id="resetBtn" title="Reset score and restart">Reset</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-h">
+          <h2 id="roundTitle">Round</h2>
+          <div class="tag" id="modeTag">Mode: Dose (mSv)</div>
+        </div>
+
+        <div class="prompt">
+          <div class="region"><span class="spark"></span> <span id="region">Region</span></div>
+          <div class="procedure" id="procedure">Procedure</div>
+          <div class="question" id="questionText">Question</div>
+        </div>
+
+        <div class="choices" id="choices"></div>
+        <div class="msg" id="msg"></div>
+      </section>
+
+      <aside class="side">
+        <section class="card">
+          <div class="card-h">
+            <h2>Game Settings</h2>
+            <div class="tag">Keys: 1–4 / Enter</div>
+          </div>
+
+          <div class="modeRow">
+            <div class="toggle">
+              <div class="left">
+                <div class="name">Ask for dose (mSv)</div>
+                <div class="desc">Pick the correct effective dose.</div>
+              </div>
+              <div class="switch" id="doseSwitch" role="switch" aria-checked="true" tabindex="0">
+                <div class="knob"></div>
+              </div>
+            </div>
+
+            <div class="toggle">
+              <div class="left">
+                <div class="name">Study table</div>
+                <div class="desc">Show/hide the source chart values.</div>
+              </div>
+              <button class="btn" id="studyBtn">Show</button>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="k">Correct</div>
+              <div class="v mono" id="correct">0</div>
+            </div>
+            <div class="stat">
+              <div class="k">Attempts</div>
+              <div class="v mono" id="attempts">0</div>
+            </div>
+            <div class="stat">
+              <div class="k">Accuracy</div>
+              <div class="v mono" id="accuracy">—</div>
+            </div>
+            <div class="stat">
+              <div class="k">Best streak</div>
+              <div class="v mono" id="bestStreak">0</div>
+            </div>
+          </div>
+
+          <div class="studyWrap" id="studyWrap" style="display:none;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:44%;">Procedure</th>
+                  <th style="width:18%;">Region</th>
+                  <th style="width:18%;">Dose (mSv)</th>
+                  <th style="width:20%;">Background equivalent</th>
+                </tr>
+              </thead>
+              <tbody id="studyTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2>How it works</h2>
+            <div class="tag">Fast recall</div>
+          </div>
+          <div class="msg" style="padding-top:14px;">
+            Each round shows one imaging exam. Choose the correct value for the current mode.
+            Use keys <span class="kbd">1</span>–<span class="kbd">4</span> to answer, <span class="kbd">Enter</span> for next,
+            <span class="kbd">S</span> to skip.
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    // Data transcribed from the provided chart image.
+    // Units: mSv and "Comparable to natural background radiation for"
+    const DATA = [
+      { region: "Abdominal region", procedure: "Computed Tomography (CT) — Abdomen and Pelvis", dose: "10 mSv", bg: "3 years" },
+      { region: "Abdominal region", procedure: "Computed Tomography (CT) — Abdomen and Pelvis, repeated with and without contrast material", dose: "20 mSv", bg: "7 years" },
+      { region: "Abdominal region", procedure: "Computed Tomography (CT) — Colonography", dose: "6 mSv", bg: "2 years" },
+      { region: "Abdominal region", procedure: "Intravenous Pyelogram (IVP)", dose: "3 mSv", bg: "1 year" },
+      { region: "Abdominal region", procedure: "Radiography (X-ray) — Lower GI Tract", dose: "8 mSv", bg: "3 years" },
+      { region: "Abdominal region", procedure: "Radiography (X-ray) — Upper GI Tract", dose: "6 mSv", bg: "2 years" },
+
+      { region: "Bone", procedure: "Radiography (X-ray) — Spine", dose: "1.5 mSv", bg: "6 months" },
+      { region: "Bone", procedure: "Radiography (X-ray) — Extremity", dose: "0.001 mSv", bg: "3 hours" },
+
+      { region: "Central nervous system", procedure: "Computed Tomography (CT) — Head", dose: "2 mSv", bg: "8 months" },
+      { region: "Central nervous system", procedure: "Computed Tomography (CT) — Head, repeated with and without contrast material", dose: "4 mSv", bg: "16 months" },
+      { region: "Central nervous system", procedure: "Computed Tomography (CT) — Spine", dose: "6 mSv", bg: "2 years" },
+
+      { region: "Chest", procedure: "Computed Tomography (CT) — Chest", dose: "7 mSv", bg: "2 years" },
+      { region: "Chest", procedure: "Computed Tomography (CT) — Lung Cancer Screening", dose: "1.5 mSv", bg: "6 months" },
+      { region: "Chest", procedure: "Radiography — Chest", dose: "0.1 mSv", bg: "10 days" },
+
+      { region: "Dental", procedure: "Intraoral X-ray", dose: "0.005 mSv", bg: "1 day" }
+    ];
+
+    // ---------- State ----------
+    const state = {
+      askDose: true,      // true => ask for dose; false => ask for background-equivalent
+      score: 0,
+      streak: 0,
+      bestStreak: 0,
+      correct: 0,
+      attempts: 0,
+      round: 0,
+      locked: false,
+      current: null,
+      choices: [],
+      correctIndex: -1,
+      needNext: false
+    };
+
+    // ---------- DOM ----------
+    const $ = (id) => document.getElementById(id);
+    const el = {
+      score: $("score"),
+      streak: $("streak"),
+      correct: $("correct"),
+      attempts: $("attempts"),
+      accuracy: $("accuracy"),
+      bestStreak: $("bestStreak"),
+      procedure: $("procedure"),
+      region: $("region"),
+      questionText: $("questionText"),
+      choices: $("choices"),
+      msg: $("msg"),
+      roundTitle: $("roundTitle"),
+      modeTag: $("modeTag"),
+      doseSwitch: $("doseSwitch"),
+      resetBtn: $("resetBtn"),
+      skipBtn: $("skipBtn"),
+      studyBtn: $("studyBtn"),
+      studyWrap: $("studyWrap"),
+      studyTable: $("studyTable"),
+      toast: $("toast"),
+      fx: $("fx"),
+      app: $("app")
+    };
+
+    // ---------- Helpers ----------
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]] = [arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    function pickDistinctWrongAnswers(correctValue, key, n=3){
+      const pool = Array.from(new Set(DATA.map(d => d[key]))).filter(v => v !== correctValue);
+      shuffle(pool);
+      return pool.slice(0, n);
+    }
+
+    function setToast(text){
+      el.toast.textContent = text;
+      el.toast.classList.add("show");
+      clearTimeout(setToast._t);
+      setToast._t = setTimeout(() => el.toast.classList.remove("show"), 1200);
+    }
+
+    // Simple confetti burst on correct
+    const FX = (() => {
+      const ctx = el.fx.getContext("2d");
+      let W=0,H=0,parts=[];
+      function resize(){
+        const r = window.devicePixelRatio || 1;
+        const rect = el.app.getBoundingClientRect();
+        el.fx.width = Math.floor(rect.width*r);
+        el.fx.height = Math.floor(rect.height*r);
+        el.fx.style.width = rect.width+"px";
+        el.fx.style.height = rect.height+"px";
+        W = el.fx.width; H = el.fx.height;
+        ctx.setTransform(1,0,0,1,0,0);
+      }
+      function burst(){
+        const r = window.devicePixelRatio || 1;
+        const rect = el.app.getBoundingClientRect();
+        const x = (rect.width*0.35)*r;     // roughly over the main card
+        const y = (rect.height*0.20)*r;
+        const count = 90;
+        for(let i=0;i<count;i++){
+          const a = Math.random()*Math.PI*2;
+          const sp = 4 + Math.random()*7;
+          parts.push({
+            x, y,
+            vx: Math.cos(a)*sp,
+            vy: Math.sin(a)*sp - (2+Math.random()*3),
+            g: 0.18 + Math.random()*0.12,
+            s: 2 + Math.random()*3,
+            life: 50 + Math.random()*30,
+            t: 0
+          });
+        }
+      }
+      function tick(){
+        ctx.clearRect(0,0,W,H);
+        parts = parts.filter(p => p.t < p.life);
+        for(const p of parts){
+          p.t++;
+          p.vy += p.g;
+          p.x += p.vx;
+          p.y += p.vy;
+          const alpha = 1 - (p.t/p.life);
+          ctx.globalAlpha = alpha;
+          // no fixed colors: use grayscale-ish + alpha; still "fun" with motion
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          ctx.fillRect(p.x, p.y, p.s, p.s);
+        }
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(tick);
+      }
+      window.addEventListener("resize", resize);
+      resize();
+      tick();
+      return { burst, resize };
+    })();
+
+    function updateHUD(){
+      el.score.textContent = state.score;
+      el.streak.textContent = state.streak;
+      el.correct.textContent = state.correct;
+      el.attempts.textContent = state.attempts;
+      el.bestStreak.textContent = state.bestStreak;
+      if(state.attempts === 0) el.accuracy.textContent = "—";
+      else el.accuracy.textContent = Math.round((state.correct/state.attempts)*100) + "%";
+
+      el.modeTag.textContent = state.askDose ? "Mode: Dose (mSv)" : "Mode: Background equivalent";
+      el.questionText.textContent = state.askDose
+        ? "Pick the approximate effective dose:"
+        : "Pick the comparable natural background radiation time:";
+    }
+
+    function renderStudyTable(){
+      el.studyTable.innerHTML = "";
+      for(const row of DATA){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(row.procedure)}</td>
+          <td>${escapeHtml(row.region)}</td>
+          <td class="mono">${escapeHtml(row.dose)}</td>
+          <td class="mono">${escapeHtml(row.bg)}</td>
+        `;
+        el.studyTable.appendChild(tr);
+      }
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function nextRound(){
+      state.round++;
+      state.locked = false;
+      state.needNext = false;
+      el.msg.textContent = "";
+
+      // pick a random procedure
+      state.current = DATA[Math.floor(Math.random()*DATA.length)];
+      el.procedure.textContent = state.current.procedure;
+      el.region.textContent = state.current.region;
+      el.roundTitle.textContent = "Round " + state.round;
+
+      const key = state.askDose ? "dose" : "bg";
+      const correctValue = state.current[key];
+
+      const wrongs = pickDistinctWrongAnswers(correctValue, key, 3);
+      const all = shuffle([correctValue, ...wrongs]);
+
+      state.choices = all;
+      state.correctIndex = all.indexOf(correctValue);
+
+      el.choices.innerHTML = "";
+      all.forEach((val, idx) => {
+        const b = document.createElement("button");
+        b.className = "choice";
+        b.type = "button";
+        b.innerHTML = escapeHtml(val);
+        b.addEventListener("click", () => choose(idx));
+        el.choices.appendChild(b);
+      });
+
+      updateHUD();
+    }
+
+    function choose(idx){
+      if(state.locked) return;
+      state.locked = true;
+      state.attempts++;
+
+      const buttons = Array.from(el.choices.querySelectorAll(".choice"));
+      buttons.forEach(b => b.classList.add("disabled"));
+
+      const correctIdx = state.correctIndex;
+      const correctBtn = buttons[correctIdx];
+      correctBtn.classList.add("correct");
+
+      if(idx === correctIdx){
+        state.correct++;
+        state.streak++;
+        state.bestStreak = Math.max(state.bestStreak, state.streak);
+        // scoring: base + streak bonus
+        state.score += 10 + Math.min(10, state.streak);
+        el.msg.textContent = "Correct. Press Enter for next.";
+        FX.burst();
+        setToast("+" + (10 + Math.min(10, state.streak)) + " points");
+      }else{
+        state.streak = 0;
+        const wrongBtn = buttons[idx];
+        if(wrongBtn) wrongBtn.classList.add("wrong");
+        state.score = Math.max(0, state.score - 4);
+        const key = state.askDose ? "dose" : "bg";
+        const otherKey = state.askDose ? "bg" : "dose";
+        el.msg.textContent =
+          "Incorrect. Correct answer: " + state.current[key] +
+          "  |  (Other column: " + state.current[otherKey] + "). Press Enter for next.";
+        setToast("-4 points");
+      }
+
+      state.needNext = true;
+      updateHUD();
+    }
+
+    function skip(){
+      if(state.locked) return;
+      state.streak = 0;
+      state.score = Math.max(0, state.score - 1);
+      el.msg.textContent = "Skipped. Press Enter for next.";
+      setToast("-1 point");
+      state.needNext = true;
+      state.locked = true;
+
+      // reveal correct in-place
+      const buttons = Array.from(el.choices.querySelectorAll(".choice"));
+      const correctIdx = state.correctIndex;
+      buttons.forEach(b => b.classList.add("disabled"));
+      buttons[correctIdx].classList.add("correct");
+
+      updateHUD();
+    }
+
+    function reset(){
+      state.score = 0;
+      state.streak = 0;
+      state.bestStreak = 0;
+      state.correct = 0;
+      state.attempts = 0;
+      state.round = 0;
+      state.locked = false;
+      state.needNext = false;
+      setToast("Reset");
+      nextRound();
+      updateHUD();
+    }
+
+    // ---------- Settings ----------
+    function setAskDose(on){
+      state.askDose = !!on;
+      el.doseSwitch.classList.toggle("on", state.askDose);
+      el.doseSwitch.setAttribute("aria-checked", String(state.askDose));
+      // Start a new round immediately so the prompt matches the mode
+      nextRound();
+    }
+
+    el.doseSwitch.addEventListener("click", () => setAskDose(!state.askDose));
+    el.doseSwitch.addEventListener("keydown", (e) => {
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        setAskDose(!state.askDose);
+      }
+    });
+
+    el.resetBtn.addEventListener("click", reset);
+    el.skipBtn.addEventListener("click", skip);
+
+    el.studyBtn.addEventListener("click", () => {
+      const showing = el.studyWrap.style.display !== "none";
+      el.studyWrap.style.display = showing ? "none" : "block";
+      el.studyBtn.textContent = showing ? "Show" : "Hide";
+    });
+
+    // ---------- Keyboard ----------
+    window.addEventListener("keydown", (e) => {
+      if(e.key === "s" || e.key === "S"){ skip(); return; }
+      if(e.key === "Enter"){
+        if(state.needNext) nextRound();
+        return;
+      }
+      const num = parseInt(e.key, 10);
+      if(num >= 1 && num <= 4){
+        choose(num-1);
+      }
+    });
+
+    // ---------- Init ----------
+    function init(){
+      renderStudyTable();
+      el.doseSwitch.classList.add("on");
+      el.doseSwitch.setAttribute("aria-checked", "true");
+      nextRound();
+      updateHUD();
+      setToast("Keys: 1–4, Enter, S");
+    }
+    init();
+  </script>
+</body>
+</html>
