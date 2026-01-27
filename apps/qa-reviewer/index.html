@@ -32,6 +32,7 @@
       border-bottom:1px solid var(--line);
       padding:8px 10px;
       display:flex;
+      flex-wrap:wrap;
       gap:8px;
       align-items:center;
     }
@@ -60,6 +61,12 @@
       color:var(--muted);
       font-size:12px;
       padding:0 6px;
+    }
+    .countsRow{
+      background:rgba(11,15,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--line);
+      padding:6px 10px 8px;
     }
 
     .wrap{
@@ -111,8 +118,13 @@
     }
     .cardHeader{
       display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .cardActions{
+      display:flex;
       gap:8px;
-      align-items:flex-start;
+      flex-wrap:wrap;
     }
     .qText{
       flex:1;
@@ -122,7 +134,7 @@
       white-space:pre-wrap;
     }
     .favBtn{
-      border:1px solid var(--line);
+      border:1px solid rgba(245,158,11,0.55);
       background:transparent;
       color:var(--muted);
       border-radius:10px;
@@ -131,45 +143,54 @@
       user-select:none;
       line-height:1;
       font-weight:600;
+      transition:color 160ms ease, background 160ms ease;
     }
     .delBtn{
       border:1px solid rgba(239,68,68,0.4);
       background:transparent;
-      color:rgba(239,68,68,0.8);
+      color:var(--muted);
       border-radius:10px;
       padding:8px 10px;
       cursor:pointer;
       user-select:none;
       line-height:1;
       font-weight:600;
+      transition:color 160ms ease, background 160ms ease;
     }
     .learnBtn{
       border:1px solid rgba(96,165,250,0.35);
       background:transparent;
-      color:rgba(96,165,250,0.8);
+      color:var(--muted);
       border-radius:10px;
       padding:8px 10px;
       cursor:pointer;
       user-select:none;
       line-height:1;
       font-weight:600;
+      transition:color 160ms ease, background 160ms ease;
     }
     .delBtn.deleted{
-      color:#fecaca;
-      background:rgba(239,68,68,0.18);
+      color:rgba(239,68,68,0.9);
+      background:rgba(239,68,68,0.15);
       border-color:rgba(239,68,68,0.8);
       box-shadow:0 0 0 2px rgba(239,68,68,0.12) inset;
     }
     .favBtn.faved{
       color:var(--warn);
       border-color:rgba(245,158,11,0.55);
+      background:rgba(245,158,11,0.12);
       box-shadow:0 0 0 2px rgba(245,158,11,0.12) inset;
     }
     .learnBtn.learning{
-      color:#bfdbfe;
+      color:#60a5fa;
       border-color:rgba(59,130,246,0.8);
-      background:rgba(59,130,246,0.16);
+      background:rgba(59,130,246,0.14);
       box-shadow:0 0 0 2px rgba(59,130,246,0.12) inset;
+    }
+    .favBtn,
+    .learnBtn,
+    .delBtn{
+      touch-action:manipulation;
     }
     .statusLegend{
       display:flex;
@@ -307,7 +328,8 @@
     <button id="toggleAllView" class="pill" aria-pressed="false" title="Show discarded items">Show discarded</button>
     <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
     <button id="togglePriors" class="pill secondary" title="View saved priors">Priors</button>
-    <span class="spacer"></span>
+  </div>
+  <div class="countsRow">
     <span id="counts" class="badge">0 items</span>
   </div>
 
@@ -318,10 +340,6 @@
       <button id="parseBtn" class="pill primary">Parse / Refresh</button>
       <button id="loadSampleBtn" class="pill secondary">Load sample (from this page)</button>
       <button id="clearBtn" class="pill secondary">Clear</button>
-      <span class="hint">
-        Expected blocks: <span class="mono">Question:</span> … <span class="mono">Answer:</span> … <span class="mono">Explanation:</span> …
-        (lines like <span class="mono">5, 4, 3, 2, 1.</span> and <span class="mono">[attachment_#]</span> are ignored)
-      </span>
       <div class="statusLegend">
         <span><span class="statusDot mastered"></span>Mastered = learned &amp; ready for Anki</span>
         <span><span class="statusDot developing"></span>Developing = needs more review</span>
@@ -656,10 +674,6 @@
       const head = document.createElement('div');
       head.className = 'cardHeader';
 
-      const q = document.createElement('div');
-      q.className = 'qText';
-      q.textContent = it.question;
-
       const fav = document.createElement('button');
       fav.className = 'favBtn' + (state.favSet.has(it.id) ? ' faved' : '');
       fav.type = 'button';
@@ -723,10 +737,18 @@
         render();
       });
 
+      const actions = document.createElement('div');
+      actions.className = 'cardActions';
+      actions.appendChild(fav);
+      actions.appendChild(learn);
+      actions.appendChild(del);
+
+      const q = document.createElement('div');
+      q.className = 'qText';
+      q.textContent = it.question;
+
+      head.appendChild(actions);
       head.appendChild(q);
-      head.appendChild(fav);
-      head.appendChild(learn);
-      head.appendChild(del);
 
       const ans = document.createElement('details');
       const ansSum = document.createElement('summary');
@@ -971,6 +993,22 @@
   els.copyBtn.addEventListener('click', () => {
     els.copyPanel.classList.toggle('show');
     if (els.copyPanel.classList.contains('show')){
+      els.priorsPanel.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('pointerdown', (event) => {
+    const target = event.target;
+    const path = event.composedPath ? event.composedPath() : [];
+    const clickedCopy = els.copyBtn.contains(target) || path.includes(els.copyBtn);
+    const clickedCopyPanel = els.copyPanel.contains(target) || path.includes(els.copyPanel);
+    const clickedPriors = els.togglePriors.contains(target) || path.includes(els.togglePriors);
+    const clickedPriorsPanel = els.priorsPanel.contains(target) || path.includes(els.priorsPanel);
+
+    if (!clickedCopy && !clickedCopyPanel && els.copyPanel.classList.contains('show')){
+      els.copyPanel.classList.remove('show');
+    }
+    if (!clickedPriors && !clickedPriorsPanel && els.priorsPanel.classList.contains('show')){
       els.priorsPanel.classList.remove('show');
     }
   });
