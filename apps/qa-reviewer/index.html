@@ -111,7 +111,7 @@
     }
     .cardHeader{
       display:flex;
-      gap:10px;
+      gap:8px;
       align-items:flex-start;
     }
     .qText{
@@ -130,6 +130,7 @@
       cursor:pointer;
       user-select:none;
       line-height:1;
+      font-weight:600;
     }
     .delBtn{
       border:1px solid rgba(239,68,68,0.4);
@@ -140,6 +141,18 @@
       cursor:pointer;
       user-select:none;
       line-height:1;
+      font-weight:600;
+    }
+    .learnBtn{
+      border:1px solid rgba(96,165,250,0.35);
+      background:transparent;
+      color:rgba(96,165,250,0.8);
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      user-select:none;
+      line-height:1;
+      font-weight:600;
     }
     .delBtn.deleted{
       color:#fecaca;
@@ -152,6 +165,34 @@
       border-color:rgba(245,158,11,0.55);
       box-shadow:0 0 0 2px rgba(245,158,11,0.12) inset;
     }
+    .learnBtn.learning{
+      color:#bfdbfe;
+      border-color:rgba(59,130,246,0.8);
+      background:rgba(59,130,246,0.16);
+      box-shadow:0 0 0 2px rgba(59,130,246,0.12) inset;
+    }
+    .statusLegend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .statusLegend span{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .statusDot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      display:inline-block;
+    }
+    .statusDot.mastered{background:var(--warn);}
+    .statusDot.developing{background:#60a5fa;}
+    .statusDot.discarded{background:#f87171;}
     details{
       border-top:1px solid rgba(37,48,71,0.7);
       margin-top:10px;
@@ -261,8 +302,9 @@
 </head>
 <body>
   <div class="topbar">
-    <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only favorites">Favorites only</button>
-    <button id="toggleAllView" class="pill" aria-pressed="false" title="Show deleted items">All view</button>
+    <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only mastered items">Mastered only</button>
+    <button id="toggleLearningView" class="pill" aria-pressed="false" title="Show only developing items">Developing only</button>
+    <button id="toggleAllView" class="pill" aria-pressed="false" title="Show discarded items">Show discarded</button>
     <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
     <button id="togglePriors" class="pill secondary" title="View saved priors">Priors</button>
     <span class="spacer"></span>
@@ -280,6 +322,11 @@
         Expected blocks: <span class="mono">Question:</span> … <span class="mono">Answer:</span> … <span class="mono">Explanation:</span> …
         (lines like <span class="mono">5, 4, 3, 2, 1.</span> and <span class="mono">[attachment_#]</span> are ignored)
       </span>
+      <div class="statusLegend">
+        <span><span class="statusDot mastered"></span>Mastered = learned &amp; ready for Anki</span>
+        <span><span class="statusDot developing"></span>Developing = needs more review</span>
+        <span><span class="statusDot discarded"></span>Discarded = already known / low yield</span>
+      </div>
     </div>
 
     <div id="list" class="list"></div>
@@ -303,7 +350,8 @@
     <div class="panelList">
       <button id="copyAllBtn" class="pill secondary" type="button">Copy all</button>
       <button id="copyAllVisibleBtn" class="pill secondary" type="button">Copy all (not deleted)</button>
-      <button id="copyFavsBtn" class="pill secondary" type="button">Copy favorites</button>
+      <button id="copyFavsBtn" class="pill secondary" type="button">Copy mastered</button>
+      <button id="copyLearningBtn" class="pill secondary" type="button">Copy developing</button>
     </div>
     <label class="toggleRow">
       <input id="countdownToggle" type="checkbox" /> Include 5-4-3-2-1 countdown
@@ -322,12 +370,14 @@
     list: document.getElementById('list'),
     empty: document.getElementById('empty'),
     toggleFavView: document.getElementById('toggleFavView'),
+    toggleLearningView: document.getElementById('toggleLearningView'),
     toggleAllView: document.getElementById('toggleAllView'),
     copyBtn: document.getElementById('copyBtn'),
     copyPanel: document.getElementById('copyPanel'),
     copyAllBtn: document.getElementById('copyAllBtn'),
     copyAllVisibleBtn: document.getElementById('copyAllVisibleBtn'),
     copyFavsBtn: document.getElementById('copyFavsBtn'),
+    copyLearningBtn: document.getElementById('copyLearningBtn'),
     countdownToggle: document.getElementById('countdownToggle'),
     togglePriors: document.getElementById('togglePriors'),
     priorsPanel: document.getElementById('priorsPanel'),
@@ -339,6 +389,7 @@
 
   const STORAGE = {
     favs: 'qa_favorites_v1',
+    learning: 'qa_learning_v1',
     deleted: 'qa_deleted_v1',
     lastInput: 'qa_last_input_v1',
     priors: 'qa_priors_v1',
@@ -355,8 +406,9 @@
   let state = {
     items: [],
     favSet: new Set(),
+    learningSet: new Set(),
     deletedSet: new Set(),
-    favOnly: false,
+    filterView: 'all',
     showAll: false,
     priors: [],
     activePriorId: null,
@@ -398,6 +450,15 @@
     }catch(e){}
   }
 
+  function loadLearning(){
+    try{
+      const raw = localStorage.getItem(STORAGE.learning);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) state.learningSet = new Set(arr);
+    }catch(e){}
+  }
+
   function saveFavs(){
     try{
       localStorage.setItem(STORAGE.favs, JSON.stringify(Array.from(state.favSet)));
@@ -407,6 +468,12 @@
   function saveDeleted(){
     try{
       localStorage.setItem(STORAGE.deleted, JSON.stringify(Array.from(state.deletedSet)));
+    }catch(e){}
+  }
+
+  function saveLearning(){
+    try{
+      localStorage.setItem(STORAGE.learning, JSON.stringify(Array.from(state.learningSet)));
     }catch(e){}
   }
 
@@ -449,6 +516,7 @@
     prior.rawInput = els.input.value || '';
     if (options.includeItems !== false) prior.items = state.items;
     prior.favIds = Array.from(state.favSet);
+    prior.learningIds = Array.from(state.learningSet);
     prior.deletedIds = Array.from(state.deletedSet);
     savePriors();
     if (els.priorsPanel.classList.contains('show')) renderPriors();
@@ -556,24 +624,29 @@
     const baseItems = state.showAll
       ? itemsAll
       : itemsAll.filter(it => !state.deletedSet.has(it.id));
-    const items = state.favOnly
+    const items = state.filterView === 'mastered'
       ? baseItems.filter(it => state.favSet.has(it.id))
-      : baseItems;
+      : state.filterView === 'developing'
+        ? baseItems.filter(it => state.learningSet.has(it.id))
+        : baseItems;
 
     els.list.innerHTML = '';
     els.empty.style.display = items.length ? 'none' : 'block';
 
     const total = itemsAll.length;
     const favCount = state.favSet.size;
+    const learningCount = state.learningSet.size;
     const deletedCount = state.deletedSet.size;
 
-    if (state.favOnly){
-      els.counts.textContent = `${items.length} favorites shown (of ${total})`;
+    if (state.filterView === 'mastered'){
+      els.counts.textContent = `${items.length} mastered shown (of ${total})`;
+    }else if (state.filterView === 'developing'){
+      els.counts.textContent = `${items.length} developing shown (of ${total})`;
     }else if (state.showAll){
-      els.counts.textContent = `${total} items (${favCount} favorites, ${deletedCount} deleted)`;
+      els.counts.textContent = `${total} items (${favCount} mastered, ${learningCount} developing, ${deletedCount} discarded)`;
     }else{
       const visibleCount = items.length;
-      els.counts.textContent = `${visibleCount} items shown (${favCount} favorites, ${deletedCount} deleted)`;
+      els.counts.textContent = `${visibleCount} items shown (${favCount} mastered, ${learningCount} developing, ${deletedCount} discarded)`;
     }
 
     for (const it of items){
@@ -590,13 +663,41 @@
       const fav = document.createElement('button');
       fav.className = 'favBtn' + (state.favSet.has(it.id) ? ' faved' : '');
       fav.type = 'button';
-      fav.title = 'Toggle favorite';
-      fav.textContent = state.favSet.has(it.id) ? '★' : '☆';
+      fav.title = 'Toggle mastered';
+      fav.textContent = state.favSet.has(it.id) ? 'Mastered' : 'Master';
 
       fav.addEventListener('click', () => {
-        if (state.favSet.has(it.id)) state.favSet.delete(it.id);
-        else state.favSet.add(it.id);
+        if (state.favSet.has(it.id)) {
+          state.favSet.delete(it.id);
+        }else{
+          state.favSet.add(it.id);
+          state.learningSet.delete(it.id);
+          state.deletedSet.delete(it.id);
+        }
         saveFavs();
+        saveLearning();
+        saveDeleted();
+        syncActivePrior();
+        render();
+      });
+
+      const learn = document.createElement('button');
+      learn.className = 'learnBtn' + (state.learningSet.has(it.id) ? ' learning' : '');
+      learn.type = 'button';
+      learn.title = 'Toggle developing';
+      learn.textContent = state.learningSet.has(it.id) ? 'Developing' : 'Develop';
+
+      learn.addEventListener('click', () => {
+        if (state.learningSet.has(it.id)) {
+          state.learningSet.delete(it.id);
+        }else{
+          state.learningSet.add(it.id);
+          state.favSet.delete(it.id);
+          state.deletedSet.delete(it.id);
+        }
+        saveLearning();
+        saveFavs();
+        saveDeleted();
         syncActivePrior();
         render();
       });
@@ -604,19 +705,27 @@
       const del = document.createElement('button');
       del.className = 'delBtn' + (state.deletedSet.has(it.id) ? ' deleted' : '');
       del.type = 'button';
-      del.title = 'Toggle deleted';
-      del.textContent = '✕';
+      del.title = 'Toggle discarded';
+      del.textContent = state.deletedSet.has(it.id) ? 'Discarded' : 'Discard';
 
       del.addEventListener('click', () => {
-        if (state.deletedSet.has(it.id)) state.deletedSet.delete(it.id);
-        else state.deletedSet.add(it.id);
+        if (state.deletedSet.has(it.id)) {
+          state.deletedSet.delete(it.id);
+        }else{
+          state.deletedSet.add(it.id);
+          state.favSet.delete(it.id);
+          state.learningSet.delete(it.id);
+        }
         saveDeleted();
+        saveFavs();
+        saveLearning();
         syncActivePrior();
         render();
       });
 
       head.appendChild(q);
       head.appendChild(fav);
+      head.appendChild(learn);
       head.appendChild(del);
 
       const ans = document.createElement('details');
@@ -688,8 +797,10 @@
     // Keep favorites for items that still exist (optional cleanup)
     const ids = new Set(state.items.map(x => x.id));
     state.favSet = new Set(Array.from(state.favSet).filter(id => ids.has(id)));
+    state.learningSet = new Set(Array.from(state.learningSet).filter(id => ids.has(id)));
     state.deletedSet = new Set(Array.from(state.deletedSet).filter(id => ids.has(id)));
     saveFavs();
+    saveLearning();
     saveDeleted();
     saveLastInput();
     storePrior(raw);
@@ -734,6 +845,7 @@
       rawInput: raw,
       items: state.items,
       favIds: Array.from(state.favSet),
+      learningIds: Array.from(state.learningSet),
       deletedIds: Array.from(state.deletedSet)
     };
     state.priors.unshift(entry);
@@ -762,7 +874,7 @@
 
       const meta = document.createElement('div');
       meta.className = 'panelMeta';
-      meta.textContent = `${prior.items.length} items · ${prior.favIds.length} favorites · ${prior.deletedIds.length} deleted`;
+      meta.textContent = `${prior.items.length} items · ${prior.favIds.length} mastered · ${(prior.learningIds || []).length} developing · ${prior.deletedIds.length} discarded`;
 
       const loadBtn = document.createElement('button');
       loadBtn.className = 'pill secondary';
@@ -773,8 +885,10 @@
         els.input.value = prior.rawInput || '';
         state.items = prior.items || parseInput(prior.rawInput || '');
         state.favSet = new Set(prior.favIds || []);
+        state.learningSet = new Set(prior.learningIds || []);
         state.deletedSet = new Set(prior.deletedIds || []);
         saveFavs();
+        saveLearning();
         saveDeleted();
         saveLastInput();
         setActivePrior(prior.id);
@@ -827,8 +941,16 @@
   els.parseBtn.addEventListener('click', parseAndRender);
 
   els.toggleFavView.addEventListener('click', () => {
-    state.favOnly = !state.favOnly;
-    els.toggleFavView.setAttribute('aria-pressed', state.favOnly ? 'true' : 'false');
+    state.filterView = state.filterView === 'mastered' ? 'all' : 'mastered';
+    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
+    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
+    render();
+  });
+
+  els.toggleLearningView.addEventListener('click', () => {
+    state.filterView = state.filterView === 'developing' ? 'all' : 'developing';
+    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
+    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     render();
   });
 
@@ -880,11 +1002,22 @@
     const items = state.items.filter(it => state.favSet.has(it.id) && !state.deletedSet.has(it.id));
     const text = formatItemsText(items, els.countdownToggle.checked);
     if (!text){
-      showToast('No favorites to copy.');
+      showToast('No mastered items to copy.');
       return;
     }
     const ok = await copyTextToClipboard(text);
-    showToast(ok ? 'Favorites copied.' : 'Copy failed.');
+    showToast(ok ? 'Mastered items copied.' : 'Copy failed.');
+  });
+
+  els.copyLearningBtn.addEventListener('click', async () => {
+    const items = state.items.filter(it => state.learningSet.has(it.id) && !state.deletedSet.has(it.id));
+    const text = formatItemsText(items, els.countdownToggle.checked);
+    if (!text){
+      showToast('No developing items to copy.');
+      return;
+    }
+    const ok = await copyTextToClipboard(text);
+    showToast(ok ? 'Developing items copied.' : 'Copy failed.');
   });
 
   els.clearBtn.addEventListener('click', () => {
@@ -908,6 +1041,7 @@
 
   // Init
   loadFavs();
+  loadLearning();
   loadDeleted();
   loadLastInput();
   loadPriors();
