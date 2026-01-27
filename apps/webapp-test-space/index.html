@@ -3,809 +3,1064 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Effective Dose Dash</title>
+  <title>Breast MRI Lesion Descriptor Builder</title>
   <style>
     :root{
-      --bg:#070A12;
-      --panel:#0E1430;
-      --panel2:#0B1024;
-      --text:#EAF0FF;
-      --muted:#A9B3D6;
-      --good:#2CFFB6;
-      --bad:#FF4D6D;
-      --accent:#7C5CFF;
-      --accent2:#33D6FF;
-      --shadow: 0 20px 60px rgba(0,0,0,.55);
-      --radius: 18px;
+      --bg:#0b1020;
+      --panel:#0f1733;
+      --panel2:#0c132b;
+      --text:#e8ecff;
+      --muted:#a8b2d6;
+      --line:#243055;
+      --accent:#7aa2ff;
+      --accent2:#47ffd1;
+      --warn:#ffcf5a;
+      --bad:#ff6b6b;
+      --ok:#7CFF7A;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
+    *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background:
-        radial-gradient(1000px 600px at 15% 10%, rgba(124,92,255,.35), transparent 55%),
-        radial-gradient(900px 600px at 85% 20%, rgba(51,214,255,.25), transparent 60%),
-        radial-gradient(900px 700px at 50% 95%, rgba(44,255,182,.12), transparent 55%),
-        var(--bg);
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(122,162,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(71,255,209,.10), transparent 55%),
+                  var(--bg);
       color:var(--text);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
     }
-    .app{
-      width:min(980px, 100%);
-      background: linear-gradient(180deg, rgba(14,20,48,.92), rgba(11,16,36,.92));
-      border:1px solid rgba(255,255,255,.10);
+    header{
+      padding:22px 18px 10px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    h1{
+      margin:0 0 6px;
+      font-size:18px;
+      letter-spacing:.2px;
+      font-weight:700;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+    main{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 10px 18px 26px;
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      main{grid-template-columns:1fr}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(122,162,255,.16);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow:hidden;
-      position:relative;
     }
-    header{
+    .card .hd{
+      padding:14px 14px 12px;
+      border-bottom:1px solid rgba(122,162,255,.14);
       display:flex;
-      gap:14px;
       align-items:center;
       justify-content:space-between;
-      padding:16px 18px;
-      background: linear-gradient(90deg, rgba(124,92,255,.22), rgba(51,214,255,.16), rgba(44,255,182,.10));
-      border-bottom:1px solid rgba(255,255,255,.10);
-    }
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:3px;
-      line-height:1.1;
-    }
-    .title h1{
-      margin:0;
-      font-size:18px;
-      letter-spacing:.3px;
-    }
-    .title .sub{
-      font-size:12px;
-      color:rgba(234,240,255,.78);
-    }
-    .hud{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
       gap:10px;
-      justify-content:flex-end;
+      background: linear-gradient(90deg, rgba(122,162,255,.10), rgba(71,255,209,.06));
+    }
+    .card .hd .title{
+      font-weight:700;
+      font-size:14px;
+    }
+    .card .bd{ padding:14px; }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 560px){
+      .grid{grid-template-columns:1fr}
+    }
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin: 0 0 6px;
+    }
+    input, select, textarea, button{
+      font-family:inherit;
+    }
+    input[type="text"], input[type="number"], select, textarea{
+      width:100%;
+      padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(122,162,255,.18);
+      background: rgba(8,12,26,.55);
+      color: var(--text);
+      outline:none;
+    }
+    input[type="number"]{ appearance:textfield; }
+    textarea{
+      min-height: 84px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
     }
     .pill{
-      display:flex;
+      display:inline-flex;
       align-items:center;
       gap:8px;
       padding:8px 10px;
-      border-radius:999px;
-      background: rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.10);
+      border-radius: 999px;
+      border:1px solid rgba(122,162,255,.18);
+      background: rgba(8,12,26,.45);
+      color: var(--text);
       font-size:12px;
-      color:rgba(234,240,255,.92);
-      user-select:none;
-      white-space:nowrap;
     }
-    .pill strong{ font-weight:700; color:var(--text); }
-    .btn{
+    .pill input{ transform: translateY(1px); }
+    details{
+      border-top: 1px dashed rgba(122,162,255,.20);
+      margin-top:12px;
+      padding-top:12px;
+    }
+    summary{
       cursor:pointer;
-      border:none;
-      padding:9px 12px;
-      border-radius: 12px;
+      color: var(--text);
       font-weight:700;
-      background: rgba(255,255,255,.10);
-      color:var(--text);
-      border:1px solid rgba(255,255,255,.12);
-      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      font-size:12.5px;
+      list-style:none;
+      user-select:none;
     }
-    .btn:hover{ background: rgba(255,255,255,.14); }
-    .btn:active{ transform: scale(.98); }
-    .btn.primary{
-      background: linear-gradient(135deg, rgba(124,92,255,.85), rgba(51,214,255,.55));
-      border-color: rgba(255,255,255,.18);
-    }
-    .btn.danger{
-      background: rgba(255,77,109,.18);
-      border-color: rgba(255,77,109,.35);
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1.15fr .85fr;
-      gap:14px;
-      padding:14px;
-    }
-    @media (max-width: 860px){
-      .grid{ grid-template-columns: 1fr; }
-    }
-    .card{
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: var(--radius);
-      overflow:hidden;
-    }
-    .card .card-h{
-      padding:14px 14px 12px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.10);
-    }
-    .card .card-h h2{
-      margin:0;
-      font-size:14px;
-      color:rgba(234,240,255,.92);
-      letter-spacing:.2px;
-    }
-    .tag{
-      font-size:11px;
-      padding:6px 9px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.07);
-      color:rgba(234,240,255,.85);
-      white-space:nowrap;
-    }
-    .prompt{
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .procedure{
-      font-size:22px;
-      font-weight:800;
-      letter-spacing:.1px;
-      line-height:1.2;
-    }
-    .region{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-      color:rgba(234,240,255,.85);
+    summary::-webkit-details-marker{display:none}
+    .hint{
+      margin-top:8px;
       font-size:12px;
+      color: var(--muted);
+      line-height:1.45;
     }
-    .spark{
-      width:10px; height:10px; border-radius:50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: 0 0 18px rgba(124,92,255,.55), 0 0 18px rgba(51,214,255,.35);
-      display:inline-block;
-    }
-    .question{
-      margin-top:2px;
-      font-size:14px;
-      color:rgba(234,240,255,.90);
-    }
-    .choices{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-      padding: 0 14px 14px;
-    }
-    @media (max-width: 520px){
-      .choices{ grid-template-columns: 1fr; }
-    }
-    .choice{
-      cursor:pointer;
-      padding:12px 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.07);
-      border:1px solid rgba(255,255,255,.12);
-      color: rgba(234,240,255,.92);
-      font-weight:800;
-      letter-spacing:.2px;
-      transition: transform .08s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
-      position:relative;
-      overflow:hidden;
-      min-height:44px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-    }
-    .choice:hover{
-      background: rgba(255,255,255,.10);
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
-    }
-    .choice:active{ transform: scale(.99); }
-    .choice.correct{
-      background: rgba(44,255,182,.14);
-      border-color: rgba(44,255,182,.50);
-      box-shadow: 0 0 0 2px rgba(44,255,182,.10) inset;
-    }
-    .choice.wrong{
-      background: rgba(255,77,109,.14);
-      border-color: rgba(255,77,109,.45);
-      box-shadow: 0 0 0 2px rgba(255,77,109,.10) inset;
-    }
-    .choice.disabled{
-      opacity:.75;
-      pointer-events:none;
-    }
-    .side{
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
-    .modeRow{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      padding:14px;
-    }
-    .toggle{
-      flex:1;
-      min-width:180px;
-      padding:12px;
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .toggle .left{
-      display:flex;
-      flex-direction:column;
-      gap:3px;
-    }
-    .toggle .left .name{ font-weight:900; font-size:13px; }
-    .toggle .left .desc{ font-size:12px; color:rgba(234,240,255,.70); }
-    .switch{
-      width:44px; height:26px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.18);
-      background: rgba(0,0,0,.18);
-      position:relative;
-      cursor:pointer;
-      flex: 0 0 auto;
-    }
-    .knob{
-      width:22px; height:22px; border-radius:50%;
-      position:absolute; top:1px; left:1px;
-      background: rgba(255,255,255,.82);
-      transition: left .18s ease, background .18s ease;
-    }
-    .switch.on{
-      background: linear-gradient(135deg, rgba(124,92,255,.75), rgba(51,214,255,.50));
-      border-color: rgba(255,255,255,.22);
-    }
-    .switch.on .knob{ left:21px; background: rgba(255,255,255,.95); }
-    .stats{
-      padding:14px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
-    .stat{
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.12);
-      padding:12px;
-    }
-    .stat .k{ font-size:11px; color:rgba(234,240,255,.70); }
-    .stat .v{ font-size:18px; font-weight:900; margin-top:4px; }
-    .msg{
-      padding: 0 14px 14px;
-      color:rgba(234,240,255,.85);
-      font-size:12px;
-      line-height:1.35;
-      min-height: 36px;
-    }
-    .studyWrap{ padding:14px; }
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      overflow:hidden;
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.10);
-    }
-    th,td{
-      text-align:left;
+    .warn{
+      margin-top:10px;
       padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,207,90,.35);
+      background: rgba(255,207,90,.08);
+      color: var(--text);
       font-size:12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
+      line-height:1.4;
     }
-    th{
-      background: rgba(255,255,255,.08);
-      color: rgba(234,240,255,.92);
-      font-weight:900;
-      position:sticky;
-      top:0;
-      z-index:1;
+    .bad{
+      border-color: rgba(255,107,107,.45) !important;
+      background: rgba(255,107,107,.10) !important;
     }
-    td{ color: rgba(234,240,255,.84); background: rgba(0,0,0,.10); }
-    tr:last-child td{ border-bottom:none; }
-    .mono{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
-    .toast{
-      position:absolute;
-      left:14px;
-      bottom:14px;
+    .btns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+    button{
       padding:10px 12px;
-      border-radius: 14px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.35);
-      color: rgba(234,240,255,.90);
-      font-size:12px;
-      opacity:0;
-      transform: translateY(8px);
-      transition: opacity .18s ease, transform .18s ease;
-      pointer-events:none;
-      max-width: calc(100% - 28px);
+      border-radius: 12px;
+      border:1px solid rgba(122,162,255,.25);
+      background: rgba(122,162,255,.14);
+      color: var(--text);
+      cursor:pointer;
+      font-weight:700;
+      font-size:12.5px;
     }
-    .toast.show{ opacity:1; transform: translateY(0); }
-    canvas.fx{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
+    button:hover{ background: rgba(122,162,255,.20); }
+    button.secondary{
+      background: rgba(8,12,26,.45);
+    }
+    button.secondary:hover{
+      background: rgba(8,12,26,.60);
+    }
+    button.good{
+      background: rgba(71,255,209,.12);
+      border-color: rgba(71,255,209,.30);
+    }
+    button.good:hover{ background: rgba(71,255,209,.18); }
+    .outbox{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .status{
+      font-size:12px;
+      color: var(--muted);
     }
     .kbd{
-      font-size:11px;
+      font-family: var(--mono);
+      font-size:11.5px;
       padding:2px 6px;
       border-radius:8px;
-      background: rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.14);
-      color: rgba(234,240,255,.92);
-      margin-left:6px;
-      font-weight:900;
+      border:1px solid rgba(122,162,255,.18);
+      background: rgba(8,12,26,.55);
+      color: var(--text);
+    }
+    .twoCols{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 560px){
+      .twoCols{grid-template-columns:1fr}
+    }
+    .sep{
+      height:1px;
+      background: rgba(122,162,255,.14);
+      margin: 10px 0;
+    }
+    .small{
+      font-size:11.5px;
+      color: var(--muted);
+      line-height:1.35;
     }
   </style>
 </head>
+
 <body>
-  <div class="app" id="app">
-    <canvas class="fx" id="fx"></canvas>
+<header>
+  <h1>Breast MRI Lesion Descriptor Builder</h1>
+  <div class="sub">
+    Generates lesion-only report language for <b>focus</b>, <b>mass</b>, or <b>non-mass enhancement (NME)</b> using BI-RADS–style descriptors (shape/margin/pattern/T2/kinetics/location/best seen).
+  </div>
+</header>
 
-    <header>
-      <div class="title">
-        <h1>Effective Dose Dash</h1>
-        <div class="sub">Match each imaging exam to its approximate effective dose or background-radiation equivalent.</div>
+<main>
+  <!-- INPUTS -->
+  <section class="card" id="inputsCard">
+    <div class="hd">
+      <div class="title">Inputs</div>
+      <div class="row">
+        <span class="pill"><input id="autosave" type="checkbox" checked /> <label for="autosave" style="margin:0;color:var(--text)">Autosave</label></span>
+        <span class="pill"><span class="small">Preset</span>
+          <select id="preset" style="width:auto;padding:7px 10px;border-radius:999px">
+            <option value="">—</option>
+            <option value="focus_probably_benign">Focus (probably benign pattern)</option>
+            <option value="mass_fibroadenoma_like">Mass (fibroadenoma-like)</option>
+            <option value="mass_suspicious">Mass (suspicious pattern)</option>
+            <option value="nme_suspicious">NME (suspicious pattern)</option>
+          </select>
+        </span>
       </div>
-
-      <div class="hud">
-        <div class="pill">Score: <strong id="score">0</strong></div>
-        <div class="pill">Streak: <strong id="streak">0</strong></div>
-        <button class="btn" id="skipBtn" title="Skip this question">Skip <span class="kbd">S</span></button>
-        <button class="btn danger" id="resetBtn" title="Reset score and restart">Reset</button>
-      </div>
-    </header>
-
-    <div class="grid">
-      <section class="card">
-        <div class="card-h">
-          <h2 id="roundTitle">Round</h2>
-          <div class="tag" id="modeTag">Mode: Dose (mSv)</div>
-        </div>
-
-        <div class="prompt">
-          <div class="region"><span class="spark"></span> <span id="region">Region</span></div>
-          <div class="procedure" id="procedure">Procedure</div>
-          <div class="question" id="questionText">Question</div>
-        </div>
-
-        <div class="choices" id="choices"></div>
-        <div class="msg" id="msg"></div>
-      </section>
-
-      <aside class="side">
-        <section class="card">
-          <div class="card-h">
-            <h2>Game Settings</h2>
-            <div class="tag">Keys: 1–4 / Enter</div>
-          </div>
-
-          <div class="modeRow">
-            <div class="toggle">
-              <div class="left">
-                <div class="name">Ask for dose (mSv)</div>
-                <div class="desc">Pick the correct effective dose.</div>
-              </div>
-              <div class="switch" id="doseSwitch" role="switch" aria-checked="true" tabindex="0">
-                <div class="knob"></div>
-              </div>
-            </div>
-
-            <div class="toggle">
-              <div class="left">
-                <div class="name">Study table</div>
-                <div class="desc">Show/hide the source chart values.</div>
-              </div>
-              <button class="btn" id="studyBtn">Show</button>
-            </div>
-          </div>
-
-          <div class="stats">
-            <div class="stat">
-              <div class="k">Correct</div>
-              <div class="v mono" id="correct">0</div>
-            </div>
-            <div class="stat">
-              <div class="k">Attempts</div>
-              <div class="v mono" id="attempts">0</div>
-            </div>
-            <div class="stat">
-              <div class="k">Accuracy</div>
-              <div class="v mono" id="accuracy">—</div>
-            </div>
-            <div class="stat">
-              <div class="k">Best streak</div>
-              <div class="v mono" id="bestStreak">0</div>
-            </div>
-          </div>
-
-          <div class="studyWrap" id="studyWrap" style="display:none;">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width:44%;">Procedure</th>
-                  <th style="width:18%;">Region</th>
-                  <th style="width:18%;">Dose (mSv)</th>
-                  <th style="width:20%;">Background equivalent</th>
-                </tr>
-              </thead>
-              <tbody id="studyTable"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="card-h">
-            <h2>How it works</h2>
-            <div class="tag">Fast recall</div>
-          </div>
-          <div class="msg" style="padding-top:14px;">
-            Each round shows one imaging exam. Choose the correct value for the current mode.
-            Use keys <span class="kbd">1</span>–<span class="kbd">4</span> to answer, <span class="kbd">Enter</span> for next,
-            <span class="kbd">S</span> to skip.
-          </div>
-        </section>
-      </aside>
     </div>
 
-    <div class="toast" id="toast"></div>
-  </div>
+    <div class="bd">
+      <div class="grid">
+        <div>
+          <label for="lesionType">Lesion type</label>
+          <select id="lesionType">
+            <option value="focus">Enhancing focus (&lt; 5 mm)</option>
+            <option value="mass">Mass (3D space-occupying)</option>
+            <option value="nme">Non-mass enhancement (NME)</option>
+          </select>
+        </div>
 
-  <script>
-    // Data transcribed from the provided chart image.
-    // Units: mSv and "Comparable to natural background radiation for"
-    const DATA = [
-      { region: "Abdominal region", procedure: "Computed Tomography (CT) — Abdomen and Pelvis", dose: "10 mSv", bg: "3 years" },
-      { region: "Abdominal region", procedure: "Computed Tomography (CT) — Abdomen and Pelvis, repeated with and without contrast material", dose: "20 mSv", bg: "7 years" },
-      { region: "Abdominal region", procedure: "Computed Tomography (CT) — Colonography", dose: "6 mSv", bg: "2 years" },
-      { region: "Abdominal region", procedure: "Intravenous Pyelogram (IVP)", dose: "3 mSv", bg: "1 year" },
-      { region: "Abdominal region", procedure: "Radiography (X-ray) — Lower GI Tract", dose: "8 mSv", bg: "3 years" },
-      { region: "Abdominal region", procedure: "Radiography (X-ray) — Upper GI Tract", dose: "6 mSv", bg: "2 years" },
+        <div>
+          <label for="laterality">Laterality</label>
+          <select id="laterality">
+            <option value="right">Right</option>
+            <option value="left">Left</option>
+          </select>
+        </div>
+      </div>
 
-      { region: "Bone", procedure: "Radiography (X-ray) — Spine", dose: "1.5 mSv", bg: "6 months" },
-      { region: "Bone", procedure: "Radiography (X-ray) — Extremity", dose: "0.001 mSv", bg: "3 hours" },
+      <div class="sep"></div>
 
-      { region: "Central nervous system", procedure: "Computed Tomography (CT) — Head", dose: "2 mSv", bg: "8 months" },
-      { region: "Central nervous system", procedure: "Computed Tomography (CT) — Head, repeated with and without contrast material", dose: "4 mSv", bg: "16 months" },
-      { region: "Central nervous system", procedure: "Computed Tomography (CT) — Spine", dose: "6 mSv", bg: "2 years" },
+      <!-- LOCATION -->
+      <div class="card" style="border-radius:14px;border-color:rgba(122,162,255,.12);box-shadow:none;background:rgba(8,12,26,.28)">
+        <div class="bd" style="padding:12px">
+          <div class="row" style="justify-content:space-between">
+            <div style="font-weight:700;font-size:12.5px">Location (lesion-only)</div>
+            <div class="row">
+              <span class="pill">
+                <input type="radio" name="locMode" id="locQuadrant" value="quadrant" checked />
+                <label for="locQuadrant" style="margin:0;color:var(--text)">Quadrant</label>
+              </span>
+              <span class="pill">
+                <input type="radio" name="locMode" id="locClock" value="clock" />
+                <label for="locClock" style="margin:0;color:var(--text)">Clock-face</label>
+              </span>
+            </div>
+          </div>
 
-      { region: "Chest", procedure: "Computed Tomography (CT) — Chest", dose: "7 mSv", bg: "2 years" },
-      { region: "Chest", procedure: "Computed Tomography (CT) — Lung Cancer Screening", dose: "1.5 mSv", bg: "6 months" },
-      { region: "Chest", procedure: "Radiography — Chest", dose: "0.1 mSv", bg: "10 days" },
+          <div class="grid" style="margin-top:10px">
+            <div id="quadrantBox">
+              <label for="quadrant">Quadrant</label>
+              <select id="quadrant">
+                <option value="upper outer quadrant">Upper outer quadrant</option>
+                <option value="upper inner quadrant">Upper inner quadrant</option>
+                <option value="lower outer quadrant">Lower outer quadrant</option>
+                <option value="lower inner quadrant">Lower inner quadrant</option>
+              </select>
+            </div>
 
-      { region: "Dental", procedure: "Intraoral X-ray", dose: "0.005 mSv", bg: "1 day" }
-    ];
+            <div id="clockBox" style="display:none">
+              <label>Clock-face</label>
+              <div class="row" style="gap:8px">
+                <select id="clockPos" style="flex:1;min-width:140px">
+                  <option value="12">12:00</option><option value="1">1:00</option><option value="2">2:00</option><option value="3">3:00</option>
+                  <option value="4">4:00</option><option value="5">5:00</option><option value="6">6:00</option><option value="7">7:00</option>
+                  <option value="8">8:00</option><option value="9">9:00</option><option value="10">10:00</option><option value="11">11:00</option>
+                </select>
+                <input id="clockDist" type="number" min="0" step="0.1" placeholder="cm from nipple (optional)" style="flex:1;min-width:160px" />
+              </div>
+            </div>
 
-    // ---------- State ----------
-    const state = {
-      askDose: true,      // true => ask for dose; false => ask for background-equivalent
-      score: 0,
-      streak: 0,
-      bestStreak: 0,
-      correct: 0,
-      attempts: 0,
-      round: 0,
-      locked: false,
-      current: null,
-      choices: [],
-      correctIndex: -1,
-      needNext: false
-    };
+            <div>
+              <label for="zone">Zone (optional)</label>
+              <select id="zone">
+                <option value="">—</option>
+                <option value="central">Central</option>
+                <option value="retroareolar">Retroareolar</option>
+                <option value="axillary tail">Axillary tail</option>
+              </select>
+            </div>
 
-    // ---------- DOM ----------
-    const $ = (id) => document.getElementById(id);
-    const el = {
-      score: $("score"),
-      streak: $("streak"),
-      correct: $("correct"),
-      attempts: $("attempts"),
-      accuracy: $("accuracy"),
-      bestStreak: $("bestStreak"),
-      procedure: $("procedure"),
-      region: $("region"),
-      questionText: $("questionText"),
-      choices: $("choices"),
-      msg: $("msg"),
-      roundTitle: $("roundTitle"),
-      modeTag: $("modeTag"),
-      doseSwitch: $("doseSwitch"),
-      resetBtn: $("resetBtn"),
-      skipBtn: $("skipBtn"),
-      studyBtn: $("studyBtn"),
-      studyWrap: $("studyWrap"),
-      studyTable: $("studyTable"),
-      toast: $("toast"),
-      fx: $("fx"),
-      app: $("app")
-    };
+            <div>
+              <label for="depth">Depth</label>
+              <select id="depth">
+                <option value="anterior depth">Anterior depth</option>
+                <option value="middle depth">Middle depth</option>
+                <option value="posterior depth">Posterior depth</option>
+              </select>
+            </div>
 
-    // ---------- Helpers ----------
-    function shuffle(arr){
-      for(let i=arr.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [arr[i],arr[j]] = [arr[j],arr[i]];
-      }
-      return arr;
+            <div>
+              <label for="distSkin">Distance from skin (optional, cm)</label>
+              <input id="distSkin" type="number" min="0" step="0.1" placeholder="e.g., 0.8" />
+            </div>
+
+            <div>
+              <label for="distChest">Distance from chest wall (optional, cm)</label>
+              <input id="distChest" type="number" min="0" step="0.1" placeholder="e.g., 1.5" />
+            </div>
+          </div>
+
+          <div class="hint">
+            Clock-face orientation is assumed standard; include only what helps you localize for second-look US/biopsy.
+          </div>
+        </div>
+      </div>
+
+      <!-- MEASUREMENTS -->
+      <details open>
+        <summary>Size & “Best seen”</summary>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label>Size (mm)</label>
+            <div class="row" style="gap:8px">
+              <input id="m1" type="number" min="0" step="0.1" placeholder="AP" />
+              <input id="m2" type="number" min="0" step="0.1" placeholder="TR" />
+              <input id="m3" type="number" min="0" step="0.1" placeholder="CC (optional)" />
+            </div>
+            <div class="small">Enter 1–3 dimensions. For focus: typically a single value (e.g., 4 mm).</div>
+          </div>
+          <div class="twoCols">
+            <div>
+              <label for="series">Best seen: Series (optional)</label>
+              <input id="series" type="text" placeholder="e.g., Series 6" />
+            </div>
+            <div>
+              <label for="image">Best seen: Image (optional)</label>
+              <input id="image" type="text" placeholder="e.g., Image 102" />
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- FOCUS -->
+      <div id="focusFields">
+        <details open>
+          <summary>Focus descriptors</summary>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="focusUniqueness">Relationship to background</label>
+              <select id="focusUniqueness">
+                <option value="">—</option>
+                <option value="unique from background parenchymal enhancement">Unique from background parenchymal enhancement</option>
+                <option value="similar to background parenchymal enhancement">Similar to background parenchymal enhancement</option>
+              </select>
+            </div>
+            <div>
+              <label for="focusChange">Change over time</label>
+              <select id="focusChange">
+                <option value="">—</option>
+                <option value="new">New</option>
+                <option value="increased">Increased</option>
+                <option value="stable">Stable</option>
+              </select>
+            </div>
+            <div>
+              <label for="focusT2">T2/STIR correlate (optional)</label>
+              <select id="focusT2">
+                <option value="">—</option>
+                <option value="T2 hyperintense">T2 hyperintense</option>
+                <option value="not T2 hyperintense">Not T2 hyperintense</option>
+              </select>
+            </div>
+            <div>
+              <label for="focusNote">Optional focus qualifier</label>
+              <select id="focusNote">
+                <option value="not further characterizable">Not further characterizable</option>
+                <option value="">— omit —</option>
+              </select>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- MASS -->
+      <div id="massFields" style="display:none">
+        <details open>
+          <summary>Mass morphology</summary>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="massShape">Shape</label>
+              <select id="massShape">
+                <option value="oval">Oval</option>
+                <option value="round">Round</option>
+                <option value="irregular">Irregular</option>
+              </select>
+            </div>
+            <div>
+              <label for="massMargin">Margin</label>
+              <select id="massMargin">
+                <option value="circumscribed">Circumscribed</option>
+                <option value="irregular">Not circumscribed (irregular)</option>
+                <option value="spiculated">Not circumscribed (spiculated)</option>
+              </select>
+            </div>
+            <div>
+              <label for="massInternal">Internal enhancement</label>
+              <select id="massInternal">
+                <option value="homogeneous internal enhancement">Homogeneous</option>
+                <option value="heterogeneous internal enhancement">Heterogeneous</option>
+                <option value="rim enhancement">Rim enhancement</option>
+                <option value="dark (non-enhancing) internal septations">Dark internal septations</option>
+              </select>
+            </div>
+            <div>
+              <label for="massT2">T2/STIR correlate</label>
+              <select id="massT2">
+                <option value="T2 hyperintense">T2 hyperintense</option>
+                <option value="not T2 hyperintense">Not T2 hyperintense</option>
+                <option value="">— omit —</option>
+              </select>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- NME -->
+      <div id="nmeFields" style="display:none">
+        <details open>
+          <summary>Non-mass enhancement (NME) morphology</summary>
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="nmeDist">Distribution</label>
+              <select id="nmeDist">
+                <option value="focal">Focal</option>
+                <option value="linear">Linear</option>
+                <option value="segmental">Segmental</option>
+                <option value="regional">Regional</option>
+                <option value="multiple regions">Multiple regions</option>
+                <option value="diffuse">Diffuse</option>
+              </select>
+            </div>
+            <div>
+              <label for="nmePattern">Internal enhancement pattern</label>
+              <select id="nmePattern">
+                <option value="homogeneous">Homogeneous</option>
+                <option value="heterogeneous">Heterogeneous</option>
+                <option value="clumped">Clumped</option>
+                <option value="clustered ring">Clustered ring</option>
+              </select>
+            </div>
+            <div>
+              <label for="nmeT2">T2/STIR correlate</label>
+              <select id="nmeT2">
+                <option value="T2 hyperintense">T2 hyperintense</option>
+                <option value="not T2 hyperintense">Not T2 hyperintense</option>
+                <option value="">— omit —</option>
+              </select>
+            </div>
+            <div>
+              <label for="nmeExtent">Extent phrase (optional)</label>
+              <select id="nmeExtent">
+                <option value="">—</option>
+                <option value="spanning from anterior to posterior breast tissue">Spanning anterior-to-posterior</option>
+                <option value="centered at nipple level">Centered at nipple level</option>
+                <option value="with ductal distribution">With ductal distribution</option>
+              </select>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- KINETICS -->
+      <details open>
+        <summary>Kinetics (supporting language)</summary>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="kinInit">Initial phase</label>
+            <select id="kinInit">
+              <option value="">— omit —</option>
+              <option value="slow initial enhancement">Slow</option>
+              <option value="medium initial enhancement">Medium</option>
+              <option value="fast initial enhancement">Fast</option>
+            </select>
+          </div>
+          <div>
+            <label for="kinDel">Delayed phase</label>
+            <select id="kinDel">
+              <option value="">— omit —</option>
+              <option value="persistent kinetics">Persistent</option>
+              <option value="plateau kinetics">Plateau</option>
+              <option value="washout kinetics">Washout</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <span class="pill">
+            <input id="includeMorphOverKin" type="checkbox" />
+            <label for="includeMorphOverKin" style="margin:0;color:var(--text)">Add sentence: “Morphology is prioritized over kinetics.”</label>
+          </span>
+        </div>
+      </details>
+
+      <!-- OPTIONAL EXTRA -->
+      <details>
+        <summary>Optional add-ons (lesion-adjacent only)</summary>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="adjacent">Associated/adjacent feature phrase (optional)</label>
+            <select id="adjacent">
+              <option value="">—</option>
+              <option value="with associated architectural distortion">Architectural distortion</option>
+              <option value="with associated skin thickening">Skin thickening</option>
+              <option value="with associated skin enhancement">Skin enhancement</option>
+              <option value="with associated nipple retraction">Nipple retraction</option>
+              <option value="abutting the pectoralis muscle">Abutting pectoralis muscle</option>
+              <option value="with suspected pectoralis involvement">Suspected pectoralis involvement</option>
+              <option value="with suspected chest wall involvement">Suspected chest wall involvement</option>
+            </select>
+            <div class="small">Keep this limited to lesion-adjacent descriptors; omit global exam findings.</div>
+          </div>
+
+          <div>
+            <label for="freeText">Free-text addendum (optional, appended)</label>
+            <input id="freeText" type="text" placeholder="e.g., “correlate with second-look ultrasound” (if you want it included)" />
+          </div>
+        </div>
+      </details>
+
+      <div id="validation" class="warn" style="display:none"></div>
+
+      <div class="btns">
+        <button class="good" id="btnGenerate" type="button">Generate description</button>
+        <button class="secondary" id="btnCopy" type="button">Copy</button>
+        <button class="secondary" id="btnClear" type="button">Clear</button>
+      </div>
+
+      <div class="hint">
+        Tip: Press <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to generate.
+      </div>
+    </div>
+  </section>
+
+  <!-- OUTPUT -->
+  <section class="card">
+    <div class="hd">
+      <div class="title">Generated lesion description</div>
+      <div class="status" id="status">Ready.</div>
+    </div>
+    <div class="bd outbox">
+      <textarea id="output" placeholder="Generated text will appear here..."></textarea>
+      <div class="small">
+        Output is intentionally “lesion-only.” Add BI-RADS assessment/management elsewhere as needed.
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+
+  const stateKey = "breast_mri_lesion_descriptor_builder_v1";
+
+  const els = {
+    autosave: $("autosave"),
+    preset: $("preset"),
+    lesionType: $("lesionType"),
+    laterality: $("laterality"),
+
+    locQuadrant: $("locQuadrant"),
+    locClock: $("locClock"),
+    quadrantBox: $("quadrantBox"),
+    clockBox: $("clockBox"),
+    quadrant: $("quadrant"),
+    clockPos: $("clockPos"),
+    clockDist: $("clockDist"),
+    zone: $("zone"),
+    depth: $("depth"),
+    distSkin: $("distSkin"),
+    distChest: $("distChest"),
+
+    m1: $("m1"),
+    m2: $("m2"),
+    m3: $("m3"),
+    series: $("series"),
+    image: $("image"),
+
+    focusFields: $("focusFields"),
+    focusUniqueness: $("focusUniqueness"),
+    focusChange: $("focusChange"),
+    focusT2: $("focusT2"),
+    focusNote: $("focusNote"),
+
+    massFields: $("massFields"),
+    massShape: $("massShape"),
+    massMargin: $("massMargin"),
+    massInternal: $("massInternal"),
+    massT2: $("massT2"),
+
+    nmeFields: $("nmeFields"),
+    nmeDist: $("nmeDist"),
+    nmePattern: $("nmePattern"),
+    nmeT2: $("nmeT2"),
+    nmeExtent: $("nmeExtent"),
+
+    kinInit: $("kinInit"),
+    kinDel: $("kinDel"),
+    includeMorphOverKin: $("includeMorphOverKin"),
+
+    adjacent: $("adjacent"),
+    freeText: $("freeText"),
+
+    validation: $("validation"),
+    btnGenerate: $("btnGenerate"),
+    btnCopy: $("btnCopy"),
+    btnClear: $("btnClear"),
+    output: $("output"),
+    status: $("status"),
+  };
+
+  function show(el, on){ el.style.display = on ? "" : "none"; }
+
+  function setStatus(msg){
+    els.status.textContent = msg;
+  }
+
+  function valNum(x){
+    const n = parseFloat(x);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function measurementString(){
+    const a = valNum(els.m1.value);
+    const b = valNum(els.m2.value);
+    const c = valNum(els.m3.value);
+
+    const parts = [];
+    if (a !== null) parts.push(a);
+    if (b !== null) parts.push(b);
+    if (c !== null) parts.push(c);
+
+    if (parts.length === 0) return "";
+    if (parts.length === 1) return `${parts[0]} mm`;
+    return `${parts.join(" x ")} mm`;
+  }
+
+  function bestSeenString(){
+    const s = els.series.value.trim();
+    const i = els.image.value.trim();
+    if (!s && !i) return "";
+    if (s && i) return `best seen on ${s}, ${i}`;
+    if (s) return `best seen on ${s}`;
+    return `best seen on ${i}`;
+  }
+
+  function locationString(){
+    const lat = els.laterality.value;
+    const zone = els.zone.value ? `${els.zone.value} ` : "";
+    const depth = els.depth.value;
+
+    let region = "";
+    const mode = document.querySelector('input[name="locMode"]:checked')?.value || "quadrant";
+    if (mode === "quadrant"){
+      region = els.quadrant.value;
+    } else {
+      const cp = els.clockPos.value;
+      const d = valNum(els.clockDist.value);
+      region = `${cp}:00 position`;
+      if (d !== null && d > 0) region += `, ${d} cm from the nipple`;
     }
 
-    function pickDistinctWrongAnswers(correctValue, key, n=3){
-      const pool = Array.from(new Set(DATA.map(d => d[key]))).filter(v => v !== correctValue);
-      shuffle(pool);
-      return pool.slice(0, n);
-    }
+    const distSkin = valNum(els.distSkin.value);
+    const distChest = valNum(els.distChest.value);
+    const distParts = [];
+    if (distSkin !== null && distSkin > 0) distParts.push(`${distSkin} cm from the skin`);
+    if (distChest !== null && distChest > 0) distParts.push(`${distChest} cm from the chest wall`);
+    const distPhrase = distParts.length ? `, ${distParts.join(", ")}` : "";
 
-    function setToast(text){
-      el.toast.textContent = text;
-      el.toast.classList.add("show");
-      clearTimeout(setToast._t);
-      setToast._t = setTimeout(() => el.toast.classList.remove("show"), 1200);
-    }
+    return `In the ${lat} breast at ${zone}${region}, ${depth}${distPhrase}`;
+  }
 
-    // Simple confetti burst on correct
-    const FX = (() => {
-      const ctx = el.fx.getContext("2d");
-      let W=0,H=0,parts=[];
-      function resize(){
-        const r = window.devicePixelRatio || 1;
-        const rect = el.app.getBoundingClientRect();
-        el.fx.width = Math.floor(rect.width*r);
-        el.fx.height = Math.floor(rect.height*r);
-        el.fx.style.width = rect.width+"px";
-        el.fx.style.height = rect.height+"px";
-        W = el.fx.width; H = el.fx.height;
-        ctx.setTransform(1,0,0,1,0,0);
-      }
-      function burst(){
-        const r = window.devicePixelRatio || 1;
-        const rect = el.app.getBoundingClientRect();
-        const x = (rect.width*0.35)*r;     // roughly over the main card
-        const y = (rect.height*0.20)*r;
-        const count = 90;
-        for(let i=0;i<count;i++){
-          const a = Math.random()*Math.PI*2;
-          const sp = 4 + Math.random()*7;
-          parts.push({
-            x, y,
-            vx: Math.cos(a)*sp,
-            vy: Math.sin(a)*sp - (2+Math.random()*3),
-            g: 0.18 + Math.random()*0.12,
-            s: 2 + Math.random()*3,
-            life: 50 + Math.random()*30,
-            t: 0
-          });
+  function kineticsString(){
+    const init = els.kinInit.value;
+    const del  = els.kinDel.value;
+
+    if (!init && !del) return "";
+    if (init && del) return `demonstrating ${init} with ${del}`;
+    if (init) return `demonstrating ${init}`;
+    return `demonstrating ${del}`;
+  }
+
+  function sentenceCap(s){
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function buildDescription(){
+    const type = els.lesionType.value;
+    const loc = locationString();
+    const meas = measurementString();
+    const best = bestSeenString();
+    const kin  = kineticsString();
+    const adjacent = els.adjacent.value;
+    const freeText = els.freeText.value.trim();
+
+    // Validation + warnings
+    const warnings = [];
+    let isHardError = false;
+
+    if (type === "focus"){
+      const a = valNum(els.m1.value);
+      const b = valNum(els.m2.value);
+      const c = valNum(els.m3.value);
+      const sizes = [a,b,c].filter(v=>v!==null);
+      if (sizes.length === 0){
+        warnings.push("Focus selected: consider entering a single size in mm (e.g., 4).");
+      } else {
+        const max = Math.max(...sizes);
+        if (max >= 5){
+          warnings.push("Focus selected but size is ≥ 5 mm; consider classifying as a small mass if it is space-occupying / characterizable.");
         }
       }
-      function tick(){
-        ctx.clearRect(0,0,W,H);
-        parts = parts.filter(p => p.t < p.life);
-        for(const p of parts){
-          p.t++;
-          p.vy += p.g;
-          p.x += p.vx;
-          p.y += p.vy;
-          const alpha = 1 - (p.t/p.life);
-          ctx.globalAlpha = alpha;
-          // no fixed colors: use grayscale-ish + alpha; still "fun" with motion
-          ctx.fillStyle = "rgba(255,255,255,0.9)";
-          ctx.fillRect(p.x, p.y, p.s, p.s);
-        }
-        ctx.globalAlpha = 1;
-        requestAnimationFrame(tick);
-      }
-      window.addEventListener("resize", resize);
-      resize();
-      tick();
-      return { burst, resize };
-    })();
-
-    function updateHUD(){
-      el.score.textContent = state.score;
-      el.streak.textContent = state.streak;
-      el.correct.textContent = state.correct;
-      el.attempts.textContent = state.attempts;
-      el.bestStreak.textContent = state.bestStreak;
-      if(state.attempts === 0) el.accuracy.textContent = "—";
-      else el.accuracy.textContent = Math.round((state.correct/state.attempts)*100) + "%";
-
-      el.modeTag.textContent = state.askDose ? "Mode: Dose (mSv)" : "Mode: Background equivalent";
-      el.questionText.textContent = state.askDose
-        ? "Pick the approximate effective dose:"
-        : "Pick the comparable natural background radiation time:";
     }
 
-    function renderStudyTable(){
-      el.studyTable.innerHTML = "";
-      for(const row of DATA){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(row.procedure)}</td>
-          <td>${escapeHtml(row.region)}</td>
-          <td class="mono">${escapeHtml(row.dose)}</td>
-          <td class="mono">${escapeHtml(row.bg)}</td>
-        `;
-        el.studyTable.appendChild(tr);
+    if (type !== "focus"){
+      const sizes = [valNum(els.m1.value), valNum(els.m2.value), valNum(els.m3.value)].filter(v=>v!==null);
+      if (sizes.length === 0){
+        warnings.push("Consider adding lesion measurements in mm.");
       }
     }
 
-    function escapeHtml(s){
-      return String(s)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
+    // Build lesion-specific clause
+    let lesionClause = "";
+    if (type === "focus"){
+      const uniq = els.focusUniqueness.value;
+      const change = els.focusChange.value;
+      const t2 = els.focusT2.value;
+      const note = els.focusNote.value;
+
+      lesionClause = `there is an enhancing focus`;
+      if (meas) lesionClause += ` measuring ${meas}`;
+      const mods = [];
+      if (uniq) mods.push(uniq.toLowerCase());
+      if (change) mods.push(change.toLowerCase());
+      if (t2) mods.push(t2);
+      if (note) mods.push(note.toLowerCase());
+      if (mods.length) lesionClause += `, ${mods.join(", ")}`;
     }
 
-    function nextRound(){
-      state.round++;
-      state.locked = false;
-      state.needNext = false;
-      el.msg.textContent = "";
+    if (type === "mass"){
+      const shape = els.massShape.value;
+      const marginVal = els.massMargin.value; // values already contain words
+      const internal = els.massInternal.value;
+      const t2 = els.massT2.value;
 
-      // pick a random procedure
-      state.current = DATA[Math.floor(Math.random()*DATA.length)];
-      el.procedure.textContent = state.current.procedure;
-      el.region.textContent = state.current.region;
-      el.roundTitle.textContent = "Round " + state.round;
+      const marginPhrase = (marginVal === "circumscribed") ? "circumscribed margin" :
+                           (marginVal === "irregular") ? "not circumscribed margin (irregular)" :
+                           "not circumscribed margin (spiculated)";
 
-      const key = state.askDose ? "dose" : "bg";
-      const correctValue = state.current[key];
-
-      const wrongs = pickDistinctWrongAnswers(correctValue, key, 3);
-      const all = shuffle([correctValue, ...wrongs]);
-
-      state.choices = all;
-      state.correctIndex = all.indexOf(correctValue);
-
-      el.choices.innerHTML = "";
-      all.forEach((val, idx) => {
-        const b = document.createElement("button");
-        b.className = "choice";
-        b.type = "button";
-        b.innerHTML = escapeHtml(val);
-        b.addEventListener("click", () => choose(idx));
-        el.choices.appendChild(b);
-      });
-
-      updateHUD();
+      lesionClause = `there is an enhancing mass`;
+      if (meas) lesionClause += ` measuring ${meas}`;
+      lesionClause += ` with ${shape} shape, ${marginPhrase}, and ${internal}`;
+      if (t2) lesionClause += `, ${t2}`;
     }
 
-    function choose(idx){
-      if(state.locked) return;
-      state.locked = true;
-      state.attempts++;
+    if (type === "nme"){
+      const dist = els.nmeDist.value;
+      const pattern = els.nmePattern.value;
+      const t2 = els.nmeT2.value;
+      const extent = els.nmeExtent.value;
 
-      const buttons = Array.from(el.choices.querySelectorAll(".choice"));
-      buttons.forEach(b => b.classList.add("disabled"));
-
-      const correctIdx = state.correctIndex;
-      const correctBtn = buttons[correctIdx];
-      correctBtn.classList.add("correct");
-
-      if(idx === correctIdx){
-        state.correct++;
-        state.streak++;
-        state.bestStreak = Math.max(state.bestStreak, state.streak);
-        // scoring: base + streak bonus
-        state.score += 10 + Math.min(10, state.streak);
-        el.msg.textContent = "Correct. Press Enter for next.";
-        FX.burst();
-        setToast("+" + (10 + Math.min(10, state.streak)) + " points");
-      }else{
-        state.streak = 0;
-        const wrongBtn = buttons[idx];
-        if(wrongBtn) wrongBtn.classList.add("wrong");
-        state.score = Math.max(0, state.score - 4);
-        const key = state.askDose ? "dose" : "bg";
-        const otherKey = state.askDose ? "bg" : "dose";
-        el.msg.textContent =
-          "Incorrect. Correct answer: " + state.current[key] +
-          "  |  (Other column: " + state.current[otherKey] + "). Press Enter for next.";
-        setToast("-4 points");
-      }
-
-      state.needNext = true;
-      updateHUD();
+      lesionClause = `there is non-mass enhancement`;
+      if (meas) lesionClause += ` spanning ${meas}`;
+      lesionClause += ` with ${dist} distribution and ${pattern} internal enhancement pattern`;
+      if (extent) lesionClause += `, ${extent}`;
+      if (t2) lesionClause += `, ${t2}`;
     }
 
-    function skip(){
-      if(state.locked) return;
-      state.streak = 0;
-      state.score = Math.max(0, state.score - 1);
-      el.msg.textContent = "Skipped. Press Enter for next.";
-      setToast("-1 point");
-      state.needNext = true;
-      state.locked = true;
+    // Assemble main sentence
+    let s1 = `${loc}, ${lesionClause}`;
+    if (adjacent) s1 += `, ${adjacent}`;
+    if (kin) s1 += `, ${kin}`;
+    if (best) s1 += `, ${best}`;
+    s1 += `.`;
 
-      // reveal correct in-place
-      const buttons = Array.from(el.choices.querySelectorAll(".choice"));
-      const correctIdx = state.correctIndex;
-      buttons.forEach(b => b.classList.add("disabled"));
-      buttons[correctIdx].classList.add("correct");
-
-      updateHUD();
+    // Optional morphology-over-kinetics sentence
+    let s2 = "";
+    if (els.includeMorphOverKin.checked){
+      s2 = `Morphology is prioritized over kinetics.`;
     }
 
-    function reset(){
-      state.score = 0;
-      state.streak = 0;
-      state.bestStreak = 0;
-      state.correct = 0;
-      state.attempts = 0;
-      state.round = 0;
-      state.locked = false;
-      state.needNext = false;
-      setToast("Reset");
-      nextRound();
-      updateHUD();
+    // Free-text addendum
+    let s3 = "";
+    if (freeText){
+      s3 = freeText.endsWith(".") ? freeText : (freeText + ".");
     }
 
-    // ---------- Settings ----------
-    function setAskDose(on){
-      state.askDose = !!on;
-      el.doseSwitch.classList.toggle("on", state.askDose);
-      el.doseSwitch.setAttribute("aria-checked", String(state.askDose));
-      // Start a new round immediately so the prompt matches the mode
-      nextRound();
+    // Show validation box if warnings exist
+    if (warnings.length){
+      els.validation.innerHTML = "<b>Notes:</b><br>" + warnings.map(w=>`• ${w}`).join("<br>");
+      show(els.validation, true);
+    } else {
+      show(els.validation, false);
+      els.validation.textContent = "";
     }
 
-    el.doseSwitch.addEventListener("click", () => setAskDose(!state.askDose));
-    el.doseSwitch.addEventListener("keydown", (e) => {
-      if(e.key === "Enter" || e.key === " "){
-        e.preventDefault();
-        setAskDose(!state.askDose);
-      }
+    return [sentenceCap(s1), s2, s3].filter(Boolean).join("\n");
+  }
+
+  function updateTypeVisibility(){
+    const type = els.lesionType.value;
+    show(els.focusFields, type === "focus");
+    show(els.massFields, type === "mass");
+    show(els.nmeFields, type === "nme");
+    setStatus("Ready.");
+  }
+
+  function updateLocModeVisibility(){
+    const mode = document.querySelector('input[name="locMode"]:checked')?.value || "quadrant";
+    show(els.quadrantBox, mode === "quadrant");
+    show(els.clockBox, mode === "clock");
+  }
+
+  function saveState(){
+    if (!els.autosave.checked) return;
+    const payload = {};
+    const ids = Object.keys(els).filter(k => ["validation","btnGenerate","btnCopy","btnClear","output","status","quadrantBox","clockBox","focusFields","massFields","nmeFields"].indexOf(k) === -1);
+    // store inputs/selects/checkbox/radios
+    const inputs = document.querySelectorAll("input, select, textarea");
+    inputs.forEach(el=>{
+      if (!el.id && el.name) return; // radios handled below
+      if (el.type === "checkbox") payload[el.id] = !!el.checked;
+      else if (el.type === "radio") payload[el.id] = !!el.checked;
+      else payload[el.id] = el.value;
+    });
+    localStorage.setItem(stateKey, JSON.stringify(payload));
+  }
+
+  function loadState(){
+    const raw = localStorage.getItem(stateKey);
+    if (!raw) return;
+    let payload = null;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (!payload) return;
+
+    const inputs = document.querySelectorAll("input, select, textarea");
+    inputs.forEach(el=>{
+      if (!(el.id in payload)) return;
+      if (el.type === "checkbox" || el.type === "radio") el.checked = !!payload[el.id];
+      else el.value = payload[el.id];
     });
 
-    el.resetBtn.addEventListener("click", reset);
-    el.skipBtn.addEventListener("click", skip);
+    updateLocModeVisibility();
+    updateTypeVisibility();
+  }
 
-    el.studyBtn.addEventListener("click", () => {
-      const showing = el.studyWrap.style.display !== "none";
-      el.studyWrap.style.display = showing ? "none" : "block";
-      el.studyBtn.textContent = showing ? "Show" : "Hide";
+  function clearAll(){
+    // Reset selects/inputs (preserve autosave checked state)
+    const keepAutosave = els.autosave.checked;
+    document.querySelectorAll("input, select, textarea").forEach(el=>{
+      if (el === els.autosave) return;
+      if (el.type === "checkbox" || el.type === "radio") el.checked = false;
+      else el.value = "";
     });
 
-    // ---------- Keyboard ----------
-    window.addEventListener("keydown", (e) => {
-      if(e.key === "s" || e.key === "S"){ skip(); return; }
-      if(e.key === "Enter"){
-        if(state.needNext) nextRound();
-        return;
-      }
-      const num = parseInt(e.key, 10);
-      if(num >= 1 && num <= 4){
-        choose(num-1);
-      }
-    });
+    // restore defaults
+    els.autosave.checked = keepAutosave;
+    els.lesionType.value = "focus";
+    els.laterality.value = "right";
+    els.locQuadrant.checked = true;
+    els.quadrant.value = "upper outer quadrant";
+    els.depth.value = "posterior depth";
+    els.focusNote.value = "not further characterizable";
+    els.output.value = "";
+    els.includeMorphOverKin.checked = false;
 
-    // ---------- Init ----------
-    function init(){
-      renderStudyTable();
-      el.doseSwitch.classList.add("on");
-      el.doseSwitch.setAttribute("aria-checked", "true");
-      nextRound();
-      updateHUD();
-      setToast("Keys: 1–4, Enter, S");
+    show(els.validation, false);
+    updateLocModeVisibility();
+    updateTypeVisibility();
+    saveState();
+    setStatus("Cleared.");
+  }
+
+  function applyPreset(kind){
+    if (!kind) return;
+
+    // baseline: clear lesion-specific fields but keep location defaults
+    els.focusUniqueness.value = "";
+    els.focusChange.value = "";
+    els.focusT2.value = "";
+    els.massShape.value = "oval";
+    els.massMargin.value = "circumscribed";
+    els.massInternal.value = "homogeneous internal enhancement";
+    els.massT2.value = "T2 hyperintense";
+    els.nmeDist.value = "focal";
+    els.nmePattern.value = "homogeneous";
+    els.nmeT2.value = "T2 hyperintense";
+    els.nmeExtent.value = "";
+    els.kinInit.value = "";
+    els.kinDel.value = "";
+    els.adjacent.value = "";
+    els.freeText.value = "";
+    els.includeMorphOverKin.checked = false;
+
+    if (kind === "focus_probably_benign"){
+      els.lesionType.value = "focus";
+      els.m1.value = "4";
+      els.m2.value = "";
+      els.m3.value = "";
+      els.focusUniqueness.value = "unique from background parenchymal enhancement";
+      els.focusChange.value = "stable";
+      els.focusT2.value = "T2 hyperintense";
+      els.kinInit.value = "slow initial enhancement";
+      els.kinDel.value = "persistent kinetics";
     }
-    init();
-  </script>
+
+    if (kind === "mass_fibroadenoma_like"){
+      els.lesionType.value = "mass";
+      els.m1.value = "12";
+      els.m2.value = "8";
+      els.m3.value = "";
+      els.massShape.value = "oval";
+      els.massMargin.value = "circumscribed";
+      els.massInternal.value = "dark (non-enhancing) internal septations";
+      els.massT2.value = "T2 hyperintense";
+      els.kinInit.value = "medium initial enhancement";
+      els.kinDel.value = "persistent kinetics";
+    }
+
+    if (kind === "mass_suspicious"){
+      els.lesionType.value = "mass";
+      els.m1.value = "10";
+      els.m2.value = "9";
+      els.m3.value = "8";
+      els.massShape.value = "irregular";
+      els.massMargin.value = "spiculated";
+      els.massInternal.value = "rim enhancement";
+      els.massT2.value = "not T2 hyperintense";
+      els.kinInit.value = "fast initial enhancement";
+      els.kinDel.value = "washout kinetics";
+      els.includeMorphOverKin.checked = true;
+    }
+
+    if (kind === "nme_suspicious"){
+      els.lesionType.value = "nme";
+      els.m1.value = "35";
+      els.m2.value = "18";
+      els.m3.value = "";
+      els.nmeDist.value = "segmental";
+      els.nmePattern.value = "clustered ring";
+      els.nmeT2.value = "not T2 hyperintense";
+      els.kinInit.value = "fast initial enhancement";
+      els.kinDel.value = "plateau kinetics";
+      els.includeMorphOverKin.checked = true;
+    }
+
+    updateTypeVisibility();
+    saveState();
+    setStatus("Preset applied.");
+  }
+
+  // Event wiring
+  els.lesionType.addEventListener("change", ()=>{ updateTypeVisibility(); saveState(); });
+  document.querySelectorAll('input[name="locMode"]').forEach(r=>{
+    r.addEventListener("change", ()=>{ updateLocModeVisibility(); saveState(); });
+  });
+
+  document.addEventListener("input", (e)=>{
+    if (e.target && (e.target.matches("input") || e.target.matches("select") || e.target.matches("textarea"))){
+      if (e.target.id === "output") return; // don't autosave output edits
+      saveState();
+    }
+  });
+
+  els.preset.addEventListener("change", ()=>{
+    applyPreset(els.preset.value);
+    els.preset.value = "";
+  });
+
+  els.btnGenerate.addEventListener("click", ()=>{
+    const text = buildDescription();
+    els.output.value = text;
+    setStatus("Generated.");
+    saveState();
+  });
+
+  els.btnCopy.addEventListener("click", async ()=>{
+    const text = els.output.value.trim();
+    if (!text){
+      setStatus("Nothing to copy.");
+      return;
+    }
+    try{
+      await navigator.clipboard.writeText(text);
+      setStatus("Copied.");
+    }catch{
+      // Fallback
+      els.output.focus();
+      els.output.select();
+      document.execCommand("copy");
+      setStatus("Copied (fallback).");
+    }
+  });
+
+  els.btnClear.addEventListener("click", clearAll);
+
+  // Keyboard shortcut: Ctrl+Enter
+  document.addEventListener("keydown", (e)=>{
+    if (e.ctrlKey && e.key === "Enter"){
+      e.preventDefault();
+      els.btnGenerate.click();
+    }
+  });
+
+  // Init
+  loadState();
+  updateLocModeVisibility();
+  updateTypeVisibility();
+})();
+</script>
 </body>
 </html>
