@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>Q/A/Explanation Scroller</title>
   <style>
     :root{
@@ -21,6 +21,7 @@
       background:var(--bg);
       color:var(--text);
       font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      -webkit-text-size-adjust:100%;
     }
     .topbar{
       position:sticky;
@@ -77,6 +78,7 @@
       border-radius:12px;
       padding:12px;
       outline:none;
+      font-size:16px;
     }
     textarea:focus{
       border-color:rgba(96,165,250,0.65);
@@ -129,6 +131,22 @@
       user-select:none;
       line-height:1;
     }
+    .delBtn{
+      border:1px solid rgba(239,68,68,0.4);
+      background:transparent;
+      color:rgba(239,68,68,0.8);
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      user-select:none;
+      line-height:1;
+    }
+    .delBtn.deleted{
+      color:#fecaca;
+      background:rgba(239,68,68,0.18);
+      border-color:rgba(239,68,68,0.8);
+      box-shadow:0 0 0 2px rgba(239,68,68,0.12) inset;
+    }
     .favBtn.faved{
       color:var(--warn);
       border-color:rgba(245,158,11,0.55);
@@ -178,12 +196,59 @@
     }
     .toast.show{opacity:1}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .panel{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:14px;
+      padding:12px;
+      margin-top:12px;
+      display:none;
+    }
+    .panel.show{display:block;}
+    .panelHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .panelTitle{
+      font-weight:650;
+    }
+    .panelList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .panelRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+      border:1px solid rgba(37,48,71,0.7);
+      border-radius:10px;
+      padding:8px 10px;
+    }
+    .panelMeta{
+      color:var(--muted);
+      font-size:12px;
+    }
+    .toggleRow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+    }
   </style>
 </head>
 <body>
   <div class="topbar">
     <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only favorites">Favorites only</button>
-    <button id="copyFavs" class="pill primary" title="Copy favorites to clipboard">Copy favorites</button>
+    <button id="toggleAllView" class="pill" aria-pressed="false" title="Show deleted items">All view</button>
+    <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
+    <button id="togglePriors" class="pill secondary" title="View saved priors">Priors</button>
     <span class="spacer"></span>
     <span id="counts" class="badge">0 items</span>
   </div>
@@ -203,6 +268,29 @@
 
     <div id="list" class="list"></div>
     <div id="empty" class="empty" style="display:none">No questions parsed yet.</div>
+
+    <div id="priorsPanel" class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Saved priors</div>
+        <span class="panelMeta" id="priorsMeta">0 saved</span>
+      </div>
+      <div id="priorsList" class="panelList"></div>
+    </div>
+
+    <div id="copyPanel" class="panel">
+      <div class="panelHeader">
+        <div class="panelTitle">Copy options</div>
+        <span class="panelMeta">Choose what to copy</span>
+      </div>
+      <div class="panelList">
+        <button id="copyAllBtn" class="pill secondary" type="button">Copy all</button>
+        <button id="copyAllVisibleBtn" class="pill secondary" type="button">Copy all (not deleted)</button>
+        <button id="copyFavsBtn" class="pill secondary" type="button">Copy favorites</button>
+      </div>
+      <label class="toggleRow">
+        <input id="countdownToggle" type="checkbox" /> Include 5-4-3-2-1 countdown
+      </label>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -217,20 +305,36 @@
     list: document.getElementById('list'),
     empty: document.getElementById('empty'),
     toggleFavView: document.getElementById('toggleFavView'),
-    copyFavs: document.getElementById('copyFavs'),
+    toggleAllView: document.getElementById('toggleAllView'),
+    copyBtn: document.getElementById('copyBtn'),
+    copyPanel: document.getElementById('copyPanel'),
+    copyAllBtn: document.getElementById('copyAllBtn'),
+    copyAllVisibleBtn: document.getElementById('copyAllVisibleBtn'),
+    copyFavsBtn: document.getElementById('copyFavsBtn'),
+    countdownToggle: document.getElementById('countdownToggle'),
+    togglePriors: document.getElementById('togglePriors'),
+    priorsPanel: document.getElementById('priorsPanel'),
+    priorsList: document.getElementById('priorsList'),
+    priorsMeta: document.getElementById('priorsMeta'),
     counts: document.getElementById('counts'),
     toast: document.getElementById('toast'),
   };
 
   const STORAGE = {
     favs: 'qa_favorites_v1',
-    lastInput: 'qa_last_input_v1'
+    deleted: 'qa_deleted_v1',
+    lastInput: 'qa_last_input_v1',
+    priors: 'qa_priors_v1',
+    includeCountdown: 'qa_copy_countdown_v1'
   };
 
   let state = {
     items: [],
     favSet: new Set(),
+    deletedSet: new Set(),
     favOnly: false,
+    showAll: false,
+    priors: [],
   };
 
   function showToast(msg){
@@ -260,9 +364,24 @@
     }catch(e){}
   }
 
+  function loadDeleted(){
+    try{
+      const raw = localStorage.getItem(STORAGE.deleted);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) state.deletedSet = new Set(arr);
+    }catch(e){}
+  }
+
   function saveFavs(){
     try{
       localStorage.setItem(STORAGE.favs, JSON.stringify(Array.from(state.favSet)));
+    }catch(e){}
+  }
+
+  function saveDeleted(){
+    try{
+      localStorage.setItem(STORAGE.deleted, JSON.stringify(Array.from(state.deletedSet)));
     }catch(e){}
   }
 
@@ -276,6 +395,35 @@
     try{
       const v = localStorage.getItem(STORAGE.lastInput);
       if (v) els.input.value = v;
+    }catch(e){}
+  }
+
+  function loadPriors(){
+    try{
+      const raw = localStorage.getItem(STORAGE.priors);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) state.priors = arr;
+    }catch(e){}
+  }
+
+  function savePriors(){
+    try{
+      localStorage.setItem(STORAGE.priors, JSON.stringify(state.priors));
+    }catch(e){}
+  }
+
+  function loadCopyCountdown(){
+    try{
+      const raw = localStorage.getItem(STORAGE.includeCountdown);
+      if (raw === null) return;
+      els.countdownToggle.checked = raw === 'true';
+    }catch(e){}
+  }
+
+  function saveCopyCountdown(){
+    try{
+      localStorage.setItem(STORAGE.includeCountdown, els.countdownToggle.checked ? 'true' : 'false');
     }catch(e){}
   }
 
@@ -364,19 +512,28 @@
 
   function render(){
     const itemsAll = state.items;
+    const baseItems = state.showAll
+      ? itemsAll
+      : itemsAll.filter(it => !state.deletedSet.has(it.id));
     const items = state.favOnly
-      ? itemsAll.filter(it => state.favSet.has(it.id))
-      : itemsAll;
+      ? baseItems.filter(it => state.favSet.has(it.id))
+      : baseItems;
 
     els.list.innerHTML = '';
     els.empty.style.display = items.length ? 'none' : 'block';
 
     const total = itemsAll.length;
     const favCount = state.favSet.size;
+    const deletedCount = state.deletedSet.size;
 
-    els.counts.textContent = state.favOnly
-      ? `${items.length} favorites shown (of ${total})`
-      : `${total} items (${favCount} favorites)`;
+    if (state.favOnly){
+      els.counts.textContent = `${items.length} favorites shown (of ${total})`;
+    }else if (state.showAll){
+      els.counts.textContent = `${total} items (${favCount} favorites, ${deletedCount} deleted)`;
+    }else{
+      const visibleCount = items.length;
+      els.counts.textContent = `${visibleCount} items shown (${favCount} favorites, ${deletedCount} deleted)`;
+    }
 
     for (const it of items){
       const card = document.createElement('div');
@@ -402,8 +559,22 @@
         render();
       });
 
+      const del = document.createElement('button');
+      del.className = 'delBtn' + (state.deletedSet.has(it.id) ? ' deleted' : '');
+      del.type = 'button';
+      del.title = 'Toggle deleted';
+      del.textContent = '✕';
+
+      del.addEventListener('click', () => {
+        if (state.deletedSet.has(it.id)) state.deletedSet.delete(it.id);
+        else state.deletedSet.add(it.id);
+        saveDeleted();
+        render();
+      });
+
       head.appendChild(q);
       head.appendChild(fav);
+      head.appendChild(del);
 
       const ans = document.createElement('details');
       const ansSum = document.createElement('summary');
@@ -431,13 +602,13 @@
     }
   }
 
-  function formatFavoritesText(){
-    const favs = state.items.filter(it => state.favSet.has(it.id));
-    if (!favs.length) return '';
+  function formatItemsText(items, includeCountdown){
+    if (!items.length) return '';
 
-    return favs.map(it => {
+    return items.map(it => {
       const parts = [];
       parts.push(`Question: ${it.question}`);
+      if (includeCountdown) parts.push('5, 4, 3, 2, 1.');
       parts.push(`Answer: ${it.answer || ''}`);
       parts.push(`Explanation: ${it.explanation || ''}`);
       return parts.join('\n');
@@ -474,10 +645,99 @@
     // Keep favorites for items that still exist (optional cleanup)
     const ids = new Set(state.items.map(x => x.id));
     state.favSet = new Set(Array.from(state.favSet).filter(id => ids.has(id)));
+    state.deletedSet = new Set(Array.from(state.deletedSet).filter(id => ids.has(id)));
     saveFavs();
+    saveDeleted();
     saveLastInput();
+    storePrior(raw);
     render();
     showToast(`Parsed ${state.items.length} question(s).`);
+  }
+
+  function pickTopWords(raw){
+    const words = (raw || '')
+      .toLowerCase()
+      .match(/[a-z]{7,}/g) || [];
+    const counts = new Map();
+    for (const w of words){
+      counts.set(w, (counts.get(w) || 0) + 1);
+    }
+    const sorted = Array.from(counts.entries())
+      .sort((a,b) => b[1] - a[1])
+      .slice(0,2)
+      .map(([w]) => w);
+    return sorted;
+  }
+
+  function storePrior(raw){
+    const trimmed = (raw || '').trim();
+    if (!trimmed) return;
+    const createdAt = new Date().toISOString();
+    const displayDate = new Date().toLocaleString();
+    const words = pickTopWords(raw);
+    const wordLabel = words.length ? `${words.join(' ')} etc` : 'etc';
+    const label = `${displayDate} — ${wordLabel}`;
+    const entry = {
+      id: `prior_${Date.now()}`,
+      createdAt,
+      label,
+      rawInput: raw,
+      items: state.items,
+      favIds: Array.from(state.favSet),
+      deletedIds: Array.from(state.deletedSet)
+    };
+    state.priors.unshift(entry);
+    state.priors = state.priors.slice(0, 25);
+    savePriors();
+    renderPriors();
+  }
+
+  function renderPriors(){
+    els.priorsList.innerHTML = '';
+    els.priorsMeta.textContent = `${state.priors.length} saved`;
+    if (!state.priors.length){
+      const empty = document.createElement('div');
+      empty.className = 'panelMeta';
+      empty.textContent = 'No priors saved yet.';
+      els.priorsList.appendChild(empty);
+      return;
+    }
+    for (const prior of state.priors){
+      const row = document.createElement('div');
+      row.className = 'panelRow';
+
+      const label = document.createElement('div');
+      label.textContent = prior.label;
+
+      const meta = document.createElement('div');
+      meta.className = 'panelMeta';
+      meta.textContent = `${prior.items.length} items · ${prior.favIds.length} favorites · ${prior.deletedIds.length} deleted`;
+
+      const loadBtn = document.createElement('button');
+      loadBtn.className = 'pill secondary';
+      loadBtn.type = 'button';
+      loadBtn.textContent = 'Load';
+
+      loadBtn.addEventListener('click', () => {
+        els.input.value = prior.rawInput || '';
+        state.items = prior.items || parseInput(prior.rawInput || '');
+        state.favSet = new Set(prior.favIds || []);
+        state.deletedSet = new Set(prior.deletedIds || []);
+        saveFavs();
+        saveDeleted();
+        saveLastInput();
+        render();
+        showToast('Loaded prior.');
+      });
+
+      const left = document.createElement('div');
+      left.appendChild(label);
+      left.appendChild(meta);
+
+      row.appendChild(left);
+      row.appendChild(loadBtn);
+      els.priorsList.appendChild(row);
+    }
   }
 
   // Events
@@ -489,8 +749,53 @@
     render();
   });
 
-  els.copyFavs.addEventListener('click', async () => {
-    const text = formatFavoritesText();
+  els.toggleAllView.addEventListener('click', () => {
+    state.showAll = !state.showAll;
+    els.toggleAllView.setAttribute('aria-pressed', state.showAll ? 'true' : 'false');
+    render();
+  });
+
+  els.togglePriors.addEventListener('click', () => {
+    els.priorsPanel.classList.toggle('show');
+    if (els.priorsPanel.classList.contains('show')){
+      els.copyPanel.classList.remove('show');
+      renderPriors();
+    }
+  });
+
+  els.copyBtn.addEventListener('click', () => {
+    els.copyPanel.classList.toggle('show');
+    if (els.copyPanel.classList.contains('show')){
+      els.priorsPanel.classList.remove('show');
+    }
+  });
+
+  els.countdownToggle.addEventListener('change', saveCopyCountdown);
+
+  els.copyAllBtn.addEventListener('click', async () => {
+    const text = formatItemsText(state.items, els.countdownToggle.checked);
+    if (!text){
+      showToast('No items to copy.');
+      return;
+    }
+    const ok = await copyTextToClipboard(text);
+    showToast(ok ? 'All items copied.' : 'Copy failed.');
+  });
+
+  els.copyAllVisibleBtn.addEventListener('click', async () => {
+    const items = state.items.filter(it => !state.deletedSet.has(it.id));
+    const text = formatItemsText(items, els.countdownToggle.checked);
+    if (!text){
+      showToast('No visible items to copy.');
+      return;
+    }
+    const ok = await copyTextToClipboard(text);
+    showToast(ok ? 'Visible items copied.' : 'Copy failed.');
+  });
+
+  els.copyFavsBtn.addEventListener('click', async () => {
+    const items = state.items.filter(it => state.favSet.has(it.id) && !state.deletedSet.has(it.id));
+    const text = formatItemsText(items, els.countdownToggle.checked);
     if (!text){
       showToast('No favorites to copy.');
       return;
@@ -514,11 +819,15 @@
 
   // Init
   loadFavs();
+  loadDeleted();
   loadLastInput();
+  loadPriors();
+  loadCopyCountdown();
   // Auto-parse if there is stored input
   if ((els.input.value || '').trim()){
     state.items = parseInput(els.input.value);
   }
+  renderPriors();
   render();
 
   // Sample text (includes a few from your example)
