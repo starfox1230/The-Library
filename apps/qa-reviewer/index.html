@@ -205,6 +205,22 @@
       display:none;
     }
     .panel.show{display:block;}
+    .dropdownPanel{
+      position:absolute;
+      top:58px;
+      right:10px;
+      left:10px;
+      width:auto;
+      max-width:520px;
+      margin:0;
+      z-index:15;
+      max-height:60vh;
+      overflow:auto;
+      box-shadow:0 12px 30px rgba(0,0,0,0.35);
+    }
+    .dropdownPanel.alignRight{
+      left:auto;
+    }
     .panelHeader{
       display:flex;
       align-items:center;
@@ -269,28 +285,29 @@
     <div id="list" class="list"></div>
     <div id="empty" class="empty" style="display:none">No questions parsed yet.</div>
 
-    <div id="priorsPanel" class="panel">
-      <div class="panelHeader">
-        <div class="panelTitle">Saved priors</div>
-        <span class="panelMeta" id="priorsMeta">0 saved</span>
-      </div>
-      <div id="priorsList" class="panelList"></div>
-    </div>
+  </div>
 
-    <div id="copyPanel" class="panel">
-      <div class="panelHeader">
-        <div class="panelTitle">Copy options</div>
-        <span class="panelMeta">Choose what to copy</span>
-      </div>
-      <div class="panelList">
-        <button id="copyAllBtn" class="pill secondary" type="button">Copy all</button>
-        <button id="copyAllVisibleBtn" class="pill secondary" type="button">Copy all (not deleted)</button>
-        <button id="copyFavsBtn" class="pill secondary" type="button">Copy favorites</button>
-      </div>
-      <label class="toggleRow">
-        <input id="countdownToggle" type="checkbox" /> Include 5-4-3-2-1 countdown
-      </label>
+  <div id="priorsPanel" class="panel dropdownPanel alignRight">
+    <div class="panelHeader">
+      <div class="panelTitle">Saved priors</div>
+      <span class="panelMeta" id="priorsMeta">0 saved</span>
     </div>
+    <div id="priorsList" class="panelList"></div>
+  </div>
+
+  <div id="copyPanel" class="panel dropdownPanel">
+    <div class="panelHeader">
+      <div class="panelTitle">Copy options</div>
+      <span class="panelMeta">Choose what to copy</span>
+    </div>
+    <div class="panelList">
+      <button id="copyAllBtn" class="pill secondary" type="button">Copy all</button>
+      <button id="copyAllVisibleBtn" class="pill secondary" type="button">Copy all (not deleted)</button>
+      <button id="copyFavsBtn" class="pill secondary" type="button">Copy favorites</button>
+    </div>
+    <label class="toggleRow">
+      <input id="countdownToggle" type="checkbox" /> Include 5-4-3-2-1 countdown
+    </label>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -327,6 +344,13 @@
     priors: 'qa_priors_v1',
     includeCountdown: 'qa_copy_countdown_v1'
   };
+
+  const TITLE_EXCLUDE_WORDS = [
+    'question',
+    'explanation',
+    'radiographic',
+    'characteristic'
+  ];
 
   let state = {
     items: [],
@@ -660,6 +684,7 @@
       .match(/[a-z]{7,}/g) || [];
     const counts = new Map();
     for (const w of words){
+      if (TITLE_EXCLUDE_WORDS.includes(w)) continue;
       counts.set(w, (counts.get(w) || 0) + 1);
     }
     const sorted = Array.from(counts.entries())
@@ -669,18 +694,24 @@
     return sorted;
   }
 
+  function formatPriorLabel(words){
+    if (!words.length) return 'etc';
+    return `${words.join(', ')}, etc`;
+  }
+
   function storePrior(raw){
     const trimmed = (raw || '').trim();
     if (!trimmed) return;
     const createdAt = new Date().toISOString();
     const displayDate = new Date().toLocaleString();
     const words = pickTopWords(raw);
-    const wordLabel = words.length ? `${words.join(' ')} etc` : 'etc';
+    const wordLabel = formatPriorLabel(words);
     const label = `${displayDate} — ${wordLabel}`;
     const entry = {
       id: `prior_${Date.now()}`,
       createdAt,
       label,
+      name: '',
       rawInput: raw,
       items: state.items,
       favIds: Array.from(state.favSet),
@@ -707,7 +738,7 @@
       row.className = 'panelRow';
 
       const label = document.createElement('div');
-      label.textContent = prior.label;
+      label.textContent = (prior.name || '').trim() || prior.label;
 
       const meta = document.createElement('div');
       meta.className = 'panelMeta';
@@ -730,12 +761,43 @@
         showToast('Loaded prior.');
       });
 
+      const renameBtn = document.createElement('button');
+      renameBtn.className = 'pill secondary';
+      renameBtn.type = 'button';
+      renameBtn.textContent = 'Rename';
+
+      renameBtn.addEventListener('click', () => {
+        const currentName = (prior.name || '').trim() || prior.label;
+        const nextName = window.prompt('Rename this prior:', currentName);
+        if (nextName === null) return;
+        prior.name = nextName.trim();
+        savePriors();
+        renderPriors();
+        showToast(prior.name ? 'Prior renamed.' : 'Prior name cleared.');
+      });
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'pill secondary';
+      deleteBtn.type = 'button';
+      deleteBtn.textContent = 'Delete';
+
+      deleteBtn.addEventListener('click', () => {
+        const ok = window.confirm(`Delete this prior?\n\n${prior.label}`);
+        if (!ok) return;
+        state.priors = state.priors.filter(item => item.id !== prior.id);
+        savePriors();
+        renderPriors();
+        showToast('Prior deleted.');
+      });
+
       const left = document.createElement('div');
       left.appendChild(label);
       left.appendChild(meta);
 
       row.appendChild(left);
       row.appendChild(loadBtn);
+      row.appendChild(renameBtn);
+      row.appendChild(deleteBtn);
       els.priorsList.appendChild(row);
     }
   }
