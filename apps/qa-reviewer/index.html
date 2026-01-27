@@ -359,6 +359,7 @@
     favOnly: false,
     showAll: false,
     priors: [],
+    activePriorId: null,
   };
 
   function showToast(msg){
@@ -435,6 +436,22 @@
     try{
       localStorage.setItem(STORAGE.priors, JSON.stringify(state.priors));
     }catch(e){}
+  }
+
+  function setActivePrior(id){
+    state.activePriorId = id || null;
+  }
+
+  function syncActivePrior(options = {}){
+    if (!state.activePriorId) return;
+    const prior = state.priors.find(item => item.id === state.activePriorId);
+    if (!prior) return;
+    prior.rawInput = els.input.value || '';
+    if (options.includeItems !== false) prior.items = state.items;
+    prior.favIds = Array.from(state.favSet);
+    prior.deletedIds = Array.from(state.deletedSet);
+    savePriors();
+    if (els.priorsPanel.classList.contains('show')) renderPriors();
   }
 
   function loadCopyCountdown(){
@@ -580,6 +597,7 @@
         if (state.favSet.has(it.id)) state.favSet.delete(it.id);
         else state.favSet.add(it.id);
         saveFavs();
+        syncActivePrior();
         render();
       });
 
@@ -593,6 +611,7 @@
         if (state.deletedSet.has(it.id)) state.deletedSet.delete(it.id);
         else state.deletedSet.add(it.id);
         saveDeleted();
+        syncActivePrior();
         render();
       });
 
@@ -721,6 +740,7 @@
     state.priors = state.priors.slice(0, 25);
     savePriors();
     renderPriors();
+    setActivePrior(entry.id);
   }
 
   function renderPriors(){
@@ -757,6 +777,7 @@
         saveFavs();
         saveDeleted();
         saveLastInput();
+        setActivePrior(prior.id);
         render();
         showToast('Loaded prior.');
       });
@@ -870,6 +891,7 @@
     els.input.value = '';
     state.items = [];
     saveLastInput();
+    syncActivePrior();
     render();
     showToast('Cleared.');
   });
@@ -877,6 +899,11 @@
   els.loadSampleBtn.addEventListener('click', () => {
     els.input.value = SAMPLE_TEXT.trim();
     parseAndRender();
+  });
+
+  els.input.addEventListener('input', () => {
+    saveLastInput();
+    syncActivePrior({ includeItems: false });
   });
 
   // Init
