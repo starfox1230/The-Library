@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Schedule Calendar (Jan–Mar 2026)</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+
+      --c-breast:#22c55e;
+      --c-admin:#a78bfa;
+      --c-interview:#f59e0b;
+      --c-night:#ef4444;
+      --c-peds:#06b6d4;
+      --c-neuro:#f472b6;
+
+      --card: rgba(255,255,255,.05);
+      --border: rgba(255,255,255,.10);
+      --border2: rgba(255,255,255,.07);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #14203a 0%, var(--bg) 55%) fixed;
+      color:var(--text);
+    }
+    .wrap{max-width:1200px;margin:24px auto 56px;padding:0 14px}
+    header{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+    h1{font-size:18px;margin:0;letter-spacing:.2px;font-weight:800}
+    .subtitle{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+
+    .legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .tag{
+      display:inline-flex;align-items:center;gap:8px;padding:6px 10px;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:999px;font-size:12px;color:var(--text);user-select:none
+    }
+    .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.06) inset}
+
+    .months{display:grid;gap:16px}
+    .month{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+
+    .monthHead{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 14px;
+      background:rgba(0,0,0,.18);
+      border-bottom:1px solid var(--border2);
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .monthTitle{font-weight:900;letter-spacing:.3px;font-size:14px}
+    .monthMeta{color:var(--muted);font-size:12px}
+
+    /* --- Calendar (desktop/tablet) --- */
+    .calendarWrap{
+      position:relative;
+      border-bottom:1px solid var(--border2);
+      background:rgba(0,0,0,.06);
+    }
+
+    .dow{
+      display:grid;grid-template-columns:repeat(7,1fr);
+      padding:8px 10px;
+      background:rgba(0,0,0,.10);
+      border-bottom:1px solid var(--border2);
+      font-size:12px;color:var(--muted);
+      min-width: 760px; /* ensures full 7 columns even on phones (scrollable) */
+    }
+    .dow div{padding:4px 6px;text-transform:uppercase;letter-spacing:.9px;font-size:11px}
+
+    .gridScroller{
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(7, 1fr);
+      min-width: 760px;  /* key: prevents Saturday cutoff; horizontal scroll on phones */
+    }
+
+    .day{
+      min-height:118px;
+      padding:10px 10px 12px;
+      border-right:1px solid var(--border2);
+      border-bottom:1px solid var(--border2);
+      background:rgba(8,12,20,.35);
+    }
+    .day:nth-child(7n){border-right:none}
+    .day.out{background:rgba(8,12,20,.18);color:rgba(229,231,235,.55)}
+    .dateRow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .dateNum{font-size:12px;font-weight:900;opacity:.95}
+    .weekLabel{font-size:11px;color:var(--muted);opacity:.85}
+
+    .events{display:flex;flex-direction:column;gap:6px}
+    .evt{
+      border-radius:10px;
+      padding:7px 8px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      overflow:hidden;
+    }
+    .evtTop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:2px}
+    .evtTitle{font-size:12px;font-weight:900;letter-spacing:.2px;line-height:1.2}
+    .evtTime{font-size:11px;color:rgba(229,231,235,.88);white-space:nowrap}
+    .evtNote{font-size:11px;color:rgba(229,231,235,.78);line-height:1.25}
+
+    .evt.breast{border-left:4px solid var(--c-breast)}
+    .evt.admin{border-left:4px solid var(--c-admin)}
+    .evt.interview{border-left:4px solid var(--c-interview)}
+    .evt.night{border-left:4px solid var(--c-night)}
+    .evt.peds{border-left:4px solid var(--c-peds)}
+    .evt.neuro{border-left:4px solid var(--c-neuro)}
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      font-weight:800;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.18);
+      color:rgba(229,231,235,.90);
+      white-space:nowrap;
+    }
+
+    /* subtle scroll hint on mobile */
+    .scrollHint{
+      display:none;
+      padding:8px 12px 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* --- Agenda (mobile-friendly) --- */
+    .agenda{
+      padding:12px 14px 14px;
+      display:grid;
+      gap:10px;
+    }
+    .agendaHead{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    }
+    .agendaTitle{
+      font-weight:900;
+      font-size:13px;
+      letter-spacing:.2px;
+    }
+    .agendaNote{
+      color:var(--muted);
+      font-size:12px;
+    }
+    .agendaList{
+      display:grid;
+      gap:10px;
+    }
+    .dayCard{
+      border:1px solid var(--border2);
+      background:rgba(255,255,255,.03);
+      border-radius:14px;
+      overflow:hidden;
+    }
+    .dayCardHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      background:rgba(0,0,0,.14);
+      border-bottom:1px solid var(--border2);
+    }
+    .dayCardDate{
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.2px;
+    }
+    .dayCardDow{
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .dayCardBody{
+      padding:10px 12px 12px;
+      display:grid;
+      gap:8px;
+    }
+    .evtRow{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      border-radius:12px;
+      padding:10px 10px;
+    }
+    .bar{
+      width:6px;
+      border-radius:999px;
+      flex:0 0 6px;
+      margin-top:2px;
+    }
+    .evtRowMain{
+      flex:1;
+      min-width:0;
+    }
+    .evtRowTitle{
+      font-weight:900;
+      font-size:13px;
+      line-height:1.15;
+      margin-bottom:3px;
+    }
+    .evtRowMeta{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      color:rgba(229,231,235,.85);
+      font-size:12px;
+      line-height:1.2;
+    }
+    .evtRowMeta .when{
+      color:rgba(229,231,235,.92);
+      font-weight:800;
+    }
+
+    /* show both views, but make agenda the "primary" on phones */
+    @media (max-width: 700px){
+      .legend{justify-content:flex-start}
+      .scrollHint{display:block}
+      .calendarWrap{border-bottom:1px solid var(--border2)}
+    }
+
+    @media (min-width: 701px){
+      .agenda{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Schedule Calendar</h1>
+        <div class="subtitle">
+          Breast rotation is weekdays (Mon–Fri) <span class="pill">7:30a–5:00p</span>. Weekends are off unless moonlighting.
+        </div>
+      </div>
+
+      <div class="legend" aria-label="Legend">
+        <span class="tag"><span class="dot" style="background:var(--c-breast)"></span>Breast</span>
+        <span class="tag"><span class="dot" style="background:var(--c-admin)"></span>Admin</span>
+        <span class="tag"><span class="dot" style="background:var(--c-interview)"></span>Interview</span>
+        <span class="tag"><span class="dot" style="background:var(--c-night)"></span>Nights</span>
+        <span class="tag"><span class="dot" style="background:var(--c-peds)"></span>Peds Moonlighting</span>
+        <span class="tag"><span class="dot" style="background:var(--c-neuro)"></span>Neuro Moonlighting</span>
+      </div>
+    </header>
+
+    <div class="months" id="months"></div>
+  </div>
+
+  <script>
+    // NOTE: Moonlighting shifts ARE included below (Peds: Jan 31, Feb 21; Neuro: Feb 14, Mar 7).
+    const events = [
+      // Breast rotation: Wed Jan 28 – Fri Jan 30, 2026 (weekdays)
+      { date: "2026-01-28", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+      { date: "2026-01-29", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+      { date: "2026-01-30", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+
+      // Sat Jan 31: Peds moonlighting 8:30–4:30
+      { date: "2026-01-31", type: "peds", title: "Peds moonlighting", time: "8:30a–4:30p", note: "" },
+
+      // Mon–Thu Feb 2–5: Breast rotation (weekdays)
+      { date: "2026-02-02", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+      { date: "2026-02-03", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+      { date: "2026-02-04", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+      { date: "2026-02-05", type: "breast", title: "Breast rotation", time: "7:30a–5:00p", note: "" },
+
+      // Fri Feb 6: Admin day + UNC interview + start nights at 9:30p
+      { date: "2026-02-06", type: "admin", title: "Admin day", time: "All day", note: "" },
+      { date: "2026-02-06", type: "interview", title: "UNC interview", time: "All day", note: "" },
+      { date: "2026-02-06", type: "night", title: "Night shift (start)", time: "9:30p–7:30a (+1d)", note: "Night 1 of 7" },
+
+      // Weekend nights (12h): Sat & Sun start 7:30p
+      { date: "2026-02-07", type: "night", title: "Night shift", time: "7:30p–7:30a (+1d)", note: "Night 2 of 7" },
+      { date: "2026-02-08", type: "night", title: "Night shift", time: "7:30p–7:30a (+1d)", note: "Night 3 of 7" },
+
+      // Weeknight starts (9:30p): Mon–Thu
+      { date: "2026-02-09", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 4 of 7" },
+      { date: "2026-02-10", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 5 of 7" },
+      { date: "2026-02-11", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 6 of 7" },
+      { date: "2026-02-12", type: "night", title: "Night shift (final)", time: "9:30p–7:30a (+1d)", note: "Night 7 of 7 (ends Fri AM)" },
+
+      // Sat after last night: Neuro moonlighting
+      { date: "2026-02-14", type: "neuro", title: "Neuro moonlighting", time: "8:00a–12:00p", note: "" },
+
+      // Sat Feb 21: Peds moonlighting
+      { date: "2026-02-21", type: "peds", title: "Peds moonlighting", time: "8:30a–4:30p", note: "" },
+
+      // Two weeks off nights, then repeat 7-night block starting Fri Feb 27 (inferred from “14 days off nights”)
+      { date: "2026-02-27", type: "night", title: "Night shift (start)", time: "9:30p–7:30a (+1d)", note: "Night 1 of 7" },
+      { date: "2026-02-28", type: "night", title: "Night shift", time: "7:30p–7:30a (+1d)", note: "Night 2 of 7" },
+
+      { date: "2026-03-01", type: "night", title: "Night shift", time: "7:30p–7:30a (+1d)", note: "Night 3 of 7" },
+      { date: "2026-03-02", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 4 of 7" },
+      { date: "2026-03-03", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 5 of 7" },
+      { date: "2026-03-04", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 6 of 7" },
+      { date: "2026-03-05", type: "night", title: "Night shift (final)", time: "9:30p–7:30a (+1d)", note: "Night 7 of 7 (ends Fri AM)" },
+
+      // Next-day neuro moonlighting (to match “same schedule”)
+      { date: "2026-03-07", type: "neuro", title: "Neuro moonlighting", time: "8:00a–12:00p", note: "" },
+    ];
+
+    const monthsToRender = [
+      { year: 2026, monthIndex: 0, label: "January 2026" },
+      { year: 2026, monthIndex: 1, label: "February 2026" },
+      { year: 2026, monthIndex: 2, label: "March 2026" },
+    ];
+
+    const dowLabels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const pad = n => String(n).padStart(2,"0");
+    const toISO = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    function getEventsForDate(iso){ return events.filter(e => e.date === iso); }
+
+    function typeColor(type){
+      switch(type){
+        case "breast": return "var(--c-breast)";
+        case "admin": return "var(--c-admin)";
+        case "interview": return "var(--c-interview)";
+        case "night": return "var(--c-night)";
+        case "peds": return "var(--c-peds)";
+        case "neuro": return "var(--c-neuro)";
+        default: return "rgba(255,255,255,.5)";
+      }
+    }
+
+    function friendlyDate(d){
+      const opts = { weekday: "short", month: "short", day: "numeric", year: "numeric" };
+      return d.toLocaleDateString(undefined, opts);
+    }
+
+    function renderMonth(container, year, monthIndex, label){
+      const first = new Date(year, monthIndex, 1);
+      const last  = new Date(year, monthIndex + 1, 0);
+      const startDow = first.getDay();
+      const daysInMonth = last.getDate();
+
+      const gridStart = new Date(year, monthIndex, 1 - startDow);
+      const totalCells = 42;
+
+      const monthEl = document.createElement("section");
+      monthEl.className = "month";
+
+      const head = document.createElement("div");
+      head.className = "monthHead";
+      head.innerHTML = `
+        <div>
+          <div class="monthTitle">${label}</div>
+          <div class="monthMeta">${daysInMonth} days • ${year}</div>
+        </div>
+        <div class="monthMeta">Calendar + mobile agenda</div>
+      `;
+
+      // --- calendar (scrollable on phones so Saturday isn't cut off) ---
+      const calWrap = document.createElement("div");
+      calWrap.className = "calendarWrap";
+
+      const hint = document.createElement("div");
+      hint.className = "scrollHint";
+      hint.textContent = "On phone: swipe horizontally to see the full week (Sat).";
+
+      const dow = document.createElement("div");
+      dow.className = "dow";
+      dowLabels.forEach(d => {
+        const el = document.createElement("div");
+        el.textContent = d;
+        dow.appendChild(el);
+      });
+
+      const scroller = document.createElement("div");
+      scroller.className = "gridScroller";
+
+      const grid = document.createElement("div");
+      grid.className = "grid";
+
+      for(let i=0;i<totalCells;i++){
+        const d = new Date(gridStart);
+        d.setDate(gridStart.getDate()+i);
+
+        const iso = toISO(d);
+        const inMonth = (d.getMonth() === monthIndex);
+        const cell = document.createElement("div");
+        cell.className = "day" + (inMonth ? "" : " out");
+
+        const weekOfMonth = Math.floor(i/7)+1;
+
+        const dateRow = document.createElement("div");
+        dateRow.className = "dateRow";
+        dateRow.innerHTML = `
+          <div class="dateNum">${d.getDate()}</div>
+          <div class="weekLabel">${inMonth ? `Wk ${weekOfMonth}` : ""}</div>
+        `;
+
+        const evtsWrap = document.createElement("div");
+        evtsWrap.className = "events";
+
+        getEventsForDate(iso).forEach(e => {
+          const evt = document.createElement("div");
+          evt.className = `evt ${e.type}`;
+          evt.innerHTML = `
+            <div class="evtTop">
+              <div class="evtTitle">${e.title}</div>
+              <div class="evtTime">${e.time || ""}</div>
+            </div>
+            ${e.note ? `<div class="evtNote">${e.note}</div>` : ``}
+          `;
+          evtsWrap.appendChild(evt);
+        });
+
+        cell.appendChild(dateRow);
+        cell.appendChild(evtsWrap);
+        grid.appendChild(cell);
+      }
+
+      scroller.appendChild(grid);
+      calWrap.appendChild(hint);
+      calWrap.appendChild(dow);
+      calWrap.appendChild(scroller);
+
+      // --- mobile-first agenda: guaranteed to show moonlighting clearly ---
+      const agenda = document.createElement("div");
+      agenda.className = "agenda";
+
+      const agendaHead = document.createElement("div");
+      agendaHead.className = "agendaHead";
+      agendaHead.innerHTML = `
+        <div class="agendaTitle">Agenda (month events)</div>
+        <div class="agendaNote">This list is optimized for mobile and includes all moonlighting shifts.</div>
+      `;
+
+      const agendaList = document.createElement("div");
+      agendaList.className = "agendaList";
+
+      // gather all dates in this month that have events
+      const datesWithEvents = [];
+      for(let day=1; day<=daysInMonth; day++){
+        const d = new Date(year, monthIndex, day);
+        const iso = toISO(d);
+        const evts = getEventsForDate(iso);
+        if(evts.length) datesWithEvents.push({ d, iso, evts });
+      }
+
+      // render cards
+      if(datesWithEvents.length === 0){
+        const empty = document.createElement("div");
+        empty.style.color = "var(--muted)";
+        empty.style.fontSize = "12px";
+        empty.textContent = "No events recorded for this month.";
+        agendaList.appendChild(empty);
+      } else {
+        datesWithEvents.forEach(({ d, iso, evts }) => {
+          const card = document.createElement("div");
+          card.className = "dayCard";
+
+          const head = document.createElement("div");
+          head.className = "dayCardHead";
+          head.innerHTML = `
+            <div class="dayCardDate">${friendlyDate(d)}</div>
+            <div class="dayCardDow">${iso}</div>
+          `;
+
+          const body = document.createElement("div");
+          body.className = "dayCardBody";
+
+          evts.forEach(e => {
+            const row = document.createElement("div");
+            row.className = "evtRow";
+            row.innerHTML = `
+              <div class="bar" style="background:${typeColor(e.type)}"></div>
+              <div class="evtRowMain">
+                <div class="evtRowTitle">${e.title}</div>
+                <div class="evtRowMeta">
+                  <span class="when">${e.time || ""}</span>
+                  <span class="pill" style="border-color: rgba(255,255,255,.14);">${e.type.toUpperCase()}</span>
+                  ${e.note ? `<span>${e.note}</span>` : ``}
+                </div>
+              </div>
+            `;
+            body.appendChild(row);
+          });
+
+          card.appendChild(head);
+          card.appendChild(body);
+          agendaList.appendChild(card);
+        });
+      }
+
+      agenda.appendChild(agendaHead);
+      agenda.appendChild(agendaList);
+
+      monthEl.appendChild(head);
+      monthEl.appendChild(calWrap);
+      monthEl.appendChild(agenda);
+
+      container.appendChild(monthEl);
+    }
+
+    const monthsRoot = document.getElementById("months");
+    monthsToRender.forEach(m => renderMonth(monthsRoot, m.year, m.monthIndex, m.label));
+  </script>
+</body>
+</html>
