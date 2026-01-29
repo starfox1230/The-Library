@@ -309,20 +309,16 @@
     }
     .panel.show{display:block;}
     .dropdownPanel{
-      position:absolute;
-      top:58px;
-      right:10px;
-      left:10px;
+      position:fixed;
+      top:0;
+      left:0;
       width:auto;
-      max-width:520px;
+      max-width:min(520px, calc(100vw - 20px));
       margin:0;
       z-index:15;
       max-height:60vh;
       overflow:auto;
       box-shadow:0 12px 30px rgba(0,0,0,0.35);
-    }
-    .dropdownPanel.alignRight{
-      left:auto;
     }
     .panelHeader{
       display:flex;
@@ -582,6 +578,34 @@
       const v = localStorage.getItem(STORAGE.lastInput);
       if (v) els.input.value = v;
     }catch(e){}
+  }
+
+  function positionDropdown(panel, anchor, align = 'left'){
+    if (!panel || !anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const offset = 8;
+    const top = Math.min(rect.bottom + offset, window.innerHeight - 16);
+    panel.style.top = `${Math.max(10, top)}px`;
+    if (align === 'right'){
+      const right = window.innerWidth - rect.right;
+      panel.style.right = `${Math.max(10, right)}px`;
+      panel.style.left = 'auto';
+    }else{
+      panel.style.left = `${Math.max(10, rect.left)}px`;
+      panel.style.right = 'auto';
+    }
+  }
+
+  function positionOpenPanels(){
+    if (els.copyPanel.classList.contains('show')){
+      positionDropdown(els.copyPanel, els.copyBtn, 'left');
+    }
+    if (els.priorsPanel.classList.contains('show')){
+      positionDropdown(els.priorsPanel, els.togglePriors, 'right');
+    }
+    if (els.newPanel.classList.contains('show')){
+      positionDropdown(els.newPanel, els.newBtn, 'right');
+    }
   }
 
   function loadPriors(){
@@ -1100,6 +1124,7 @@
     if (els.priorsPanel.classList.contains('show')){
       els.copyPanel.classList.remove('show');
       els.newPanel.classList.remove('show');
+      positionDropdown(els.priorsPanel, els.togglePriors, 'right');
       renderPriors();
     }
   });
@@ -1109,6 +1134,7 @@
     if (els.copyPanel.classList.contains('show')){
       els.priorsPanel.classList.remove('show');
       els.newPanel.classList.remove('show');
+      positionDropdown(els.copyPanel, els.copyBtn, 'left');
     }
   });
 
@@ -1117,6 +1143,9 @@
     if (els.newPanel.classList.contains('show')){
       els.copyPanel.classList.remove('show');
       els.priorsPanel.classList.remove('show');
+      els.input.value = '';
+      saveLastInput();
+      positionDropdown(els.newPanel, els.newBtn, 'right');
       els.input.focus();
     }
   });
@@ -1191,6 +1220,9 @@
     saveLastInput();
     syncActivePrior({ includeItems: false });
   });
+
+  window.addEventListener('resize', positionOpenPanels);
+  window.addEventListener('scroll', positionOpenPanels, { passive: true });
 
   // Init
   loadFavs();
