@@ -300,6 +300,21 @@ Example format:
             position: fixed; top: 15px; right: 15px; z-index: 10000;
             display: flex; gap: 10px;
         }
+        #reset-quiz-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            padding: 10px 18px;
+            background: none;
+            border: 1px solid var(--dim-blue);
+            color: var(--dim-blue);
+            border-radius: 25px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #reset-quiz-btn:hover { background-color: var(--dim-blue); color: var(--bg-color); }
         #profile-btn {
             padding: 10px 18px; background: none; border: 1px solid var(--dim-blue);
             color: var(--dim-blue); border-radius: 25px;
@@ -486,6 +501,7 @@ Example format:
     <div id="quizTopControls">
         <button id="profile-btn">Profile</button>
     </div>
+    <button id="reset-quiz-btn" aria-label="Reset quiz progress">Reset</button>
 
     <div class="quiz-container">
         <button id="favorite-toggle" class="favorite-toggle" aria-pressed="false" title="Save question to favorites">☆</button>
@@ -557,6 +573,7 @@ Example format:
     const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
     const pastSessionsListEl = document.getElementById('past-sessions-list');
     const favoriteToggle = document.getElementById('favorite-toggle');
+    const resetQuizBtn = document.getElementById('reset-quiz-btn');
     
     // Navigator Elements
     const navigatorOverlay = document.getElementById('navigator-overlay');
@@ -573,6 +590,36 @@ Example format:
     let userAnswers = new Array(quizData.length).fill(null);
     let currentFilter = 'all';
     let favoriteQuestions = new Set();
+    const quizProgressKey = \`quizProgress:\${activeSessionData.title}\`;
+
+    function saveQuizProgress() {
+        const payload = {
+            currentQuestionIndex,
+            userAnswers,
+            favoriteQuestions: Array.from(favoriteQuestions)
+        };
+        localStorage.setItem(quizProgressKey, JSON.stringify(payload));
+    }
+
+    function loadQuizProgress() {
+        const savedProgress = localStorage.getItem(quizProgressKey);
+        if (!savedProgress) return;
+        try {
+            const parsed = JSON.parse(savedProgress);
+            if (Array.isArray(parsed.userAnswers) && parsed.userAnswers.length === quizData.length) {
+                userAnswers = parsed.userAnswers;
+            }
+            if (Array.isArray(parsed.favoriteQuestions)) {
+                favoriteQuestions = new Set(parsed.favoriteQuestions);
+            }
+            if (Number.isInteger(parsed.currentQuestionIndex)) {
+                const safeIndex = Math.max(0, Math.min(parsed.currentQuestionIndex, quizData.length));
+                currentQuestionIndex = safeIndex;
+            }
+        } catch (error) {
+            console.warn('Unable to load quiz progress:', error);
+        }
+    }
 
     // --- Core Quiz Functions ---
     function updateFavoriteButton() {
@@ -590,6 +637,7 @@ Example format:
         if (favoriteQuestions.has(currentQuestionIndex)) favoriteQuestions.delete(currentQuestionIndex);
         else favoriteQuestions.add(currentQuestionIndex);
         updateFavoriteButton();
+        saveQuizProgress();
     }
 
     function loadQuestion() {
@@ -658,13 +706,21 @@ Example format:
         
         explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
         explanationElement.style.display = 'block';
+        saveQuizProgress();
     }
 
     function goToNextQuestion() {
          if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
-         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; showCompletion(); } 
+         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; showCompletion(); }
+         saveQuizProgress();
     }
-    function goToPreviousQuestion() { if (currentQuestionIndex > 0) { currentQuestionIndex--; loadQuestion(); } }
+    function goToPreviousQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            loadQuestion();
+            saveQuizProgress();
+        }
+    }
 
     // --- Navigator Logic ---
     function toggleNavigator() {
@@ -692,6 +748,7 @@ Example format:
             item.addEventListener('click', () => {
                 currentQuestionIndex = i;
                 loadQuestion();
+                saveQuizProgress();
             });
             navigatorGrid.appendChild(item);
         }
@@ -709,6 +766,7 @@ Example format:
         document.getElementById('final-score').textContent = \`Score: \${correctCount} / \${quizData.length}\`;
         
         renderReviewList('all');
+        saveQuizProgress();
     }
 
     function renderReviewList(filter) {
@@ -873,6 +931,16 @@ Example format:
         btn.addEventListener('click', (e) => renderReviewList(e.target.dataset.filter));
     });
     copyReviewBtn.addEventListener('click', copyReviewText);
+    resetQuizBtn.addEventListener('click', () => {
+        const confirmed = window.confirm('Reset this quiz? This will clear your answers, favorites, and position.');
+        if (!confirmed) return;
+        userAnswers = new Array(quizData.length).fill(null);
+        favoriteQuestions = new Set();
+        currentQuestionIndex = 0;
+        currentFilter = 'all';
+        localStorage.removeItem(quizProgressKey);
+        loadQuestion();
+    });
 
     // Universal Panel Closing
     document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
@@ -880,6 +948,7 @@ Example format:
     
     // --- Initial Load ---
     quizTitleEl.textContent = activeSessionData.title.split(' ').slice(1).join(' '); // Show AI title without date
+    loadQuizProgress();
     loadQuestion();
 <\/script>
 </body>
