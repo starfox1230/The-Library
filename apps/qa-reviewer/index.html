@@ -36,6 +36,21 @@
       gap:8px;
       align-items:center;
     }
+    .topbarLeft,
+    .topbarRight{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .topbarRow{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .topbarRight{
+      align-items:flex-end;
+    }
     .pill{
       border:1px solid var(--line);
       background:linear-gradient(180deg,var(--panel),var(--panel2));
@@ -348,28 +363,31 @@
 </head>
 <body>
   <div class="topbar">
-    <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only mastered items">Mastered only</button>
-    <button id="toggleLearningView" class="pill" aria-pressed="false" title="Show only developing items">Developing only</button>
-    <button id="toggleAllView" class="pill" aria-pressed="false" title="Show discarded items">Show discarded</button>
-    <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
-    <button id="togglePriors" class="pill secondary" title="View saved priors">Priors</button>
+    <div class="topbarLeft">
+      <div class="topbarRow">
+        <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only mastered items">Mastered only</button>
+        <button id="toggleLearningView" class="pill" aria-pressed="false" title="Show only developing items">Developing only</button>
+        <button id="toggleAllView" class="pill" aria-pressed="false" title="Show discarded items">Show discarded</button>
+      </div>
+      <div class="topbarRow">
+        <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="topbarRight">
+      <button id="newBtn" class="pill primary" title="Create a new set">+</button>
+      <button id="togglePriors" class="pill secondary" title="View saved priors">Priors</button>
+    </div>
   </div>
   <div class="countsRow">
     <span id="counts" class="badge">0 items</span>
   </div>
 
   <div class="wrap">
-    <textarea id="input" placeholder="Paste your content here (Question:/Answer:/Explanation: blocks)"></textarea>
-
-    <div class="controls">
-      <button id="parseBtn" class="pill primary">Parse / Refresh</button>
-      <button id="loadSampleBtn" class="pill secondary">Load sample (from this page)</button>
-      <button id="clearBtn" class="pill secondary">Clear</button>
-      <div class="statusLegend">
-        <span><span class="statusDot mastered"></span>Mastered = learned &amp; ready for Anki</span>
-        <span><span class="statusDot developing"></span>Developing = needs more review</span>
-        <span><span class="statusDot discarded"></span>Discarded = already known / low yield</span>
-      </div>
+    <div class="statusLegend">
+      <span><span class="statusDot mastered"></span>Mastered = learned &amp; ready for Anki</span>
+      <span><span class="statusDot developing"></span>Developing = needs more review</span>
+      <span><span class="statusDot discarded"></span>Discarded = already known / low yield</span>
     </div>
 
     <div id="list" class="list"></div>
@@ -383,6 +401,19 @@
       <span class="panelMeta" id="priorsMeta">0 saved</span>
     </div>
     <div id="priorsList" class="panelList"></div>
+  </div>
+
+  <div id="newPanel" class="panel dropdownPanel alignRight">
+    <div class="panelHeader">
+      <div class="panelTitle">New set</div>
+      <span class="panelMeta">Paste Q/A/Explanation blocks</span>
+    </div>
+    <textarea id="input" placeholder="Paste your content here (Question:/Answer:/Explanation: blocks)"></textarea>
+    <div class="controls">
+      <button id="parseBtn" class="pill primary">Create set</button>
+      <button id="loadSampleBtn" class="pill secondary">Load sample (from this page)</button>
+    </div>
+    <div class="hint">Creating a new set overwrites the current list and saves the previous one as a prior.</div>
   </div>
 
   <div id="copyPanel" class="panel dropdownPanel">
@@ -409,7 +440,6 @@
     input: document.getElementById('input'),
     parseBtn: document.getElementById('parseBtn'),
     loadSampleBtn: document.getElementById('loadSampleBtn'),
-    clearBtn: document.getElementById('clearBtn'),
     list: document.getElementById('list'),
     empty: document.getElementById('empty'),
     toggleFavView: document.getElementById('toggleFavView'),
@@ -422,6 +452,8 @@
     copyFavsBtn: document.getElementById('copyFavsBtn'),
     copyLearningBtn: document.getElementById('copyLearningBtn'),
     countdownToggle: document.getElementById('countdownToggle'),
+    newBtn: document.getElementById('newBtn'),
+    newPanel: document.getElementById('newPanel'),
     togglePriors: document.getElementById('togglePriors'),
     priorsPanel: document.getElementById('priorsPanel'),
     priorsList: document.getElementById('priorsList'),
@@ -845,6 +877,10 @@
 
   function parseAndRender(){
     const raw = els.input.value || '';
+    if (!raw.trim()){
+      showToast('Paste content to create a set.');
+      return;
+    }
     state.items = parseInput(raw);
     // Keep favorites for items that still exist (optional cleanup)
     const ids = new Set(state.items.map(x => x.id));
@@ -858,6 +894,7 @@
     storePrior(raw);
     render();
     showToast(`Parsed ${state.items.length} question(s).`);
+    els.newPanel.classList.remove('show');
   }
 
   function pickTopWords(raw){
@@ -1040,6 +1077,7 @@
     els.priorsPanel.classList.toggle('show');
     if (els.priorsPanel.classList.contains('show')){
       els.copyPanel.classList.remove('show');
+      els.newPanel.classList.remove('show');
       renderPriors();
     }
   });
@@ -1048,6 +1086,16 @@
     els.copyPanel.classList.toggle('show');
     if (els.copyPanel.classList.contains('show')){
       els.priorsPanel.classList.remove('show');
+      els.newPanel.classList.remove('show');
+    }
+  });
+
+  els.newBtn.addEventListener('click', () => {
+    els.newPanel.classList.toggle('show');
+    if (els.newPanel.classList.contains('show')){
+      els.copyPanel.classList.remove('show');
+      els.priorsPanel.classList.remove('show');
+      els.input.focus();
     }
   });
 
@@ -1058,12 +1106,17 @@
     const clickedCopyPanel = els.copyPanel.contains(target) || path.includes(els.copyPanel);
     const clickedPriors = els.togglePriors.contains(target) || path.includes(els.togglePriors);
     const clickedPriorsPanel = els.priorsPanel.contains(target) || path.includes(els.priorsPanel);
+    const clickedNew = els.newBtn.contains(target) || path.includes(els.newBtn);
+    const clickedNewPanel = els.newPanel.contains(target) || path.includes(els.newPanel);
 
     if (!clickedCopy && !clickedCopyPanel && els.copyPanel.classList.contains('show')){
       els.copyPanel.classList.remove('show');
     }
     if (!clickedPriors && !clickedPriorsPanel && els.priorsPanel.classList.contains('show')){
       els.priorsPanel.classList.remove('show');
+    }
+    if (!clickedNew && !clickedNewPanel && els.newPanel.classList.contains('show')){
+      els.newPanel.classList.remove('show');
     }
   });
 
@@ -1110,15 +1163,6 @@
     }
     const ok = await copyTextToClipboard(text);
     showToast(ok ? 'Developing items copied.' : 'Copy failed.');
-  });
-
-  els.clearBtn.addEventListener('click', () => {
-    els.input.value = '';
-    state.items = [];
-    saveLastInput();
-    syncActivePrior();
-    render();
-    showToast('Cleared.');
   });
 
   els.loadSampleBtn.addEventListener('click', () => {
