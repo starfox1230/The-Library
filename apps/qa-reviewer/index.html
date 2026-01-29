@@ -77,6 +77,8 @@
 
     textarea{
       width:100%;
+      max-width:100%;
+      box-sizing:border-box;
       min-height:180px;
       resize:vertical;
       border:1px solid var(--line);
@@ -301,18 +303,39 @@
     }
     .panelRow{
       display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      align-items:center;
-      justify-content:space-between;
+      flex-direction:column;
+      gap:6px;
+      align-items:stretch;
       border:1px solid rgba(37,48,71,0.7);
       border-radius:10px;
-      padding:8px 10px;
+      padding:10px 12px;
+      transition:border-color 160ms ease, background 160ms ease;
+    }
+    .panelRow.pressable{
+      cursor:pointer;
+    }
+    .panelRow.pressed{
+      border-color:rgba(96,165,250,0.55);
+      background:rgba(96,165,250,0.12);
+    }
+    .panelRowBody{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .panelRowActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-start;
     }
     .panelMeta{
       color:var(--muted);
       font-size:12px;
     }
+    .statusText.mastered{color:var(--warn);}
+    .statusText.developing{color:#60a5fa;}
+    .statusText.discarded{color:#f87171;}
     .toggleRow{
       display:flex;
       align-items:center;
@@ -896,35 +919,21 @@
     }
     for (const prior of state.priors){
       const row = document.createElement('div');
-      row.className = 'panelRow';
+      row.className = 'panelRow pressable';
+
+      const rowBody = document.createElement('div');
+      rowBody.className = 'panelRowBody';
 
       const label = document.createElement('div');
       label.textContent = (prior.name || '').trim() || prior.label;
 
       const meta = document.createElement('div');
       meta.className = 'panelMeta';
-      meta.textContent = `${prior.items.length} items · ${prior.favIds.length} mastered · ${(prior.learningIds || []).length} developing · ${prior.deletedIds.length} discarded`;
+      const developingCount = (prior.learningIds || []).length;
+      meta.innerHTML = `${prior.items.length} items · <span class="statusText mastered">${prior.favIds.length} mastered</span> · <span class="statusText developing">${developingCount} developing</span> · <span class="statusText discarded">${prior.deletedIds.length} discarded</span>`;
 
-      const loadBtn = document.createElement('button');
-      loadBtn.className = 'pill secondary';
-      loadBtn.type = 'button';
-      loadBtn.textContent = 'Load';
-
-      loadBtn.addEventListener('click', () => {
-        persistActivePrior();
-        els.input.value = prior.rawInput || '';
-        state.items = prior.items || parseInput(prior.rawInput || '');
-        state.favSet = new Set(prior.favIds || []);
-        state.learningSet = new Set(prior.learningIds || []);
-        state.deletedSet = new Set(prior.deletedIds || []);
-        saveFavs();
-        saveLearning();
-        saveDeleted();
-        saveLastInput();
-        setActivePrior(prior.id);
-        render();
-        showToast('Loaded prior.');
-      });
+      const actions = document.createElement('div');
+      actions.className = 'panelRowActions';
 
       const renameBtn = document.createElement('button');
       renameBtn.className = 'pill secondary';
@@ -955,15 +964,52 @@
         showToast('Prior deleted.');
       });
 
-      const left = document.createElement('div');
-      left.appendChild(label);
-      left.appendChild(meta);
+      actions.appendChild(deleteBtn);
+      actions.appendChild(renameBtn);
 
-      row.appendChild(left);
-      row.appendChild(loadBtn);
-      row.appendChild(renameBtn);
-      row.appendChild(deleteBtn);
+      rowBody.appendChild(label);
+      rowBody.appendChild(meta);
+      rowBody.appendChild(actions);
+
+      row.appendChild(rowBody);
       els.priorsList.appendChild(row);
+
+      const loadPrior = () => {
+        persistActivePrior();
+        els.input.value = prior.rawInput || '';
+        state.items = prior.items || parseInput(prior.rawInput || '');
+        state.favSet = new Set(prior.favIds || []);
+        state.learningSet = new Set(prior.learningIds || []);
+        state.deletedSet = new Set(prior.deletedIds || []);
+        saveFavs();
+        saveLearning();
+        saveDeleted();
+        saveLastInput();
+        setActivePrior(prior.id);
+        render();
+        els.priorsPanel.classList.remove('show');
+        showToast('Loaded prior.');
+      };
+
+      row.addEventListener('pointerdown', (event) => {
+        if (event.target.closest('button')) return;
+        row.classList.add('pressed');
+      });
+
+      row.addEventListener('pointerup', (event) => {
+        if (!row.classList.contains('pressed')) return;
+        row.classList.remove('pressed');
+        if (event.target.closest('button')) return;
+        loadPrior();
+      });
+
+      row.addEventListener('pointerleave', () => {
+        row.classList.remove('pressed');
+      });
+
+      row.addEventListener('pointercancel', () => {
+        row.classList.remove('pressed');
+      });
     }
   }
 
