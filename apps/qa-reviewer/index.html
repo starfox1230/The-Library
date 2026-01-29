@@ -383,9 +383,9 @@
   <div class="topbar">
     <div class="topbarLeft">
       <div class="topbarRow">
+        <button id="toggleAllView" class="pill" aria-pressed="false" title="Show all items, including discarded">Show all</button>
         <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only mastered items">Mastered only</button>
         <button id="toggleLearningView" class="pill" aria-pressed="false" title="Show only developing items">Developing only</button>
-        <button id="toggleAllView" class="pill" aria-pressed="false" title="Show discarded items">Show discarded</button>
       </div>
       <div class="topbarRow">
         <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
@@ -499,7 +499,7 @@
     favSet: new Set(),
     learningSet: new Set(),
     deletedSet: new Set(),
-    filterView: 'all',
+    filterView: 'active',
     priors: [],
     activePriorId: null,
   };
@@ -748,8 +748,8 @@
       ? itemsAll.filter(it => state.favSet.has(it.id))
       : state.filterView === 'developing'
         ? itemsAll.filter(it => state.learningSet.has(it.id))
-        : state.filterView === 'discarded'
-          ? itemsAll.filter(it => state.deletedSet.has(it.id))
+        : state.filterView === 'all'
+          ? itemsAll
           : itemsAll.filter(it => !state.deletedSet.has(it.id));
 
     els.list.innerHTML = '';
@@ -764,8 +764,8 @@
       els.counts.textContent = `${items.length} mastered shown (of ${total})`;
     }else if (state.filterView === 'developing'){
       els.counts.textContent = `${items.length} developing shown (of ${total})`;
-    }else if (state.filterView === 'discarded'){
-      els.counts.textContent = `${items.length} discarded shown (of ${total})`;
+    }else if (state.filterView === 'all'){
+      els.counts.textContent = `${items.length} items shown (including ${deletedCount} discarded)`;
     }else{
       const visibleCount = items.length;
       els.counts.textContent = `${visibleCount} items shown (${favCount} mastered, ${learningCount} developing, ${deletedCount} discarded)`;
@@ -1096,24 +1096,24 @@
   els.parseBtn.addEventListener('click', parseAndRender);
 
   els.toggleFavView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'mastered' ? 'all' : 'mastered';
+    state.filterView = state.filterView === 'mastered' ? 'active' : 'mastered';
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'discarded' ? 'true' : 'false');
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
     render();
   });
 
   els.toggleLearningView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'developing' ? 'all' : 'developing';
+    state.filterView = state.filterView === 'developing' ? 'active' : 'developing';
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'discarded' ? 'true' : 'false');
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
     render();
   });
 
   els.toggleAllView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'discarded' ? 'all' : 'discarded';
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'discarded' ? 'true' : 'false');
+    state.filterView = state.filterView === 'all' ? 'active' : 'all';
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
     render();
