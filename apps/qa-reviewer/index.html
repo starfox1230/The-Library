@@ -71,6 +71,28 @@
     .pill.primary{
       border-color:rgba(96,165,250,0.55);
     }
+    .pill.iconButton{
+      min-width:42px;
+      min-height:42px;
+      padding:0 14px;
+      font-size:18px;
+      font-weight:700;
+      border-color:rgba(96,165,250,0.45);
+      background:
+        radial-gradient(circle at top, rgba(96,165,250,0.28), transparent 62%),
+        linear-gradient(180deg,#1f2937 0%, #0f172a 100%);
+      box-shadow:0 8px 18px rgba(15,23,42,0.55);
+      transition:transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+    .pill.iconButton:hover{
+      border-color:rgba(96,165,250,0.8);
+      box-shadow:0 12px 22px rgba(30,64,175,0.35);
+      transform:translateY(-1px);
+    }
+    .pill.iconButton:active{
+      transform:translateY(0);
+      box-shadow:0 6px 12px rgba(15,23,42,0.4);
+    }
     .spacer{flex:1}
     .badge{
       color:var(--muted);
@@ -375,7 +397,7 @@
     </div>
     <div class="spacer"></div>
     <div class="topbarRight">
-      <button id="newBtn" class="pill primary" title="Create a new set">+</button>
+      <button id="newBtn" class="pill primary iconButton" title="Create a new set">+</button>
       <button id="togglePriors" class="pill secondary" title="View saved priors">Priors</button>
     </div>
   </div>
@@ -411,7 +433,6 @@
     <textarea id="input" placeholder="Paste your content here (Question:/Answer:/Explanation: blocks)"></textarea>
     <div class="controls">
       <button id="parseBtn" class="pill primary">Create set</button>
-      <button id="loadSampleBtn" class="pill secondary">Load sample (from this page)</button>
     </div>
     <div class="hint">Creating a new set overwrites the current list and saves the previous one as a prior.</div>
   </div>
@@ -439,7 +460,6 @@
   const els = {
     input: document.getElementById('input'),
     parseBtn: document.getElementById('parseBtn'),
-    loadSampleBtn: document.getElementById('loadSampleBtn'),
     list: document.getElementById('list'),
     empty: document.getElementById('empty'),
     toggleFavView: document.getElementById('toggleFavView'),
@@ -484,7 +504,6 @@
     learningSet: new Set(),
     deletedSet: new Set(),
     filterView: 'all',
-    showAll: false,
     priors: [],
     activePriorId: null,
   };
@@ -701,14 +720,13 @@
 
   function render(){
     const itemsAll = state.items;
-    const baseItems = state.showAll
-      ? itemsAll
-      : itemsAll.filter(it => !state.deletedSet.has(it.id));
     const items = state.filterView === 'mastered'
-      ? baseItems.filter(it => state.favSet.has(it.id))
+      ? itemsAll.filter(it => state.favSet.has(it.id))
       : state.filterView === 'developing'
-        ? baseItems.filter(it => state.learningSet.has(it.id))
-        : baseItems;
+        ? itemsAll.filter(it => state.learningSet.has(it.id))
+        : state.filterView === 'discarded'
+          ? itemsAll.filter(it => state.deletedSet.has(it.id))
+          : itemsAll.filter(it => !state.deletedSet.has(it.id));
 
     els.list.innerHTML = '';
     els.empty.style.display = items.length ? 'none' : 'block';
@@ -722,8 +740,8 @@
       els.counts.textContent = `${items.length} mastered shown (of ${total})`;
     }else if (state.filterView === 'developing'){
       els.counts.textContent = `${items.length} developing shown (of ${total})`;
-    }else if (state.showAll){
-      els.counts.textContent = `${total} items (${favCount} mastered, ${learningCount} developing, ${deletedCount} discarded)`;
+    }else if (state.filterView === 'discarded'){
+      els.counts.textContent = `${items.length} discarded shown (of ${total})`;
     }else{
       const visibleCount = items.length;
       els.counts.textContent = `${visibleCount} items shown (${favCount} mastered, ${learningCount} developing, ${deletedCount} discarded)`;
@@ -1057,6 +1075,7 @@
     state.filterView = state.filterView === 'mastered' ? 'all' : 'mastered';
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'discarded' ? 'true' : 'false');
     render();
   });
 
@@ -1064,12 +1083,15 @@
     state.filterView = state.filterView === 'developing' ? 'all' : 'developing';
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'discarded' ? 'true' : 'false');
     render();
   });
 
   els.toggleAllView.addEventListener('click', () => {
-    state.showAll = !state.showAll;
-    els.toggleAllView.setAttribute('aria-pressed', state.showAll ? 'true' : 'false');
+    state.filterView = state.filterView === 'discarded' ? 'all' : 'discarded';
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'discarded' ? 'true' : 'false');
+    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
+    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
     render();
   });
 
@@ -1165,11 +1187,6 @@
     showToast(ok ? 'Developing items copied.' : 'Copy failed.');
   });
 
-  els.loadSampleBtn.addEventListener('click', () => {
-    els.input.value = SAMPLE_TEXT.trim();
-    parseAndRender();
-  });
-
   els.input.addEventListener('input', () => {
     saveLastInput();
     syncActivePrior({ includeItems: false });
@@ -1189,25 +1206,6 @@
   renderPriors();
   render();
 
-  // Sample text (includes a few from your example)
-  const SAMPLE_TEXT = `
-Question: What is the most frequently fractured tarsal bone?
-5, 4, 3, 2, 1.
-Answer: The calcaneus is the most fractured tarsal bone.
-Explanation: These fractures are usually intra-articular, accounting for seventy-five percent of cases.
-
-Question: What is the Terry Thomas sign?
-5, 4, 3, 2, 1.
-Answer: The Terry Thomas sign is a gap between the scaphoid and lunate seen on plain film.
-Explanation: A gap wider than three millimeters indicates a scapholunate ligament tear or dissociation.
-
-[attachment_0](attachment)
-
-Question: What is a Colles Fracture?
-5, 4, 3, 2, 1.
-Answer: A Colles fracture is an extra-articular fracture of the distal radial metaphysis with dorsal angulation.
-Explanation: It creates a "dinner fork deformity" and is commonly seen in older adults with osteoporosis.
-`;
 })();
 </script>
 </body>
