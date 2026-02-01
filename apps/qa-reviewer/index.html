@@ -325,6 +325,16 @@
       align-items:center;
       justify-content:space-between;
       margin-bottom:8px;
+      gap:8px;
+    }
+    .panelHeaderActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .panelHeaderActions input[type="file"]{
+      display:none;
     }
     .panelTitle{
       font-weight:650;
@@ -416,7 +426,12 @@
   <div id="priorsPanel" class="panel dropdownPanel alignRight">
     <div class="panelHeader">
       <div class="panelTitle">Saved priors</div>
-      <span class="panelMeta" id="priorsMeta">0 saved</span>
+      <div class="panelHeaderActions">
+        <button id="downloadPriorsBtn" class="pill secondary" type="button">Download JSON</button>
+        <button id="uploadPriorsBtn" class="pill secondary" type="button">Upload JSON</button>
+        <input id="uploadPriorsInput" type="file" accept="application/json" />
+        <span class="panelMeta" id="priorsMeta">0 saved</span>
+      </div>
     </div>
     <div id="priorsList" class="panelList"></div>
   </div>
@@ -473,6 +488,9 @@
     priorsPanel: document.getElementById('priorsPanel'),
     priorsList: document.getElementById('priorsList'),
     priorsMeta: document.getElementById('priorsMeta'),
+    downloadPriorsBtn: document.getElementById('downloadPriorsBtn'),
+    uploadPriorsBtn: document.getElementById('uploadPriorsBtn'),
+    uploadPriorsInput: document.getElementById('uploadPriorsInput'),
     counts: document.getElementById('counts'),
     toast: document.getElementById('toast'),
   };
@@ -1091,6 +1109,89 @@
     }
   }
 
+  function buildExportPayload(){
+    const priors = state.priors.map(prior => {
+      const masteredCount = (prior.favIds || []).length;
+      const developingCount = (prior.learningIds || []).length;
+      const discardedCount = (prior.deletedIds || []).length;
+      return {
+        ...prior,
+        counts: {
+          total: (prior.items || []).length,
+          mastered: masteredCount,
+          developing: developingCount,
+          discarded: discardedCount
+        }
+      };
+    });
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      priors
+    };
+  }
+
+  function downloadPriors(){
+    if (!state.priors.length){
+      showToast('No priors to download.');
+      return;
+    }
+    const payload = buildExportPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `qa-priors-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Priors downloaded.');
+  }
+
+  function normalizePrior(prior){
+    if (!prior || typeof prior !== 'object') return null;
+    const createdAt = prior.createdAt || new Date().toISOString();
+    const label = prior.label || new Date(createdAt).toLocaleString();
+    const id = prior.id || `prior_${Date.now()}_${Math.random().toString(16).slice(2,8)}`;
+    let items = Array.isArray(prior.items) ? prior.items : [];
+    const rawInput = prior.rawInput || '';
+    if (!items.length && rawInput){
+      items = parseInput(rawInput);
+    }
+    return {
+      id,
+      createdAt,
+      label,
+      name: prior.name || '',
+      rawInput,
+      items,
+      favIds: Array.isArray(prior.favIds) ? prior.favIds : [],
+      learningIds: Array.isArray(prior.learningIds) ? prior.learningIds : [],
+      deletedIds: Array.isArray(prior.deletedIds) ? prior.deletedIds : []
+    };
+  }
+
+  function mergeImportedPriors(imported){
+    if (!Array.isArray(imported)) return 0;
+    const existing = new Map(state.priors.map(prior => [prior.id, prior]));
+    let added = 0;
+    for (const raw of imported){
+      const normalized = normalizePrior(raw);
+      if (!normalized) continue;
+      if (existing.has(normalized.id)) continue;
+      existing.set(normalized.id, normalized);
+      added++;
+    }
+    state.priors = Array.from(existing.values()).sort((a,b) => {
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    }).slice(0,25);
+    return added;
+  }
+
   // Events
   els.parseBtn.addEventListener('click', parseAndRender);
 
@@ -1125,6 +1226,37 @@
       els.newPanel.classList.remove('show');
       positionDropdown(els.priorsPanel, els.togglePriors, 'right');
       renderPriors();
+    }
+  });
+
+  els.downloadPriorsBtn.addEventListener('click', downloadPriors);
+
+  els.uploadPriorsBtn.addEventListener('click', () => {
+    els.uploadPriorsInput.value = '';
+    els.uploadPriorsInput.click();
+  });
+
+  els.uploadPriorsInput.addEventListener('change', async () => {
+    const file = els.uploadPriorsInput.files && els.uploadPriorsInput.files[0];
+    if (!file) return;
+    try{
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const priors = Array.isArray(parsed) ? parsed : parsed.priors;
+      if (!Array.isArray(priors)){
+        showToast('Invalid priors file.');
+        return;
+      }
+      const added = mergeImportedPriors(priors);
+      if (added > 0){
+        savePriors();
+        renderPriors();
+        showToast(`Imported ${added} new prior${added === 1 ? '' : 's'}.`);
+      }else{
+        showToast('No new priors found.');
+      }
+    }catch(e){
+      showToast('Unable to import priors.');
     }
   });
 
