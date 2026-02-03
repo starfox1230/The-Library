@@ -174,7 +174,7 @@
     }
     .seg{
       display:grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap:8px;
     }
     .seg button{
@@ -190,7 +190,7 @@
       border-color: rgba(122,162,255,0.38);
     }
 
-    /* Stacked verse rows on phone (one row contains both texts) */
+    /* Stacked verse rows on phone */
     .verseList{
       margin-top:10px;
       border-radius:14px;
@@ -232,16 +232,30 @@
       color: var(--muted);
       white-space:nowrap;
     }
+
+    /* THE PAIR GRID */
+    /* Default: Stacked (Portrait behavior) */
     .pair{
       display:grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; 
       gap:10px;
     }
+
+    /* Landscape Mode Tweaks for Phone/Tablets */
+    /* When device is landscape AND user is viewing "Both" verses, force side-by-side */
+    @media (orientation: landscape) {
+      .verseList:not(.single-col) .pair {
+        grid-template-columns: 1fr 1fr; 
+      }
+    }
+
     .pane{
       border:1px solid rgba(255,255,255,0.08);
       border-radius:12px;
       overflow:hidden;
       background: rgba(0,0,0,0.14);
+      display:flex; 
+      flex-direction:column;
     }
     .pane .phead{
       padding:8px 10px;
@@ -268,6 +282,7 @@
       line-height:1.45;
       white-space:pre-wrap;
       word-break:break-word;
+      flex-grow:1;
     }
     .missing{
       border:1px dashed rgba(255,107,107,0.45);
@@ -275,7 +290,7 @@
     }
     .missing .pbody{ color: rgba(231,236,245,0.78); }
 
-    /* Desktop / landscape: true side-by-side columns, scroll-synced */
+    /* Desktop Columns (For large screens only) */
     .columns{
       display:none;
       grid-template-columns: 1fr 1fr;
@@ -301,18 +316,10 @@
       z-index: 2;
       backdrop-filter: blur(10px);
     }
-    .col .chead .clabel{
-      font-size:12.5px;
-      font-weight:900;
-    }
-    .col .chead .cmeta{
-      font-size:12px;
-      color: var(--muted);
-    }
-    .col .cbody{
-      max-height: 62vh;
-      overflow:auto;
-    }
+    .col .chead .clabel{ font-size:12.5px; font-weight:900; }
+    .col .chead .cmeta{ font-size:12px; color: var(--muted); }
+    .col .cbody{ max-height: 62vh; overflow:auto; }
+    
     .row{
       padding:10px 12px 12px;
       border-bottom:1px solid rgba(255,255,255,0.06);
@@ -337,14 +344,18 @@
       word-break:break-word;
     }
 
-    /* Responsive rules */
-    /* Phone portrait: stacked verse cards with toggle to show both / left-only / right-only */
-    @media (max-width: 720px){
+    /* BREAKPOINTS */
+    /* We set the breakpoint to 900px. 
+      Devices < 900px (Phones, Foldables, small Tablets) use the "Card View" (.outputArea).
+      Inside Card View, orientation:landscape triggers the side-by-side grid.
+      Devices > 900px (Desktop/Laptops) use the "Columns View" (.columns).
+    */
+    @media (max-width: 900px){
       .outputArea{ display:block; }
       .columns{ display:none; }
+      .inputGrid{ grid-template-columns: 1fr; }
     }
-    /* Phone landscape + tablets + desktop: show columns */
-    @media (min-width: 721px){
+    @media (min-width: 901px){
       .inputGrid{ grid-template-columns: 1fr 1fr; }
       .actions{ flex-direction:row; align-items:center; justify-content:space-between; }
       .outputArea{ display:none; }
@@ -366,7 +377,8 @@
     <div class="wrap" style="padding:0 12px;">
       <h1>Verse Side-by-Side Comparator</h1>
       <p class="sub">
-        Paste two versions. Verses are matched by <b>number + period</b> (e.g., <b>“12.”</b>). Phone portrait uses stacked verse cards; landscape/tablet/desktop shows true side-by-side columns.
+        Paste two versions. Verses are matched by <b>number + period</b> (e.g., <b>“12.”</b>). 
+        <br/>Rotate phone: <b>Portrait</b> = Stacked, <b>Landscape</b> = Side-by-Side.
       </p>
     </div>
   </header>
@@ -406,7 +418,6 @@
       </div>
     </div>
 
-    <!-- Phone portrait output -->
     <div class="outputArea" id="phoneOutput" style="display:none;">
       <div class="toggleBar">
         <div class="seg">
@@ -423,7 +434,6 @@
       <div class="verseList" id="verseList"></div>
     </div>
 
-    <!-- Landscape / desktop output -->
     <div class="columns" id="columnsOutput" style="display:none;">
       <div class="col">
         <div class="chead">
@@ -663,6 +673,15 @@
 
     function applyPhoneMode(mode) {
       currentPhoneMode = mode;
+      const verseList = document.getElementById("verseList");
+
+      // Toggle a class to control grid columns in landscape
+      if (mode === 'both') {
+        verseList.classList.remove('single-col');
+      } else {
+        verseList.classList.add('single-col');
+      }
+
       const panes = document.querySelectorAll("#verseList .pane");
       panes.forEach(p => {
         const side = p.dataset.side;
@@ -689,8 +708,7 @@
       applyPhoneMode("right");
     });
 
-    // ---------------- Share link (stores text in URL hash) ----------------
-    // NOTE: Works locally, no server. Long chapters may exceed URL length; still useful for shorter chapters.
+    // ---------------- Share link ----------------
     function encodeForUrl(str) {
       const bytes = new TextEncoder().encode(str);
       let bin = "";
@@ -715,7 +733,6 @@
         await navigator.clipboard.writeText(url);
         document.getElementById("statusText").textContent = "Share link copied";
       }catch(e){
-        // fallback
         const tmp = document.createElement("textarea");
         tmp.value = url;
         document.body.appendChild(tmp);
@@ -780,7 +797,7 @@
       render();
     });
 
-    // auto-render after paste when both sides have content
+    // auto-render after paste
     ["leftInput","rightInput"].forEach(id=>{
       document.getElementById(id).addEventListener("paste", () => {
         setTimeout(() => {
