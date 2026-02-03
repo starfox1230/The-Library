@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Verse Side-by-Side Comparator</title>
   <style>
     :root{
       --bg:#0b0e14;
       --panel:#121826;
       --panel2:#0f1422;
-      --border:#24304a;
+      --border:rgba(255,255,255,0.10);
+      --border2:rgba(255,255,255,0.07);
       --text:#e7ecf5;
       --muted:#aab3c5;
       --accent:#7aa2ff;
-      --bad:#ff6b6b;
-      --good:#51cf66;
-      --warn:#ffd43b;
+      --danger:#ff6b6b;
       --chip:#1b2741;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
     }
     *{box-sizing:border-box}
     body{
@@ -25,44 +25,48 @@
       background: radial-gradient(1200px 800px at 20% 0%, #141b2d 0%, var(--bg) 45%) fixed;
       color:var(--text);
     }
+
     header{
-      padding:18px 16px 10px;
+      padding:14px 12px 10px;
       border-bottom:1px solid rgba(255,255,255,0.06);
-      background: linear-gradient(180deg, rgba(18,24,38,0.9), rgba(11,14,20,0.0));
+      background: linear-gradient(180deg, rgba(18,24,38,0.92), rgba(11,14,20,0.0));
       position: sticky;
       top:0;
+      z-index: 10;
       backdrop-filter: blur(10px);
-      z-index: 5;
     }
     header h1{
-      margin:0 0 6px;
-      font-size:16px;
-      font-weight:650;
+      margin:0 0 4px;
+      font-size:15px;
+      font-weight:700;
       letter-spacing:0.2px;
     }
     header .sub{
+      margin:0;
       color:var(--muted);
       font-size:12.5px;
-      line-height:1.4;
-      margin:0;
+      line-height:1.35;
     }
+
     .wrap{
-      max-width:1200px;
+      max-width: 1200px;
       margin:0 auto;
-      padding:14px 12px 40px;
+      padding:12px 12px 40px;
     }
-    .grid{
+
+    /* Inputs */
+    .inputGrid{
       display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
+      grid-template-columns: 1fr;
+      gap:10px;
       align-items: start;
     }
     .card{
       background: linear-gradient(180deg, rgba(18,24,38,0.92), rgba(12,16,26,0.92));
-      border:1px solid rgba(255,255,255,0.08);
+      border:1px solid var(--border);
       border-radius:14px;
       overflow:hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      box-shadow: var(--shadow);
     }
     .card .title{
       display:flex;
@@ -75,26 +79,31 @@
     .card .title .label{
       font-size:12.5px;
       color:var(--muted);
+      font-weight:650;
+    }
+    .card .title .meta{
+      font-size:12px;
+      color:var(--muted);
     }
     .card textarea{
       width:100%;
-      min-height:220px;
+      min-height:160px;
       resize:vertical;
       padding:12px;
       border:0;
       outline:0;
       color:var(--text);
       background: transparent;
-      font-size:13.5px;
+      font-size:13px;
       line-height:1.45;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+
+    /* Buttons */
     .actions{
       display:flex;
+      flex-direction:column;
       gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
       margin:12px 0 10px;
     }
     .btnrow{
@@ -105,29 +114,28 @@
     }
     button{
       border:1px solid rgba(255,255,255,0.12);
-      background: rgba(122,162,255,0.16);
+      background: rgba(122,162,255,0.18);
       color: var(--text);
-      padding:9px 11px;
+      padding:10px 12px;
       border-radius:12px;
-      font-weight:600;
+      font-weight:700;
       font-size:12.5px;
       cursor:pointer;
       transition: transform 0.05s ease, background 0.15s ease, border-color 0.15s ease;
       user-select:none;
     }
-    button:hover{ background: rgba(122,162,255,0.22); border-color: rgba(122,162,255,0.35); }
+    button:hover{ background: rgba(122,162,255,0.24); border-color: rgba(122,162,255,0.35); }
     button:active{ transform: translateY(1px); }
-    .btn-ghost{
-      background: rgba(255,255,255,0.06);
-    }
+    .btn-ghost{ background: rgba(255,255,255,0.06); }
     .btn-warn{
-      background: rgba(255,212,59,0.16);
-      border-color: rgba(255,212,59,0.22);
+      background: rgba(255,107,107,0.14);
+      border-color: rgba(255,107,107,0.22);
     }
     .btn-warn:hover{
-      background: rgba(255,212,59,0.22);
-      border-color: rgba(255,212,59,0.35);
+      background: rgba(255,107,107,0.20);
+      border-color: rgba(255,107,107,0.33);
     }
+
     .status{
       display:flex;
       gap:8px;
@@ -140,9 +148,9 @@
       display:inline-flex;
       gap:6px;
       align-items:center;
-      background: rgba(27,39,65,0.8);
+      background: rgba(27,39,65,0.85);
       border:1px solid rgba(255,255,255,0.08);
-      padding:6px 9px;
+      padding:6px 10px;
       border-radius:999px;
       color: var(--muted);
     }
@@ -151,124 +159,206 @@
       box-shadow: 0 0 0 2px rgba(122,162,255,0.18);
     }
 
-    .outwrap{
-      margin-top: 10px;
+    /* Output: phone-first */
+    .outputArea{ display:none; gap:12px; }
+    .toggleBar{
+      position: sticky;
+      top: 64px; /* below header */
+      z-index: 9;
+      backdrop-filter: blur(10px);
+      background: rgba(11,14,20,0.65);
+      border:1px solid var(--border2);
+      border-radius:14px;
+      padding:10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    }
+    .seg{
       display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px;
+    }
+    .seg button{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.10);
+      font-weight:800;
+    }
+    .seg button.active{
+      background: rgba(122,162,255,0.22);
+      border-color: rgba(122,162,255,0.38);
+    }
+
+    /* Stacked verse rows on phone (one row contains both texts) */
+    .verseList{
+      margin-top:10px;
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid var(--border2);
+      background: rgba(0,0,0,0.16);
+    }
+    .vrow{
+      padding:10px 12px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      background: rgba(15,20,34,0.28);
+    }
+    .vrow:nth-child(2n){ background: rgba(15,20,34,0.16); }
+    .vhead{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .vnum{
+      font-weight:900;
+      color: var(--accent);
+      letter-spacing:0.2px;
+      font-size:13px;
+    }
+    .vmicro{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      color: var(--muted);
+      font-size:11.5px;
+    }
+    .pill{
+      background: rgba(27,39,65,0.7);
+      border:1px solid rgba(255,255,255,0.08);
+      padding:3px 8px;
+      border-radius:999px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .pair{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .pane{
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;
+      overflow:hidden;
+      background: rgba(0,0,0,0.14);
+    }
+    .pane .phead{
+      padding:8px 10px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background: rgba(0,0,0,0.18);
+      gap:10px;
+    }
+    .pane .phead .plabel{
+      font-size:12px;
+      font-weight:800;
+      color: var(--text);
+    }
+    .pane .phead .psub{
+      font-size:11.5px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .pane .pbody{
+      padding:10px;
+      font-size:13.5px;
+      line-height:1.45;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .missing{
+      border:1px dashed rgba(255,107,107,0.45);
+      background: rgba(255,107,107,0.10);
+    }
+    .missing .pbody{ color: rgba(231,236,245,0.78); }
+
+    /* Desktop / landscape: true side-by-side columns, scroll-synced */
+    .columns{
+      display:none;
       grid-template-columns: 1fr 1fr;
       gap:12px;
       align-items:start;
+      margin-top:10px;
     }
-    .out{
+    .col{
       border-radius:14px;
       overflow:hidden;
-      border:1px solid rgba(255,255,255,0.08);
+      border:1px solid var(--border2);
       background: rgba(0,0,0,0.16);
     }
-    .out .head{
+    .col .chead{
       display:flex;
       justify-content:space-between;
       align-items:center;
       padding:10px 12px;
       border-bottom:1px solid rgba(255,255,255,0.06);
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.22);
       position: sticky;
-      top: 62px; /* below header */
+      top: 112px;
       z-index: 2;
       backdrop-filter: blur(10px);
     }
-    .out .head .hlabel{
+    .col .chead .clabel{
       font-size:12.5px;
-      font-weight:700;
-      color: var(--text);
-      display:flex;
-      align-items:center;
-      gap:8px;
+      font-weight:900;
     }
-    .out .head .hlabel span{
-      color: var(--muted);
-      font-weight:600;
+    .col .chead .cmeta{
       font-size:12px;
+      color: var(--muted);
     }
-    .out .body{
+    .col .cbody{
       max-height: 62vh;
       overflow:auto;
     }
-
-    /* row grid that keeps both columns aligned */
-    .rows{
-      display:grid;
-      grid-auto-rows: minmax(0, auto);
-    }
     .row{
-      border-bottom:1px solid rgba(255,255,255,0.06);
       padding:10px 12px 12px;
-      position: relative;
-      background: rgba(15,20,34,0.35);
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      background: rgba(15,20,34,0.28);
     }
-    .row:nth-child(2n){
-      background: rgba(15,20,34,0.18);
-    }
-    .vtop{
-      display:flex;
-      align-items:baseline;
-      gap:10px;
-      margin-bottom:6px;
-    }
-    .vnum{
-      flex:0 0 auto;
-      font-weight:800;
-      color: var(--accent);
-      letter-spacing:0.2px;
-      font-size:13px;
-      min-width: 34px;
-    }
-    .vtag{
+    .row:nth-child(2n){ background: rgba(15,20,34,0.16); }
+    .row .rtop{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+    .row .rnum{ min-width:34px; font-weight:900; color: var(--accent); font-size:13px; }
+    .row .rtag{
       font-size:11px;
       color: var(--muted);
-      background: rgba(27,39,65,0.55);
+      background: rgba(27,39,65,0.6);
       border:1px solid rgba(255,255,255,0.08);
       padding:3px 7px;
       border-radius:999px;
     }
-    .vtext{
+    .row .rtext{
+      margin:0;
       font-size:13.5px;
       line-height:1.45;
       white-space:pre-wrap;
       word-break:break-word;
-      margin:0;
     }
-    .missing{
-      border:1px dashed rgba(255,107,107,0.35);
-      background: rgba(255,107,107,0.08);
-      border-radius:10px;
-      padding:10px;
+
+    /* Responsive rules */
+    /* Phone portrait: stacked verse cards with toggle to show both / left-only / right-only */
+    @media (max-width: 720px){
+      .outputArea{ display:block; }
+      .columns{ display:none; }
     }
-    .missing .vtext{ color: rgba(231,236,245,0.75); }
+    /* Phone landscape + tablets + desktop: show columns */
+    @media (min-width: 721px){
+      .inputGrid{ grid-template-columns: 1fr 1fr; }
+      .actions{ flex-direction:row; align-items:center; justify-content:space-between; }
+      .outputArea{ display:none; }
+      .columns{ display:grid; }
+      .toggleBar{ display:none; }
+    }
+
     .note{
       margin-top:10px;
       font-size:12.5px;
       color: var(--muted);
       line-height:1.5;
     }
-    .small{
-      font-size:12px;
-      color: var(--muted);
-    }
-    .footer{
-      margin-top:12px;
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-      color: var(--muted);
-      font-size:12px;
-    }
-
-    @media (max-width: 980px){
-      .grid{ grid-template-columns:1fr; }
-      .outwrap{ grid-template-columns:1fr; }
-      .out .head{ top: 112px; }
-    }
+    code{ color: var(--text); }
   </style>
 </head>
 <body>
@@ -276,160 +366,198 @@
     <div class="wrap" style="padding:0 12px;">
       <h1>Verse Side-by-Side Comparator</h1>
       <p class="sub">
-        Paste two versions of a chapter. The app matches verses by the pattern <span style="color:var(--text);font-weight:650;">number + period</span> (e.g., <span style="color:var(--text);font-weight:650;">“12.”</span>)
-        and renders them in aligned rows for quick comparison.
+        Paste two versions. Verses are matched by <b>number + period</b> (e.g., <b>“12.”</b>). Phone portrait uses stacked verse cards; landscape/tablet/desktop shows true side-by-side columns.
       </p>
     </div>
   </header>
 
   <div class="wrap">
-    <div class="grid">
+    <div class="inputGrid">
       <div class="card">
         <div class="title">
-          <div class="label">Left text (e.g., Original)</div>
-          <div class="small" id="leftCount">—</div>
+          <div class="label">Left text (Original)</div>
+          <div class="meta" id="leftCount">—</div>
         </div>
-        <textarea id="leftInput" placeholder="Paste the original here...&#10;&#10;Example:&#10;1. In the beginning...&#10;2. And it came to pass..."></textarea>
+        <textarea id="leftInput" placeholder="Paste the original here...&#10;&#10;1. ...&#10;2. ..."></textarea>
       </div>
 
       <div class="card">
         <div class="title">
-          <div class="label">Right text (e.g., Simplified)</div>
-          <div class="small" id="rightCount">—</div>
+          <div class="label">Right text (New version)</div>
+          <div class="meta" id="rightCount">—</div>
         </div>
-        <textarea id="rightInput" placeholder="Paste the new version here...&#10;&#10;Example:&#10;1. God made the world...&#10;2. Enoch kept teaching..."></textarea>
+        <textarea id="rightInput" placeholder="Paste the simplified version here...&#10;&#10;1. ...&#10;2. ..."></textarea>
       </div>
     </div>
 
     <div class="actions">
       <div class="btnrow">
-        <button id="renderBtn">Render side-by-side</button>
-        <button class="btn-ghost" id="swapBtn">Swap left/right</button>
+        <button id="renderBtn">Render</button>
+        <button class="btn-ghost" id="swapBtn">Swap</button>
         <button class="btn-ghost" id="clearBtn">Clear</button>
+        <button class="btn-ghost" id="copyLinkBtn" title="Stores current text in the URL for easy reuse">Copy share link</button>
         <button class="btn-warn" id="demoBtn">Load demo</button>
       </div>
 
-      <div class="status" id="statusLine">
+      <div class="status">
         <span class="chip"><span class="dot"></span><span id="statusText">Ready</span></span>
-        <span class="chip" id="verseRangeChip" style="display:none;"></span>
+        <span class="chip" id="rangeChip" style="display:none;"></span>
         <span class="chip" id="missingChip" style="display:none;"></span>
       </div>
     </div>
 
-    <div class="outwrap" id="outputArea" style="display:none;">
-      <div class="out">
-        <div class="head">
-          <div class="hlabel">Left <span id="leftLabelHint">(Original)</span></div>
-          <div class="small" id="leftVersesMeta"></div>
+    <!-- Phone portrait output -->
+    <div class="outputArea" id="phoneOutput" style="display:none;">
+      <div class="toggleBar">
+        <div class="seg">
+          <button id="showBothBtn" class="active">Both</button>
+          <button id="showLeftBtn">Left</button>
+          <button id="showRightBtn">Right</button>
         </div>
-        <div class="body">
-          <div class="rows" id="leftRows"></div>
+        <div style="margin-top:8px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+          <div class="chip" id="phoneMeta" style="display:none;"></div>
+          <div class="chip" id="phoneMissing" style="display:none;"></div>
         </div>
       </div>
 
-      <div class="out">
-        <div class="head">
-          <div class="hlabel">Right <span id="rightLabelHint">(New)</span></div>
-          <div class="small" id="rightVersesMeta"></div>
+      <div class="verseList" id="verseList"></div>
+    </div>
+
+    <!-- Landscape / desktop output -->
+    <div class="columns" id="columnsOutput" style="display:none;">
+      <div class="col">
+        <div class="chead">
+          <div class="clabel">Left (Original)</div>
+          <div class="cmeta" id="leftMeta">0 parsed</div>
         </div>
-        <div class="body">
-          <div class="rows" id="rightRows"></div>
+        <div class="cbody" id="leftCol"></div>
+      </div>
+
+      <div class="col">
+        <div class="chead">
+          <div class="clabel">Right (New)</div>
+          <div class="cmeta" id="rightMeta">0 parsed</div>
         </div>
+        <div class="cbody" id="rightCol"></div>
       </div>
     </div>
 
     <div class="note">
-      Tips:
-      <ul style="margin:6px 0 0 18px;">
-        <li>Verses must start with <b>number + period</b> (e.g., <b>“7.”</b>). Extra headings are okay; they’ll be ignored unless they match that pattern.</li>
-        <li>If a verse is missing on one side, you’ll see a highlighted “Missing” placeholder so rows stay aligned.</li>
-        <li>Works best when you keep verse numbers consistent across both versions.</li>
-      </ul>
-    </div>
-
-    <div class="footer">
-      <div>Parsing rule: verse header = <code style="color:var(--text)">^\\s*(\\d+)\\.</code></div>
-      <div>Everything runs locally in your browser (no network calls).</div>
+      Parsing rule: a verse starts on a new line with <code>number + period</code> (example: <code>7.</code>). Missing verses are highlighted but rows stay aligned.
     </div>
   </div>
 
   <script>
-    // ---------- Parsing ----------
-    // Extract verses keyed by verse number, using pattern: beginning of line => number + period
+    // ---------------- Parsing ----------------
     function parseVerses(raw) {
       const text = (raw || "").replace(/\r\n/g, "\n");
       const lines = text.split("\n");
-
       const verses = new Map(); // num -> text
       let currentNum = null;
       let buf = [];
-
       const verseStart = /^\s*(\d+)\.\s*(.*)$/;
 
       function flush() {
         if (currentNum !== null) {
-          const joined = buf.join("\n").trim();
-          verses.set(currentNum, joined);
+          verses.set(currentNum, buf.join("\n").trim());
         }
         buf = [];
       }
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (const line of lines) {
         const m = line.match(verseStart);
-
         if (m) {
           flush();
           currentNum = parseInt(m[1], 10);
-          const rest = (m[2] || "").trim();
-          buf.push(rest);
+          buf.push((m[2] || "").trim());
         } else {
-          if (currentNum !== null) {
-            buf.push(line);
-          }
+          if (currentNum !== null) buf.push(line);
         }
       }
       flush();
-
       return verses;
     }
 
-    function getRangeKeys(mapA, mapB) {
-      const keys = new Set();
-      for (const k of mapA.keys()) keys.add(k);
-      for (const k of mapB.keys()) keys.add(k);
-      const arr = Array.from(keys).sort((a,b)=>a-b);
-      return arr;
+    function unionKeys(a, b) {
+      const s = new Set();
+      for (const k of a.keys()) s.add(k);
+      for (const k of b.keys()) s.add(k);
+      return Array.from(s).sort((x,y)=>x-y);
     }
 
-    // ---------- Rendering ----------
-    function makeRow(num, text, side, missing=false) {
-      const row = document.createElement("div");
-      row.className = "row" + (missing ? " missing" : "");
+    // ---------------- UI helpers ----------------
+    function el(tag, cls, text) {
+      const n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
 
-      const top = document.createElement("div");
-      top.className = "vtop";
+    function makePhoneVerseCard(num, leftText, rightText, missingLeft, missingRight) {
+      const row = el("div", "vrow");
 
-      const vnum = document.createElement("div");
-      vnum.className = "vnum";
-      vnum.textContent = num + ".";
+      const head = el("div", "vhead");
+      head.appendChild(el("div", "vnum", num + "."));
 
-      const tag = document.createElement("div");
-      tag.className = "vtag";
-      tag.textContent = missing ? "Missing" : (side === "left" ? "Left" : "Right");
+      const micro = el("div", "vmicro");
+      micro.appendChild(el("span", "pill", missingLeft ? "Left missing" : "Left"));
+      micro.appendChild(el("span", "pill", missingRight ? "Right missing" : "Right"));
+      head.appendChild(micro);
 
-      top.appendChild(vnum);
-      top.appendChild(tag);
+      const pair = el("div", "pair");
 
-      const p = document.createElement("p");
-      p.className = "vtext";
-      p.textContent = text || (missing ? "(no verse text found)" : "");
+      const leftPane = el("div", "pane" + (missingLeft ? " missing" : ""));
+      const lhead = el("div", "phead");
+      lhead.appendChild(el("div", "plabel", "Left"));
+      lhead.appendChild(el("div", "psub", missingLeft ? "Missing" : "OK"));
+      leftPane.appendChild(lhead);
+      leftPane.appendChild(el("div", "pbody", missingLeft ? "(no verse found)" : leftText));
+      leftPane.dataset.side = "left";
 
-      row.appendChild(top);
-      row.appendChild(p);
+      const rightPane = el("div", "pane" + (missingRight ? " missing" : ""));
+      const rhead = el("div", "phead");
+      rhead.appendChild(el("div", "plabel", "Right"));
+      rhead.appendChild(el("div", "psub", missingRight ? "Missing" : "OK"));
+      rightPane.appendChild(rhead);
+      rightPane.appendChild(el("div", "pbody", missingRight ? "(no verse found)" : rightText));
+      rightPane.dataset.side = "right";
+
+      pair.appendChild(leftPane);
+      pair.appendChild(rightPane);
+
+      row.appendChild(head);
+      row.appendChild(pair);
       return row;
     }
 
+    function makeColumnRow(num, text, side, missing) {
+      const row = el("div", "row" + (missing ? " missing" : ""));
+      const top = el("div", "rtop");
+      top.appendChild(el("div", "rnum", num + "."));
+      top.appendChild(el("div", "rtag", missing ? "Missing" : (side === "left" ? "Left" : "Right")));
+      row.appendChild(top);
+      row.appendChild(el("p", "rtext", missing ? "(no verse found)" : text));
+      return row;
+    }
+
+    // ---------------- Scroll sync for columns ----------------
+    let syncing = false;
+    function syncScroll(leftBody, rightBody) {
+      leftBody.onscroll = () => {
+        if (syncing) return;
+        syncing = true;
+        rightBody.scrollTop = leftBody.scrollTop;
+        syncing = false;
+      };
+      rightBody.onscroll = () => {
+        if (syncing) return;
+        syncing = true;
+        leftBody.scrollTop = rightBody.scrollTop;
+        syncing = false;
+      };
+    }
+
+    // ---------------- Render ----------------
     function render() {
       const leftRaw = document.getElementById("leftInput").value;
       const rightRaw = document.getElementById("rightInput").value;
@@ -437,110 +565,203 @@
       const leftMap = parseVerses(leftRaw);
       const rightMap = parseVerses(rightRaw);
 
-      // meta counts
       document.getElementById("leftCount").textContent = leftMap.size ? `${leftMap.size} verse(s)` : "—";
       document.getElementById("rightCount").textContent = rightMap.size ? `${rightMap.size} verse(s)` : "—";
 
-      const keys = getRangeKeys(leftMap, rightMap);
+      const keys = unionKeys(leftMap, rightMap);
 
-      const out = document.getElementById("outputArea");
-      const leftRows = document.getElementById("leftRows");
-      const rightRows = document.getElementById("rightRows");
-      leftRows.innerHTML = "";
-      rightRows.innerHTML = "";
-
-      let missingLeft = 0;
-      let missingRight = 0;
-
-      keys.forEach((k) => {
-        const l = leftMap.get(k);
-        const r = rightMap.get(k);
-
-        if (l === undefined) missingLeft++;
-        if (r === undefined) missingRight++;
-
-        leftRows.appendChild(makeRow(k, l ?? "", "left", l === undefined));
-        rightRows.appendChild(makeRow(k, r ?? "", "right", r === undefined));
-      });
-
-      // output visibility
-      out.style.display = keys.length ? "grid" : "none";
-
-      // status
       const statusText = document.getElementById("statusText");
-      const rangeChip = document.getElementById("verseRangeChip");
+      const rangeChip = document.getElementById("rangeChip");
       const missingChip = document.getElementById("missingChip");
 
+      // clear outputs
+      const phoneOutput = document.getElementById("phoneOutput");
+      const verseList = document.getElementById("verseList");
+      verseList.innerHTML = "";
+
+      const columnsOutput = document.getElementById("columnsOutput");
+      const leftCol = document.getElementById("leftCol");
+      const rightCol = document.getElementById("rightCol");
+      leftCol.innerHTML = "";
+      rightCol.innerHTML = "";
+
       if (!keys.length) {
-        statusText.textContent = "No verses found. Make sure lines start with “1.”, “2.”, etc.";
+        phoneOutput.style.display = "none";
+        columnsOutput.style.display = "none";
+        statusText.textContent = "No verses found. Use lines that start with “1.”, “2.”, etc.";
         rangeChip.style.display = "none";
         missingChip.style.display = "none";
-      } else {
-        const min = keys[0], max = keys[keys.length - 1];
-        statusText.textContent = "Rendered";
-        rangeChip.style.display = "inline-flex";
-        rangeChip.textContent = `Verses: ${min}–${max} (${keys.length} total)`;
-
-        if (missingLeft || missingRight) {
-          missingChip.style.display = "inline-flex";
-          missingChip.textContent = `Missing — left: ${missingLeft}, right: ${missingRight}`;
-        } else {
-          missingChip.style.display = "none";
-        }
+        return;
       }
 
-      // per-side meta
-      document.getElementById("leftVersesMeta").textContent = leftMap.size ? `${leftMap.size} parsed` : "0 parsed";
-      document.getElementById("rightVersesMeta").textContent = rightMap.size ? `${rightMap.size} parsed` : "0 parsed";
+      let missingLeft = 0, missingRight = 0;
 
-      // sync scroll between the two output panels
-      setupScrollSync();
+      // build both render modes
+      for (const k of keys) {
+        const l = leftMap.get(k);
+        const r = rightMap.get(k);
+        const ml = (l === undefined);
+        const mr = (r === undefined);
+        if (ml) missingLeft++;
+        if (mr) missingRight++;
+
+        verseList.appendChild(makePhoneVerseCard(k, l ?? "", r ?? "", ml, mr));
+        leftCol.appendChild(makeColumnRow(k, l ?? "", "left", ml));
+        rightCol.appendChild(makeColumnRow(k, r ?? "", "right", mr));
+      }
+
+      // show both containers; CSS media queries decide which is visible
+      phoneOutput.style.display = "block";
+      columnsOutput.style.display = "grid";
+
+      // meta chips
+      const min = keys[0], max = keys[keys.length - 1];
+      statusText.textContent = "Rendered";
+      rangeChip.style.display = "inline-flex";
+      rangeChip.textContent = `Verses: ${min}–${max} (${keys.length})`;
+
+      if (missingLeft || missingRight) {
+        missingChip.style.display = "inline-flex";
+        missingChip.textContent = `Missing — left: ${missingLeft}, right: ${missingRight}`;
+      } else {
+        missingChip.style.display = "none";
+      }
+
+      document.getElementById("leftMeta").textContent = `${leftMap.size} parsed`;
+      document.getElementById("rightMeta").textContent = `${rightMap.size} parsed`;
+
+      // phone chips
+      const phoneMeta = document.getElementById("phoneMeta");
+      phoneMeta.style.display = "inline-flex";
+      phoneMeta.textContent = `Verses: ${min}–${max} (${keys.length})`;
+
+      const phoneMissing = document.getElementById("phoneMissing");
+      if (missingLeft || missingRight) {
+        phoneMissing.style.display = "inline-flex";
+        phoneMissing.textContent = `Missing L:${missingLeft} R:${missingRight}`;
+      } else {
+        phoneMissing.style.display = "none";
+      }
+
+      // scroll sync for columns
+      const leftBody = leftCol.parentElement;  // .cbody
+      const rightBody = rightCol.parentElement;
+      syncScroll(leftBody, rightBody);
+
+      // apply current phone view mode
+      applyPhoneMode(currentPhoneMode);
     }
 
-    // ---------- Scroll sync ----------
-    let syncing = false;
-    function setupScrollSync() {
-      const bodies = document.querySelectorAll(".out .body");
-      if (bodies.length !== 2) return;
+    // ---------------- Phone view mode (Both / Left / Right) ----------------
+    let currentPhoneMode = "both"; // "both" | "left" | "right"
 
-      const [a, b] = bodies;
-      a.onscroll = () => {
-        if (syncing) return;
-        syncing = true;
-        b.scrollTop = a.scrollTop;
-        syncing = false;
-      };
-      b.onscroll = () => {
-        if (syncing) return;
-        syncing = true;
-        a.scrollTop = b.scrollTop;
-        syncing = false;
-      };
+    function setActive(btnId) {
+      ["showBothBtn","showLeftBtn","showRightBtn"].forEach(id=>{
+        document.getElementById(id).classList.toggle("active", id === btnId);
+      });
     }
 
-    // ---------- Controls ----------
+    function applyPhoneMode(mode) {
+      currentPhoneMode = mode;
+      const panes = document.querySelectorAll("#verseList .pane");
+      panes.forEach(p => {
+        const side = p.dataset.side;
+        if (mode === "both") {
+          p.style.display = "";
+        } else if (mode === "left") {
+          p.style.display = (side === "left") ? "" : "none";
+        } else if (mode === "right") {
+          p.style.display = (side === "right") ? "" : "none";
+        }
+      });
+    }
+
+    document.getElementById("showBothBtn").addEventListener("click", () => {
+      setActive("showBothBtn");
+      applyPhoneMode("both");
+    });
+    document.getElementById("showLeftBtn").addEventListener("click", () => {
+      setActive("showLeftBtn");
+      applyPhoneMode("left");
+    });
+    document.getElementById("showRightBtn").addEventListener("click", () => {
+      setActive("showRightBtn");
+      applyPhoneMode("right");
+    });
+
+    // ---------------- Share link (stores text in URL hash) ----------------
+    // NOTE: Works locally, no server. Long chapters may exceed URL length; still useful for shorter chapters.
+    function encodeForUrl(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      bytes.forEach(b => bin += String.fromCharCode(b));
+      return btoa(bin);
+    }
+    function decodeFromUrl(b64) {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    document.getElementById("copyLinkBtn").addEventListener("click", async () => {
+      const l = document.getElementById("leftInput").value || "";
+      const r = document.getElementById("rightInput").value || "";
+      const payload = JSON.stringify({l, r});
+      const b64 = encodeForUrl(payload);
+      const url = location.origin + location.pathname + "#v=" + b64;
+
+      try{
+        await navigator.clipboard.writeText(url);
+        document.getElementById("statusText").textContent = "Share link copied";
+      }catch(e){
+        // fallback
+        const tmp = document.createElement("textarea");
+        tmp.value = url;
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand("copy");
+        tmp.remove();
+        document.getElementById("statusText").textContent = "Share link copied";
+      }
+    });
+
+    function loadFromHash() {
+      const h = location.hash || "";
+      const m = h.match(/#v=([\s\S]+)$/);
+      if (!m) return;
+      try{
+        const payload = decodeFromUrl(m[1]);
+        const obj = JSON.parse(payload);
+        if (typeof obj.l === "string") document.getElementById("leftInput").value = obj.l;
+        if (typeof obj.r === "string") document.getElementById("rightInput").value = obj.r;
+        render();
+      }catch(e){
+        // ignore
+      }
+    }
+
+    // ---------------- Controls ----------------
     document.getElementById("renderBtn").addEventListener("click", render);
 
     document.getElementById("swapBtn").addEventListener("click", () => {
       const l = document.getElementById("leftInput");
       const r = document.getElementById("rightInput");
-      const tmp = l.value;
-      l.value = r.value;
-      r.value = tmp;
+      const tmp = l.value; l.value = r.value; r.value = tmp;
       render();
     });
 
     document.getElementById("clearBtn").addEventListener("click", () => {
       document.getElementById("leftInput").value = "";
       document.getElementById("rightInput").value = "";
-      document.getElementById("leftRows").innerHTML = "";
-      document.getElementById("rightRows").innerHTML = "";
-      document.getElementById("outputArea").style.display = "none";
+      document.getElementById("phoneOutput").style.display = "none";
+      document.getElementById("columnsOutput").style.display = "none";
       document.getElementById("statusText").textContent = "Ready";
-      document.getElementById("verseRangeChip").style.display = "none";
+      document.getElementById("rangeChip").style.display = "none";
       document.getElementById("missingChip").style.display = "none";
       document.getElementById("leftCount").textContent = "—";
       document.getElementById("rightCount").textContent = "—";
+      location.hash = "";
     });
 
     document.getElementById("demoBtn").addEventListener("click", () => {
@@ -559,17 +780,19 @@
       render();
     });
 
-    // auto-render on paste (optional convenience)
+    // auto-render after paste when both sides have content
     ["leftInput","rightInput"].forEach(id=>{
       document.getElementById(id).addEventListener("paste", () => {
         setTimeout(() => {
-          // only render if both have something
           const l = document.getElementById("leftInput").value.trim();
           const r = document.getElementById("rightInput").value.trim();
           if (l && r) render();
         }, 0);
       });
     });
+
+    // load shared link if present
+    loadFromHash();
   </script>
 </body>
 </html>
