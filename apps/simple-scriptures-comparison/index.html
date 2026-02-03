@@ -29,7 +29,7 @@
     .wrap{
       max-width: 1200px;
       margin:0 auto;
-      padding:20px 12px 40px;
+      padding:20px 12px 40px; /* Increased top padding slightly since header is gone */
     }
 
     /* Inputs */
@@ -139,33 +139,29 @@
 
     /* Output: phone-first */
     .outputArea{ display:none; gap:12px; }
-    
     .toggleBar{
       position: sticky;
-      top: 10px; 
-      z-index: 99; /* Higher z-index to stay on top */
-      backdrop-filter: blur(12px);
-      background: rgba(11,14,20,0.85); /* Slightly more opaque */
+      top: 10px; /* Adjusted since header is gone */
+      z-index: 9;
+      backdrop-filter: blur(10px);
+      background: rgba(11,14,20,0.65);
       border:1px solid var(--border2);
       border-radius:14px;
-      padding:6px; /* Thinner padding */
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      max-width: 400px; /* Keep it compact */
-      margin: 0 auto 12px auto; /* Center it */
+      padding:10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
     }
     .seg{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap:4px;
+      gap:8px;
     }
     .seg button{
       width:100%;
-      padding:8px 0;
-      border-radius:10px;
-      background: transparent;
-      border:1px solid transparent;
-      font-weight:700;
-      font-size: 13px;
+      padding:10px 10px;
+      border-radius:12px;
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.10);
+      font-weight:800;
     }
     .seg button.active{
       background: rgba(122,162,255,0.22);
@@ -174,6 +170,7 @@
 
     /* Stacked verse rows on phone */
     .verseList{
+      margin-top:10px;
       border-radius:14px;
       overflow:hidden;
       border:1px solid var(--border2);
@@ -183,7 +180,6 @@
       padding:10px 12px 12px;
       border-bottom:1px solid rgba(255,255,255,0.06);
       background: rgba(15,20,34,0.28);
-      scroll-margin-top: 60px; /* Crucial for scrollToVerse to offset header */
     }
     .vrow:nth-child(2n){ background: rgba(15,20,34,0.16); }
     .vhead{
@@ -216,13 +212,15 @@
     }
 
     /* THE PAIR GRID */
+    /* Default: Stacked (Portrait behavior) */
     .pair{
       display:grid;
       grid-template-columns: 1fr; 
       gap:10px;
     }
 
-    /* Landscape Mode Tweaks */
+    /* Landscape Mode Tweaks for Phone/Tablets */
+    /* When device is landscape AND user is viewing "Both" verses, force side-by-side */
     @media (orientation: landscape) {
       .verseList:not(.single-col) .pair {
         grid-template-columns: 1fr 1fr; 
@@ -270,7 +268,7 @@
     }
     .missing .pbody{ color: rgba(231,236,245,0.78); }
 
-    /* Desktop Columns */
+    /* Desktop Columns (For large screens only) */
     .columns{
       display:none;
       grid-template-columns: 1fr 1fr;
@@ -292,7 +290,7 @@
       border-bottom:1px solid rgba(255,255,255,0.06);
       background: rgba(0,0,0,0.22);
       position: sticky;
-      top: 0;
+      top: 0; /* Adjusted since header is gone */
       z-index: 2;
       backdrop-filter: blur(10px);
     }
@@ -348,7 +346,7 @@
   </style>
 </head>
 <body>
-
+  
   <div class="wrap">
     <div class="inputGrid">
       <div class="card">
@@ -391,6 +389,10 @@
           <button id="showLeftBtn">Left</button>
           <button id="showRightBtn">Right</button>
         </div>
+        <div style="margin-top:8px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+          <div class="chip" id="phoneMeta" style="display:none;"></div>
+          <div class="chip" id="phoneMissing" style="display:none;"></div>
+        </div>
       </div>
 
       <div class="verseList" id="verseList"></div>
@@ -420,9 +422,6 @@
   </div>
 
   <script>
-    // ---------------- Global State for Sync ----------------
-    let lastActiveVerse = null;
-
     // ---------------- Parsing ----------------
     function parseVerses(raw) {
       const text = (raw || "").replace(/\r\n/g, "\n");
@@ -470,7 +469,6 @@
 
     function makePhoneVerseCard(num, leftText, rightText, missingLeft, missingRight) {
       const row = el("div", "vrow");
-      row.dataset.verse = num; // ID for scroll sync
 
       const head = el("div", "vhead");
       head.appendChild(el("div", "vnum", num + "."));
@@ -516,60 +514,22 @@
       return row;
     }
 
-    // ---------------- Scroll Sync Logic (Phone) ----------------
-    
-    // 1. Find which verse is currently at the top of the viewport
-    function updateCurrentVerse() {
-      // Only run if phone output is visible
-      if(document.getElementById("phoneOutput").style.display === "none") return;
-
-      const barHeight = document.querySelector('.toggleBar').offsetHeight + 15;
-      const rows = document.querySelectorAll('.vrow');
-      
-      for (const row of rows) {
-        const rect = row.getBoundingClientRect();
-        // The first row that crosses the "threshold" (bottom of the top bar)
-        if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
-          lastActiveVerse = row.dataset.verse;
-          break;
-        }
-        // Fallback: if we scrolled past everything, keep the last one visible
-        if (rect.bottom > barHeight) {
-          lastActiveVerse = row.dataset.verse;
-          // Don't break, keep looking for a better fit or stick with this
-        }
-      }
+    // ---------------- Scroll sync for columns ----------------
+    let syncing = false;
+    function syncScroll(leftBody, rightBody) {
+      leftBody.onscroll = () => {
+        if (syncing) return;
+        syncing = true;
+        rightBody.scrollTop = leftBody.scrollTop;
+        syncing = false;
+      };
+      rightBody.onscroll = () => {
+        if (syncing) return;
+        syncing = true;
+        leftBody.scrollTop = rightBody.scrollTop;
+        syncing = false;
+      };
     }
-
-    // 2. Jump to a specific verse number
-    function scrollToVerse(num) {
-      if (!num) return;
-      const row = document.querySelector(`.vrow[data-verse="${num}"]`);
-      if (row) {
-        // Scroll adjustment: align element slightly below the floating bar
-        const barHeight = document.querySelector('.toggleBar').offsetHeight;
-        const y = row.getBoundingClientRect().top + window.scrollY - barHeight - 10;
-        window.scrollTo({top: y, behavior: 'auto'}); // instant jump, no smooth animation
-      }
-    }
-
-    // Listen to scroll to update our position tracker
-    let scrollTimeout;
-    window.addEventListener('scroll', () => {
-      if (scrollTimeout) return;
-      scrollTimeout = setTimeout(() => {
-        updateCurrentVerse();
-        scrollTimeout = null;
-      }, 100);
-    });
-
-    // Listen to resize/orientation change to restore position
-    window.addEventListener('resize', () => {
-      // Re-snap to the last known active verse after rotation/resize
-      if (lastActiveVerse) {
-        setTimeout(() => scrollToVerse(lastActiveVerse), 100);
-      }
-    });
 
     // ---------------- Render ----------------
     function render() {
@@ -624,7 +584,7 @@
         rightCol.appendChild(makeColumnRow(k, r ?? "", "right", mr));
       }
 
-      // show both containers
+      // show both containers; CSS media queries decide which is visible
       phoneOutput.style.display = "block";
       columnsOutput.style.display = "grid";
 
@@ -644,26 +604,23 @@
       document.getElementById("leftMeta").textContent = `${leftMap.size} parsed`;
       document.getElementById("rightMeta").textContent = `${rightMap.size} parsed`;
 
-      // Set initial active verse
-      lastActiveVerse = keys[0];
+      // phone chips
+      const phoneMeta = document.getElementById("phoneMeta");
+      phoneMeta.style.display = "inline-flex";
+      phoneMeta.textContent = `Verses: ${min}–${max} (${keys.length})`;
 
-      // scroll sync for desktop columns
-      let syncing = false;
-      const leftBody = leftCol.parentElement; 
+      const phoneMissing = document.getElementById("phoneMissing");
+      if (missingLeft || missingRight) {
+        phoneMissing.style.display = "inline-flex";
+        phoneMissing.textContent = `Missing L:${missingLeft} R:${missingRight}`;
+      } else {
+        phoneMissing.style.display = "none";
+      }
+
+      // scroll sync for columns
+      const leftBody = leftCol.parentElement;  // .cbody
       const rightBody = rightCol.parentElement;
-      
-      leftBody.onscroll = () => {
-        if (syncing) return;
-        syncing = true;
-        rightBody.scrollTop = leftBody.scrollTop;
-        syncing = false;
-      };
-      rightBody.onscroll = () => {
-        if (syncing) return;
-        syncing = true;
-        leftBody.scrollTop = rightBody.scrollTop;
-        syncing = false;
-      };
+      syncScroll(leftBody, rightBody);
 
       // apply current phone view mode
       applyPhoneMode(currentPhoneMode);
@@ -679,13 +636,10 @@
     }
 
     function applyPhoneMode(mode) {
-      // 1. Capture current top verse before changing layout
-      updateCurrentVerse();
-
       currentPhoneMode = mode;
       const verseList = document.getElementById("verseList");
 
-      // Toggle grid class for landscape
+      // Toggle a class to control grid columns in landscape
       if (mode === 'both') {
         verseList.classList.remove('single-col');
       } else {
@@ -703,11 +657,6 @@
           p.style.display = (side === "right") ? "" : "none";
         }
       });
-
-      // 2. Restore position to the last active verse immediately
-      if (lastActiveVerse) {
-        scrollToVerse(lastActiveVerse);
-      }
     }
 
     document.getElementById("showBothBtn").addEventListener("click", () => {
