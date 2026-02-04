@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Pathology DDx Helper</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f4f6f7;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-bg);
+            color: #333;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .search-container {
+            margin-top: 15px;
+        }
+
+        #searchInput {
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+
+        /* Category Styles */
+        .category-block {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .category-title {
+            background-color: #ecf0f1;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        /* Accordion Styles */
+        .accordion {
+            background-color: white;
+            color: #444;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1rem;
+            transition: 0.4s;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion:hover {
+            background-color: #f9f9f9;
+        }
+
+        .accordion:after {
+            content: '\002B'; /* Plus sign */
+            color: var(--secondary-color);
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .accordion.active {
+            background-color: #eaf6ff;
+        }
+
+        .accordion.active:after {
+            content: "\2212"; /* Minus sign */
+        }
+
+        .panel {
+            padding: 0 18px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            border-bottom: 1px solid transparent;
+        }
+
+        .panel-content {
+            padding: 15px 0;
+        }
+
+        .info-section {
+            margin-bottom: 15px;
+        }
+
+        .info-title {
+            font-weight: bold;
+            color: var(--secondary-color);
+            display: block;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        .highlight {
+            background-color: yellow;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+            color: white;
+            vertical-align: middle;
+        }
+        .tag-benign { background-color: #27ae60; }
+        .tag-highrisk { background-color: #f39c12; }
+        .tag-malignant { background-color: #c0392b; }
+
+        @media screen and (max-width: 600px) {
+            .header h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Breast Pathology DDx Helper</h1>
+    <p>Based on AIRP Lecture Transcript</p>
+    <div class="search-container">
+        <input type="text" id="searchInput" onkeyup="filterContent()" placeholder="Search imaging findings, pathology, or keywords...">
+    </div>
+</div>
+
+<div class="container" id="contentArea">
+    <!-- Content will be injected via JavaScript -->
+</div>
+
+<script>
+    // Data Structure derived from the lecture summary
+    const breastData = [
+        {
+            category: "Benign Lesions: Non-Proliferative",
+            type: "benign",
+            items: [
+                {
+                    name: "Simple Cysts",
+                    imaging: [
+                        "Anechoic, imperceptible wall, increased through transmission, no internal blood flow.",
+                        "Classified as BI-RADS 2 (Benign)."
+                    ],
+                    facts: [
+                        "Caused by fluid accumulation in TDLU due to efferent duct obstruction.",
+                        "Common in ages 35-50 (>37% of screened women).",
+                        "Can fluctuate in size/number with hormonal changes.",
+                        "No increased cancer risk."
+                    ]
+                },
+                {
+                    name: "Galactoceles",
+                    imaging: [
+                        "<strong>Key Feature:</strong> Fat-fluid level.",
+                        "Can appear as a complicated cyst (multiloculated or uniloculated)."
+                    ],
+                    facts: [
+                        "Seen in lactating women (current or recent cessation).",
+                        "Result of lactiferous duct occlusion.",
+                        "Can develop secondary infection/abscess.",
+                        "Benign, resolve spontaneously."
+                    ]
+                },
+                {
+                    name: "Papillary Apocrine Metaplasia",
+                    imaging: [
+                        "<strong>Key Feature:</strong> Clustered microcysts (2-5mm cysts with septae)."
+                    ],
+                    facts: [
+                        "Metaplastic changes secondary to irritation (e.g., from a cyst).",
+                        "Seen in 85% of autopsies.",
+                        "BI-RADS 2; no cancer risk unless hyperplasia is present."
+                    ]
+                }
+            ]
+        },
+        {
+            category: "Benign Lesions: Proliferative (No Atypia)",
+            type: "benign",
+            items: [
+                {
+                    name: "Usual Ductal Hyperplasia (UDH)",
+                    imaging: [
+                        "Non-specific; diagnosis made on pathology."
+                    ],
+                    facts: [
+                        "Excessive growth of benign cells in duct/lobule.",
+                        "Minimal risk if mild; 1.5-2x risk if moderate/florid.",
+                        "No treatment required."
+                    ]
+                },
+                {
+                    name: "Intraductal Papilloma",
+                    imaging: [
+                        "Intraductal mass.",
+                        "Can be evaluated with MRI for enhancement."
+                    ],
+                    facts: [
+                        "<strong>Most common cause of nipple discharge.</strong>",
+                        "Solitary: Benign but can harbor atypia/DCIS (10% upgrade). Usually excised, though observation emerging for small <1cm asymptomatic.",
+                        "Multiple (Diffuse Papillomatosis): Slight increased cancer risk."
+                    ]
+                },
+                {
+                    name: "Radial Scar / Complex Sclerosing Lesion",
+                    imaging: [
+                        "Architectural distortion (seen well on Tomosynthesis).",
+                        "<1cm = Radial Scar; >1cm = Complex Sclerosing Lesion."
+                    ],
+                    facts: [
+                        "<strong>High-risk lesion.</strong>",
+                        "Can harbor DCIS/Invasive cancer (8-17% upgrade).",
+                        "Surgical excision required."
+                    ]
+                },
+                {
+                    name: "Sclerosing Adenosis",
+                    imaging: [
+                        "Can present as calcifications or distortion/mass."
+                    ],
+                    facts: [
+                        "Enlarged lobules distorted by fibrosis.",
+                        "Symptoms: Cyclical breast pain.",
+                        "1-2% increased cancer risk; no treatment needed."
+                    ]
+                },
+                {
+                    name: "Fibroadenoma (FA)",
+                    imaging: [
+                        "Oval, circumscribed mass.",
+                        "Heterogeneous echotexture, wider-than-tall.",
+                        "Indistinguishable from Phyllodes tumor."
+                    ],
+                    facts: [
+                        "Most common benign tumor.",
+                        "Hormonally responsive (grow w/ pregnancy, regress w/ menopause).",
+                        "Giant FA: >5cm (pregnant/juvenile).",
+                        "Mgmt: Leave alone if simple biopsy-proven. Biopsy if >20% growth. Surgical consult if >3cm (rule out Phyllodes)."
+                    ]
+                },
+                {
+                    name: "Phyllodes Tumor",
+                    imaging: [
+                        "Indistinguishable from Fibroadenoma on imaging.",
+                        "Suspect if >3cm or rapid growth."
+                    ],
+                    facts: [
+                        "Rare fibroepithelial tumor (sarcoma).",
+                        "Pathology: 'Leaf-like' projections.",
+                        "90% Benign/Borderline; 10% Malignant.",
+                        "<strong>Mgmt:</strong> Complete surgical excision with >1cm margins. Hormonal therapy ineffective. Mets to lungs."
+                    ]
+                },
+                {
+                    name: "Pseudoangiomatous Stromal Hyperplasia (PASH)",
+                    imaging: [
+                        "Solid, well-defined, non-calcified mass."
+                    ],
+                    facts: [
+                        "Simulates vascular lesion on histology.",
+                        "Excision if suspicious/palpable; observation if incidental."
+                    ]
+                }
+            ]
+        },
+        {
+            category: "Benign Lesions: Miscellaneous",
+            type: "benign",
+            items: [
+                {
+                    name: "Lipoma",
+                    imaging: [
+                        "Radiolucent on Mammo; Isoechoic to fat on US.",
+                        "BI-RADS 2."
+                    ],
+                    facts: [
+                        "Mature fat cells.",
+                        "No biopsy needed if classic appearance."
+                    ]
+                },
+                {
+                    name: "Fat Necrosis",
+                    imaging: [
+                        "<strong>Key Feature:</strong> Rim ('eggshell') calcifications.",
+                        "Central fat density.",
+                        "Can mimic malignancy (spiculation/shadowing) early on."
+                    ],
+                    facts: [
+                        "Hemorrhage -> Cystic degeneration -> Oil cyst.",
+                        "History of trauma, surgery, or radiation."
+                    ]
+                },
+                {
+                    name: "Diabetic Mastopathy",
+                    imaging: [
+                        "Suspicious dense mass/asymmetry."
+                    ],
+                    facts: [
+                        "Premenopausal, long-standing Type 1 Diabetes.",
+                        "Keloid-like fibrosis.",
+                        "Biopsy required for diagnosis (no malignancy risk)."
+                    ]
+                },
+                {
+                    name: "Hamartoma (Fibroadenolipoma)",
+                    imaging: [
+                        "<strong>Key Feature:</strong> 'Breast within a breast' appearance.",
+                        "Encapsulated mixed fat and fibroglandular tissue."
+                    ],
+                    facts: [
+                        "Benign; excise only if unusual."
+                    ]
+                },
+                {
+                    name: "Idiopathic Granulomatous Mastitis",
+                    imaging: [
+                        "Large irregular hypoechoic mass.",
+                        "<strong>Key Feature:</strong> Tubular extensions ('tracking')."
+                    ],
+                    facts: [
+                        "Chronic inflammatory disease.",
+                        "Childbearing age; associated with prolactinemia.",
+                        "Tx: Corticosteroids."
+                    ]
+                }
+            ]
+        },
+        {
+            category: "High-Risk Lesions",
+            type: "highrisk",
+            items: [
+                {
+                    name: "Atypical Ductal Hyperplasia (ADH)",
+                    imaging: [
+                        "often Calcifications or Mass."
+                    ],
+                    facts: [
+                        "Path: Uniform epithelial cells filling duct (<2mm or <2 ducts).",
+                        "<strong>Mgmt:</strong> Surgical excision (10-20% upgrade risk).",
+                        "Risk Marker: Increases risk for BOTH breasts."
+                    ]
+                },
+                {
+                    name: "Atypical Lobular Hyperplasia (ALH)",
+                    imaging: [
+                        "Incidental finding."
+                    ],
+                    facts: [
+                        "Path: Dyscohesive cells filling but NOT expanding lobule.",
+                        "Risk: 4x relative risk (generalized to both breasts).",
+                        "<strong>Mgmt:</strong> Incidental ALH usually does not require excision."
+                    ]
+                },
+                {
+                    name: "Lobular Carcinoma in Situ (LCIS)",
+                    imaging: [
+                        "Classic: Incidental.",
+                        "Non-Classic (Pleomorphic/Florid): Calcs, Necrosis, Mass."
+                    ],
+                    facts: [
+                        "Risk: 7-11x increased risk (higher than ALH).",
+                        "Mgmt (Classic): No excision.",
+                        "Mgmt (Non-Classic/Discordant): Surgical excision with clear margins."
+                    ]
+                },
+                {
+                    name: "Flat Epithelial Atypia (FEA)",
+                    imaging: [
+                        "Calcifications."
+                    ],
+                    facts: [
+                        "Columnar cell change with atypia in TDLU.",
+                        "Mgmt: Excise if residual calcs present; otherwise not necessary."
+                    ]
+                }
+            ]
+        },
+        {
+            category: "Malignant: In Situ",
+            type: "malignant",
+            items: [
+                {
+                    name: "Ductal Carcinoma In Situ (DCIS)",
+                    imaging: [
+                        "Most commonly Calcifications (detected via screening).",
+                        "<strong>High Grade:</strong> Pleomorphic 'punctuation' calcifications (linear/branching).",
+                        "10% present as Solid Mass."
+                    ],
+                    facts: [
+                        "Neoplastic cells in ducts with <strong>NO invasion</strong> of stroma.",
+                        "Comedo type: Necrosis, high grade.",
+                        "Cribriform, Micropapillary (no vascular cores), Papillary (vascular cores), Solid."
+                    ]
+                }
+            ]
+        },
+        {
+            category: "Malignant: Invasive",
+            type: "malignant",
+            items: [
+                {
+                    name: "Invasive Ductal Carcinoma (IDC)",
+                    imaging: [
+                        "<strong>Key Features:</strong> Spiculated mass, Echogenic halo, Taller-than-wide, Shadowing."
+                    ],
+                    facts: [
+                        "Most common invasive cancer (70-80%).",
+                        "Spiculation caused by desmoplastic reaction.",
+                        "Spreads to: Bone, Liver, Lung, Brain."
+                    ]
+                },
+                {
+                    name: "Invasive Lobular Carcinoma (ILC)",
+                    imaging: [
+                        "<strong>Key Features:</strong> Focal asymmetry (often 1 view), Irregular hypoechoic mass, Shadowing without mass.",
+                        "Difficult to detect (forms sheets, not masses)."
+                    ],
+                    facts: [
+                        "Path: <strong>Lack of E-cadherin</strong> (single-file sheets).",
+                        "Associated with HRT.",
+                        "Spreads to: Peritoneum, Meninges, GI Tract.",
+                        "MRI recommended pre-op."
+                    ]
+                },
+                {
+                    name: "Mucinous Carcinoma",
+                    imaging: [
+                        "Well circumscribed mass.",
+                        "<strong>Key Feature:</strong> T2 Bright on MRI."
+                    ],
+                    facts: [
+                        "Older patients.",
+                        "Favorable prognosis."
+                    ]
+                },
+                {
+                    name: "Tubular Carcinoma",
+                    imaging: [
+                        "Spiculated mass (looks like IDC or Radial Scar)."
+                    ],
+                    facts: [
+                        "Excellent prognosis.",
+                        "Low grade; associated with DCIS."
+                    ]
+                },
+                {
+                    name: "Medullary Carcinoma",
+                    imaging: [
+                        "Well circumscribed."
+                    ],
+                    facts: [
+                        "Younger patients; BRCA associated.",
+                        "High grade but favorable prognosis vs IDC."
+                    ]
+                },
+                {
+                    name: "Metaplastic Carcinoma",
+                    imaging: [
+                        "Large, vascular mass."
+                    ],
+                    facts: [
+                        "Mixed epithelial/mesenchymal components.",
+                        "Prognosis unclear (newer entity)."
+                    ]
+                }
+            ]
+        }
+    ];
+
+    function renderData(filterText = "") {
+        const container = document.getElementById('contentArea');
+        container.innerHTML = "";
+        
+        filterText = filterText.toLowerCase();
+
+        breastData.forEach(categoryObj => {
+            // Filter items based on search text
+            const matchingItems = categoryObj.items.filter(item => {
+                const searchString = (item.name + " " + item.imaging.join(" ") + " " + item.facts.join(" ")).toLowerCase();
+                return searchString.includes(filterText);
+            });
+
+            // If we have matching items (or no filter is active), render the category
+            if (matchingItems.length > 0) {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category-block';
+                
+                const catTitle = document.createElement('div');
+                catTitle.className = 'category-title';
+                catTitle.innerText = categoryObj.category;
+                categoryDiv.appendChild(catTitle);
+
+                matchingItems.forEach(item => {
+                    // Create Accordion Button
+                    const btn = document.createElement('button');
+                    btn.className = 'accordion';
+                    
+                    // Create Tag
+                    let tagClass = 'tag-benign';
+                    if(categoryObj.type === 'highrisk') tagClass = 'tag-highrisk';
+                    if(categoryObj.type === 'malignant') tagClass = 'tag-malignant';
+                    
+                    let tagName = categoryObj.type === 'highrisk' ? 'High Risk' : 
+                                  categoryObj.type === 'malignant' ? 'Malignant' : 'Benign';
+
+                    btn.innerHTML = `${item.name} <span class="tag ${tagClass}">${tagName}</span>`;
+                    
+                    // Create Panel
+                    const panel = document.createElement('div');
+                    panel.className = 'panel';
+                    
+                    const panelContent = document.createElement('div');
+                    panelContent.className = 'panel-content';
+
+                    // Imaging Findings Section
+                    const imgDiv = document.createElement('div');
+                    imgDiv.className = 'info-section';
+                    imgDiv.innerHTML = `<span class="info-title">Imaging Findings</span>`;
+                    const imgList = document.createElement('ul');
+                    item.imaging.forEach(img => {
+                        const li = document.createElement('li');
+                        li.innerHTML = highlightText(img, filterText);
+                        imgList.appendChild(li);
+                    });
+                    imgDiv.appendChild(imgList);
+
+                    // Additional Facts Section
+                    const factDiv = document.createElement('div');
+                    factDiv.className = 'info-section';
+                    factDiv.innerHTML = `<span class="info-title">Additional Facts / Management</span>`;
+                    const factList = document.createElement('ul');
+                    item.facts.forEach(fact => {
+                        const li = document.createElement('li');
+                        li.innerHTML = highlightText(fact, filterText);
+                        factList.appendChild(li);
+                    });
+                    factDiv.appendChild(factList);
+
+                    panelContent.appendChild(imgDiv);
+                    panelContent.appendChild(factDiv);
+                    panel.appendChild(panelContent);
+
+                    categoryDiv.appendChild(btn);
+                    categoryDiv.appendChild(panel);
+
+                    // Add click event for accordion
+                    btn.addEventListener("click", function() {
+                        this.classList.toggle("active");
+                        if (panel.style.maxHeight) {
+                            panel.style.maxHeight = null;
+                        } else {
+                            panel.style.maxHeight = panel.scrollHeight + "px";
+                        }
+                    });
+
+                    // If filtering, automatically expand relevant matches
+                    if (filterText.length > 0) {
+                        btn.classList.add("active");
+                        panel.style.maxHeight = "1000px"; // Auto-expand
+                    }
+                });
+
+                container.appendChild(categoryDiv);
+            }
+        });
+
+        if (container.innerHTML === "") {
+            container.innerHTML = "<p style='text-align:center; padding:20px;'>No pathologies matches found.</p>";
+        }
+    }
+
+    // Helper to highlight search terms
+    function highlightText(text, filter) {
+        if (!filter) return text;
+        const regex = new RegExp(`(${filter})`, 'gi');
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    function filterContent() {
+        const input = document.getElementById('searchInput');
+        renderData(input.value);
+    }
+
+    // Initial Render
+    renderData();
+
+</script>
+
+</body>
+</html>
