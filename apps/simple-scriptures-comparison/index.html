@@ -688,17 +688,27 @@
     });
 
     // ---------------- Share link (Compressed) ----------------
+    function toBase64Url(input) {
+      return input.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    function fromBase64Url(input) {
+      const padded = input.replace(/-/g, "+").replace(/_/g, "/");
+      const padding = "=".repeat((4 - (padded.length % 4)) % 4);
+      return padded + padding;
+    }
+
     function encodeForUrl(str) {
       const compressed = LZW.compress(str);
       const bytes = new TextEncoder().encode(compressed);
       let bin = "";
       bytes.forEach(b => bin += String.fromCharCode(b));
-      return btoa(bin);
+      return toBase64Url(btoa(bin));
     }
     
     function decodeFromUrl(b64) {
       try {
-        const bin = atob(b64);
+        const bin = atob(fromBase64Url(b64));
         const bytes = new Uint8Array(bin.length);
         for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
         const compressed = new TextDecoder().decode(bytes);
@@ -714,7 +724,7 @@
 
       const payload = JSON.stringify({l, r});
       const b64 = encodeForUrl(payload);
-      const url = location.origin + location.pathname + "#v=" + b64;
+      const url = location.origin + location.pathname + "?v=" + encodeURIComponent(b64);
 
       try{
         await navigator.clipboard.writeText(url);
@@ -732,13 +742,11 @@
       setTimeout(() => document.getElementById("statusText").textContent = "Ready", 3000);
     });
 
-    function loadFromHash() {
-      const h = location.hash || "";
-      const m = h.match(/#v=([\s\S]+)$/);
-      if (!m) return;
+    function loadFromSharedValue(rawValue) {
+      if (!rawValue) return;
       
       try{
-        const payload = decodeFromUrl(m[1]);
+        const payload = decodeFromUrl(rawValue);
         const obj = JSON.parse(payload);
         if (typeof obj.l === "string") document.getElementById("leftInput").value = obj.l;
         if (typeof obj.r === "string") document.getElementById("rightInput").value = obj.r;
@@ -746,7 +754,7 @@
       }catch(e){
         // Try legacy uncompressed loading if new method fails
         try {
-           const legacyPayload = atob(m[1]); // Plain base64
+           const legacyPayload = atob(fromBase64Url(rawValue)); // Plain base64
            const obj = JSON.parse(legacyPayload);
            if (typeof obj.l === "string") document.getElementById("leftInput").value = obj.l;
            if (typeof obj.r === "string") document.getElementById("rightInput").value = obj.r;
@@ -777,7 +785,8 @@
       document.getElementById("missingChip").style.display = "none";
       document.getElementById("leftCount").textContent = "—";
       document.getElementById("rightCount").textContent = "—";
-      location.hash = "";
+      const nextUrl = location.origin + location.pathname;
+      history.replaceState(null, "", nextUrl);
     });
 
     document.getElementById("demoBtn").addEventListener("click", () => {
@@ -807,8 +816,21 @@
       });
     });
 
+    function loadFromSharedLink() {
+      const params = new URLSearchParams(location.search);
+      const queryValue = params.get("v");
+      if (queryValue) {
+        loadFromSharedValue(decodeURIComponent(queryValue));
+        return;
+      }
+
+      const h = location.hash || "";
+      const m = h.match(/#v=([\s\S]+)$/);
+      if (m) loadFromSharedValue(m[1]);
+    }
+
     // load shared link if present
-    loadFromHash();
+    loadFromSharedLink();
   </script>
 </body>
 </html>
