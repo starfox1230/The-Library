@@ -375,7 +375,8 @@
         <button id="renderBtn">Render</button>
         <button class="btn-ghost" id="swapBtn">Swap</button>
         <button class="btn-ghost" id="clearBtn">Clear</button>
-        <button class="btn-ghost" id="copyLinkBtn" title="Creates a compressed link">Copy share link</button>
+        <button class="btn-ghost" id="copyCodeBtn" title="Copies a compressed share code">Copy share code</button>
+        <button class="btn-ghost" id="pasteCodeBtn" title="Paste a share code to load content">Paste share code</button>
         <button class="btn-warn" id="demoBtn">Load demo</button>
       </div>
 
@@ -417,7 +418,7 @@
     </div>
 
     <div class="note">
-      Parsing rule: a verse starts on a new line with <code>number + period</code> (example: <code>7.</code>). Missing verses are highlighted but rows stay aligned.
+      Parsing rule: a verse starts on a new line with <code>number + period</code> (example: <code>7.</code>). Missing verses are highlighted but rows stay aligned. Use <code>Copy share code</code> + <code>Paste share code</code> to share large passages without URL length limits.
     </div>
   </div>
 
@@ -716,29 +717,49 @@
       } catch(e) { console.error(e); return ""; }
     }
 
-    document.getElementById("copyLinkBtn").addEventListener("click", async () => {
+    function buildShareCode() {
       const l = document.getElementById("leftInput").value || "";
       const r = document.getElementById("rightInput").value || "";
-      
-      if(!l && !r) return;
-
-      const payload = JSON.stringify({l, r});
+      if (!l && !r) return "";
+      const payload = JSON.stringify({ l, r });
       const b64 = encodeForUrl(payload);
-      const url = location.origin + location.pathname + "?v=" + encodeURIComponent(b64);
+      return `ssc:${b64}`;
+    }
+
+    function loadFromShareCode(rawCode) {
+      if (!rawCode) return;
+      const trimmed = rawCode.trim();
+      const code = trimmed.startsWith("ssc:") ? trimmed.slice(4) : trimmed;
+      loadFromSharedValue(code);
+    }
+
+    document.getElementById("copyCodeBtn").addEventListener("click", async () => {
+      const code = buildShareCode();
+      if (!code) return;
 
       try{
-        await navigator.clipboard.writeText(url);
-        document.getElementById("statusText").textContent = "Link copied!";
+        await navigator.clipboard.writeText(code);
+        document.getElementById("statusText").textContent = "Share code copied!";
       }catch(e){
         const tmp = document.createElement("textarea");
-        tmp.value = url;
+        tmp.value = code;
         document.body.appendChild(tmp);
         tmp.select();
         document.execCommand("copy");
         tmp.remove();
-        document.getElementById("statusText").textContent = "Link copied!";
+        document.getElementById("statusText").textContent = "Share code copied!";
       }
       
+      setTimeout(() => document.getElementById("statusText").textContent = "Ready", 3000);
+    });
+
+    document.getElementById("pasteCodeBtn").addEventListener("click", async () => {
+      const existing = buildShareCode() ? "Replace current text with a share code?" : "Paste a share code to load:";
+      const promptText = buildShareCode() ? `${existing}\n(This will overwrite the current inputs.)` : existing;
+      const input = window.prompt(promptText);
+      if (!input) return;
+      loadFromShareCode(input);
+      document.getElementById("statusText").textContent = "Share code loaded!";
       setTimeout(() => document.getElementById("statusText").textContent = "Ready", 3000);
     });
 
