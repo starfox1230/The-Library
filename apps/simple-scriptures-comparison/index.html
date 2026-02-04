@@ -375,8 +375,8 @@
         <button id="renderBtn">Render</button>
         <button class="btn-ghost" id="swapBtn">Swap</button>
         <button class="btn-ghost" id="clearBtn">Clear</button>
-        <button class="btn-ghost" id="copyCodeBtn" title="Copies a compressed share code">Copy share code</button>
-        <button class="btn-ghost" id="pasteCodeBtn" title="Paste a share code to load content">Paste share code</button>
+        <button class="btn-ghost" id="copyCodeBtn" title="Copies a JSON share payload">Copy JSON</button>
+        <button class="btn-ghost" id="pasteCodeBtn" title="Paste a JSON payload to load content">Paste JSON</button>
         <button class="btn-warn" id="demoBtn">Load demo</button>
       </div>
 
@@ -418,15 +418,11 @@
     </div>
 
     <div class="note">
-      Parsing rule: a verse starts on a new line with <code>number + period</code> (example: <code>7.</code>). Missing verses are highlighted but rows stay aligned. Use <code>Copy share code</code> + <code>Paste share code</code> to share large passages without URL length limits.
+      Parsing rule: a verse starts on a new line with <code>number + period</code> (example: <code>7.</code>). Missing verses are highlighted but rows stay aligned. Use <code>Copy JSON</code> + <code>Paste JSON</code> to share passages by sending the JSON to someone else.
     </div>
   </div>
 
   <script>
-    // ---------------- LZW Compression (Shorten URLs) ----------------
-    // Simple implementation to make shared links ~50% smaller
-    const LZW={compress:function(e){if(null==e)return"";var r,n,o,t={},i=(o=256,[]),u=e.charAt(0),a=u;for(r=1;r<e.length;r++)null!=(n=t[u+e.charAt(r)])?u+=e.charAt(r):(i.push(a.length>1?t[a]:a.charCodeAt(0)),t[u+e.charAt(r)]=o,o++,u=e.charAt(r),a=u);return i.push(a.length>1?t[a]:a.charCodeAt(0)),i.map(function(e){return String.fromCharCode(e)}).join("")},decompress:function(e){if(null==e||""===e)return"";var r,n,o=[],t=256,i=e.charAt(0),u=i,a=e.charAt(0);for(r=1;r<e.length;r++)o[r]=e.charCodeAt(r),n=o[r]<256?e.charAt(r):t[o[r]]?t[o[r]]:u+i,a+=n,u+=i,i=n.charAt(0),t[n]=t[u]+i,t++;return a}};
-
     // ---------------- Parsing ----------------
     function parseVerses(raw) {
       const text = (raw || "").replace(/\r\n/g, "\n");
@@ -688,49 +684,18 @@
       applyPhoneMode("right");
     });
 
-    // ---------------- Share link (Compressed) ----------------
-    function toBase64Url(input) {
-      return input.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-    }
-
-    function fromBase64Url(input) {
-      const padded = input.replace(/-/g, "+").replace(/_/g, "/");
-      const padding = "=".repeat((4 - (padded.length % 4)) % 4);
-      return padded + padding;
-    }
-
-    function encodeForUrl(str) {
-      const compressed = LZW.compress(str);
-      const bytes = new TextEncoder().encode(compressed);
-      let bin = "";
-      bytes.forEach(b => bin += String.fromCharCode(b));
-      return toBase64Url(btoa(bin));
-    }
-    
-    function decodeFromUrl(b64) {
-      try {
-        const bin = atob(fromBase64Url(b64));
-        const bytes = new Uint8Array(bin.length);
-        for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-        const compressed = new TextDecoder().decode(bytes);
-        return LZW.decompress(compressed);
-      } catch(e) { console.error(e); return ""; }
-    }
-
+    // ---------------- Share JSON ----------------
     function buildShareCode() {
       const l = document.getElementById("leftInput").value || "";
       const r = document.getElementById("rightInput").value || "";
       if (!l && !r) return "";
-      const payload = JSON.stringify({ l, r });
-      const b64 = encodeForUrl(payload);
-      return `ssc:${b64}`;
+      return JSON.stringify({ l, r }, null, 2);
     }
 
     function loadFromShareCode(rawCode) {
       if (!rawCode) return;
       const trimmed = rawCode.trim();
-      const code = trimmed.startsWith("ssc:") ? trimmed.slice(4) : trimmed;
-      loadFromSharedValue(code);
+      loadFromSharedValue(trimmed);
     }
 
     document.getElementById("copyCodeBtn").addEventListener("click", async () => {
@@ -739,7 +704,7 @@
 
       try{
         await navigator.clipboard.writeText(code);
-        document.getElementById("statusText").textContent = "Share code copied!";
+        document.getElementById("statusText").textContent = "JSON copied!";
       }catch(e){
         const tmp = document.createElement("textarea");
         tmp.value = code;
@@ -747,19 +712,19 @@
         tmp.select();
         document.execCommand("copy");
         tmp.remove();
-        document.getElementById("statusText").textContent = "Share code copied!";
+        document.getElementById("statusText").textContent = "JSON copied!";
       }
       
       setTimeout(() => document.getElementById("statusText").textContent = "Ready", 3000);
     });
 
     document.getElementById("pasteCodeBtn").addEventListener("click", async () => {
-      const existing = buildShareCode() ? "Replace current text with a share code?" : "Paste a share code to load:";
+      const existing = buildShareCode() ? "Replace current text with JSON?" : "Paste JSON to load:";
       const promptText = buildShareCode() ? `${existing}\n(This will overwrite the current inputs.)` : existing;
       const input = window.prompt(promptText);
       if (!input) return;
       loadFromShareCode(input);
-      document.getElementById("statusText").textContent = "Share code loaded!";
+      document.getElementById("statusText").textContent = "JSON loaded!";
       setTimeout(() => document.getElementById("statusText").textContent = "Ready", 3000);
     });
 
@@ -767,22 +732,12 @@
       if (!rawValue) return;
       
       try{
-        const payload = decodeFromUrl(rawValue);
-        const obj = JSON.parse(payload);
+        const obj = JSON.parse(rawValue);
         if (typeof obj.l === "string") document.getElementById("leftInput").value = obj.l;
         if (typeof obj.r === "string") document.getElementById("rightInput").value = obj.r;
         render();
       }catch(e){
-        // Try legacy uncompressed loading if new method fails
-        try {
-           const legacyPayload = atob(fromBase64Url(rawValue)); // Plain base64
-           const obj = JSON.parse(legacyPayload);
-           if (typeof obj.l === "string") document.getElementById("leftInput").value = obj.l;
-           if (typeof obj.r === "string") document.getElementById("rightInput").value = obj.r;
-           render();
-        } catch(e2) {
-           console.log("Failed to load hash");
-        }
+        console.log("Failed to load JSON");
       }
     }
 
@@ -837,21 +792,7 @@
       });
     });
 
-    function loadFromSharedLink() {
-      const params = new URLSearchParams(location.search);
-      const queryValue = params.get("v");
-      if (queryValue) {
-        loadFromSharedValue(decodeURIComponent(queryValue));
-        return;
-      }
-
-      const h = location.hash || "";
-      const m = h.match(/#v=([\s\S]+)$/);
-      if (m) loadFromSharedValue(m[1]);
-    }
-
-    // load shared link if present
-    loadFromSharedLink();
+    // link-based sharing removed in favor of JSON copy/paste
   </script>
 </body>
 </html>
