@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Follow-Up Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: rgba(15, 23, 42, 0.78);
+      --card-border: rgba(148, 163, 184, 0.22);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 58%);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .app {
+      max-width: 940px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.45);
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 1.05rem + 1.2vw, 2rem);
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.72);
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    #addEntryBtn {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+      color: #042135;
+    }
+
+    #resetAllBtn {
+      background: rgba(239, 68, 68, 0.14);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    #resetAllBtn:hover {
+      background: rgba(220, 38, 38, 0.22);
+      border-color: rgba(220, 38, 38, 0.65);
+    }
+
+    .status {
+      min-height: 1.2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .status.success {
+      color: var(--success);
+    }
+
+    .entries {
+      display: grid;
+      gap: 12px;
+    }
+
+    .entry {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 12px;
+      padding: 14px;
+      background: rgba(15, 23, 42, 0.6);
+      display: grid;
+      gap: 10px;
+    }
+
+    .entry-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .accession {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      margin: 0;
+      font-size: 1rem;
+      word-break: break-word;
+    }
+
+    .entry-note {
+      margin: 0;
+      color: #dbeafe;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .entry-tools {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tiny-copy {
+      background: rgba(56, 189, 248, 0.15);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+    }
+
+    .delete-btn {
+      background: rgba(148, 163, 184, 0.16);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.38);
+      padding: 6px 10px;
+      font-size: 0.76rem;
+      border-radius: 999px;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      padding: 18px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>Report Follow-Up Tracker</h1>
+      <p class="subtitle">Capture accession numbers and quick follow-up notes. Everything stays locally in this browser until you reset it.</p>
+    </section>
+
+    <section class="panel">
+      <form id="entryForm">
+        <div>
+          <label for="accessionInput">Accession Number</label>
+          <input id="accessionInput" name="accession" type="text" autocomplete="off" placeholder="Example: 2026-01-12345" required>
+        </div>
+
+        <div>
+          <label for="noteInput">Follow-Up Notes</label>
+          <textarea id="noteInput" name="note" placeholder="What do you want to follow up on in this report?" required></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="addEntryBtn" type="submit">Add Follow-Up</button>
+          <button id="resetAllBtn" type="button">Reset Everything</button>
+        </div>
+      </form>
+      <p class="status" id="statusMessage" aria-live="polite"></p>
+    </section>
+
+    <section class="panel">
+      <div class="entries" id="entriesList"></div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'reportFollowUpTrackerEntries_v1';
+      const form = document.getElementById('entryForm');
+      const accessionInput = document.getElementById('accessionInput');
+      const noteInput = document.getElementById('noteInput');
+      const entriesList = document.getElementById('entriesList');
+      const statusMessage = document.getElementById('statusMessage');
+      const resetAllBtn = document.getElementById('resetAllBtn');
+
+      let entries = [];
+
+      function loadEntries() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            entries = parsed;
+          }
+        } catch (error) {
+          console.error('Unable to parse stored entries', error);
+        }
+      }
+
+      function saveEntries() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      }
+
+      function showStatus(message, isSuccess) {
+        statusMessage.textContent = message;
+        statusMessage.classList.toggle('success', Boolean(isSuccess));
+      }
+
+      async function copyAccession(accession) {
+        try {
+          await navigator.clipboard.writeText(accession);
+          showStatus(`Copied accession ${accession}.`, true);
+        } catch (error) {
+          showStatus('Clipboard unavailable. Please copy manually.', false);
+        }
+      }
+
+      function deleteEntry(id) {
+        entries = entries.filter((entry) => entry.id !== id);
+        saveEntries();
+        render();
+        showStatus('Entry removed.', true);
+      }
+
+      function render() {
+        entriesList.innerHTML = '';
+
+        if (entries.length === 0) {
+          const emptyState = document.createElement('p');
+          emptyState.className = 'empty';
+          emptyState.textContent = 'No follow-ups yet. Add one above to get started.';
+          entriesList.appendChild(emptyState);
+          return;
+        }
+
+        entries.forEach((entry) => {
+          const card = document.createElement('article');
+          card.className = 'entry';
+
+          const header = document.createElement('div');
+          header.className = 'entry-header';
+
+          const accession = document.createElement('p');
+          accession.className = 'accession';
+          accession.textContent = entry.accession;
+
+          const timestamp = document.createElement('small');
+          timestamp.style.color = '#94a3b8';
+          timestamp.textContent = new Date(entry.createdAt).toLocaleString();
+
+          header.append(accession, timestamp);
+
+          const note = document.createElement('p');
+          note.className = 'entry-note';
+          note.textContent = entry.note;
+
+          const tools = document.createElement('div');
+          tools.className = 'entry-tools';
+
+          const copyBtn = document.createElement('button');
+          copyBtn.type = 'button';
+          copyBtn.className = 'tiny-copy';
+          copyBtn.textContent = 'Copy accession';
+          copyBtn.addEventListener('click', function () {
+            copyAccession(entry.accession);
+          });
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', function () {
+            deleteEntry(entry.id);
+          });
+
+          tools.append(copyBtn, deleteBtn);
+          card.append(header, note, tools);
+          entriesList.appendChild(card);
+        });
+      }
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const accession = accessionInput.value.trim();
+        const note = noteInput.value.trim();
+
+        if (!accession || !note) {
+          showStatus('Please enter both an accession number and follow-up notes.', false);
+          return;
+        }
+
+        entries.unshift({
+          id: crypto.randomUUID(),
+          accession,
+          note,
+          createdAt: new Date().toISOString()
+        });
+
+        saveEntries();
+        render();
+
+        form.reset();
+        accessionInput.focus();
+        showStatus('Follow-up saved locally.', true);
+      });
+
+      resetAllBtn.addEventListener('click', function () {
+        if (entries.length === 0) {
+          showStatus('Nothing to reset.', false);
+          return;
+        }
+
+        const confirmed = window.confirm('Reset everything? This permanently deletes all saved accession numbers and notes from local storage.');
+        if (!confirmed) return;
+
+        entries = [];
+        localStorage.removeItem(STORAGE_KEY);
+        render();
+        showStatus('All local follow-up data has been cleared.', true);
+      });
+
+      loadEntries();
+      render();
+      accessionInput.focus();
+    })();
+  </script>
+</body>
+</html>
