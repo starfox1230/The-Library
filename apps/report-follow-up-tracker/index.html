@@ -56,6 +56,25 @@
       font-size: clamp(1.4rem, 1.05rem + 1.2vw, 2rem);
     }
 
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-header-copy {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .panel-header-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
+
     .subtitle {
       margin: 8px 0 0;
       color: var(--muted);
@@ -142,6 +161,20 @@
       color: var(--success);
     }
 
+    .ghost-btn {
+      background: rgba(56, 189, 248, 0.14);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      border-radius: 999px;
+    }
+
+    .ghost-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
     .entries {
       display: grid;
       gap: 12px;
@@ -218,8 +251,17 @@
 <body>
   <main class="app">
     <section class="panel">
-      <h1>Report Follow-Up Tracker</h1>
-      <p class="subtitle">Capture accession numbers and quick follow-up notes. Everything stays locally in this browser until you reset it.</p>
+      <div class="panel-header">
+        <div class="panel-header-copy">
+          <h1>Report Follow-Up Tracker</h1>
+          <p class="subtitle">Capture accession numbers and quick follow-up notes. Everything stays locally in this browser until you reset it.</p>
+        </div>
+        <div class="panel-header-actions">
+          <button id="downloadJsonBtn" class="ghost-btn" type="button">Download JSON</button>
+          <button id="uploadJsonBtn" class="ghost-btn" type="button">Upload JSON</button>
+          <input id="uploadJsonInput" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
     </section>
 
     <section class="panel">
@@ -256,6 +298,9 @@
       const entriesList = document.getElementById('entriesList');
       const statusMessage = document.getElementById('statusMessage');
       const resetAllBtn = document.getElementById('resetAllBtn');
+      const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+      const uploadJsonBtn = document.getElementById('uploadJsonBtn');
+      const uploadJsonInput = document.getElementById('uploadJsonInput');
 
       let entries = [];
 
@@ -295,6 +340,66 @@
         saveEntries();
         render();
         showStatus('Entry removed.', true);
+      }
+
+      function downloadEntriesAsJson() {
+        const payload = {
+          exportedAt: new Date().toISOString(),
+          entries
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        link.href = url;
+        link.download = `report-follow-up-tracker-${timestamp}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        showStatus(`Downloaded JSON with ${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}.`, true);
+      }
+
+      function normalizeImportedEntries(importedEntries) {
+        if (!Array.isArray(importedEntries)) return null;
+
+        return importedEntries
+          .filter((entry) => entry && typeof entry === 'object')
+          .map((entry) => ({
+            id: typeof entry.id === 'string' && entry.id ? entry.id : crypto.randomUUID(),
+            accession: String(entry.accession ?? '').trim(),
+            note: String(entry.note ?? '').trim(),
+            createdAt: typeof entry.createdAt === 'string' && entry.createdAt ? entry.createdAt : new Date().toISOString()
+          }))
+          .filter((entry) => entry.accession && entry.note);
+      }
+
+      async function importEntriesFromFile(file) {
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          const candidateEntries = Array.isArray(parsed) ? parsed : parsed.entries;
+          const normalizedEntries = normalizeImportedEntries(candidateEntries);
+
+          if (!normalizedEntries) {
+            showStatus('Upload failed. JSON must be an array or an object with an entries array.', false);
+            return;
+          }
+
+          entries = normalizedEntries;
+          saveEntries();
+          render();
+          showStatus(`Imported ${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} from JSON.`, true);
+        } catch (error) {
+          console.error('Unable to import JSON', error);
+          showStatus('Upload failed. Please choose a valid JSON file.', false);
+        } finally {
+          uploadJsonInput.value = '';
+        }
       }
 
       function render() {
@@ -393,6 +498,17 @@
         localStorage.removeItem(STORAGE_KEY);
         render();
         showStatus('All local follow-up data has been cleared.', true);
+      });
+
+      downloadJsonBtn.addEventListener('click', downloadEntriesAsJson);
+
+      uploadJsonBtn.addEventListener('click', function () {
+        uploadJsonInput.click();
+      });
+
+      uploadJsonInput.addEventListener('change', function () {
+        const file = uploadJsonInput.files && uploadJsonInput.files[0];
+        importEntriesFromFile(file);
       });
 
       loadEntries();
