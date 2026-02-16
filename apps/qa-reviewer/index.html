@@ -759,6 +759,55 @@
     return items;
   }
 
+  function looksUrlEncoded(s){
+    return /%[0-9A-Fa-f]{2}/.test(s || '');
+  }
+
+  function decodeBestEffort(s){
+    const plusFixed = (s || '').replace(/\+/g, '%20');
+    try{
+      return decodeURIComponent(plusFixed);
+    }catch(e){
+      return s;
+    }
+  }
+
+  function attachAutoDecodeOnPaste(el){
+    if (!el) return;
+    el.addEventListener('paste', (event) => {
+      const clipboard = event.clipboardData || window.clipboardData;
+      const text = clipboard && clipboard.getData ? clipboard.getData('text') : '';
+      if (!text || !looksUrlEncoded(text)) return;
+
+      event.preventDefault();
+
+      const decoded = decodeBestEffort(text);
+      const start = typeof el.selectionStart === 'number' ? el.selectionStart : el.value.length;
+      const end = typeof el.selectionEnd === 'number' ? el.selectionEnd : el.value.length;
+
+      el.value = el.value.slice(0, start) + decoded + el.value.slice(end);
+
+      const newPos = start + decoded.length;
+      if (typeof el.setSelectionRange === 'function'){
+        el.setSelectionRange(newPos, newPos);
+      }
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  function attachAutoDecodeOnPasteContentEditable(el){
+    if (!el) return;
+    el.addEventListener('paste', (event) => {
+      const clipboard = event.clipboardData || window.clipboardData;
+      const text = clipboard && clipboard.getData ? clipboard.getData('text') : '';
+      if (!text || !looksUrlEncoded(text)) return;
+
+      event.preventDefault();
+      const decoded = decodeBestEffort(text);
+      document.execCommand('insertText', false, decoded);
+    });
+  }
+
   function render(){
     const itemsAll = state.items;
     const items = state.filterView === 'mastered'
@@ -1362,6 +1411,7 @@
   loadLastInput();
   loadPriors();
   loadCopyCountdown();
+  attachAutoDecodeOnPaste(els.input);
   // Auto-parse if there is stored input
   if ((els.input.value || '').trim()){
     state.items = parseInput(els.input.value);
