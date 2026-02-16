@@ -532,7 +532,8 @@
     deleted: 'qa_deleted_v1',
     starred: 'qa_starred_v1',
     lastInput: 'qa_last_input_v1',
-    priors: 'qa_priors_v1'
+    priors: 'qa_priors_v1',
+    lastSession: 'qa_last_session_v1'
   };
 
   const TITLE_EXCLUDE_WORDS = [
@@ -644,6 +645,48 @@
     }catch(e){}
   }
 
+  function saveLastSession(){
+    try{
+      const payload = {
+        rawInput: els.input.value || '',
+        items: state.items,
+        favIds: Array.from(state.favSet),
+        learningIds: Array.from(state.learningSet),
+        deletedIds: Array.from(state.deletedSet),
+        starredIds: Array.from(state.starredSet),
+        filterView: state.filterView,
+        activePriorId: state.activePriorId || null
+      };
+      localStorage.setItem(STORAGE.lastSession, JSON.stringify(payload));
+    }catch(e){}
+  }
+
+  function loadLastSession(){
+    try{
+      const raw = localStorage.getItem(STORAGE.lastSession);
+      if (!raw) return false;
+      const session = JSON.parse(raw);
+      if (!session || typeof session !== 'object') return false;
+
+      const inputText = typeof session.rawInput === 'string' ? session.rawInput : '';
+      els.input.value = inputText;
+      state.items = Array.isArray(session.items) ? session.items : parseInput(inputText);
+      state.favSet = new Set(Array.isArray(session.favIds) ? session.favIds : []);
+      state.learningSet = new Set(Array.isArray(session.learningIds) ? session.learningIds : []);
+      state.deletedSet = new Set(Array.isArray(session.deletedIds) ? session.deletedIds : []);
+      state.starredSet = new Set(Array.isArray(session.starredIds) ? session.starredIds : []);
+      if (typeof session.activePriorId === 'string' && session.activePriorId){
+        state.activePriorId = session.activePriorId;
+      }
+      if (typeof session.filterView === 'string' && session.filterView){
+        state.filterView = session.filterView;
+      }
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
   function positionDropdown(panel, anchor, align = 'left'){
     if (!panel || !anchor) return;
     const rect = anchor.getBoundingClientRect();
@@ -708,6 +751,7 @@
   function persistActivePrior(){
     if (!state.activePriorId) return;
     syncActivePrior();
+    saveLastSession();
   }
 
 
@@ -1064,6 +1108,7 @@
     state.filterView = nextView;
     updateFilterUi();
     render();
+    saveLastSession();
     els.filterPanel.classList.remove('show');
     els.filterBtn.setAttribute('aria-expanded', 'false');
   }
@@ -1139,6 +1184,7 @@
     state.filterView = 'active';
     updateFilterUi();
     render();
+    saveLastSession();
     showToast(`Parsed ${state.items.length} question(s).`);
     els.newPanel.classList.remove('show');
   }
@@ -1275,6 +1321,7 @@
         state.filterView = 'active';
         updateFilterUi();
         render();
+        saveLastSession();
         els.priorsPanel.classList.remove('show');
         showToast('Loaded prior.');
       };
@@ -1499,6 +1546,7 @@
   els.input.addEventListener('input', () => {
     saveLastInput();
     syncActivePrior({ includeItems: false });
+    saveLastSession();
   });
 
   window.addEventListener('resize', positionOpenPanels);
@@ -1511,11 +1559,13 @@
   loadStarred();
   loadLastInput();
   loadPriors();
+  const restoredLastSession = loadLastSession();
   attachAutoDecodeOnPaste(els.input);
-  // Auto-parse if there is stored input
-  if ((els.input.value || '').trim()){
+  // Auto-parse if there is stored input and a session snapshot was not restored.
+  if (!restoredLastSession && (els.input.value || '').trim()){
     state.items = parseInput(els.input.value);
   }
+  saveLastSession();
   renderPriors();
   updateFilterUi();
   render();
