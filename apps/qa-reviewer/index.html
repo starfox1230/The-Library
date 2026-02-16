@@ -160,6 +160,13 @@
       flex-direction:column;
       gap:10px;
     }
+    .cardTopRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      width:100%;
+    }
     .cardActions{
       display:flex;
       gap:8px;
@@ -173,6 +180,25 @@
       font-weight:650;
       letter-spacing:0.1px;
       white-space:pre-wrap;
+    }
+    .starBtn{
+      border:none;
+      background:transparent;
+      color:var(--muted);
+      border-radius:8px;
+      padding:4px 6px;
+      cursor:pointer;
+      user-select:none;
+      line-height:1;
+      font-size:22px;
+      font-weight:700;
+      transition:color 160ms ease, transform 160ms ease;
+    }
+    .starBtn.starred{
+      color:var(--warn);
+    }
+    .starBtn:hover{
+      transform:translateY(-1px);
     }
     .favBtn{
       border:1px solid rgba(245,158,11,0.55);
@@ -396,6 +422,7 @@
         <button id="toggleAllView" class="pill" aria-pressed="false" title="Show all items, including discarded">Show all</button>
         <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only mastered items">Mastered only</button>
         <button id="toggleLearningView" class="pill" aria-pressed="false" title="Show only developing items">Developing only</button>
+        <button id="toggleStarredView" class="pill" aria-pressed="false" title="Show only starred items">Faves only</button>
       </div>
       <div class="topbarRow">
         <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
@@ -474,6 +501,7 @@
     empty: document.getElementById('empty'),
     toggleFavView: document.getElementById('toggleFavView'),
     toggleLearningView: document.getElementById('toggleLearningView'),
+    toggleStarredView: document.getElementById('toggleStarredView'),
     toggleAllView: document.getElementById('toggleAllView'),
     copyBtn: document.getElementById('copyBtn'),
     copyPanel: document.getElementById('copyPanel'),
@@ -499,6 +527,7 @@
     favs: 'qa_favorites_v1',
     learning: 'qa_learning_v1',
     deleted: 'qa_deleted_v1',
+    starred: 'qa_starred_v1',
     lastInput: 'qa_last_input_v1',
     priors: 'qa_priors_v1',
     includeCountdown: 'qa_copy_countdown_v1'
@@ -516,6 +545,7 @@
     favSet: new Set(),
     learningSet: new Set(),
     deletedSet: new Set(),
+    starredSet: new Set(),
     filterView: 'active',
     priors: [],
     activePriorId: null,
@@ -575,6 +605,21 @@
   function saveDeleted(){
     try{
       localStorage.setItem(STORAGE.deleted, JSON.stringify(Array.from(state.deletedSet)));
+    }catch(e){}
+  }
+
+  function loadStarred(){
+    try{
+      const raw = localStorage.getItem(STORAGE.starred);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) state.starredSet = new Set(arr);
+    }catch(e){}
+  }
+
+  function saveStarred(){
+    try{
+      localStorage.setItem(STORAGE.starred, JSON.stringify(Array.from(state.starredSet)));
     }catch(e){}
   }
 
@@ -653,6 +698,7 @@
     prior.favIds = Array.from(state.favSet);
     prior.learningIds = Array.from(state.learningSet);
     prior.deletedIds = Array.from(state.deletedSet);
+    prior.starredIds = Array.from(state.starredSet);
     savePriors();
     if (els.priorsPanel.classList.contains('show')) renderPriors();
   }
@@ -841,6 +887,8 @@
       ? itemsAll.filter(it => state.favSet.has(it.id))
       : state.filterView === 'developing'
         ? itemsAll.filter(it => state.learningSet.has(it.id))
+        : state.filterView === 'starred'
+          ? itemsAll.filter(it => state.starredSet.has(it.id))
         : state.filterView === 'all'
           ? itemsAll
           : itemsAll.filter(it => !state.deletedSet.has(it.id));
@@ -852,6 +900,7 @@
     const favCount = state.favSet.size;
     const learningCount = state.learningSet.size;
     const deletedCount = state.deletedSet.size;
+    const starredCount = state.starredSet.size;
 
     if (state.filterView === 'mastered'){
       els.counts.textContent = `${items.length} mastered shown (of ${total})`;
@@ -859,9 +908,11 @@
       els.counts.textContent = `${items.length} developing shown (of ${total})`;
     }else if (state.filterView === 'all'){
       els.counts.textContent = `${items.length} items shown (including ${deletedCount} discarded)`;
+    }else if (state.filterView === 'starred'){
+      els.counts.textContent = `${items.length} faves shown (of ${total})`;
     }else{
       const visibleCount = items.length;
-      els.counts.textContent = `${visibleCount} items shown (${favCount} mastered, ${learningCount} developing, ${deletedCount} discarded)`;
+      els.counts.textContent = `${visibleCount} items shown (${favCount} mastered, ${learningCount} developing, ${starredCount} faves, ${deletedCount} discarded)`;
     }
 
     for (const it of items){
@@ -870,6 +921,24 @@
 
       const head = document.createElement('div');
       head.className = 'cardHeader';
+
+      const star = document.createElement('button');
+      star.className = 'starBtn' + (state.starredSet.has(it.id) ? ' starred' : '');
+      star.type = 'button';
+      star.title = state.starredSet.has(it.id) ? 'Unstar question' : 'Star question';
+      star.setAttribute('aria-label', state.starredSet.has(it.id) ? 'Unstar question' : 'Star question');
+      star.textContent = state.starredSet.has(it.id) ? '★' : '☆';
+
+      star.addEventListener('click', () => {
+        if (state.starredSet.has(it.id)) {
+          state.starredSet.delete(it.id);
+        }else{
+          state.starredSet.add(it.id);
+        }
+        saveStarred();
+        persistActivePrior();
+        render();
+      });
 
       const fav = document.createElement('button');
       fav.className = 'favBtn' + (state.favSet.has(it.id) ? ' faved' : '');
@@ -940,11 +1009,16 @@
       actions.appendChild(learn);
       actions.appendChild(del);
 
+      const topRow = document.createElement('div');
+      topRow.className = 'cardTopRow';
+      topRow.appendChild(star);
+      topRow.appendChild(actions);
+
       const q = document.createElement('div');
       q.className = 'qText';
       q.textContent = it.question;
 
-      head.appendChild(actions);
+      head.appendChild(topRow);
       head.appendChild(q);
 
       const ans = document.createElement('details');
@@ -1022,9 +1096,11 @@
     state.favSet = new Set(Array.from(state.favSet).filter(id => ids.has(id)));
     state.learningSet = new Set(Array.from(state.learningSet).filter(id => ids.has(id)));
     state.deletedSet = new Set(Array.from(state.deletedSet).filter(id => ids.has(id)));
+    state.starredSet = new Set(Array.from(state.starredSet).filter(id => ids.has(id)));
     saveFavs();
     saveLearning();
     saveDeleted();
+    saveStarred();
     saveLastInput();
     storePrior(raw);
     render();
@@ -1070,7 +1146,8 @@
       items: state.items,
       favIds: Array.from(state.favSet),
       learningIds: Array.from(state.learningSet),
-      deletedIds: Array.from(state.deletedSet)
+      deletedIds: Array.from(state.deletedSet),
+      starredIds: Array.from(state.starredSet)
     };
     state.priors.unshift(entry);
     state.priors = state.priors.slice(0, 25);
@@ -1153,9 +1230,11 @@
         state.favSet = new Set(prior.favIds || []);
         state.learningSet = new Set(prior.learningIds || []);
         state.deletedSet = new Set(prior.deletedIds || []);
+        state.starredSet = new Set(prior.starredIds || []);
         saveFavs();
         saveLearning();
         saveDeleted();
+        saveStarred();
         saveLastInput();
         setActivePrior(prior.id);
         render();
@@ -1196,7 +1275,8 @@
           total: (prior.items || []).length,
           mastered: masteredCount,
           developing: developingCount,
-          discarded: discardedCount
+          discarded: discardedCount,
+          faves: (prior.starredIds || []).length
         }
       };
     });
@@ -1245,7 +1325,8 @@
       items,
       favIds: Array.isArray(prior.favIds) ? prior.favIds : [],
       learningIds: Array.isArray(prior.learningIds) ? prior.learningIds : [],
-      deletedIds: Array.isArray(prior.deletedIds) ? prior.deletedIds : []
+      deletedIds: Array.isArray(prior.deletedIds) ? prior.deletedIds : [],
+      starredIds: Array.isArray(prior.starredIds) ? prior.starredIds : []
     };
   }
 
@@ -1276,6 +1357,16 @@
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
     els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
+    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
+    render();
+  });
+
+  els.toggleStarredView.addEventListener('click', () => {
+    state.filterView = state.filterView === 'starred' ? 'active' : 'starred';
+    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
+    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
+    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
+    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
     render();
   });
 
@@ -1284,6 +1375,7 @@
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
+    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
     render();
   });
 
@@ -1292,6 +1384,7 @@
     els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
     els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
     els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
+    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
     render();
   });
 
@@ -1435,6 +1528,7 @@
   loadFavs();
   loadLearning();
   loadDeleted();
+  loadStarred();
   loadLastInput();
   loadPriors();
   loadCopyCountdown();
