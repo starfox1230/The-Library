@@ -428,7 +428,7 @@
   <div class="topbar">
     <div class="topbarLeft">
       <div class="topbarRow">
-        <button id="filterBtn" class="pill" aria-haspopup="true" aria-expanded="false" title="Filter the list">Filter: Active</button>
+        <button id="filterBtn" class="pill" aria-haspopup="true" aria-expanded="false" title="Filter the list">Filter: Not discarded</button>
       </div>
       <div class="topbarRow">
         <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
@@ -481,31 +481,17 @@
     <div class="hint">Creating a new set overwrites the current list and saves the previous one as a prior.</div>
   </div>
 
-  <div id="copyPanel" class="panel dropdownPanel">
-    <div class="panelHeader">
-      <div class="panelTitle">Copy options</div>
-    </div>
-    <div class="panelList">
-      <button id="copyAllBtn" class="pill secondary" type="button">Copy all</button>
-      <button id="copyAllVisibleBtn" class="pill secondary" type="button">Copy all (not deleted)</button>
-      <button id="copyFavsBtn" class="pill secondary" type="button">Copy mastered</button>
-      <button id="copyLearningBtn" class="pill secondary" type="button">Copy developing</button>
-    </div>
-    <label class="toggleRow">
-      <input id="countdownToggle" type="checkbox" /> Include 5-4-3-2-1 countdown
-    </label>
-  </div>
-
   <div id="filterPanel" class="panel dropdownPanel">
     <div class="panelHeader">
       <div class="panelTitle">Filter</div>
     </div>
     <div class="panelList">
-      <button id="filterActiveBtn" class="pill secondary filterOption" type="button">Active only</button>
       <button id="filterAllBtn" class="pill secondary filterOption" type="button">Show all</button>
+      <button id="filterActiveBtn" class="pill secondary filterOption" type="button">Not discarded</button>
+      <button id="filterStarredBtn" class="pill secondary filterOption" type="button">Faves only</button>
       <button id="filterMasteredBtn" class="pill secondary filterOption" type="button">Mastered only</button>
       <button id="filterDevelopingBtn" class="pill secondary filterOption" type="button">Developing only</button>
-      <button id="filterStarredBtn" class="pill secondary filterOption" type="button">Faves only</button>
+      <button id="filterDiscardedBtn" class="pill secondary filterOption" type="button">Discarded only</button>
     </div>
   </div>
 
@@ -525,13 +511,8 @@
     filterMasteredBtn: document.getElementById('filterMasteredBtn'),
     filterDevelopingBtn: document.getElementById('filterDevelopingBtn'),
     filterStarredBtn: document.getElementById('filterStarredBtn'),
+    filterDiscardedBtn: document.getElementById('filterDiscardedBtn'),
     copyBtn: document.getElementById('copyBtn'),
-    copyPanel: document.getElementById('copyPanel'),
-    copyAllBtn: document.getElementById('copyAllBtn'),
-    copyAllVisibleBtn: document.getElementById('copyAllVisibleBtn'),
-    copyFavsBtn: document.getElementById('copyFavsBtn'),
-    copyLearningBtn: document.getElementById('copyLearningBtn'),
-    countdownToggle: document.getElementById('countdownToggle'),
     newBtn: document.getElementById('newBtn'),
     newPanel: document.getElementById('newPanel'),
     togglePriors: document.getElementById('togglePriors'),
@@ -551,8 +532,7 @@
     deleted: 'qa_deleted_v1',
     starred: 'qa_starred_v1',
     lastInput: 'qa_last_input_v1',
-    priors: 'qa_priors_v1',
-    includeCountdown: 'qa_copy_countdown_v1'
+    priors: 'qa_priors_v1'
   };
 
   const TITLE_EXCLUDE_WORDS = [
@@ -684,9 +664,6 @@
     if (els.filterPanel.classList.contains('show')){
       positionDropdown(els.filterPanel, els.filterBtn, 'left');
     }
-    if (els.copyPanel.classList.contains('show')){
-      positionDropdown(els.copyPanel, els.copyBtn, 'left');
-    }
     if (els.priorsPanel.classList.contains('show')){
       positionDropdown(els.priorsPanel, els.togglePriors, 'right');
     }
@@ -733,19 +710,6 @@
     syncActivePrior();
   }
 
-  function loadCopyCountdown(){
-    try{
-      const raw = localStorage.getItem(STORAGE.includeCountdown);
-      if (raw === null) return;
-      els.countdownToggle.checked = raw === 'true';
-    }catch(e){}
-  }
-
-  function saveCopyCountdown(){
-    try{
-      localStorage.setItem(STORAGE.includeCountdown, els.countdownToggle.checked ? 'true' : 'false');
-    }catch(e){}
-  }
 
   function isIgnorableLine(line){
     const t = line.trim();
@@ -906,17 +870,19 @@
     });
   }
 
+  function getItemsForFilter(view){
+    const itemsAll = state.items;
+    if (view === 'mastered') return itemsAll.filter(it => state.favSet.has(it.id));
+    if (view === 'developing') return itemsAll.filter(it => state.learningSet.has(it.id));
+    if (view === 'starred') return itemsAll.filter(it => state.starredSet.has(it.id));
+    if (view === 'all') return itemsAll;
+    if (view === 'discarded') return itemsAll.filter(it => state.deletedSet.has(it.id));
+    return itemsAll.filter(it => !state.deletedSet.has(it.id));
+  }
+
   function render(){
     const itemsAll = state.items;
-    const items = state.filterView === 'mastered'
-      ? itemsAll.filter(it => state.favSet.has(it.id))
-      : state.filterView === 'developing'
-        ? itemsAll.filter(it => state.learningSet.has(it.id))
-        : state.filterView === 'starred'
-          ? itemsAll.filter(it => state.starredSet.has(it.id))
-        : state.filterView === 'all'
-          ? itemsAll
-          : itemsAll.filter(it => !state.deletedSet.has(it.id));
+    const items = getItemsForFilter(state.filterView);
 
     els.list.innerHTML = '';
     els.empty.style.display = items.length ? 'none' : 'block';
@@ -935,6 +901,8 @@
       els.counts.textContent = `${items.length} items shown (including ${deletedCount} discarded)`;
     }else if (state.filterView === 'starred'){
       els.counts.textContent = `${items.length} faves shown (of ${total})`;
+    }else if (state.filterView === 'discarded'){
+      els.counts.textContent = `${items.length} discarded shown (of ${total})`;
     }else{
       const visibleCount = items.length;
       els.counts.textContent = `${visibleCount} items shown (${favCount} mastered, ${learningCount} developing, ${starredCount} faves, ${deletedCount} discarded)`;
@@ -1074,11 +1042,12 @@
 
   function updateFilterUi(){
     const labels = {
-      active: 'Active',
+      active: 'Not discarded',
       all: 'Show all',
+      starred: 'Faves only',
       mastered: 'Mastered only',
       developing: 'Developing only',
-      starred: 'Faves only'
+      discarded: 'Discarded only'
     };
     const selectedLabel = labels[state.filterView] || labels.active;
     els.filterBtn.textContent = `Filter: ${selectedLabel}`;
@@ -1088,6 +1057,7 @@
     els.filterMasteredBtn.classList.toggle('active', state.filterView === 'mastered');
     els.filterDevelopingBtn.classList.toggle('active', state.filterView === 'developing');
     els.filterStarredBtn.classList.toggle('active', state.filterView === 'starred');
+    els.filterDiscardedBtn.classList.toggle('active', state.filterView === 'discarded');
   }
 
   function setFilterView(nextView){
@@ -1096,6 +1066,18 @@
     render();
     els.filterPanel.classList.remove('show');
     els.filterBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function getCurrentFilterLabel(){
+    const labels = {
+      active: 'Not discarded',
+      all: 'Show all',
+      starred: 'Faves only',
+      mastered: 'Mastered only',
+      developing: 'Developing only',
+      discarded: 'Discarded only'
+    };
+    return labels[state.filterView] || labels.active;
   }
 
   function formatItemsText(items, includeCountdown){
@@ -1154,6 +1136,8 @@
     saveStarred();
     saveLastInput();
     storePrior(raw);
+    state.filterView = 'active';
+    updateFilterUi();
     render();
     showToast(`Parsed ${state.items.length} question(s).`);
     els.newPanel.classList.remove('show');
@@ -1288,6 +1272,8 @@
         saveStarred();
         saveLastInput();
         setActivePrior(prior.id);
+        state.filterView = 'active';
+        updateFilterUi();
         render();
         els.priorsPanel.classList.remove('show');
         showToast('Loaded prior.');
@@ -1408,7 +1394,6 @@
     const expanded = els.filterPanel.classList.contains('show') ? 'true' : 'false';
     els.filterBtn.setAttribute('aria-expanded', expanded);
     if (els.filterPanel.classList.contains('show')){
-      els.copyPanel.classList.remove('show');
       els.priorsPanel.classList.remove('show');
       els.newPanel.classList.remove('show');
       positionDropdown(els.filterPanel, els.filterBtn, 'left');
@@ -1421,13 +1406,13 @@
   els.filterMasteredBtn.addEventListener('click', () => setFilterView('mastered'));
   els.filterDevelopingBtn.addEventListener('click', () => setFilterView('developing'));
   els.filterStarredBtn.addEventListener('click', () => setFilterView('starred'));
+  els.filterDiscardedBtn.addEventListener('click', () => setFilterView('discarded'));
 
   els.togglePriors.addEventListener('click', () => {
     els.priorsPanel.classList.toggle('show');
     if (els.priorsPanel.classList.contains('show')){
       els.filterPanel.classList.remove('show');
       els.filterBtn.setAttribute('aria-expanded', 'false');
-      els.copyPanel.classList.remove('show');
       els.newPanel.classList.remove('show');
       positionDropdown(els.priorsPanel, els.togglePriors, 'right');
       renderPriors();
@@ -1465,15 +1450,15 @@
     }
   });
 
-  els.copyBtn.addEventListener('click', () => {
-    els.copyPanel.classList.toggle('show');
-    if (els.copyPanel.classList.contains('show')){
-      els.filterPanel.classList.remove('show');
-      els.filterBtn.setAttribute('aria-expanded', 'false');
-      els.priorsPanel.classList.remove('show');
-      els.newPanel.classList.remove('show');
-      positionDropdown(els.copyPanel, els.copyBtn, 'left');
+  els.copyBtn.addEventListener('click', async () => {
+    const items = getItemsForFilter(state.filterView);
+    const text = formatItemsText(items, false);
+    if (!text){
+      showToast(`No items to copy in ${getCurrentFilterLabel()}.`);
+      return;
     }
+    const ok = await copyTextToClipboard(text);
+    showToast(ok ? `${getCurrentFilterLabel()} copied to clipboard.` : 'Copy failed.');
   });
 
   els.newBtn.addEventListener('click', () => {
@@ -1481,7 +1466,6 @@
     if (els.newPanel.classList.contains('show')){
       els.filterPanel.classList.remove('show');
       els.filterBtn.setAttribute('aria-expanded', 'false');
-      els.copyPanel.classList.remove('show');
       els.priorsPanel.classList.remove('show');
       els.input.value = '';
       saveLastInput();
@@ -1495,8 +1479,6 @@
     const path = event.composedPath ? event.composedPath() : [];
     const clickedFilter = els.filterBtn.contains(target) || path.includes(els.filterBtn);
     const clickedFilterPanel = els.filterPanel.contains(target) || path.includes(els.filterPanel);
-    const clickedCopy = els.copyBtn.contains(target) || path.includes(els.copyBtn);
-    const clickedCopyPanel = els.copyPanel.contains(target) || path.includes(els.copyPanel);
     const clickedPriors = els.togglePriors.contains(target) || path.includes(els.togglePriors);
     const clickedPriorsPanel = els.priorsPanel.contains(target) || path.includes(els.priorsPanel);
     const clickedNew = els.newBtn.contains(target) || path.includes(els.newBtn);
@@ -1506,60 +1488,12 @@
       els.filterPanel.classList.remove('show');
       els.filterBtn.setAttribute('aria-expanded', 'false');
     }
-    if (!clickedCopy && !clickedCopyPanel && els.copyPanel.classList.contains('show')){
-      els.copyPanel.classList.remove('show');
-    }
     if (!clickedPriors && !clickedPriorsPanel && els.priorsPanel.classList.contains('show')){
       els.priorsPanel.classList.remove('show');
     }
     if (!clickedNew && !clickedNewPanel && els.newPanel.classList.contains('show')){
       els.newPanel.classList.remove('show');
     }
-  });
-
-  els.countdownToggle.addEventListener('change', saveCopyCountdown);
-
-  els.copyAllBtn.addEventListener('click', async () => {
-    const text = formatItemsText(state.items, els.countdownToggle.checked);
-    if (!text){
-      showToast('No items to copy.');
-      return;
-    }
-    const ok = await copyTextToClipboard(text);
-    showToast(ok ? 'All items copied.' : 'Copy failed.');
-  });
-
-  els.copyAllVisibleBtn.addEventListener('click', async () => {
-    const items = state.items.filter(it => !state.deletedSet.has(it.id));
-    const text = formatItemsText(items, els.countdownToggle.checked);
-    if (!text){
-      showToast('No visible items to copy.');
-      return;
-    }
-    const ok = await copyTextToClipboard(text);
-    showToast(ok ? 'Visible items copied.' : 'Copy failed.');
-  });
-
-  els.copyFavsBtn.addEventListener('click', async () => {
-    const items = state.items.filter(it => state.favSet.has(it.id) && !state.deletedSet.has(it.id));
-    const text = formatItemsText(items, els.countdownToggle.checked);
-    if (!text){
-      showToast('No mastered items to copy.');
-      return;
-    }
-    const ok = await copyTextToClipboard(text);
-    showToast(ok ? 'Mastered items copied.' : 'Copy failed.');
-  });
-
-  els.copyLearningBtn.addEventListener('click', async () => {
-    const items = state.items.filter(it => state.learningSet.has(it.id) && !state.deletedSet.has(it.id));
-    const text = formatItemsText(items, els.countdownToggle.checked);
-    if (!text){
-      showToast('No developing items to copy.');
-      return;
-    }
-    const ok = await copyTextToClipboard(text);
-    showToast(ok ? 'Developing items copied.' : 'Copy failed.');
   });
 
   els.input.addEventListener('input', () => {
@@ -1577,7 +1511,6 @@
   loadStarred();
   loadLastInput();
   loadPriors();
-  loadCopyCountdown();
   attachAutoDecodeOnPaste(els.input);
   // Auto-parse if there is stored input
   if ((els.input.value || '').trim()){
