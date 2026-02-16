@@ -717,9 +717,9 @@
       const trimmed = line.trim();
 
       // Detect field headers (case sensitive as provided, but allow mild variance)
-      const mQ = /^Question:\s*(.*)\s*$/.exec(line);
-      const mA = /^Answer:\s*(.*)\s*$/.exec(line);
-      const mE = /^Explanation:\s*(.*)\s*$/.exec(line);
+      const mQ = /^Question:\s*(.*)\s*$/i.exec(line);
+      const mA = /^Answer:\s*(.*)\s*$/i.exec(line);
+      const mE = /^Explanation:\s*(.*)\s*$/i.exec(line);
 
       if (mQ){
         // new question starts -> push previous
@@ -774,10 +774,20 @@
 
   function attachAutoDecodeOnPaste(el){
     if (!el) return;
+    let suppress = false;
+
     el.addEventListener('paste', (event) => {
       const clipboard = event.clipboardData || window.clipboardData;
-      const text = clipboard && clipboard.getData ? clipboard.getData('text') : '';
-      if (!text || !looksUrlEncoded(text)) return;
+      if (!clipboard || typeof clipboard.getData !== 'function') return;
+
+      const text =
+        clipboard.getData('text/plain') ||
+        clipboard.getData('Text') ||
+        clipboard.getData('text') ||
+        '';
+
+      if (!text) return;
+      if (!looksUrlEncoded(text)) return;
 
       event.preventDefault();
 
@@ -791,7 +801,24 @@
       if (typeof el.setSelectionRange === 'function'){
         el.setSelectionRange(newPos, newPos);
       }
+
+      suppress = true;
       el.dispatchEvent(new Event('input', { bubbles: true }));
+      suppress = false;
+    });
+
+    el.addEventListener('input', () => {
+      if (suppress) return;
+      if (!looksUrlEncoded(el.value)) return;
+
+      const decoded = decodeBestEffort(el.value);
+      if (decoded !== el.value){
+        const pos = el.selectionStart ?? decoded.length;
+        el.value = decoded;
+        if (typeof el.setSelectionRange === 'function'){
+          el.setSelectionRange(pos, pos);
+        }
+      }
     });
   }
 
