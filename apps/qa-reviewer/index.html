@@ -413,16 +413,22 @@
       color:var(--muted);
       font-size:12px;
     }
+    .filterOption{
+      text-align:left;
+      width:100%;
+    }
+    .filterOption.active{
+      border-color:rgba(96,165,250,0.55);
+      box-shadow:0 0 0 2px rgba(96,165,250,0.15) inset;
+      color:var(--text);
+    }
   </style>
 </head>
 <body>
   <div class="topbar">
     <div class="topbarLeft">
       <div class="topbarRow">
-        <button id="toggleAllView" class="pill" aria-pressed="false" title="Show all items, including discarded">Show all</button>
-        <button id="toggleFavView" class="pill" aria-pressed="false" title="Show only mastered items">Mastered only</button>
-        <button id="toggleLearningView" class="pill" aria-pressed="false" title="Show only developing items">Developing only</button>
-        <button id="toggleStarredView" class="pill" aria-pressed="false" title="Show only starred items">Faves only</button>
+        <button id="filterBtn" class="pill" aria-haspopup="true" aria-expanded="false" title="Filter the list">Filter: Active</button>
       </div>
       <div class="topbarRow">
         <button id="copyBtn" class="pill primary" title="Copy items">Copy</button>
@@ -490,6 +496,19 @@
     </label>
   </div>
 
+  <div id="filterPanel" class="panel dropdownPanel">
+    <div class="panelHeader">
+      <div class="panelTitle">Filter</div>
+    </div>
+    <div class="panelList">
+      <button id="filterActiveBtn" class="pill secondary filterOption" type="button">Active only</button>
+      <button id="filterAllBtn" class="pill secondary filterOption" type="button">Show all</button>
+      <button id="filterMasteredBtn" class="pill secondary filterOption" type="button">Mastered only</button>
+      <button id="filterDevelopingBtn" class="pill secondary filterOption" type="button">Developing only</button>
+      <button id="filterStarredBtn" class="pill secondary filterOption" type="button">Faves only</button>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
 <script>
@@ -499,10 +518,13 @@
     parseBtn: document.getElementById('parseBtn'),
     list: document.getElementById('list'),
     empty: document.getElementById('empty'),
-    toggleFavView: document.getElementById('toggleFavView'),
-    toggleLearningView: document.getElementById('toggleLearningView'),
-    toggleStarredView: document.getElementById('toggleStarredView'),
-    toggleAllView: document.getElementById('toggleAllView'),
+    filterBtn: document.getElementById('filterBtn'),
+    filterPanel: document.getElementById('filterPanel'),
+    filterActiveBtn: document.getElementById('filterActiveBtn'),
+    filterAllBtn: document.getElementById('filterAllBtn'),
+    filterMasteredBtn: document.getElementById('filterMasteredBtn'),
+    filterDevelopingBtn: document.getElementById('filterDevelopingBtn'),
+    filterStarredBtn: document.getElementById('filterStarredBtn'),
     copyBtn: document.getElementById('copyBtn'),
     copyPanel: document.getElementById('copyPanel'),
     copyAllBtn: document.getElementById('copyAllBtn'),
@@ -659,6 +681,9 @@
   }
 
   function positionOpenPanels(){
+    if (els.filterPanel.classList.contains('show')){
+      positionDropdown(els.filterPanel, els.filterBtn, 'left');
+    }
     if (els.copyPanel.classList.contains('show')){
       positionDropdown(els.copyPanel, els.copyBtn, 'left');
     }
@@ -1047,6 +1072,32 @@
     }
   }
 
+  function updateFilterUi(){
+    const labels = {
+      active: 'Active',
+      all: 'Show all',
+      mastered: 'Mastered only',
+      developing: 'Developing only',
+      starred: 'Faves only'
+    };
+    const selectedLabel = labels[state.filterView] || labels.active;
+    els.filterBtn.textContent = `Filter: ${selectedLabel}`;
+
+    els.filterActiveBtn.classList.toggle('active', state.filterView === 'active');
+    els.filterAllBtn.classList.toggle('active', state.filterView === 'all');
+    els.filterMasteredBtn.classList.toggle('active', state.filterView === 'mastered');
+    els.filterDevelopingBtn.classList.toggle('active', state.filterView === 'developing');
+    els.filterStarredBtn.classList.toggle('active', state.filterView === 'starred');
+  }
+
+  function setFilterView(nextView){
+    state.filterView = nextView;
+    updateFilterUi();
+    render();
+    els.filterPanel.classList.remove('show');
+    els.filterBtn.setAttribute('aria-expanded', 'false');
+  }
+
   function formatItemsText(items, includeCountdown){
     if (!items.length) return '';
 
@@ -1352,45 +1403,30 @@
   // Events
   els.parseBtn.addEventListener('click', parseAndRender);
 
-  els.toggleFavView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'mastered' ? 'active' : 'mastered';
-    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
-    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
-    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
-    render();
+  els.filterBtn.addEventListener('click', () => {
+    els.filterPanel.classList.toggle('show');
+    const expanded = els.filterPanel.classList.contains('show') ? 'true' : 'false';
+    els.filterBtn.setAttribute('aria-expanded', expanded);
+    if (els.filterPanel.classList.contains('show')){
+      els.copyPanel.classList.remove('show');
+      els.priorsPanel.classList.remove('show');
+      els.newPanel.classList.remove('show');
+      positionDropdown(els.filterPanel, els.filterBtn, 'left');
+      updateFilterUi();
+    }
   });
 
-  els.toggleStarredView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'starred' ? 'active' : 'starred';
-    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
-    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
-    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
-    render();
-  });
-
-  els.toggleLearningView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'developing' ? 'active' : 'developing';
-    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
-    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
-    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
-    render();
-  });
-
-  els.toggleAllView.addEventListener('click', () => {
-    state.filterView = state.filterView === 'all' ? 'active' : 'all';
-    els.toggleAllView.setAttribute('aria-pressed', state.filterView === 'all' ? 'true' : 'false');
-    els.toggleFavView.setAttribute('aria-pressed', state.filterView === 'mastered' ? 'true' : 'false');
-    els.toggleLearningView.setAttribute('aria-pressed', state.filterView === 'developing' ? 'true' : 'false');
-    els.toggleStarredView.setAttribute('aria-pressed', state.filterView === 'starred' ? 'true' : 'false');
-    render();
-  });
+  els.filterActiveBtn.addEventListener('click', () => setFilterView('active'));
+  els.filterAllBtn.addEventListener('click', () => setFilterView('all'));
+  els.filterMasteredBtn.addEventListener('click', () => setFilterView('mastered'));
+  els.filterDevelopingBtn.addEventListener('click', () => setFilterView('developing'));
+  els.filterStarredBtn.addEventListener('click', () => setFilterView('starred'));
 
   els.togglePriors.addEventListener('click', () => {
     els.priorsPanel.classList.toggle('show');
     if (els.priorsPanel.classList.contains('show')){
+      els.filterPanel.classList.remove('show');
+      els.filterBtn.setAttribute('aria-expanded', 'false');
       els.copyPanel.classList.remove('show');
       els.newPanel.classList.remove('show');
       positionDropdown(els.priorsPanel, els.togglePriors, 'right');
@@ -1432,6 +1468,8 @@
   els.copyBtn.addEventListener('click', () => {
     els.copyPanel.classList.toggle('show');
     if (els.copyPanel.classList.contains('show')){
+      els.filterPanel.classList.remove('show');
+      els.filterBtn.setAttribute('aria-expanded', 'false');
       els.priorsPanel.classList.remove('show');
       els.newPanel.classList.remove('show');
       positionDropdown(els.copyPanel, els.copyBtn, 'left');
@@ -1441,6 +1479,8 @@
   els.newBtn.addEventListener('click', () => {
     els.newPanel.classList.toggle('show');
     if (els.newPanel.classList.contains('show')){
+      els.filterPanel.classList.remove('show');
+      els.filterBtn.setAttribute('aria-expanded', 'false');
       els.copyPanel.classList.remove('show');
       els.priorsPanel.classList.remove('show');
       els.input.value = '';
@@ -1453,6 +1493,8 @@
   document.addEventListener('pointerdown', (event) => {
     const target = event.target;
     const path = event.composedPath ? event.composedPath() : [];
+    const clickedFilter = els.filterBtn.contains(target) || path.includes(els.filterBtn);
+    const clickedFilterPanel = els.filterPanel.contains(target) || path.includes(els.filterPanel);
     const clickedCopy = els.copyBtn.contains(target) || path.includes(els.copyBtn);
     const clickedCopyPanel = els.copyPanel.contains(target) || path.includes(els.copyPanel);
     const clickedPriors = els.togglePriors.contains(target) || path.includes(els.togglePriors);
@@ -1460,6 +1502,10 @@
     const clickedNew = els.newBtn.contains(target) || path.includes(els.newBtn);
     const clickedNewPanel = els.newPanel.contains(target) || path.includes(els.newPanel);
 
+    if (!clickedFilter && !clickedFilterPanel && els.filterPanel.classList.contains('show')){
+      els.filterPanel.classList.remove('show');
+      els.filterBtn.setAttribute('aria-expanded', 'false');
+    }
     if (!clickedCopy && !clickedCopyPanel && els.copyPanel.classList.contains('show')){
       els.copyPanel.classList.remove('show');
     }
@@ -1538,6 +1584,7 @@
     state.items = parseInput(els.input.value);
   }
   renderPriors();
+  updateFilterUi();
   render();
 
 })();
