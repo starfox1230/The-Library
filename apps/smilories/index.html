@@ -534,6 +534,23 @@
       margin-bottom: 6px;
     }
 
+    .modal .field{ min-width: 0; }
+    .modal .field input,
+    .modal .field select,
+    .modal .field textarea{
+      min-width: 0;
+      max-width: 100%;
+      width: 100%;
+    }
+
+    .autogrow{
+      min-height: 44px;
+      resize: none;
+      overflow-y: hidden;
+      line-height: 1.35;
+      font-family: inherit;
+    }
+
     .items{
       display:flex;
       flex-direction:column;
@@ -544,13 +561,14 @@
       display:grid;
       grid-template-columns: 1.4fr .7fr auto;
       gap: 10px;
-      align-items:center;
+      align-items:start;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 14px;
       padding: 10px;
     }
     .itemrow input{ border-radius: 12px; padding: 10px 10px; }
+    .itemrow .autogrow{ border-radius: 12px; padding: 10px; }
     .itemrow button{ min-height: 42px; padding: 10px 12px; border-radius: 12px; }
 
     .switchRow{
@@ -776,7 +794,7 @@
 
           <div class="field" style="grid-column: 1 / -1;">
             <label for="editFreeText">Description</label>
-            <input id="editFreeText" type="text" />
+            <textarea id="editFreeText" class="autogrow" rows="1"></textarea>
           </div>
 
           <div class="field" style="grid-column: 1 / -1;">
@@ -794,7 +812,7 @@
 
           <div class="field" style="grid-column: 1 / -1;">
             <label for="editNotes">Notes</label>
-            <input id="editNotes" type="text" />
+            <textarea id="editNotes" class="autogrow" rows="1"></textarea>
           </div>
         </div>
       </div>
@@ -1565,6 +1583,7 @@
       document.getElementById("editConfidence").value = (e.confidence || "medium");
       document.getElementById("editFreeText").value = (e.free_text || "");
       document.getElementById("editNotes").value = (e.notes || "");
+      initEditModalAutogrow();
 
       const override = e.user_overrides && typeof e.user_overrides.total_kcal === "number" ? e.user_overrides.total_kcal : null;
       document.getElementById("editTotal").value = (override == null) ? "" : String(override);
@@ -1630,6 +1649,22 @@
       }, 420);
     }
 
+    function autoGrowTextarea(el){
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+
+    function initEditModalAutogrow(){
+      const textareas = document.querySelectorAll("#modalOverlay textarea.autogrow");
+      for (const area of textareas){
+        autoGrowTextarea(area);
+        if (area.dataset.autogrowBound === "1") continue;
+        area.dataset.autogrowBound = "1";
+        area.addEventListener("input", () => autoGrowTextarea(area));
+      }
+    }
+
     function renderItemsEditor(items){
       const box = document.getElementById("itemsEditor");
       box.innerHTML = "";
@@ -1648,8 +1683,9 @@
         row.className = "itemrow";
         row.dataset.itemId = it.id;
 
-        const name = document.createElement("input");
-        name.type = "text";
+        const name = document.createElement("textarea");
+        name.className = "autogrow";
+        name.rows = 1;
         name.value = it.name || "";
         name.placeholder = "Item";
 
@@ -1670,6 +1706,9 @@
         row.appendChild(kcal);
         row.appendChild(del);
         box.appendChild(row);
+
+        autoGrowTextarea(name);
+        name.addEventListener("input", () => autoGrowTextarea(name));
       }
     }
 
@@ -1677,10 +1716,11 @@
       const rows = Array.from(document.querySelectorAll("#itemsEditor .itemrow"));
       const out = [];
       for (const r of rows){
-        const inputs = r.querySelectorAll("input");
-        if (!inputs || inputs.length < 2) continue;
-        const nm = (inputs[0].value || "").trim();
-        const kcal = Number(inputs[1].value || 0);
+        const nameInput = r.querySelector("textarea");
+        const kcalInput = r.querySelector('input[type="number"]');
+        if (!nameInput || !kcalInput) continue;
+        const nm = (nameInput.value || "").trim();
+        const kcal = Number(kcalInput.value || 0);
         if (!nm && !kcal) continue;
         out.push({
           id: r.dataset.itemId || uuid(),
@@ -1996,8 +2036,9 @@
       row.className = "itemrow";
       row.dataset.itemId = uuid();
 
-      const name = document.createElement("input");
-      name.type = "text";
+      const name = document.createElement("textarea");
+      name.className = "autogrow";
+      name.rows = 1;
       name.placeholder = "Item";
 
       const kcal = document.createElement("input");
@@ -2017,6 +2058,8 @@
       row.appendChild(kcal);
       row.appendChild(del);
       box.appendChild(row);
+      autoGrowTextarea(name);
+      name.addEventListener("input", () => autoGrowTextarea(name));
       name.focus({ preventScroll: false });
     });
 
