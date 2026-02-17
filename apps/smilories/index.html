@@ -322,6 +322,11 @@
       gap: 10px;
       align-items:center;
     }
+    .entry.recentAdded{
+      border-color: rgba(105,231,196,0.75);
+      background: linear-gradient(180deg, rgba(105,231,196,0.2), rgba(105,231,196,0.1));
+      box-shadow: 0 0 0 1px rgba(105,231,196,0.2) inset;
+    }
     .entry .left{
       min-width:0;
       display:flex;
@@ -567,7 +572,7 @@
           <h1>Calorie Log</h1>
         </div>
         <div class="btnrow">
-          <button class="small pink" id="btnToggleAdd" type="button" aria-pressed="false" aria-label="Toggle add panel">+</button>
+          <button class="small pink" id="btnToggleAdd" type="button" aria-pressed="false" aria-label="Add from clipboard">+</button>
           <button class="small" id="btnOpenSettings" type="button">Settings</button>
         </div>
       </div>
@@ -1102,7 +1107,8 @@
       chartOffsetDays: 0,
       selectedDay: todayYmd(),
       recentLoadedDays: [todayYmd()],
-      chartMetric: "kcal"
+      chartMetric: "kcal",
+      recentAddedEntryIds: new Set()
     };
 
     function refreshHeaderPills(){
@@ -1252,6 +1258,7 @@
       for (const e of show){
         const div = document.createElement("div");
         div.className = "entry";
+        if (ui.recentAddedEntryIds.has(e.entry_id)) div.classList.add("recentAdded");
         div.tabIndex = 0;
         div.role = "button";
 
@@ -1348,13 +1355,25 @@
 
       const existingIds = new Set(state.entries.map(e => e.entry_id));
       let added = 0;
+      const addedEntryIds = [];
       for (const e of normalized){
         if (existingIds.has(e.entry_id)) e.entry_id = uuid();
         state.entries.push(e);
+        addedEntryIds.push(e.entry_id);
         added++;
       }
       saveEntries(state.entries);
-      return { ok:true, added };
+      return { ok:true, added, addedEntryIds };
+    }
+
+
+    function markRecentlyAdded(entryIds){
+      ui.recentAddedEntryIds = new Set(entryIds || []);
+      clearTimeout(markRecentlyAdded._timer);
+      markRecentlyAdded._timer = setTimeout(() => {
+        ui.recentAddedEntryIds.clear();
+        renderEntries();
+      }, 7000);
     }
 
     async function pasteFromClipboard(){
@@ -1399,9 +1418,44 @@
 
       area.value = "";
       setAddOpen(false);
+      markRecentlyAdded(res.addedEntryIds || []);
       resetRecentToToday();
-      toast(`Added ${res.added}.`);
+      toast("Item added.");
       refreshAll();
+    }
+
+    async function addFromClipboard(){
+      try{
+        if (!navigator.clipboard || !navigator.clipboard.readText){
+          toast("Clipboard not available.");
+          return;
+        }
+
+        const text = await navigator.clipboard.readText();
+        if (!text || !text.trim()){
+          toast("Clipboard empty.");
+          return;
+        }
+
+        const parsed = safeParseJSON(text.trim());
+        if (!parsed.ok){
+          toast("Invalid JSON.");
+          return;
+        }
+
+        const res = addParsedObject(parsed.value);
+        if (!res.ok){
+          toast("Nothing added.");
+          return;
+        }
+
+        markRecentlyAdded(res.addedEntryIds || []);
+        resetRecentToToday();
+        refreshAll();
+        toast("Item added.");
+      }catch(e){
+        toast("Paste blocked.");
+      }
     }
 
     /***********************
@@ -1663,9 +1717,7 @@
     /***********************
      * Wire up UI
      ***********************/
-    document.getElementById("btnToggleAdd").addEventListener("click", () => {
-      setAddOpen(!ui.addOpen);
-    });
+    document.getElementById("btnToggleAdd").addEventListener("click", addFromClipboard);
 
     document.getElementById("btnPasteClipboard").addEventListener("click", pasteFromClipboard);
     document.getElementById("btnAddEntry").addEventListener("click", handleAdd);
