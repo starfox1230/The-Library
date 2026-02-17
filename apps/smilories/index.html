@@ -36,11 +36,7 @@
       -webkit-touch-callout: none;
       user-select: none;
     }
-    html, body {
-      height: 100%;
-      max-width: 100%;
-      overflow-x: hidden;
-    }
+    html, body { height: 100%; }
     body{
       margin: 0;
       font-family: var(--font);
@@ -49,7 +45,7 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overscroll-behavior-y: none;
-      touch-action: pan-y;
+      touch-action: manipulation;
     }
 
     body::before{
@@ -403,16 +399,16 @@
     .entry .name{
       font-size: 14px;
       font-weight: 780;
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .entry .meta{
       font-size: 12px;
       color: var(--muted);
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .entry .right{
       display:flex;
@@ -493,7 +489,6 @@
       overflow: hidden;
       display:flex;
       flex-direction:column;
-      touch-action: pan-y;
     }
     .modal .mhd{
       padding: 14px 14px 12px 14px;
@@ -512,7 +507,6 @@
     .modal .mbd{
       padding: 14px;
       overflow:auto;
-      overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
     }
     .modal .mft{
@@ -548,7 +542,7 @@
     }
     .itemrow{
       display:grid;
-      grid-template-columns: minmax(0, 1fr) minmax(84px, 112px) auto;
+      grid-template-columns: 1.4fr .7fr auto;
       gap: 10px;
       align-items:center;
       background: rgba(255,255,255,0.04);
@@ -556,45 +550,8 @@
       border-radius: 14px;
       padding: 10px;
     }
-    .itemrow input,
-    .itemrow textarea{ border-radius: 12px; padding: 10px 10px; }
-    .itemrow textarea{
-      min-height: 44px;
-      max-height: 180px;
-      resize: none;
-      line-height: 1.35;
-      font-family: var(--font);
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
+    .itemrow input{ border-radius: 12px; padding: 10px 10px; }
     .itemrow button{ min-height: 42px; padding: 10px 12px; border-radius: 12px; }
-
-    .growingText{
-      min-height: 84px;
-      max-height: 40vh;
-      resize: none;
-      line-height: 1.35;
-      font-family: var(--font);
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    @media (max-width: 680px){
-      .modalOverlay{
-        align-items: flex-start;
-      }
-      .modal{
-        width: 100%;
-        max-height: none;
-        min-height: min(100%, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px));
-      }
-      .itemrow{
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .itemrow button{
-        width: 100%;
-      }
-    }
 
     .switchRow{
       display:flex;
@@ -819,7 +776,7 @@
 
           <div class="field" style="grid-column: 1 / -1;">
             <label for="editFreeText">Description</label>
-            <textarea id="editFreeText" class="growingText" rows="3"></textarea>
+            <input id="editFreeText" type="text" />
           </div>
 
           <div class="field" style="grid-column: 1 / -1;">
@@ -837,7 +794,7 @@
 
           <div class="field" style="grid-column: 1 / -1;">
             <label for="editNotes">Notes</label>
-            <textarea id="editNotes" class="growingText" rows="3"></textarea>
+            <input id="editNotes" type="text" />
           </div>
         </div>
       </div>
@@ -1608,8 +1565,6 @@
       document.getElementById("editConfidence").value = (e.confidence || "medium");
       document.getElementById("editFreeText").value = (e.free_text || "");
       document.getElementById("editNotes").value = (e.notes || "");
-      autoGrowTextArea(document.getElementById("editFreeText"));
-      autoGrowTextArea(document.getElementById("editNotes"));
 
       const override = e.user_overrides && typeof e.user_overrides.total_kcal === "number" ? e.user_overrides.total_kcal : null;
       document.getElementById("editTotal").value = (override == null) ? "" : String(override);
@@ -1675,12 +1630,6 @@
       }, 420);
     }
 
-    function autoGrowTextArea(el){
-      if (!el) return;
-      el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
-    }
-
     function renderItemsEditor(items){
       const box = document.getElementById("itemsEditor");
       box.innerHTML = "";
@@ -1699,12 +1648,10 @@
         row.className = "itemrow";
         row.dataset.itemId = it.id;
 
-        const name = document.createElement("textarea");
+        const name = document.createElement("input");
+        name.type = "text";
         name.value = it.name || "";
         name.placeholder = "Item";
-        name.rows = 2;
-        name.addEventListener("input", () => autoGrowTextArea(name));
-        requestAnimationFrame(() => autoGrowTextArea(name));
 
         const kcal = document.createElement("input");
         kcal.type = "number";
@@ -1730,11 +1677,10 @@
       const rows = Array.from(document.querySelectorAll("#itemsEditor .itemrow"));
       const out = [];
       for (const r of rows){
-        const nameField = r.querySelector("textarea");
-        const kcalField = r.querySelector("input[type='number']");
-        if (!nameField || !kcalField) continue;
-        const nm = (nameField.value || "").trim();
-        const kcal = Number(kcalField.value || 0);
+        const inputs = r.querySelectorAll("input");
+        if (!inputs || inputs.length < 2) continue;
+        const nm = (inputs[0].value || "").trim();
+        const kcal = Number(inputs[1].value || 0);
         if (!nm && !kcal) continue;
         out.push({
           id: r.dataset.itemId || uuid(),
@@ -2050,10 +1996,9 @@
       row.className = "itemrow";
       row.dataset.itemId = uuid();
 
-      const name = document.createElement("textarea");
+      const name = document.createElement("input");
+      name.type = "text";
       name.placeholder = "Item";
-      name.rows = 2;
-      name.addEventListener("input", () => autoGrowTextArea(name));
 
       const kcal = document.createElement("input");
       kcal.type = "number";
@@ -2072,14 +2017,8 @@
       row.appendChild(kcal);
       row.appendChild(del);
       box.appendChild(row);
-      requestAnimationFrame(() => autoGrowTextArea(name));
       name.focus({ preventScroll: false });
     });
-
-    const editFreeTextEl = document.getElementById("editFreeText");
-    const editNotesEl = document.getElementById("editNotes");
-    editFreeTextEl.addEventListener("input", () => autoGrowTextArea(editFreeTextEl));
-    editNotesEl.addEventListener("input", () => autoGrowTextArea(editNotesEl));
 
     /***********************
      * Init
