@@ -222,7 +222,23 @@
     }
 
     .favoriteList{ display:flex; flex-direction:column; gap:10px; }
-    .favoriteCard{ border:1px solid var(--line); border-radius:12px; padding:10px; background: rgba(255,255,255,0.04); }
+    .favoriteCard{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      background: rgba(255,255,255,0.04);
+      transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    .favoriteCard.pressHint,
+    .favoriteCard:focus-visible{
+      border-color: rgba(255,122,182,0.62);
+      background: linear-gradient(135deg, rgba(255,122,182,0.18), rgba(202,168,255,0.12));
+      box-shadow: 0 0 0 2px rgba(255,122,182,0.18);
+      transform: translateY(-1px);
+    }
     .favoriteCardTop{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
     .favoriteTitle{ font-size:13px; font-weight:760; color: var(--text); }
     .favoriteMeta,
@@ -498,6 +514,9 @@
       padding-top: calc(14px + env(safe-area-inset-top));
       padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
+    #modalOverlay{ z-index: 40; }
+    #favoritesOverlay,
+    #settingsOverlay{ z-index: 30; }
     .modalOverlay.show{ display:flex; }
 
     .modalOverlay.longPressGuard .modal input,
@@ -626,16 +645,13 @@
     .itemrow .autogrow{ border-radius: 12px; padding: 10px; }
     .itemrow button{ min-height: 42px; padding: 10px 12px; border-radius: 12px; }
     .itemrowControls{
-      position: absolute;
-      top: 10px;
-      right: 10px;
       display:flex;
       gap:8px;
+      justify-content: flex-start;
     }
     .itemTitleField{
       font-weight: 760;
-      width: calc(100% - 58px);
-      padding-right: 56px;
+      width: 100%;
     }
     .metricField{
       display:flex;
@@ -1817,6 +1833,7 @@
 
       const delBtn = document.getElementById("btnDeleteEntry");
       delBtn.textContent = isFavoriteEdit ? "Delete favorite" : "Delete";
+      delBtn.dataset.confirmMessage = isFavoriteEdit ? "Delete this favorite?" : "Delete this entry?";
 
       const overlay = document.getElementById("modalOverlay");
       overlay.classList.add("show");
@@ -1919,7 +1936,11 @@
       del.type = "button";
       del.setAttribute("aria-label", "Remove item");
       del.textContent = "×";
-      del.addEventListener("click", () => row.remove());
+      del.addEventListener("click", () => {
+        const ok = confirm("Delete this item?");
+        if (!ok) return;
+        row.remove();
+      });
       controls.appendChild(del);
 
       const p = document.createElement("input");
@@ -1953,8 +1974,8 @@
       macrosWrap.appendChild(createMetricField("Carbs (g)", c));
       macrosWrap.appendChild(createMetricField("Fat (g)", f));
 
-      row.appendChild(name);
       row.appendChild(controls);
+      row.appendChild(name);
       row.appendChild(macrosWrap);
 
       autoGrowTextarea(name);
@@ -2088,7 +2109,9 @@
           card.classList.remove("pressHint");
         };
 
-        card.addEventListener("pointerdown", () => {
+        card.addEventListener("pointerdown", (ev) => {
+          if (ev.target.closest("button")) return;
+          ev.preventDefault();
           holdTriggered = false;
           card.classList.add("pressHint");
           holdTimer = setTimeout(() => {
@@ -2101,6 +2124,7 @@
         card.addEventListener("pointerleave", clearHold);
         card.addEventListener("pointercancel", clearHold);
         card.addEventListener("click", (ev) => {
+          if (ev.target.closest("button")) return;
           if (!holdTriggered) ev.preventDefault();
         });
         card.addEventListener("keydown", (ev) => {
@@ -2457,7 +2481,8 @@
       copyEntryAsJson(e);
     });
     document.getElementById("btnDeleteEntry").addEventListener("click", () => {
-      const ok = confirm("Delete this entry?");
+      const btn = document.getElementById("btnDeleteEntry");
+      const ok = confirm(btn.dataset.confirmMessage || "Delete this entry?");
       if (!ok) return;
       deleteEditedEntry();
     });
