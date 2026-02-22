@@ -613,9 +613,10 @@
     }
     .itemrow{
       display:grid;
-      grid-template-columns: 1.4fr .7fr auto;
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 8px;
       align-items:start;
+      position: relative;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 14px;
@@ -624,9 +625,33 @@
     .itemrow input{ border-radius: 12px; padding: 10px 10px; }
     .itemrow .autogrow{ border-radius: 12px; padding: 10px; }
     .itemrow button{ min-height: 42px; padding: 10px 12px; border-radius: 12px; }
-    .itemrowControls{ display:flex; gap:8px; }
+    .itemrowControls{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display:flex;
+      gap:8px;
+    }
+    .itemTitleField{ padding-right: 48px; }
+    .metricField{
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .metricField input{ font-size: 14px; text-transform: none; }
+    .itemrowDelete{
+      min-height: 30px !important;
+      min-width: 30px;
+      padding: 2px 8px !important;
+      line-height: 1;
+      font-size: 20px;
+      font-weight: 600;
+    }
     .itemMacros{
-      grid-column: 1 / -1;
       display:grid;
       grid-template-columns: repeat(3, minmax(0,1fr));
       gap: 8px;
@@ -1856,6 +1881,84 @@
       }
     }
 
+    function createMetricField(labelText, inputEl){
+      const wrap = document.createElement("label");
+      wrap.className = "metricField";
+      wrap.textContent = labelText;
+      wrap.appendChild(inputEl);
+      return wrap;
+    }
+
+    function createEditorItemRow(it = {}){
+      const row = document.createElement("div");
+      row.className = "itemrow";
+      row.dataset.itemId = it.id || uuid();
+
+      const name = document.createElement("textarea");
+      name.className = "autogrow itemTitleField";
+      name.rows = 1;
+      name.value = it.name || "";
+      name.placeholder = "Item";
+
+      const kcal = document.createElement("input");
+      kcal.type = "number";
+      kcal.min = "0";
+      kcal.inputMode = "numeric";
+      kcal.value = String(Number(it.kcal || 0));
+      kcal.placeholder = "0";
+
+      const controls = document.createElement("div");
+      controls.className = "itemrowControls";
+
+      const del = document.createElement("button");
+      del.className = "danger itemrowDelete";
+      del.type = "button";
+      del.setAttribute("aria-label", "Remove item");
+      del.textContent = "×";
+      del.addEventListener("click", () => row.remove());
+      controls.appendChild(del);
+
+      const p = document.createElement("input");
+      p.type = "number";
+      p.min = "0";
+      p.inputMode = "numeric";
+      p.placeholder = "0";
+      p.value = String(Number(it.protein_g || 0));
+      p.className = "macroProtein";
+
+      const c = document.createElement("input");
+      c.type = "number";
+      c.min = "0";
+      c.inputMode = "numeric";
+      c.placeholder = "0";
+      c.value = String(Number(it.carbs_g || 0));
+      c.className = "macroCarbs";
+
+      const f = document.createElement("input");
+      f.type = "number";
+      f.min = "0";
+      f.inputMode = "numeric";
+      f.placeholder = "0";
+      f.value = String(Number(it.fat_g || 0));
+      f.className = "macroFat";
+
+      const kcalField = createMetricField("Calories", kcal);
+      const macrosWrap = document.createElement("div");
+      macrosWrap.className = "itemMacros";
+      macrosWrap.appendChild(createMetricField("Protein (g)", p));
+      macrosWrap.appendChild(createMetricField("Carbs (g)", c));
+      macrosWrap.appendChild(createMetricField("Fat (g)", f));
+
+      row.appendChild(name);
+      row.appendChild(controls);
+      row.appendChild(kcalField);
+      row.appendChild(macrosWrap);
+
+      autoGrowTextarea(name);
+      name.addEventListener("input", () => autoGrowTextarea(name));
+      return row;
+    }
+
     function renderItemsEditor(items){
       const box = document.getElementById("itemsEditor");
       box.innerHTML = "";
@@ -1869,86 +1972,7 @@
         return;
       }
 
-      for (const it of items){
-        const row = document.createElement("div");
-        row.className = "itemrow";
-        row.dataset.itemId = it.id;
-
-        const name = document.createElement("textarea");
-        name.className = "autogrow";
-        name.rows = 1;
-        name.value = it.name || "";
-        name.placeholder = "Item";
-
-        const kcal = document.createElement("input");
-        kcal.type = "number";
-        kcal.min = "0";
-        kcal.inputMode = "numeric";
-        kcal.value = String(Number(it.kcal || 0));
-        kcal.placeholder = "kcal";
-
-        const controls = document.createElement("div");
-        controls.className = "itemrowControls";
-
-        const toggleMacros = document.createElement("button");
-        toggleMacros.className = "small";
-        toggleMacros.type = "button";
-        toggleMacros.textContent = "Macros";
-
-        const del = document.createElement("button");
-        del.className = "danger";
-        del.type = "button";
-        del.textContent = "Remove";
-        del.addEventListener("click", () => row.remove());
-
-        controls.appendChild(toggleMacros);
-        controls.appendChild(del);
-
-        const macrosWrap = document.createElement("div");
-        macrosWrap.className = "itemMacros hidden";
-
-        const p = document.createElement("input");
-        p.type = "number";
-        p.min = "0";
-        p.inputMode = "numeric";
-        p.placeholder = "Protein (g)";
-        p.value = String(Number(it.protein_g || 0));
-        p.className = "macroProtein";
-
-        const c = document.createElement("input");
-        c.type = "number";
-        c.min = "0";
-        c.inputMode = "numeric";
-        c.placeholder = "Carbs (g)";
-        c.value = String(Number(it.carbs_g || 0));
-        c.className = "macroCarbs";
-
-        const f = document.createElement("input");
-        f.type = "number";
-        f.min = "0";
-        f.inputMode = "numeric";
-        f.placeholder = "Fat (g)";
-        f.value = String(Number(it.fat_g || 0));
-        f.className = "macroFat";
-
-        macrosWrap.appendChild(p);
-        macrosWrap.appendChild(c);
-        macrosWrap.appendChild(f);
-
-        toggleMacros.addEventListener("click", () => {
-          const open = macrosWrap.classList.toggle("hidden") === false;
-          toggleMacros.textContent = open ? "Hide macros" : "Macros";
-        });
-
-        row.appendChild(name);
-        row.appendChild(kcal);
-        row.appendChild(controls);
-        row.appendChild(macrosWrap);
-        box.appendChild(row);
-
-        autoGrowTextarea(name);
-        name.addEventListener("input", () => autoGrowTextarea(name));
-      }
+      for (const it of items) box.appendChild(createEditorItemRow(it));
     }
 
     function gatherItemsFromEditor(){
@@ -2440,78 +2464,10 @@
       const helper = box.querySelector("div");
       if (helper && helper.textContent === "—") helper.remove();
 
-      const row = document.createElement("div");
-      row.className = "itemrow";
-      row.dataset.itemId = uuid();
-
-      const name = document.createElement("textarea");
-      name.className = "autogrow";
-      name.rows = 1;
-      name.placeholder = "Item";
-
-      const kcal = document.createElement("input");
-      kcal.type = "number";
-      kcal.min = "0";
-      kcal.inputMode = "numeric";
-      kcal.placeholder = "kcal";
-      kcal.value = "0";
-
-      const controls = document.createElement("div");
-      controls.className = "itemrowControls";
-
-      const toggleMacros = document.createElement("button");
-      toggleMacros.className = "small";
-      toggleMacros.type = "button";
-      toggleMacros.textContent = "Macros";
-
-      const del = document.createElement("button");
-      del.className = "danger";
-      del.type = "button";
-      del.textContent = "Remove";
-      del.addEventListener("click", () => row.remove());
-
-      const macrosWrap = document.createElement("div");
-      macrosWrap.className = "itemMacros hidden";
-      const p = document.createElement("input");
-      p.type = "number";
-      p.min = "0";
-      p.inputMode = "numeric";
-      p.placeholder = "Protein (g)";
-      p.className = "macroProtein";
-      p.value = "0";
-      const c = document.createElement("input");
-      c.type = "number";
-      c.min = "0";
-      c.inputMode = "numeric";
-      c.placeholder = "Carbs (g)";
-      c.className = "macroCarbs";
-      c.value = "0";
-      const f = document.createElement("input");
-      f.type = "number";
-      f.min = "0";
-      f.inputMode = "numeric";
-      f.placeholder = "Fat (g)";
-      f.className = "macroFat";
-      f.value = "0";
-      macrosWrap.appendChild(p);
-      macrosWrap.appendChild(c);
-      macrosWrap.appendChild(f);
-      toggleMacros.addEventListener("click", () => {
-        const open = macrosWrap.classList.toggle("hidden") === false;
-        toggleMacros.textContent = open ? "Hide macros" : "Macros";
-      });
-
-      controls.appendChild(toggleMacros);
-      controls.appendChild(del);
-
-      row.appendChild(name);
-      row.appendChild(kcal);
-      row.appendChild(controls);
-      row.appendChild(macrosWrap);
+      const row = createEditorItemRow({ kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
       box.appendChild(row);
-      autoGrowTextarea(name);
-      name.addEventListener("input", () => autoGrowTextarea(name));
-      name.focus({ preventScroll: false });
+      const name = row.querySelector("textarea");
+      if (name) name.focus({ preventScroll: false });
     });
 
     /***********************
