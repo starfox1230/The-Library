@@ -624,6 +624,13 @@
     .itemrow input{ border-radius: 12px; padding: 10px 10px; }
     .itemrow .autogrow{ border-radius: 12px; padding: 10px; }
     .itemrow button{ min-height: 42px; padding: 10px 12px; border-radius: 12px; }
+    .itemrowControls{ display:flex; gap:8px; }
+    .itemMacros{
+      grid-column: 1 / -1;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+    }
 
     .switchRow{
       display:flex;
@@ -812,7 +819,7 @@
         </div>
         <div class="btnrow">
           <button class="small" id="btnFavoriteEntry" type="button" aria-pressed="false" aria-label="Favorite entry"><span class="starIcon" aria-hidden="true">★</span></button>
-          <button class="small" id="btnCopyEntry" type="button" aria-label="Copy entry items">⧉</button>
+          <button class="small" id="btnCopyEntry" type="button" aria-label="Copy entry JSON">⧉</button>
           <button class="small" id="btnCloseModal" type="button" aria-label="Close edit entry">✕</button>
         </div>
       </div>
@@ -954,6 +961,7 @@
      ***********************/
     const STORE_KEY = "calorieLogV1";
     const SETTINGS_KEY = "calorieSettingsV1";
+    const FAVORITES_KEY = "calorieFavoritesV1";
 
     function safeParseJSON(text){
       try { return { ok: true, value: JSON.parse(text) }; }
@@ -990,15 +998,29 @@
       }).join("\n");
     }
 
-    async function copyEntryItems(entry){
-      const text = formatEntryItemsForCopy(entry);
+    function entryPayloadForClipboard(entry){
+      if (!entry || typeof entry !== "object") return null;
+      const cloned = JSON.parse(JSON.stringify(entry));
+      cloned.entry_id = null;
+      cloned.created_at = nowISO();
+      delete cloned.is_favorite;
+      return cloned;
+    }
+
+    async function copyEntryAsJson(entry){
+      const payload = entryPayloadForClipboard(entry);
+      if (!payload){
+        toast("Nothing to copy.");
+        return;
+      }
+      const text = JSON.stringify(payload, null, 2);
       try{
         if (!navigator.clipboard || !navigator.clipboard.writeText){
           toast("Clipboard not available.");
           return;
         }
         await navigator.clipboard.writeText(text);
-        toast("Copied items.");
+        toast("Copied entry JSON.");
       }catch(e){
         toast("Copy blocked.");
       }
@@ -1012,17 +1034,32 @@
       }catch(e){ entries = []; }
 
       let settings = { goalEnabled: false, goalKcal: null };
+      let favorites = [];
       try{
         const rawS = localStorage.getItem(SETTINGS_KEY);
         if (rawS) settings = Object.assign(settings, JSON.parse(rawS) || {});
       }catch(e){}
 
+      try{
+        const rawF = localStorage.getItem(FAVORITES_KEY);
+        if (rawF) favorites = JSON.parse(rawF) || [];
+      }catch(e){ favorites = []; }
+
       if (!Array.isArray(entries)) entries = [];
-      return { entries, settings };
+      if (!Array.isArray(favorites)) favorites = [];
+      return { entries, settings, favorites };
     }
 
     function saveEntries(entries){ localStorage.setItem(STORE_KEY, JSON.stringify(entries)); }
     function saveSettings(settings){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+    function saveFavorites(favorites){ localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites)); }
+
+    function syncEntryFavoriteFlags(){
+      const sourceIds = new Set((state.favorites || []).map(f => f.source_entry_id).filter(Boolean));
+      for (const e of state.entries){
+        e.is_favorite = sourceIds.has(e.entry_id);
+      }
+    }
 
     function toLocalDatetimeInputValue(isoString){
       const d = new Date(isoString);
@@ -1167,6 +1204,33 @@
       return e;
     }
 
+    function normalizeFavorite(obj){
+      const f = normalizeEntry(obj || {});
+      if (!f.favorite_id) f.favorite_id = uuid();
+      if (!f.source_entry_id) f.source_entry_id = null;
+      f.is_favorite = true;
+      return f;
+    }
+
+    function recalcEntryTotals(entry){
+      let sumK = 0, sumP = 0, sumC = 0, sumF = 0;
+      for (const it of entry.items || []){
+        sumK += Number(it.kcal || 0);
+        sumP += Number(it.protein_g || 0);
+        sumC += Number(it.carbs_g || 0);
+        sumF += Number(it.fat_g || 0);
+      }
+
+      if (typeof entry.user_overrides?.total_kcal === "number"){
+        entry.total_kcal = Math.max(0, Math.round(entry.user_overrides.total_kcal));
+      } else {
+        entry.total_kcal = Math.max(0, Math.round(sumK));
+      }
+      entry.total_protein_g = Math.max(0, Math.round(sumP));
+      entry.total_carbs_g = Math.max(0, Math.round(sumC));
+      entry.total_fat_g = Math.max(0, Math.round(sumF));
+    }
+
     function todayTotals(entries){
       const today = todayYmd();
       let kcal = 0;
@@ -1277,7 +1341,7 @@
      * App State
      ***********************/
     let state = loadState();
-    let editingEntryId = null;
+    let editingTarget = null;
     let modalLongPressGuardTimer = null;
     let modalLongPressGuardRelease = null;
 
@@ -1670,23 +1734,40 @@
     /***********************
      * Edit Modal
      ***********************/
-    function openEditModal(entryId){
-      const e = state.entries.find(x => x.entry_id === entryId);
+    function getEditingEntry(){
+      if (!editingTarget) return null;
+      if (editingTarget.type === "entry"){
+        return state.entries.find(x => x.entry_id === editingTarget.id) || null;
+      }
+      if (editingTarget.type === "favorite"){
+        return state.favorites.find(x => x.favorite_id === editingTarget.id) || null;
+      }
+      return null;
+    }
+
+    function openEditModal(entryId, mode="entry"){
+      const e = mode === "favorite"
+        ? state.favorites.find(x => x.favorite_id === entryId)
+        : state.entries.find(x => x.entry_id === entryId);
       if (!e) return;
 
-      editingEntryId = entryId;
+      editingTarget = { type: mode, id: mode === "favorite" ? e.favorite_id : e.entry_id };
 
+      const isFavoriteEdit = mode === "favorite";
+      document.getElementById("modalTitle").textContent = isFavoriteEdit ? "Edit favorite" : "Edit entry";
       document.getElementById("modalSub").textContent =
         `${formatDateShort(e.created_at)} • ${formatTimeShort(e.created_at)}`;
 
       document.getElementById("editMealLabel").value = (e.meal_label || "meal");
       document.getElementById("editCreatedAt").value = toLocalDatetimeInputValue(e.created_at);
+      document.getElementById("editCreatedAt").disabled = isFavoriteEdit;
       document.getElementById("editConfidence").value = (e.confidence || "medium");
       document.getElementById("editFreeText").value = (e.free_text || "");
       document.getElementById("editNotes").value = (e.notes || "");
       const favBtn = document.getElementById("btnFavoriteEntry");
-      favBtn.classList.toggle("active", !!e.is_favorite);
-      favBtn.setAttribute("aria-pressed", String(!!e.is_favorite));
+      favBtn.classList.toggle("active", mode === "entry" ? !!e.is_favorite : true);
+      favBtn.setAttribute("aria-pressed", String(mode === "entry" ? !!e.is_favorite : true));
+      favBtn.disabled = isFavoriteEdit;
 
       const override = e.user_overrides && typeof e.user_overrides.total_kcal === "number" ? e.user_overrides.total_kcal : null;
       document.getElementById("editTotal").value = (override == null) ? "" : String(override);
@@ -1705,6 +1786,9 @@
       document.getElementById("assumptionsText").textContent = lines.length ? lines.join("\n") : "—";
       document.getElementById("assumptionsBlock").open = false;
 
+      const delBtn = document.getElementById("btnDeleteEntry");
+      delBtn.textContent = isFavoriteEdit ? "Delete favorite" : "Delete";
+
       const overlay = document.getElementById("modalOverlay");
       overlay.classList.add("show");
       overlay.setAttribute("aria-hidden","false");
@@ -1717,7 +1801,7 @@
     }
 
     function closeEditModal(){
-      editingEntryId = null;
+      editingTarget = null;
       const overlay = document.getElementById("modalOverlay");
       clearModalLongPressGuard(overlay);
       overlay.classList.remove("show");
@@ -1803,15 +1887,63 @@
         kcal.value = String(Number(it.kcal || 0));
         kcal.placeholder = "kcal";
 
+        const controls = document.createElement("div");
+        controls.className = "itemrowControls";
+
+        const toggleMacros = document.createElement("button");
+        toggleMacros.className = "small";
+        toggleMacros.type = "button";
+        toggleMacros.textContent = "Macros";
+
         const del = document.createElement("button");
         del.className = "danger";
         del.type = "button";
         del.textContent = "Remove";
         del.addEventListener("click", () => row.remove());
 
+        controls.appendChild(toggleMacros);
+        controls.appendChild(del);
+
+        const macrosWrap = document.createElement("div");
+        macrosWrap.className = "itemMacros hidden";
+
+        const p = document.createElement("input");
+        p.type = "number";
+        p.min = "0";
+        p.inputMode = "numeric";
+        p.placeholder = "Protein (g)";
+        p.value = String(Number(it.protein_g || 0));
+        p.className = "macroProtein";
+
+        const c = document.createElement("input");
+        c.type = "number";
+        c.min = "0";
+        c.inputMode = "numeric";
+        c.placeholder = "Carbs (g)";
+        c.value = String(Number(it.carbs_g || 0));
+        c.className = "macroCarbs";
+
+        const f = document.createElement("input");
+        f.type = "number";
+        f.min = "0";
+        f.inputMode = "numeric";
+        f.placeholder = "Fat (g)";
+        f.value = String(Number(it.fat_g || 0));
+        f.className = "macroFat";
+
+        macrosWrap.appendChild(p);
+        macrosWrap.appendChild(c);
+        macrosWrap.appendChild(f);
+
+        toggleMacros.addEventListener("click", () => {
+          const open = macrosWrap.classList.toggle("hidden") === false;
+          toggleMacros.textContent = open ? "Hide macros" : "Macros";
+        });
+
         row.appendChild(name);
         row.appendChild(kcal);
-        row.appendChild(del);
+        row.appendChild(controls);
+        row.appendChild(macrosWrap);
         box.appendChild(row);
 
         autoGrowTextarea(name);
@@ -1825,14 +1957,23 @@
       for (const r of rows){
         const nameInput = r.querySelector("textarea");
         const kcalInput = r.querySelector('input[type="number"]');
+        const pInput = r.querySelector(".macroProtein");
+        const cInput = r.querySelector(".macroCarbs");
+        const fInput = r.querySelector(".macroFat");
         if (!nameInput || !kcalInput) continue;
         const nm = (nameInput.value || "").trim();
         const kcal = Number(kcalInput.value || 0);
-        if (!nm && !kcal) continue;
+        const p = Number(pInput ? pInput.value : 0);
+        const c = Number(cInput ? cInput.value : 0);
+        const f = Number(fInput ? fInput.value : 0);
+        if (!nm && !kcal && !p && !c && !f) continue;
         out.push({
           id: r.dataset.itemId || uuid(),
           name: nm || "Item",
           kcal: Math.max(0, Math.round(kcal)),
+          protein_g: Math.max(0, Math.round(p)),
+          carbs_g: Math.max(0, Math.round(c)),
+          fat_g: Math.max(0, Math.round(f)),
           assumptions: []
         });
       }
@@ -1840,10 +1981,17 @@
     }
 
     function toggleFavoriteEditingEntry(){
-      const e = state.entries.find(x => x.entry_id === editingEntryId);
+      if (!editingTarget || editingTarget.type !== "entry") return;
+      const e = state.entries.find(x => x.entry_id === editingTarget.id);
       if (!e) return;
       e.is_favorite = !e.is_favorite;
+      if (e.is_favorite){
+        state.favorites.push(normalizeFavorite(Object.assign({}, e, { source_entry_id: e.entry_id, favorite_id: uuid() })));
+      } else {
+        state.favorites = state.favorites.filter(f => f.source_entry_id !== e.entry_id);
+      }
       saveEntries(state.entries);
+      saveFavorites(state.favorites);
       const favBtn = document.getElementById("btnFavoriteEntry");
       favBtn.classList.toggle("active", !!e.is_favorite);
       favBtn.setAttribute("aria-pressed", String(!!e.is_favorite));
@@ -1855,7 +2003,7 @@
     function renderFavorites(){
       const box = document.getElementById("favoritesList");
       box.innerHTML = "";
-      const favorites = entriesSortedDesc(state.entries).filter(e => e.is_favorite);
+      const favorites = entriesSortedDesc(state.favorites || []);
       if (!favorites.length){
         const empty = document.createElement("div");
         empty.className = "favoriteMeta";
@@ -1867,6 +2015,8 @@
       for (const e of favorites){
         const card = document.createElement("div");
         card.className = "favoriteCard";
+        card.tabIndex = 0;
+        card.role = "button";
 
         const top = document.createElement("div");
         top.className = "favoriteCardTop";
@@ -1879,15 +2029,18 @@
         copyBtn.className = "small favoriteCopyBtn";
         copyBtn.type = "button";
         copyBtn.textContent = "⧉";
-        copyBtn.setAttribute("aria-label", "Copy favorite entry items");
-        copyBtn.addEventListener("click", () => copyEntryItems(e));
+        copyBtn.setAttribute("aria-label", "Copy favorite entry JSON");
+        copyBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          copyEntryAsJson(e);
+        });
 
         top.appendChild(title);
         top.appendChild(copyBtn);
 
         const meta = document.createElement("div");
         meta.className = "favoriteMeta";
-        meta.textContent = `${formatDateShort(e.created_at)} • ${formatTimeShort(e.created_at)}`;
+        meta.textContent = `P ${Number(e.total_protein_g || 0)}g • C ${Number(e.total_carbs_g || 0)}g • F ${Number(e.total_fat_g || 0)}g`;
 
         const items = document.createElement("div");
         items.className = "favoriteItems";
@@ -1896,13 +2049,47 @@
         card.appendChild(top);
         card.appendChild(meta);
         card.appendChild(items);
+
+        let holdTimer = null;
+        let holdTriggered = false;
+        const HOLD_MS = 400;
+        const clearHold = () => {
+          if (holdTimer){
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+          card.classList.remove("pressHint");
+        };
+
+        card.addEventListener("pointerdown", () => {
+          holdTriggered = false;
+          card.classList.add("pressHint");
+          holdTimer = setTimeout(() => {
+            holdTriggered = true;
+            card.classList.remove("pressHint");
+            openEditModal(e.favorite_id, "favorite");
+          }, HOLD_MS);
+        });
+        card.addEventListener("pointerup", clearHold);
+        card.addEventListener("pointerleave", clearHold);
+        card.addEventListener("pointercancel", clearHold);
+        card.addEventListener("click", (ev) => {
+          if (!holdTriggered) ev.preventDefault();
+        });
+        card.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " "){
+            ev.preventDefault();
+            openEditModal(e.favorite_id, "favorite");
+          }
+        });
+
         box.appendChild(card);
       }
     }
 
     function updateFavoritesButtonState(){
       const btn = document.getElementById("btnFavorites");
-      const hasFavorites = state.entries.some(e => e.is_favorite);
+      const hasFavorites = (state.favorites || []).length > 0;
       btn.classList.toggle("active", hasFavorites);
       btn.setAttribute("aria-pressed", String(hasFavorites));
     }
@@ -1925,7 +2112,7 @@
     }
 
     function saveEditedEntry(){
-      const e = state.entries.find(x => x.entry_id === editingEntryId);
+      const e = getEditingEntry();
       if (!e) return;
 
       const mealLabel = document.getElementById("editMealLabel").value;
@@ -1933,7 +2120,7 @@
       const iso = dtLocal ? fromLocalDatetimeInputValue(dtLocal) : null;
 
       e.meal_label = mealLabel || "meal";
-      if (iso) e.created_at = iso;
+      if (iso && editingTarget?.type === "entry") e.created_at = iso;
 
       e.confidence = document.getElementById("editConfidence").value || "medium";
       e.free_text = document.getElementById("editFreeText").value || "";
@@ -1950,28 +2137,32 @@
         e.user_overrides.total_kcal = Math.max(0, Math.round(override));
       }
 
-      if (typeof e.user_overrides.total_kcal === "number"){
-        e.total_kcal = e.user_overrides.total_kcal;
-      } else {
-        let sum = 0;
-        for (const it of e.items) sum += Number(it.kcal || 0);
-        e.total_kcal = Math.max(0, Math.round(sum));
-      }
+      recalcEntryTotals(e);
 
-      saveEntries(state.entries);
+      if (editingTarget?.type === "entry") saveEntries(state.entries);
+      if (editingTarget?.type === "favorite") saveFavorites(state.favorites);
       toast("Saved.");
       closeEditModal();
 
-      // if you edited a different day, keep selection; refresh all views
       refreshAll();
     }
 
     function deleteEditedEntry(){
-      if (!editingEntryId) return;
-      const idx = state.entries.findIndex(x => x.entry_id === editingEntryId);
-      if (idx < 0) return;
-      state.entries.splice(idx, 1);
-      saveEntries(state.entries);
+      if (!editingTarget) return;
+      if (editingTarget.type === "entry"){
+        const idx = state.entries.findIndex(x => x.entry_id === editingTarget.id);
+        if (idx < 0) return;
+        state.entries.splice(idx, 1);
+        state.favorites = state.favorites.filter(f => f.source_entry_id !== editingTarget.id);
+        saveEntries(state.entries);
+        saveFavorites(state.favorites);
+      } else {
+        const idx = state.favorites.findIndex(x => x.favorite_id === editingTarget.id);
+        if (idx < 0) return;
+        state.favorites.splice(idx, 1);
+        saveFavorites(state.favorites);
+      }
+      syncEntryFavoriteFlags();
       toast("Deleted.");
       closeEditModal();
       refreshAll();
@@ -1985,7 +2176,8 @@
         exported_at: nowISO(),
         schema_version: 1,
         settings: state.settings,
-        entries: state.entries
+        entries: state.entries,
+        favorites: state.favorites
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -2023,12 +2215,23 @@
           added++;
         }
 
+        if (Array.isArray(obj.favorites)) {
+          const existingFav = new Set(state.favorites.map(f => f.favorite_id));
+          for (const raw of obj.favorites){
+            const f = normalizeFavorite(raw);
+            if (existingFav.has(f.favorite_id)) f.favorite_id = uuid();
+            state.favorites.push(f);
+          }
+        }
+
         if (obj.settings && typeof obj.settings === "object"){
           if (typeof obj.settings.goalEnabled === "boolean") state.settings.goalEnabled = obj.settings.goalEnabled;
           if (obj.settings.goalKcal != null && isFinite(Number(obj.settings.goalKcal))) state.settings.goalKcal = Math.round(Number(obj.settings.goalKcal));
         }
 
+        syncEntryFavoriteFlags();
         saveEntries(state.entries);
+        saveFavorites(state.favorites);
         saveSettings(state.settings);
         applyGoalUI();
         resetRecentToToday();
@@ -2206,7 +2409,9 @@
       const ok = confirm("Clear all entries? This cannot be undone.");
       if (!ok) return;
       state.entries = [];
+      state.favorites = [];
       saveEntries(state.entries);
+      saveFavorites(state.favorites);
       resetRecentToToday();
       refreshAll();
       toast("Cleared.");
@@ -2220,9 +2425,9 @@
     document.getElementById("btnSaveEntry").addEventListener("click", saveEditedEntry);
     document.getElementById("btnFavoriteEntry").addEventListener("click", toggleFavoriteEditingEntry);
     document.getElementById("btnCopyEntry").addEventListener("click", () => {
-      const e = state.entries.find(x => x.entry_id === editingEntryId);
+      const e = getEditingEntry();
       if (!e) return;
-      copyEntryItems(e);
+      copyEntryAsJson(e);
     });
     document.getElementById("btnDeleteEntry").addEventListener("click", () => {
       const ok = confirm("Delete this entry?");
@@ -2251,15 +2456,58 @@
       kcal.placeholder = "kcal";
       kcal.value = "0";
 
+      const controls = document.createElement("div");
+      controls.className = "itemrowControls";
+
+      const toggleMacros = document.createElement("button");
+      toggleMacros.className = "small";
+      toggleMacros.type = "button";
+      toggleMacros.textContent = "Macros";
+
       const del = document.createElement("button");
       del.className = "danger";
       del.type = "button";
       del.textContent = "Remove";
       del.addEventListener("click", () => row.remove());
 
+      const macrosWrap = document.createElement("div");
+      macrosWrap.className = "itemMacros hidden";
+      const p = document.createElement("input");
+      p.type = "number";
+      p.min = "0";
+      p.inputMode = "numeric";
+      p.placeholder = "Protein (g)";
+      p.className = "macroProtein";
+      p.value = "0";
+      const c = document.createElement("input");
+      c.type = "number";
+      c.min = "0";
+      c.inputMode = "numeric";
+      c.placeholder = "Carbs (g)";
+      c.className = "macroCarbs";
+      c.value = "0";
+      const f = document.createElement("input");
+      f.type = "number";
+      f.min = "0";
+      f.inputMode = "numeric";
+      f.placeholder = "Fat (g)";
+      f.className = "macroFat";
+      f.value = "0";
+      macrosWrap.appendChild(p);
+      macrosWrap.appendChild(c);
+      macrosWrap.appendChild(f);
+      toggleMacros.addEventListener("click", () => {
+        const open = macrosWrap.classList.toggle("hidden") === false;
+        toggleMacros.textContent = open ? "Hide macros" : "Macros";
+      });
+
+      controls.appendChild(toggleMacros);
+      controls.appendChild(del);
+
       row.appendChild(name);
       row.appendChild(kcal);
-      row.appendChild(del);
+      row.appendChild(controls);
+      row.appendChild(macrosWrap);
       box.appendChild(row);
       autoGrowTextarea(name);
       name.addEventListener("input", () => autoGrowTextarea(name));
@@ -2271,7 +2519,19 @@
      ***********************/
     (function init(){
       state.entries = (state.entries || []).map(normalizeEntry);
+      state.favorites = (state.favorites || []).map(normalizeFavorite);
+
+      if (!state.favorites.length){
+        const seeded = state.entries.filter(e => e.is_favorite).map(e => normalizeFavorite(Object.assign({}, e, {
+          source_entry_id: e.entry_id,
+          favorite_id: uuid()
+        })));
+        state.favorites.push(...seeded);
+      }
+
+      syncEntryFavoriteFlags();
       saveEntries(state.entries);
+      saveFavorites(state.favorites);
       applyGoalUI();
       refreshAll();
       setAddOpen(false);
