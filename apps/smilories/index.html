@@ -198,6 +198,35 @@
       text-shadow: 0 1px 0 rgba(255,255,255,0.55);
     }
 
+    #btnFavorites,
+    #btnFavoriteEntry,
+    #btnCopyEntry,
+    .favoriteCopyBtn{
+      width: 44px;
+      min-height: 40px;
+      padding: 8px;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #btnFavorites.active,
+    #btnFavoriteEntry.active{
+      background: linear-gradient(135deg, rgba(255,122,182,0.52), rgba(202,168,255,0.42));
+      border-color: rgba(255,122,182,0.76);
+      color: #0b0f19;
+      box-shadow: 0 0 0 3px rgba(255,122,182,0.18);
+    }
+
+    .favoriteList{ display:flex; flex-direction:column; gap:10px; }
+    .favoriteCard{ border:1px solid var(--line); border-radius:12px; padding:10px; background: rgba(255,255,255,0.04); }
+    .favoriteCardTop{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+    .favoriteTitle{ font-size:13px; font-weight:760; color: var(--text); }
+    .favoriteMeta,
+    .favoriteItems{ font-size:12px; color: var(--muted); white-space:pre-wrap; line-height:1.35; }
+
     .content{
       flex:1;
       padding: 14px;
@@ -660,6 +689,7 @@
           <h1>Calorie Log</h1>
         </div>
         <div class="btnrow">
+          <button class="small" id="btnFavorites" type="button" aria-pressed="false" aria-label="Show favorites">★</button>
           <button class="small pink" id="btnToggleAdd" type="button" aria-pressed="false" aria-label="Add from clipboard">+</button>
           <button class="small" id="btnOpenSettings" type="button">Settings</button>
         </div>
@@ -767,6 +797,8 @@
           <div class="mtitle" style="font-size:12px; font-weight:650; color: rgba(255,255,255,0.70); margin-top:4px;" id="modalSub">—</div>
         </div>
         <div class="btnrow">
+          <button class="small" id="btnFavoriteEntry" type="button" aria-pressed="false" aria-label="Favorite entry">★</button>
+          <button class="small" id="btnCopyEntry" type="button" aria-label="Copy entry items">⧉</button>
           <button class="small" id="btnCloseModal" type="button">Close</button>
         </div>
       </div>
@@ -831,6 +863,24 @@
       <div class="mft">
         <button class="danger" id="btnDeleteEntry" type="button">Delete</button>
         <button class="pink" id="btnSaveEntry" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVORITES MODAL -->
+  <div class="modalOverlay" id="favoritesOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="favoritesTitle">
+      <div class="mhd">
+        <div style="min-width:0;">
+          <div class="mtitle" id="favoritesTitle">Favorite entries</div>
+        </div>
+        <div class="btnrow">
+          <button class="small" id="btnCloseFavorites" type="button">Close</button>
+        </div>
+      </div>
+
+      <div class="mbd">
+        <div class="favoriteList" id="favoritesList"></div>
       </div>
     </div>
   </div>
@@ -914,6 +964,30 @@
       t.classList.add("show");
       clearTimeout(toast._timer);
       toast._timer = setTimeout(() => t.classList.remove("show"), 1600);
+    }
+
+    function formatEntryItemsForCopy(entry){
+      const items = Array.isArray(entry && entry.items) ? entry.items : [];
+      if (!items.length) return "No items";
+      return items.map(it => {
+        const name = (it && it.name ? String(it.name) : "Item").trim() || "Item";
+        const kcal = Math.max(0, Math.round(Number(it && it.kcal || 0)));
+        return `${name}: ${kcal} calories`;
+      }).join("\n");
+    }
+
+    async function copyEntryItems(entry){
+      const text = formatEntryItemsForCopy(entry);
+      try{
+        if (!navigator.clipboard || !navigator.clipboard.writeText){
+          toast("Clipboard not available.");
+          return;
+        }
+        await navigator.clipboard.writeText(text);
+        toast("Copied items.");
+      }catch(e){
+        toast("Copy blocked.");
+      }
     }
 
     function loadState(){
@@ -1007,6 +1081,7 @@
       if (!e.free_text) e.free_text = e.description || e.text || "";
       if (!Array.isArray(e.items)) e.items = [];
       if (!e.confidence) e.confidence = "medium";
+      e.is_favorite = !!e.is_favorite;
 
       const numeric = (v)=> (typeof v === "number" && isFinite(v)) ? v :
         (typeof v === "string" && v.trim() !== "" && isFinite(Number(v)) ? Number(v) : null);
@@ -1455,6 +1530,7 @@
       renderKPIs();
       renderChart();
       renderEntries();
+      updateFavoritesButtonState();
     }
 
     /***********************
@@ -1594,6 +1670,9 @@
       document.getElementById("editConfidence").value = (e.confidence || "medium");
       document.getElementById("editFreeText").value = (e.free_text || "");
       document.getElementById("editNotes").value = (e.notes || "");
+      const favBtn = document.getElementById("btnFavoriteEntry");
+      favBtn.classList.toggle("active", !!e.is_favorite);
+      favBtn.setAttribute("aria-pressed", String(!!e.is_favorite));
 
       const override = e.user_overrides && typeof e.user_overrides.total_kcal === "number" ? e.user_overrides.total_kcal : null;
       document.getElementById("editTotal").value = (override == null) ? "" : String(override);
@@ -1744,6 +1823,91 @@
         });
       }
       return out;
+    }
+
+    function toggleFavoriteEditingEntry(){
+      const e = state.entries.find(x => x.entry_id === editingEntryId);
+      if (!e) return;
+      e.is_favorite = !e.is_favorite;
+      saveEntries(state.entries);
+      const favBtn = document.getElementById("btnFavoriteEntry");
+      favBtn.classList.toggle("active", !!e.is_favorite);
+      favBtn.setAttribute("aria-pressed", String(!!e.is_favorite));
+      updateFavoritesButtonState();
+      renderFavorites();
+      toast(e.is_favorite ? "Favorited." : "Unfavorited.");
+    }
+
+    function renderFavorites(){
+      const box = document.getElementById("favoritesList");
+      box.innerHTML = "";
+      const favorites = entriesSortedDesc(state.entries).filter(e => e.is_favorite);
+      if (!favorites.length){
+        const empty = document.createElement("div");
+        empty.className = "favoriteMeta";
+        empty.textContent = "No favorites yet.";
+        box.appendChild(empty);
+        return;
+      }
+
+      for (const e of favorites){
+        const card = document.createElement("div");
+        card.className = "favoriteCard";
+
+        const top = document.createElement("div");
+        top.className = "favoriteCardTop";
+
+        const title = document.createElement("div");
+        title.className = "favoriteTitle";
+        title.textContent = (e.free_text && e.free_text.trim()) ? e.free_text.trim() : (e.meal_label || "meal");
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "small favoriteCopyBtn";
+        copyBtn.type = "button";
+        copyBtn.textContent = "⧉";
+        copyBtn.setAttribute("aria-label", "Copy favorite entry items");
+        copyBtn.addEventListener("click", () => copyEntryItems(e));
+
+        top.appendChild(title);
+        top.appendChild(copyBtn);
+
+        const meta = document.createElement("div");
+        meta.className = "favoriteMeta";
+        meta.textContent = `${formatDateShort(e.created_at)} • ${formatTimeShort(e.created_at)}`;
+
+        const items = document.createElement("div");
+        items.className = "favoriteItems";
+        items.textContent = formatEntryItemsForCopy(e);
+
+        card.appendChild(top);
+        card.appendChild(meta);
+        card.appendChild(items);
+        box.appendChild(card);
+      }
+    }
+
+    function updateFavoritesButtonState(){
+      const btn = document.getElementById("btnFavorites");
+      const hasFavorites = state.entries.some(e => e.is_favorite);
+      btn.classList.toggle("active", hasFavorites);
+      btn.setAttribute("aria-pressed", String(hasFavorites));
+    }
+
+    function openFavorites(){
+      if (document.getElementById("modalOverlay").classList.contains("show")) closeEditModal();
+      if (document.getElementById("settingsOverlay").classList.contains("show")) closeSettings();
+      renderFavorites();
+      const overlay = document.getElementById("favoritesOverlay");
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden", "false");
+      lockBody();
+    }
+
+    function closeFavorites(){
+      const overlay = document.getElementById("favoritesOverlay");
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden", "true");
+      unlockBody();
     }
 
     function saveEditedEntry(){
@@ -1926,6 +2090,7 @@
     });
 
     document.getElementById("btnToggleAdd").addEventListener("click", addFromClipboard);
+    document.getElementById("btnFavorites").addEventListener("click", openFavorites);
 
     document.getElementById("btnPasteClipboard").addEventListener("click", pasteFromClipboard);
     document.getElementById("btnAddEntry").addEventListener("click", handleAdd);
@@ -1984,6 +2149,10 @@
     document.getElementById("settingsOverlay").addEventListener("click", (ev) => {
       if (ev.target.id === "settingsOverlay") closeSettings();
     });
+    document.getElementById("btnCloseFavorites").addEventListener("click", closeFavorites);
+    document.getElementById("favoritesOverlay").addEventListener("click", (ev) => {
+      if (ev.target.id === "favoritesOverlay") closeFavorites();
+    });
 
     // Goal toggle (settings)
     const goalSwitch = document.getElementById("goalSwitch");
@@ -2035,6 +2204,12 @@
       if (ev.target.id === "modalOverlay") closeEditModal();
     });
     document.getElementById("btnSaveEntry").addEventListener("click", saveEditedEntry);
+    document.getElementById("btnFavoriteEntry").addEventListener("click", toggleFavoriteEditingEntry);
+    document.getElementById("btnCopyEntry").addEventListener("click", () => {
+      const e = state.entries.find(x => x.entry_id === editingEntryId);
+      if (!e) return;
+      copyEntryItems(e);
+    });
     document.getElementById("btnDeleteEntry").addEventListener("click", () => {
       const ok = confirm("Delete this entry?");
       if (!ok) return;
