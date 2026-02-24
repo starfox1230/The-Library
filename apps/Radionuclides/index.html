@@ -103,6 +103,13 @@
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 0.75rem;
     }
+    .additional-grid.hidden { display: none; }
+    .additional-grid {
+      margin-top: 0.75rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem;
+    }
     .additional-thumb {
       width: 100%; height: auto; border-radius: var(--border-radius-sm);
       border: 1px solid rgba(0,255,156,0.15);
@@ -146,6 +153,14 @@
       width: 100%;
       max-width: 100%;
       margin-bottom: 0.5rem;
+    }
+    .result-item .additional-controls {
+      margin: 0.5rem 0;
+    }
+    .result-item .additional-status {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #cfd3d6;
     }
     .filters {
       display: grid;
@@ -314,6 +329,7 @@
 
     // Cache which slug we've loaded (avoid reloading if user toggles)
     let loadedSlug = null;
+    const searchAdditionalCache = new Map();
 
     const decayFilterEl = document.getElementById("decay-filter");
     const photonFilterEl = document.getElementById("photon-filter");
@@ -583,19 +599,68 @@
           })
           .sort((a, b) => a.name.localeCompare(b.name))
           .forEach(item => {
+            const slug = getSlugFromPath(item.file);
             const div = document.createElement('div');
             div.className = 'result-item';
             div.innerHTML = `
               <h3>${item.name}</h3>
               <img src="./${item.file}" alt="${item.name}" class="expandable-image"/>
+              <div class="controls additional-controls">
+                <button type="button" class="search-additional-btn" data-slug="${slug}">Show additional images</button>
+              </div>
+              <div class="additional-grid hidden" id="search-additional-${slug}"></div>
+              <div class="additional-status" id="search-additional-status-${slug}" aria-live="polite"></div>
               <p><strong>Production:</strong> ${item.production}</p>
               <p><strong>Decay:</strong> ${item.decay}</p>
               <p><strong>Photons:</strong> ${item.photons}</p>
               <p><strong>Half-life:</strong> ${item.halfLife}</p>
               <p><strong>Notes:</strong> ${item.notes || NOTES_FALLBACK}</p>
             `;
+            const btn = div.querySelector('.search-additional-btn');
+            const grid = div.querySelector(`#search-additional-${slug}`);
+            const status = div.querySelector(`#search-additional-status-${slug}`);
+            btn.addEventListener('click', () => toggleSearchAdditionalImages(slug, btn, grid, status));
             out.appendChild(div);
           });
+    }
+
+    async function toggleSearchAdditionalImages(slug, buttonEl, gridEl, statusEl) {
+      if (!gridEl.classList.contains("hidden")) {
+        gridEl.classList.add("hidden");
+        buttonEl.textContent = "Show additional images";
+        return;
+      }
+
+      let files = searchAdditionalCache.get(slug);
+      if (!files) {
+        buttonEl.disabled = true;
+        buttonEl.textContent = "Loading…";
+        statusEl.textContent = "";
+        files = await resolveAdditionalFilenames(slug);
+        searchAdditionalCache.set(slug, files || []);
+      }
+
+      gridEl.innerHTML = "";
+      if (!files || files.length === 0) {
+        statusEl.textContent = "No additional images available.";
+        buttonEl.disabled = false;
+        buttonEl.textContent = "Show additional images";
+        return;
+      }
+
+      statusEl.textContent = "";
+      for (const file of files) {
+        const src = joinEncodedPath([ADDITIONAL_DIR_NAME, slug, file]);
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = `${slug} additional`;
+        img.className = "additional-thumb";
+        gridEl.appendChild(img);
+      }
+
+      gridEl.classList.remove("hidden");
+      buttonEl.disabled = false;
+      buttonEl.textContent = "Hide additional images";
     }
 
     /* ===============================
