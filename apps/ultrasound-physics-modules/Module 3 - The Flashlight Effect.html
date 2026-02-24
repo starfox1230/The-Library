@@ -1,68 +1,450 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Module 3 - The Flashlight Effect</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #111827; color: #e5e7eb; }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 20px; }
-    .scene { position: relative; height: 350px; border-radius: 12px; background: #1f2937; overflow: hidden; margin-top: 16px; border: 1px solid #374151; }
-    .probe { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 86px; height: 40px; border-radius: 0 0 12px 12px; background: #9ca3af; }
-    .beam { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); height: 250px; border-radius: 50%; transition: all 0.18s ease; }
-    input[type="range"] { width: 100%; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Flashlight Effect: Ultrasound Intensity</title>
+    <style>
+        :root {
+            --bg-page: #f4f6f8;
+            --bg-card: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --accent: #3182ce;
+            --accent-hover: #2b6cb0;
+            --vis-bg: #1a202c;
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .module-container {
+            background-color: var(--bg-card);
+            max-width: 900px;
+            width: 100%;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2b6cb0, #3182ce);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .interactive-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .control-group {
+            background: var(--bg-page);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .value-badge {
+            background: var(--accent);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .equation-box {
+            background: #ebf8ff;
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            font-size: 1.1rem;
+        }
+
+        .formula {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 15px;
+            color: var(--accent-hover);
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .fraction {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .numerator {
+            border-bottom: 2px solid var(--text-main);
+            padding-bottom: 2px;
+            width: 100%;
+        }
+
+        .denominator {
+            padding-top: 2px;
+            width: 100%;
+        }
+
+        .visualization-panel {
+            background: var(--vis-bg);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.5);
+            min-height: 300px;
+        }
+
+        /* Elements inside the visualizer */
+        .probe {
+            position: absolute;
+            left: 20px;
+            width: 40px;
+            height: 80px;
+            background: #4a5568;
+            border-radius: 8px;
+            border-right: 4px solid #718096;
+            z-index: 10;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .probe::after {
+            content: '';
+            position: absolute;
+            left: -20px;
+            width: 20px;
+            height: 10px;
+            background: #2d3748;
+        }
+
+        .beam-container {
+            position: absolute;
+            left: 60px; /* Right next to the probe */
+            top: 0;
+            bottom: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .beam {
+            width: 100%;
+            height: 100%;
+            transform-origin: left center;
+            transition: all 0.1s ease-out;
+            /* Default clip-path (will be overridden by JS) */
+            clip-path: polygon(0 40%, 100% 20%, 100% 80%, 0 60%);
+        }
+
+        .target-area {
+            position: absolute;
+            right: 20px;
+            height: 100%;
+            width: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .target-line {
+            width: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            height: 60%; /* Will update dynamically */
+            transition: height 0.1s ease-out;
+        }
+
+        .live-intensity-readout {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            z-index: 20;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .educational-note {
+            grid-column: 1 / -1;
+            background: #fffaf0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ed8936;
+            font-size: 0.95rem;
+            color: #7b341e;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <h2>Module 3: The Flashlight Effect (Intensity = Power / Area)</h2>
 
-    <label for="power">Power Output (Watts): <strong id="powerValue">20</strong></label>
-    <input id="power" type="range" min="5" max="100" value="20" />
+    <div class="module-container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1>The Flashlight Effect</h1>
+            <p>Understand how spreading or focusing energy changes its <strong>Intensity</strong>. Discover why beam area is a critical factor in ultrasound bioeffects.</p>
+        </div>
 
-    <label for="area">Beam Area (cm²): <strong id="areaValue">20</strong></label>
-    <input id="area" type="range" min="5" max="100" value="20" />
+        <!-- Main Content Section -->
+        <div class="content">
+            
+            <!-- Left Panel: Interactive Controls & Theory -->
+            <div class="interactive-panel">
+                <div class="equation-box">
+                    <p><strong>Intensity</strong> is the concentration of power within a specific area. It tells us not just how much energy is emitted, but how densely packed that energy is.</p>
+                    <div class="formula">
+                        <span id="formula-intensity" style="color: var(--accent);">5.0</span>
+                        <span>=</span>
+                        <div class="fraction">
+                            <span class="numerator" id="formula-power">50 W</span>
+                            <span class="denominator" id="formula-area">10 cm²</span>
+                        </div>
+                    </div>
+                </div>
 
-    <p id="equation"></p>
+                <!-- Sliders -->
+                <div class="control-group">
+                    <div class="control-header">
+                        <span>Power Output (Energy)</span>
+                        <span class="value-badge" id="power-display">50 W</span>
+                    </div>
+                    <input type="range" id="power-slider" min="10" max="100" step="1" value="50">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">Adjusts the total energy entering the tissue per second.</p>
+                </div>
 
-    <div class="scene">
-      <div class="probe"></div>
-      <div id="beam" class="beam"></div>
+                <div class="control-group">
+                    <div class="control-header">
+                        <span>Beam Area (Spread)</span>
+                        <span class="value-badge" id="area-display">10 cm²</span>
+                    </div>
+                    <input type="range" id="area-slider" min="1" max="25" step="0.5" value="10">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">Adjusts how widely the energy is spread. A wider beam equals a larger area.</p>
+                </div>
+            </div>
+
+            <!-- Right Panel: Visualizer -->
+            <div class="visualization-panel">
+                <div class="probe"></div>
+                
+                <div class="beam-container">
+                    <div class="beam" id="ultrasound-beam"></div>
+                </div>
+
+                <div class="target-area">
+                    <div class="target-line" id="target-line"></div>
+                </div>
+
+                <div class="live-intensity-readout">
+                    Intensity: <strong id="intensity-readout">5.00</strong> W/cm²
+                </div>
+            </div>
+
+            <!-- Conclusion Note -->
+            <div class="educational-note">
+                <strong>Key Takeaway:</strong> Notice how increasing the <em>Area</em> makes the beam visibly dimmer (less intense), even if the <em>Power</em> stays exactly the same. In ultrasound, a tightly focused beam (small area) dramatically increases intensity, which is an important factor when considering tissue heating and safety (bioeffects).
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const powerInput = document.getElementById('power');
-    const areaInput = document.getElementById('area');
-    const powerValue = document.getElementById('powerValue');
-    const areaValue = document.getElementById('areaValue');
-    const equation = document.getElementById('equation');
-    const beam = document.getElementById('beam');
+    <!-- Interactive Logic -->
+    <script>
+        // DOM Elements
+        const powerSlider = document.getElementById('power-slider');
+        const areaSlider = document.getElementById('area-slider');
+        
+        const powerDisplay = document.getElementById('power-display');
+        const areaDisplay = document.getElementById('area-display');
+        
+        const formulaPower = document.getElementById('formula-power');
+        const formulaArea = document.getElementById('formula-area');
+        const formulaIntensity = document.getElementById('formula-intensity');
+        
+        const beam = document.getElementById('ultrasound-beam');
+        const targetLine = document.getElementById('target-line');
+        const intensityReadout = document.getElementById('intensity-readout');
 
-    function updateBeam() {
-      const power = Number(powerInput.value);
-      const area = Number(areaInput.value);
-      const intensity = power / area;
+        // Function to update the simulation based on slider inputs
+        function updateSimulation() {
+            // 1. Get current values
+            const power = parseFloat(powerSlider.value);
+            const area = parseFloat(areaSlider.value);
+            
+            // 2. Calculate Intensity (W/cm²)
+            const intensity = power / area;
+            
+            // 3. Update Text Displays
+            powerDisplay.textContent = `${power} W`;
+            areaDisplay.textContent = `${area.toFixed(1)} cm²`;
+            
+            formulaPower.textContent = `${power} W`;
+            formulaArea.textContent = `${area.toFixed(1)} cm²`;
+            
+            const formattedIntensity = intensity.toFixed(2);
+            formulaIntensity.textContent = formattedIntensity;
+            intensityReadout.textContent = formattedIntensity;
 
-      powerValue.textContent = power;
-      areaValue.textContent = area;
-      equation.textContent = `Intensity = ${power.toFixed(1)} / ${area.toFixed(1)} = ${intensity.toFixed(2)} W/cm²`;
+            // 4. Update Visual Beam Shape (Area changes beam spread)
+            // Area slider is 1 to 25. 
+            // We'll map this to a percentage for the CSS clip-path polygon on the right side.
+            // Center is 50%. Top right goes up, bottom right goes down.
+            // Factor controls how visually wide the beam gets.
+            const spreadFactor = area * 1.8; 
+            const topRight = 50 - spreadFactor;
+            const bottomRight = 50 + spreadFactor;
+            
+            // The beam originates from the probe (fixed small height, e.g., 40% to 60%)
+            beam.style.clipPath = `polygon(0% 40%, 100% ${topRight}%, 100% ${bottomRight}%, 0% 60%)`;
+            
+            // Update the target line to match the beam width
+            targetLine.style.height = `${spreadFactor * 2}%`;
 
-      const width = 80 + area * 2.3;
-      const alphaCore = Math.min(0.95, 0.12 + intensity / 8);
-      const alphaMid = Math.min(0.8, alphaCore * 0.75);
+            // 5. Update Visual Beam Color/Brightness (Based on Intensity)
+            // Intensity ranges from theoretically 0.4 (10/25) to 100 (100/1).
+            // We normalize this to a 0 to 1 scale for color mapping to make it visually pleasing.
+            // A non-linear (square root) mapping prevents extreme high values from making low values look totally invisible.
+            const maxExpectedIntensity = 40; 
+            let normalizedIntensity = Math.sqrt(intensity) / Math.sqrt(maxExpectedIntensity);
+            normalizedIntensity = Math.min(Math.max(normalizedIntensity, 0), 1); // Clamp between 0 and 1
 
-      beam.style.width = `${width}px`;
-      beam.style.background = `radial-gradient(circle,
-        rgba(255,255,245,${alphaCore}) 8%,
-        rgba(253,224,71,${alphaMid}) 45%,
-        rgba(249,115,22,${alphaMid * 0.7}) 72%,
-        rgba(107,114,128,0.2) 100%)`;
-    }
+            // Color Mapping:
+            // Low intensity = Dim Orange/Grey
+            // High intensity = Bright Yellow/White
+            
+            // RGB Interpolation
+            // Low: r: 180, g: 100, b: 50
+            // High: r: 255, g: 255, b: 200
+            const r = Math.floor(180 + (75 * normalizedIntensity));
+            const g = Math.floor(100 + (155 * normalizedIntensity));
+            const b = Math.floor(50 + (150 * normalizedIntensity));
+            
+            // Opacity Interpolation (Low intensity is more transparent)
+            const alphaStart = 0.3 + (0.7 * normalizedIntensity);
+            const alphaEnd = 0.05 + (0.4 * normalizedIntensity);
 
-    powerInput.addEventListener('input', updateBeam);
-    areaInput.addEventListener('input', updateBeam);
-    updateBeam();
-  </script>
+            // Apply vibrant radial/linear gradient
+            beam.style.background = `linear-gradient(to right, rgba(255, 255, 255, ${alphaStart}), rgba(${r}, ${g}, ${b}, ${alphaEnd}))`;
+            
+            // Add a dynamic glow effect based on intensity
+            const glowStrength = normalizedIntensity * 20;
+            beam.style.filter = `drop-shadow(0px 0px ${glowStrength}px rgba(${r}, ${g}, ${b}, ${alphaStart}))`;
+            
+            // Change equation color dynamically to match
+            formulaIntensity.style.color = `rgb(${r - 50}, ${g - 50}, ${b > 100 ? b - 50 : b})`;
+        }
+
+        // Add event listeners for real-time interaction
+        powerSlider.addEventListener('input', updateSimulation);
+        areaSlider.addEventListener('input', updateSimulation);
+
+        // Run once on load to initialize visualization
+        updateSimulation();
+    </script>
 </body>
 </html>
