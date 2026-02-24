@@ -1,103 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Module 1 - The Particle Playground</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
-    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-    canvas { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; background: white; margin: 8px 0; }
-    .hint { color: #475569; font-size: 0.95rem; }
-    button { padding: 8px 14px; border-radius: 8px; border: none; background: #0ea5e9; color: white; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Particle Playground (Pressure & Amplitude)</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --panel-bg: #ffffff;
+            --text-color: #333333;
+            --accent-blue: #007bff;
+            --accent-red: #e74c3c;
+            --border-color: #e1e5eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            max-width: 900px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: #f8fafd;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        button {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 120px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 200px;
+            height: 6px;
+            background: #d3d3d3;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .visuals {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .canvas-container {
+            position: relative;
+            background-color: #fafbfc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .label {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <h2>Module 1: The Particle Playground (Pressure &amp; Amplitude)</h2>
-    <p class="hint">Top: particles (compressions / rarefactions). Bottom: matching sine wave.</p>
 
-    <div class="controls">
-      <label for="amplitude"><strong>Pressure (Amplitude):</strong> <span id="amplitudeValue">25</span> Pa</label>
-      <input id="amplitude" type="range" min="5" max="90" value="25" />
-      <button id="playPause">Play</button>
+    <div class="container">
+        <header>
+            <h1>The Particle Playground</h1>
+            <p>Observe how localized pressure changes (compressions and rarefactions) propagate through a medium. Adjust the amplitude slider to see how pressure directly translates to particle displacement and the resulting graphical sine wave.</p>
+        </header>
+
+        <div class="controls">
+            <button id="playPauseBtn">Pause</button>
+            <div class="slider-group">
+                <label for="amplitudeSlider">Pressure (Amplitude): <span id="ampValue">50</span> Pa</label>
+                <input type="range" id="amplitudeSlider" min="0" max="100" value="50">
+            </div>
+        </div>
+
+        <div class="visuals">
+            <!-- Top Half: Particle Simulation -->
+            <div class="canvas-container">
+                <div class="label">Tissue Molecules (Physical Space)</div>
+                <canvas id="particleCanvas" width="800" height="200"></canvas>
+            </div>
+            
+            <!-- Bottom Half: Sine Wave Graph -->
+            <div class="canvas-container">
+                <div class="label">Pressure Graph (Mathematical Wave)</div>
+                <canvas id="waveCanvas" width="800" height="150"></canvas>
+            </div>
+        </div>
     </div>
 
-    <canvas id="particleCanvas" width="940" height="240"></canvas>
-    <canvas id="waveCanvas" width="940" height="200"></canvas>
-  </div>
+    <script>
+        // DOM Elements
+        const particleCanvas = document.getElementById('particleCanvas');
+        const pCtx = particleCanvas.getContext('2d');
+        const waveCanvas = document.getElementById('waveCanvas');
+        const wCtx = waveCanvas.getContext('2d');
 
-  <script>
-    const particleCanvas = document.getElementById('particleCanvas');
-    const waveCanvas = document.getElementById('waveCanvas');
-    const pCtx = particleCanvas.getContext('2d');
-    const wCtx = waveCanvas.getContext('2d');
-    const amplitudeSlider = document.getElementById('amplitude');
-    const amplitudeValue = document.getElementById('amplitudeValue');
-    const playPauseBtn = document.getElementById('playPause');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const amplitudeSlider = document.getElementById('amplitudeSlider');
+        const ampValue = document.getElementById('ampValue');
 
-    let playing = false;
-    let t = 0;
+        // State Variables
+        let isPlaying = true;
+        let time = 0;
+        let amplitude = parseInt(amplitudeSlider.value);
+        
+        // Wave Physics Constants
+        const frequency = 0.04; // Spatial frequency (wave number 'k')
+        const speed = 0.08;     // Temporal frequency (angular frequency 'omega')
 
-    playPauseBtn.addEventListener('click', () => {
-      playing = !playing;
-      playPauseBtn.textContent = playing ? 'Pause' : 'Play';
-    });
+        // Initialize Particles
+        const particles = [];
+        const rows = 8;
+        const cols = 55;
+        const xSpacing = particleCanvas.width / cols;
+        const ySpacing = particleCanvas.height / (rows + 1);
 
-    function drawParticles(amplitude) {
-      pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-      const rows = 8;
-      const cols = 78;
-      const xStart = 20;
-      const spacing = 11;
-
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-          const phase = col * 0.26 - t * 5 + row * 0.18;
-          const displacement = Math.sin(phase) * amplitude * 0.22;
-          const x = xStart + col * spacing + displacement;
-          const y = 24 + row * 26;
-
-          pCtx.beginPath();
-          pCtx.arc(x, y, 2.9, 0, Math.PI * 2);
-          pCtx.fillStyle = '#2563eb';
-          pCtx.fill();
+        // Generate baseline particle grid
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j <= cols; j++) {
+                particles.push({
+                    baseX: j * xSpacing,
+                    baseY: (i + 1) * ySpacing
+                });
+            }
         }
-      }
-    }
 
-    function drawSine(amplitude) {
-      wCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-      const mid = waveCanvas.height / 2;
+        // Event Listeners
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) draw(); // restart the loop if playing
+        });
 
-      wCtx.beginPath();
-      wCtx.moveTo(0, mid);
-      wCtx.lineTo(waveCanvas.width, mid);
-      wCtx.strokeStyle = '#94a3b8';
-      wCtx.stroke();
+        amplitudeSlider.addEventListener('input', (e) => {
+            amplitude = parseInt(e.target.value);
+            ampValue.textContent = amplitude;
+            if (!isPlaying) draw(); // Update statically to show changes while paused
+        });
 
-      wCtx.beginPath();
-      for (let x = 0; x <= waveCanvas.width; x++) {
-        const y = mid - Math.sin(x * 0.017 - t * 5) * amplitude;
-        if (x === 0) wCtx.moveTo(x, y);
-        else wCtx.lineTo(x, y);
-      }
-      wCtx.strokeStyle = '#0ea5e9';
-      wCtx.lineWidth = 3;
-      wCtx.stroke();
-    }
+        // Main Drawing Loop
+        function draw() {
+            // Clear both canvases
+            pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+            wCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
 
-    function animate() {
-      if (playing) t += 0.016;
-      const amplitude = Number(amplitudeSlider.value);
-      amplitudeValue.textContent = amplitude;
-      drawParticles(amplitude);
-      drawSine(amplitude);
-      requestAnimationFrame(animate);
-    }
+            if (isPlaying) {
+                time += speed;
+            }
 
-    animate();
-  </script>
+            // 1. RENDER PARTICLES
+            // Calculate max displacement based on amplitude (0 to 100 range)
+            // Limit displacement so particles bunch up but don't completely scatter chaotically
+            const maxParticleDisplacement = xSpacing * 0.9;
+            const currentPAmp = (amplitude / 100) * maxParticleDisplacement;
+
+            pCtx.fillStyle = '#007bff'; // Blue dots
+
+            particles.forEach(p => {
+                // Wave Phase calculation: u = kx - ωt
+                const u = p.baseX * frequency - time;
+                
+                // Particles move longitudinally (left and right) following a sine wave
+                const dx = currentPAmp * Math.sin(u);
+                const x = p.baseX + dx;
+
+                pCtx.beginPath();
+                pCtx.arc(x, p.baseY, 3, 0, Math.PI * 2);
+                pCtx.fill();
+            });
+
+            // 2. RENDER GRAPH (SINE WAVE)
+            const centerY = waveCanvas.height / 2;
+            const maxWaveAmplitude = waveCanvas.height / 2 - 25; // padding
+            const currentWAmp = (amplitude / 100) * maxWaveAmplitude;
+
+            // Draw baseline (Zero Pressure / Ambient Pressure)
+            wCtx.beginPath();
+            wCtx.moveTo(0, centerY);
+            wCtx.lineTo(waveCanvas.width, centerY);
+            wCtx.strokeStyle = '#bdc3c7';
+            wCtx.lineWidth = 1;
+            wCtx.setLineDash([5, 5]);
+            wCtx.stroke();
+            wCtx.setLineDash([]); // Reset line dash
+
+            // Draw Sine Wave Graph
+            // Note: We use Math.cos to visually align graphical peaks with particle compressions.
+            // (Calculus dictates that the spatial derivative of the sin displacement yields a cos pressure wave).
+            wCtx.beginPath();
+            wCtx.strokeStyle = '#e74c3c';
+            wCtx.lineWidth = 3;
+            
+            for (let x = 0; x <= waveCanvas.width; x++) {
+                const u = x * frequency - time;
+                // Subtracting wave value because Canvas Y-coordinates increase downwards
+                const y = centerY + currentWAmp * Math.cos(u);
+                
+                if (x === 0) {
+                    wCtx.moveTo(x, y);
+                } else {
+                    wCtx.lineTo(x, y);
+                }
+            }
+            wCtx.stroke();
+
+            // Draw Y-Axis Labels
+            wCtx.fillStyle = '#7f8c8d';
+            wCtx.font = '11px sans-serif';
+            wCtx.fillText('+ Peak (Compression)', 10, centerY - maxWaveAmplitude - 5);
+            wCtx.fillText('- Low (Rarefaction)', 10, centerY + maxWaveAmplitude + 12);
+            wCtx.fillText('Baseline (0 Pa)', 10, centerY - 5);
+
+            // Loop
+            if (isPlaying) {
+                requestAnimationFrame(draw);
+            }
+        }
+
+        // Initialize first frame
+        draw();
+    </script>
 </body>
 </html>
