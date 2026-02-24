@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Module 7 - Spatial and Temporal Target Practice</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; }
+    .tab { display: none; margin-top: 12px; }
+    .tab.active { display: block; }
+    canvas { width: 100%; background: white; border-radius: 10px; }
+    .row { margin: 8px 0; }
+    #badge { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Module 7: Spatial &amp; Temporal Target Practice</h2>
+
+    <button id="showSpatial">Spatial Tab</button>
+    <button id="showTemporal">Temporal Tab</button>
+
+    <section id="spatialTab" class="tab active">
+      <div class="row">
+        Click on the bell curve. <button id="showSpatialAverage">Calculate Spatial Average</button>
+      </div>
+      <canvas id="spatialCanvas" width="940" height="300"></canvas>
+      <p id="spatialMessage"></p>
+    </section>
+
+    <section id="temporalTab" class="tab">
+      <div class="row">
+        <label>Peak line height <input id="peakLine" type="range" min="20" max="230" value="200" /></label>
+      </div>
+      <div class="row">
+        <label>Pulse-average bracket width <input id="pulseBracket" type="range" min="12" max="130" value="30" /></label>
+      </div>
+      <div class="row">
+        <label>Temporal-average bracket width <input id="temporalBracket" type="range" min="90" max="320" value="150" /></label>
+      </div>
+      <canvas id="temporalCanvas" width="940" height="300"></canvas>
+      <p id="badge"></p>
+    </section>
+  </div>
+
+  <script>
+    const showSpatial = document.getElementById('showSpatial');
+    const showTemporal = document.getElementById('showTemporal');
+    const spatialTab = document.getElementById('spatialTab');
+    const temporalTab = document.getElementById('temporalTab');
+
+    showSpatial.addEventListener('click', () => {
+      spatialTab.classList.add('active');
+      temporalTab.classList.remove('active');
+    });
+
+    showTemporal.addEventListener('click', () => {
+      temporalTab.classList.add('active');
+      spatialTab.classList.remove('active');
+    });
+
+    // Spatial section
+    const spatialCanvas = document.getElementById('spatialCanvas');
+    const sCtx = spatialCanvas.getContext('2d');
+    const spatialMessage = document.getElementById('spatialMessage');
+    const showSpatialAverageBtn = document.getElementById('showSpatialAverage');
+    let showAverageLine = false;
+
+    function bell(x) {
+      const mu = 470;
+      const sigma = 122;
+      return Math.exp(-Math.pow(x - mu, 2) / (2 * sigma * sigma));
+    }
+
+    function drawSpatial() {
+      sCtx.clearRect(0, 0, spatialCanvas.width, spatialCanvas.height);
+
+      sCtx.beginPath();
+      for (let x = 0; x <= spatialCanvas.width; x++) {
+        const y = 260 - bell(x) * 185;
+        if (x === 0) sCtx.moveTo(x, y);
+        else sCtx.lineTo(x, y);
+      }
+      sCtx.strokeStyle = '#2563eb';
+      sCtx.lineWidth = 3;
+      sCtx.stroke();
+
+      if (showAverageLine) {
+        sCtx.beginPath();
+        sCtx.moveTo(0, 170);
+        sCtx.lineTo(spatialCanvas.width, 170);
+        sCtx.strokeStyle = '#f97316';
+        sCtx.lineWidth = 2;
+        sCtx.stroke();
+      }
+    }
+
+    spatialCanvas.addEventListener('click', (event) => {
+      const rect = spatialCanvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) * (spatialCanvas.width / rect.width);
+      if (Math.abs(x - 470) < 38) {
+        spatialMessage.textContent = 'Spatial Peak Intensity';
+      } else {
+        spatialMessage.textContent = 'Off-peak spatial intensity location';
+      }
+    });
+
+    showSpatialAverageBtn.addEventListener('click', () => {
+      showAverageLine = true;
+      spatialMessage.textContent = 'Spatial Average Intensity visualized.';
+      drawSpatial();
+    });
+
+    drawSpatial();
+
+    // Temporal section
+    const temporalCanvas = document.getElementById('temporalCanvas');
+    const tCtx = temporalCanvas.getContext('2d');
+    const peakLine = document.getElementById('peakLine');
+    const pulseBracket = document.getElementById('pulseBracket');
+    const temporalBracket = document.getElementById('temporalBracket');
+    const badge = document.getElementById('badge');
+
+    function drawTemporal() {
+      tCtx.clearRect(0, 0, temporalCanvas.width, temporalCanvas.height);
+
+      tCtx.beginPath();
+      for (let x = 0; x <= temporalCanvas.width; x++) {
+        const inPulse = (x % 180) < 46;
+        const y = 230 - (inPulse ? Math.sin(((x % 180) / 46) * Math.PI) * 130 : 0);
+        if (x === 0) tCtx.moveTo(x, y);
+        else tCtx.lineTo(x, y);
+      }
+      tCtx.strokeStyle = '#22c55e';
+      tCtx.lineWidth = 2.5;
+      tCtx.stroke();
+
+      tCtx.beginPath();
+      tCtx.moveTo(0, Number(peakLine.value));
+      tCtx.lineTo(temporalCanvas.width, Number(peakLine.value));
+      tCtx.strokeStyle = '#ef4444';
+      tCtx.stroke();
+
+      tCtx.strokeStyle = '#f59e0b';
+      tCtx.strokeRect(36, 30, Number(pulseBracket.value), 56);
+
+      tCtx.strokeStyle = '#60a5fa';
+      tCtx.strokeRect(36, 102, Number(temporalBracket.value), 64);
+
+      const peakOK = Math.abs(Number(peakLine.value) - 100) < 18;
+      const pulseOK = Math.abs(Number(pulseBracket.value) - 46) < 13;
+      const temporalOK = Math.abs(Number(temporalBracket.value) - 180) < 28;
+
+      badge.textContent = `${peakOK ? '✅' : '❌'} Temporal Peak | ${pulseOK ? '✅' : '❌'} Pulse Average | ${temporalOK ? '✅' : '❌'} Temporal Average`;
+    }
+
+    [peakLine, pulseBracket, temporalBracket].forEach((input) => {
+      input.addEventListener('input', drawTemporal);
+    });
+
+    drawTemporal();
+  </script>
+</body>
+</html>
