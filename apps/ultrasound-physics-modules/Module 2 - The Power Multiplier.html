@@ -1,63 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Module 2 - The Power Multiplier</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 20px; }
-    .bars { display: flex; gap: 44px; align-items: flex-end; height: 290px; margin-top: 20px; }
-    .bar { width: 130px; border-radius: 10px 10px 0 0; color: #0f172a; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-    .pressure { background: #7dd3fc; }
-    .power { background: #fb923c; }
-    .slot { text-align: center; }
-    #math { font-size: 1.15rem; font-weight: 700; color: #0c4a6e; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Power Multiplier</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --pressure-color: #0ea5e9;
+            --pressure-glow: rgba(14, 165, 233, 0.5);
+            --power-color: #f59e0b;
+            --power-glow: rgba(245, 158, 11, 0.5);
+            --track-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        header {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #38bdf8, #fcd34d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .formula {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .visualization {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 80px;
+            height: 350px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--track-color);
+        }
+
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 120px;
+        }
+
+        .bar-container {
+            width: 80px;
+            height: 250px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            border-radius: 10px;
+            transition: height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .pressure-bar {
+            background: linear-gradient(to top, #0284c7, #38bdf8);
+            box-shadow: 0 0 20px var(--pressure-glow);
+        }
+
+        .power-bar {
+            background: linear-gradient(to top, #ea580c, #fbbf24);
+            box-shadow: 0 0 20px var(--power-glow);
+        }
+
+        .bar-label {
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+        }
+
+        .val-badge {
+            display: block;
+            margin-top: 5px;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .pressure-text { color: var(--pressure-color); }
+        .power-text { color: var(--power-color); }
+
+        .interactive-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .math-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: #0f172a;
+            padding: 15px 30px;
+            border-radius: 16px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            letter-spacing: 1px;
+        }
+
+        .slider-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .slider-label {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--track-color);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .slider-ticks {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .visualization { gap: 40px; }
+            .math-display { font-size: 1.3rem; }
+            h1 { font-size: 1.8rem; }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <h2>Module 2: The Power Multiplier (Power ∝ Pressure²)</h2>
 
-    <label for="pressure"><strong>Pressure Amplitude:</strong> <span id="pressureValue">1</span></label>
-    <input id="pressure" type="range" min="1" max="5" value="1" />
+    <div class="app-container">
+        <header>
+            <h1>The Power Multiplier</h1>
+            <p class="subtitle">See how Power reacts when Pressure changes.<br>It doesn't just grow—it <strong>multiplies by itself!</strong></p>
+            <div class="formula">Power &prop; Pressure&sup2;</div>
+        </header>
 
-    <p id="math"></p>
+        <div class="visualization">
+            <div class="bar-wrapper">
+                <div class="bar-container">
+                    <div class="bar pressure-bar" id="pressureBar"></div>
+                </div>
+                <div class="bar-label">
+                    PRESSURE
+                    <span class="val-badge pressure-text" id="pressureVal">1</span>
+                </div>
+            </div>
 
-    <div class="bars">
-      <div class="slot">
-        <div id="pressureBar" class="bar pressure" style="height: 40px;">1</div>
-        <p><strong>Pressure</strong></p>
-      </div>
-      <div class="slot">
-        <div id="powerBar" class="bar power" style="height: 40px;">1</div>
-        <p><strong>Power</strong></p>
-      </div>
+            <div class="bar-wrapper">
+                <div class="bar-container">
+                    <div class="bar power-bar" id="powerBar"></div>
+                </div>
+                <div class="bar-label">
+                    POWER
+                    <span class="val-badge power-text" id="powerVal">1</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="interactive-section">
+            <div class="math-display" id="mathDisplay">
+                <span class="pressure-text">1</span> &rarr; <span class="pressure-text">1</span>&sup2; = <span class="power-text">1</span>
+            </div>
+
+            <div class="slider-container">
+                <label for="pressureSlider" class="slider-label">Adjust Pressure Amplitude</label>
+                <input type="range" id="pressureSlider" min="1" max="5" step="1" value="1">
+                <div class="slider-ticks">
+                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const pressureSlider = document.getElementById('pressure');
-    const pressureValue = document.getElementById('pressureValue');
-    const pressureBar = document.getElementById('pressureBar');
-    const powerBar = document.getElementById('powerBar');
-    const mathText = document.getElementById('math');
+    <script>
+        // DOM Elements
+        const slider = document.getElementById('pressureSlider');
+        const pressureBar = document.getElementById('pressureBar');
+        const powerBar = document.getElementById('powerBar');
+        const pressureVal = document.getElementById('pressureVal');
+        const powerVal = document.getElementById('powerVal');
+        const mathDisplay = document.getElementById('mathDisplay');
 
-    function update() {
-      const pressure = Number(pressureSlider.value);
-      const power = pressure * pressure;
+        // Maximum values for percentage calculation
+        const MAX_PRESSURE = 5;
+        const MAX_POWER = 25; // Because 5^2 = 25
 
-      pressureValue.textContent = pressure;
-      pressureBar.style.height = `${pressure * 45}px`;
-      powerBar.style.height = `${power * 18}px`;
+        function updateVisualization() {
+            // Get current slider value
+            const p = parseInt(slider.value, 10);
+            
+            // Calculate Power (Pressure squared)
+            const power = p * p;
 
-      pressureBar.textContent = pressure;
-      powerBar.textContent = power;
-      mathText.textContent = `Amplitude = ${pressure} → Power = ${pressure}² = ${power}`;
-    }
+            // Calculate heights as percentages
+            const pressureHeightPercent = (p / MAX_PRESSURE) * 100;
+            const powerHeightPercent = (power / MAX_POWER) * 100;
 
-    pressureSlider.addEventListener('input', update);
-    update();
-  </script>
+            // Update DOM Styles (Bar Heights)
+            pressureBar.style.height = `${pressureHeightPercent}%`;
+            powerBar.style.height = `${powerHeightPercent}%`;
+
+            // Update DOM Text (Labels)
+            pressureVal.innerText = p;
+            powerVal.innerText = power;
+
+            // Update Dynamic Math Text
+            mathDisplay.innerHTML = `Amplitude = <span class="pressure-text">${p}</span> &rarr; Power = <span class="pressure-text">${p}</span>&sup2; = <span class="power-text">${power}</span>`;
+        }
+
+        // Listen for slider movement
+        slider.addEventListener('input', updateVisualization);
+
+        // Initialize visualization on page load
+        updateVisualization();
+    </script>
 </body>
 </html>
