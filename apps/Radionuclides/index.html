@@ -324,8 +324,9 @@
 
     // Config
     const ADDITIONAL_DIR_NAME = "additional images"; // folder at same level as index.html
-    const ADDITIONAL_EXTS = [".jpg", ".jpeg", ".png"];
-    const PROBE_MAX = 24; // numerical probing fallback if no manifest
+    const ADDITIONAL_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+    const GITHUB_CONTENTS_API_BASE = "https://api.github.com/repos/starfox1230/The-Library/contents";
+    const GITHUB_REF_CANDIDATES = ["gh-pages", "main", "master"];
 
     // Cache which slug we've loaded (avoid reloading if user toggles)
     let loadedSlug = null;
@@ -755,29 +756,21 @@
     }
 
     async function resolveAdditionalFilenames(slug) {
-      // 1) Try per-folder manifest: ./additional images/<slug>/manifest.json  (["a.jpg","b.png"])
-      let list = await fetchJsonMaybe(joinEncodedPath([ADDITIONAL_DIR_NAME, slug, "manifest.json"]));
-      if (Array.isArray(list)) return list.filter(isAllowedExt);
+      const folderPath = `${ADDITIONAL_DIR_NAME}/${slug}`;
 
-      // 2) Try per-folder index.json
-      list = await fetchJsonMaybe(joinEncodedPath([ADDITIONAL_DIR_NAME, slug, "index.json"]));
-      if (Array.isArray(list)) return list.filter(isAllowedExt);
-
-      // 3) Try root index mapping: ./additional images/index.json  ({ "co-57": ["x.jpg","y.png"] })
-      const rootMap = await fetchJsonMaybe(joinEncodedPath([ADDITIONAL_DIR_NAME, "index.json"]));
-      if (rootMap && Array.isArray(rootMap[slug])) {
-        return rootMap[slug].filter(isAllowedExt);
+      for (const ref of GITHUB_REF_CANDIDATES) {
+        const apiPath = folderPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+        const url = `${GITHUB_CONTENTS_API_BASE}/${apiPath}?ref=${encodeURIComponent(ref)}`;
+        const list = await fetchJsonMaybe(url);
+        if (Array.isArray(list)) {
+          return list
+            .filter(item => item && item.type === "file" && isAllowedExt(item.name))
+            .map(item => item.name)
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+        }
       }
 
-      // 4) No manifest: probe common filenames numerically
-      const guesses = buildFilenameGuesses(slug);
-      const found = [];
-      // Probe sequentially (stop after collecting some to reduce requests)
-      for (const guess of guesses) {
-        const ok = await probeImageExists(joinEncodedPath([ADDITIONAL_DIR_NAME, slug, guess]));
-        if (ok) found.push(guess);
-      }
-      return found;
+      return [];
     }
 
     function isAllowedExt(name) {
@@ -793,44 +786,6 @@
       } catch {
         return null;
       }
-    }
-
-    function buildFilenameGuesses(slug) {
-      const out = [];
-      // 1..PROBE_MAX with no prefix
-      for (let i=1; i<=PROBE_MAX; i++) {
-        for (const ext of ADDITIONAL_EXTS) out.push(`${i}${ext}`);
-      }
-      // zero-padded 01..PROBE_MAX
-      for (let i=1; i<=PROBE_MAX; i++) {
-        const z = String(i).padStart(2,"0");
-        for (const ext of ADDITIONAL_EXTS) out.push(`${z}${ext}`);
-      }
-      // imgN / imageN
-      for (let i=1; i<=PROBE_MAX; i++) {
-        for (const ext of ADDITIONAL_EXTS) {
-          out.push(`img${i}${ext}`);
-          out.push(`image${i}${ext}`);
-        }
-      }
-      // slug-1..N
-      for (let i=1; i<=PROBE_MAX; i++) {
-        for (const ext of ADDITIONAL_EXTS) out.push(`${slug}-${i}${ext}`);
-      }
-      return out;
-    }
-
-    function probeImageExists(url) {
-      return new Promise(resolve => {
-        const img = new Image();
-        let done = false;
-        const finish = ok => { if (!done) { done = true; resolve(ok); } };
-        img.onload = () => finish(true);
-        img.onerror = () => finish(false);
-        img.src = url + `?v=${Date.now()}`; // bust cache
-        // Failsafe timeout
-        setTimeout(() => finish(false), 4000);
-      });
     }
 
     /* ===============================
