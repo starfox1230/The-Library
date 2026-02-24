@@ -771,6 +771,11 @@
         }
       }
 
+      const listedFiles = await probeLocalDirectoryListing(slug);
+      if (listedFiles.length > 0) {
+        return listedFiles;
+      }
+
       // Fallback for local/offline usage where directory listing APIs are unavailable.
       // We probe for numbered files (1.png, 2.jpg, etc.), which is how these folders are organized.
       return await probeLocalAdditionalFilenames(slug);
@@ -814,6 +819,25 @@
       return found;
     }
 
+    async function probeLocalDirectoryListing(slug) {
+      const listingUrl = joinEncodedPath([ADDITIONAL_DIR_NAME, slug]) + "/";
+      const response = await fetchTextMaybe(listingUrl);
+      if (!response) return [];
+
+      const fileNames = [];
+      const regex = /href=["']([^"']+)["']/gi;
+      let match;
+      while ((match = regex.exec(response)) !== null) {
+        const href = decodeURIComponent(match[1] || "");
+        const cleaned = href.split(/[?#]/)[0];
+        const baseName = cleaned.split('/').pop() || "";
+        if (!baseName || !isAllowedExt(baseName)) continue;
+        if (!fileNames.includes(baseName)) fileNames.push(baseName);
+      }
+
+      return fileNames.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+    }
+
     function canLoadImage(src) {
       return new Promise(resolve => {
         const testImg = new Image();
@@ -828,6 +852,16 @@
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) return null;
         return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchTextMaybe(url) {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) return null;
+        return await res.text();
       } catch {
         return null;
       }
