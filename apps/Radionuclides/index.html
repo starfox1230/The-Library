@@ -330,6 +330,7 @@
     // Cache which slug we've loaded (avoid reloading if user toggles)
     let loadedSlug = null;
     const searchAdditionalCache = new Map();
+    const additionalFilesCache = new Map();
 
     const decayFilterEl = document.getElementById("decay-filter");
     const photonFilterEl = document.getElementById("photon-filter");
@@ -392,17 +393,17 @@
       if (event?.target?.blur) event.target.blur();
     }
 
-    function toggleHint(event) {
+    async function toggleHint(event) {
       hintEl.classList.toggle("hidden");
 
-      // When hint becomes visible, reveal the "additional images" button under it
+      // When hint becomes visible, only show additional controls if images exist for this radionuclide
       if (!hintEl.classList.contains("hidden")) {
-        additionalControlsEl.classList.remove("hidden");
         additionalGridEl.classList.add("hidden");
         additionalGridEl.innerHTML = "";
         additionalStatusEl.textContent = "";
         additionalBtnEl.textContent = "Show additional images";
         loadedSlug = null; // force fresh load for the current item
+        await updateFlashcardAdditionalControls();
       } else {
         additionalControlsEl.classList.add("hidden");
         additionalGridEl.classList.add("hidden");
@@ -598,16 +599,18 @@
             return matchesName && matchesDecay && matchesPhoton && matchesHalfLife;
           })
           .sort((a, b) => a.name.localeCompare(b.name))
-          .forEach(item => {
+          .forEach(async item => {
             const slug = getSlugFromPath(item.file);
             const div = document.createElement('div');
             div.className = 'result-item';
+            const hasAdditional = await slugHasAdditionalImages(slug);
             div.innerHTML = `
               <h3>${item.name}</h3>
               <img src="./${item.file}" alt="${item.name}" class="expandable-image"/>
+              ${hasAdditional ? `
               <div class="controls additional-controls">
                 <button type="button" class="search-additional-btn" data-slug="${slug}">Show additional images</button>
-              </div>
+              </div>` : ""}
               <div class="additional-grid hidden" id="search-additional-${slug}"></div>
               <div class="additional-status" id="search-additional-status-${slug}" aria-live="polite"></div>
               <p><strong>Production:</strong> ${item.production}</p>
@@ -619,9 +622,33 @@
             const btn = div.querySelector('.search-additional-btn');
             const grid = div.querySelector(`#search-additional-${slug}`);
             const status = div.querySelector(`#search-additional-status-${slug}`);
-            btn.addEventListener('click', () => toggleSearchAdditionalImages(slug, btn, grid, status));
+            if (btn) {
+              btn.addEventListener('click', () => toggleSearchAdditionalImages(slug, btn, grid, status));
+            }
             out.appendChild(div);
           });
+    }
+
+
+    async function getAdditionalFiles(slug) {
+      if (additionalFilesCache.has(slug)) {
+        return additionalFilesCache.get(slug);
+      }
+      const files = await resolveAdditionalFilenames(slug);
+      const safeFiles = Array.isArray(files) ? files : [];
+      additionalFilesCache.set(slug, safeFiles);
+      return safeFiles;
+    }
+
+    async function slugHasAdditionalImages(slug) {
+      const files = await getAdditionalFiles(slug);
+      return files.length > 0;
+    }
+
+    async function updateFlashcardAdditionalControls() {
+      const slug = getSlugFromPath(current.img);
+      const hasAdditional = await slugHasAdditionalImages(slug);
+      additionalControlsEl.classList.toggle("hidden", !hasAdditional);
     }
 
     async function toggleSearchAdditionalImages(slug, buttonEl, gridEl, statusEl) {
@@ -636,7 +663,7 @@
         buttonEl.disabled = true;
         buttonEl.textContent = "Loading…";
         statusEl.textContent = "";
-        files = await resolveAdditionalFilenames(slug);
+        files = await getAdditionalFiles(slug);
         searchAdditionalCache.set(slug, files || []);
       }
 
@@ -701,7 +728,7 @@
       additionalGridEl.innerHTML = "";
       additionalStatusEl.textContent = "";
 
-      const files = await resolveAdditionalFilenames(slug);
+      const files = await getAdditionalFiles(slug);
 
       if (!files || files.length === 0) {
         additionalStatusEl.textContent = "No additional images available.";
@@ -730,15 +757,15 @@
     async function resolveAdditionalFilenames(slug) {
       // 1) Try per-folder manifest: ./additional images/<slug>/manifest.json  (["a.jpg","b.png"])
       let list = await fetchJsonMaybe(joinEncodedPath([ADDITIONAL_DIR_NAME, slug, "manifest.json"]));
-      if (Array.isArray(list) && list.length) return list.filter(isAllowedExt);
+      if (Array.isArray(list)) return list.filter(isAllowedExt);
 
       // 2) Try per-folder index.json
       list = await fetchJsonMaybe(joinEncodedPath([ADDITIONAL_DIR_NAME, slug, "index.json"]));
-      if (Array.isArray(list) && list.length) return list.filter(isAllowedExt);
+      if (Array.isArray(list)) return list.filter(isAllowedExt);
 
       // 3) Try root index mapping: ./additional images/index.json  ({ "co-57": ["x.jpg","y.png"] })
       const rootMap = await fetchJsonMaybe(joinEncodedPath([ADDITIONAL_DIR_NAME, "index.json"]));
-      if (rootMap && Array.isArray(rootMap[slug]) && rootMap[slug].length) {
+      if (rootMap && Array.isArray(rootMap[slug])) {
         return rootMap[slug].filter(isAllowedExt);
       }
 
