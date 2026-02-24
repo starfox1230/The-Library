@@ -325,6 +325,7 @@
     // Config
     const ADDITIONAL_DIR_NAME = "additional images"; // folder at same level as index.html
     const ADDITIONAL_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+    const ADDITIONAL_IMAGE_PROBE_LIMIT = 20;
     const GITHUB_CONTENTS_API_BASE = "https://api.github.com/repos/starfox1230/The-Library/contents";
     const GITHUB_REF_CANDIDATES = ["gh-pages", "main", "master"];
 
@@ -770,12 +771,56 @@
         }
       }
 
-      return [];
+      // Fallback for local/offline usage where directory listing APIs are unavailable.
+      // We probe for numbered files (1.png, 2.jpg, etc.), which is how these folders are organized.
+      return await probeLocalAdditionalFilenames(slug);
     }
 
     function isAllowedExt(name) {
       const lower = name.toLowerCase();
       return ADDITIONAL_EXTS.some(ext => lower.endsWith(ext));
+    }
+
+    async function probeLocalAdditionalFilenames(slug) {
+      const found = [];
+
+      for (let index = 1; index <= ADDITIONAL_IMAGE_PROBE_LIMIT; index += 1) {
+        let fileFoundForIndex = false;
+
+        for (const ext of ADDITIONAL_EXTS) {
+          const filename = `${index}${ext}`;
+          const src = joinEncodedPath([ADDITIONAL_DIR_NAME, slug, filename]);
+
+          // eslint-disable-next-line no-await-in-loop
+          if (await canLoadImage(src)) {
+            found.push(filename);
+            fileFoundForIndex = true;
+            break;
+          }
+        }
+
+        if (!fileFoundForIndex && found.length > 0) {
+          // Additional images are stored in numbered order (1,2,3...).
+          // Stop at first gap once we've already found at least one image.
+          break;
+        }
+
+        if (!fileFoundForIndex && index > 3 && found.length === 0) {
+          // If we did not even find 1-3, stop early to avoid unnecessary probes.
+          break;
+        }
+      }
+
+      return found;
+    }
+
+    function canLoadImage(src) {
+      return new Promise(resolve => {
+        const testImg = new Image();
+        testImg.onload = () => resolve(true);
+        testImg.onerror = () => resolve(false);
+        testImg.src = src;
+      });
     }
 
     async function fetchJsonMaybe(url) {
