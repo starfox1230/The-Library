@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Module 6 - Wave Interference Sandbox</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    canvas { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; background: white; }
+    #status { font-weight: 700; min-height: 1.4rem; }
+    input[type="range"] { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Module 6: Wave Interference Sandbox</h2>
+
+    <label for="phase">Wave B phase shift: <strong id="phaseValue">0.00</strong> rad</label>
+    <input id="phase" type="range" min="-3.14" max="3.14" step="0.01" value="0" />
+
+    <p id="status"></p>
+    <canvas id="canvas" width="940" height="380"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const phaseSlider = document.getElementById('phase');
+    const phaseValue = document.getElementById('phaseValue');
+    const status = document.getElementById('status');
+
+    function drawWave(yMid, color, fn) {
+      ctx.beginPath();
+      for (let x = 0; x <= canvas.width; x++) {
+        const y = yMid + fn(x);
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    function render() {
+      const phase = Number(phaseSlider.value);
+      phaseValue.textContent = phase.toFixed(2);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const A = 34;
+      const k = 0.028;
+
+      drawWave(72, '#ef4444', (x) => Math.sin(x * k) * A);
+      drawWave(190, '#22c55e', (x) => Math.sin(x * k + phase) * A);
+      drawWave(310, '#2563eb', (x) => (Math.sin(x * k) + Math.sin(x * k + phase)) * A);
+
+      if (Math.abs(phase) < 0.22) {
+        status.textContent = 'Constructive Interference!';
+        status.style.color = '#15803d';
+      } else if (Math.abs(Math.abs(phase) - Math.PI) < 0.22) {
+        status.textContent = 'Destructive Interference!';
+        status.style.color = '#b91c1c';
+      } else {
+        status.textContent = 'Partial interference';
+        status.style.color = '#334155';
+      }
+    }
+
+    phaseSlider.addEventListener('input', render);
+    render();
+  </script>
+</body>
+</html>

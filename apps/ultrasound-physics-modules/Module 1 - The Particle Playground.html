@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Module 1 - The Particle Playground</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    canvas { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; background: white; margin: 8px 0; }
+    .hint { color: #475569; font-size: 0.95rem; }
+    button { padding: 8px 14px; border-radius: 8px; border: none; background: #0ea5e9; color: white; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Module 1: The Particle Playground (Pressure &amp; Amplitude)</h2>
+    <p class="hint">Top: particles (compressions / rarefactions). Bottom: matching sine wave.</p>
+
+    <div class="controls">
+      <label for="amplitude"><strong>Pressure (Amplitude):</strong> <span id="amplitudeValue">25</span> Pa</label>
+      <input id="amplitude" type="range" min="5" max="90" value="25" />
+      <button id="playPause">Play</button>
+    </div>
+
+    <canvas id="particleCanvas" width="940" height="240"></canvas>
+    <canvas id="waveCanvas" width="940" height="200"></canvas>
+  </div>
+
+  <script>
+    const particleCanvas = document.getElementById('particleCanvas');
+    const waveCanvas = document.getElementById('waveCanvas');
+    const pCtx = particleCanvas.getContext('2d');
+    const wCtx = waveCanvas.getContext('2d');
+    const amplitudeSlider = document.getElementById('amplitude');
+    const amplitudeValue = document.getElementById('amplitudeValue');
+    const playPauseBtn = document.getElementById('playPause');
+
+    let playing = false;
+    let t = 0;
+
+    playPauseBtn.addEventListener('click', () => {
+      playing = !playing;
+      playPauseBtn.textContent = playing ? 'Pause' : 'Play';
+    });
+
+    function drawParticles(amplitude) {
+      pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+      const rows = 8;
+      const cols = 78;
+      const xStart = 20;
+      const spacing = 11;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const phase = col * 0.26 - t * 5 + row * 0.18;
+          const displacement = Math.sin(phase) * amplitude * 0.22;
+          const x = xStart + col * spacing + displacement;
+          const y = 24 + row * 26;
+
+          pCtx.beginPath();
+          pCtx.arc(x, y, 2.9, 0, Math.PI * 2);
+          pCtx.fillStyle = '#2563eb';
+          pCtx.fill();
+        }
+      }
+    }
+
+    function drawSine(amplitude) {
+      wCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+      const mid = waveCanvas.height / 2;
+
+      wCtx.beginPath();
+      wCtx.moveTo(0, mid);
+      wCtx.lineTo(waveCanvas.width, mid);
+      wCtx.strokeStyle = '#94a3b8';
+      wCtx.stroke();
+
+      wCtx.beginPath();
+      for (let x = 0; x <= waveCanvas.width; x++) {
+        const y = mid - Math.sin(x * 0.017 - t * 5) * amplitude;
+        if (x === 0) wCtx.moveTo(x, y);
+        else wCtx.lineTo(x, y);
+      }
+      wCtx.strokeStyle = '#0ea5e9';
+      wCtx.lineWidth = 3;
+      wCtx.stroke();
+    }
+
+    function animate() {
+      if (playing) t += 0.016;
+      const amplitude = Number(amplitudeSlider.value);
+      amplitudeValue.textContent = amplitude;
+      drawParticles(amplitude);
+      drawSine(amplitude);
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

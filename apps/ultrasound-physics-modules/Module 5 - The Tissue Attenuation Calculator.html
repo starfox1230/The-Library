@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Module 5 - Tissue Attenuation Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    .row { margin: 10px 0; }
+    canvas { background: white; border-radius: 10px; }
+    input[type="range"] { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Module 5: The Tissue Attenuation Calculator</h2>
+
+    <div class="row">
+      <strong>Transducer Frequency:</strong>
+      <label><input type="radio" name="frequency" value="1" /> 1 MHz</label>
+      <label><input type="radio" name="frequency" value="2" checked /> 2 MHz</label>
+      <label><input type="radio" name="frequency" value="4" /> 4 MHz</label>
+      <label><input type="radio" name="frequency" value="10" /> 10 MHz</label>
+    </div>
+
+    <div class="row">
+      <label for="depth"><strong>Depth Marker:</strong> <span id="depthValue">4.0</span> cm</label>
+      <input id="depth" type="range" min="0" max="12" step="0.1" value="4" />
+    </div>
+
+    <canvas id="attenuationChart" width="940" height="360"></canvas>
+    <p id="resultText"></p>
+  </div>
+
+  <script>
+    const depthSlider = document.getElementById('depth');
+    const depthValue = document.getElementById('depthValue');
+    const resultText = document.getElementById('resultText');
+
+    let frequency = 2;
+    const depths = Array.from({ length: 121 }, (_, i) => i / 10);
+    const chartCtx = document.getElementById('attenuationChart');
+    let chart;
+
+    function lossCurve(freq) {
+      return depths.map((d) => -(freq * 0.5 * d));
+    }
+
+    function renderChart() {
+      if (chart) chart.destroy();
+
+      chart = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+          labels: depths,
+          datasets: [
+            {
+              label: `Attenuation (dB) at ${frequency} MHz`,
+              data: lossCurve(frequency),
+              borderColor: '#2563eb',
+              borderWidth: 2.6,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          animation: false,
+          scales: {
+            x: { title: { display: true, text: 'Depth (cm)' } },
+            y: { title: { display: true, text: 'Intensity Loss (dB)' } }
+          }
+        }
+      });
+
+      updateDepthReadout();
+    }
+
+    function updateDepthReadout() {
+      const depth = Number(depthSlider.value);
+      const loss = -(frequency * 0.5 * depth);
+      depthValue.textContent = depth.toFixed(1);
+      resultText.textContent = `At ${depth.toFixed(1)} cm depth with a ${frequency} MHz probe, you have lost ${loss.toFixed(2)} dB of intensity.`;
+    }
+
+    document.querySelectorAll('input[name="frequency"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        frequency = Number(radio.value);
+        renderChart();
+      });
+    });
+
+    depthSlider.addEventListener('input', updateDepthReadout);
+
+    renderChart();
+  </script>
+</body>
+</html>
