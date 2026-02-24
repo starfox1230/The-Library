@@ -1,72 +1,463 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Module 4 - The Decibel Scale Explorer</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #0f172a; }
-    .wrap { max-width: 900px; margin: 0 auto; }
-    .quick { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #e2e8f0; cursor: pointer; }
-    .boxes { display: flex; gap: 36px; align-items: flex-end; margin-top: 20px; min-height: 280px; }
-    .box { display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; transition: all 0.24s ease; }
-    #boxA { width: 70px; height: 70px; background: #334155; }
-    #boxB { background: #0ea5e9; min-width: 10px; min-height: 10px; }
-    #note { font-weight: 700; color: #0c4a6e; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Decibel Scale Explorer</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-pink: #fb7185;
+            --slider-track: #334155;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .explanation {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-blue);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .formula-box {
+            background: #000;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #333;
+        }
+
+        .highlight {
+            color: var(--accent-pink);
+            font-weight: bold;
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: auto;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .db-readout {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-pink);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: var(--accent-pink);
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(251, 113, 133, 0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: var(--slider-track);
+            border-radius: 4px;
+        }
+
+        .quick-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        button {
+            background: #334155;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 60px;
+        }
+
+        button:hover {
+            background: #475569;
+            transform: translateY(-2px);
+        }
+
+        button.active-btn {
+            background: var(--accent-pink);
+            box-shadow: 0 0 15px rgba(251, 113, 133, 0.4);
+        }
+
+        /* Visualization Area */
+        .visualization {
+            background: #020617;
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+
+        .arena {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 2rem;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            min-height: 400px;
+        }
+
+        .box-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            width: 50%;
+        }
+
+        .box-label {
+            font-weight: 600;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .box-stage {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 350px; /* Provides space for Box B to expand without breaking layout */
+            width: 100%;
+        }
+
+        /* THE BOXES */
+        .box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+        }
+
+        #box-a {
+            background: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+            /* Fixed Size: Represents an arbitrary "1 Unit" of intensity */
+            width: 16px; 
+            height: 16px;
+        }
+
+        #box-b {
+            background: var(--accent-pink);
+            box-shadow: 0 0 20px rgba(251, 113, 133, 0.5);
+            /* Initial Size matches Box A */
+            width: 16px; 
+            height: 16px;
+            /* Smooth animation is key to the educational experience */
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                        height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                        background-color 0.3s, opacity 0.3s;
+        }
+
+        .stats-bar {
+            background: rgba(0,0,0,0.5);
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .arena {
+                min-height: 350px;
+            }
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <h2>Module 4: The Decibel Scale Explorer (Logarithmic Relativity)</h2>
 
-    <label for="dbSlider">dB value: <strong id="dbValue">0</strong> dB</label>
-    <input id="dbSlider" type="range" min="-30" max="30" value="0" style="width: 100%;" />
+<div class="container">
+    
+    <!-- LEFT PANEL: THEORY AND CONTROLS -->
+    <div class="panel">
+        <h1>The Decibel Scale</h1>
+        <p class="subtitle">Understanding Logarithmic Relativity</p>
+        
+        <div class="explanation">
+            <p>The Decibel (dB) scale compresses massive changes in physical intensity (like sound or light) into small, manageable numbers. It compares a final intensity ($I_2$) against an initial reference intensity ($I_1$).</p>
+            <br>
+            <ul style="margin-left: 1.5rem; color: #cbd5e1;">
+                <li><strong>+3 dB</strong> ≈ Double the intensity (2x).</li>
+                <li><strong>+10 dB</strong> = Ten-fold increase (10x).</li>
+                <li><strong>-10 dB</strong> = One-tenth the intensity (0.1x).</li>
+            </ul>
+        </div>
 
-    <div class="quick">
-      <button data-db="-10">-10 dB</button>
-      <button data-db="-3">-3 dB</button>
-      <button data-db="0">0 dB</button>
-      <button data-db="3">+3 dB</button>
-      <button data-db="10">+10 dB</button>
-      <button data-db="20">+20 dB</button>
+        <div class="formula-box">
+            Multiplier = 10 <sup>(<span id="math-db">0</span> / 10)</sup> <br>
+            = <span class="highlight" id="math-result">1.00</span>x
+        </div>
+
+        <div class="controls">
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span>-30 dB</span>
+                    <span class="db-readout" id="db-readout">0 dB</span>
+                    <span>+30 dB</span>
+                </div>
+                <input type="range" id="db-slider" min="-30" max="30" step="1" value="0">
+            </div>
+
+            <div class="quick-select">
+                <button onclick="setDB(-20)">-20 dB</button>
+                <button onclick="setDB(-10)">-10 dB</button>
+                <button onclick="setDB(-3)">-3 dB</button>
+                <button onclick="setDB(0)" class="active-btn">0 dB</button>
+                <button onclick="setDB(3)">+3 dB</button>
+                <button onclick="setDB(10)">+10 dB</button>
+                <button onclick="setDB(20)">+20 dB</button>
+            </div>
+        </div>
     </div>
 
-    <p id="note"></p>
+    <!-- RIGHT PANEL: VISUALIZATION -->
+    <div class="panel" style="padding: 0;">
+        <div class="visualization">
+            <div class="arena">
+                
+                <!-- Box A: Reference -->
+                <div class="box-wrapper">
+                    <div class="box-stage">
+                        <div id="box-a" class="box"></div>
+                    </div>
+                    <div class="box-label">
+                        BOX A (I₁)<br>
+                        <span style="color: var(--accent-blue); font-weight: normal;">Reference (1x)</span>
+                    </div>
+                </div>
 
-    <div class="boxes">
-      <div id="boxA" class="box">I₁</div>
-      <div id="boxB" class="box">I₂</div>
+                <!-- Box B: Dynamic -->
+                <div class="box-wrapper">
+                    <div class="box-stage">
+                        <div id="box-b" class="box"></div>
+                    </div>
+                    <div class="box-label">
+                        BOX B (I₂)<br>
+                        <span id="box-b-label" style="color: var(--accent-pink); font-weight: normal;">Multiplier (1x)</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">Intensity Difference</span>
+                    <span class="stat-value" id="stat-db">0 dB</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Physical Size (Area)</span>
+                    <span class="stat-value" id="stat-mult" style="color: var(--accent-pink);">1.00x</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const dbSlider = document.getElementById('dbSlider');
-    const dbValue = document.getElementById('dbValue');
-    const note = document.getElementById('note');
-    const boxB = document.getElementById('boxB');
+</div>
 
-    function update() {
-      const db = Number(dbSlider.value);
-      const ratio = Math.pow(10, db / 10);
+<script>
+    // DOM Elements
+    const slider = document.getElementById('db-slider');
+    const dbReadout = document.getElementById('db-readout');
+    const mathDb = document.getElementById('math-db');
+    const mathResult = document.getElementById('math-result');
+    const boxB = document.getElementById('box-b');
+    const boxBLabel = document.getElementById('box-b-label');
+    const statDb = document.getElementById('stat-db');
+    const statMult = document.getElementById('stat-mult');
+    const buttons = document.querySelectorAll('.quick-select button');
 
-      dbValue.textContent = db;
-      note.textContent = `I₂/I₁ = 10^(${db}/10) = ${ratio.toFixed(2)}×`;
+    // Base settings for the visualization
+    // We visualize "Intensity" as the AREA of the box.
+    // So if intensity is 100x, the area is 100x, meaning the width/height is 10x.
+    const baseSideLength = 16; 
 
-      const size = Math.max(12, Math.min(250, 70 * Math.sqrt(ratio)));
-      boxB.style.width = `${size}px`;
-      boxB.style.height = `${size}px`;
+    function updateVisuals(db) {
+        // 1. Calculate Multiplier using the standard formula: Multiplier = 10^(dB / 10)
+        const multiplier = Math.pow(10, db / 10);
+        
+        // 2. Formatting numbers nicely
+        const isPositive = db > 0;
+        const dbString = (isPositive ? '+' : '') + db + ' dB';
+        
+        let multString;
+        if (multiplier >= 10) {
+            multString = multiplier.toFixed(0) + 'x';
+        } else if (multiplier >= 1) {
+            multString = multiplier.toFixed(2) + 'x';
+        } else if (multiplier >= 0.01) {
+            multString = multiplier.toFixed(3) + 'x';
+        } else {
+            // For tiny numbers like 0.001
+            multString = multiplier.toExponential(1) + 'x'; 
+        }
+
+        // 3. Update Text UI
+        dbReadout.innerText = dbString;
+        mathDb.innerText = (isPositive ? '+' : '') + db;
+        mathResult.innerText = multString.replace('x', '');
+        statDb.innerText = dbString;
+        statMult.innerText = multString;
+        boxBLabel.innerText = `Multiplier (${multString})`;
+
+        // 4. Update Box B Dimensions
+        // New Area = Base Area * Multiplier
+        // New Side = Base Side * sqrt(Multiplier)
+        const newSideLength = baseSideLength * Math.sqrt(multiplier);
+        
+        boxB.style.width = `${newSideLength}px`;
+        boxB.style.height = `${newSideLength}px`;
+
+        // Add a slight transparency to Box B if it gets incredibly small just to emphasize fading
+        if (db <= -20) {
+            boxB.style.opacity = '0.4';
+        } else {
+            boxB.style.opacity = '1';
+        }
+
+        // 5. Update active button states
+        buttons.forEach(btn => {
+            if (btn.innerText.replace(' ', '') === dbString.replace(' ', '')) {
+                btn.classList.add('active-btn');
+            } else {
+                btn.classList.remove('active-btn');
+            }
+        });
     }
 
-    document.querySelectorAll('button[data-db]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        dbSlider.value = btn.dataset.db;
-        update();
-      });
+    // Slider Event Listener
+    slider.addEventListener('input', (e) => {
+        updateVisuals(parseFloat(e.target.value));
     });
 
-    dbSlider.addEventListener('input', update);
-    update();
-  </script>
+    // Function for Quick-Select Buttons
+    function setDB(value) {
+        slider.value = value;
+        updateVisuals(value);
+    }
+
+    // Initialize the UI on page load
+    updateVisuals(0);
+</script>
+
 </body>
 </html>
