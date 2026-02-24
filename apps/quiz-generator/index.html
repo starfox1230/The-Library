@@ -365,7 +365,7 @@ Example format:
         .nav-item.current { border-color: var(--bright-blue); box-shadow: 0 0 5px var(--bright-blue); }
         .nav-item.correct { background-color: #1f7a3f; border-color: #28a745; }
         .nav-item.incorrect { background-color: #9a2532; border-color: #dc3545; }
-        .navigator-close { margin-top: 15px; width: 100%; padding: 8px; background: none; border: 1px solid #4a4a7e; color: #aaaafc; cursor: pointer; }
+        .navigator-close { margin-top: 10px; width: 100%; padding: 8px; background: none; border: 1px solid #4a4a7e; color: #aaaafc; cursor: pointer; }
 
         #question-text {
             font-size: 1.3em; color: #f0f0ff; margin-bottom: 30px;
@@ -509,6 +509,7 @@ Example format:
 
         <div id="navigator-overlay" class="navigator-overlay">
             <div class="navigator-grid" id="navigator-grid"></div>
+            <button class="navigator-close" id="view-progress-review-btn">View Answers So Far</button>
             <button class="navigator-close" id="navigator-close">Close Menu</button>
         </div>
 
@@ -524,6 +525,7 @@ Example format:
             <h2 id="final-score">Quiz Complete!</h2>
             
             <div class="review-controls">
+                <button id="back-to-quiz-btn" class="filter-btn" style="display: none;">Back to Quiz</button>
                 <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="correct">Correct</button>
                 <button class="filter-btn" data-filter="incorrect">Incorrect</button>
@@ -580,17 +582,20 @@ Example format:
     const navigatorOverlay = document.getElementById('navigator-overlay');
     const navigatorGrid = document.getElementById('navigator-grid');
     const navigatorClose = document.getElementById('navigator-close');
+    const viewProgressReviewBtn = document.getElementById('view-progress-review-btn');
 
     // Review Elements
     const reviewListEl = document.getElementById('review-list');
     const filterBtns = document.querySelectorAll('.filter-btn');
     const copyReviewBtn = document.getElementById('copy-review-btn');
+    const backToQuizBtn = document.getElementById('back-to-quiz-btn');
 
     // --- Quiz State ---
     let currentQuestionIndex = 0;
     let userAnswers = new Array(quizData.length).fill(null);
     let currentFilter = 'all';
     let favoriteQuestions = new Set();
+    let isPreviewMode = false;
     const quizProgressKey = \`quizProgress:\${activeSessionData.title}\`;
 
     function saveQuizProgress() {
@@ -756,7 +761,8 @@ Example format:
     }
 
     // --- Completion & Review Logic ---
-    function showCompletion() {
+    function showCompletion(isPreview = false) {
+        isPreviewMode = isPreview;
         quizContentElement.style.display = 'none';
         navigationButtonsElement.style.display = 'none';
         completionMessageElement.style.display = 'flex';
@@ -764,10 +770,25 @@ Example format:
         favoriteToggle.setAttribute('aria-hidden', 'true');
 
         let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
-        document.getElementById('final-score').textContent = \`Score: \${correctCount} / \${quizData.length}\`;
+        const answeredCount = userAnswers.filter(answer => answer !== null).length;
+        document.getElementById('final-score').textContent = isPreview
+            ? \`Score So Far: \${correctCount} / \${answeredCount}\`
+            : \`Score: \${correctCount} / \${quizData.length}\`;
+        backToQuizBtn.style.display = isPreview ? 'inline-block' : 'none';
         
         renderReviewList('all');
         saveQuizProgress();
+    }
+
+    function showQuizFromPreview() {
+        isPreviewMode = false;
+        backToQuizBtn.style.display = 'none';
+        completionMessageElement.style.display = 'none';
+        quizContentElement.style.display = 'block';
+        navigationButtonsElement.style.display = 'flex';
+        favoriteToggle.style.display = 'grid';
+        favoriteToggle.setAttribute('aria-hidden', 'false');
+        loadQuestion();
     }
 
     function renderReviewList(filter) {
@@ -785,6 +806,8 @@ Example format:
             const isCorrect = ua && ua.isCorrect;
             const isAnswered = ua !== null;
             const isFavorite = favoriteQuestions.has(index);
+
+            if (isPreviewMode && !isAnswered) return;
 
             // Filter Logic
             if (filter === 'correct' && !isCorrect) return;
@@ -829,6 +852,8 @@ Example format:
             const isCorrect = ua && ua.isCorrect;
             const isAnswered = ua !== null;
             const isFavorite = favoriteQuestions.has(index);
+
+            if (isPreviewMode && !isAnswered) return;
 
             if (currentFilter === 'correct' && !isCorrect) return;
             if (currentFilter === 'incorrect' && (isCorrect || !isAnswered)) return;
@@ -918,6 +943,10 @@ Example format:
     // Navigator Listeners
     questionCounterElement.addEventListener('click', toggleNavigator);
     navigatorClose.addEventListener('click', toggleNavigator);
+    viewProgressReviewBtn.addEventListener('click', () => {
+        toggleNavigator();
+        showCompletion(true);
+    });
 
     // Profile & Sessions Listeners
     profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
@@ -932,6 +961,7 @@ Example format:
         btn.addEventListener('click', (e) => renderReviewList(e.target.dataset.filter));
     });
     copyReviewBtn.addEventListener('click', copyReviewText);
+    backToQuizBtn.addEventListener('click', showQuizFromPreview);
     resetQuizBtn.addEventListener('click', () => {
         const confirmed = window.confirm('Reset this quiz? This will clear your answers, favorites, and position.');
         if (!confirmed) return;
