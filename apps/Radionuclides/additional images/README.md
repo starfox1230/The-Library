@@ -24,3 +24,9 @@ These subfolders are reserved for future additional images for each radionuclide
 - `tl-201/`
 - `xe-133/`
 - `y-90/`
+
+## Naming requirement
+
+For local/offline mode, each radionuclide folder should use sequential numeric filenames (`1.png`, `2.png`, `3.jpg`, etc.).
+
+The app can auto-discover arbitrary filenames only when directory listing or GitHub API access is available. If those are unavailable, it falls back to probing numbered files.
