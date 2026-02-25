@@ -1,99 +1,457 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Module 5 - Tissue Attenuation Calculator</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
-    .row { margin: 10px 0; }
-    canvas { background: white; border-radius: 10px; }
-    input[type="range"] { width: 100%; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Tissue Attenuation Calculator</title>
+    
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-orange: #fb923c;
+            --accent-pink: #fb7185;
+            --slider-track: #334155;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .explanation {
+            background: rgba(0,0,0,0.2);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-blue);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .formula-box {
+            background: #000;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            border: 1px solid #333;
+            color: var(--accent-green);
+        }
+
+        /* Frequency Selector */
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .radio-group input[type="radio"] {
+            display: none;
+        }
+
+        .radio-group label {
+            flex: 1;
+            text-align: center;
+            padding: 0.8rem 1rem;
+            background: var(--slider-track);
+            color: var(--text-main);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .radio-group label:hover {
+            background: #475569;
+        }
+
+        /* Dynamic coloring based on active radio */
+        input#freq-1:checked + label { background: var(--accent-blue); color: #000; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        input#freq-2:checked + label { background: var(--accent-green); color: #000; box-shadow: 0 0 15px rgba(74, 222, 128, 0.4); }
+        input#freq-4:checked + label { background: var(--accent-orange); color: #000; box-shadow: 0 0 15px rgba(251, 146, 60, 0.4); }
+        input#freq-10:checked + label { background: var(--accent-pink); color: #000; box-shadow: 0 0 15px rgba(251, 113, 133, 0.4); }
+
+        /* Slider Controls */
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .depth-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            transition: background 0.3s;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: var(--slider-track);
+            border-radius: 4px;
+        }
+
+        /* Result Sentence Box */
+        .dynamic-sentence {
+            margin-top: auto;
+            background: #020617;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            font-size: 1.15rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .dynamic-sentence strong {
+            color: #fff;
+        }
+
+        .highlight-loss {
+            color: var(--accent-pink);
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            position: relative;
+            height: 100%;
+            min-height: 450px;
+            width: 100%;
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <h2>Module 5: The Tissue Attenuation Calculator</h2>
 
-    <div class="row">
-      <strong>Transducer Frequency:</strong>
-      <label><input type="radio" name="frequency" value="1" /> 1 MHz</label>
-      <label><input type="radio" name="frequency" value="2" checked /> 2 MHz</label>
-      <label><input type="radio" name="frequency" value="4" /> 4 MHz</label>
-      <label><input type="radio" name="frequency" value="10" /> 10 MHz</label>
+<div class="container">
+    
+    <!-- LEFT PANEL -->
+    <div class="panel">
+        <h1>Tissue Attenuation</h1>
+        <p class="subtitle">Depth & Frequency Trade-offs</p>
+        
+        <div class="explanation">
+            As ultrasound waves travel through soft tissue, they lose intensity (attenuate) due to absorption and scattering. This loss drops <strong>exponentially</strong> based on the depth of penetration and the frequency of the transducer.
+        </div>
+
+        <div class="formula-box">
+            Attenuation (dB) = Freq (MHz) × 0.5 × Depth (cm)
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Transducer Frequency</span>
+            <div class="radio-group" id="freqSelector">
+                <input type="radio" name="freq" id="freq-1" value="1">
+                <label for="freq-1">1 MHz</label>
+                
+                <input type="radio" name="freq" id="freq-2" value="2" checked>
+                <label for="freq-2">2 MHz</label>
+                
+                <input type="radio" name="freq" id="freq-4" value="4">
+                <label for="freq-4">4 MHz</label>
+                
+                <input type="radio" name="freq" id="freq-10" value="10">
+                <label for="freq-10">10 MHz</label>
+            </div>
+        </div>
+
+        <div class="control-group" style="margin-bottom: 1.5rem;">
+            <div class="slider-header">
+                <span class="control-label" style="margin:0;">Penetration Depth</span>
+                <span class="depth-value" id="depthLabel">4.0 cm</span>
+            </div>
+            <input type="range" id="depthSlider" min="0" max="10" step="0.1" value="4.0">
+        </div>
+
+        <div class="dynamic-sentence" id="sentenceBox">
+            <!-- Populated via JS -->
+        </div>
     </div>
 
-    <div class="row">
-      <label for="depth"><strong>Depth Marker:</strong> <span id="depthValue">4.0</span> cm</label>
-      <input id="depth" type="range" min="0" max="12" step="0.1" value="4" />
+    <!-- RIGHT PANEL (CHART) -->
+    <div class="panel">
+        <div class="chart-container">
+            <canvas id="attenuationChart"></canvas>
+        </div>
     </div>
 
-    <canvas id="attenuationChart" width="940" height="360"></canvas>
-    <p id="resultText"></p>
-  </div>
+</div>
 
-  <script>
-    const depthSlider = document.getElementById('depth');
-    const depthValue = document.getElementById('depthValue');
-    const resultText = document.getElementById('resultText');
+<script>
+    // System Variables
+    let currentFreq = 2; // Default to 2 MHz
+    let currentDepth = 4.0; // Default to 4 cm
 
-    let frequency = 2;
-    const depths = Array.from({ length: 121 }, (_, i) => i / 10);
-    const chartCtx = document.getElementById('attenuationChart');
-    let chart;
+    // Colors mapping
+    const colorMap = {
+        1: '#38bdf8',  // Blue
+        2: '#4ade80',  // Green
+        4: '#fb923c',  // Orange
+        10: '#fb7185'  // Pink
+    };
 
-    function lossCurve(freq) {
-      return depths.map((d) => -(freq * 0.5 * d));
+    // DOM Elements
+    const depthSlider = document.getElementById('depthSlider');
+    const depthLabel = document.getElementById('depthLabel');
+    const sentenceBox = document.getElementById('sentenceBox');
+    const freqInputs = document.querySelectorAll('input[name="freq"]');
+
+    // Generate Data arrays (0 to 10 cm)
+    const depths = Array.from({length: 101}, (_, i) => i / 10);
+
+    // Calculate relative intensity: I/I0 = 10^(-dB/10)
+    // where dB = freq * 0.5 * depth
+    function calcIntensity(freq, depth) {
+        const dbLoss = freq * 0.5 * depth;
+        return Math.pow(10, -dbLoss / 10);
     }
 
-    function renderChart() {
-      if (chart) chart.destroy();
+    function generateCurve(freq) {
+        return depths.map(d => ({ x: d, y: calcIntensity(freq, d) }));
+    }
 
-      chart = new Chart(chartCtx, {
+    // Chart.js Custom Plugin to draw a vertical line at the depth marker
+    const verticalLinePlugin = {
+        id: 'verticalLine',
+        afterDraw: (chart) => {
+            const xAxis = chart.scales.x;
+            const yAxis = chart.scales.y;
+            const xPixel = xAxis.getPixelForValue(currentDepth);
+
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(xPixel, yAxis.top);
+            ctx.lineTo(xPixel, yAxis.bottom);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.setLineDash([6, 6]);
+            ctx.stroke();
+            
+            // Draw a dot on the X axis
+            ctx.beginPath();
+            ctx.arc(xPixel, yAxis.bottom, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+    };
+
+    Chart.register(verticalLinePlugin);
+
+    // Initialize Chart
+    const ctx = document.getElementById('attenuationChart').getContext('2d');
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: depths,
-          datasets: [
-            {
-              label: `Attenuation (dB) at ${frequency} MHz`,
-              data: lossCurve(frequency),
-              borderColor: '#2563eb',
-              borderWidth: 2.6,
-              pointRadius: 0
-            }
-          ]
+            datasets: [
+                { id: 'c1', label: '1 MHz', data: generateCurve(1), borderColor: colorMap[1], tension: 0.4 },
+                { id: 'c2', label: '2 MHz', data: generateCurve(2), borderColor: colorMap[2], tension: 0.4 },
+                { id: 'c4', label: '4 MHz', data: generateCurve(4), borderColor: colorMap[4], tension: 0.4 },
+                { id: 'c10', label: '10 MHz', data: generateCurve(10), borderColor: colorMap[10], tension: 0.4 },
+                // Special Marker Dataset
+                {
+                    id: 'marker',
+                    label: 'Current Loss',
+                    data: [{ x: currentDepth, y: calcIntensity(currentFreq, currentDepth) }],
+                    pointBackgroundColor: '#0f172a',
+                    pointBorderColor: colorMap[currentFreq],
+                    pointBorderWidth: 4,
+                    pointRadius: 8,
+                    showLine: false,
+                    type: 'scatter'
+                }
+            ]
         },
         options: {
-          animation: false,
-          scales: {
-            x: { title: { display: true, text: 'Depth (cm)' } },
-            y: { title: { display: true, text: 'Intensity Loss (dB)' } }
-          }
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 400,
+                easing: 'easeOutQuart'
+            },
+            plugins: {
+                legend: {
+                    labels: { color: '#f8fafc', font: { size: 13 } },
+                    filter: (item) => item.text !== 'Current Loss' // Hide marker from legend
+                },
+                tooltip: {
+                    enabled: false // We use the dynamic sentence instead
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    min: 0,
+                    max: 10,
+                    title: { display: true, text: 'Penetration Depth (cm)', color: '#94a3b8', font: { size: 14 } },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8' }
+                },
+                y: {
+                    min: 0,
+                    max: 1.0,
+                    title: { display: true, text: 'Relative Intensity (I / I₀)', color: '#94a3b8', font: { size: 14 } },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8' }
+                }
+            }
         }
-      });
-
-      updateDepthReadout();
-    }
-
-    function updateDepthReadout() {
-      const depth = Number(depthSlider.value);
-      const loss = -(frequency * 0.5 * depth);
-      depthValue.textContent = depth.toFixed(1);
-      resultText.textContent = `At ${depth.toFixed(1)} cm depth with a ${frequency} MHz probe, you have lost ${loss.toFixed(2)} dB of intensity.`;
-    }
-
-    document.querySelectorAll('input[name="frequency"]').forEach((radio) => {
-      radio.addEventListener('change', () => {
-        frequency = Number(radio.value);
-        renderChart();
-      });
     });
 
-    depthSlider.addEventListener('input', updateDepthReadout);
+    // Update UI Function
+    function updateInterface() {
+        // 1. Calculate Loss
+        const dBLoss = currentFreq * 0.5 * currentDepth;
+        const relativeInt = calcIntensity(currentFreq, currentDepth);
 
-    renderChart();
-  </script>
+        // 2. Update Dynamic Sentence
+        sentenceBox.innerHTML = `At <strong>${currentDepth.toFixed(1)} cm</strong> depth with a <strong>${currentFreq} MHz</strong> probe, you have lost <span class="highlight-loss">-${dBLoss.toFixed(1)} dB</span> of intensity.`;
+
+        // Update Slider Thumb color
+        document.querySelector('style').textContent += `
+            input[type=range]::-webkit-slider-thumb { background: ${colorMap[currentFreq]} !important; }
+        `;
+
+        // 3. Update Chart styles to highlight active frequency
+        chart.data.datasets.forEach(ds => {
+            if (ds.id === 'marker') {
+                ds.data = [{ x: currentDepth, y: relativeInt }];
+                ds.pointBorderColor = colorMap[currentFreq];
+            } else {
+                // Parse freq from id (e.g., 'c2' -> 2)
+                const f = parseInt(ds.id.replace('c', ''));
+                if (f === currentFreq) {
+                    ds.borderWidth = 4;
+                    ds.borderColor = colorMap[f];
+                    ds.borderDash = [];
+                } else {
+                    ds.borderWidth = 2;
+                    ds.borderColor = colorMap[f] + '40'; // Hex opacity ~25%
+                    ds.borderDash = [5, 5];
+                }
+            }
+        });
+        
+        chart.update();
+    }
+
+    // Event Listeners
+    freqInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+            currentFreq = parseInt(e.target.value);
+            updateInterface();
+        });
+    });
+
+    depthSlider.addEventListener('input', (e) => {
+        currentDepth = parseFloat(e.target.value);
+        depthLabel.innerText = currentDepth.toFixed(1) + " cm";
+        updateInterface();
+    });
+
+    // Initialize
+    updateInterface();
+
+</script>
 </body>
 </html>
