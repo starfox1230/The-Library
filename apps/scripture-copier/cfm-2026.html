@@ -787,11 +787,46 @@
     }
 
     /* ===== NFC autostart flow (copy + open GPT) ===== */
-    function buildNfcPayloadText() {
+    async function buildNfcPayloadText() {
       const dateLine = (dayInfo?.textContent || '').trim();   // e.g. "Today's date: 02/26/2026"
       const weekLine = (weekInfo?.textContent || '').trim();  // week range + title/readings
-      const body = (contentTA?.value || '').trim();           // your copied content
-      return [dateLine, weekLine, body].filter(Boolean).join('\n\n');
+
+      const todaysReading = (contentTA?.value || '').trim();
+
+      // Full week reading (context)
+      let fullWeekReading = '';
+      try {
+        const { flat } = await loadWeek(cw);
+        fullWeekReading = (buildWeekReadingText(flat) || '').trim();
+      } catch {}
+
+      // Optional manual (only include if a real manual file exists and loaded OK)
+      let manualText = '';
+      try {
+        const man = await loadManual(cw);
+        if (man?.ok && (man.text || '').trim()) manualText = man.text.trim();
+      } catch {}
+
+      const parts = [];
+
+      // Top meta (optional but useful)
+      if (dateLine) parts.push(dateLine);
+      if (weekLine) parts.push(weekLine);
+
+      // Labeled payload
+      if (todaysReading) {
+        parts.push(`TODAY'S READING\n${todaysReading}`);
+      }
+
+      if (fullWeekReading) {
+        parts.push(`FULL WEEK READING (CONTEXT)\n${fullWeekReading}`);
+      }
+
+      if (manualText) {
+        parts.push(`MANUAL\n${manualText}`);
+      }
+
+      return parts.filter(Boolean).join('\n\n---\n\n');
     }
 
     function injectNfcOverlay(message) {
@@ -890,7 +925,7 @@
       // iOS requires a user gesture for clipboard write; use the overlay tap.
       ui.overlay.addEventListener('click', async () => {
         ui.setMessage('Copying…');
-        const text = buildNfcPayloadText();
+        const text = await buildNfcPayloadText();
         await copyTextToClipboard(text);
 
         if (gptUrl) {
