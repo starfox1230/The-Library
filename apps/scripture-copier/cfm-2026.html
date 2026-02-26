@@ -864,19 +864,40 @@
       msg.style.marginBottom = '14px';
       msg.textContent = message;
 
+      const controls = document.createElement('div');
+      controls.style.display = 'flex';
+      controls.style.flexDirection = 'column';
+      controls.style.gap = '10px';
+      controls.style.alignItems = 'center';
+
       const hint = document.createElement('div');
       hint.style.fontSize = '0.9rem';
       hint.style.opacity = '0.85';
       hint.textContent = 'Tap once anywhere to copy and continue.';
 
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.background = '#303030';
+      cancelBtn.style.color = '#fff';
+      cancelBtn.style.border = '1px solid #555';
+      cancelBtn.style.borderRadius = '8px';
+      cancelBtn.style.padding = '8px 16px';
+      cancelBtn.style.fontSize = '0.9rem';
+      cancelBtn.style.cursor = 'pointer';
+
+      controls.appendChild(hint);
+      controls.appendChild(cancelBtn);
+
       card.appendChild(title);
       card.appendChild(msg);
-      card.appendChild(hint);
+      card.appendChild(controls);
       overlay.appendChild(card);
       document.body.appendChild(overlay);
 
       return {
         overlay,
+        cancelBtn,
         setMessage: (t) => { msg.textContent = t; },
         remove: () => overlay.remove()
       };
@@ -914,6 +935,12 @@
         ? 'Will copy today’s text, then open your GPT.'
         : 'Will copy today’s text.'
       );
+
+      ui.cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = `${window.location.origin}${window.location.pathname}`;
+      });
 
       const ok = await waitUntilReady(10000);
       if (!ok) {
