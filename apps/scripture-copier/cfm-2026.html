@@ -776,6 +776,131 @@
       }
     }
 
+    function normalizeGptTarget(raw) {
+      if (!raw) return '';
+      // If it's already a URL, convert chatgpt.com → chat.openai.com for iOS universal linking
+      if (/^https?:\/\//i.test(raw)) {
+        return raw.replace(/^https?:\/\/chatgpt\.com\/g\//i, 'https://chat.openai.com/g/');
+      }
+      // Otherwise treat as GPT ID
+      return `https://chat.openai.com/g/${raw}`;
+    }
+
+    /* ===== NFC autostart flow (copy + open GPT) ===== */
+    function buildNfcPayloadText() {
+      const dateLine = (dayInfo?.textContent || '').trim();   // e.g. "Today's date: 02/26/2026"
+      const weekLine = (weekInfo?.textContent || '').trim();  // week range + title/readings
+      const body = (contentTA?.value || '').trim();           // your copied content
+      return [dateLine, weekLine, body].filter(Boolean).join('\n\n');
+    }
+
+    function injectNfcOverlay(message) {
+      const overlay = document.createElement('div');
+      overlay.id = 'nfc-autostart-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.inset = '0';
+      overlay.style.background = 'rgba(0,0,0,0.78)';
+      overlay.style.zIndex = '5000';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.padding = '24px';
+      overlay.style.textAlign = 'center';
+
+      const card = document.createElement('div');
+      card.style.maxWidth = '520px';
+      card.style.width = '100%';
+      card.style.background = '#1e1e1e';
+      card.style.border = '1px solid #444';
+      card.style.borderRadius = '12px';
+      card.style.boxShadow = '0 12px 30px rgba(0,0,0,0.6)';
+      card.style.padding = '18px';
+
+      const title = document.createElement('div');
+      title.style.fontSize = '1.05rem';
+      title.style.fontWeight = '700';
+      title.style.marginBottom = '10px';
+      title.textContent = 'NFC: Copy today’s material';
+
+      const msg = document.createElement('div');
+      msg.style.fontSize = '0.95rem';
+      msg.style.opacity = '0.95';
+      msg.style.whiteSpace = 'pre-line';
+      msg.style.marginBottom = '14px';
+      msg.textContent = message;
+
+      const hint = document.createElement('div');
+      hint.style.fontSize = '0.9rem';
+      hint.style.opacity = '0.85';
+      hint.textContent = 'Tap once anywhere to copy and continue.';
+
+      card.appendChild(title);
+      card.appendChild(msg);
+      card.appendChild(hint);
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+
+      return {
+        overlay,
+        setMessage: (t) => { msg.textContent = t; },
+        remove: () => overlay.remove()
+      };
+    }
+
+    async function waitUntilReady(timeoutMs = 10000) {
+      const start = Date.now();
+      return new Promise(resolve => {
+        const tick = () => {
+          const ready =
+            viewMode === 'day' &&
+            copyBtn && !copyBtn.disabled &&
+            contentTA && (contentTA.value || '').trim().length > 0;
+
+          if (ready) return resolve(true);
+          if (Date.now() - start > timeoutMs) return resolve(false);
+          setTimeout(tick, 120);
+        };
+        tick();
+      });
+    }
+
+    async function startNfcAutostartFlowIfNeeded() {
+      const params = new URLSearchParams(window.location.search);
+      const autostart = params.get('autostart') === '1';
+      if (!autostart) return;
+
+      const gptRaw = params.get('gpt') || '';
+      const gptUrl = normalizeGptTarget(gptRaw);
+
+      // Force today + Day view so it always copies the current day’s assignment
+      setCurrentDate(new Date(today), { keepMode: false });
+
+      const ui = injectNfcOverlay(gptUrl
+        ? 'Will copy today’s text, then open your GPT.'
+        : 'Will copy today’s text.'
+      );
+
+      const ok = await waitUntilReady(10000);
+      if (!ok) {
+        ui.setMessage('Could not load content in time. Tap to dismiss and try again.');
+        ui.overlay.addEventListener('click', () => ui.remove(), { once: true });
+        return;
+      }
+
+      // iOS requires a user gesture for clipboard write; use the overlay tap.
+      ui.overlay.addEventListener('click', async () => {
+        ui.setMessage('Copying…');
+        const text = buildNfcPayloadText();
+        await copyTextToClipboard(text);
+
+        if (gptUrl) {
+          window.location.href = gptUrl;
+          return;
+        }
+        ui.remove();
+      }, { once: true });
+    }
+
     /* ===== State ===== */
     const today = new Date(); today.setHours(0,0,0,0);
     const schedule = await fetch('cfm-schedule-2026.json').then(r=>r.json());
@@ -883,7 +1008,8 @@
 
     // Initial render
     updateNavLabels();
-    render();
+    await render();
+    startNfcAutostartFlowIfNeeded();
 
     /* ===== Core ===== */
     function findWeekIndexForDate(d){
