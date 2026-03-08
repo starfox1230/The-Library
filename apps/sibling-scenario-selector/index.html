@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sibling Scenario Selector</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2e;
+      --panel-2: #18233d;
+      --border: #2d3b61;
+      --text: #edf2ff;
+      --muted: #a9b6d6;
+      --accent: #6ea8ff;
+      --good: #1fa971;
+      --bad: #d94b5f;
+      --random: #7c5cff;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(110,168,255,0.14), transparent 26%),
+        linear-gradient(180deg, #09101d 0%, #0c1324 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      background: linear-gradient(180deg, rgba(110,168,255,0.12), rgba(110,168,255,0.04));
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.05;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      background: rgba(18, 26, 46, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .selector {
+      padding: 18px;
+      align-self: start;
+      position: sticky;
+      top: 16px;
+    }
+
+    .selector-title,
+    .viewer-title {
+      font-size: 0.96rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+
+    .number-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .num-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 16px;
+      min-height: 60px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .num-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(110,168,255,0.16) inset;
+    }
+
+    .num-btn.active {
+      background: rgba(110,168,255,0.16);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(110,168,255,0.2) inset;
+    }
+
+    .viewer {
+      padding: 22px;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .scenario-box,
+    .response-box {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+    }
+
+    .scenario-text {
+      margin: 0;
+      font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .response-box {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .response-box.good {
+      border-color: rgba(31, 169, 113, 0.7);
+      background: linear-gradient(180deg, rgba(31, 169, 113, 0.12), rgba(24, 35, 61, 1));
+    }
+
+    .response-box.bad {
+      border-color: rgba(217, 75, 95, 0.7);
+      background: linear-gradient(180deg, rgba(217, 75, 95, 0.12), rgba(24, 35, 61, 1));
+    }
+
+    .response-box.random {
+      border-color: rgba(124, 92, 255, 0.7);
+      background: linear-gradient(180deg, rgba(124, 92, 255, 0.12), rgba(24, 35, 61, 1));
+    }
+
+    .response-label {
+      margin: 0 0 10px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .response-text {
+      margin: 0;
+      font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .placeholder {
+      color: var(--muted);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: auto;
+    }
+
+    .action-btn {
+      appearance: none;
+      border: none;
+      color: white;
+      padding: 16px 14px;
+      border-radius: 18px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.14s ease;
+      box-shadow: var(--shadow);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+
+    .bad-btn { background: linear-gradient(180deg, #e05c6f, #be2d46); }
+    .random-btn { background: linear-gradient(180deg, #8a6dff, #6642ff); }
+    .good-btn { background: linear-gradient(180deg, #27bc82, #13895c); }
+
+    .symbol {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .selector {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .wrap { padding: 14px; }
+      .number-grid { grid-template-columns: repeat(5, 1fr); }
+      .num-btn { min-height: 52px; }
+      .button-row { grid-template-columns: 1fr; }
+      .viewer { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero panel">
+      <h1>Sibling Scenario Selector</h1>
+      <p class="sub">Tap a number to show the scenario. Then reveal a bad response, a peacemaker response, or a randomized response.</p>
+    </section>
+
+    <section class="layout">
+      <aside class="selector panel">
+        <div class="selector-title">Scenarios</div>
+        <div class="number-grid" id="numberGrid"></div>
+      </aside>
+
+      <main class="viewer panel">
+        <div class="viewer-title">Scenario Viewer</div>
+        <div class="badge" id="scenarioBadge">Scenario 1</div>
+
+        <section class="scenario-box">
+          <p class="scenario-text" id="scenarioText"></p>
+        </section>
+
+        <section class="response-box" id="responseBox">
+          <p class="response-label" id="responseLabel">Response</p>
+          <p class="response-text placeholder" id="responseText">Choose a button below to reveal a response.</p>
+        </section>
+
+        <div class="button-row">
+          <button class="action-btn bad-btn" id="badBtn">
+            <span class="symbol">✕</span>
+            <span>Bad Response</span>
+          </button>
+          <button class="action-btn random-btn" id="randomBtn">
+            <span class="symbol">⟳</span>
+            <span>Randomize</span>
+          </button>
+          <button class="action-btn good-btn" id="goodBtn">
+            <span class="symbol">❤</span>
+            <span>Peacemaker Response</span>
+          </button>
+        </div>
+
+        <p class="footer-note">The scenario wording below matches the printed cards exactly.</p>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const scenarios = [
+      {
+        scenario: "Your little brother grabs the toy you were using because he wants a turn right now.",
+        bad: "You yank it back, shout, \"Mine!\" and refuse to talk to him.",
+        peacemaker: "You say, \"I am still using it, but I can give you a turn when I am done,\" and offer a short wait or trade."
+      },
+      {
+        scenario: "Your sister knocks over the block tower you spent a long time building.",
+        bad: "You yell at her and knock down something she made too.",
+        peacemaker: "You take a breath and say, \"That made me sad. Please help me build it again.\""
+      },
+      {
+        scenario: "Two siblings both want the red marker and start pulling on it at the same time.",
+        bad: "You keep pulling harder until someone cries.",
+        peacemaker: "You stop pulling and suggest taking turns or using a timer."
+      },
+      {
+        scenario: "Your brother gets to sit by Mom in the car, and you feel upset and jealous.",
+        bad: "You complain the whole way and say it is unfair.",
+        peacemaker: "You use a calm voice and ask if turns can be switched next time."
+      },
+      {
+        scenario: "Your sister tells everyone about a mistake you made, and you feel embarrassed.",
+        bad: "You try to embarrass her back in front of everyone.",
+        peacemaker: "You talk to her privately and say, \"That hurt my feelings. Please do not share that.\""
+      },
+      {
+        scenario: "Your brother keeps copying everything you do, and it starts to bother you.",
+        bad: "You snap at him and call him annoying.",
+        peacemaker: "You kindly tell him you want some space and give him another idea for something to do."
+      },
+      {
+        scenario: "You are playing a game, and your sister changes the rules so she can win.",
+        bad: "You accuse her, slam the game down, and quit angrily.",
+        peacemaker: "You pause the game and say, \"Let us keep one set of fair rules for everyone.\""
+      },
+      {
+        scenario: "Your brother gets a bigger cookie, and you feel like that is not fair.",
+        bad: "You grab his cookie or pout loudly.",
+        peacemaker: "You stay calm and ask politely if the treats can be made even next time."
+      },
+      {
+        scenario: "Your sister borrows your crayons without asking and leaves them scattered everywhere.",
+        bad: "You hide her things and say she cannot use any of yours ever again.",
+        peacemaker: "You ask her to help gather them and remind her to ask first next time."
+      },
+      {
+        scenario: "You and your brother both want to choose the show to watch after dinner.",
+        bad: "You argue until nobody gets to enjoy anything.",
+        peacemaker: "You suggest taking turns choosing or finding one show both of you like."
+      },
+      {
+        scenario: "Your little sister breaks part of your craft by accident while trying to help.",
+        bad: "You shout, \"You ruin everything!\"",
+        peacemaker: "You tell her it was an accident and ask if she wants to help fix it with you."
+      },
+      {
+        scenario: "Your brother laughs when you trip and spill your snack on the floor.",
+        bad: "You throw something at him and call him mean.",
+        peacemaker: "You say, \"That was not kind,\" and then clean up without starting a bigger fight."
+      },
+      {
+        scenario: "Your sister wants to play with you, but you were hoping to be alone for a while.",
+        bad: "You tell her to go away in a rude voice.",
+        peacemaker: "You kindly ask for a little quiet time and tell her when you can play later."
+      },
+      {
+        scenario: "Your brother blames you for the mess even though both of you were playing there.",
+        bad: "You blame him right back and refuse to help clean.",
+        peacemaker: "You calmly tell the truth and offer to clean your part anyway."
+      },
+      {
+        scenario: "You are first in line, but your sister runs ahead and cuts in front of you.",
+        bad: "You shove past her to get your place back.",
+        peacemaker: "You say, \"I was here first,\" and ask her to move back without pushing."
+      },
+      {
+        scenario: "Your brother loses at a game and calls you mean names because he is mad.",
+        bad: "You call him worse names back.",
+        peacemaker: "You do not insult him back and say, \"We can talk when we are both calm.\""
+      },
+      {
+        scenario: "Your sister is crying because she thinks nobody wants her to join the game.",
+        bad: "You ignore her and keep playing.",
+        peacemaker: "You invite her in or help find a role so she can join fairly."
+      },
+      {
+        scenario: "Your brother takes the last seat you saved for yourself at the table.",
+        bad: "You yell and make a scene at the table.",
+        peacemaker: "You ask politely for the seat back or choose another seat without fighting."
+      },
+      {
+        scenario: "You worked hard cleaning, but your sister gets thanked first and you feel overlooked.",
+        bad: "You complain and try to ruin the happy moment.",
+        peacemaker: "You choose not to compete and keep a cheerful spirit even if you feel unnoticed."
+      },
+      {
+        scenario: "Your little brother keeps touching your puzzle pieces while you are trying to finish.",
+        bad: "You swat his hand away and snap at him.",
+        peacemaker: "You gently move the puzzle closer and offer him a different job or piece to help with."
+      },
+      {
+        scenario: "Your sister accidentally wears your favorite shirt without asking you first.",
+        bad: "You get angry and say she is never allowed in your room again.",
+        peacemaker: "You explain calmly why it bothered you and ask her to ask first next time."
+      },
+      {
+        scenario: "Your brother shouts over you every time you try to answer a question.",
+        bad: "You shout louder and turn it into a contest.",
+        peacemaker: "You wait for a pause and say, \"Please let me finish what I was saying.\""
+      },
+      {
+        scenario: "Your sister wants the same bedtime story you already heard yesterday.",
+        bad: "You roll your eyes and say her idea is dumb.",
+        peacemaker: "You suggest taking turns choosing the story on different nights."
+      },
+      {
+        scenario: "You and your brother both think the other person should apologize first.",
+        bad: "You both stay stubborn and keep the argument going.",
+        peacemaker: "You decide to be the first to say sorry and help bring peace back sooner."
+      },
+      {
+        scenario: "Your little sister spills water on your drawing while reaching across the table.",
+        bad: "You burst out crying and blame her harshly.",
+        peacemaker: "You pause, accept that it was an accident, and ask for help starting over or drying it."
+      },
+      {
+        scenario: "Your brother does not want to share the basketball, and the game stops.",
+        bad: "You grab the ball and start a tug-of-war.",
+        peacemaker: "You suggest turns, teams, or another fair plan so everyone can play."
+      },
+      {
+        scenario: "Your sister gets picked first for a team, and you feel hurt and left out.",
+        bad: "You sulk, say something mean, and stop trying.",
+        peacemaker: "You keep a good attitude and remember that being kind matters more than being picked first."
+      },
+      {
+        scenario: "Your brother wakes the baby after you worked hard to help keep things quiet.",
+        bad: "You explode at him and blame him for everything.",
+        peacemaker: "You tell him calmly what happened and ask him to help fix things by being extra quiet now."
+      },
+      {
+        scenario: "Your sister says something unkind when she is frustrated and then walks away.",
+        bad: "You chase after her and say something even meaner.",
+        peacemaker: "You give her a little space, then come back later and talk kindly about what happened."
+      },
+      {
+        scenario: "You are still upset about something your brother did yesterday, and now he wants to play.",
+        bad: "You keep punishing him and refuse to talk at all.",
+        peacemaker: "You tell him honestly that you were hurt, then choose forgiveness and make a fresh start."
+      }
+    ];
+
+    let currentIndex = 0;
+
+    const numberGrid = document.getElementById('numberGrid');
+    const scenarioBadge = document.getElementById('scenarioBadge');
+    const scenarioText = document.getElementById('scenarioText');
+    const responseBox = document.getElementById('responseBox');
+    const responseLabel = document.getElementById('responseLabel');
+    const responseText = document.getElementById('responseText');
+    const badBtn = document.getElementById('badBtn');
+    const goodBtn = document.getElementById('goodBtn');
+    const randomBtn = document.getElementById('randomBtn');
+
+    function buildNumberButtons() {
+      numberGrid.innerHTML = scenarios.map((_, i) => `
+        <button class="num-btn ${i === currentIndex ? 'active' : ''}" data-index="${i}">${i + 1}</button>
+      `).join('');
+
+      numberGrid.querySelectorAll('.num-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentIndex = Number(btn.dataset.index);
+          renderScenario();
+          clearResponse();
+          updateActiveButton();
+        });
+      });
+    }
+
+    function updateActiveButton() {
+      numberGrid.querySelectorAll('.num-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === currentIndex);
+      });
+    }
+
+    function renderScenario() {
+      scenarioBadge.textContent = `Scenario ${currentIndex + 1}`;
+      scenarioText.textContent = scenarios[currentIndex].scenario;
+    }
+
+    function setResponse(type, text) {
+      responseBox.className = 'response-box ' + type;
+      responseText.classList.remove('placeholder');
+      responseText.textContent = text;
+
+      if (type === 'bad') responseLabel.textContent = 'Bad Response';
+      if (type === 'good') responseLabel.textContent = 'Peacemaker Response';
+      if (type === 'random') responseLabel.textContent = 'Randomized Response';
+    }
+
+    function clearResponse() {
+      responseBox.className = 'response-box';
+      responseLabel.textContent = 'Response';
+      responseText.classList.add('placeholder');
+      responseText.textContent = 'Choose a button below to reveal a response.';
+    }
+
+    badBtn.addEventListener('click', () => {
+      setResponse('bad', scenarios[currentIndex].bad);
+    });
+
+    goodBtn.addEventListener('click', () => {
+      setResponse('good', scenarios[currentIndex].peacemaker);
+    });
+
+    randomBtn.addEventListener('click', () => {
+      const pickGood = Math.random() < 0.5;
+      const text = pickGood ? scenarios[currentIndex].peacemaker : scenarios[currentIndex].bad;
+      setResponse('random', text);
+    });
+
+    buildNumberButtons();
+    renderScenario();
+    clearResponse();
+  </script>
+</body>
+</html>
