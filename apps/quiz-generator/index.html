@@ -382,6 +382,22 @@ Example format:
             line-height: 1.6; min-height: 60px;
         }
         .options-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        #reveal-choices-btn {
+            display: none;
+            margin: 0 auto 20px;
+            padding: 10px 22px;
+            border-radius: 25px;
+            border: 1px solid var(--base-blue);
+            background: none;
+            color: var(--bright-blue);
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #reveal-choices-btn:hover {
+            background-color: var(--base-blue);
+            color: #fff;
+        }
         .option-button {
             background-color: #2a2a4e; color: #d0d0fc; border: 1px solid #4a4a7e;
             padding: 12px 15px; font-size: 1em; border-radius: 8px; cursor: pointer;
@@ -495,6 +511,20 @@ Example format:
         }
         .profile-menu-container .menu-btn:hover, .profile-menu-container .file-upload-label:hover { background-color: var(--base-blue); color: #fff; }
         .profile-menu-container input[type="file"] { display: none; }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 14px 0;
+            border-top: 1px solid #303050;
+            color: var(--font-color);
+        }
+        .settings-row:first-of-type { border-top: none; }
+        .settings-row label {
+            margin: 0;
+            text-align: left;
+        }
 
         @media (max-width: 600px) {
             #quizTopControls { top: 10px; right: 10px; }
@@ -527,6 +557,7 @@ Example format:
             <h1 id="quiz-title">Generated Quiz</h1>
             <div id="question-counter" title="Tap to jump to question"></div>
             <div id="question-text">Loading question...</div>
+            <button id="reveal-choices-btn" type="button">Reveal Answer Choices</button>
             <div id="answer-options" class="options-container"></div>
             <div id="explanation" class="explanation-container" style="display: none;"></div>
         </div>
@@ -552,7 +583,8 @@ Example format:
         </div>
     </div>
     
-    <div id="profile-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="profile-panel">&times;</button><h2>Profile & Sessions</h2><div class="profile-menu-container"><button id="go-home-btn" class="menu-btn">Home</button><button id="view-past-sessions-btn" class="menu-btn">View Past Quizzes</button><button id="download-current-session-btn" class="menu-btn">Download this Quiz JSON</button><button id="download-all-sessions-btn" class="menu-btn">Download All Quizzes JSON</button><label for="upload-single-session" class="file-upload-label">Upload New Quiz JSON</label><input type="file" id="upload-single-session" accept=".json"><label for="upload-multiple-sessions" class="file-upload-label">Merge Past Quizzes JSON</label><input type="file" id="upload-multiple-sessions" accept=".json"></div></div></div>
+    <div id="profile-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="profile-panel">&times;</button><h2>Profile & Sessions</h2><div class="profile-menu-container"><button id="open-settings-btn" class="menu-btn">Settings</button><button id="go-home-btn" class="menu-btn">Home</button><button id="view-past-sessions-btn" class="menu-btn">View Past Quizzes</button><button id="download-current-session-btn" class="menu-btn">Download this Quiz JSON</button><button id="download-all-sessions-btn" class="menu-btn">Download All Quizzes JSON</button><label for="upload-single-session" class="file-upload-label">Upload New Quiz JSON</label><input type="file" id="upload-single-session" accept=".json"><label for="upload-multiple-sessions" class="file-upload-label">Merge Past Quizzes JSON</label><input type="file" id="upload-multiple-sessions" accept=".json"></div></div></div>
+    <div id="settings-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="settings-panel">&times;</button><h2>Settings</h2><div class="settings-row"><label for="reveal-choices-toggle">Hide answer choices until revealed</label><input id="reveal-choices-toggle" type="checkbox"></div></div></div>
     <div id="past-sessions-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="past-sessions-panel">&times;</button><h2>Select a Past Quiz</h2><ul id="past-sessions-list"></ul></div></div>
 
 <script>
@@ -574,6 +606,7 @@ Example format:
     const quizTitleEl = document.getElementById('quiz-title');
     const questionCounterElement = document.getElementById('question-counter');
     const questionTextElement = document.getElementById('question-text');
+    const revealChoicesButton = document.getElementById('reveal-choices-btn');
     const answerOptionsElement = document.getElementById('answer-options');
     const explanationElement = document.getElementById('explanation');
     const prevButton = document.getElementById('prev-button');
@@ -583,6 +616,8 @@ Example format:
     const navigationButtonsElement = document.querySelector('.navigation-buttons');
     const profileBtnEl = document.getElementById('profile-btn');
     const profilePanelEl = document.getElementById('profile-panel');
+    const settingsPanelEl = document.getElementById('settings-panel');
+    const revealChoicesToggleEl = document.getElementById('reveal-choices-toggle');
     const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
     const pastSessionsListEl = document.getElementById('past-sessions-list');
     const favoriteToggle = document.getElementById('favorite-toggle');
@@ -607,6 +642,27 @@ Example format:
     let favoriteQuestions = new Set();
     let isPreviewMode = false;
     const quizProgressKey = \`quizProgress:\${activeSessionData.title}\`;
+    const quizSettingsKey = 'quizGeneratorSettings';
+    let userSettings = {
+        hideChoicesUntilReveal: false
+    };
+
+    function loadUserSettings() {
+        const rawSettings = localStorage.getItem(quizSettingsKey);
+        if (!rawSettings) return;
+        try {
+            const parsedSettings = JSON.parse(rawSettings);
+            if (typeof parsedSettings.hideChoicesUntilReveal === 'boolean') {
+                userSettings.hideChoicesUntilReveal = parsedSettings.hideChoicesUntilReveal;
+            }
+        } catch (error) {
+            console.warn('Unable to load user settings:', error);
+        }
+    }
+
+    function saveUserSettings() {
+        localStorage.setItem(quizSettingsKey, JSON.stringify(userSettings));
+    }
 
     function saveQuizProgress() {
         const payload = {
@@ -671,18 +727,24 @@ Example format:
         answerOptionsElement.innerHTML = '';
         
         const currentQuestion = quizData[currentQuestionIndex];
+        const questionHasAnswer = userAnswers[currentQuestionIndex] !== null;
         
         // Update Counter
         questionCounterElement.innerHTML = \`Question \${currentQuestionIndex + 1} of \${quizData.length} <small>▼</small>\`;
         
         questionTextElement.textContent = currentQuestion.question;
+
+        const shouldHideChoices = userSettings.hideChoicesUntilReveal && !questionHasAnswer;
+        revealChoicesButton.style.display = shouldHideChoices ? 'inline-block' : 'none';
+        revealChoicesButton.disabled = false;
+        answerOptionsElement.style.display = shouldHideChoices ? 'none' : 'flex';
         
         currentQuestion.options.forEach(option => {
             const button = document.createElement('button');
             button.textContent = option;
             button.classList.add('option-button');
             
-            if (userAnswers[currentQuestionIndex] !== null) {
+            if (questionHasAnswer) {
                  button.disabled = true;
                  const savedAnswer = userAnswers[currentQuestionIndex];
                  if (option === savedAnswer.selected) { button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect'); }
@@ -692,7 +754,7 @@ Example format:
             answerOptionsElement.appendChild(button);
         });
 
-        if (userAnswers[currentQuestionIndex] !== null) {
+        if (questionHasAnswer) {
             explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
             explanationElement.style.display = 'block';
         }
@@ -982,6 +1044,19 @@ Example format:
 
     // Profile & Sessions Listeners
     profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
+    document.getElementById('open-settings-btn').addEventListener('click', () => {
+        hidePanel(profilePanelEl);
+        showPanel(settingsPanelEl);
+    });
+    revealChoicesToggleEl.addEventListener('change', (event) => {
+        userSettings.hideChoicesUntilReveal = event.target.checked;
+        saveUserSettings();
+        loadQuestion();
+    });
+    revealChoicesButton.addEventListener('click', () => {
+        answerOptionsElement.style.display = 'flex';
+        revealChoicesButton.style.display = 'none';
+    });
     document.getElementById('go-home-btn').addEventListener('click', returnToGeneratorHome);
     document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
     document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), \`\${activeSessionData.title.replace(/[.\\s]/g, '_')}.json\`, 'application/json'));
@@ -1012,6 +1087,8 @@ Example format:
     
     // --- Initial Load ---
     quizTitleEl.textContent = activeSessionData.title.split(' ').slice(1).join(' '); // Show AI title without date
+    loadUserSettings();
+    revealChoicesToggleEl.checked = userSettings.hideChoicesUntilReveal;
     loadQuizProgress();
     loadQuestion();
 <\/script>
