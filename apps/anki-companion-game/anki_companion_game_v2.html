@@ -1294,9 +1294,17 @@
     /* --- Orb upgrade system overrides --- */
 
     .avatar-stage {
-      --core-size: 84px;
+      --core-size: 64px;
       --swarm-radius: 150px;
       --swarm-speed: 8s;
+      --halo-size: 148px;
+      --shell-1-size: 174px;
+      --shell-2-size: 228px;
+      --shell-3-size: 286px;
+      --ring-a-size: 148px;
+      --ring-b-size: 204px;
+      --ring-c-size: 266px;
+      --plasma-size: 250px;
 
       --ring-rgb: 127,176,255;
       --core-c1: #f7fbff;
@@ -1307,11 +1315,13 @@
       --sat-c1: #dff1ff;
       --sat-c2: #7fb0ff;
       --sat-shadow: rgba(127,176,255,0.35);
+      width: min(74vmin, 520px);
+      height: min(74vmin, 520px);
     }
 
     .halo {
-      width: calc(var(--core-size) * 1.9);
-      height: calc(var(--core-size) * 1.9);
+      width: var(--halo-size);
+      height: var(--halo-size);
       background: radial-gradient(
         circle,
         rgba(255,255,255,0.12),
@@ -1328,18 +1338,18 @@
     }
 
     .shell.one {
-      width: calc(var(--core-size) * 1.7);
-      height: calc(var(--core-size) * 1.7);
+      width: var(--shell-1-size);
+      height: var(--shell-1-size);
     }
 
     .shell.two {
-      width: calc(var(--core-size) * 2.2);
-      height: calc(var(--core-size) * 2.2);
+      width: var(--shell-2-size);
+      height: var(--shell-2-size);
     }
 
     .shell.three {
-      width: calc(var(--core-size) * 2.8);
-      height: calc(var(--core-size) * 2.8);
+      width: var(--shell-3-size);
+      height: var(--shell-3-size);
     }
 
     .vortex-ring {
@@ -1350,18 +1360,18 @@
     }
 
     .vortex-ring.ring-a {
-      width: calc(var(--core-size) * 1.45);
-      height: calc(var(--core-size) * 1.45);
+      width: var(--ring-a-size);
+      height: var(--ring-a-size);
     }
 
     .vortex-ring.ring-b {
-      width: calc(var(--core-size) * 2.0);
-      height: calc(var(--core-size) * 2.0);
+      width: var(--ring-b-size);
+      height: var(--ring-b-size);
     }
 
     .vortex-ring.ring-c {
-      width: calc(var(--core-size) * 2.7);
-      height: calc(var(--core-size) * 2.7);
+      width: var(--ring-c-size);
+      height: var(--ring-c-size);
     }
 
     .energy-wave {
@@ -1383,8 +1393,8 @@
     }
 
     .plasma-disc {
-      width: calc(var(--core-size) * 2.6);
-      height: calc(var(--core-size) * 2.6);
+      width: var(--plasma-size);
+      height: var(--plasma-size);
       background:
         radial-gradient(circle,
           rgba(var(--ring-rgb), 0.18) 0%,
@@ -2701,16 +2711,23 @@
       };
     }
 
-    function renderOrbitalSwarm({ streak, level, cardsDone, coreSize, speed, satelliteColorKey }) {
+    function renderOrbitalSwarm({ streak, level, cardsDone, coreSize, speed, satelliteColorKey, ringRadii, maxRadius }) {
       if (!els.orbitalSwarm) return;
 
       const count = Math.max(0, 2 * streak);
       const palette = getLevelPalette(level);
-      const outerRadius = coreSize * 1.02 + 26 + Math.floor(streak / 3) * 5;
-      const innerRadius = coreSize * 0.78 + 12;
       els.orbitalSwarm.style.setProperty('--swarm-speed', `${Math.max(1.8, speed * 0.95).toFixed(2)}s`);
 
-      const signature = [palette.key, count].join('|');
+      const radii = (Array.isArray(ringRadii) && ringRadii.length)
+        ? ringRadii.map(r => clamp(Number(r) || 0, coreSize * 0.72, maxRadius || 230))
+        : [
+            coreSize * 0.92 + 22,
+            coreSize * 1.18 + 42,
+            coreSize * 1.42 + 64,
+            coreSize * 1.66 + 88
+          ];
+
+      const signature = [palette.key, count, ...radii.map(r => Math.round(r))].join('|');
 
       if (localState.swarmSignature === signature) return;
       localState.swarmSignature = signature;
@@ -2732,29 +2749,44 @@
       while (slots.length < count) slots.push(satBaseColor);
       localState.satelliteColorSlots = slots;
 
+      const totalRadius = radii.reduce((sum, r) => sum + r, 0) || 1;
+      const targetCounts = radii.map(r => Math.max(1, Math.round((r / totalRadius) * count)));
+      let assigned = targetCounts.reduce((sum, n) => sum + n, 0);
+      while (assigned > count) {
+        const idx = targetCounts.findIndex(n => n > 1);
+        if (idx === -1) break;
+        targetCounts[idx] -= 1;
+        assigned -= 1;
+      }
+      while (assigned < count) {
+        const idx = targetCounts.indexOf(Math.max(...targetCounts));
+        targetCounts[idx] += 1;
+        assigned += 1;
+      }
+
       let html = '';
-      for (let i = 0; i < count; i += 1) {
-        const angle = (360 / count) * i;
-        const radius = i % 3 === 0
-          ? outerRadius
-          : i % 3 === 1
-            ? outerRadius * 0.82
-            : innerRadius;
+      let globalIndex = 0;
+      for (let ringIndex = 0; ringIndex < radii.length; ringIndex += 1) {
+        const radius = radii[ringIndex];
+        const ringCount = targetCounts[ringIndex];
+        for (let i = 0; i < ringCount && globalIndex < count; i += 1, globalIndex += 1) {
+          const angle = ((360 / ringCount) * i) + (ringIndex * 17);
+          const baseSize = clamp(14 - ringIndex * 2.1 + Math.min(streak, 60) * 0.045, 6, 16);
+          const size = clamp(baseSize + ((globalIndex + ringIndex) % 3) * 0.7, 6, 18);
+          const satColor = slots[globalIndex] || satBaseColor;
 
-        const size = clamp(10 + streak * 0.65 + (i % 4) * 2, 10, 30);
-        const satColor = slots[i] || satBaseColor;
-
-        html += `
-      <div
-        class="swarm-orb"
-        style="
-          --angle:${angle}deg;
-          --radius:${radius}px;
-          --size:${size}px;
-          --sat-color:${satColor};
-        "
-      ></div>
-    `;
+          html += `
+        <div
+          class="swarm-orb"
+          style="
+            --angle:${angle}deg;
+            --radius:${radius.toFixed(1)}px;
+            --size:${size.toFixed(1)}px;
+            --sat-color:${satColor};
+          "
+        ></div>
+      `;
+        }
       }
 
       els.orbitalSwarm.innerHTML = html;
@@ -2765,7 +2797,8 @@
       if (!els.orbitalSwarm.children.length) return;
 
       const count = clamp(delta * 2 + Math.floor(streak / 12), 2, 10);
-      const radius = coreSize * 1.08 + 40;
+      const maxRadius = parseFloat(getComputedStyle(els.avatarStage).getPropertyValue('--swarm-radius')) || (coreSize * 1.8);
+      const radius = clamp(coreSize * 1.08 + 28, coreSize * 1.2, maxRadius * 0.96);
 
       for (let i = 0; i < count; i += 1) {
         const orb = document.createElement('div');
@@ -2819,9 +2852,26 @@
       const shrinkLock = clamp(localState.coreShrinkLock, 0.54, 1);
 
       const baseCoreSize = synced
-        ? clamp(82 + (streak * 8) + (level * 2), 82, 320)
-        : 72;
+        ? clamp(56 + (streak * 1.85) + (level * 0.9), 56, 150)
+        : 52;
       const coreSize = baseCoreSize * shrinkLock;
+
+      const ringSpread = clamp(1 + streak * 0.022 + comboPower * 0.1, 1, 2.35);
+      const ringA = clamp(coreSize * (1.34 + ringSpread * 0.08), coreSize * 1.25, 228);
+      const ringB = clamp(coreSize * (1.82 + ringSpread * 0.16), coreSize * 1.48, 298);
+      const ringC = clamp(coreSize * (2.28 + ringSpread * 0.26), coreSize * 1.78, 372);
+      const shell1 = clamp(coreSize * (1.52 + ringSpread * 0.10), coreSize * 1.38, 248);
+      const shell2 = clamp(coreSize * (1.98 + ringSpread * 0.22), coreSize * 1.58, 328);
+      const shell3 = clamp(coreSize * (2.42 + ringSpread * 0.34), coreSize * 1.84, 424);
+      const haloSize = clamp(coreSize * (1.75 + ringSpread * 0.16), coreSize * 1.42, 278);
+      const plasmaSize = clamp(coreSize * (2.14 + ringSpread * 0.24), coreSize * 1.72, 376);
+      const swarmMaxRadius = Math.floor(shell3 * 0.48);
+      const swarmRings = [
+        clamp(coreSize * 0.90 + 18, coreSize * 0.82, swarmMaxRadius * 0.58),
+        clamp(coreSize * 1.18 + 38, coreSize * 1.02, swarmMaxRadius * 0.76),
+        clamp(coreSize * 1.42 + 64, coreSize * 1.20, swarmMaxRadius * 0.92),
+        clamp(coreSize * 1.66 + 94, coreSize * 1.34, swarmMaxRadius)
+      ];
 
       const orbSpeed = Math.max(2.6, 10.5 - intensity * 4.6 - streak * 0.12);
       const arcAlpha = Math.min(0.9, 0.2 + streakPower * 0.55 + comboPower * 0.12);
@@ -2833,8 +2883,16 @@
       els.avatarStage.classList.toggle('single-core', singleCoreMode);
 
       els.avatarStage.style.setProperty('--core-size', `${coreSize}px`);
-      els.avatarStage.style.setProperty('--swarm-radius', `${coreSize * 1.08 + 30}px`);
+      els.avatarStage.style.setProperty('--swarm-radius', `${swarmMaxRadius}px`);
       els.avatarStage.style.setProperty('--swarm-speed', `${orbSpeed.toFixed(2)}s`);
+      els.avatarStage.style.setProperty('--halo-size', `${haloSize.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--shell-1-size', `${shell1.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--shell-2-size', `${shell2.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--shell-3-size', `${shell3.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--ring-a-size', `${ringA.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--ring-b-size', `${ringB.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--ring-c-size', `${ringC.toFixed(1)}px`);
+      els.avatarStage.style.setProperty('--plasma-size', `${plasmaSize.toFixed(1)}px`);
 
       const targetRing = redBlend > 0 ? `255,79,115` : palette.ring;
       els.avatarStage.style.setProperty('--ring-rgb', targetRing);
@@ -2854,7 +2912,7 @@
       els.avatarStage.style.setProperty('--orb-tilt', `${orbTilt.toFixed(2)}deg`);
 
       els.avatarStage.style.transform =
-        `scale(${synced ? stage.scale + intensity * 0.06 : 0.94}) rotateX(${(streakPower * 3.2).toFixed(2)}deg)`;
+        `scale(${synced ? clamp(stage.scale * 0.95 + intensity * 0.02, 0.9, 1.03) : 0.92}) rotateX(${(streakPower * 3.2).toFixed(2)}deg)`;
 
       els.pulseCore.style.transform = `scale(${synced ? 0.82 + coreSize / 220 + intensity * 0.10 : 0.72})`;
       els.pulseCore.style.opacity = String(synced ? 0.68 + Math.min(0.28, combo * 0.08) : 0.5);
@@ -2878,7 +2936,9 @@
         cardsDone,
         coreSize,
         speed: orbSpeed,
-        satelliteColorKey
+        satelliteColorKey,
+        ringRadii: swarmRings,
+        maxRadius: swarmMaxRadius
       });
 
       if (!singleCoreMode && synced && localState.prevStreakValue !== null && streak > localState.prevStreakValue) {
