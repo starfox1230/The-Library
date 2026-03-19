@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Temporary Apps Library</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --panel: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22d3ee;
+      --accent-2: #06b6d4;
+      --border: #374151;
+      --success: #34d399;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(145deg, #0f172a, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1100px, 94vw);
+      margin: 2rem auto 3rem;
+    }
+
+    h1 { margin-bottom: 0.4rem; }
+    .subtitle { color: var(--muted); margin-top: 0; }
+
+    .panel {
+      background: rgba(31, 41, 55, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      background: #111827;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.65rem;
+    }
+
+    .instructions {
+      border-left: 4px solid var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      margin: 0.75rem 0 0;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.8rem;
+    }
+
+    .app-list {
+      display: grid;
+      gap: 0.75rem;
+      padding: 0;
+      list-style: none;
+      margin: 0;
+    }
+
+    .app-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(17, 24, 39, 0.85);
+      padding: 0.85rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .app-item a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.02rem;
+    }
+
+    .app-item a:hover { color: var(--accent-2); text-decoration: underline; }
+
+    .meta {
+      font-size: 0.84rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.8rem;
+    }
+
+    .badge {
+      color: #052e2b;
+      background: var(--success);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      padding: 0.2rem 0.45rem;
+      font-weight: 700;
+      align-self: start;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 1rem;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>🧪 Temporary Apps Library</h1>
+    <p class="subtitle">A staging area for short-lived tools. Newest entries appear first by default.</p>
+
+    <section class="panel instructions">
+      <h2>Systematic Add Instructions (for humans + bots)</h2>
+      <ol>
+        <li>Create a new app folder at: <code>apps/temporary-apps/library/YYYY-MM-DD-short-slug/</code>.</li>
+        <li>Add the app page at <code>index.html</code> inside that folder.</li>
+        <li>Add one new object at the TOP of <code>TEMP_APPS</code> in this file.</li>
+        <li>Use ISO date strings (<code>YYYY-MM-DD</code>) for both <code>createdAt</code> and <code>updatedAt</code>.</li>
+        <li>Keep newest apps first by sorting with <code>updatedAt</code> desc, then <code>createdAt</code> desc.</li>
+      </ol>
+      <pre>{
+  "name": "Short App Name",
+  "path": "library/2026-03-19-short-app/index.html",
+  "createdAt": "2026-03-19",
+  "updatedAt": "2026-03-19",
+  "description": "One sentence describing what it does."
+}</pre>
+    </section>
+
+    <section class="panel controls" aria-label="Filters">
+      <div class="field">
+        <label for="searchInput">Search</label>
+        <input id="searchInput" type="text" placeholder="Name or description" />
+      </div>
+      <div class="field">
+        <label for="sortSelect">Sort</label>
+        <select id="sortSelect">
+          <option value="updated-desc">Updated (newest first)</option>
+          <option value="created-desc">Created (newest first)</option>
+          <option value="updated-asc">Updated (oldest first)</option>
+          <option value="created-asc">Created (oldest first)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fromDate">From date</label>
+        <input id="fromDate" type="date" />
+      </div>
+      <div class="field">
+        <label for="toDate">To date</label>
+        <input id="toDate" type="date" />
+      </div>
+      <div class="field">
+        <label for="dateField">Date filter uses</label>
+        <select id="dateField">
+          <option value="updatedAt">Updated date</option>
+          <option value="createdAt">Created date</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="panel">
+      <ul id="appsList" class="app-list" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <script>
+    const TEMP_APPS = [
+      {
+        name: "Example Temporary App",
+        path: "library/2026-03-19-example-temp-app/index.html",
+        createdAt: "2026-03-19",
+        updatedAt: "2026-03-19",
+        description: "Starter entry proving the format and ordering workflow.",
+      },
+    ];
+
+    const $search = document.getElementById("searchInput");
+    const $sort = document.getElementById("sortSelect");
+    const $from = document.getElementById("fromDate");
+    const $to = document.getElementById("toDate");
+    const $dateField = document.getElementById("dateField");
+    const $appsList = document.getElementById("appsList");
+
+    function compareDates(a, b, key, direction = "desc") {
+      const aTime = new Date(a[key]).getTime();
+      const bTime = new Date(b[key]).getTime();
+      return direction === "desc" ? bTime - aTime : aTime - bTime;
+    }
+
+    function renderApps() {
+      const query = $search.value.trim().toLowerCase();
+      const sortValue = $sort.value;
+      const fromDate = $from.value ? new Date($from.value).getTime() : null;
+      const toDate = $to.value ? new Date($to.value).getTime() : null;
+      const dateField = $dateField.value;
+
+      let items = TEMP_APPS.filter((app) => {
+        const haystack = `${app.name} ${app.description}`.toLowerCase();
+        if (query && !haystack.includes(query)) return false;
+
+        const appDateTime = new Date(app[dateField]).getTime();
+        if (fromDate !== null && appDateTime < fromDate) return false;
+        if (toDate !== null && appDateTime > toDate) return false;
+
+        return true;
+      });
+
+      if (sortValue === "updated-desc") {
+        items.sort((a, b) => compareDates(a, b, "updatedAt", "desc") || compareDates(a, b, "createdAt", "desc"));
+      } else if (sortValue === "created-desc") {
+        items.sort((a, b) => compareDates(a, b, "createdAt", "desc"));
+      } else if (sortValue === "updated-asc") {
+        items.sort((a, b) => compareDates(a, b, "updatedAt", "asc"));
+      } else {
+        items.sort((a, b) => compareDates(a, b, "createdAt", "asc"));
+      }
+
+      if (!items.length) {
+        $appsList.innerHTML = '<li class="empty">No temporary apps match your current filter.</li>';
+        return;
+      }
+
+      $appsList.innerHTML = items
+        .map((app, index) => `
+          <li class="app-item">
+            <div>
+              <a href="${app.path}">${app.name}</a>
+              <div class="meta">
+                <span>Created: ${app.createdAt}</span>
+                <span>Updated: ${app.updatedAt}</span>
+                <span>${app.description}</span>
+              </div>
+            </div>
+            ${index === 0 ? '<span class="badge">Newest</span>' : ''}
+          </li>
+        `)
+        .join("");
+    }
+
+    [$search, $sort, $from, $to, $dateField].forEach((element) => {
+      element.addEventListener("input", renderApps);
+      element.addEventListener("change", renderApps);
+    });
+
+    renderApps();
+  </script>
+</body>
+</html>
