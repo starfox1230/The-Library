@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Subtraction Safari</title>
+  <style>
+    :root {
+      --bg-1: #fff7ed;
+      --bg-2: #ffedd5;
+      --card: #ffffff;
+      --line: #fdba74;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --good: #16a34a;
+      --bad: #dc2626;
+      --accent: #0ea5e9;
+      --accent-2: #9333ea;
+      --cta: #f59e0b;
+      --cta-2: #f97316;
+      --radius: 24px;
+      --shadow: 0 12px 30px rgba(120, 53, 15, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Nunito", "Baloo 2", "Fredoka", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      overscroll-behavior: none;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.15), transparent 32%),
+        radial-gradient(circle at 85% 5%, rgba(147, 51, 234, 0.16), transparent 30%),
+        linear-gradient(170deg, var(--bg-1), var(--bg-2));
+    }
+
+    body {
+      padding: max(12px, env(safe-area-inset-top)) 12px max(18px, env(safe-area-inset-bottom));
+    }
+
+    .app {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 16px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(28px, 7vw, 44px);
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: clamp(15px, 3.8vw, 20px);
+    }
+
+    .play {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      border: 2px dashed var(--line);
+      border-radius: 18px;
+      padding: 10px 8px;
+      text-align: center;
+      background: #fffaf5;
+    }
+
+    .stat .label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 800;
+    }
+
+    .stat .value {
+      margin-top: 2px;
+      font-size: clamp(24px, 6vw, 34px);
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .problem {
+      border-radius: 22px;
+      border: 3px solid #fde68a;
+      background: linear-gradient(180deg, #fffbeb, #fff7ed);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .equation {
+      font-size: clamp(40px, 12vw, 78px);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      margin: 4px 0 10px;
+      line-height: 1.05;
+    }
+
+    .message {
+      min-height: 30px;
+      font-size: clamp(18px, 4.8vw, 28px);
+      font-weight: 800;
+    }
+
+    .message.good { color: var(--good); }
+    .message.bad { color: var(--bad); }
+
+    .answer-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 18px;
+      font: inherit;
+      font-weight: 900;
+      color: #111827;
+      background: #fff;
+      min-height: 70px;
+      font-size: clamp(28px, 8vw, 46px);
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(31, 41, 55, 0.16);
+      border: 3px solid #fde68a;
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.97);
+      box-shadow: 0 5px 10px rgba(31, 41, 55, 0.12);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      filter: grayscale(0.2);
+      opacity: 0.72;
+    }
+
+    .next {
+      min-height: 58px;
+      font-size: clamp(20px, 5vw, 28px);
+      color: white;
+      background: linear-gradient(145deg, var(--cta), var(--cta-2));
+      border: 0;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .parent {
+      display: grid;
+      gap: 10px;
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+
+    .parent-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tiny {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .lock-btn {
+      min-height: 46px;
+      font-size: 15px;
+      border-radius: 14px;
+      border: 2px solid #93c5fd;
+      box-shadow: none;
+      background: #dbeafe;
+    }
+
+    .settings {
+      display: grid;
+      gap: 8px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 220ms ease;
+    }
+
+    .settings.open {
+      max-height: 450px;
+    }
+
+    label {
+      font-size: 14px;
+      color: #1e3a8a;
+      font-weight: 700;
+      display: grid;
+      gap: 4px;
+    }
+
+    select,
+    input[type="number"] {
+      width: 100%;
+      font: inherit;
+      border-radius: 12px;
+      border: 2px solid #93c5fd;
+      min-height: 44px;
+      padding: 6px 10px;
+      background: white;
+      color: #0f172a;
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    @media (min-width: 760px) {
+      .play {
+        grid-template-columns: 1.2fr 1fr;
+      }
+      .panel-left {
+        display: grid;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Subtraction learning app">
+    <section class="card hero">
+      <h1>🦁 Subtraction Safari</h1>
+      <p>Tap the right answer and help your safari team collect stars.</p>
+    </section>
+
+    <section class="play">
+      <div class="panel-left">
+        <section class="card stats" aria-label="Progress">
+          <div class="stat">
+            <div class="label">Stars</div>
+            <div id="score" class="value">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Streak</div>
+            <div id="streak" class="value">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Solved</div>
+            <div id="solved" class="value">0</div>
+          </div>
+        </section>
+
+        <section class="card problem" aria-live="polite" aria-atomic="true">
+          <div class="equation" id="equation">9 - 2 = ?</div>
+          <div id="message" class="message">Pick an answer!</div>
+          <div id="answers" class="answer-grid" role="group" aria-label="Answer choices"></div>
+          <button id="nextBtn" class="next" type="button">Next Problem ▶</button>
+          <p class="footer-note">Big buttons + no zoom + tap guard to prevent accidental double taps.</p>
+        </section>
+      </div>
+
+      <section class="card parent" aria-label="Parent controls">
+        <div class="parent-top">
+          <div>
+            <strong>👨‍👩‍👧 Parent Zone</strong>
+            <p class="tiny">Press and hold to unlock settings.</p>
+          </div>
+          <button id="unlockBtn" class="lock-btn" type="button">🔒 Hold to unlock</button>
+        </div>
+
+        <div id="settingsPanel" class="settings" aria-hidden="true">
+          <div class="settings-grid">
+            <label>
+              Level
+              <select id="levelSelect">
+                <option value="k">Kindergarten (0-10)</option>
+                <option value="g1" selected>1st Grade (0-20)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+
+            <label>
+              Max first number
+              <input id="maxMinuend" type="number" min="5" max="30" step="1" value="20" />
+            </label>
+
+            <label>
+              Smallest answer
+              <input id="minAnswer" type="number" min="0" max="20" step="1" value="0" />
+            </label>
+
+            <label>
+              Choice buttons
+              <select id="choiceCount">
+                <option value="2">2 (easy)</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+              </select>
+            </label>
+          </div>
+
+          <button id="saveSettings" class="lock-btn" type="button">Save & lock 🔐</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      score: 0,
+      streak: 0,
+      solved: 0,
+      question: null,
+      locked: true,
+      inputBlocked: false,
+      settings: {
+        maxMinuend: 20,
+        minAnswer: 0,
+        choices: 3,
+      },
+    };
+
+    const scoreEl = document.getElementById("score");
+    const streakEl = document.getElementById("streak");
+    const solvedEl = document.getElementById("solved");
+    const equationEl = document.getElementById("equation");
+    const messageEl = document.getElementById("message");
+    const answersEl = document.getElementById("answers");
+    const nextBtn = document.getElementById("nextBtn");
+
+    const unlockBtn = document.getElementById("unlockBtn");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const levelSelect = document.getElementById("levelSelect");
+    const maxMinuendInput = document.getElementById("maxMinuend");
+    const minAnswerInput = document.getElementById("minAnswer");
+    const choiceCountSelect = document.getElementById("choiceCount");
+    const saveSettingsBtn = document.getElementById("saveSettings");
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function syncScoreboard() {
+      scoreEl.textContent = String(state.score);
+      streakEl.textContent = String(state.streak);
+      solvedEl.textContent = String(state.solved);
+    }
+
+    function setMessage(text, kind = "") {
+      messageEl.textContent = text;
+      messageEl.className = `message ${kind}`.trim();
+    }
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuestion() {
+      const maxMinuend = clamp(Number(state.settings.maxMinuend) || 20, 5, 30);
+      const minAnswer = clamp(Number(state.settings.minAnswer) || 0, 0, 20);
+      const minuend = randomInt(Math.max(minAnswer + 1, 2), maxMinuend);
+      const subtrahend = randomInt(1, minuend - minAnswer);
+      const correct = minuend - subtrahend;
+
+      const options = new Set([correct]);
+      while (options.size < state.settings.choices) {
+        const wiggle = randomInt(-5, 5);
+        const alt = clamp(correct + wiggle, minAnswer, maxMinuend);
+        options.add(alt);
+      }
+
+      return {
+        minuend,
+        subtrahend,
+        correct,
+        options: Array.from(options).sort(() => Math.random() - 0.5),
+      };
+    }
+
+    function renderQuestion() {
+      state.question = generateQuestion();
+      equationEl.textContent = `${state.question.minuend} - ${state.question.subtrahend} = ?`;
+      answersEl.innerHTML = "";
+      setMessage("Pick an answer!");
+      state.inputBlocked = false;
+
+      state.question.options.forEach((optionValue) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = String(optionValue);
+        button.setAttribute("aria-label", `Answer ${optionValue}`);
+        button.addEventListener("click", () => checkAnswer(optionValue), { passive: true });
+        answersEl.appendChild(button);
+      });
+    }
+
+    function setAnswerButtonsDisabled(disabled) {
+      answersEl.querySelectorAll("button").forEach((btn) => {
+        btn.disabled = disabled;
+      });
+    }
+
+    function checkAnswer(choice) {
+      if (state.inputBlocked) return;
+      state.inputBlocked = true;
+      setAnswerButtonsDisabled(true);
+
+      const isCorrect = choice === state.question.correct;
+      state.solved += 1;
+
+      if (isCorrect) {
+        state.score += 1;
+        state.streak += 1;
+        setMessage("🎉 Great job!", "good");
+      } else {
+        state.streak = 0;
+        setMessage(`💛 Nice try! It is ${state.question.correct}.`, "bad");
+      }
+
+      syncScoreboard();
+      setTimeout(() => {
+        renderQuestion();
+      }, 850);
+    }
+
+    function setSettingsOpen(open) {
+      state.locked = !open;
+      settingsPanel.classList.toggle("open", open);
+      settingsPanel.setAttribute("aria-hidden", open ? "false" : "true");
+      unlockBtn.textContent = open ? "🔓 Settings unlocked" : "🔒 Hold to unlock";
+    }
+
+    function loadLevelPreset(level) {
+      if (level === "k") {
+        maxMinuendInput.value = "10";
+        minAnswerInput.value = "0";
+        choiceCountSelect.value = "2";
+      } else if (level === "g1") {
+        maxMinuendInput.value = "20";
+        minAnswerInput.value = "0";
+        choiceCountSelect.value = "3";
+      }
+    }
+
+    function applySettingsAndLock() {
+      state.settings.maxMinuend = clamp(Number(maxMinuendInput.value) || 20, 5, 30);
+      state.settings.minAnswer = clamp(Number(minAnswerInput.value) || 0, 0, 20);
+      state.settings.choices = clamp(Number(choiceCountSelect.value) || 3, 2, 4);
+      maxMinuendInput.value = String(state.settings.maxMinuend);
+      minAnswerInput.value = String(state.settings.minAnswer);
+      setSettingsOpen(false);
+      renderQuestion();
+    }
+
+    let holdTimer = null;
+    function beginHoldUnlock() {
+      if (!state.locked) return;
+      unlockBtn.textContent = "⏳ Keep holding...";
+      holdTimer = setTimeout(() => {
+        setSettingsOpen(true);
+      }, 1100);
+    }
+
+    function cancelHoldUnlock() {
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      if (state.locked) {
+        unlockBtn.textContent = "🔒 Hold to unlock";
+      }
+    }
+
+    unlockBtn.addEventListener("pointerdown", beginHoldUnlock);
+    unlockBtn.addEventListener("pointerup", cancelHoldUnlock);
+    unlockBtn.addEventListener("pointerleave", cancelHoldUnlock);
+    unlockBtn.addEventListener("pointercancel", cancelHoldUnlock);
+
+    levelSelect.addEventListener("change", () => {
+      if (levelSelect.value !== "custom") loadLevelPreset(levelSelect.value);
+    });
+
+    saveSettingsBtn.addEventListener("click", applySettingsAndLock);
+    nextBtn.addEventListener("click", () => {
+      if (state.inputBlocked) return;
+      renderQuestion();
+    });
+
+    document.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+    }, { passive: false });
+
+    let lastTouchEnd = 0;
+    document.addEventListener("touchend", (event) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    syncScoreboard();
+    renderQuestion();
+  </script>
+</body>
+</html>
