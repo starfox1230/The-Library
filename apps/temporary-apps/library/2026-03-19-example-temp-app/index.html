@@ -3,37 +3,1048 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Example Temporary App</title>
+  <title>Sterling's Radiology To-Do</title>
   <style>
-    body {
+    :root {
+      --bg1: #0b1020;
+      --bg2: #131a33;
+      --panel: rgba(18, 24, 47, 0.82);
+      --panel-2: rgba(26, 34, 65, 0.9);
+      --text: #eef2ff;
+      --muted: #aab4da;
+      --line: rgba(255,255,255,0.10);
+      --glow: rgba(120, 119, 255, 0.35);
+      --accent: #8b5cf6;
+      --accent-2: #ec4899;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --blue: #60a5fa;
+      --red: #fb7185;
+      --shadow: 0 18px 40px rgba(0,0,0,0.35);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
       margin: 0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      min-height: 100vh;
+      min-height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(139,92,246,0.18), transparent 28%),
+        radial-gradient(circle at 85% 10%, rgba(236,72,153,0.16), transparent 25%),
+        radial-gradient(circle at 50% 100%, rgba(96,165,250,0.10), transparent 32%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    .sparkle-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .sparkle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.75);
+      box-shadow: 0 0 14px rgba(255,255,255,0.55);
+      animation: drift linear infinite;
+      opacity: 0.45;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0px) scale(0.9); opacity: 0; }
+      10% { opacity: 0.55; }
+      50% { opacity: 0.35; }
+      to { transform: translateY(110vh) scale(1.2); opacity: 0; }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 18px 80px;
+    }
+
+    .hero {
+      padding: 26px 24px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(21,29,57,0.92), rgba(14,20,40,0.88));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+      max-width: 850px;
+      margin: 0;
+    }
+
+    .hero-grid {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .progress-card {
+      margin-top: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .progress-label {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .progress-number {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .bar {
+      width: 100%;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--blue));
+      box-shadow: 0 0 18px rgba(139,92,246,0.4);
+      transition: width 280ms ease;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(139,92,246,0.22), rgba(236,72,153,0.18));
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+    }
+
+    button.secondary {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .grid {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 1.25fr 1.25fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+
+    .pill.yellow { background: rgba(251,191,36,0.14); color: #fde68a; }
+    .pill.green { background: rgba(52,211,153,0.14); color: #a7f3d0; }
+    .pill.blue { background: rgba(96,165,250,0.14); color: #bfdbfe; }
+    .pill.red { background: rgba(251,113,133,0.14); color: #fecdd3; }
+
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .todo {
+      position: relative;
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .todo:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.055);
+    }
+
+    .todo.done {
+      background: rgba(52,211,153,0.08);
+      border-color: rgba(52,211,153,0.25);
+    }
+
+    .check-wrap {
+      position: relative;
+      flex: 0 0 auto;
+      width: 26px;
+      height: 26px;
+      margin-top: 2px;
+    }
+
+    .check-wrap input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+      z-index: 2;
+    }
+
+    .fake-check {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      border: 2px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.04);
       display: grid;
       place-items: center;
-      background: #0f172a;
-      color: #e2e8f0;
-      text-align: center;
-      padding: 1.2rem;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
     }
 
-    .card {
-      background: #111827;
-      border: 1px solid #334155;
+    .fake-check svg {
+      width: 15px;
+      height: 15px;
+      opacity: 0;
+      transform: scale(0.7);
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+
+    .todo.done .fake-check {
+      background: linear-gradient(180deg, rgba(52,211,153,0.95), rgba(16,185,129,0.95));
+      border-color: rgba(167,243,208,0.75);
+      box-shadow: 0 0 20px rgba(52,211,153,0.35);
+      transform: scale(1.05);
+    }
+
+    .todo.done .fake-check svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .todo-main {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .todo-head {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .todo-title {
+      font-weight: 800;
+      line-height: 1.35;
+      font-size: 15px;
+    }
+
+    .todo.done .todo-title {
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: rgba(167,243,208,0.85);
+      color: #d7ffe9;
+    }
+
+    .todo-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .micro {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .mini-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 12px;
+    }
+
+    .mini-card:last-child { margin-bottom: 0; }
+
+    .mini-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .mini-card p, .mini-card li {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    ul.tight {
+      padding-left: 18px;
+      margin: 8px 0 0;
+    }
+
+    .deadline-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .deadline {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .date-chip {
       border-radius: 14px;
-      padding: 1.4rem;
-      max-width: 680px;
+      padding: 10px 8px;
+      text-align: center;
+      background: rgba(139,92,246,0.16);
+      border: 1px solid rgba(139,92,246,0.26);
+      box-shadow: 0 0 18px rgba(139,92,246,0.18);
     }
 
-    a { color: #22d3ee; }
+    .date-chip .m {
+      display: block;
+      font-size: 11px;
+      color: #ddd6fe;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+
+    .date-chip .d {
+      display: block;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .deadline-title {
+      font-weight: 800;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
+    .deadline-note {
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .burst {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 14px;
+      border-radius: 3px;
+      opacity: 0.95;
+      animation: pop 900ms ease forwards;
+    }
+
+    @keyframes pop {
+      0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(0.7); opacity: 0; }
+    }
+
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .wrap { padding: 16px 12px 44px; }
+      .hero { padding: 18px 16px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .deadline { grid-template-columns: 60px 1fr; }
+      .date-chip .d { font-size: 18px; }
+    }
   </style>
 </head>
 <body>
-  <article class="card">
-    <h1>Example Temporary App</h1>
-    <p>This is a starter temporary app to verify the sub-library structure.</p>
-    <p>Created: <strong>2026-03-19</strong> · Updated: <strong>2026-03-19</strong></p>
-    <p><a href="../../index.html">← Back to Temporary Apps Library</a></p>
-  </article>
+  <div class="sparkle-layer" id="sparkles"></div>
+  <div class="burst" id="burst"></div>
+
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Sterling’s focused list</div>
+      <h1>Neuroradiology match, Core Exam, and project-sharing plan</h1>
+      <p class="sub">A clean, satisfying checklist with the actual deadlines built in, plus the GitHub/account tasks for giving people a polished version of your project without exposing your workshop account.</p>
+
+      <div class="hero-grid">
+        <div class="stat">
+          <div class="stat-label">Today’s big target</div>
+          <div class="stat-value">Register for NRMP</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Core Exam</div>
+          <div class="stat-value">Registration window: March 2026</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Rank list deadline</div>
+          <div class="stat-value">June 3, 2026</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Project sharing</div>
+          <div class="stat-value">New public-facing GitHub</div>
+        </div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-top">
+          <div class="progress-label">Overall progress</div>
+          <div class="progress-number" id="progressText">0 / 17 complete</div>
+        </div>
+        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+        <div class="controls">
+          <button id="expandAll">Expand all notes</button>
+          <button class="secondary" id="collapseAll">Collapse notes</button>
+          <button class="secondary" id="resetAll">Reset checklist</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="section-title">
+          <h2>Priority checklist</h2>
+          <span class="pill red">Do these first</span>
+        </div>
+        <div class="todo-list" id="todoList">
+          <div class="todo" data-id="nrmp-register">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Register for the neuroradiology fellowship match in NRMP R3</div>
+                <span class="pill yellow">Now</span>
+              </div>
+              <div class="todo-note">Go to the NRMP R3 system, register for the Radiology Fellowship Match, and make sure you are in the 2026 match for July 2027 appointments.</div>
+              <div class="micro"><span class="tag">Main action</span><span class="tag">NRMP</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="nrmp-verify-profile">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Verify your NRMP profile details and IDs</div>
+                <span class="pill blue">Important</span>
+              </div>
+              <div class="todo-note">Confirm your name, contact info, training details, and the ID fields used for registration. NRMP recommends including your AAMC ID, and requires your graduate-specific exam/credential identifiers as applicable.</div>
+              <div class="micro"><span class="tag">Reduce errors</span><span class="tag">Before ranking</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="eras-nrmp-id">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Log back into MyERAS and add your NRMP ID to your profile</div>
+                <span class="pill yellow">After NRMP</span>
+              </div>
+              <div class="todo-note">This is the ERAS update that most clearly matters right now. NRMP specifically says applicants using ERAS should update their profile with their NRMP ID after registering.</div>
+              <div class="micro"><span class="tag">ERAS</span><span class="tag">Post-registration</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="rank-reminder">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Plan for ranking: wait for ranking to open, then build and certify your rank list</div>
+                <span class="pill green">Upcoming</span>
+              </div>
+              <div class="todo-note">You cannot just “have a list in there.” It needs to be certified. The list only counts if it is certified by the deadline.</div>
+              <div class="micro"><span class="tag">Ranking opens Apr 15</span><span class="tag">Certify by Jun 3</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="core-check-abr">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Check myABR for Core Exam registration invite and eligibility status</div>
+                <span class="pill yellow">This month</span>
+              </div>
+              <div class="todo-note">ABR lists the 2026 Core Exam registration window only as March 2026, not a more specific public day on the exam dates page. So the practical step is to check myABR now and not let March slip by.</div>
+              <div class="micro"><span class="tag">ABR</span><span class="tag">March 2026</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="core-save-proof">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">When the Core Exam registration is done, save proof and put exam dates on your calendar</div>
+                <span class="pill blue">Quick finish</span>
+              </div>
+              <div class="todo-note">The 2026 Core Exam dates are June 2–4 and June 9–11. Save the confirmation and immediately calendar the correct week once ABR assigns or confirms it.</div>
+              <div class="micro"><span class="tag">Screenshot</span><span class="tag">Calendar</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="github-create-account">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Create the new public-facing GitHub account: sterlingMCJ</div>
+                <span class="pill yellow">Project identity</span>
+              </div>
+              <div class="todo-note">This becomes the account you are comfortable attaching your real identity to. Keep your current account as the workshop account.</div>
+              <div class="micro"><span class="tag">Clean identity</span><span class="tag">Long-term use</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="github-project-repo">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Create a repo on the new account for the compare-revisions / discrepancy project</div>
+                <span class="pill yellow">Needed for sharing</span>
+              </div>
+              <div class="todo-note">Copy over only the shareable code and a clean README. Your live demo can still point to the Render deployment from the other account.</div>
+              <div class="micro"><span class="tag">No need to redeploy</span><span class="tag">Clean repo</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="github-anki-repo">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Create a second repo on the new account for the Anki add-on</div>
+                <span class="pill blue">Open-source lane</span>
+              </div>
+              <div class="todo-note">Set this one up so people can inspect it, fork it, and improve it.</div>
+              <div class="micro"><span class="tag">Community-friendly</span><span class="tag">Future sharing</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="project-package">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Prepare a simple project handoff package for the people reviewing it</div>
+                <span class="pill green">Make it easy</span>
+              </div>
+              <div class="todo-note">Package should include: live Render demo link, clean GitHub repo link, 3–5 representative example cases, and one sentence saying what kind of feedback you want.</div>
+              <div class="micro"><span class="tag">Demo + repo + cases</span><span class="tag">Minimal friction</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="cases-select">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Choose the representative before/after cases you want them to see</div>
+                <span class="pill green">Content</span>
+              </div>
+              <div class="todo-note">Best mix: one obvious catch, one subtle meaningful miss, one wording-only / low-significance example, one edge case, one case you think best shows the value.</div>
+              <div class="micro"><span class="tag">3–5 cases</span><span class="tag">Strong mix</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="readme-write">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Write the short README for the shareable project repo</div>
+                <span class="pill blue">Polish</span>
+              </div>
+              <div class="todo-note">Include: what it does, why it exists, what stage it is in, live demo link, and the kind of feedback you want from them.</div>
+              <div class="micro"><span class="tag">README</span><span class="tag">Professional</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="send-links">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Send the live demo and repo links once the repo looks clean</div>
+                <span class="pill red">Done when sent</span>
+              </div>
+              <div class="todo-note">They do not need to know or care that the Render deployment is fed from the other account as long as the code is the same and the demo works.</div>
+              <div class="micro"><span class="tag">Low explanation</span><span class="tag">Just works</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="calendar-key-dates">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Put all hard dates on your calendar now</div>
+                <span class="pill yellow">Stress reduction</span>
+              </div>
+              <div class="todo-note">Add: ranking opens Apr 15, rank list certification deadline Jun 3, match day Jun 17, Core Exam weeks Jun 2–4 and Jun 9–11, plus a recurring March ABR check if you have not registered yet.</div>
+              <div class="micro"><span class="tag">Calendar</span><span class="tag">Future-proof</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="screenshot-proof">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Save screenshots / confirmation pages for NRMP and ABR once each is completed</div>
+                <span class="pill blue">Admin insurance</span>
+              </div>
+              <div class="todo-note">Tiny task, but it prevents the dumbest future headaches.</div>
+              <div class="micro"><span class="tag">Proof</span><span class="tag">Low effort</span></div>
+            </div>
+          </div>
+
+          <div class="todo" data-id="future-use">
+            <div class="check-wrap">
+              <input type="checkbox" />
+              <div class="fake-check">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5L8 14.5L16 5.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="todo-main">
+              <div class="todo-head">
+                <div class="todo-title">Adopt the rule: public-facing things go on sterlingMCJ, workshop things stay on the old account</div>
+                <span class="pill green">System</span>
+              </div>
+              <div class="todo-note">This keeps you from having to solve this same problem every time you want to share something.</div>
+              <div class="micro"><span class="tag">Simple rule</span><span class="tag">Future sanity</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">
+          <h2>Key dates</h2>
+          <span class="pill green">Official timing</span>
+        </div>
+
+        <div class="deadline-list">
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Mar</span><span class="d">11</span></div>
+            <div>
+              <div class="deadline-title">Radiology Fellowship Match opens</div>
+              <div class="deadline-note">You can register in the NRMP Radiology Fellowship Match beginning March 11, 2026 for July 2027 appointments.</div>
+            </div>
+          </div>
+
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Apr</span><span class="d">15</span></div>
+            <div>
+              <div class="deadline-title">Ranking opens</div>
+              <div class="deadline-note">This is when you can start building your rank list in NRMP.</div>
+            </div>
+          </div>
+
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Jun</span><span class="d">03</span></div>
+            <div>
+              <div class="deadline-title">Rank Order List certification deadline</div>
+              <div class="deadline-note">Your rank list must be certified, not merely drafted.</div>
+            </div>
+          </div>
+
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Jun</span><span class="d">17</span></div>
+            <div>
+              <div class="deadline-title">Neuroradiology Match Day</div>
+              <div class="deadline-note">This is the NRMP radiology fellowship Match Day for July 2027 appointments.</div>
+            </div>
+          </div>
+
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Mar</span><span class="d">2026</span></div>
+            <div>
+              <div class="deadline-title">ABR Core Exam registration window</div>
+              <div class="deadline-note">ABR publicly lists March 2026 for Core Exam registration, but not a more specific day on the exam dates page.</div>
+            </div>
+          </div>
+
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Jun</span><span class="d">2–4</span></div>
+            <div>
+              <div class="deadline-title">Core Exam week one</div>
+              <div class="deadline-note">ABR lists June 2–4, 2026 as week one of the Qualifying (Core) Exam.</div>
+            </div>
+          </div>
+
+          <div class="deadline">
+            <div class="date-chip"><span class="m">Jun</span><span class="d">9–11</span></div>
+            <div>
+              <div class="deadline-title">Core Exam week two</div>
+              <div class="deadline-note">ABR lists June 9–11, 2026 as week two of the Qualifying (Core) Exam.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-note">This checklist is intentionally biased toward what you actually need to do next, not every possible piece of background admin.</div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">
+          <h2>Quick guidance</h2>
+          <span class="pill blue">Plain version</span>
+        </div>
+
+        <div class="mini-card">
+          <h3>What you likely need to update in ERAS</h3>
+          <p>After registering with NRMP, add your NRMP ID to your MyERAS profile. That is the most clearly supported post-application ERAS step from the official guidance.</p>
+        </div>
+
+        <div class="mini-card">
+          <h3>What counts for the match</h3>
+          <p>Interviews and ERAS are not the same thing as NRMP registration. You still have to register in NRMP and later certify your rank list for it to count.</p>
+        </div>
+
+        <div class="mini-card">
+          <h3>How to handle the project share-out</h3>
+          <ul class="tight">
+            <li>New clean GitHub account for your public-facing identity.</li>
+            <li>One discrepancy-project repo there.</li>
+            <li>One Anki add-on repo there.</li>
+            <li>Keep the live Render deployment where it already works.</li>
+            <li>Send people the live demo plus the clean repo.</li>
+          </ul>
+        </div>
+
+        <div class="mini-card">
+          <h3>Minimum viable handoff package</h3>
+          <ul class="tight">
+            <li>Live demo link.</li>
+            <li>Repo link.</li>
+            <li>Three to five example cases.</li>
+            <li>One sentence asking what kind of feedback you want.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'sterling-rads-todo-v1';
+    const inputs = [...document.querySelectorAll('.todo input[type="checkbox"]')];
+    const todos = [...document.querySelectorAll('.todo')];
+    const progressText = document.getElementById('progressText');
+    const barFill = document.getElementById('barFill');
+    const burst = document.getElementById('burst');
+
+    function buildSparkles() {
+      const layer = document.getElementById('sparkles');
+      for (let i = 0; i < 28; i++) {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.left = Math.random() * 100 + 'vw';
+        s.style.top = (-10 - Math.random() * 90) + 'vh';
+        s.style.animationDuration = (9 + Math.random() * 15) + 's';
+        s.style.animationDelay = (Math.random() * 12) + 's';
+        s.style.transform = `scale(${0.6 + Math.random() * 1.1})`;
+        layer.appendChild(s);
+      }
+    }
+
+    function saveState() {
+      const state = {};
+      todos.forEach(todo => {
+        const id = todo.dataset.id;
+        const checked = todo.querySelector('input').checked;
+        state[id] = checked;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const state = JSON.parse(raw);
+        todos.forEach(todo => {
+          const id = todo.dataset.id;
+          const checked = !!state[id];
+          const input = todo.querySelector('input');
+          input.checked = checked;
+          todo.classList.toggle('done', checked);
+        });
+      } catch (e) {}
+    }
+
+    function updateProgress() {
+      const done = inputs.filter(i => i.checked).length;
+      const total = inputs.length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      progressText.textContent = `${done} / ${total} complete`;
+      barFill.style.width = pct + '%';
+    }
+
+    function confettiAt(x, y) {
+      const colors = ['#8b5cf6', '#ec4899', '#60a5fa', '#34d399', '#fbbf24', '#ffffff'];
+      for (let i = 0; i < 20; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = x + 'px';
+        c.style.top = y + 'px';
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        c.style.setProperty('--x', `${(Math.random() - 0.5) * 180}px`);
+        c.style.setProperty('--y', `${-20 - Math.random() * 180}px`);
+        c.style.setProperty('--r', `${(Math.random() - 0.5) * 720}deg`);
+        burst.appendChild(c);
+        setTimeout(() => c.remove(), 950);
+      }
+    }
+
+    inputs.forEach(input => {
+      input.addEventListener('change', (e) => {
+        const todo = e.target.closest('.todo');
+        const nowChecked = e.target.checked;
+        todo.classList.toggle('done', nowChecked);
+        saveState();
+        updateProgress();
+        if (nowChecked) {
+          const rect = todo.getBoundingClientRect();
+          confettiAt(rect.left + rect.width / 2, rect.top + 30);
+        }
+      });
+    });
+
+    document.getElementById('resetAll').addEventListener('click', () => {
+      inputs.forEach(input => {
+        input.checked = false;
+        input.closest('.todo').classList.remove('done');
+      });
+      saveState();
+      updateProgress();
+    });
+
+    document.getElementById('expandAll').addEventListener('click', () => {
+      todos.forEach(todo => todo.classList.remove('compact'));
+    });
+
+    document.getElementById('collapseAll').addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    buildSparkles();
+    loadState();
+    updateProgress();
+  </script>
 </body>
 </html>
