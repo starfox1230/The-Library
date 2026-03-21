@@ -180,7 +180,7 @@
       </article>
     </section>
 
-    <p class="screen-footer">Eat all drifting blue orbs to fully evolve, then burst into bouncing confetti spheres.</p>
+    <p class="screen-footer">Eat all drifting blue orbs to evolve, then watch the orb eject them from one side and shrink back to pink before restarting.</p>
   </main>
 
   <script>
@@ -227,6 +227,7 @@
         paletteIndex: 0,
         phase: "join",
         popTimer: 0,
+        ejectProgress: 0,
         targetScore: 14,
         food: [],
         burst: [],
@@ -247,8 +248,8 @@
           state.food.push({
             x: rand(30, canvas.width - 30),
             y: rand(40, canvas.height - 30),
-            vx: rand(-0.75, 0.75),
-            vy: rand(-0.75, 0.75),
+            vx: rand(-1.2, 1.2),
+            vy: rand(-1.2, 1.2),
             r: rand(8, 13),
             wobble: rand(0, Math.PI * 2),
           });
@@ -259,6 +260,7 @@
         state.score = 0;
         state.phase = "running";
         state.popTimer = 0;
+        state.ejectProgress = 0;
         state.burst = [];
         state.blob.x = canvas.width * 0.5;
         state.blob.y = canvas.height * 0.5;
@@ -289,8 +291,8 @@
           overlayTitle.textContent = "Join Orb Feast";
           overlayBody.innerHTML = `Press <strong>${config.joinLabel}</strong> (or click) to join this board.`;
         } else if (mode === "burst") {
-          overlayTitle.textContent = "Super Burst!";
-          overlayBody.textContent = "Your orb exploded into a confetti bounce. Press join to play another run.";
+          overlayTitle.textContent = "Orb Reset Complete";
+          overlayBody.textContent = "Your orb threw out every blue ball, shrank back to pink, and is ready to restart. Press join to play again.";
         }
       }
 
@@ -375,18 +377,23 @@
 
         if (!state.food.length && state.phase === "running") {
           state.phase = "burst";
-          state.popTimer = nowSec + 1.6;
-          const popCount = 140;
+          state.ejectProgress = 0;
+          state.popTimer = nowSec + 2.1;
+          const popCount = 175;
+          const nozzleX = state.blob.x + 14;
+          const nozzleY = state.blob.y - 10;
           for (let i = 0; i < popCount; i += 1) {
+            const angle = rand(-1.45, -0.5);
+            const speed = rand(170, 380);
             state.burst.push({
               kind: "confetti",
-              x: state.blob.x,
-              y: state.blob.y,
-              vx: rand(-210, 210),
-              vy: rand(-310, -60),
-              r: rand(2.5, 6.5),
-              life: rand(2.2, 3.8),
-              bounciness: rand(0.48, 0.68),
+              x: nozzleX + rand(-6, 6),
+              y: nozzleY + rand(-6, 6),
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              r: rand(2.8, 6.8),
+              life: rand(1.1, 2.2),
+              bounciness: rand(0.24, 0.44),
             });
           }
         }
@@ -406,7 +413,7 @@
           p.x += p.vx * dt;
           p.y += p.vy * dt;
           if (p.kind === "confetti") {
-            p.vy += 720 * dt;
+            p.vy += 560 * dt;
             if (p.x < p.r || p.x > canvas.width - p.r) {
               p.x = clamp(p.x, p.r, canvas.width - p.r);
               p.vx *= -0.7;
@@ -419,9 +426,16 @@
           }
         }
 
-        if (state.phase === "burst" && nowSec > state.popTimer) {
-          state.phase = "join";
-          setOverlay("burst");
+        if (state.phase === "burst") {
+          const total = 2.1;
+          state.ejectProgress = clamp(1 - Math.max(0, state.popTimer - nowSec) / total, 0, 1);
+          if (nowSec > state.popTimer) {
+            state.phase = "join";
+            state.ejectProgress = 1;
+            state.blob.growth = 0;
+            setOverlay("burst");
+            syncHud();
+          }
         }
       }
 
@@ -450,7 +464,7 @@
 
         state.burst.forEach((p) => {
           ctx.globalAlpha = Math.max(0.1, p.life / (p.kind === "confetti" ? 3.2 : 0.45));
-          ctx.fillStyle = p.kind === "confetti" ? palette.food : "#ffe4f7";
+          ctx.fillStyle = p.kind === "confetti" ? palette.food : palette.blobStart;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
           ctx.fill();
@@ -459,9 +473,12 @@
 
         if (state.phase !== "join" || state.joined) {
           const ratio = clamp(state.score / state.targetScore, 0, 1);
-          const r = state.blob.baseRadius + state.blob.growth * 3;
-          const blobColor = mixColor(palette.blobStart, palette.blobEnd, ratio);
-          const glow = mixColor("#ff8dd4", palette.food, ratio);
+          const ejectRatio = state.phase === "burst" ? state.ejectProgress : 0;
+          const growthNow = state.blob.growth * (1 - ejectRatio);
+          const colorRatio = clamp(ratio * (1 - ejectRatio), 0, 1);
+          const r = state.blob.baseRadius + growthNow * 3;
+          const blobColor = mixColor(palette.blobStart, palette.blobEnd, colorRatio);
+          const glow = mixColor("#ff8dd4", palette.food, colorRatio);
           ctx.shadowColor = glow;
           ctx.shadowBlur = 22;
           ctx.fillStyle = blobColor;
