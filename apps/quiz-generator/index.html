@@ -1122,6 +1122,87 @@ Example format:
         const viewPastSessionsBtn = document.getElementById('viewPastSessionsBtn');
         const mainSessionsModal = document.getElementById('main-sessions-modal');
 
+        function normalizeSmartJsonCharacters(rawText) {
+            return rawText
+                .replace(/[\u201C\u201D]/g, '"')
+                .replace(/[\u2018\u2019]/g, "'")
+                .replace(/\u2013/g, '-')
+                .replace(/\u2014/g, '-');
+        }
+
+        function escapeLikelyInnerQuotes(jsonText) {
+            let output = '';
+            let inString = false;
+            let escaped = false;
+
+            for (let i = 0; i < jsonText.length; i += 1) {
+                const char = jsonText[i];
+
+                if (!inString) {
+                    if (char === '"') inString = true;
+                    output += char;
+                    continue;
+                }
+
+                if (escaped) {
+                    output += char;
+                    escaped = false;
+                    continue;
+                }
+
+                if (char === '\\') {
+                    output += char;
+                    escaped = true;
+                    continue;
+                }
+
+                if (char === '"') {
+                    let j = i + 1;
+                    while (j < jsonText.length && /\s/.test(jsonText[j])) j += 1;
+                    const nextChar = jsonText[j];
+                    const isLikelyClosingQuote = nextChar === ',' || nextChar === '}' || nextChar === ']' || nextChar === ':';
+
+                    if (isLikelyClosingQuote) {
+                        inString = false;
+                        output += char;
+                    } else {
+                        output += '\\"';
+                    }
+                    continue;
+                }
+
+                output += char;
+            }
+
+            return output;
+        }
+
+        function parseQuizJsonWithAutoRepair(rawInput) {
+            const attempts = [
+                { text: rawInput, label: 'original input' },
+                { text: normalizeSmartJsonCharacters(rawInput), label: 'smart quote normalization' }
+            ];
+            attempts.push({
+                text: escapeLikelyInnerQuotes(attempts[1].text),
+                label: 'inner quote escaping'
+            });
+
+            for (const attempt of attempts) {
+                try {
+                    return {
+                        parsedData: JSON.parse(attempt.text),
+                        normalizedText: attempt.text,
+                        repaired: attempt.label !== 'original input',
+                        repairStep: attempt.label
+                    };
+                } catch (_) {
+                    // Try next repair attempt.
+                }
+            }
+
+            return null;
+        }
+
         const pendingQuizTitle = sessionStorage.getItem('loadQuizTitle');
         if (pendingQuizTitle) {
             window.addEventListener('DOMContentLoaded', () => {
@@ -1164,12 +1245,15 @@ Example format:
                 if (!quizDataInput) { alert('Please paste the quiz data into the input area first.'); return; }
                 if (!quizDataInput.startsWith('{') || !quizDataInput.endsWith('}')) { alert('The input data does not seem to be a correctly formatted JSON object.'); return; }
 
-                let parsedData;
-                try {
-                    parsedData = JSON.parse(quizDataInput);
-                } catch (e) {
-                    alert(`Error parsing quiz data: ${e.message}\n\nThis usually means a syntax error. You can use a tool like jsonlint.com to validate the structure.`);
+                const parseResult = parseQuizJsonWithAutoRepair(quizDataInput);
+                if (!parseResult) {
+                    alert('Error parsing quiz data.\n\nAuto-repair could not fix it. Please ensure valid JSON (including escaped quotes inside strings).');
                     return;
+                }
+                const { parsedData, repaired, normalizedText, repairStep } = parseResult;
+                if (repaired) {
+                    questionInput.value = JSON.stringify(parsedData, null, 2);
+                    console.info(`Quiz JSON was auto-repaired using: ${repairStep}.`, normalizedText);
                 }
 
                 if (typeof parsedData.title !== 'string' || parsedData.title.trim() === '') { alert('The JSON object is missing a valid "title" string property.'); return; }
