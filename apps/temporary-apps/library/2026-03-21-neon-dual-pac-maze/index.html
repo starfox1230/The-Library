@@ -105,6 +105,36 @@
       min-height: 455px;
       overflow: hidden;
     }
+    .lives-visual {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      min-height: 20px;
+      padding: 0.24rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(7, 11, 26, 0.78);
+      box-shadow: 0 0 12px rgba(88, 173, 255, 0.32);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .life-pac {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: conic-gradient(from 35deg, transparent 0deg 70deg, var(--yellow) 70deg 360deg);
+      filter: drop-shadow(0 0 4px rgba(255, 232, 102, 0.5));
+    }
+    .life-empty {
+      color: rgba(236, 244, 255, 0.72);
+      font-size: 0.78rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
     canvas {
       width: 100%;
       max-width: 520px;
@@ -170,6 +200,7 @@
           <div class="metric"><span class="metric-label">Lives</span><span id="lives-a" class="metric-value">3</span></div>
         </section>
         <div class="canvas-wrap">
+          <div id="lives-icons-a" class="lives-visual" aria-label="Player A lives"></div>
           <canvas id="board-a" width="600" height="600" aria-label="Player A board"></canvas>
           <div class="overlay" id="overlay-a">
             <div class="overlay-card">
@@ -194,6 +225,7 @@
           <div class="metric"><span class="metric-label">Lives</span><span id="lives-b" class="metric-value">3</span></div>
         </section>
         <div class="canvas-wrap">
+          <div id="lives-icons-b" class="lives-visual" aria-label="Player B lives"></div>
           <canvas id="board-b" width="600" height="600" aria-label="Player B board"></canvas>
           <div class="overlay" id="overlay-b">
             <div class="overlay-card">
@@ -248,7 +280,7 @@
     const PLAYER_CONFIG = {
       a: {
         canvasId: "board-a", overlayId: "overlay-a", overlayTitleId: "overlay-title-a", overlayBodyId: "overlay-body-a",
-        scoreId: "score-a", bestId: "best-a", pelletsId: "pellets-a", livesId: "lives-a",
+        scoreId: "score-a", bestId: "best-a", pelletsId: "pellets-a", livesId: "lives-a", livesIconsId: "lives-icons-a",
         joinCodes: new Set(["Digit3"]), colorToggleCodes: new Set(["Digit1"]),
         turnKeys: { w: { x: 0, y: -1 }, a: { x: -1, y: 0 }, s: { x: 0, y: 1 }, d: { x: 1, y: 0 } },
         palettes: [
@@ -259,7 +291,7 @@
       },
       b: {
         canvasId: "board-b", overlayId: "overlay-b", overlayTitleId: "overlay-title-b", overlayBodyId: "overlay-body-b",
-        scoreId: "score-b", bestId: "best-b", pelletsId: "pellets-b", livesId: "lives-b",
+        scoreId: "score-b", bestId: "best-b", pelletsId: "pellets-b", livesId: "lives-b", livesIconsId: "lives-icons-b",
         joinCodes: new Set(["Numpad3"]), colorToggleCodes: new Set(["Numpad1"]),
         turnKeys: { ArrowUp: { x: 0, y: -1 }, ArrowLeft: { x: -1, y: 0 }, ArrowDown: { x: 0, y: 1 }, ArrowRight: { x: 1, y: 0 } },
         palettes: [
@@ -323,6 +355,25 @@
       b: createPlayerState("b", PLAYER_CONFIG.b),
     };
 
+    function renderLivesVisual(player) {
+      const livesWrap = document.getElementById(player.config.livesIconsId);
+      if (!livesWrap) return;
+      livesWrap.innerHTML = "";
+      if (player.lives <= 0) {
+        const empty = document.createElement("span");
+        empty.className = "life-empty";
+        empty.textContent = "No lives";
+        livesWrap.appendChild(empty);
+        return;
+      }
+      for (let i = 0; i < player.lives; i += 1) {
+        const life = document.createElement("span");
+        life.className = "life-pac";
+        life.setAttribute("aria-hidden", "true");
+        livesWrap.appendChild(life);
+      }
+    }
+
     function resetRound(player, keepScore = true) {
       if (!keepScore) {
         player.score = 0;
@@ -348,6 +399,7 @@
       document.getElementById(player.config.bestId).textContent = String(player.best);
       document.getElementById(player.config.pelletsId).textContent = String(player.pelletsLeft);
       document.getElementById(player.config.livesId).textContent = String(player.lives);
+      renderLivesVisual(player);
     }
 
     function updateOverlay(player, hidden, mode = "join") {
