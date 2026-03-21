@@ -304,22 +304,32 @@
         if (keyState.has(config.controls.right)) axis.x += 1;
         if (keyState.has(config.controls.up)) axis.y -= 1;
         if (keyState.has(config.controls.down)) axis.y += 1;
+        const axisMag = Math.hypot(axis.x, axis.y);
+        const inputX = axisMag > 0 ? axis.x / axisMag : 0;
+        const inputY = axisMag > 0 ? axis.y / axisMag : 0;
 
-        const accel = 1400;
-        const maxSpeed = 255;
-        const drag = 0.87;
+        const maxSpeed = 328;
+        const accelRate = 2400;
+        const decelRate = 3400;
+        const glide = 0.09;
 
-        state.blob.vx += axis.x * accel * dt;
-        state.blob.vy += axis.y * accel * dt;
-        state.blob.vx *= drag;
-        state.blob.vy *= drag;
+        const targetVx = inputX * maxSpeed;
+        const targetVy = inputY * maxSpeed;
+        const deltaVx = targetVx - state.blob.vx;
+        const deltaVy = targetVy - state.blob.vy;
+        const deltaMag = Math.hypot(deltaVx, deltaVy);
 
-        const speed = Math.hypot(state.blob.vx, state.blob.vy);
-        if (speed > maxSpeed) {
-          const scale = maxSpeed / speed;
-          state.blob.vx *= scale;
-          state.blob.vy *= scale;
+        if (deltaMag > 0) {
+          const approachRate = axisMag > 0 ? accelRate : decelRate;
+          const maxStep = approachRate * dt;
+          const blend = Math.min(1, maxStep / deltaMag);
+          state.blob.vx += deltaVx * blend;
+          state.blob.vy += deltaVy * blend;
         }
+
+        const glideFactor = Math.exp(-glide * dt * 60);
+        state.blob.vx *= glideFactor;
+        state.blob.vy *= glideFactor;
 
         state.blob.x += state.blob.vx * dt;
         state.blob.y += state.blob.vy * dt;
