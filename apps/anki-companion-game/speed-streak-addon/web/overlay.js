@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const state = {
     mounted: false,
     data: null,
@@ -13,6 +13,7 @@
     settingsOpen: false,
     toastTimer: 0,
     hapticTimer: 0,
+    appearanceModeDraft: "midnight",
   };
 
   const FLAG_OPTIONS = [
@@ -28,6 +29,16 @@
 
   const template = `
     <div id="speed-streak-sidebar" class="speed-streak-sidebar hidden">
+      <button id="acgCollapseTab" class="acg-collapse-tab" type="button" title="Hide Speed Streak">
+        <span id="acgCollapseTabText" class="acg-collapse-tab-text">Hide</span>
+      </button>
+      <div class="acg-foreground-controls">
+        <button id="acgEnabledToggle" class="acg-enabled-toggle" type="button" aria-pressed="true" title="Toggle Speed Streak">
+          <span class="acg-enabled-track">
+            <span id="acgEnabledKnob" class="acg-enabled-knob"></span>
+          </span>
+        </button>
+      </div>
       <div class="acg-inner">
         <div class="acg-top">
           <div id="acgTimerHero" class="acg-timer-hero">
@@ -56,12 +67,17 @@
           </div>
         </div>
         <div class="acg-bottom">
+          <div id="acgVisualsDisabledCopy" class="acg-visuals-disabled-copy">Vibration-only mode is active.</div>
           <div id="acgTimer" class="acg-timer">Ready</div>
-          <button id="acgSettingsButton" class="acg-action" type="button">Settings</button>
+          <button id="acgSettingsButton" class="acg-action acg-foreground-action" type="button">Settings</button>
         </div>
         <div id="acgDim" class="acg-dim"></div>
         <div id="acgPauseOverlay" class="acg-pause-overlay">
           <div class="acg-pause-copy">Press 'P' to Unpause</div>
+        </div>
+        <div id="acgOffOverlay" class="acg-off-overlay">
+          <div class="acg-off-copy">Speed Streak is Off</div>
+          <div class="acg-off-subcopy">This can be toggled in the top left of the screen.</div>
         </div>
         <div id="acgTimeDrainOverlay" class="acg-time-drain">
           <div class="acg-time-drain-copy">
@@ -77,35 +93,62 @@
             <button id="acgCloseSettings" class="acg-close" type="button">Close</button>
           </div>
           <div class="acg-modal-body">
-            <div class="acg-form-row">
-              <label class="acg-form-label" for="acgQuestionSeconds">Question Time</label>
-              <input id="acgQuestionSeconds" class="acg-input" type="number" min="1" step="0.5" />
+            <div class="acg-settings-section">
+              <div class="acg-section-title">Timers</div>
+              <div class="acg-form-row">
+                <label class="acg-form-label" for="acgQuestionSeconds">Question Time</label>
+                <input id="acgQuestionSeconds" class="acg-input" type="number" min="1" step="0.5" />
+              </div>
+              <div class="acg-form-row">
+                <label class="acg-form-label" for="acgAnswerSeconds">Answer Time</label>
+                <input id="acgAnswerSeconds" class="acg-input" type="number" min="1" step="0.5" />
+              </div>
             </div>
-            <div class="acg-form-row">
-              <label class="acg-form-label" for="acgAnswerSeconds">Answer Time</label>
-              <input id="acgAnswerSeconds" class="acg-input" type="number" min="1" step="0.5" />
+            <div class="acg-settings-section">
+              <div class="acg-section-title">Flags</div>
+              <div class="acg-form-row">
+                <label class="acg-form-label">Time Drain Flag</label>
+                <select id="acgTimeDrainFlag" class="acg-select"></select>
+              </div>
+              <div class="acg-form-row">
+                <label class="acg-form-label">Review Later Flag</label>
+                <select id="acgReviewLaterFlag" class="acg-select"></select>
+              </div>
             </div>
-            <div class="acg-form-row">
-              <label class="acg-form-label">Time Drain Flag</label>
-              <select id="acgTimeDrainFlag" class="acg-select"></select>
+            <div class="acg-settings-section">
+              <div class="acg-section-title">Modes</div>
+              <label class="acg-switch-row" for="acgShowCardTimer">
+                <span class="acg-switch-copy-wrap">
+                  <span class="acg-form-label">Top Card Timer</span>
+                  <span class="acg-switch-copy">Show a horizontal timer bar at the top of the review card.</span>
+                </span>
+                <input id="acgShowCardTimer" class="acg-switch" type="checkbox" />
+              </label>
+              <label class="acg-switch-row" for="acgVibrationOnlyMode">
+                <span class="acg-switch-copy-wrap">
+                  <span class="acg-form-label">Vibration Only Mode</span>
+                  <span class="acg-switch-copy">Turns off streak and timer visuals, disables late buzzes, and keeps only haptics.</span>
+                </span>
+                <input id="acgVibrationOnlyMode" class="acg-switch" type="checkbox" />
+              </label>
             </div>
-            <div class="acg-form-row">
-              <label class="acg-form-label">Review Later Flag</label>
-              <select id="acgReviewLaterFlag" class="acg-select"></select>
+            <div class="acg-settings-section">
+              <div class="acg-section-title">Actions</div>
+              <div class="acg-button-stack">
+                <button id="acgReviewLaterManagerButton" class="acg-action acg-action-primary" type="button">Review Later Manager</button>
+                <button id="acgStatsButton" class="acg-action" type="button">Show Stats (Work in Progress)</button>
+                <button id="acgAppearanceButton" class="acg-action" type="button">Appearance</button>
+                <button id="acgHelpButton" class="acg-action" type="button">How It Works</button>
+                <button id="acgDefaultSettingsButton" class="acg-action" type="button">Default Settings</button>
+                <button id="acgResetGameButton" class="acg-action" type="button">Reset Game</button>
+              </div>
             </div>
-            <div class="acg-button-stack">
-              <button id="acgReviewLaterManagerButton" class="acg-action acg-action-primary" type="button">Review Later Manager</button>
-              <button id="acgPauseStatsButton" class="acg-action" type="button">Show Total Pause Time</button>
-              <button id="acgShortcutsButton" class="acg-action" type="button">Shortcuts</button>
-              <button id="acgHelpButton" class="acg-action" type="button">How It Works</button>
-              <button id="acgDefaultSettingsButton" class="acg-action" type="button">Default Settings</button>
-              <button id="acgResetGameButton" class="acg-action" type="button">Reset Game</button>
-            </div>
-            <div id="acgPauseStatsPanel" class="acg-panel hidden">
-              <div id="acgPauseStatsCopy" class="acg-panel-copy">Total pause time: 0.0s</div>
-            </div>
-            <div id="acgShortcutsPanel" class="acg-panel hidden">
-              <div class="acg-panel-copy"><strong>P</strong> pauses or unpauses the timer.</div>
+            <div id="acgAppearancePanel" class="acg-panel hidden">
+              <div class="acg-panel-copy">Choose how Speed Streak is drawn in the sidebar.</div>
+              <div class="acg-appearance-options">
+                <button id="acgAppearanceMidnight" class="acg-action" type="button">Midnight Appearance</button>
+                <button id="acgAppearanceCard" class="acg-action" type="button">Card Background Mode</button>
+              </div>
             </div>
             <div id="acgHelpPanel" class="acg-panel hidden">
               <div class="acg-panel-copy">
@@ -115,7 +158,7 @@
                 <br><br>
                 If either timer expires, the streak is lost, the orb flashes into a failed state, and the orbit collapses. If you bury or hide a card, the next card gets a fresh timer without changing the streak or score.
                 <br><br>
-                Press <strong>P</strong> to pause or unpause. Opening Settings also pauses automatically. While paused, the sidebar dims and waits for you to resume. You can change the question and answer timers in Settings, and those settings persist across Anki restarts.
+                Press <strong>P</strong> to pause or unpause. Opening Settings also pauses automatically. While paused, the sidebar dims and waits for you to resume. You can change the question and answer timers in Settings, toggle the top-of-card timer, and switch into vibration-only mode. The <strong>Show Stats</strong> screen opens a full-window overlay with your current-round pause time, today's pace, and historical charts.
                 <br><br>
                 The <strong>Time Drain Flag</strong> is a watched flag you choose in Settings. When the current review card has that same flag on its question side, the normal orbit view is temporarily replaced with a warning screen. That warning shows the live countdown in large text and says to press <strong>-</strong> to bury the card if it is becoming a time sink. This is meant for cards you still want to keep, but want the add-on to call out when they are slowing your session down.
                 <br><br>
@@ -144,10 +187,27 @@
     const settingsButton = document.getElementById("acgSettingsButton");
     if (settingsButton) {
       settingsButton.addEventListener("click", () => {
-        if (!state.data?.paused && typeof pycmd === "function") {
-          pycmd("speed-streak:toggle-pause");
+        if (typeof pycmd === "function") {
+          pycmd("speed-streak:open-settings");
         }
-        setSettingsOpen(true);
+      });
+    }
+
+    const enabledToggle = document.getElementById("acgEnabledToggle");
+    if (enabledToggle) {
+      enabledToggle.addEventListener("click", () => {
+        if (typeof pycmd === "function") {
+          pycmd("speed-streak:toggle-enabled");
+        }
+      });
+    }
+
+    const collapseTab = document.getElementById("acgCollapseTab");
+    if (collapseTab) {
+      collapseTab.addEventListener("click", () => {
+        if (typeof pycmd === "function") {
+          pycmd("speed-streak:toggle-collapsed");
+        }
       });
     }
 
@@ -157,7 +217,6 @@
         if (typeof pycmd === "function") {
           pycmd("speed-streak:reset");
         }
-        setSettingsOpen(false);
       });
     }
 
@@ -178,14 +237,44 @@
       answerInput.addEventListener("blur", () => saveSettings());
     }
 
-    const pauseStatsButton = document.getElementById("acgPauseStatsButton");
-    if (pauseStatsButton) {
-      pauseStatsButton.addEventListener("click", () => togglePanel("acgPauseStatsPanel"));
+    const showCardTimerInput = document.getElementById("acgShowCardTimer");
+    if (showCardTimerInput) {
+      showCardTimerInput.addEventListener("change", () => saveSettings());
     }
 
-    const shortcutsButton = document.getElementById("acgShortcutsButton");
-    if (shortcutsButton) {
-      shortcutsButton.addEventListener("click", () => togglePanel("acgShortcutsPanel"));
+    const vibrationOnlyInput = document.getElementById("acgVibrationOnlyMode");
+    if (vibrationOnlyInput) {
+      vibrationOnlyInput.addEventListener("change", () => saveSettings());
+    }
+
+    const statsButton = document.getElementById("acgStatsButton");
+    if (statsButton) {
+      statsButton.addEventListener("click", () => {
+        if (typeof pycmd === "function") {
+          pycmd("speed-streak:open-stats");
+        }
+      });
+    }
+
+    const appearanceButton = document.getElementById("acgAppearanceButton");
+    if (appearanceButton) {
+      appearanceButton.addEventListener("click", () => togglePanel("acgAppearancePanel"));
+    }
+
+      const appearanceMidnightButton = document.getElementById("acgAppearanceMidnight");
+      if (appearanceMidnightButton) {
+        appearanceMidnightButton.addEventListener("click", () => {
+          state.appearanceModeDraft = "midnight";
+          saveSettings();
+        });
+      }
+
+    const appearanceCardButton = document.getElementById("acgAppearanceCard");
+    if (appearanceCardButton) {
+      appearanceCardButton.addEventListener("click", () => {
+        state.appearanceModeDraft = "card";
+        saveSettings();
+      });
     }
 
     const helpButton = document.getElementById("acgHelpButton");
@@ -265,9 +354,13 @@
 
   function setSettingsOpen(open) {
     state.settingsOpen = open;
+    const sidebar = $("speed-streak-sidebar");
     const modal = $("acgSettingsModal");
     const dim = $("acgDim");
     const pauseOverlay = $("acgPauseOverlay");
+    if (sidebar) {
+      sidebar.classList.toggle("settings-open", open);
+    }
     if (modal) {
       modal.classList.toggle("visible", open);
     }
@@ -293,12 +386,23 @@
     const a = Number($("acgAnswerSeconds")?.value || 8);
     const f = Number($("acgTimeDrainFlag")?.value || 0);
     const rl = Number($("acgReviewLaterFlag")?.value || 0);
+    const showCardTimer = Boolean($("acgShowCardTimer")?.checked);
+    const visualsEnabled = !Boolean($("acgVibrationOnlyMode")?.checked);
+    const appearanceMode = state.appearanceModeDraft || state.data?.appearanceMode || "midnight";
     if (f > 0 && rl > 0 && f === rl) {
       return;
     }
     if (typeof pycmd === "function") {
       pycmd(
-        `speed-streak:update-settings:${JSON.stringify({ questionSeconds: q, answerSeconds: a, timeDrainFlag: f, reviewLaterFlag: rl })}`
+        `speed-streak:update-settings:${JSON.stringify({
+          questionSeconds: q,
+          answerSeconds: a,
+          timeDrainFlag: f,
+          reviewLaterFlag: rl,
+          showCardTimer,
+          visualsEnabled,
+          appearanceMode,
+        })}`
       );
     }
   }
@@ -312,7 +416,23 @@
     if (answerInput && document.activeElement !== answerInput) {
       answerInput.value = (Number(data.reviewLimitMs || 8000) / 1000).toFixed(1);
     }
+    const showCardTimerInput = $("acgShowCardTimer");
+    if (showCardTimerInput && document.activeElement !== showCardTimerInput) {
+      showCardTimerInput.checked = Boolean(data.showCardTimer);
+    }
+    const vibrationOnlyInput = $("acgVibrationOnlyMode");
+    if (vibrationOnlyInput && document.activeElement !== vibrationOnlyInput) {
+      vibrationOnlyInput.checked = !Boolean(data.visualsEnabled);
+    }
+    state.appearanceModeDraft = String(data.appearanceMode || "midnight");
     renderFlagSelects(Number(data.timeDrainFlag || 0), Number(data.reviewLaterFlag || 0));
+    syncAppearanceButtons();
+  }
+
+  function syncAppearanceButtons() {
+    const mode = state.appearanceModeDraft || "midnight";
+    $("acgAppearanceMidnight")?.classList.toggle("active", mode === "midnight");
+    $("acgAppearanceCard")?.classList.toggle("active", mode === "card");
   }
 
   function renderFlagSelects(timeDrainFlag, reviewLaterFlag) {
@@ -597,6 +717,11 @@
     }
     sidebar.classList.remove("hidden");
     state.data = data;
+    const enabled = Boolean(data.enabled);
+    const visualsEnabled = Boolean(data.visualsEnabled);
+    const sidebarCollapsed = Boolean(data.sidebarCollapsed);
+    const appearanceMode = String(data.appearanceMode || "midnight");
+    const sidebarBackground = String(data.sidebarBackground || "").trim();
 
     const colors = Array.isArray(data.satelliteColors) ? data.satelliteColors : [];
     const timer = computeTimer(data);
@@ -606,6 +731,10 @@
     const phaseLabel = $("acgPhaseLabel");
     const timeDrainOverlay = $("acgTimeDrainOverlay");
     const timeDrainTimer = $("acgTimeDrainTimer");
+    const offOverlay = $("acgOffOverlay");
+    const enabledToggle = $("acgEnabledToggle");
+    const collapseTab = $("acgCollapseTab");
+    const collapseTabText = $("acgCollapseTabText");
     const score = Number(data.score || 0);
     const multiplier = Number(data.streakMultiplier || 1);
     const streak = Number(data.streak || 0);
@@ -615,6 +744,27 @@
     $("acgStreak").textContent = String(streak);
     $("acgScore").textContent = score.toLocaleString();
     $("acgMultiplier").textContent = `x${multiplier.toFixed(2)} multiplier`;
+    sidebar.classList.toggle("off", !enabled);
+    sidebar.classList.toggle("visuals-disabled", enabled && !visualsEnabled);
+    sidebar.classList.toggle("collapsed", sidebarCollapsed);
+    sidebar.dataset.theme = appearanceMode;
+    if (document.documentElement) {
+      document.documentElement.style.background = sidebarBackground || "transparent";
+    }
+    if (document.body) {
+      document.body.style.background = sidebarBackground || "transparent";
+    }
+
+    if (enabledToggle) {
+      enabledToggle.classList.toggle("off", !enabled);
+      enabledToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+    }
+    if (collapseTab) {
+      collapseTab.setAttribute("title", sidebarCollapsed ? "Show Speed Streak" : "Hide Speed Streak");
+    }
+    if (collapseTabText) {
+      collapseTabText.textContent = sidebarCollapsed ? "Show" : "Hide";
+    }
 
     if (coreWrap) {
       const coreSize = clamp(58 + (streak * 2.8), 58, 142);
@@ -623,8 +773,26 @@
     if (field) {
       field.style.filter = `saturate(${clamp(1 + (streak * 0.04), 1, 2.4)}) brightness(${clamp(1 + (streak * 0.015), 1, 1.45)})`;
     }
+    state.appearanceModeDraft = appearanceMode;
+    syncAppearanceButtons();
 
-    if (timer.phase === "idle") {
+    if (!enabled) {
+      $("acgTimer").textContent = "Off";
+      phaseLabel.textContent = "Off";
+      timerValue.textContent = "--";
+      timerHero.style.setProperty("--timer-progress", "1turn");
+      timerHero.style.setProperty("--timer-color", "#8c96ac");
+      timerHero.classList.remove("danger");
+      timerValue.classList.remove("danger");
+    } else if (!visualsEnabled) {
+      $("acgTimer").textContent = "Vibration only";
+      phaseLabel.textContent = "Vibration";
+      timerValue.textContent = "--";
+      timerHero.style.setProperty("--timer-progress", "1turn");
+      timerHero.style.setProperty("--timer-color", "#8c96ac");
+      timerHero.classList.remove("danger");
+      timerValue.classList.remove("danger");
+    } else if (timer.phase === "idle") {
       $("acgTimer").textContent = "Ready";
       phaseLabel.textContent = "Ready";
       timerValue.textContent = "--";
@@ -665,26 +833,43 @@
     if (!state.settingsOpen) {
       syncSettingsFields(data);
     }
-    $("acgPauseStatsCopy").textContent = `Total pause time: ${(Number(data.totalPauseMs || 0) / 1000).toFixed(1)}s`;
     const dim = $("acgDim");
     const pauseOverlay = $("acgPauseOverlay");
     if (dim) {
-      dim.classList.toggle("visible", Boolean(data.paused) || state.settingsOpen);
+      dim.classList.toggle("visible", Boolean(data.paused) || state.settingsOpen || !enabled);
     }
     if (pauseOverlay) {
       pauseOverlay.classList.toggle("visible", Boolean(data.paused) && !state.settingsOpen);
     }
+    if (offOverlay) {
+      offOverlay.classList.toggle("visible", !enabled && !state.settingsOpen);
+    }
     if (timeDrainOverlay && timeDrainTimer) {
-      const activeTimeDrain = Number(data.timeDrainFlag || 0) > 0
+      const activeTimeDrain = enabled && visualsEnabled && Number(data.timeDrainFlag || 0) > 0
         && Number(data.currentCardFlag || 0) === Number(data.timeDrainFlag || 0)
         && timer.phase === "question";
       timeDrainOverlay.classList.toggle("visible", activeTimeDrain);
       timeDrainTimer.textContent = timer.free ? "FREE" : timer.phase === "idle" ? "--" : Math.max(0, timer.remaining / 1000).toFixed(1);
     }
     handleStateEffects(data);
-    renderRings(colors);
+    if (enabled && visualsEnabled && !sidebarCollapsed) {
+      renderRings(colors);
+    } else {
+      clearOrbitScene();
+    }
     state.prevColors = colors.slice();
     state.prevStreak = streak;
+  }
+
+  function clearOrbitScene() {
+    const ringsNode = $("acgRings");
+    const satellitesNode = $("acgSatellites");
+    if (ringsNode) {
+      ringsNode.innerHTML = "";
+    }
+    if (satellitesNode) {
+      satellitesNode.innerHTML = "";
+    }
   }
 
   function blendRgb(a, b, t) {
@@ -717,3 +902,5 @@
     ensureMounted();
   }
 })();
+
+

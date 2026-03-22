@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import unquote
 from typing import Any, Optional
 
 from aqt import gui_hooks, mw
@@ -12,24 +13,34 @@ from aqt.qt import QHBoxLayout, QKeySequence, QShortcut, QSizePolicy, Qt, QWidge
 from .game_state import CompanionGameEngine
 from .haptics import HapticsController
 from .review_later import open_review_later_manager, sync_review_later_membership
+from .settings_dialog import open_settings_dialog
+from .stats_dialog import open_stats_dialog
+from .stats_store import StatsStore
 
 
 ADDON_PACKAGE = mw.addonManager.addonFromModule(__name__)
 ADDON_ROOT = Path(__file__).resolve().parent
+SIDEBAR_EXPANDED_WIDTH = 316
+SIDEBAR_COLLAPSED_WIDTH = 36
 
 
 class ReviewerOverlayController:
     def __init__(self) -> None:
         self.engine = CompanionGameEngine()
         self.haptics = HapticsController()
+        self.stats_store = StatsStore(ADDON_ROOT)
         self._last_nonce_sent = -1
         self._wrapped = False
         self._timer = None
         self._sidebar_container = None
         self._sidebar_web = None
+        self._review_web = None
         self._pause_shortcut = None
         self._auto_paused_for_non_review = False
         self._last_reviewer_signature = ""
+        self._recorded_review_event_ids: list[int] = []
+        self._card_timer_bootstrap = self._build_card_timer_bootstrap()
+        self._sidebar_background = self._default_sidebar_background()
         self._load_persisted_settings()
 
     def install(self) -> None:
@@ -50,6 +61,31 @@ class ReviewerOverlayController:
             if event:
                 self._push_state(only_if_changed=False)
             return (True, None)
+        if message == "speed-streak:toggle-enabled":
+            event = self.engine.set_enabled(not self.engine.state.enabled)
+            self._save_persisted_settings()
+            if self.engine.state.enabled and getattr(mw, "state", "") == "review":
+                self._last_reviewer_signature = ""
+                self._sync_reviewer_surface()
+            if event:
+                self._push_state(only_if_changed=False)
+            return (True, None)
+        if message.startswith("speed-streak:card-background:"):
+            payload = message.split("speed-streak:card-background:", 1)[1]
+            try:
+                data = json.loads(unquote(payload))
+                color = str(data.get("color", "") or "").strip()
+            except Exception:
+                color = ""
+            self._sidebar_background = color or self._default_sidebar_background()
+            self._push_state(only_if_changed=False)
+            return (True, None)
+        if message == "speed-streak:open-settings":
+            if not self.engine.state.paused and self.engine.state.visuals_enabled:
+                self.engine.toggle_pause()
+                self._push_state(only_if_changed=False)
+            open_settings_dialog(self)
+            return (True, None)
         if message.startswith("speed-streak:update-settings:"):
             payload = message.split("speed-streak:update-settings:", 1)[1]
             try:
@@ -58,26 +94,101 @@ class ReviewerOverlayController:
                 answer_seconds = float(data.get("answerSeconds", 8))
                 time_drain_flag = int(data.get("timeDrainFlag", 0))
                 review_later_flag = int(data.get("reviewLaterFlag", 0))
+                visuals_enabled = bool(data.get("visualsEnabled", True))
+                show_card_timer = bool(data.get("showCardTimer", True))
+                appearance_mode = str(data.get("appearanceMode", "midnight"))
             except Exception:
                 return (True, None)
+            previous_visuals_enabled = bool(self.engine.state.visuals_enabled)
             self.engine.update_time_limits(
                 question_seconds=question_seconds,
                 answer_seconds=answer_seconds,
                 time_drain_flag=time_drain_flag,
                 review_later_flag=review_later_flag,
+                visuals_enabled=visuals_enabled,
+                show_card_timer=show_card_timer,
+                appearance_mode=appearance_mode,
             )
             self._save_persisted_settings()
+            if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
+                self._last_reviewer_signature = ""
+                self._sync_reviewer_surface()
+            self._push_state(only_if_changed=False)
+            return (True, None)
+        if message == "speed-streak:toggle-collapsed":
+            state = self.engine.state
+            self.engine.update_time_limits(
+                question_seconds=state.question_limit_ms / 1000,
+                answer_seconds=state.review_limit_ms / 1000,
+                time_drain_flag=state.time_drain_flag,
+                review_later_flag=state.review_later_flag,
+                visuals_enabled=state.visuals_enabled,
+                show_card_timer=state.show_card_timer,
+                sidebar_collapsed=not state.sidebar_collapsed,
+                appearance_mode=state.appearance_mode,
+            )
+            self._save_persisted_settings()
+            self._apply_sidebar_width()
             self._push_state(only_if_changed=False)
             return (True, None)
         if message == "speed-streak:default-settings":
             self.engine.reset_settings_to_defaults()
             self._save_persisted_settings()
+            self._apply_sidebar_width()
             self._push_state(only_if_changed=False)
             return (True, None)
         if message == "speed-streak:open-review-later-manager":
             open_review_later_manager(self.engine.state.review_later_flag)
             return (True, None)
+        if message == "speed-streak:open-stats":
+            open_stats_dialog(self.engine, self.stats_store)
+            return (True, None)
         return handled
+
+    def apply_settings_from_dialog(
+        self,
+        *,
+        question_seconds: float,
+        answer_seconds: float,
+        time_drain_flag: int,
+        review_later_flag: int,
+        show_card_timer: bool,
+        visuals_enabled: bool,
+        appearance_mode: str,
+    ) -> None:
+        previous_visuals_enabled = bool(self.engine.state.visuals_enabled)
+        self.engine.update_time_limits(
+            question_seconds=question_seconds,
+            answer_seconds=answer_seconds,
+            time_drain_flag=time_drain_flag,
+            review_later_flag=review_later_flag,
+            visuals_enabled=visuals_enabled,
+            show_card_timer=show_card_timer,
+            appearance_mode=appearance_mode,
+        )
+        self._save_persisted_settings()
+        if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
+            self._last_reviewer_signature = ""
+            self._sync_reviewer_surface()
+        self._push_state(only_if_changed=False)
+
+    def open_review_later_manager_from_dialog(self) -> None:
+        open_review_later_manager(self.engine.state.review_later_flag)
+
+    def open_stats_from_dialog(self) -> None:
+        open_stats_dialog(self.engine, self.stats_store)
+
+    def reset_defaults_from_dialog(self) -> None:
+        self.engine.reset_settings_to_defaults()
+        self._save_persisted_settings()
+        self._apply_sidebar_width()
+        self._push_state(only_if_changed=False)
+
+    def reset_game_from_dialog(self) -> None:
+        self.engine.hard_reset()
+        self._last_nonce_sent = -1
+        self._push_state(only_if_changed=False)
+        self.haptics.play_pattern("reset")
 
     def _install_shortcut(self) -> None:
         if self._pause_shortcut is not None:
@@ -91,26 +202,14 @@ class ReviewerOverlayController:
             return
         self._wrapped = True
 
-        original_show_question = Reviewer._showQuestion
-        original_show_answer = Reviewer._showAnswer
         original_answer_card = Reviewer._answerCard
         controller = self
-
-        def wrapped_show_question(reviewer: Reviewer) -> Any:
-            result = original_show_question(reviewer)
-            return result
-
-        def wrapped_show_answer(reviewer: Reviewer) -> Any:
-            result = original_show_answer(reviewer)
-            return result
 
         def wrapped_answer_card(reviewer: Reviewer, ease: int) -> Any:
             controller._handle_rate(reviewer, ease)
             result = original_answer_card(reviewer, ease)
             return result
 
-        Reviewer._showQuestion = wrapped_show_question
-        Reviewer._showAnswer = wrapped_show_answer
         Reviewer._answerCard = wrapped_answer_card
 
         for method_name in ("onBuryCard", "onBuryNote"):
@@ -157,6 +256,7 @@ class ReviewerOverlayController:
 
     def _handle_non_review_state(self) -> None:
         self._set_sidebar_hidden(True)
+        self._hide_card_timer()
         self._last_reviewer_signature = ""
         state = self.engine.state
         if (
@@ -165,6 +265,7 @@ class ReviewerOverlayController:
             and state.phase != "idle"
             and not state.paused
             and state.phase_limit_ms > 0
+            and state.visuals_enabled
         ):
             event = self.engine.toggle_pause()
             if event:
@@ -174,6 +275,8 @@ class ReviewerOverlayController:
     def _handle_review_state(self) -> None:
         self._set_sidebar_hidden(False)
         if self._auto_paused_for_non_review and self.engine.state.paused:
+            if not self.engine.state.enabled or not self.engine.state.visuals_enabled:
+                return
             event = self.engine.toggle_pause()
             self._auto_paused_for_non_review = False
             if event:
@@ -191,6 +294,7 @@ class ReviewerOverlayController:
             sync_review_later_membership(
                 card_id=int(getattr(card, "id", 0) or 0),
                 note_id=self._note_id_for_card(card),
+                card_ord=self._card_ord_for_card(card),
                 current_flag=next_flag,
                 review_later_flag=int(self.engine.state.review_later_flag or 0),
             )
@@ -232,12 +336,14 @@ class ReviewerOverlayController:
         sync_review_later_membership(
             card_id=int(getattr(card, "id", 0) or 0),
             note_id=self._note_id_for_card(card),
+            card_ord=self._card_ord_for_card(card),
             current_flag=card_flag,
             review_later_flag=int(self.engine.state.review_later_flag or 0),
         )
         if event == "sync":
             self.haptics.play_pattern("sync")
         self._push_state(only_if_changed=False)
+        self._restore_review_focus()
 
     def _handle_answer_shown(self, reviewer: Reviewer) -> None:
         card = getattr(reviewer, "card", None)
@@ -251,11 +357,23 @@ class ReviewerOverlayController:
         if event == "reveal":
             self.haptics.play_pattern("reveal")
             self._push_state(only_if_changed=False)
+        self._restore_review_focus()
 
     def _handle_rate(self, reviewer: Reviewer, ease: int) -> None:
         event = self.engine.on_rate(ease)
         if not event:
             return
+        metrics = self.engine.take_last_review_metrics()
+        if metrics:
+            event_id = self.stats_store.record_review(
+                card_id=int(metrics.get("card_id", 0) or 0),
+                deck_name=str(metrics.get("deck_name", "") or ""),
+                active_ms=int(metrics.get("active_ms", 0) or 0),
+                ease=int(metrics.get("ease", 0) or 0),
+                correct=int(metrics.get("correct", 0) or 0),
+            )
+            if event_id > 0:
+                self._recorded_review_event_ids.append(event_id)
         if event == "again":
             self.haptics.play_pattern("again")
         elif event == "again-on-time":
@@ -275,7 +393,7 @@ class ReviewerOverlayController:
             self._push_state(only_if_changed=False)
 
     def _push_state(self, *, only_if_changed: bool = True) -> None:
-        if self._sidebar_web is None:
+        if self._sidebar_web is None and self._review_web is None:
             return
         state = self.engine.export()
         nonce = state.get("eventNonce", -1)
@@ -286,9 +404,12 @@ class ReviewerOverlayController:
             {
                 **state,
                 "hapticsAvailable": int(self.haptics.available),
+                "sidebarBackground": self._sidebar_background or self._default_sidebar_background(),
             }
         )
-        self._sidebar_web.eval(f"window.SpeedStreak && window.SpeedStreak.receiveState({payload});")
+        if self._sidebar_web is not None:
+            self._sidebar_web.eval(f"window.SpeedStreak && window.SpeedStreak.receiveState({payload});")
+        self._push_card_timer_state(payload)
 
     def _ensure_sidebar(self, reviewer: Reviewer) -> None:
         if self._sidebar_web is not None and self._sidebar_container is not None:
@@ -312,17 +433,19 @@ class ReviewerOverlayController:
         container = QWidget(host)
         container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         container.setMinimumHeight(0)
+        container.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         layout = QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         sidebar_web = AnkiWebView(container)
-        sidebar_web.setFixedWidth(380)
+        sidebar_web.setFixedWidth(SIDEBAR_EXPANDED_WIDTH)
         sidebar_web.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         sidebar_web.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         sidebar_web.setMinimumHeight(0)
 
         review_web.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        review_web.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         review_web.setMinimumHeight(0)
         sidebar_web.stdHtml(self._sidebar_html())
 
@@ -332,6 +455,9 @@ class ReviewerOverlayController:
 
         self._sidebar_container = container
         self._sidebar_web = sidebar_web
+        self._review_web = review_web
+        self._apply_sidebar_width()
+        self._restore_review_focus()
 
     def _set_sidebar_hidden(self, hidden: bool) -> None:
         if self._sidebar_web is None:
@@ -339,7 +465,7 @@ class ReviewerOverlayController:
         if self._sidebar_web is not None:
             self._sidebar_web.setVisible(not hidden)
             if not hidden:
-                self._sidebar_web.setFixedWidth(380)
+                self._apply_sidebar_width()
             else:
                 self._sidebar_web.setFixedWidth(0)
         action = "add" if hidden else "remove"
@@ -373,7 +499,7 @@ class ReviewerOverlayController:
       height: 100vh;
       min-height: 100vh;
       overflow: hidden;
-      background: #0b0b0b;
+      background: transparent;
     }}
     body {{
       position: relative;
@@ -403,32 +529,124 @@ class ReviewerOverlayController:
         except Exception:
             return 0
 
+    def _card_ord_for_card(self, card: Any) -> int:
+        try:
+            return int(getattr(card, "ord", 0) or 0)
+        except Exception:
+            return 0
+
     def _load_persisted_settings(self) -> None:
         config = mw.addonManager.getConfig(ADDON_PACKAGE) or {}
         try:
             self.engine.update_time_limits(
                 question_seconds=float(config.get("question_seconds", 12)),
                 answer_seconds=float(config.get("answer_seconds", 8)),
-                time_drain_flag=int(config.get("time_drain_flag", 0)),
-                review_later_flag=int(config.get("review_later_flag", 0)),
+                time_drain_flag=int(config.get("time_drain_flag", 2)),
+                review_later_flag=int(config.get("review_later_flag", 4)),
+                visuals_enabled=bool(config.get("visuals_enabled", True)),
+                show_card_timer=bool(config.get("show_card_timer", True)),
+                sidebar_collapsed=bool(config.get("sidebar_collapsed", False)),
+                appearance_mode=str(config.get("appearance_mode", "midnight")),
             )
+            self.engine.state.enabled = bool(config.get("enabled", True))
         except Exception:
             self.engine.update_time_limits(
                 question_seconds=12,
                 answer_seconds=8,
-                time_drain_flag=0,
-                review_later_flag=0,
+                time_drain_flag=2,
+                review_later_flag=4,
+                visuals_enabled=True,
+                show_card_timer=True,
+                sidebar_collapsed=False,
+                appearance_mode="midnight",
             )
+            self.engine.state.enabled = True
 
     def _save_persisted_settings(self) -> None:
         state = self.engine.state
         config = {
+            "enabled": bool(state.enabled),
+            "visuals_enabled": bool(state.visuals_enabled),
+            "show_card_timer": bool(state.show_card_timer),
+            "sidebar_collapsed": bool(state.sidebar_collapsed),
+            "appearance_mode": str(state.appearance_mode),
             "question_seconds": state.question_limit_ms / 1000,
             "answer_seconds": state.review_limit_ms / 1000,
             "time_drain_flag": state.time_drain_flag,
             "review_later_flag": state.review_later_flag,
         }
         mw.addonManager.writeConfig(ADDON_PACKAGE, config)
+
+    def _apply_sidebar_width(self) -> None:
+        if self._sidebar_web is None or not self._sidebar_web.isVisible():
+            return
+        width = SIDEBAR_COLLAPSED_WIDTH if self.engine.state.sidebar_collapsed else SIDEBAR_EXPANDED_WIDTH
+        self._sidebar_web.setFixedWidth(width)
+
+    def _push_card_timer_state(self, payload: str) -> None:
+        if self._review_web is None:
+            return
+        try:
+            self._review_web.eval(
+                f"""
+                (() => {{
+                  if (!window.SpeedStreakCardTimer) {{
+                    {self._card_timer_bootstrap}
+                  }}
+                  if (window.SpeedStreakCardTimer) {{
+                    window.SpeedStreakCardTimer.receiveState({payload});
+                  }}
+                }})()
+                """
+            )
+        except Exception:
+            pass
+
+    def _hide_card_timer(self) -> None:
+        if self._review_web is None:
+            return
+        try:
+            self._review_web.eval(
+                """
+                (() => {
+                  if (window.SpeedStreakCardTimer) {
+                    window.SpeedStreakCardTimer.hide();
+                  }
+                })()
+                """
+            )
+        except Exception:
+            pass
+
+    def _build_card_timer_bootstrap(self) -> str:
+        css = (ADDON_ROOT / "web" / "card_timer.css").read_text(encoding="utf-8")
+        js = (ADDON_ROOT / "web" / "card_timer.js").read_text(encoding="utf-8")
+        css_json = json.dumps(css)
+        return f"""
+        const existingStyle = document.getElementById("speed-streak-card-timer-style");
+        if (!existingStyle) {{
+          const style = document.createElement("style");
+          style.id = "speed-streak-card-timer-style";
+          style.textContent = {css_json};
+          document.head.appendChild(style);
+        }}
+        {js}
+        """
+
+    def _default_sidebar_background(self) -> str:
+        try:
+            color = mw.app.palette().base().color()
+            return color.name()
+        except Exception:
+            return "#2f2f31"
+
+    def _restore_review_focus(self) -> None:
+        if self._review_web is None:
+            return
+        try:
+            self._review_web.setFocus()
+        except Exception:
+            pass
 
     def _flag_for_card(self, card: Any) -> int:
         try:

@@ -27,6 +27,7 @@ from aqt.qt import (
 ADDON_ROOT = Path(__file__).resolve().parent
 USER_FILES_DIR = ADDON_ROOT / "user_files"
 DB_PATH = USER_FILES_DIR / "review_later.sqlite3"
+REVIEW_LATER_TAG_PREFIX = "speed_streak::review_later"
 
 
 class _HtmlToTextParser(HTMLParser):
@@ -158,6 +159,89 @@ def _note_fields(note: Any) -> dict[str, str]:
         return {f"Field {idx + 1}": str(value) for idx, value in enumerate(fields)}
 
 
+def _note_tag_list(note: Any) -> list[str]:
+    return [str(tag) for tag in getattr(note, "tags", [])]
+
+
+def _sanitize_timestamp_tag_value(iso_value: str) -> str:
+    return str(iso_value).replace(":", "-")
+
+
+def _restore_timestamp_tag_value(tag_value: str) -> str:
+    text = str(tag_value)
+    if "T" not in text:
+        return text
+    date_part, time_part = text.split("T", 1)
+    if time_part.count("-") >= 2:
+        parts = time_part.split("-")
+        time_part = ":".join(parts[:3]) + (f".{parts[3]}" if len(parts) > 3 else "")
+    return f"{date_part}T{time_part}"
+
+
+def _review_later_tag_prefix_for_ord(card_ord: int) -> str:
+    return f"{REVIEW_LATER_TAG_PREFIX}::{int(card_ord)}::"
+
+
+def _build_review_later_tag(card_ord: int, entered_at_iso: str) -> str:
+    return f"{_review_later_tag_prefix_for_ord(card_ord)}{_sanitize_timestamp_tag_value(entered_at_iso)}"
+
+
+def _parse_review_later_tag(tag: str) -> tuple[int, str] | None:
+    prefix = f"{REVIEW_LATER_TAG_PREFIX}::"
+    if not str(tag).startswith(prefix):
+        return None
+    parts = str(tag).split("::", 3)
+    if len(parts) != 4:
+        return None
+    try:
+        card_ord = int(parts[2])
+    except Exception:
+        return None
+    return (card_ord, _restore_timestamp_tag_value(parts[3]))
+
+
+def _review_later_tag_timestamp_for_ord(note: Any, card_ord: int) -> str | None:
+    prefix = _review_later_tag_prefix_for_ord(card_ord)
+    for tag in _note_tag_list(note):
+        if tag.startswith(prefix):
+            parsed = _parse_review_later_tag(tag)
+            if parsed is not None:
+                return parsed[1]
+    return None
+
+
+def _set_note_tags(note: Any, tags: list[str]) -> None:
+    setattr(note, "tags", list(dict.fromkeys(str(tag) for tag in tags if str(tag).strip())))
+    for method_name in ("flush", "save"):
+        method = getattr(note, method_name, None)
+        if callable(method):
+            try:
+                method()
+                return
+            except Exception:
+                continue
+    update_note = getattr(mw.col, "update_note", None)
+    if callable(update_note):
+        update_note(note)
+        return
+    update_note = getattr(mw.col, "updateNote", None)
+    if callable(update_note):
+        update_note(note)
+
+
+def _ensure_review_later_note_tag(note: Any, *, card_ord: int, entered_at_iso: str) -> None:
+    prefix = _review_later_tag_prefix_for_ord(card_ord)
+    tags = [tag for tag in _note_tag_list(note) if not tag.startswith(prefix)]
+    tags.append(_build_review_later_tag(card_ord, entered_at_iso))
+    _set_note_tags(note, tags)
+
+
+def _remove_review_later_note_tag(note: Any, *, card_ord: int) -> None:
+    prefix = _review_later_tag_prefix_for_ord(card_ord)
+    tags = [tag for tag in _note_tag_list(note) if not tag.startswith(prefix)]
+    _set_note_tags(note, tags)
+
+
 def _flag_search(flag: int) -> str:
     return f"flag:{flag}"
 
@@ -202,16 +286,34 @@ def _close_active_cohort(conn: sqlite3.Connection, *, card_id: int, flag: int, r
     )
 
 
-def sync_review_later_membership(*, card_id: int, note_id: int, current_flag: int, review_later_flag: int) -> None:
+def _active_db_entered_at(conn: sqlite3.Connection, *, card_id: int, flag: int) -> str | None:
+    row = conn.execute(
+        """
+        SELECT entered_at
+        FROM review_later_cohorts
+        WHERE card_id = ? AND flag = ? AND removed_at IS NULL
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (card_id, flag),
+    ).fetchone()
+    if row is None:
+        return None
+    return str(row["entered_at"])
+
+
+def sync_review_later_membership(*, card_id: int, note_id: int, card_ord: int, current_flag: int, review_later_flag: int) -> None:
     if review_later_flag <= 0 or card_id <= 0:
         return
     with _connect() as conn:
         if int(current_flag or 0) == int(review_later_flag):
+            entered_at = _active_db_entered_at(conn, card_id=int(card_id), flag=int(review_later_flag)) or _now_iso()
             _ensure_active_cohort(
                 conn,
                 card_id=int(card_id),
                 note_id=int(note_id),
                 flag=int(review_later_flag),
+                entered_at=entered_at,
             )
         else:
             _close_active_cohort(
@@ -240,16 +342,16 @@ def reconcile_review_later_flag(flag: int) -> None:
         ).fetchall()
         active_card_ids = {int(row["card_id"]) for row in active_rows}
 
-        for card_id in current_set - active_card_ids:
+        for card_id in current_set:
             try:
                 card = _col_get_card(card_id)
-                note = card.note()
+                entered_at = _active_db_entered_at(conn, card_id=card_id, flag=flag) or now_iso
                 _ensure_active_cohort(
                     conn,
                     card_id=card_id,
-                    note_id=int(note.id),
+                    note_id=int(getattr(card.note(), "id", 0) or 0),
                     flag=flag,
-                    entered_at=now_iso,
+                    entered_at=entered_at,
                 )
             except Exception:
                 continue
@@ -262,6 +364,19 @@ def reconcile_review_later_flag(flag: int) -> None:
 
 
 def _active_cohort_map(flag: int) -> dict[int, datetime]:
+    cohort_map: dict[int, datetime] = {}
+    for card_id in [int(value) for value in mw.col.find_cards(_flag_search(flag))]:
+        try:
+            card = _col_get_card(card_id)
+            note = card.note()
+            card_ord = int(getattr(card, "ord", 0) or 0)
+            entered_at = _review_later_tag_timestamp_for_ord(note, card_ord)
+            if entered_at:
+                cohort_map[card_id] = _cohort_datetime(entered_at)
+        except Exception:
+            continue
+    if cohort_map:
+        return cohort_map
     with _connect() as conn:
         rows = conn.execute(
             """
@@ -272,7 +387,6 @@ def _active_cohort_map(flag: int) -> dict[int, datetime]:
             """,
             (flag,),
         ).fetchall()
-    cohort_map: dict[int, datetime] = {}
     for row in rows:
         card_id = int(row["card_id"])
         if card_id not in cohort_map:

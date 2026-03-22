@@ -15,12 +15,18 @@ def now_epoch_ms() -> int:
 
 @dataclass
 class CardRuntime:
+    question_elapsed_ms: int = 0
     question_free: bool = False
     answer_elapsed_ms: int = 0
 
 
 @dataclass
 class CompanionState:
+    enabled: bool = True
+    visuals_enabled: bool = True
+    show_card_timer: bool = True
+    sidebar_collapsed: bool = False
+    appearance_mode: str = "midnight"
     synced: bool = False
     session_active: bool = False
     first_card_free: bool = False
@@ -52,19 +58,25 @@ class CompanionState:
     review_limit_ms: int = REVIEW_LIMIT_MS
     total_pause_ms: int = 0
     pause_started_epoch_ms: int = 0
-    time_drain_flag: int = 0
-    review_later_flag: int = 0
+    time_drain_flag: int = 2
+    review_later_flag: int = 4
 
 
 @dataclass
 class CompanionGameEngine:
     state: CompanionState = field(default_factory=CompanionState)
     card: CardRuntime = field(default_factory=CardRuntime)
+    _last_review_metrics: Optional[Dict[str, Any]] = None
 
     def export(self) -> Dict[str, Any]:
         s = self.state
         return {
-            "version": 3,
+            "version": 5,
+            "enabled": int(s.enabled),
+            "visualsEnabled": int(s.visuals_enabled),
+            "showCardTimer": int(s.show_card_timer),
+            "sidebarCollapsed": int(s.sidebar_collapsed),
+            "appearanceMode": s.appearance_mode,
             "synced": int(s.synced),
             "sessionActive": int(s.session_active),
             "firstCardFree": int(s.first_card_free),
@@ -92,38 +104,72 @@ class CompanionGameEngine:
             "eventNonce": s.event_nonce,
             "questionLimitMs": s.question_limit_ms,
             "reviewLimitMs": s.review_limit_ms,
-            "totalPauseMs": s.total_pause_ms,
+            "totalPauseMs": self.current_round_pause_ms(),
             "timeDrainFlag": s.time_drain_flag,
             "reviewLaterFlag": s.review_later_flag,
         }
 
     def hard_reset(self) -> None:
+        enabled = self.state.enabled
+        visuals_enabled = self.state.visuals_enabled
+        show_card_timer = self.state.show_card_timer
+        sidebar_collapsed = self.state.sidebar_collapsed
+        appearance_mode = self.state.appearance_mode
         question_limit_ms = self.state.question_limit_ms
         review_limit_ms = self.state.review_limit_ms
         time_drain_flag = self.state.time_drain_flag
         review_later_flag = self.state.review_later_flag
         self.state = CompanionState()
         self.card = CardRuntime()
+        self.state.enabled = enabled
+        self.state.visuals_enabled = visuals_enabled
+        self.state.show_card_timer = show_card_timer
+        self.state.sidebar_collapsed = sidebar_collapsed
+        self.state.appearance_mode = appearance_mode
         self.state.question_limit_ms = question_limit_ms
         self.state.review_limit_ms = review_limit_ms
         self.state.time_drain_flag = time_drain_flag
         self.state.review_later_flag = review_later_flag
+        self._last_review_metrics = None
         self._publish("reset", "Run reset.")
 
     def reset_settings_to_defaults(self) -> str:
         s = self.state
         s.question_limit_ms = ANSWER_LIMIT_MS
         s.review_limit_ms = REVIEW_LIMIT_MS
-        s.time_drain_flag = 0
-        s.review_later_flag = 0
+        s.time_drain_flag = 2
+        s.review_later_flag = 4
+        s.visuals_enabled = True
+        s.show_card_timer = True
+        s.sidebar_collapsed = False
+        s.appearance_mode = "midnight"
 
         if s.phase == "question" and not s.first_card_free:
-            s.phase_limit_ms = s.question_limit_ms
+            s.phase_limit_ms = s.question_limit_ms if s.visuals_enabled else 0
         elif s.phase == "answer":
-            s.phase_limit_ms = s.review_limit_ms
+            s.phase_limit_ms = s.review_limit_ms if s.visuals_enabled else 0
 
         self._publish("settings", "Settings reset to defaults.")
         return "settings"
+
+    def set_enabled(self, enabled: bool) -> Optional[str]:
+        s = self.state
+        next_enabled = bool(enabled)
+        if s.enabled == next_enabled:
+            return None
+        s.enabled = next_enabled
+        self._clear_pause_state(accumulate_active=True)
+        s.phase = "idle"
+        s.phase_start_epoch_ms = 0
+        s.phase_limit_ms = 0
+        s.answer_shown = False
+        s.timeout_phase_latch = ""
+        self.card = CardRuntime()
+        if next_enabled:
+            self._publish("enabled", "Speed Streak turned on.")
+            return "enabled"
+        self._publish("disabled", "Speed Streak turned off.")
+        return "disabled"
 
     def sync_on_question(self, *, card_id: str, deck_name: str, card_flag: int = 0) -> None:
         s = self.state
@@ -143,9 +189,15 @@ class CompanionGameEngine:
 
     def sync_visible_question_surface(self, *, card_id: str, deck_name: str, card_flag: int = 0) -> str:
         s = self.state
-        if not s.synced:
+        if not s.synced and s.enabled:
             self.sync_on_question(card_id=card_id, deck_name=deck_name, card_flag=card_flag)
             return "sync"
+
+        if not s.synced:
+            s.synced = True
+            s.session_active = True
+            if s.current_card_index < 1:
+                s.current_card_index = 1
 
         previous_card_id = str(s.current_card_id or "")
         s.previous_card_flag = s.current_card_flag
@@ -158,6 +210,16 @@ class CompanionGameEngine:
         s.first_card_free = False
         s.failure_visual_active = False
         s.skip_pending = False
+
+        if not s.enabled:
+            s.phase = "idle"
+            s.phase_start_epoch_ms = 0
+            s.phase_limit_ms = 0
+            self._clear_pause_state(accumulate_active=True)
+            s.timeout_phase_latch = ""
+            self.card = CardRuntime()
+            self._publish("question-idle", "Question surface synced while off.")
+            return "question-idle"
 
         if s.current_card_index < 1:
             s.current_card_index = 1
@@ -184,7 +246,22 @@ class CompanionGameEngine:
         s.first_card_free = False
         s.failure_visual_active = False
         s.skip_pending = False
-        self.card = CardRuntime(question_free=False, answer_elapsed_ms=0)
+
+        if not s.enabled:
+            s.phase = "idle"
+            s.phase_start_epoch_ms = 0
+            s.phase_limit_ms = 0
+            self._clear_pause_state(accumulate_active=True)
+            s.timeout_phase_latch = ""
+            self.card = CardRuntime()
+            self._publish("answer-idle", "Answer surface synced while off.")
+            return "answer-idle"
+
+        question_elapsed_ms = 0
+        if s.phase == "question" and s.phase_start_epoch_ms > 0:
+            question_elapsed_ms = self._phase_elapsed_ms()
+
+        self.card = CardRuntime(question_elapsed_ms=question_elapsed_ms, question_free=False, answer_elapsed_ms=0)
         self.begin_answer_phase()
         self._publish("show-answer", "Answer surface synced.")
         return "reveal"
@@ -240,13 +317,10 @@ class CompanionGameEngine:
 
     def on_answer_shown(self) -> Optional[str]:
         s = self.state
-        if not s.synced or s.phase != "question":
+        if not s.enabled or not s.synced or s.phase != "question":
             return None
 
-        if self.card.question_free:
-            self.card.answer_elapsed_ms = 0
-        else:
-            self.card.answer_elapsed_ms = max(0, now_epoch_ms() - s.phase_start_epoch_ms)
+        self.card.question_elapsed_ms = self._phase_elapsed_ms()
 
         s.answer_shown = True
         s.first_card_free = False
@@ -257,7 +331,7 @@ class CompanionGameEngine:
 
     def on_skip(self) -> Optional[str]:
         s = self.state
-        if not s.synced:
+        if not s.enabled or not s.synced:
             return None
         s.skipped_cards += 1
         s.skip_pending = True
@@ -265,8 +339,7 @@ class CompanionGameEngine:
         s.phase_start_epoch_ms = 0
         s.phase_limit_ms = 0
         s.answer_shown = False
-        s.paused = False
-        s.paused_remaining_ms = 0
+        self._clear_pause_state(accumulate_active=True)
         s.timeout_phase_latch = ""
         self.card = CardRuntime()
         self._publish("skip", "Card buried / skipped.")
@@ -274,16 +347,14 @@ class CompanionGameEngine:
 
     def on_rate(self, ease: int) -> Optional[str]:
         s = self.state
-        if not s.synced or s.phase != "answer":
+        if not s.enabled or not s.synced or s.phase != "answer" or s.paused:
             return None
 
         rating_name = {1: "Again", 2: "Hard", 3: "Good", 4: "Easy"}.get(ease, "Good")
-        s.streak += 1
+        answer_elapsed_ms = self._phase_elapsed_ms()
+        total_active_ms = max(0, self.card.question_elapsed_ms + answer_elapsed_ms)
         s.answered_cards += 1
         s.failure_visual_active = False
-
-        multiplier = self._multiplier_for_streak(s.streak)
-        s.streak_multiplier = multiplier
 
         if ease == 1:
             event_type = "again"
@@ -302,42 +373,56 @@ class CompanionGameEngine:
             color = "blue"
             base_points = 4
 
-        s.last_satellite_color = color
-        s.satellite_colors.append(color)
-        reward = max(1, round(base_points * multiplier))
-        s.score += reward
-        event_text = f"{rating_name}: +{reward} score | streak {s.streak} | x{multiplier:.2f}"
+        if s.visuals_enabled:
+            s.streak += 1
+            multiplier = self._multiplier_for_streak(s.streak)
+            s.streak_multiplier = multiplier
+            s.last_satellite_color = color
+            s.satellite_colors.append(color)
+            reward = max(1, round(base_points * multiplier))
+            s.score += reward
+            event_text = f"{rating_name}: +{reward} score | streak {s.streak} | x{multiplier:.2f}"
+        else:
+            s.streak = 0
+            s.streak_multiplier = 1.0
+            s.failure_visual_active = False
+            s.last_satellite_color = color
+            s.satellite_colors = []
+            event_text = f"{rating_name}: vibration-only mode"
+        self._last_review_metrics = {
+            "card_id": int(s.current_card_id or 0),
+            "deck_name": s.deck_name,
+            "active_ms": total_active_ms,
+            "ease": int(ease),
+            "correct": int(ease != 1),
+        }
         self._advance_to_next_question(event_type, event_text)
         return event_type
 
     def begin_question_phase(self, *, is_free: bool) -> None:
         s = self.state
-        self.card = CardRuntime(question_free=is_free, answer_elapsed_ms=0)
+        self._clear_pause_state(accumulate_active=True)
+        self.card = CardRuntime(question_elapsed_ms=0, question_free=is_free, answer_elapsed_ms=0)
         s.phase = "question"
         s.phase_start_epoch_ms = now_epoch_ms()
-        s.phase_limit_ms = 0 if is_free else s.question_limit_ms
+        s.phase_limit_ms = 0 if is_free or not s.visuals_enabled else s.question_limit_ms
         s.answer_shown = False
         s.first_card_free = is_free
         s.session_active = True
         s.skip_pending = False
-        s.paused = False
-        s.paused_remaining_ms = 0
-        s.pause_started_epoch_ms = 0
         s.timeout_phase_latch = ""
 
     def begin_answer_phase(self) -> None:
         s = self.state
+        self._clear_pause_state(accumulate_active=True)
         s.phase = "answer"
         s.phase_start_epoch_ms = now_epoch_ms()
-        s.phase_limit_ms = s.review_limit_ms
-        s.paused = False
-        s.paused_remaining_ms = 0
-        s.pause_started_epoch_ms = 0
+        s.phase_limit_ms = s.review_limit_ms if s.visuals_enabled else 0
         s.timeout_phase_latch = ""
 
     def toggle_pause(self) -> Optional[str]:
         s = self.state
-        if not s.synced or s.phase == "idle":
+        if not s.enabled or not s.visuals_enabled or not s.synced or s.phase == "idle":
             return None
         if s.phase_limit_ms <= 0:
             return None
@@ -360,6 +445,18 @@ class CompanionGameEngine:
         self._publish("pause", "Timer paused.")
         return "pause"
 
+    def current_round_pause_ms(self) -> int:
+        s = self.state
+        total = int(s.total_pause_ms)
+        if s.paused and s.pause_started_epoch_ms > 0:
+            total += max(0, now_epoch_ms() - s.pause_started_epoch_ms)
+        return total
+
+    def take_last_review_metrics(self) -> Optional[Dict[str, Any]]:
+        metrics = self._last_review_metrics
+        self._last_review_metrics = None
+        return metrics
+
     def update_time_limits(
         self,
         *,
@@ -367,6 +464,10 @@ class CompanionGameEngine:
         answer_seconds: float,
         time_drain_flag: int | None = None,
         review_later_flag: int | None = None,
+        visuals_enabled: bool | None = None,
+        show_card_timer: bool | None = None,
+        sidebar_collapsed: bool | None = None,
+        appearance_mode: str | None = None,
     ) -> Optional[str]:
         s = self.state
         question_ms = int(max(1, round(question_seconds * 1000)))
@@ -377,21 +478,39 @@ class CompanionGameEngine:
             s.time_drain_flag = max(0, int(time_drain_flag))
         if review_later_flag is not None:
             s.review_later_flag = max(0, int(review_later_flag))
+        if visuals_enabled is not None:
+            s.visuals_enabled = bool(visuals_enabled)
+        if show_card_timer is not None:
+            s.show_card_timer = bool(show_card_timer)
+        if sidebar_collapsed is not None:
+            s.sidebar_collapsed = bool(sidebar_collapsed)
+        if appearance_mode is not None:
+            normalized = str(appearance_mode).strip().lower() or "midnight"
+            if normalized == "default":
+                normalized = "classic"
+            s.appearance_mode = normalized
 
         if s.phase == "question" and not s.first_card_free:
-            s.phase_limit_ms = s.question_limit_ms
+            s.phase_limit_ms = s.question_limit_ms if s.visuals_enabled else 0
         elif s.phase == "answer":
-            s.phase_limit_ms = s.review_limit_ms
+            s.phase_limit_ms = s.review_limit_ms if s.visuals_enabled else 0
+
+        if not s.visuals_enabled:
+            self._clear_pause_state(accumulate_active=True)
+            s.streak = 0
+            s.streak_multiplier = 1.0
+            s.failure_visual_active = False
+            s.satellite_colors = []
 
         self._publish(
             "settings",
-            f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, review later flag {s.review_later_flag}.",
+            f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, review later flag {s.review_later_flag}, visuals {'on' if s.visuals_enabled else 'off'}, appearance {s.appearance_mode}.",
         )
         return "settings"
 
     def check_timeout(self) -> Optional[str]:
         s = self.state
-        if not s.synced or s.phase == "idle":
+        if not s.enabled or not s.visuals_enabled or not s.synced or s.phase == "idle":
             return None
         if s.phase_limit_ms <= 0 or s.phase_start_epoch_ms <= 0:
             return None
@@ -432,3 +551,19 @@ class CompanionGameEngine:
 
     def _multiplier_for_streak(self, streak: int) -> float:
         return 1.0 + min(4.0, streak * 0.08)
+
+    def _phase_elapsed_ms(self) -> int:
+        s = self.state
+        if s.phase_start_epoch_ms <= 0:
+            return 0
+        if s.paused and s.phase_limit_ms > 0:
+            return max(0, s.phase_limit_ms - s.paused_remaining_ms)
+        return max(0, now_epoch_ms() - s.phase_start_epoch_ms)
+
+    def _clear_pause_state(self, *, accumulate_active: bool) -> None:
+        s = self.state
+        if accumulate_active and s.paused and s.pause_started_epoch_ms > 0:
+            s.total_pause_ms += max(0, now_epoch_ms() - s.pause_started_epoch_ms)
+        s.paused = False
+        s.paused_remaining_ms = 0
+        s.pause_started_epoch_ms = 0
