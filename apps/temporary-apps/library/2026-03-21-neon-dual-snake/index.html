@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Dual Snake Arena</title>
+  <style>
+    :root {
+      --bg-0: #0a0613;
+      --bg-1: #130c23;
+      --panel: rgba(27, 19, 47, 0.75);
+      --border: rgba(226, 146, 255, 0.28);
+      --text: #ffe6ff;
+      --muted: #d8c2e6;
+      --pink: #ff5fcf;
+      --hot-pink: #ff2da9;
+      --purple: #a66bff;
+      --violet: #7f5dff;
+      --teal: #53ffe2;
+      --danger: #ff5d7a;
+      --glow-1: 0 0 18px rgba(255, 95, 207, 0.38);
+      --glow-2: 0 0 20px rgba(166, 107, 255, 0.38);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(255, 45, 169, 0.17), transparent 36%),
+        radial-gradient(circle at 80% 20%, rgba(118, 67, 255, 0.23), transparent 44%),
+        radial-gradient(circle at 50% 90%, rgba(83, 255, 226, 0.11), transparent 42%),
+        linear-gradient(145deg, var(--bg-0), var(--bg-1));
+      display: grid;
+      place-items: center;
+      padding: 1.1rem;
+    }
+
+    .app-shell {
+      width: min(1260px, 100%);
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(24, 16, 41, 0.94), rgba(17, 13, 31, 0.95));
+      border-radius: 22px;
+      box-shadow: var(--glow-2), 0 18px 45px rgba(0, 0, 0, 0.45);
+      padding: 1rem 1rem 1.2rem;
+    }
+
+    .title-bar {
+      display: grid;
+      gap: 0.35rem;
+      margin-bottom: 0.85rem;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.6vw, 2rem);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-shadow: var(--glow-1);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 0.95rem;
+      align-items: stretch;
+    }
+
+    .game-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 0.8rem;
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      gap: 0.65rem;
+      backdrop-filter: blur(3px);
+      min-height: 590px;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .player-name {
+      margin: 0;
+      font-size: 1.08rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .stat-chip {
+      font-size: 0.79rem;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+
+    .metric {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(11, 7, 20, 0.66);
+      padding: 0.42rem;
+      text-align: center;
+    }
+
+    .metric-label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    .metric-value {
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: linear-gradient(145deg, rgba(18, 11, 33, 0.95), rgba(10, 6, 20, 0.96));
+      padding: 0.35rem;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+      display: grid;
+      place-items: center;
+      min-height: 455px;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      image-rendering: pixelated;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(9, 5, 19, 0.56), rgba(7, 4, 14, 0.76));
+      padding: 1rem;
+      transition: opacity 220ms ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      max-width: 360px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.17);
+      border-radius: 14px;
+      background: rgba(12, 8, 24, 0.86);
+      padding: 1rem;
+      box-shadow: var(--glow-2);
+    }
+
+    .overlay-card h3 {
+      margin: 0 0 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-size: 1rem;
+    }
+
+    .overlay-card p {
+      margin: 0.2rem 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+
+    .join-btn {
+      margin-top: 0.65rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: linear-gradient(120deg, var(--hot-pink), var(--purple));
+      color: white;
+      padding: 0.5rem 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: var(--glow-1);
+      transition: transform 150ms ease;
+    }
+
+    .join-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .help-text {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-align: center;
+      margin-top: 0.35rem;
+      line-height: 1.35;
+    }
+
+    .screen-footer {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: rgba(234, 214, 243, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="title-bar">
+      <h1>🐍 Neon Dual Snake Arena</h1>
+      <p class="subtitle">Two independent snake runs in one window. Player A uses <strong>WASD + 3 + 1</strong>; Player B uses <strong>Arrow Keys + Numpad 3 + Numpad 1</strong>.</p>
+    </section>
+
+    <section class="boards">
+      <article class="game-card" id="card-a">
+        <header class="card-head">
+          <h2 class="player-name">Player A • Orchid Drift</h2>
+          <span class="stat-chip">Controls: W/A/S/D + 3 + 1</span>
+        </header>
+
+        <section class="metrics" aria-label="Player A stats">
+          <div class="metric"><span class="metric-label">Score</span><span id="score-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Best</span><span id="best-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Length</span><span id="length-a" class="metric-value">4</span></div>
+          <div class="metric"><span class="metric-label">Speed</span><span id="speed-a" class="metric-value">1.0x</span></div>
+        </section>
+
+        <div class="canvas-wrap">
+          <canvas id="board-a" width="600" height="600" aria-label="Player A board"></canvas>
+          <div class="overlay" id="overlay-a">
+            <div class="overlay-card">
+              <h3 id="overlay-title-a">Join Run</h3>
+              <p id="overlay-body-a">Press <strong>3</strong> (or click) to join this board.</p>
+              <button class="join-btn" data-player="a">Join Player A</button>
+              <p class="help-text">Turn with W A S D. Press 1 to cycle colors mid-run.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="game-card" id="card-b">
+        <header class="card-head">
+          <h2 class="player-name">Player B • Aurora Pulse</h2>
+          <span class="stat-chip">Controls: ↑/←/↓/→ + Numpad 3 + Numpad 1</span>
+        </header>
+
+        <section class="metrics" aria-label="Player B stats">
+          <div class="metric"><span class="metric-label">Score</span><span id="score-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Best</span><span id="best-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Length</span><span id="length-b" class="metric-value">4</span></div>
+          <div class="metric"><span class="metric-label">Speed</span><span id="speed-b" class="metric-value">1.0x</span></div>
+        </section>
+
+        <div class="canvas-wrap">
+          <canvas id="board-b" width="600" height="600" aria-label="Player B board"></canvas>
+          <div class="overlay" id="overlay-b">
+            <div class="overlay-card">
+              <h3 id="overlay-title-b">Join Run</h3>
+              <p id="overlay-body-b">Press <strong>Numpad 3</strong> (or click) to join this board.</p>
+              <button class="join-btn" data-player="b">Join Player B</button>
+              <p class="help-text">Turn with arrow keys. Press Numpad 1 to cycle colors mid-run.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <p class="screen-footer">Tip: each board is fully separate. Lose one run and keep the other alive.</p>
+  </main>
+
+  <script>
+    const GRID_SIZE = 24;
+    const SCROLL_BLOCK_CODES = new Set(["ArrowUp", "ArrowDown", "Space"]);
+    const INITIAL_SPEED_MS = 170;
+    const MIN_SPEED_MS = 80;
+    const SPEED_STEP_MS = 4;
+
+    const SHARED_PALETTES = [
+      { snakeHead: "#ff58cb", snakeBody: "#c156ff", food: "#53ffe2", gridA: "rgba(255,95,207,0.11)", gridB: "rgba(117,88,255,0.11)", sparkle: "rgba(255,255,255,0.82)" },
+      { snakeHead: "#ff8dc2", snakeBody: "#ffb3dc", food: "#9be8ff", gridA: "rgba(255,167,209,0.13)", gridB: "rgba(176,211,255,0.12)", sparkle: "rgba(255,250,255,0.88)" },
+      { snakeHead: "#ff97e2", snakeBody: "#cf8cff", food: "#fff095", gridA: "rgba(255,151,226,0.12)", gridB: "rgba(207,140,255,0.12)", sparkle: "rgba(255,246,197,0.86)" },
+      { snakeHead: "#ff4fb0", snakeBody: "#ff7ccc", food: "#8de8ff", gridA: "rgba(255,79,176,0.14)", gridB: "rgba(255,124,204,0.12)", sparkle: "rgba(255,238,249,0.9)" },
+      { snakeHead: "#ff3f9e", snakeBody: "#d56dff", food: "#ffe28f", gridA: "rgba(255,63,158,0.14)", gridB: "rgba(213,109,255,0.12)", sparkle: "rgba(255,241,231,0.89)" },
+      { snakeHead: "#ff6ac7", snakeBody: "#ff95e3", food: "#7ee7d4", gridA: "rgba(255,106,199,0.14)", gridB: "rgba(255,149,227,0.12)", sparkle: "rgba(255,245,253,0.9)" },
+      { snakeHead: "#ff79d6", snakeBody: "#b67dff", food: "#9de7ff", gridA: "rgba(255,121,214,0.13)", gridB: "rgba(182,125,255,0.12)", sparkle: "rgba(255,246,255,0.9)" },
+      { snakeHead: "#ff89bc", snakeBody: "#ff6da2", food: "#9dc2ff", gridA: "rgba(255,137,188,0.13)", gridB: "rgba(255,109,162,0.12)", sparkle: "rgba(255,243,248,0.88)" },
+      { snakeHead: "#ffc6f7", snakeBody: "#c7b4ff", food: "#9fe8d6", gridA: "rgba(255,198,247,0.13)", gridB: "rgba(199,180,255,0.12)", sparkle: "rgba(255,246,255,0.88)" },
+      { snakeHead: "#b6f4ff", snakeBody: "#8ec8ff", food: "#ffd2f5", gridA: "rgba(182,244,255,0.13)", gridB: "rgba(142,200,255,0.12)", sparkle: "rgba(240,250,255,0.88)" },
+      { snakeHead: "#ffd6a3", snakeBody: "#ffb3c7", food: "#a5f7e1", gridA: "rgba(255,214,163,0.13)", gridB: "rgba(255,179,199,0.12)", sparkle: "rgba(255,252,240,0.86)" },
+      { snakeHead: "#b0b9ff", snakeBody: "#8ec2ff", food: "#ffc4e8", gridA: "rgba(176,185,255,0.13)", gridB: "rgba(142,194,255,0.12)", sparkle: "rgba(243,245,255,0.88)" },
+      { snakeHead: "#c7ffa8", snakeBody: "#8be29b", food: "#ffd3ec", gridA: "rgba(199,255,168,0.13)", gridB: "rgba(139,226,155,0.12)", sparkle: "rgba(246,255,242,0.88)" },
+    ];
+
+    const PLAYER_CONFIG = {
+      a: {
+        canvasId: "board-a",
+        overlayId: "overlay-a",
+        overlayTitleId: "overlay-title-a",
+        overlayBodyId: "overlay-body-a",
+        scoreId: "score-a",
+        bestId: "best-a",
+        lengthId: "length-a",
+        speedId: "speed-a",
+        joinCodes: new Set(["Digit3"]),
+        colorToggleCodes: new Set(["Digit1"]),
+        turnKeys: {
+          w: { x: 0, y: -1 },
+          a: { x: -1, y: 0 },
+          s: { x: 0, y: 1 },
+          d: { x: 1, y: 0 },
+        },
+        palettes: SHARED_PALETTES,
+      },
+      b: {
+        canvasId: "board-b",
+        overlayId: "overlay-b",
+        overlayTitleId: "overlay-title-b",
+        overlayBodyId: "overlay-body-b",
+        scoreId: "score-b",
+        bestId: "best-b",
+        lengthId: "length-b",
+        speedId: "speed-b",
+        joinCodes: new Set(["Numpad3"]),
+        colorToggleCodes: new Set(["Numpad1"]),
+        turnKeys: {
+          ArrowUp: { x: 0, y: -1 },
+          ArrowLeft: { x: -1, y: 0 },
+          ArrowDown: { x: 0, y: 1 },
+          ArrowRight: { x: 1, y: 0 },
+        },
+        palettes: SHARED_PALETTES,
+      },
+    };
+
+    function createInitialSnake() {
+      return [
+        { x: 6, y: 12 },
+        { x: 5, y: 12 },
+        { x: 4, y: 12 },
+        { x: 3, y: 12 },
+      ];
+    }
+
+    function createPlayerState(id, config) {
+      const canvas = document.getElementById(config.canvasId);
+      const ctx = canvas.getContext("2d");
+
+      return {
+        id,
+        config,
+        ctx,
+        tilePx: canvas.width / GRID_SIZE,
+        snake: createInitialSnake(),
+        direction: { x: 1, y: 0 },
+        pendingDirection: { x: 1, y: 0 },
+        food: { x: 14, y: 12 },
+        joined: false,
+        alive: false,
+        score: 0,
+        best: 0,
+        speedMs: INITIAL_SPEED_MS,
+        tickAt: 0,
+        updateToken: 0,
+        sparkleSeed: Math.random() * 10,
+        colorIndex: 0,
+      };
+    }
+
+    function getCurrentPalette(player) {
+      return player.config.palettes[player.colorIndex];
+    }
+
+    function cyclePalette(player) {
+      player.colorIndex = (player.colorIndex + 1) % player.config.palettes.length;
+    }
+
+    const players = {
+      a: createPlayerState("a", PLAYER_CONFIG.a),
+      b: createPlayerState("b", PLAYER_CONFIG.b),
+    };
+
+    function randomCellAvoiding(snake) {
+      let x = 0;
+      let y = 0;
+      let blocked = true;
+
+      while (blocked) {
+        x = Math.floor(Math.random() * GRID_SIZE);
+        y = Math.floor(Math.random() * GRID_SIZE);
+        blocked = snake.some((segment) => segment.x === x && segment.y === y);
+      }
+      return { x, y };
+    }
+
+    function resetPlayerRun(player) {
+      player.snake = createInitialSnake();
+      player.direction = { x: 1, y: 0 };
+      player.pendingDirection = { x: 1, y: 0 };
+      player.score = 0;
+      player.speedMs = INITIAL_SPEED_MS;
+      player.food = randomCellAvoiding(player.snake);
+      player.alive = true;
+      player.tickAt = performance.now();
+      player.updateToken += 1;
+      syncStats(player);
+      updateOverlay(player, true);
+      drawBoard(player, performance.now());
+    }
+
+    function updateOverlay(player, hidden, mode = "join") {
+      const overlay = document.getElementById(player.config.overlayId);
+      const title = document.getElementById(player.config.overlayTitleId);
+      const body = document.getElementById(player.config.overlayBodyId);
+
+      if (hidden) {
+        overlay.classList.add("hidden");
+        return;
+      }
+
+      overlay.classList.remove("hidden");
+      if (mode === "gameover") {
+        title.textContent = "Game Over";
+        body.innerHTML = `Final score: <strong>${player.score}</strong>. Press your OK key to restart.`;
+      } else {
+        title.textContent = "Join Run";
+        body.innerHTML = `Press your OK key to begin this board.`;
+      }
+    }
+
+    function syncStats(player) {
+      document.getElementById(player.config.scoreId).textContent = String(player.score);
+      document.getElementById(player.config.bestId).textContent = String(player.best);
+      document.getElementById(player.config.lengthId).textContent = String(player.snake.length);
+      const speedFactor = (INITIAL_SPEED_MS / player.speedMs).toFixed(1);
+      document.getElementById(player.config.speedId).textContent = `${speedFactor}x`;
+    }
+
+    function trySetDirection(player, nextDirection) {
+      const current = player.direction;
+      const opposite = current.x + nextDirection.x === 0 && current.y + nextDirection.y === 0;
+      if (!opposite) {
+        player.pendingDirection = nextDirection;
+      }
+    }
+
+    function moveOneStep(player) {
+      player.direction = player.pendingDirection;
+      const head = player.snake[0];
+      const nextHead = {
+        x: head.x + player.direction.x,
+        y: head.y + player.direction.y,
+      };
+
+      const outside = nextHead.x < 0 || nextHead.x >= GRID_SIZE || nextHead.y < 0 || nextHead.y >= GRID_SIZE;
+      if (outside) {
+        player.alive = false;
+        player.best = Math.max(player.best, player.score);
+        syncStats(player);
+        updateOverlay(player, false, "gameover");
+        return;
+      }
+
+      const collidedSelf = player.snake.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+      if (collidedSelf) {
+        player.alive = false;
+        player.best = Math.max(player.best, player.score);
+        syncStats(player);
+        updateOverlay(player, false, "gameover");
+        return;
+      }
+
+      player.snake.unshift(nextHead);
+
+      if (nextHead.x === player.food.x && nextHead.y === player.food.y) {
+        player.score += 10;
+        player.best = Math.max(player.best, player.score);
+        player.speedMs = Math.max(MIN_SPEED_MS, player.speedMs - SPEED_STEP_MS);
+        player.food = randomCellAvoiding(player.snake);
+      } else {
+        player.snake.pop();
+      }
+
+      syncStats(player);
+    }
+
+    function drawGrid(player) {
+      const { ctx, tilePx } = player;
+      const palette = getCurrentPalette(player);
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          ctx.fillStyle = (x + y) % 2 === 0 ? palette.gridA : palette.gridB;
+          ctx.fillRect(x * tilePx, y * tilePx, tilePx, tilePx);
+        }
+      }
+    }
+
+    function drawFood(player, timeMs) {
+      const { ctx, tilePx, food } = player;
+      const palette = getCurrentPalette(player);
+      const pulse = 0.72 + Math.sin((timeMs / 220) + player.sparkleSeed) * 0.11;
+      const centerX = (food.x + 0.5) * tilePx;
+      const centerY = (food.y + 0.5) * tilePx;
+      const radius = tilePx * 0.34 * pulse;
+
+      ctx.save();
+      const glow = ctx.createRadialGradient(centerX, centerY, radius * 0.12, centerX, centerY, radius * 2.1);
+      glow.addColorStop(0, palette.sparkle);
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius * 2.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = palette.food;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSnake(player) {
+      const { ctx, tilePx, snake } = player;
+      const palette = getCurrentPalette(player);
+
+      snake.forEach((segment, index) => {
+        const isHead = index === 0;
+        const inset = isHead ? tilePx * 0.06 : tilePx * 0.12;
+        const x = segment.x * tilePx + inset;
+        const y = segment.y * tilePx + inset;
+        const size = tilePx - inset * 2;
+        const radius = isHead ? 8 : 6;
+
+        ctx.fillStyle = isHead ? palette.snakeHead : palette.snakeBody;
+        ctx.beginPath();
+        ctx.roundRect(x, y, size, size, radius);
+        ctx.fill();
+
+        if (isHead) {
+          ctx.fillStyle = "rgba(255,255,255,0.95)";
+          const eyeOffset = tilePx * 0.2;
+          ctx.beginPath();
+          ctx.arc(x + eyeOffset + 4, y + eyeOffset + 1, 2.6, 0, Math.PI * 2);
+          ctx.arc(x + size - eyeOffset - 4, y + eyeOffset + 1, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    }
+
+    function drawBoard(player, timeMs) {
+      const { ctx } = player;
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      drawGrid(player);
+      drawFood(player, timeMs);
+      drawSnake(player);
+    }
+
+    function gameLoop(now) {
+      for (const player of Object.values(players)) {
+        if (player.joined && player.alive && now >= player.tickAt + player.speedMs) {
+          moveOneStep(player);
+          player.tickAt = now;
+        }
+        drawBoard(player, now);
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function handleKeyDown(event) {
+      const key = event.key;
+      const code = event.code;
+
+      if (SCROLL_BLOCK_CODES.has(code)) {
+        event.preventDefault();
+      }
+
+      for (const player of Object.values(players)) {
+        const hasTurn = Object.prototype.hasOwnProperty.call(player.config.turnKeys, key);
+        const wantsJoin = player.config.joinCodes.has(code);
+        const wantsColorToggle = player.config.colorToggleCodes.has(code);
+
+        if (hasTurn && player.joined && player.alive) {
+          event.preventDefault();
+          trySetDirection(player, player.config.turnKeys[key]);
+          continue;
+        }
+
+        if (wantsJoin && !player.alive) {
+          event.preventDefault();
+          player.joined = true;
+          resetPlayerRun(player);
+          continue;
+        }
+
+        if (wantsColorToggle) {
+          event.preventDefault();
+          cyclePalette(player);
+        }
+      }
+    }
+
+    function setupJoinButtons() {
+      const buttons = document.querySelectorAll(".join-btn");
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const playerId = button.dataset.player;
+          const player = players[playerId];
+          if (!player) return;
+
+          if (!player.alive) {
+            player.joined = true;
+            resetPlayerRun(player);
+          }
+        });
+      });
+    }
+
+    function init() {
+      for (const player of Object.values(players)) {
+        syncStats(player);
+        updateOverlay(player, false, "join");
+        drawBoard(player, performance.now());
+      }
+
+      window.addEventListener("keydown", handleKeyDown, { passive: false });
+      setupJoinButtons();
+      requestAnimationFrame(gameLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>

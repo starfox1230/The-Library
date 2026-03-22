@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Dual Breakout</title>
+  <style>
+    :root {
+      --bg-0: #070914;
+      --bg-1: #111a3c;
+      --panel: rgba(20, 26, 58, 0.8);
+      --border: rgba(132, 183, 255, 0.35);
+      --text: #edf3ff;
+      --muted: #b9cce8;
+      --blue: #63b7ff;
+      --pink: #ff7be2;
+      --mint: #7dffd8;
+      --gold: #ffe97f;
+      --glow-1: 0 0 18px rgba(99, 183, 255, 0.38);
+      --glow-2: 0 0 22px rgba(132, 183, 255, 0.32);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 14%, rgba(125, 255, 216, 0.12), transparent 38%),
+        radial-gradient(circle at 82% 18%, rgba(99, 183, 255, 0.2), transparent 44%),
+        radial-gradient(circle at 50% 88%, rgba(255, 123, 226, 0.1), transparent 42%),
+        linear-gradient(150deg, var(--bg-0), var(--bg-1));
+      display: grid;
+      place-items: center;
+      padding: 1.1rem;
+    }
+    .app-shell {
+      width: min(1260px, 100%);
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(13, 18, 42, 0.94), rgba(8, 12, 31, 0.95));
+      border-radius: 22px;
+      box-shadow: var(--glow-2), 0 18px 45px rgba(0, 0, 0, 0.45);
+      padding: 1rem 1rem 1.2rem;
+    }
+    .title-bar { display: grid; gap: 0.35rem; margin-bottom: 0.85rem; text-align: center; }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.6vw, 2rem);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-shadow: var(--glow-1);
+    }
+    .subtitle { margin: 0; color: var(--muted); font-size: 0.94rem; }
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 0.95rem;
+      align-items: stretch;
+    }
+    .game-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 0.8rem;
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      gap: 0.65rem;
+      min-height: 590px;
+    }
+    .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .player-name { margin: 0; font-size: 1.08rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .stat-chip {
+      font-size: 0.79rem;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+      background: rgba(255,255,255,0.04);
+    }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; }
+    .metric {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(8, 12, 30, 0.7);
+      padding: 0.42rem;
+      text-align: center;
+    }
+    .metric-label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+    .metric-value { font-size: 1.02rem; font-weight: 700; }
+    .canvas-wrap {
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: linear-gradient(145deg, rgba(7, 10, 26, 0.95), rgba(5, 8, 19, 0.96));
+      padding: 0.35rem;
+      display: grid;
+      place-items: center;
+      min-height: 455px;
+      overflow: hidden;
+    }
+    canvas {
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      image-rendering: pixelated;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(4, 7, 18, 0.58), rgba(3, 5, 13, 0.8));
+      padding: 1rem;
+      transition: opacity 220ms ease;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .overlay-card {
+      max-width: 360px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.17);
+      border-radius: 14px;
+      background: rgba(8, 12, 26, 0.88);
+      padding: 1rem;
+      box-shadow: var(--glow-2);
+    }
+    .overlay-card h3 { margin: 0 0 0.35rem; text-transform: uppercase; letter-spacing: 0.07em; font-size: 1rem; }
+    .overlay-card p { margin: 0.2rem 0; color: var(--muted); font-size: 0.86rem; line-height: 1.4; }
+    .join-btn {
+      margin-top: 0.65rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: linear-gradient(120deg, var(--blue), var(--pink));
+      color: white;
+      padding: 0.5rem 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: var(--glow-1);
+    }
+    .help-text { color: var(--muted); font-size: 0.75rem; text-align: center; margin-top: 0.35rem; line-height: 1.35; }
+    .screen-footer { margin-top: 1rem; text-align: center; font-size: 0.75rem; color: rgba(216, 230, 255, 0.82); }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="title-bar">
+      <h1>🧱 Neon Dual Breakout</h1>
+      <p class="subtitle">Two independent breakout runs. Player A: <strong>A/D + W + 3 + 1</strong>. Player B: <strong>←/→ + ↑ + Numpad 3 + Numpad 1</strong>.</p>
+    </section>
+
+    <section class="boards">
+      <article class="game-card">
+        <header class="card-head">
+          <h2 class="player-name">Player A • Prism Court</h2>
+          <span class="stat-chip">Controls: A/D + W + 3 + 1</span>
+        </header>
+        <section class="metrics" aria-label="Player A stats">
+          <div class="metric"><span class="metric-label">Score</span><span id="score-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Best</span><span id="best-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Lives</span><span id="lives-a" class="metric-value">3</span></div>
+          <div class="metric"><span class="metric-label">Level</span><span id="level-a" class="metric-value">1</span></div>
+        </section>
+        <div class="canvas-wrap">
+          <canvas id="board-a" width="600" height="600" aria-label="Player A board"></canvas>
+          <div class="overlay" id="overlay-a">
+            <div class="overlay-card">
+              <h3 id="overlay-title-a">Join Breakout</h3>
+              <p id="overlay-body-a">Press <strong>3</strong> (or click) to join this board.</p>
+              <button class="join-btn" data-player="a">Join Player A</button>
+              <p class="help-text">A/D move, W launches the ball, 1 cycles palette.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="game-card">
+        <header class="card-head">
+          <h2 class="player-name">Player B • Nova Court</h2>
+          <span class="stat-chip">Controls: ←/→ + ↑ + Numpad 3 + Numpad 1</span>
+        </header>
+        <section class="metrics" aria-label="Player B stats">
+          <div class="metric"><span class="metric-label">Score</span><span id="score-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Best</span><span id="best-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Lives</span><span id="lives-b" class="metric-value">3</span></div>
+          <div class="metric"><span class="metric-label">Level</span><span id="level-b" class="metric-value">1</span></div>
+        </section>
+        <div class="canvas-wrap">
+          <canvas id="board-b" width="600" height="600" aria-label="Player B board"></canvas>
+          <div class="overlay" id="overlay-b">
+            <div class="overlay-card">
+              <h3 id="overlay-title-b">Join Breakout</h3>
+              <p id="overlay-body-b">Press <strong>Numpad 3</strong> (or click) to join this board.</p>
+              <button class="join-btn" data-player="b">Join Player B</button>
+              <p class="help-text">←/→ move, ↑ launches the ball, Numpad 1 cycles palette.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <p class="screen-footer">Break all bricks to advance. Miss the ball three times and your run resets.</p>
+  </main>
+
+  <script>
+    const keyState = new Set();
+    const SCROLL_BLOCK_CODES = new Set(["ArrowUp", "ArrowDown", "Space"]);
+    const palettes = [
+      { paddle: '#6effff', ball: '#ffe97f', bricks: ['#63b7ff', '#7dffd8', '#ff7be2'] },
+      { paddle: '#ff9df0', ball: '#ffd166', bricks: ['#ff7be2', '#63b7ff', '#a9ffb8'] },
+      { paddle: '#9ef9ff', ball: '#ffffff', bricks: ['#6a8dff', '#6effff', '#ffd4ff'] },
+    ];
+
+    function createGame(player) {
+      const canvas = document.getElementById(`board-${player.id}`);
+      const ctx = canvas.getContext('2d');
+      const overlay = document.getElementById(`overlay-${player.id}`);
+      const title = document.getElementById(`overlay-title-${player.id}`);
+      const body = document.getElementById(`overlay-body-${player.id}`);
+
+      const scoreEl = document.getElementById(`score-${player.id}`);
+      const bestEl = document.getElementById(`best-${player.id}`);
+      const livesEl = document.getElementById(`lives-${player.id}`);
+      const levelEl = document.getElementById(`level-${player.id}`);
+
+      const state = {
+        joined: false,
+        running: false,
+        score: 0,
+        best: 0,
+        level: 1,
+        lives: 3,
+        paletteIndex: 0,
+        paddle: { x: 255, y: 560, w: 90, h: 14, speed: 7.2 },
+        ball: { x: 300, y: 545, r: 8, vx: 0, vy: 0 },
+        bricks: [],
+      };
+
+      function makeBricks() {
+        const rows = 6;
+        const cols = 8;
+        const padding = 10;
+        const bw = (canvas.width - padding * (cols + 1)) / cols;
+        const bh = 20;
+        const out = [];
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            out.push({
+              x: padding + col * (bw + padding),
+              y: 70 + row * (bh + 10),
+              w: bw,
+              h: bh,
+              alive: true,
+              colorBand: row % 3,
+            });
+          }
+        }
+        return out;
+      }
+
+      function resetBall() {
+        state.ball.x = state.paddle.x + state.paddle.w / 2;
+        state.ball.y = state.paddle.y - state.ball.r - 2;
+        state.ball.vx = 0;
+        state.ball.vy = 0;
+        state.running = false;
+      }
+
+      function startRound() {
+        state.paddle.x = 255;
+        state.bricks = makeBricks();
+        resetBall();
+      }
+
+      function setOverlay(mode) {
+        if (mode === 'hidden') {
+          overlay.classList.add('hidden');
+          return;
+        }
+        overlay.classList.remove('hidden');
+        if (mode === 'join') {
+          title.textContent = 'Join Breakout';
+          body.innerHTML = `Press <strong>${player.joinLabel}</strong> (or click) to join this board.`;
+        } else if (mode === 'gameover') {
+          title.textContent = 'Game Over';
+          body.innerHTML = `Final score: <strong>${state.score}</strong>. Press <strong>${player.joinLabel}</strong> to restart.`;
+        }
+      }
+
+      function updateHud() {
+        scoreEl.textContent = state.score;
+        bestEl.textContent = state.best;
+        livesEl.textContent = state.lives;
+        levelEl.textContent = state.level;
+      }
+
+      function launchBall() {
+        if (state.running || !state.joined) return;
+        const angle = (Math.random() * 0.7 + 0.35) * (Math.random() > 0.5 ? 1 : -1);
+        const speed = 4 + state.level * 0.45;
+        state.ball.vx = Math.sin(angle) * speed;
+        state.ball.vy = -Math.cos(angle) * speed;
+        state.running = true;
+      }
+
+      function handleControls() {
+        if (!state.joined) return;
+        const left = keyState.has(player.left);
+        const right = keyState.has(player.right);
+        if (left && !right) state.paddle.x -= state.paddle.speed;
+        if (right && !left) state.paddle.x += state.paddle.speed;
+        state.paddle.x = Math.max(0, Math.min(canvas.width - state.paddle.w, state.paddle.x));
+
+        if (!state.running) {
+          state.ball.x = state.paddle.x + state.paddle.w / 2;
+        }
+      }
+
+      function updateBall() {
+        if (!state.running) return;
+        state.ball.x += state.ball.vx;
+        state.ball.y += state.ball.vy;
+
+        if (state.ball.x - state.ball.r <= 0 || state.ball.x + state.ball.r >= canvas.width) {
+          state.ball.vx *= -1;
+          state.ball.x = Math.max(state.ball.r, Math.min(canvas.width - state.ball.r, state.ball.x));
+        }
+        if (state.ball.y - state.ball.r <= 0) {
+          state.ball.vy *= -1;
+          state.ball.y = state.ball.r;
+        }
+
+        if (
+          state.ball.y + state.ball.r >= state.paddle.y &&
+          state.ball.y - state.ball.r <= state.paddle.y + state.paddle.h &&
+          state.ball.x >= state.paddle.x &&
+          state.ball.x <= state.paddle.x + state.paddle.w &&
+          state.ball.vy > 0
+        ) {
+          const hit = (state.ball.x - (state.paddle.x + state.paddle.w / 2)) / (state.paddle.w / 2);
+          state.ball.vx = hit * (4.8 + state.level * 0.4);
+          state.ball.vy = -Math.max(3.2, Math.abs(state.ball.vy));
+        }
+
+        for (const brick of state.bricks) {
+          if (!brick.alive) continue;
+          if (
+            state.ball.x + state.ball.r > brick.x &&
+            state.ball.x - state.ball.r < brick.x + brick.w &&
+            state.ball.y + state.ball.r > brick.y &&
+            state.ball.y - state.ball.r < brick.y + brick.h
+          ) {
+            brick.alive = false;
+            state.score += 10 * state.level;
+            state.best = Math.max(state.best, state.score);
+            state.ball.vy *= -1;
+            break;
+          }
+        }
+
+        if (state.bricks.every((brick) => !brick.alive)) {
+          state.level += 1;
+          state.score += 100;
+          state.best = Math.max(state.best, state.score);
+          state.bricks = makeBricks();
+          resetBall();
+        }
+
+        if (state.ball.y - state.ball.r > canvas.height) {
+          state.lives -= 1;
+          if (state.lives <= 0) {
+            state.joined = false;
+            state.running = false;
+            setOverlay('gameover');
+            state.score = 0;
+            state.level = 1;
+            state.lives = 3;
+            startRound();
+          } else {
+            resetBall();
+          }
+        }
+      }
+
+      function draw() {
+        const palette = palettes[state.paletteIndex % palettes.length];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bg.addColorStop(0, '#0d1430');
+        bg.addColorStop(1, '#070a16');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (const brick of state.bricks) {
+          if (!brick.alive) continue;
+          ctx.fillStyle = palette.bricks[brick.colorBand];
+          ctx.fillRect(brick.x, brick.y, brick.w, brick.h);
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.strokeRect(brick.x, brick.y, brick.w, brick.h);
+        }
+
+        ctx.fillStyle = palette.paddle;
+        ctx.fillRect(state.paddle.x, state.paddle.y, state.paddle.w, state.paddle.h);
+
+        ctx.beginPath();
+        ctx.fillStyle = palette.ball;
+        ctx.arc(state.ball.x, state.ball.y, state.ball.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function tick() {
+        handleControls();
+        updateBall();
+        updateHud();
+        draw();
+        requestAnimationFrame(tick);
+      }
+
+      function joinGame() {
+        state.joined = true;
+        state.score = 0;
+        state.level = 1;
+        state.lives = 3;
+        startRound();
+        setOverlay('hidden');
+      }
+
+      document.querySelector(`.join-btn[data-player="${player.id}"]`).addEventListener('click', joinGame);
+
+      return {
+        keyDown(code) {
+          if (code === player.join) joinGame();
+          if (code === player.launch) launchBall();
+          if (code === player.theme) state.paletteIndex = (state.paletteIndex + 1) % palettes.length;
+        },
+        init() {
+          state.bricks = makeBricks();
+          setOverlay('join');
+          updateHud();
+          draw();
+          tick();
+        },
+      };
+    }
+
+    const games = {
+      a: createGame({ id: 'a', left: 'KeyA', right: 'KeyD', launch: 'KeyW', join: 'Digit3', theme: 'Digit1', joinLabel: '3' }),
+      b: createGame({ id: 'b', left: 'ArrowLeft', right: 'ArrowRight', launch: 'ArrowUp', join: 'Numpad3', theme: 'Numpad1', joinLabel: 'Numpad 3' }),
+    };
+
+    document.addEventListener('keydown', (event) => {
+      if (SCROLL_BLOCK_CODES.has(event.code)) event.preventDefault();
+      keyState.add(event.code);
+      games.a.keyDown(event.code);
+      games.b.keyDown(event.code);
+    }, { passive: false });
+
+    document.addEventListener('keyup', (event) => {
+      if (SCROLL_BLOCK_CODES.has(event.code)) event.preventDefault();
+      keyState.delete(event.code);
+    }, { passive: false });
+
+    games.a.init();
+    games.b.init();
+  </script>
+</body>
+</html>

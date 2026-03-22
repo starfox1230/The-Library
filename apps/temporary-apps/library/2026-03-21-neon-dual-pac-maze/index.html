@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Dual Pac Maze</title>
+  <style>
+    :root {
+      --bg-0: #050711;
+      --bg-1: #0d1230;
+      --panel: rgba(16, 22, 52, 0.8);
+      --border: rgba(122, 164, 255, 0.36);
+      --text: #ecf4ff;
+      --muted: #b8c8e2;
+      --blue: #58adff;
+      --cyan: #6effff;
+      --pink: #ff7dd9;
+      --yellow: #ffe866;
+      --glow-1: 0 0 18px rgba(110, 255, 255, 0.35);
+      --glow-2: 0 0 20px rgba(122, 164, 255, 0.32);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 14%, rgba(110, 255, 255, 0.13), transparent 40%),
+        radial-gradient(circle at 84% 18%, rgba(122, 164, 255, 0.2), transparent 45%),
+        radial-gradient(circle at 50% 88%, rgba(255, 125, 217, 0.11), transparent 42%),
+        linear-gradient(150deg, var(--bg-0), var(--bg-1));
+      display: grid;
+      place-items: center;
+      padding: 1.1rem;
+    }
+    .app-shell {
+      width: min(1260px, 100%);
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(12, 18, 42, 0.94), rgba(8, 12, 30, 0.95));
+      border-radius: 22px;
+      box-shadow: var(--glow-2), 0 18px 45px rgba(0, 0, 0, 0.45);
+      padding: 1rem 1rem 1.2rem;
+    }
+    .title-bar { display: grid; gap: 0.35rem; margin-bottom: 0.85rem; text-align: center; }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.6vw, 2rem);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-shadow: var(--glow-1);
+    }
+    .subtitle { margin: 0; color: var(--muted); font-size: 0.94rem; }
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 0.95rem;
+      align-items: stretch;
+    }
+    .game-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 0.8rem;
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      gap: 0.65rem;
+      min-height: 590px;
+    }
+    .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .player-name { margin: 0; font-size: 1.08rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .stat-chip {
+      font-size: 0.79rem;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+      background: rgba(255,255,255,0.04);
+    }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; }
+    .metric {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(7, 11, 28, 0.7);
+      padding: 0.42rem;
+      text-align: center;
+    }
+    .metric-label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+    .metric-value { font-size: 1.02rem; font-weight: 700; }
+    .canvas-wrap {
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: linear-gradient(145deg, rgba(7, 10, 26, 0.95), rgba(5, 8, 19, 0.96));
+      padding: 0.35rem;
+      display: grid;
+      place-items: center;
+      min-height: 455px;
+      overflow: hidden;
+    }
+    .lives-visual {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      min-height: 20px;
+      padding: 0.24rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(7, 11, 26, 0.78);
+      box-shadow: 0 0 12px rgba(88, 173, 255, 0.32);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .life-pac {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: conic-gradient(from 35deg, transparent 0deg 70deg, var(--yellow) 70deg 360deg);
+      filter: drop-shadow(0 0 4px rgba(255, 232, 102, 0.5));
+    }
+    .life-empty {
+      color: rgba(236, 244, 255, 0.72);
+      font-size: 0.78rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    canvas {
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      image-rendering: pixelated;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(4, 7, 18, 0.58), rgba(3, 5, 13, 0.8));
+      padding: 1rem;
+      transition: opacity 220ms ease;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .overlay-card {
+      max-width: 360px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.17);
+      border-radius: 14px;
+      background: rgba(8, 12, 26, 0.88);
+      padding: 1rem;
+      box-shadow: var(--glow-2);
+    }
+    .overlay-card h3 { margin: 0 0 0.35rem; text-transform: uppercase; letter-spacing: 0.07em; font-size: 1rem; }
+    .overlay-card p { margin: 0.2rem 0; color: var(--muted); font-size: 0.86rem; line-height: 1.4; }
+    .join-btn {
+      margin-top: 0.65rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: linear-gradient(120deg, var(--blue), var(--pink));
+      color: white;
+      padding: 0.5rem 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: var(--glow-1);
+    }
+    .help-text { color: var(--muted); font-size: 0.75rem; text-align: center; margin-top: 0.35rem; line-height: 1.35; }
+    .screen-footer { margin-top: 1rem; text-align: center; font-size: 0.75rem; color: rgba(216, 230, 255, 0.82); }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="title-bar">
+      <h1>🟡 Neon Dual Pac Maze</h1>
+      <p class="subtitle">Independent two-player Pac-style runs in one screen. Player A: <strong>WASD + 3 + 1</strong>. Player B: <strong>Arrow Keys + Numpad 3 + Numpad 1</strong>.</p>
+    </section>
+
+    <section class="boards">
+      <article class="game-card">
+        <header class="card-head">
+          <h2 class="player-name">Player A • Laser Maze</h2>
+          <span class="stat-chip">Controls: W/A/S/D + 3 + 1</span>
+        </header>
+        <section class="metrics" aria-label="Player A stats">
+          <div class="metric"><span class="metric-label">Score</span><span id="score-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Best</span><span id="best-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Pellets</span><span id="pellets-a" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Lives</span><span id="lives-a" class="metric-value">3</span></div>
+        </section>
+        <div class="canvas-wrap">
+          <div id="lives-icons-a" class="lives-visual" aria-label="Player A lives"></div>
+          <canvas id="board-a" width="600" height="600" aria-label="Player A board"></canvas>
+          <div class="overlay" id="overlay-a">
+            <div class="overlay-card">
+              <h3 id="overlay-title-a">Join Maze</h3>
+              <p id="overlay-body-a">Press <strong>3</strong> (or click) to join this board.</p>
+              <button class="join-btn" data-player="a">Join Player A</button>
+              <p class="help-text">W/A/S/D to move. 1 cycles color theme.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="game-card">
+        <header class="card-head">
+          <h2 class="player-name">Player B • Nova Maze</h2>
+          <span class="stat-chip">Controls: ↑/←/↓/→ + Numpad 3 + Numpad 1</span>
+        </header>
+        <section class="metrics" aria-label="Player B stats">
+          <div class="metric"><span class="metric-label">Score</span><span id="score-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Best</span><span id="best-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Pellets</span><span id="pellets-b" class="metric-value">0</span></div>
+          <div class="metric"><span class="metric-label">Lives</span><span id="lives-b" class="metric-value">3</span></div>
+        </section>
+        <div class="canvas-wrap">
+          <div id="lives-icons-b" class="lives-visual" aria-label="Player B lives"></div>
+          <canvas id="board-b" width="600" height="600" aria-label="Player B board"></canvas>
+          <div class="overlay" id="overlay-b">
+            <div class="overlay-card">
+              <h3 id="overlay-title-b">Join Maze</h3>
+              <p id="overlay-body-b">Press <strong>Numpad 3</strong> (or click) to join this board.</p>
+              <button class="join-btn" data-player="b">Join Player B</button>
+              <p class="help-text">Arrow keys to move. Numpad 1 cycles color theme.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <p class="screen-footer">Each maze is independent: if one player wipes out, the other keeps playing.</p>
+  </main>
+
+  <script>
+    const GRID_SIZE = 24;
+    const SCROLL_BLOCK_CODES = new Set(["ArrowUp", "ArrowDown", "Space"]);
+    const STEP_MS = 125;
+    const START_LIVES = 3;
+    const WALL = "#";
+    const PELLET = ".";
+    const POWER = "o";
+
+    const MAZE_TEMPLATE = [
+      "########################",
+      "#..........##..........#",
+      "#.####.###.##.###.####.#",
+      "#o####.###.##.###.####o#",
+      "#.####.###.##.###.####.#",
+      "#......................#",
+      "#.####.##.######.##.##.#",
+      "#.####.##.######.##.##.#",
+      "#......##....##....##..#",
+      "######.##### ## #####.##",
+      "######.##### ## #####.##",
+      "######.##          ##.##",
+      "######.## ###  ### ##.##",
+      "      .   #      #   .  ",
+      "######.## ######## ##.##",
+      "######.## ######## ##.##",
+      "######.##          ##.##",
+      "######.## ######## ##.##",
+      "#..........##..........#",
+      "#.####.###.##.###.####.#",
+      "#o..##................o#",
+      "###.##.##.######.##.####",
+      "#......##....##....##..#",
+      "########################",
+    ];
+
+    const PLAYER_CONFIG = {
+      a: {
+        canvasId: "board-a", overlayId: "overlay-a", overlayTitleId: "overlay-title-a", overlayBodyId: "overlay-body-a",
+        scoreId: "score-a", bestId: "best-a", pelletsId: "pellets-a", livesId: "lives-a", livesIconsId: "lives-icons-a",
+        joinCodes: new Set(["Digit3"]), colorToggleCodes: new Set(["Digit1"]),
+        turnKeys: { w: { x: 0, y: -1 }, a: { x: -1, y: 0 }, s: { x: 0, y: 1 }, d: { x: 1, y: 0 } },
+        palettes: [
+          { wall: "#3669ff", floorA: "#0f1b4d", floorB: "#122463", pellet: "#d9f4ff", power: "#ff85df", pac: "#ffe866", ghostA: "#ff8f7a", ghostB: "#7be7ff" },
+          { wall: "#9057ff", floorA: "#24134f", floorB: "#2a1c5f", pellet: "#f8e9ff", power: "#95ffe5", pac: "#ffd56f", ghostA: "#ff92c9", ghostB: "#86b9ff" },
+          { wall: "#54d9ff", floorA: "#0a3042", floorB: "#0d3950", pellet: "#ecfcff", power: "#ffe07c", pac: "#ffe8a0", ghostA: "#ff8585", ghostB: "#d0a2ff" },
+        ],
+      },
+      b: {
+        canvasId: "board-b", overlayId: "overlay-b", overlayTitleId: "overlay-title-b", overlayBodyId: "overlay-body-b",
+        scoreId: "score-b", bestId: "best-b", pelletsId: "pellets-b", livesId: "lives-b", livesIconsId: "lives-icons-b",
+        joinCodes: new Set(["Numpad3"]), colorToggleCodes: new Set(["Numpad1"]),
+        turnKeys: { ArrowUp: { x: 0, y: -1 }, ArrowLeft: { x: -1, y: 0 }, ArrowDown: { x: 0, y: 1 }, ArrowRight: { x: 1, y: 0 } },
+        palettes: [
+          { wall: "#4f90ff", floorA: "#0d2052", floorB: "#12306c", pellet: "#dff4ff", power: "#ffa8e8", pac: "#ffe96c", ghostA: "#ff9d78", ghostB: "#93fbff" },
+          { wall: "#7ad2ff", floorA: "#10324a", floorB: "#133c57", pellet: "#effcff", power: "#ffe18f", pac: "#ffe2a8", ghostA: "#ff9aa0", ghostB: "#cfb7ff" },
+          { wall: "#8a71ff", floorA: "#1f174a", floorB: "#2a1f60", pellet: "#f7ecff", power: "#9fffe6", pac: "#ffd775", ghostA: "#ff89c2", ghostB: "#94c8ff" },
+        ],
+      },
+    };
+
+    function cloneMaze() {
+      return MAZE_TEMPLATE.map((row) => row.split(""));
+    }
+
+    function countPellets(maze) {
+      let count = 0;
+      for (const row of maze) {
+        for (const cell of row) {
+          if (cell === PELLET || cell === POWER) count += 1;
+        }
+      }
+      return count;
+    }
+
+    function isWall(maze, x, y) {
+      if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return true;
+      return maze[y][x] === WALL;
+    }
+
+    function createPlayerState(id, config) {
+      const canvas = document.getElementById(config.canvasId);
+      const ctx = canvas.getContext("2d");
+      const maze = cloneMaze();
+      return {
+        id, config, ctx, maze,
+        tilePx: canvas.width / GRID_SIZE,
+        joined: false,
+        alive: false,
+        score: 0,
+        best: 0,
+        pelletsLeft: countPellets(maze),
+        lives: START_LIVES,
+        direction: { x: -1, y: 0 },
+        pendingDirection: { x: -1, y: 0 },
+        pac: { x: 12, y: 20 },
+        ghosts: [
+          { x: 12, y: 10, dir: { x: 1, y: 0 }, color: "ghostA" },
+          { x: 11, y: 13, dir: { x: 0, y: -1 }, color: "ghostB" },
+        ],
+        tickAt: 0,
+        colorIndex: 0,
+      };
+    }
+
+    function paletteOf(player) {
+      return player.config.palettes[player.colorIndex];
+    }
+
+    const players = {
+      a: createPlayerState("a", PLAYER_CONFIG.a),
+      b: createPlayerState("b", PLAYER_CONFIG.b),
+    };
+
+    function renderLivesVisual(player) {
+      const livesWrap = document.getElementById(player.config.livesIconsId);
+      if (!livesWrap) return;
+      livesWrap.innerHTML = "";
+      if (player.lives <= 0) {
+        const empty = document.createElement("span");
+        empty.className = "life-empty";
+        empty.textContent = "No lives";
+        livesWrap.appendChild(empty);
+        return;
+      }
+      for (let i = 0; i < player.lives; i += 1) {
+        const life = document.createElement("span");
+        life.className = "life-pac";
+        life.setAttribute("aria-hidden", "true");
+        livesWrap.appendChild(life);
+      }
+    }
+
+    function resetRound(player, keepScore = true) {
+      if (!keepScore) {
+        player.score = 0;
+        player.lives = START_LIVES;
+        player.maze = cloneMaze();
+        player.pelletsLeft = countPellets(player.maze);
+      }
+      player.direction = { x: -1, y: 0 };
+      player.pendingDirection = { x: -1, y: 0 };
+      player.pac = { x: 12, y: 20 };
+      player.ghosts = [
+        { x: 12, y: 10, dir: { x: 1, y: 0 }, color: "ghostA" },
+        { x: 11, y: 13, dir: { x: 0, y: -1 }, color: "ghostB" },
+      ];
+      player.alive = true;
+      player.tickAt = performance.now();
+      syncStats(player);
+      updateOverlay(player, true);
+    }
+
+    function syncStats(player) {
+      document.getElementById(player.config.scoreId).textContent = String(player.score);
+      document.getElementById(player.config.bestId).textContent = String(player.best);
+      document.getElementById(player.config.pelletsId).textContent = String(player.pelletsLeft);
+      document.getElementById(player.config.livesId).textContent = String(player.lives);
+      renderLivesVisual(player);
+    }
+
+    function updateOverlay(player, hidden, mode = "join") {
+      const overlay = document.getElementById(player.config.overlayId);
+      const title = document.getElementById(player.config.overlayTitleId);
+      const body = document.getElementById(player.config.overlayBodyId);
+      if (hidden) {
+        overlay.classList.add("hidden");
+        return;
+      }
+      overlay.classList.remove("hidden");
+      if (mode === "gameover") {
+        title.textContent = "Game Over";
+        body.innerHTML = `Final score: <strong>${player.score}</strong>. Press your OK key to restart.`;
+      } else {
+        title.textContent = "Join Maze";
+        body.innerHTML = "Press your OK key to begin this board.";
+      }
+    }
+
+    function trySetDirection(player, nextDirection) {
+      // Buffer the latest intent even when it's not currently valid.
+      // This gives the classic "press slightly early, turn at first chance" feel.
+      player.pendingDirection = { ...nextDirection };
+    }
+
+    function tryTunnelWrap(entity) {
+      if (entity.x < 0) entity.x = GRID_SIZE - 1;
+      if (entity.x >= GRID_SIZE) entity.x = 0;
+    }
+
+    function movePac(player) {
+      const preferredX = player.pac.x + player.pendingDirection.x;
+      const preferredY = player.pac.y + player.pendingDirection.y;
+      if (!isWall(player.maze, preferredX, preferredY)) {
+        player.direction = { ...player.pendingDirection };
+      }
+      const nx = player.pac.x + player.direction.x;
+      const ny = player.pac.y + player.direction.y;
+      if (!isWall(player.maze, nx, ny)) {
+        player.pac.x = nx;
+        player.pac.y = ny;
+        tryTunnelWrap(player.pac);
+      }
+
+      const cell = player.maze[player.pac.y]?.[player.pac.x];
+      if (cell === PELLET || cell === POWER) {
+        player.maze[player.pac.y][player.pac.x] = " ";
+        player.score += cell === POWER ? 50 : 10;
+        player.best = Math.max(player.best, player.score);
+        player.pelletsLeft -= 1;
+        if (player.pelletsLeft <= 0) {
+          player.maze = cloneMaze();
+          player.pelletsLeft = countPellets(player.maze);
+          player.score += 250;
+          player.best = Math.max(player.best, player.score);
+          player.pac = { x: 12, y: 20 };
+        }
+      }
+    }
+
+    function possibleGhostDirs(player, ghost) {
+      const dirs = [
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 },
+      ];
+      return dirs.filter((d) => !isWall(player.maze, ghost.x + d.x, ghost.y + d.y));
+    }
+
+    function moveGhosts(player) {
+      player.ghosts.forEach((ghost) => {
+        const options = possibleGhostDirs(player, ghost);
+        if (options.length === 0) return;
+
+        const nonReverse = options.filter((d) => !(d.x + ghost.dir.x === 0 && d.y + ghost.dir.y === 0));
+        const candidates = nonReverse.length ? nonReverse : options;
+
+        let bestDir = candidates[Math.floor(Math.random() * candidates.length)];
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        for (const dir of candidates) {
+          const tx = ghost.x + dir.x;
+          const ty = ghost.y + dir.y;
+          const distance = Math.abs(player.pac.x - tx) + Math.abs(player.pac.y - ty);
+          if (distance < bestDistance && Math.random() > 0.25) {
+            bestDistance = distance;
+            bestDir = dir;
+          }
+        }
+
+        ghost.dir = bestDir;
+        ghost.x += ghost.dir.x;
+        ghost.y += ghost.dir.y;
+        tryTunnelWrap(ghost);
+      });
+    }
+
+    function checkCollisions(player) {
+      const hit = player.ghosts.some((ghost) => ghost.x === player.pac.x && ghost.y === player.pac.y);
+      if (!hit) return;
+      player.lives -= 1;
+      if (player.lives <= 0) {
+        player.alive = false;
+        player.best = Math.max(player.best, player.score);
+        updateOverlay(player, false, "gameover");
+      } else {
+        player.pac = { x: 12, y: 20 };
+        player.direction = { x: -1, y: 0 };
+        player.pendingDirection = { x: -1, y: 0 };
+        player.ghosts = [
+          { x: 12, y: 10, dir: { x: 1, y: 0 }, color: "ghostA" },
+          { x: 11, y: 13, dir: { x: 0, y: -1 }, color: "ghostB" },
+        ];
+      }
+      syncStats(player);
+    }
+
+    function updatePlayer(player) {
+      if (!player.joined || !player.alive) return;
+      movePac(player);
+      moveGhosts(player);
+      checkCollisions(player);
+      syncStats(player);
+    }
+
+    function drawMaze(player) {
+      const { ctx, tilePx, maze } = player;
+      const palette = paletteOf(player);
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const cell = maze[y][x];
+          const px = x * tilePx;
+          const py = y * tilePx;
+          ctx.fillStyle = (x + y) % 2 === 0 ? palette.floorA : palette.floorB;
+          ctx.fillRect(px, py, tilePx, tilePx);
+
+          if (cell === WALL) {
+            ctx.fillStyle = palette.wall;
+            ctx.fillRect(px + 1, py + 1, tilePx - 2, tilePx - 2);
+          } else if (cell === PELLET || cell === POWER) {
+            ctx.fillStyle = cell === POWER ? palette.power : palette.pellet;
+            const radius = cell === POWER ? tilePx * 0.22 : tilePx * 0.1;
+            ctx.beginPath();
+            ctx.arc(px + tilePx * 0.5, py + tilePx * 0.5, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function drawPac(player, now) {
+      const { ctx, tilePx, pac, direction } = player;
+      const palette = paletteOf(player);
+      const centerX = (pac.x + 0.5) * tilePx;
+      const centerY = (pac.y + 0.5) * tilePx;
+      const phase = (Math.sin(now / 110) + 1) / 2;
+      const mouth = 0.18 + phase * 0.45;
+      let angle = 0;
+      if (direction.x === -1) angle = Math.PI;
+      if (direction.y === -1) angle = -Math.PI / 2;
+      if (direction.y === 1) angle = Math.PI / 2;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(angle);
+      ctx.fillStyle = palette.pac;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, tilePx * 0.42, mouth, Math.PI * 2 - mouth);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawGhosts(player) {
+      const { ctx, tilePx } = player;
+      const palette = paletteOf(player);
+
+      player.ghosts.forEach((ghost) => {
+        const color = palette[ghost.color];
+        const x = ghost.x * tilePx;
+        const y = ghost.y * tilePx;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x + tilePx * 0.5, y + tilePx * 0.42, tilePx * 0.38, Math.PI, 0);
+        ctx.lineTo(x + tilePx * 0.88, y + tilePx * 0.9);
+        ctx.lineTo(x + tilePx * 0.68, y + tilePx * 0.78);
+        ctx.lineTo(x + tilePx * 0.5, y + tilePx * 0.9);
+        ctx.lineTo(x + tilePx * 0.32, y + tilePx * 0.78);
+        ctx.lineTo(x + tilePx * 0.12, y + tilePx * 0.9);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(x + tilePx * 0.38, y + tilePx * 0.45, tilePx * 0.08, 0, Math.PI * 2);
+        ctx.arc(x + tilePx * 0.62, y + tilePx * 0.45, tilePx * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawBoard(player, now) {
+      const { ctx } = player;
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      drawMaze(player);
+      drawPac(player, now);
+      drawGhosts(player);
+    }
+
+    function gameLoop(now) {
+      for (const player of Object.values(players)) {
+        if (player.joined && player.alive && now >= player.tickAt + STEP_MS) {
+          updatePlayer(player);
+          player.tickAt = now;
+        }
+        drawBoard(player, now);
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function handleKeyDown(event) {
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      const code = event.code;
+
+      if (SCROLL_BLOCK_CODES.has(code)) {
+        event.preventDefault();
+      }
+
+      for (const player of Object.values(players)) {
+        const hasTurn = Object.prototype.hasOwnProperty.call(player.config.turnKeys, key);
+        const wantsJoin = player.config.joinCodes.has(code);
+        const wantsColorToggle = player.config.colorToggleCodes.has(code);
+
+        if (hasTurn && player.joined && player.alive) {
+          event.preventDefault();
+          trySetDirection(player, player.config.turnKeys[key]);
+          continue;
+        }
+
+        if (wantsJoin && !player.alive) {
+          event.preventDefault();
+          player.joined = true;
+          resetRound(player, false);
+          continue;
+        }
+
+        if (wantsColorToggle) {
+          event.preventDefault();
+          player.colorIndex = (player.colorIndex + 1) % player.config.palettes.length;
+        }
+      }
+    }
+
+    function setupJoinButtons() {
+      document.querySelectorAll(".join-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const player = players[button.dataset.player];
+          if (!player || player.alive) return;
+          player.joined = true;
+          resetRound(player, false);
+        });
+      });
+    }
+
+    function init() {
+      for (const player of Object.values(players)) {
+        syncStats(player);
+        updateOverlay(player, false, "join");
+        drawBoard(player, performance.now());
+      }
+      setupJoinButtons();
+      window.addEventListener("keydown", handleKeyDown, { passive: false });
+      requestAnimationFrame(gameLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>
