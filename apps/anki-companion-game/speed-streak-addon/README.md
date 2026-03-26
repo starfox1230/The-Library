@@ -4,6 +4,8 @@ This folder contains the Speed Streak version of the project packaged as an Anki
 
 It does not modify the original standalone files in the parent folder.
 
+For the public-facing AnkiWeb/landing-page copy, see `ankiweb-description.html`.
+
 ## What it does
 
 - Embeds the Speed Streak left-side orbit directly in Anki's review screen
