@@ -17,7 +17,7 @@ for item in "$SOURCE_DIR"/* "$SOURCE_DIR"/.[!.]* "$SOURCE_DIR"/..?*; do
   [ "$name" = "." ] && continue
   [ "$name" = ".." ] && continue
   case "$name" in
-    .ankiaddon-build|__pycache__|user_files|install_to_anki.ps1|build_ankiaddon.ps1|install_to_anki.sh|build_ankiaddon.sh)
+    .ankiaddon-build|__pycache__|user_files|.DS_Store|install_to_anki.ps1|build_ankiaddon.ps1|install_to_anki.sh|build_ankiaddon.sh)
       continue
       ;;
   esac

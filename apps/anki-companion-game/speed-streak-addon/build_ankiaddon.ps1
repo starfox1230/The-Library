@@ -8,6 +8,7 @@ $staging = Join-Path $source ".ankiaddon-build"
 $excludeNames = @(
     ".ankiaddon-build",
     "__pycache__",
+    ".DS_Store",
     "user_files",
     "install_to_anki.ps1",
     "build_ankiaddon.ps1",

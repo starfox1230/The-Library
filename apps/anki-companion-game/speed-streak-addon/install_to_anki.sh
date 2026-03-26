@@ -19,6 +19,7 @@ for item in "$SOURCE_DIR"/* "$SOURCE_DIR"/.[!.]* "$SOURCE_DIR"/..?*; do
   [ "$name" = "." ] && continue
   [ "$name" = ".." ] && continue
   [ "$name" = "install_to_anki.sh" ] && continue
+  [ "$name" = ".DS_Store" ] && continue
 
   destination="$TARGET_DIR/$name"
 

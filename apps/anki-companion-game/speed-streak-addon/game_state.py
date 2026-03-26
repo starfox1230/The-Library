@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 import time
 from typing import Any, Dict, Optional
 
 
 ANSWER_LIMIT_MS = 12_000
 REVIEW_LIMIT_MS = 8_000
+COLOR_KEYS = ("core", "red", "yellow", "green", "blue")
+HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
 def now_epoch_ms() -> int:
@@ -25,8 +28,11 @@ class CompanionState:
     enabled: bool = True
     visuals_enabled: bool = True
     show_card_timer: bool = True
+    custom_timer_colors: bool = False
+    custom_timer_color_level: float = 0.0
     sidebar_collapsed: bool = False
     appearance_mode: str = "midnight"
+    custom_colors: dict[str, str] = field(default_factory=dict)
     synced: bool = False
     session_active: bool = False
     first_card_free: bool = False
@@ -75,8 +81,11 @@ class CompanionGameEngine:
             "enabled": int(s.enabled),
             "visualsEnabled": int(s.visuals_enabled),
             "showCardTimer": int(s.show_card_timer),
+            "customTimerColors": int(s.custom_timer_colors),
+            "customTimerColorLevel": round(s.custom_timer_color_level, 3),
             "sidebarCollapsed": int(s.sidebar_collapsed),
             "appearanceMode": s.appearance_mode,
+            "customColors": dict(s.custom_colors),
             "synced": int(s.synced),
             "sessionActive": int(s.session_active),
             "firstCardFree": int(s.first_card_free),
@@ -113,8 +122,11 @@ class CompanionGameEngine:
         enabled = self.state.enabled
         visuals_enabled = self.state.visuals_enabled
         show_card_timer = self.state.show_card_timer
+        custom_timer_colors = self.state.custom_timer_colors
+        custom_timer_color_level = self.state.custom_timer_color_level
         sidebar_collapsed = self.state.sidebar_collapsed
         appearance_mode = self.state.appearance_mode
+        custom_colors = dict(self.state.custom_colors)
         question_limit_ms = self.state.question_limit_ms
         review_limit_ms = self.state.review_limit_ms
         time_drain_flag = self.state.time_drain_flag
@@ -124,8 +136,11 @@ class CompanionGameEngine:
         self.state.enabled = enabled
         self.state.visuals_enabled = visuals_enabled
         self.state.show_card_timer = show_card_timer
+        self.state.custom_timer_colors = custom_timer_colors
+        self.state.custom_timer_color_level = custom_timer_color_level
         self.state.sidebar_collapsed = sidebar_collapsed
         self.state.appearance_mode = appearance_mode
+        self.state.custom_colors = custom_colors
         self.state.question_limit_ms = question_limit_ms
         self.state.review_limit_ms = review_limit_ms
         self.state.time_drain_flag = time_drain_flag
@@ -141,8 +156,11 @@ class CompanionGameEngine:
         s.review_later_flag = 4
         s.visuals_enabled = True
         s.show_card_timer = True
+        s.custom_timer_colors = False
+        s.custom_timer_color_level = 0.0
         s.sidebar_collapsed = False
         s.appearance_mode = "midnight"
+        s.custom_colors = {}
 
         if s.phase == "question" and not s.first_card_free:
             s.phase_limit_ms = s.question_limit_ms if s.visuals_enabled else 0
@@ -466,8 +484,11 @@ class CompanionGameEngine:
         review_later_flag: int | None = None,
         visuals_enabled: bool | None = None,
         show_card_timer: bool | None = None,
+        custom_timer_colors: bool | None = None,
+        custom_timer_color_level: float | None = None,
         sidebar_collapsed: bool | None = None,
         appearance_mode: str | None = None,
+        custom_colors: dict[str, str] | None = None,
     ) -> Optional[str]:
         s = self.state
         question_ms = int(max(1, round(question_seconds * 1000)))
@@ -482,6 +503,10 @@ class CompanionGameEngine:
             s.visuals_enabled = bool(visuals_enabled)
         if show_card_timer is not None:
             s.show_card_timer = bool(show_card_timer)
+        if custom_timer_colors is not None:
+            s.custom_timer_colors = bool(custom_timer_colors)
+        if custom_timer_color_level is not None:
+            s.custom_timer_color_level = max(-1.0, min(1.0, float(custom_timer_color_level)))
         if sidebar_collapsed is not None:
             s.sidebar_collapsed = bool(sidebar_collapsed)
         if appearance_mode is not None:
@@ -489,6 +514,8 @@ class CompanionGameEngine:
             if normalized == "default":
                 normalized = "classic"
             s.appearance_mode = normalized
+        if custom_colors is not None:
+            s.custom_colors = self._normalize_custom_colors(custom_colors)
 
         if s.phase == "question" and not s.first_card_free:
             s.phase_limit_ms = s.question_limit_ms if s.visuals_enabled else 0
@@ -507,6 +534,19 @@ class CompanionGameEngine:
             f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, review later flag {s.review_later_flag}, visuals {'on' if s.visuals_enabled else 'off'}, appearance {s.appearance_mode}.",
         )
         return "settings"
+
+    def _normalize_custom_colors(self, custom_colors: dict[str, str]) -> dict[str, str]:
+        normalized: dict[str, str] = {}
+        for key in COLOR_KEYS:
+            value = str(custom_colors.get(key, "") or "").strip()
+            if not value:
+                continue
+            if not HEX_COLOR_RE.match(value):
+                continue
+            if len(value) == 4:
+                value = "#" + "".join(ch * 2 for ch in value[1:])
+            normalized[key] = value.lower()
+        return normalized
 
     def check_timeout(self) -> Optional[str]:
         s = self.state

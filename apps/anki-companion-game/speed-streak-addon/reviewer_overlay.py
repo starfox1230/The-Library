@@ -24,6 +24,15 @@ SIDEBAR_EXPANDED_WIDTH = 316
 SIDEBAR_COLLAPSED_WIDTH = 36
 
 
+def _read_web_asset(*parts: str) -> str:
+    asset_path = ADDON_ROOT.joinpath(*parts)
+    try:
+        return asset_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"Speed Streak: missing web asset {asset_path}")
+        return ""
+
+
 class ReviewerOverlayController:
     def __init__(self) -> None:
         self.engine = CompanionGameEngine()
@@ -96,7 +105,10 @@ class ReviewerOverlayController:
                 review_later_flag = int(data.get("reviewLaterFlag", 0))
                 visuals_enabled = bool(data.get("visualsEnabled", True))
                 show_card_timer = bool(data.get("showCardTimer", True))
+                custom_timer_colors = bool(data.get("customTimerColors", False))
+                custom_timer_color_level = float(data.get("customTimerColorLevel", 0))
                 appearance_mode = str(data.get("appearanceMode", "midnight"))
+                custom_colors = dict(data.get("customColors", {}) or {})
             except Exception:
                 return (True, None)
             previous_visuals_enabled = bool(self.engine.state.visuals_enabled)
@@ -107,7 +119,10 @@ class ReviewerOverlayController:
                 review_later_flag=review_later_flag,
                 visuals_enabled=visuals_enabled,
                 show_card_timer=show_card_timer,
+                custom_timer_colors=custom_timer_colors,
+                custom_timer_color_level=custom_timer_color_level,
                 appearance_mode=appearance_mode,
+                custom_colors=custom_colors,
             )
             self._save_persisted_settings()
             if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
@@ -124,8 +139,11 @@ class ReviewerOverlayController:
                 review_later_flag=state.review_later_flag,
                 visuals_enabled=state.visuals_enabled,
                 show_card_timer=state.show_card_timer,
+                custom_timer_colors=state.custom_timer_colors,
+                custom_timer_color_level=state.custom_timer_color_level,
                 sidebar_collapsed=not state.sidebar_collapsed,
                 appearance_mode=state.appearance_mode,
+                custom_colors=dict(state.custom_colors),
             )
             self._save_persisted_settings()
             self._apply_sidebar_width()
@@ -154,7 +172,10 @@ class ReviewerOverlayController:
         review_later_flag: int,
         show_card_timer: bool,
         visuals_enabled: bool,
+        custom_timer_colors: bool,
+        custom_timer_color_level: float,
         appearance_mode: str,
+        custom_colors: dict[str, str] | None = None,
     ) -> None:
         previous_visuals_enabled = bool(self.engine.state.visuals_enabled)
         self.engine.update_time_limits(
@@ -164,7 +185,10 @@ class ReviewerOverlayController:
             review_later_flag=review_later_flag,
             visuals_enabled=visuals_enabled,
             show_card_timer=show_card_timer,
+            custom_timer_colors=custom_timer_colors,
+            custom_timer_color_level=custom_timer_color_level,
             appearance_mode=appearance_mode,
+            custom_colors=custom_colors,
         )
         self._save_persisted_settings()
         if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
@@ -545,8 +569,11 @@ class ReviewerOverlayController:
                 review_later_flag=int(config.get("review_later_flag", 4)),
                 visuals_enabled=bool(config.get("visuals_enabled", True)),
                 show_card_timer=bool(config.get("show_card_timer", True)),
+                custom_timer_colors=bool(config.get("custom_timer_colors", False)),
+                custom_timer_color_level=float(config.get("custom_timer_color_level", 0)),
                 sidebar_collapsed=bool(config.get("sidebar_collapsed", False)),
                 appearance_mode=str(config.get("appearance_mode", "midnight")),
+                custom_colors=dict(config.get("custom_colors", {}) or {}),
             )
             self.engine.state.enabled = bool(config.get("enabled", True))
         except Exception:
@@ -557,8 +584,11 @@ class ReviewerOverlayController:
                 review_later_flag=4,
                 visuals_enabled=True,
                 show_card_timer=True,
+                custom_timer_colors=False,
+                custom_timer_color_level=0,
                 sidebar_collapsed=False,
                 appearance_mode="midnight",
+                custom_colors={},
             )
             self.engine.state.enabled = True
 
@@ -568,8 +598,11 @@ class ReviewerOverlayController:
             "enabled": bool(state.enabled),
             "visuals_enabled": bool(state.visuals_enabled),
             "show_card_timer": bool(state.show_card_timer),
+            "custom_timer_colors": bool(state.custom_timer_colors),
+            "custom_timer_color_level": float(state.custom_timer_color_level),
             "sidebar_collapsed": bool(state.sidebar_collapsed),
             "appearance_mode": str(state.appearance_mode),
+            "custom_colors": dict(state.custom_colors),
             "question_seconds": state.question_limit_ms / 1000,
             "answer_seconds": state.review_limit_ms / 1000,
             "time_drain_flag": state.time_drain_flag,
@@ -619,8 +652,8 @@ class ReviewerOverlayController:
             pass
 
     def _build_card_timer_bootstrap(self) -> str:
-        css = (ADDON_ROOT / "web" / "card_timer.css").read_text(encoding="utf-8")
-        js = (ADDON_ROOT / "web" / "card_timer.js").read_text(encoding="utf-8")
+        css = _read_web_asset("web", "card_timer.css")
+        js = _read_web_asset("web", "card_timer.js")
         css_json = json.dumps(css)
         return f"""
         const existingStyle = document.getElementById("speed-streak-card-timer-style");

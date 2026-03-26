@@ -16,7 +16,7 @@ if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Path $target | Out-Null
 }
 
-Get-ChildItem -Path $source -Force | Where-Object { $_.Name -ne "install_to_anki.ps1" } | ForEach-Object {
+Get-ChildItem -Path $source -Force | Where-Object { $_.Name -notin @("install_to_anki.ps1", ".DS_Store") } | ForEach-Object {
     if ($_.PSIsContainer -and $preserveDirectories -contains $_.Name) {
         $destination = Join-Path $target $_.Name
         if (-not (Test-Path $destination)) {
