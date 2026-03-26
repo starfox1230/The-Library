@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Early Review Anki Add-on</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --line: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at top right, #1e293b, var(--bg) 45%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(980px, 94vw);
+      margin: 2rem auto 3rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(17, 24, 39, 0.92);
+      padding: 1rem 1.1rem;
+    }
+
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.5rem, 2.4vw, 2rem);
+    }
+
+    .muted { color: var(--muted); }
+
+    .pill {
+      display: inline-block;
+      background: rgba(34, 211, 238, 0.16);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      color: #a5f3fc;
+      font-size: 0.78rem;
+      border-radius: 999px;
+      padding: 0.22rem 0.6rem;
+      margin-bottom: 0.55rem;
+    }
+
+    ul {
+      margin: 0.55rem 0 0;
+      padding-left: 1.1rem;
+      line-height: 1.45;
+    }
+
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    pre {
+      margin: 0;
+      background: #020617;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.9rem;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      overflow: auto;
+      max-height: 65vh;
+    }
+
+    button {
+      border: 1px solid rgba(34, 211, 238, 0.45);
+      color: #a5f3fc;
+      background: rgba(8, 47, 73, 0.55);
+      border-radius: 9px;
+      padding: 0.45rem 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover { background: rgba(12, 74, 110, 0.65); }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 0.55rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="panel">
+      <span class="pill">Anki Add-on Tool</span>
+      <h1>Early Review Anki Add-on</h1>
+      <p class="muted">
+        Shortcut: <strong>Ctrl+Alt+F</strong>. Prompts for card count (default 50), finds cards due tomorrow,
+        sorts by largest interval first, and creates/updates a filtered deck named
+        <code>8. Review Deck for YYYY-MM-DD</code>.
+      </p>
+      <ul>
+        <li>Create a new add-on folder inside your Anki profile's <code>addons21</code> directory.</li>
+        <li>Save this code as <code>__init__.py</code> in that folder.</li>
+        <li>Restart Anki and press <code>Ctrl+Alt+F</code>.</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="row">
+        <strong>__init__.py</strong>
+        <button id="copyBtn" type="button">Copy code</button>
+      </div>
+      <pre id="addonCode">from __future__ import annotations
+
+from datetime import datetime, timedelta
+
+from aqt import mw
+from aqt.qt import QAction
+from aqt.utils import getText, showInfo
+
+SHORTCUT = "Ctrl+Alt+F"
+DEFAULT_COUNT = 50
+
+
+def _prompt_count(default_count: int = DEFAULT_COUNT) -> int | None:
+    response, accepted = getText(
+        "How many cards due tomorrow should be pulled?",
+        default=str(default_count),
+        title="Early Review Deck",
+    )
+    if not accepted:
+        return None
+
+    value = (response or "").strip()
+    if not value:
+        return default_count
+
+    try:
+        parsed = int(value)
+    except ValueError:
+        showInfo("Please enter a whole number.")
+        return None
+
+    if parsed &lt;= 0:
+        showInfo("Please enter a number greater than 0.")
+        return None
+
+    return parsed
+
+
+def _tomorrow_due_number() -> int:
+    return int(mw.col.sched.today) + 1
+
+
+def _tomorrow_iso_date() -> str:
+    return (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def _fetch_due_tomorrow_card_ids(limit: int) -> list[int]:
+    due_tomorrow = _tomorrow_due_number()
+    rows = mw.col.db.all(
+        """
+        SELECT c.id
+        FROM cards c
+        WHERE c.queue IN (2, 3)
+          AND c.type = 2
+          AND c.due = ?
+        ORDER BY c.ivl DESC, c.id ASC
+        LIMIT ?
+        """,
+        due_tomorrow,
+        limit,
+    )
+    return [int(row[0]) for row in rows]
+
+
+def _set_filtered_terms(deck: dict, search: str, limit: int) -> None:
+    # Handle older and newer term shapes.
+    terms = deck.get("terms")
+    if isinstance(terms, list) and terms and isinstance(terms[0], dict):
+        deck["terms"] = [{"search": search, "limit": limit, "order": 0}]
+    else:
+        deck["terms"] = [[search, limit, 0]]
+
+
+def _rebuild_filtered_deck(deck_id: int) -> None:
+    scheduler = mw.col.sched
+
+    if hasattr(scheduler, "rebuild_filtered_deck"):
+        scheduler.rebuild_filtered_deck(deck_id)
+        return
+
+    if hasattr(scheduler, "rebuildDyn"):
+        scheduler.rebuildDyn(deck_id)
+
+
+def build_early_review_filtered_deck() -> None:
+    if mw.col is None:
+        return
+
+    limit = _prompt_count()
+    if limit is None:
+        return
+
+    card_ids = _fetch_due_tomorrow_card_ids(limit)
+    if not card_ids:
+        showInfo("No review cards are due tomorrow.")
+        return
+
+    date_label = _tomorrow_iso_date()
+    deck_name = f"8. Review Deck for {date_label}"
+
+    deck_id = mw.col.decks.id_for_name(deck_name)
+    if deck_id is None:
+        deck_id = mw.col.decks.new_filtered(deck_name)
+
+    deck = mw.col.decks.get(deck_id)
+    cid_search = " or ".join(f"cid:{cid}" for cid in card_ids)
+    _set_filtered_terms(deck, cid_search, len(card_ids))
+    mw.col.decks.save(deck)
+
+    _rebuild_filtered_deck(deck_id)
+    mw.col.reset()
+
+    showInfo(f"Built '{deck_name}' with {len(card_ids)} cards.")
+
+
+def _register_menu_action() -> None:
+    action = QAction("Build Early Review Deck", mw)
+    action.setShortcut(SHORTCUT)
+    action.triggered.connect(build_early_review_filtered_deck)
+    mw.form.menuTools.addAction(action)
+
+
+_register_menu_action()
+</pre>
+    </section>
+  </main>
+
+  <script>
+    const codeEl = document.getElementById("addonCode");
+    const copyBtn = document.getElementById("copyBtn");
+
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(codeEl.textContent);
+        copyBtn.textContent = "Copied";
+        setTimeout(() => (copyBtn.textContent = "Copy code"), 1200);
+      } catch {
+        copyBtn.textContent = "Copy failed";
+        setTimeout(() => (copyBtn.textContent = "Copy code"), 1200);
+      }
+    });
+  </script>
+</body>
+</html>
