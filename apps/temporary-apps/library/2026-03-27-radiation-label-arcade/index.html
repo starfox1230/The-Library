@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radiation Label Arcade</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121b34;
+      --panel-2: #1b2950;
+      --text: #eaf1ff;
+      --muted: #9bb0df;
+      --white-one: #f8fafc;
+      --yellow-two: #facc15;
+      --yellow-three: #f97316;
+      --accent: #7c3aed;
+      --ok: #34d399;
+      --bad: #fb7185;
+      --focus: #60a5fa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, #1e3a8a66, transparent 38%),
+        radial-gradient(circle at 85% 15%, #7c3aed55, transparent 40%),
+        linear-gradient(160deg, #060912, var(--bg));
+      min-height: 100vh;
+      padding: 1.25rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hero,
+    .panel {
+      background: linear-gradient(145deg, #111a33cc, #0d162dcc);
+      border: 1px solid #33477d;
+      border-radius: 18px;
+      box-shadow: 0 12px 28px #020617aa;
+      padding: 1rem;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+    }
+
+    .subtitle {
+      margin: 0.6rem 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 1rem;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+    }
+
+    .stat {
+      background: #0d1730;
+      border: 1px solid #29427a;
+      border-radius: 12px;
+      padding: 0.65rem;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .stat strong {
+      font-size: 1.15rem;
+    }
+
+    .scenario {
+      margin-top: 0.9rem;
+      background: #0b1430;
+      border: 1px solid #36539a;
+      border-radius: 14px;
+      padding: 0.9rem;
+    }
+
+    .scenario h2 {
+      margin-top: 0;
+      margin-bottom: 0.45rem;
+      font-size: 1.15rem;
+    }
+
+    .readings {
+      display: grid;
+      gap: 0.45rem;
+      color: #d6e4ff;
+      font-size: 1.03rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .readings code {
+      color: #93c5fd;
+      font-size: 0.96rem;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+      margin: 0.75rem 0;
+    }
+
+    button {
+      border: 1px solid #4364aa;
+      color: #f6f9ff;
+      background: #1b2b58;
+      border-radius: 12px;
+      padding: 0.65rem 0.6rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover,
+    button:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px #02061788;
+      border-color: var(--focus);
+      outline: none;
+    }
+
+    .choice-white { background: linear-gradient(145deg, #f8fafc, #e2e8f0); color: #111827; border-color: #d1d5db; }
+    .choice-yellow2 { background: linear-gradient(145deg, #fde047, #f59e0b); color: #1f2937; border-color: #f59e0b; }
+    .choice-yellow3 { background: linear-gradient(145deg, #fb923c, #ef4444); border-color: #f97316; }
+
+    .result {
+      min-height: 2.8rem;
+      border-radius: 10px;
+      padding: 0.6rem;
+      border: 1px solid #2d467f;
+      background: #0d1730;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+
+    .controls {
+      margin-top: 0.7rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .controls button { flex: 1 0 150px; }
+
+    .cheatsheet {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .card {
+      border: 1px solid #304b85;
+      border-radius: 12px;
+      padding: 0.75rem;
+      background: #101c3a;
+    }
+
+    .card h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1rem;
+    }
+
+    .pill {
+      display: inline-block;
+      margin-right: 0.4rem;
+      margin-bottom: 0.35rem;
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      font-weight: 800;
+      font-size: 0.78rem;
+    }
+
+    .pill.white { background: #f8fafc; color: #111827; }
+    .pill.yellow2 { background: #fde047; color: #1f2937; }
+    .pill.yellow3 { background: #fb923c; color: #fff; }
+
+    ul { margin: 0.45rem 0 0.2rem 1rem; padding: 0; color: #dbeafe; }
+    li { margin: 0.2rem 0; }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.15rem;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .hud { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .choices { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <h1>☢️ Radiation Label Arcade</h1>
+      <p class="subtitle">Infinite practice for shipping labels: pick the required package label from surface dose + TI. Fast rounds, streaks, and instant feedback make it weirdly addictive.</p>
+      <div class="hud">
+        <div class="stat"><div class="label">Score</div><strong id="score">0</strong></div>
+        <div class="stat"><div class="label">Streak</div><strong id="streak">0</strong></div>
+        <div class="stat"><div class="label">Accuracy</div><strong id="accuracy">0%</strong></div>
+        <div class="stat"><div class="label">Round</div><strong id="round">1</strong></div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="panel">
+        <div class="scenario">
+          <h2>Practice Scenario</h2>
+          <div class="readings">
+            <div><strong>Surface:</strong> <span id="surfaceMetric">--</span> mSv/h <code id="surfaceImperial"></code></div>
+            <div><strong>At 1 meter:</strong> <span id="meterMetric">--</span> mSv/h <code id="meterImperial"></code></div>
+            <div><strong>Transport Index (TI):</strong> <span id="tiValue">--</span></div>
+          </div>
+          <p class="footer-note">Rule: assign the higher label required by either <strong>surface dose</strong> or <strong>TI</strong>.</p>
+
+          <div class="choices" aria-label="label choices">
+            <button class="choice-white" data-choice="WHITE I">White I</button>
+            <button class="choice-yellow2" data-choice="YELLOW II">Yellow II</button>
+            <button class="choice-yellow3" data-choice="YELLOW III">Yellow III</button>
+          </div>
+
+          <div class="result" id="resultBox">Pick a label to begin your streak.</div>
+
+          <div class="controls">
+            <button id="nextBtn" type="button">Next Scenario ↻</button>
+            <button id="resetBtn" type="button">Reset Score</button>
+            <button id="challengeBtn" type="button">Lightning 10-Round Challenge</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel cheatsheet">
+        <div class="card">
+          <h3>Fast Surface Memory Line</h3>
+          <span class="pill white">White I = 0.005</span>
+          <span class="pill.yellow2">Yellow II = 0.5</span>
+          <span class="pill yellow3">Yellow III = 2</span>
+          <p class="footer-note">(All in mSv/h at package surface.)</p>
+        </div>
+
+        <div class="card">
+          <h3>Category Limits (Easy Review)</h3>
+          <ul>
+            <li><strong>White I:</strong> surface ≤ 0.005 mSv/h (0.5 mrem/h), TI = 0.</li>
+            <li><strong>Yellow II:</strong> surface &gt; 0.005 to 0.5 mSv/h, TI &gt; 0 to 1, and 1 m ≤ 0.01 mSv/h.</li>
+            <li><strong>Yellow III:</strong> surface &gt; 0.5 to 2 mSv/h, TI &gt; 1 to 10, and 1 m ≤ 0.1 mSv/h.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Correction to Lock In</h3>
+          <p>For <strong>White I</strong>, memorize the one-meter rule as <strong>TI = 0</strong> (not just “negligible”).</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const LIMITS = {
+      whiteSurfaceMax: 0.005,
+      yellow2SurfaceMax: 0.5,
+      yellow3SurfaceMax: 2,
+      yellow2TiMax: 1,
+      yellow3TiMax: 10,
+    };
+
+    const state = {
+      score: 0,
+      streak: 0,
+      correct: 0,
+      total: 0,
+      round: 1,
+      challengeMode: false,
+      challengeRound: 0,
+      current: null,
+      answered: false,
+    };
+
+    const els = {
+      score: document.getElementById("score"),
+      streak: document.getElementById("streak"),
+      accuracy: document.getElementById("accuracy"),
+      round: document.getElementById("round"),
+      surfaceMetric: document.getElementById("surfaceMetric"),
+      surfaceImperial: document.getElementById("surfaceImperial"),
+      meterMetric: document.getElementById("meterMetric"),
+      meterImperial: document.getElementById("meterImperial"),
+      tiValue: document.getElementById("tiValue"),
+      resultBox: document.getElementById("resultBox"),
+      nextBtn: document.getElementById("nextBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      challengeBtn: document.getElementById("challengeBtn"),
+    };
+
+    function toMrem(msv) {
+      return (msv * 100).toFixed(2);
+    }
+
+    function fmtMsv(value) {
+      return value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+    }
+
+    function randomRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function generateScenario() {
+      const bucket = Math.floor(Math.random() * 3);
+      let surface;
+      let ti;
+
+      if (bucket === 0) {
+        surface = randomRange(0, LIMITS.whiteSurfaceMax);
+        ti = 0;
+      } else if (bucket === 1) {
+        surface = randomRange(0.006, LIMITS.yellow2SurfaceMax);
+        ti = Number(randomRange(0.1, LIMITS.yellow2TiMax).toFixed(1));
+      } else {
+        surface = randomRange(0.51, LIMITS.yellow3SurfaceMax);
+        ti = Number(randomRange(1.1, LIMITS.yellow3TiMax).toFixed(1));
+      }
+
+      if (Math.random() < 0.45) {
+        if (bucket === 0) ti = 0;
+        if (bucket === 1) ti = Number(randomRange(1.2, 3).toFixed(1));
+        if (bucket === 2) ti = Number(randomRange(0.2, 1).toFixed(1));
+      }
+
+      const oneMeterMsv = Number((ti / 100).toFixed(3));
+      return { surface: Number(surface.toFixed(3)), ti, oneMeterMsv };
+    }
+
+    function labelFromSurface(surface) {
+      if (surface <= LIMITS.whiteSurfaceMax) return "WHITE I";
+      if (surface <= LIMITS.yellow2SurfaceMax) return "YELLOW II";
+      return "YELLOW III";
+    }
+
+    function labelFromTi(ti) {
+      if (ti === 0) return "WHITE I";
+      if (ti <= LIMITS.yellow2TiMax) return "YELLOW II";
+      return "YELLOW III";
+    }
+
+    function labelRank(label) {
+      return { "WHITE I": 1, "YELLOW II": 2, "YELLOW III": 3 }[label];
+    }
+
+    function requiredLabel(scenario) {
+      const bySurface = labelFromSurface(scenario.surface);
+      const byTi = labelFromTi(scenario.ti);
+      return labelRank(bySurface) >= labelRank(byTi) ? bySurface : byTi;
+    }
+
+    function explanation(scenario) {
+      const bySurface = labelFromSurface(scenario.surface);
+      const byTi = labelFromTi(scenario.ti);
+      const finalLabel = requiredLabel(scenario);
+      return `Surface implies ${bySurface}; TI implies ${byTi}. Higher requirement wins → ${finalLabel}.`;
+    }
+
+    function renderScenario() {
+      const s = state.current;
+      els.surfaceMetric.textContent = fmtMsv(s.surface);
+      els.surfaceImperial.textContent = `(${toMrem(s.surface)} mrem/h)`;
+      els.meterMetric.textContent = fmtMsv(s.oneMeterMsv);
+      els.meterImperial.textContent = `(${toMrem(s.oneMeterMsv)} mrem/h)`;
+      els.tiValue.textContent = s.ti.toFixed(1).replace(/\.0$/, "");
+      els.resultBox.textContent = "Pick the minimum required label.";
+      els.resultBox.classList.remove("ok", "bad");
+      state.answered = false;
+    }
+
+    function updateHud() {
+      els.score.textContent = state.score;
+      els.streak.textContent = state.streak;
+      els.round.textContent = state.round;
+      const accuracy = state.total === 0 ? 0 : Math.round((state.correct / state.total) * 100);
+      els.accuracy.textContent = `${accuracy}%`;
+    }
+
+    function newRound() {
+      state.current = generateScenario();
+      state.round += 1;
+      if (state.challengeMode) {
+        state.challengeRound += 1;
+        els.challengeBtn.textContent = `Lightning ${state.challengeRound}/10`;
+      }
+      renderScenario();
+      updateHud();
+    }
+
+    function resetGame() {
+      state.score = 0;
+      state.streak = 0;
+      state.correct = 0;
+      state.total = 0;
+      state.round = 0;
+      state.challengeMode = false;
+      state.challengeRound = 0;
+      els.challengeBtn.textContent = "Lightning 10-Round Challenge";
+      newRound();
+    }
+
+    function answer(choice) {
+      if (state.answered) return;
+
+      state.answered = true;
+      state.total += 1;
+      const target = requiredLabel(state.current);
+      const isRight = choice === target;
+
+      if (isRight) {
+        state.correct += 1;
+        state.streak += 1;
+        state.score += 10 + Math.min(20, state.streak * 2);
+        els.resultBox.classList.add("ok");
+        els.resultBox.classList.remove("bad");
+        els.resultBox.textContent = `✅ Correct! ${explanation(state.current)}`;
+      } else {
+        state.streak = 0;
+        state.score = Math.max(0, state.score - 5);
+        els.resultBox.classList.add("bad");
+        els.resultBox.classList.remove("ok");
+        els.resultBox.textContent = `❌ ${target} was required. ${explanation(state.current)}`;
+      }
+
+      if (state.challengeMode && state.challengeRound >= 10) {
+        state.challengeMode = false;
+        els.challengeBtn.textContent = "Lightning 10-Round Challenge";
+        els.resultBox.textContent += "  🏁 Challenge complete — hit Next to keep practicing.";
+      }
+
+      updateHud();
+    }
+
+    document.querySelectorAll("[data-choice]").forEach((button) => {
+      button.addEventListener("click", () => answer(button.dataset.choice));
+    });
+
+    els.nextBtn.addEventListener("click", () => newRound());
+    els.resetBtn.addEventListener("click", () => resetGame());
+
+    els.challengeBtn.addEventListener("click", () => {
+      state.challengeMode = true;
+      state.challengeRound = 0;
+      state.score = 0;
+      state.streak = 0;
+      state.correct = 0;
+      state.total = 0;
+      state.round = 0;
+      els.resultBox.textContent = "Lightning mode on: answer 10 in a row as fast as you can.";
+      newRound();
+    });
+
+    resetGame();
+  </script>
+</body>
+</html>
