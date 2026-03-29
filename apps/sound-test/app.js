@@ -23,6 +23,7 @@ const state = {
   search: "",
   swipeIndex: 0,
   swipeHistory: [],
+  reviewQueueOpen: false,
   currentSoundId: null,
   currentBrowseId: null,
   drag: null,
@@ -79,6 +80,10 @@ const elements = {
   swipeView: document.getElementById("swipeView"),
   browseView: document.getElementById("browseView"),
   swipeQueueMeta: document.getElementById("swipeQueueMeta"),
+  reviewQueueToggle: document.getElementById("reviewQueueToggle"),
+  reviewQueueToggleLabel: document.querySelector("#reviewQueueToggle .queue-toggle-label"),
+  reviewQueuePanel: document.getElementById("reviewQueuePanel"),
+  reviewQueueList: document.getElementById("reviewQueueList"),
   browseMeta: document.getElementById("browseMeta"),
   swipeStage: document.getElementById("swipeStage"),
   swipeCard: document.getElementById("swipeCard"),
@@ -157,6 +162,15 @@ function bindEvents() {
     render();
   });
 
+  elements.reviewQueueToggle.addEventListener("click", () => {
+    if (!getFilteredSounds().length) {
+      return;
+    }
+
+    state.reviewQueueOpen = !state.reviewQueueOpen;
+    renderSwipeView();
+  });
+
   elements.replayButton.addEventListener("click", () => {
     playActiveSound({ restart: true });
   });
@@ -224,6 +238,26 @@ function bindEvents() {
     state.currentBrowseId = soundId;
     setActiveSound(soundId, { autoplay: true, restart: true, syncBrowse: true });
     renderBrowseList();
+  });
+
+  elements.reviewQueueList.addEventListener("click", (event) => {
+    const queueItem = event.target.closest("[data-queue-index]");
+    if (!queueItem) {
+      return;
+    }
+
+    const nextIndex = Number(queueItem.dataset.queueIndex);
+    const queue = getFilteredSounds();
+    const selectedSound = queue[nextIndex];
+    if (!selectedSound) {
+      return;
+    }
+
+    state.swipeIndex = nextIndex;
+    state.reviewQueueOpen = false;
+    render();
+    setActiveSound(selectedSound.id, { autoplay: true, restart: true, syncBrowse: false });
+    announce(`Jumped to ${selectedSound.title}.`);
   });
 
   document.addEventListener("keydown", handleKeyboardShortcuts);
@@ -416,12 +450,18 @@ function renderSwipeView() {
   elements.swipeQueueMeta.textContent = queue.length
     ? `${state.swipeIndex + 1} of ${queue.length} in this review queue`
     : "No sounds match the current queue";
+  elements.reviewQueueToggle.disabled = queue.length === 0;
+  elements.reviewQueueToggle.setAttribute("aria-expanded", String(state.reviewQueueOpen && queue.length > 0));
+  elements.reviewQueueToggleLabel.textContent = state.reviewQueueOpen && queue.length > 0 ? "Hide review queue" : "See review queue";
+  elements.reviewQueuePanel.classList.toggle("hidden", !(state.reviewQueueOpen && queue.length > 0));
+  elements.reviewQueueList.innerHTML = renderReviewQueue(queue, currentSound);
 
   elements.swipeEmptyState.classList.toggle("hidden", Boolean(currentSound));
   elements.swipeCard.classList.toggle("hidden", !currentSound);
   elements.nextCardPreview.classList.toggle("hidden", !nextSound);
 
   if (!currentSound) {
+    state.reviewQueueOpen = false;
     resetSwipeTransform();
     return;
   }
@@ -503,6 +543,29 @@ function renderLibraryRateButton(sound, rating, label) {
       ${label}
     </button>
   `;
+}
+
+function renderReviewQueue(queue, currentSound) {
+  if (!queue.length) {
+    return "";
+  }
+
+  return queue
+    .map((sound, index) => {
+      const rating = getRating(sound.id);
+      const isActive = currentSound && currentSound.id === sound.id;
+      return `
+        <button type="button" class="review-queue-item ${isActive ? "is-active" : ""}" data-queue-index="${index}">
+          <span class="review-queue-index">${index + 1}</span>
+          <span class="review-queue-copy">
+            <span class="review-queue-name">${sound.title}</span>
+            <span class="review-queue-path">${sound.packLabel} • ${sound.path}</span>
+          </span>
+          <span class="pill rating-pill ${rating}">${labelForStatus(rating)}</span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 function ensureValidSelection() {
