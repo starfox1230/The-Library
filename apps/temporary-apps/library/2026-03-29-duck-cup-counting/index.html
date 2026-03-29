@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Duck Cup Counting</title>
+  <style>
+    :root {
+      --bg-top: #0d1830;
+      --bg-bottom: #12264d;
+      --panel: rgba(10, 18, 36, 0.88);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #eef6ff;
+      --muted: #b6c7ea;
+      --accent: #7dd3fc;
+      --ok: #34d399;
+      --bad: #fb7185;
+      --cup-width: min(72vw, 350px);
+      --cup-height: min(56vh, 400px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      touch-action: none;
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(125, 211, 252, 0.2), transparent 30%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      overflow: hidden;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: max(14px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-rows: auto auto 1fr auto auto;
+      gap: 12px;
+      position: relative;
+    }
+
+    .topbar {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+    }
+
+    .prompt-label {
+      font-size: 0.95rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .target-number {
+      font-size: clamp(3.8rem, 18vw, 6rem);
+      font-weight: 900;
+      line-height: 0.92;
+      text-shadow: 0 0 18px rgba(125, 211, 252, 0.28);
+    }
+
+    .instruction {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+
+    .play-area {
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .cup-zone {
+      position: relative;
+      width: var(--cup-width);
+      height: var(--cup-height);
+      display: grid;
+      place-items: end center;
+    }
+
+    .cup-hitbox {
+      position: absolute;
+      inset: 0;
+      border-radius: 0 0 22% 22%;
+    }
+
+    .cup {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 6px solid rgba(255, 255, 255, 0.72);
+      border-top-width: 10px;
+      border-radius: 0 0 20% 20%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      overflow: hidden;
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,0.08),
+        0 18px 40px rgba(2, 8, 23, 0.45);
+    }
+
+    .water {
+      position: absolute;
+      left: 4%;
+      right: 4%;
+      bottom: 3%;
+      height: 44%;
+      border-radius: 22px 22px 18% 18%;
+      background:
+        linear-gradient(180deg, rgba(125, 211, 252, 0.95), rgba(59, 130, 246, 0.9));
+      box-shadow: inset 0 8px 18px rgba(255,255,255,0.18);
+    }
+
+    .water::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -10px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(191, 219, 254, 0.9);
+      opacity: 0.7;
+    }
+
+    .duck-grid {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 12%;
+      height: 28%;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px 2px;
+      align-content: end;
+      justify-items: center;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .cup-duck {
+      font-size: clamp(1.8rem, 8vw, 2.5rem);
+      filter: drop-shadow(0 4px 5px rgba(0,0,0,0.24));
+      transform: translateY(var(--bob, 0));
+    }
+
+    .counter-card {
+      justify-self: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 10px 14px;
+      min-width: 180px;
+      text-align: center;
+      box-shadow: 0 10px 24px rgba(2, 8, 23, 0.35);
+    }
+
+    .counter-card strong {
+      display: block;
+      font-size: 1.6rem;
+      margin-top: 2px;
+    }
+
+    .source-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px 14px;
+      box-shadow: 0 12px 28px rgba(2, 8, 23, 0.35);
+    }
+
+    .source-text {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .source-duck {
+      width: 84px;
+      height: 84px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      font-size: 3.2rem;
+      background: linear-gradient(180deg, rgba(253, 224, 71, 0.16), rgba(250, 204, 21, 0.06));
+      border: 1px solid rgba(250, 204, 21, 0.28);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 16px;
+      min-height: 56px;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.88);
+      box-shadow: 0 10px 22px rgba(2, 8, 23, 0.32);
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, #0ea5e9, #2563eb);
+      border-color: rgba(191, 219, 254, 0.35);
+    }
+
+    .feedback {
+      min-height: 32px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .feedback.ok { color: var(--ok); }
+    .feedback.bad { color: var(--bad); }
+
+    .floating-duck {
+      position: fixed;
+      width: 72px;
+      height: 72px;
+      display: grid;
+      place-items: center;
+      font-size: 3rem;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 10px 12px rgba(2,8,23,0.35));
+      z-index: 50;
+    }
+
+    @media (min-width: 768px) {
+      .app {
+        width: min(560px, 100%);
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="topbar">
+      <div class="prompt-label">Put this many ducks in the cup</div>
+      <div class="target-number" id="targetNumber">3</div>
+      <div class="instruction">Drag ducks into the water, then tap <strong>Check Answer</strong>.</div>
+    </section>
+
+    <section class="counter-card" aria-live="polite">
+      Ducks in cup
+      <strong id="placedCount">0</strong>
+    </section>
+
+    <section class="play-area">
+      <div class="cup-zone">
+        <div class="cup-hitbox" id="cupHitbox" aria-hidden="true"></div>
+        <div class="cup" aria-label="Cup of water">
+          <div class="water"></div>
+          <div class="duck-grid" id="duckGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="source-row">
+      <div class="source-text">Start here. Drag this duck into the cup. A fresh duck stays here so you can keep going.</div>
+      <div class="source-duck" id="sourceDuck" aria-label="Duck source">🦆</div>
+    </section>
+
+    <section class="actions">
+      <button class="primary" id="checkButton" type="button">Check Answer</button>
+      <button id="clearButton" type="button">Empty Cup</button>
+    </section>
+
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const targetNumberEl = document.getElementById('targetNumber');
+    const placedCountEl = document.getElementById('placedCount');
+    const duckGrid = document.getElementById('duckGrid');
+    const sourceDuck = document.getElementById('sourceDuck');
+    const cupHitbox = document.getElementById('cupHitbox');
+    const feedback = document.getElementById('feedback');
+    const checkButton = document.getElementById('checkButton');
+    const clearButton = document.getElementById('clearButton');
+
+    let target = 1;
+    let placed = 0;
+    let activeDuck = null;
+    let pointerId = null;
+
+    function randomTarget() {
+      return Math.floor(Math.random() * 9) + 1;
+    }
+
+    function setFeedback(message = '', tone = '') {
+      feedback.textContent = message;
+      feedback.className = tone ? `feedback ${tone}` : 'feedback';
+    }
+
+    function renderCup() {
+      placedCountEl.textContent = placed;
+      duckGrid.innerHTML = Array.from({ length: placed }, (_, index) => {
+        const bob = `${(index % 2) * -3}px`;
+        return `<div class="cup-duck" style="--bob:${bob}">🦆</div>`;
+      }).join('');
+    }
+
+    function resetCup() {
+      placed = 0;
+      renderCup();
+    }
+
+    function nextRound() {
+      target = randomTarget();
+      targetNumberEl.textContent = target;
+      resetCup();
+      setFeedback('');
+    }
+
+    function pointInCup(x, y) {
+      const rect = cupHitbox.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
+    function makeFloatingDuck(x, y) {
+      const duck = document.createElement('div');
+      duck.className = 'floating-duck';
+      duck.textContent = '🦆';
+      duck.style.left = `${x}px`;
+      duck.style.top = `${y}px`;
+      document.body.appendChild(duck);
+      return duck;
+    }
+
+    function moveFloatingDuck(x, y) {
+      if (!activeDuck) return;
+      activeDuck.style.left = `${x}px`;
+      activeDuck.style.top = `${y}px`;
+    }
+
+    function finishDrag(x, y) {
+      if (!activeDuck) return;
+      const droppedInCup = pointInCup(x, y);
+      activeDuck.remove();
+      activeDuck = null;
+      pointerId = null;
+
+      if (droppedInCup) {
+        placed += 1;
+        renderCup();
+        setFeedback('');
+      }
+    }
+
+    sourceDuck.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      if (activeDuck) return;
+      pointerId = event.pointerId;
+      activeDuck = makeFloatingDuck(event.clientX, event.clientY);
+      sourceDuck.setPointerCapture(event.pointerId);
+    });
+
+    sourceDuck.addEventListener('pointermove', (event) => {
+      if (!activeDuck || event.pointerId !== pointerId) return;
+      moveFloatingDuck(event.clientX, event.clientY);
+    });
+
+    sourceDuck.addEventListener('pointerup', (event) => {
+      if (event.pointerId !== pointerId) return;
+      finishDrag(event.clientX, event.clientY);
+    });
+
+    sourceDuck.addEventListener('pointercancel', (event) => {
+      if (event.pointerId !== pointerId) return;
+      finishDrag(event.clientX, event.clientY);
+    });
+
+    checkButton.addEventListener('click', () => {
+      if (placed === target) {
+        setFeedback('Correct! Here comes a new number.', 'ok');
+        window.setTimeout(() => nextRound(), 550);
+      } else {
+        setFeedback(`Not quite. You need ${target} ducks. Try again.`, 'bad');
+        resetCup();
+      }
+    });
+
+    clearButton.addEventListener('click', () => {
+      resetCup();
+      setFeedback('Cup emptied. Try again.');
+    });
+
+    nextRound();
+  </script>
+</body>
+</html>
