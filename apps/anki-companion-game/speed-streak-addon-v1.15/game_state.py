@@ -6,6 +6,13 @@ import re
 import time
 from typing import Any, Dict, Optional
 
+from .feedback_catalog import (
+    DEFAULT_AUDIO_ENABLED,
+    DEFAULT_AUDIO_FILE,
+    default_haptic_event_patterns,
+    normalize_haptic_event_patterns,
+)
+
 
 ANSWER_LIMIT_MS = 12_000
 REVIEW_LIMIT_MS = 8_000
@@ -27,7 +34,10 @@ class CardRuntime:
 @dataclass
 class CompanionState:
     enabled: bool = True
+    audio_enabled: bool = DEFAULT_AUDIO_ENABLED
+    selected_audio_file: str = DEFAULT_AUDIO_FILE
     haptics_enabled: bool = True
+    haptic_event_patterns: dict[str, str] = field(default_factory=default_haptic_event_patterns)
     visuals_enabled: bool = True
     show_card_timer: bool = True
     orbit_animation_enabled: bool = True
@@ -89,9 +99,12 @@ class CompanionGameEngine:
     def export(self) -> Dict[str, Any]:
         s = self.state
         return {
-            "version": 6,
+            "version": 7,
             "enabled": int(s.enabled),
+            "audioEnabled": int(s.audio_enabled),
+            "selectedAudioFile": s.selected_audio_file,
             "hapticsEnabled": int(s.haptics_enabled),
+            "hapticEventPatterns": dict(s.haptic_event_patterns),
             "visualsEnabled": int(s.visuals_enabled),
             "showCardTimer": int(s.show_card_timer),
             "orbitAnimationEnabled": int(s.orbit_animation_enabled),
@@ -135,7 +148,10 @@ class CompanionGameEngine:
 
     def hard_reset(self) -> None:
         enabled = self.state.enabled
+        audio_enabled = self.state.audio_enabled
+        selected_audio_file = self.state.selected_audio_file
         haptics_enabled = self.state.haptics_enabled
+        haptic_event_patterns = dict(self.state.haptic_event_patterns)
         visuals_enabled = self.state.visuals_enabled
         show_card_timer = self.state.show_card_timer
         orbit_animation_enabled = self.state.orbit_animation_enabled
@@ -152,7 +168,10 @@ class CompanionGameEngine:
         self.state = CompanionState()
         self.card = CardRuntime()
         self.state.enabled = enabled
+        self.state.audio_enabled = audio_enabled
+        self.state.selected_audio_file = selected_audio_file
         self.state.haptics_enabled = haptics_enabled
+        self.state.haptic_event_patterns = haptic_event_patterns
         self.state.visuals_enabled = visuals_enabled
         self.state.show_card_timer = show_card_timer
         self.state.orbit_animation_enabled = orbit_animation_enabled
@@ -175,7 +194,10 @@ class CompanionGameEngine:
         s.review_limit_ms = REVIEW_LIMIT_MS
         s.time_drain_flag = 2
         s.review_later_flag = 4
+        s.audio_enabled = DEFAULT_AUDIO_ENABLED
+        s.selected_audio_file = DEFAULT_AUDIO_FILE
         s.haptics_enabled = True
+        s.haptic_event_patterns = default_haptic_event_patterns()
         s.visuals_enabled = True
         s.show_card_timer = True
         s.orbit_animation_enabled = True
@@ -529,8 +551,11 @@ class CompanionGameEngine:
         answer_seconds: float,
         time_drain_flag: int | None = None,
         review_later_flag: int | None = None,
+        audio_enabled: bool | None = None,
+        selected_audio_file: str | None = None,
         visuals_enabled: bool | None = None,
         haptics_enabled: bool | None = None,
+        haptic_event_patterns: dict[str, str] | None = None,
         show_card_timer: bool | None = None,
         orbit_animation_enabled: bool | None = None,
         reduced_motion_enabled: bool | None = None,
@@ -549,10 +574,16 @@ class CompanionGameEngine:
             s.time_drain_flag = max(0, int(time_drain_flag))
         if review_later_flag is not None:
             s.review_later_flag = max(0, int(review_later_flag))
+        if audio_enabled is not None:
+            s.audio_enabled = bool(audio_enabled)
+        if selected_audio_file is not None:
+            s.selected_audio_file = str(selected_audio_file or DEFAULT_AUDIO_FILE).strip()
         if visuals_enabled is not None:
             s.visuals_enabled = bool(visuals_enabled)
         if haptics_enabled is not None:
             s.haptics_enabled = bool(haptics_enabled)
+        if haptic_event_patterns is not None:
+            s.haptic_event_patterns = normalize_haptic_event_patterns(haptic_event_patterns)
         if show_card_timer is not None:
             s.show_card_timer = bool(show_card_timer)
         if orbit_animation_enabled is not None:
@@ -590,7 +621,7 @@ class CompanionGameEngine:
 
         self._publish(
             "settings",
-            f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, review later flag {s.review_later_flag}, vibration {'on' if s.haptics_enabled else 'off'}, visuals {'on' if s.visuals_enabled else 'off'}, orbit animation {'on' if s.orbit_animation_enabled else 'off'}, reduced motion {'on' if s.reduced_motion_enabled else 'off'}, appearance {s.appearance_mode}.",
+            f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, review later flag {s.review_later_flag}, audio {'on' if s.audio_enabled else 'off'}, haptics {'on' if s.haptics_enabled else 'off'}, visuals {'on' if s.visuals_enabled else 'off'}, orbit animation {'on' if s.orbit_animation_enabled else 'off'}, reduced motion {'on' if s.reduced_motion_enabled else 'off'}, appearance {s.appearance_mode}.",
         )
         return "settings"
 

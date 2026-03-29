@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Swipe Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-glow page-glow-left" aria-hidden="true"></div>
+  <div class="page-glow page-glow-right" aria-hidden="true"></div>
+
+  <main class="app-shell">
+    <section class="hero panel">
+      <div class="hero-copy">
+        <p class="eyebrow">Sound Test</p>
+        <h1>Sound Swipe Lab</h1>
+        <p class="hero-text">
+          Review every sound clip in one place, swipe through them Tinder-style, or browse the whole catalog and replay anything instantly.
+        </p>
+      </div>
+      <div class="hero-notes">
+        <div class="hero-chip">Space = replay</div>
+        <div class="hero-chip">1 = dislike</div>
+        <div class="hero-chip">2 = neutral</div>
+        <div class="hero-chip">4 = favorite</div>
+      </div>
+    </section>
+
+    <section class="control-bar panel">
+      <div class="segmented" id="viewToggle" aria-label="View mode">
+        <button type="button" class="segment-button active" data-view="swipe">Swipe Review</button>
+        <button type="button" class="segment-button" data-view="browse">Browse Library</button>
+      </div>
+
+      <label class="field">
+        <span>Folder</span>
+        <select id="folderFilter"></select>
+      </label>
+
+      <label class="field">
+        <span>Status</span>
+        <select id="statusFilter">
+          <option value="all">All sounds</option>
+          <option value="unrated">Unrated only</option>
+          <option value="favorite">Favorites only</option>
+          <option value="neutral">Neutral only</option>
+          <option value="disliked">Disliked only</option>
+        </select>
+      </label>
+
+      <label class="field search-field">
+        <span>Search</span>
+        <input id="searchInput" type="search" placeholder="Laser, click, preview, switch..." autocomplete="off">
+      </label>
+
+      <div class="toolbar-actions">
+        <button type="button" class="ghost-button" id="clearSearchButton">Clear Search</button>
+        <button type="button" class="ghost-button danger-button" id="resetRatingsButton">Reset Ratings</button>
+      </div>
+    </section>
+
+    <section class="stats-grid" id="statsGrid" aria-label="Rating summary"></section>
+
+    <section class="player-panel panel">
+      <div class="player-copy">
+        <p class="eyebrow">Now Playing</p>
+        <h2 id="playerTitle">Pick a sound to start</h2>
+        <p id="playerMeta">Use the controls below or hit space in swipe mode to replay the current sound.</p>
+      </div>
+
+      <div class="player-controls">
+        <button type="button" class="primary-button" id="replayButton">Play / Replay</button>
+        <button type="button" class="ghost-button" id="stopButton">Stop</button>
+      </div>
+
+      <audio id="audioPlayer" controls preload="metadata"></audio>
+    </section>
+
+    <section id="swipeView" class="view-panel panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Swipe Review</p>
+          <h2>Rate the current clip</h2>
+        </div>
+        <p class="panel-meta" id="swipeQueueMeta"></p>
+      </div>
+
+      <div class="swipe-stage" id="swipeStage">
+        <div class="swipe-card swipe-card-preview" id="nextCardPreview" aria-hidden="true"></div>
+
+        <article class="swipe-card swipe-card-active" id="swipeCard" tabindex="0">
+          <div class="swipe-banner swipe-banner-left">Dislike</div>
+          <div class="swipe-banner swipe-banner-up">Neutral</div>
+          <div class="swipe-banner swipe-banner-right">Favorite</div>
+
+          <div class="card-topline">
+            <span class="pill pack-pill" id="swipePackPill"></span>
+            <span class="pill rating-pill" id="swipeRatingPill"></span>
+          </div>
+
+          <h3 id="swipeTitle">Loading sounds...</h3>
+          <p class="card-subtitle" id="swipeSubtitle"></p>
+
+          <div class="wave-band" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+
+          <div class="card-footer">
+            <button type="button" class="primary-button wide-button" id="cardReplayButton">Play / Replay</button>
+            <p class="hint-line">Swipe left, right, or up. Keyboard: 1 dislike, 2 neutral, 4 favorite, space replay.</p>
+          </div>
+        </article>
+
+        <div class="empty-state hidden" id="swipeEmptyState">
+          <h3>No sounds match this queue</h3>
+          <p>Try a different folder, change the status filter, or clear your search to keep reviewing.</p>
+        </div>
+      </div>
+
+      <div class="decision-row">
+        <button type="button" class="decision-button dislike-button" data-rate-action="disliked">
+          <span>Dislike</span>
+          <strong>1</strong>
+        </button>
+        <button type="button" class="decision-button neutral-button" data-rate-action="neutral">
+          <span>Neutral</span>
+          <strong>2</strong>
+        </button>
+        <button type="button" class="decision-button favorite-button" data-rate-action="favorite">
+          <span>Favorite</span>
+          <strong>4</strong>
+        </button>
+      </div>
+    </section>
+
+    <section id="browseView" class="view-panel panel hidden">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Browse Library</p>
+          <h2>Click through and listen</h2>
+        </div>
+        <p class="panel-meta" id="browseMeta"></p>
+      </div>
+
+      <div class="library-list" id="libraryList" aria-live="polite"></div>
+
+      <div class="empty-state hidden" id="libraryEmptyState">
+        <h3>No sounds found</h3>
+        <p>Adjust the folder, status filter, or search box to bring clips back into view.</p>
+      </div>
+    </section>
+
+    <p class="sr-only" id="liveRegion" aria-live="polite"></p>
+  </main>
+
+  <script src="sound-catalog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

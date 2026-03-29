@@ -1324,7 +1324,9 @@
       const size = radius * 2;
       const unlocking = bankIndex >= state.lastRingCount ? " unlocking" : "";
       const emphasis = (bankIndex + 1) % 5 === 0 ? " emphasis" : "";
-      ringsHtml += `<div class="acg-bank-ring${unlocking}${emphasis}" style="width:${size}px;height:${size}px;--bank-gradient:${buildBankGradient(bankColors)};"></div>`;
+      const gradient = buildBankGradient(bankColors);
+      ringsHtml += `<div class="acg-bank-ring-glow${emphasis}" style="width:${size}px;height:${size}px;--bank-gradient:${gradient};"></div>`;
+      ringsHtml += `<div class="acg-bank-ring${unlocking}${emphasis}" style="width:${size}px;height:${size}px;--bank-gradient:${gradient};"></div>`;
     }
 
     let satellitesHtml = "";
@@ -1700,7 +1702,7 @@
       return;
     }
     const kind = String(data.lastEventType || "");
-    const patterns = {
+    const fallbackPatterns = {
       reveal: [{ duration: 90, weak: 0.64, strong: 1.0 }],
       again: [
         { duration: 80, weak: 0.64, strong: 0.88 },
@@ -1713,13 +1715,40 @@
       skip: [{ duration: 80, weak: 0.18, strong: 0.3 }],
       sync: [{ duration: 95, weak: 0.2, strong: 0.28 }],
       reset: [{ duration: 120, weak: 0.26, strong: 0.4 }],
+      bossStart: [
+        { duration: 80, weak: 0.34, strong: 0.58 },
+        { duration: 70, weak: 0, strong: 0 },
+        { duration: 110, weak: 0.4, strong: 0.66 },
+      ],
+      bossClear: [{ duration: 180, weak: 0.49, strong: 0.79 }],
       timeout: [
         { duration: 420, weak: 0.8, strong: 1.0 },
         { duration: 95, weak: 0, strong: 0 },
         { duration: 180, weak: 0.55, strong: 0.76 },
       ],
     };
-    const sequence = patterns[kind];
+    const fallbackEventPatterns = {
+      sync: "sync",
+      reveal: "reveal",
+      again: "again",
+      hard: "hard",
+      good: "good",
+      easy: "easy",
+      skip: "skip",
+      reset: "reset",
+      timeout: "timeout",
+    };
+    const eventPatterns = data && typeof data.hapticEventPatterns === "object" && data.hapticEventPatterns
+      ? data.hapticEventPatterns
+      : fallbackEventPatterns;
+    const patterns = data && typeof data.hapticPatternSequences === "object" && data.hapticPatternSequences
+      ? data.hapticPatternSequences
+      : fallbackPatterns;
+    const patternKey = String(eventPatterns[kind] || fallbackEventPatterns[kind] || "");
+    if (!patternKey || patternKey === "off") {
+      return;
+    }
+    const sequence = Array.isArray(patterns[patternKey]) ? patterns[patternKey] : fallbackPatterns[patternKey];
     if (!sequence) {
       return;
     }

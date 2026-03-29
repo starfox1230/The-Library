@@ -13,11 +13,20 @@ from aqt.qt import QAction, QByteArray, QHBoxLayout, QMenu, QMessageBox, QSizePo
 
 from .addon_meta import ensure_meta_json
 from .anki_flag_colors import get_anki_flag_palette
+from .audio_feedback import AudioFeedbackController
 from .display_mode import (
     DISPLAY_MODE_COMPATIBILITY,
     DISPLAY_MODE_INLINE,
     display_mode_label,
     normalize_display_mode,
+)
+from .feedback_catalog import (
+    AUDIO_DIRECTORY_NAME,
+    DEFAULT_AUDIO_ENABLED,
+    DEFAULT_AUDIO_FILE,
+    default_haptic_event_patterns,
+    haptic_pattern_sequences,
+    normalize_haptic_event_patterns,
 )
 from .game_state import CompanionGameEngine
 from .haptics import HapticsController
@@ -42,6 +51,7 @@ SIDEBAR_EXPANDED_WIDTH = 316
 SIDEBAR_COLLAPSED_WIDTH = 36
 INLINE_CONTAINER_OBJECT_NAME = "speedStreakInlineContainer"
 INLINE_SIDEBAR_OBJECT_NAME = "speedStreakInlineSidebar"
+BROWSER_HAPTIC_PATTERN_SEQUENCES = haptic_pattern_sequences()
 
 
 class FloatingSidebarWindow(QWidget):
@@ -142,6 +152,7 @@ class ReviewerOverlayController:
     def __init__(self) -> None:
         self.engine = CompanionGameEngine()
         self.haptics = HapticsController()
+        self.audio_feedback = AudioFeedbackController(ADDON_ROOT / AUDIO_DIRECTORY_NAME)
         self.stats_store = StatsStore(ADDON_ROOT)
         self.display_mode = DISPLAY_MODE_INLINE
         self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
@@ -186,12 +197,56 @@ class ReviewerOverlayController:
         gui_hooks.state_shortcuts_will_change.append(self.on_state_shortcuts_will_change)
         self._start_timer()
 
+    def available_audio_feedback_files(self) -> list[str]:
+        return self.audio_feedback.available_files()
+
+    def normalize_audio_feedback_file(self, file_name: str) -> str:
+        return self.audio_feedback.normalize_file(file_name)
+
+    def preview_audio_feedback(self, file_name: str) -> bool:
+        return self.audio_feedback.play(self.audio_feedback.normalize_file(file_name))
+
+    def preview_haptic_pattern(self, pattern_key: str) -> bool:
+        return self.haptics.preview_pattern(pattern_key)
+
+    def _normalize_feedback_preferences(self) -> None:
+        state = self.engine.state
+        state.selected_audio_file = self.audio_feedback.normalize_file(state.selected_audio_file)
+        state.haptic_event_patterns = normalize_haptic_event_patterns(state.haptic_event_patterns)
+
+    def _selected_audio_file(self) -> str:
+        selected = self.audio_feedback.normalize_file(self.engine.state.selected_audio_file)
+        self.engine.state.selected_audio_file = selected
+        return selected
+
+    def _haptic_pattern_for_event(self, event_key: str) -> str:
+        patterns = self.engine.state.haptic_event_patterns or default_haptic_event_patterns()
+        pattern_key = str(patterns.get(event_key, "") or "").strip()
+        if pattern_key:
+            return pattern_key
+        return default_haptic_event_patterns().get(event_key, "")
+
+    def _play_audio_feedback(self) -> None:
+        if not self.engine.state.audio_enabled:
+            return
+        selected = self._selected_audio_file()
+        if selected:
+            self.audio_feedback.play(selected)
+
+    def _play_haptic_feedback(self, event_key: str) -> None:
+        self.haptics.play_pattern(self._haptic_pattern_for_event(event_key))
+
+    def _play_feedback_event(self, event_key: str) -> None:
+        self._play_audio_feedback()
+        self._play_haptic_feedback(event_key)
+
     def on_js_message(self, handled: tuple[bool, Any], message: str, context: Any) -> tuple[bool, Any]:
         if message == "speed-streak:reset":
             self.engine.hard_reset()
+            self._normalize_feedback_preferences()
             self._last_nonce_sent = -1
             self._push_state(only_if_changed=False)
-            self.haptics.play_pattern("reset")
+            self._play_feedback_event("reset")
             return (True, None)
         if message == "speed-streak:toggle-pause":
             event = self.engine.toggle_pause()
@@ -228,7 +283,12 @@ class ReviewerOverlayController:
                 answer_seconds = float(data.get("answerSeconds", 8))
                 time_drain_flag = int(data.get("timeDrainFlag", 0))
                 review_later_flag = int(data.get("reviewLaterFlag", 0))
+                audio_enabled = bool(data.get("audioEnabled", self.engine.state.audio_enabled))
+                selected_audio_file = str(data.get("selectedAudioFile", self.engine.state.selected_audio_file or DEFAULT_AUDIO_FILE))
                 haptics_enabled = bool(data.get("hapticsEnabled", self.engine.state.haptics_enabled))
+                haptic_event_patterns = normalize_haptic_event_patterns(
+                    data.get("hapticEventPatterns", self.engine.state.haptic_event_patterns)
+                )
                 visuals_enabled = bool(data.get("visualsEnabled", True))
                 show_card_timer = bool(data.get("showCardTimer", True))
                 orbit_animation_enabled = bool(data.get("orbitAnimationEnabled", True))
@@ -249,7 +309,10 @@ class ReviewerOverlayController:
                 answer_seconds=answer_seconds,
                 time_drain_flag=time_drain_flag,
                 review_later_flag=review_later_flag,
+                audio_enabled=audio_enabled,
+                selected_audio_file=selected_audio_file,
                 haptics_enabled=haptics_enabled,
+                haptic_event_patterns=haptic_event_patterns,
                 visuals_enabled=visuals_enabled,
                 show_card_timer=show_card_timer,
                 orbit_animation_enabled=orbit_animation_enabled,
@@ -259,6 +322,7 @@ class ReviewerOverlayController:
                 appearance_mode=appearance_mode,
                 custom_colors=custom_colors,
             )
+            self._normalize_feedback_preferences()
             display_mode_changed = display_mode != self.display_mode or self._display_mode_prompt_pending
             self.set_display_mode(display_mode, persist=False, reconfigure=display_mode_changed)
             self.visual_mode = visual_mode
@@ -278,7 +342,10 @@ class ReviewerOverlayController:
                 answer_seconds=state.review_limit_ms / 1000,
                 time_drain_flag=state.time_drain_flag,
                 review_later_flag=state.review_later_flag,
+                audio_enabled=state.audio_enabled,
+                selected_audio_file=state.selected_audio_file,
                 haptics_enabled=state.haptics_enabled,
+                haptic_event_patterns=dict(state.haptic_event_patterns),
                 visuals_enabled=state.visuals_enabled,
                 show_card_timer=state.show_card_timer,
                 orbit_animation_enabled=state.orbit_animation_enabled,
@@ -295,6 +362,7 @@ class ReviewerOverlayController:
             return (True, None)
         if message == "speed-streak:default-settings":
             self.engine.reset_settings_to_defaults()
+            self._normalize_feedback_preferences()
             self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
             self.sphere_mode = SPHERE_MODE_CLASSIC
             self.render_mode = RENDER_MODE_CLASSIC
@@ -318,7 +386,10 @@ class ReviewerOverlayController:
         answer_seconds: float,
         time_drain_flag: int,
         review_later_flag: int,
+        audio_enabled: bool,
+        selected_audio_file: str,
         haptics_enabled: bool,
+        haptic_event_patterns: dict[str, str],
         show_card_timer: bool,
         display_mode: str,
         visual_mode: str,
@@ -338,7 +409,10 @@ class ReviewerOverlayController:
             answer_seconds=answer_seconds,
             time_drain_flag=time_drain_flag,
             review_later_flag=review_later_flag,
+            audio_enabled=audio_enabled,
+            selected_audio_file=selected_audio_file,
             haptics_enabled=haptics_enabled,
+            haptic_event_patterns=haptic_event_patterns,
             visuals_enabled=visuals_enabled,
             show_card_timer=show_card_timer,
             orbit_animation_enabled=orbit_animation_enabled,
@@ -348,6 +422,7 @@ class ReviewerOverlayController:
             appearance_mode=appearance_mode,
             custom_colors=custom_colors,
         )
+        self._normalize_feedback_preferences()
         display_mode_changed = normalize_display_mode(display_mode) != self.display_mode or self._display_mode_prompt_pending
         self.set_display_mode(display_mode, persist=False, reconfigure=display_mode_changed)
         self.visual_mode = normalize_visual_mode(visual_mode)
@@ -368,6 +443,7 @@ class ReviewerOverlayController:
 
     def reset_defaults_from_dialog(self) -> None:
         self.engine.reset_settings_to_defaults()
+        self._normalize_feedback_preferences()
         self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
         self.sphere_mode = SPHERE_MODE_CLASSIC
         self.render_mode = RENDER_MODE_CLASSIC
@@ -378,9 +454,10 @@ class ReviewerOverlayController:
 
     def reset_game_from_dialog(self) -> None:
         self.engine.hard_reset()
+        self._normalize_feedback_preferences()
         self._last_nonce_sent = -1
         self._push_state(only_if_changed=False)
-        self.haptics.play_pattern("reset")
+        self._play_feedback_event("reset")
 
     def _register_web_exports(self) -> None:
         try:
@@ -515,7 +592,7 @@ class ReviewerOverlayController:
         self._sync_live_flag_state()
         event = self.engine.check_timeout()
         if event:
-            self.haptics.play_pattern("timeout")
+            self._play_feedback_event("timeout")
             self._push_state(only_if_changed=False)
         elif self._should_push_live_update():
             self._push_state(only_if_changed=False)
@@ -610,7 +687,7 @@ class ReviewerOverlayController:
             review_later_flag=int(self.engine.state.review_later_flag or 0),
         )
         if event == "sync":
-            self.haptics.play_pattern("sync")
+            self._play_feedback_event("sync")
         self._push_state(only_if_changed=False)
         self._restore_review_focus()
 
@@ -624,7 +701,7 @@ class ReviewerOverlayController:
             card_flag=self._flag_for_card(card),
         )
         if event == "reveal":
-            self.haptics.play_pattern("reveal")
+            self._play_feedback_event("reveal")
             self._push_state(only_if_changed=False)
         self._restore_review_focus()
 
@@ -641,21 +718,21 @@ class ReviewerOverlayController:
             if event_id > 0:
                 self._recorded_review_event_ids.append(event_id)
         if event == "again":
-            self.haptics.play_pattern("again")
+            self._play_feedback_event("again")
         elif event == "again-on-time":
-            self.haptics.play_pattern("hard")
+            self._play_feedback_event("hard")
         elif event == "hard":
-            self.haptics.play_pattern("hard")
+            self._play_feedback_event("hard")
         elif event == "good":
-            self.haptics.play_pattern("good")
+            self._play_feedback_event("good")
         elif event == "easy":
-            self.haptics.play_pattern("easy")
+            self._play_feedback_event("easy")
         self._push_state(only_if_changed=False)
 
     def _handle_skip(self) -> None:
         event = self.engine.on_skip()
         if event == "skip":
-            self.haptics.play_pattern("skip")
+            self._play_feedback_event("skip")
             self._push_state(only_if_changed=False)
 
     def _push_state(self, *, only_if_changed: bool = True) -> None:
@@ -672,6 +749,7 @@ class ReviewerOverlayController:
                 **state,
                 "flagPalette": get_anki_flag_palette(),
                 "hapticsAvailable": int(self.haptics.available),
+                "hapticPatternSequences": BROWSER_HAPTIC_PATTERN_SEQUENCES,
                 "sidebarBackground": self._sidebar_background or self._default_sidebar_background(),
                 "displayMode": self.display_mode,
                 "visualMode": self.visual_mode,
@@ -990,7 +1068,10 @@ class ReviewerOverlayController:
                 answer_seconds=float(config.get("answer_seconds", 8)),
                 time_drain_flag=int(config.get("time_drain_flag", 2)),
                 review_later_flag=int(config.get("review_later_flag", 4)),
+                audio_enabled=bool(config.get("audio_enabled", DEFAULT_AUDIO_ENABLED)),
+                selected_audio_file=str(config.get("selected_audio_file", DEFAULT_AUDIO_FILE)),
                 haptics_enabled=bool(config.get("haptics_enabled", True)),
+                haptic_event_patterns=normalize_haptic_event_patterns(config.get("haptic_event_patterns", {})),
                 visuals_enabled=bool(config.get("visuals_enabled", True)),
                 show_card_timer=bool(config.get("show_card_timer", True)),
                 orbit_animation_enabled=bool(config.get("orbit_animation_enabled", True)),
@@ -1001,6 +1082,7 @@ class ReviewerOverlayController:
                 appearance_mode=str(config.get("appearance_mode", "midnight")),
                 custom_colors=dict(config.get("custom_colors", {}) or {}),
             )
+            self._normalize_feedback_preferences()
             self.engine.state.enabled = bool(config.get("enabled", True))
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
         except Exception:
@@ -1015,7 +1097,10 @@ class ReviewerOverlayController:
                 answer_seconds=8,
                 time_drain_flag=2,
                 review_later_flag=4,
+                audio_enabled=DEFAULT_AUDIO_ENABLED,
+                selected_audio_file=DEFAULT_AUDIO_FILE,
                 haptics_enabled=True,
+                haptic_event_patterns=default_haptic_event_patterns(),
                 visuals_enabled=True,
                 show_card_timer=True,
                 orbit_animation_enabled=True,
@@ -1026,6 +1111,7 @@ class ReviewerOverlayController:
                 appearance_mode="midnight",
                 custom_colors={},
             )
+            self._normalize_feedback_preferences()
             self.engine.state.enabled = True
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
 
@@ -1042,7 +1128,10 @@ class ReviewerOverlayController:
             "render_mode": self.render_mode,
             "display_mode_prompted": not self._display_mode_prompt_pending,
             "floating_geometry": self._floating_geometry,
+            "audio_enabled": bool(state.audio_enabled),
+            "selected_audio_file": str(state.selected_audio_file),
             "haptics_enabled": bool(state.haptics_enabled),
+            "haptic_event_patterns": dict(state.haptic_event_patterns),
             "visuals_enabled": bool(state.visuals_enabled),
             "show_card_timer": bool(state.show_card_timer),
             "orbit_animation_enabled": bool(state.orbit_animation_enabled),

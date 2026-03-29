@@ -45,6 +45,15 @@ from .display_mode import (
     DISPLAY_MODE_OPTIONS,
     display_mode_label,
 )
+from .feedback_catalog import (
+    DEFAULT_AUDIO_ENABLED,
+    DEFAULT_AUDIO_FILE,
+    HAPTIC_EVENT_OPTIONS,
+    HAPTIC_PATTERN_OFF,
+    HAPTIC_PATTERN_OPTIONS,
+    default_haptic_event_patterns,
+    haptic_pattern_label,
+)
 from .render_mode import (
     RENDER_MODE_CLASSIC,
     RENDER_MODE_OPTIONS,
@@ -193,6 +202,15 @@ SECTION_STYLE_TOKENS = {
         "border_color": "rgba(203, 160, 101, 0.20)",
         "title_color": "#f0cd93",
     },
+    "feedback": {
+        "frame_background": """
+            qlineargradient(x1:0, y1:0, x2:0, y2:1,
+              stop:0 rgba(26, 38, 52, 0.98),
+              stop:1 rgba(18, 27, 37, 0.98))
+        """,
+        "border_color": "rgba(120, 180, 214, 0.20)",
+        "title_color": "#b8def1",
+    },
     "display_style": {
         "frame_background": """
             qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -235,8 +253,9 @@ SECTION_DESCRIPTIONS = {
     "actions": "Quick tools and reset actions for this profile.",
     "timers": "Set how long Speed Streak gives you during the question and answer phases.",
     "flags": "Choose which Anki flags Speed Streak uses for time-drain and review-later cards.",
+    "feedback": "Control the audio click and controller haptic feedback that fire during review events.",
     "display_style": "Choose where Speed Streak appears and which visual helpers stay visible while you review.",
-    "performance": "Use these options if the visual effects feel heavy on your computer.",
+    "performance": "Choose which visual renderer to use and reduce motion if the effects feel heavy on your computer.",
     "appearance": "Choose a theme and orb palette without changing how the game behaves.",
     "help": "A few reminders for how the review workflow fits together.",
 }
@@ -868,6 +887,9 @@ class SettingsDialog(QDialog):
         self.custom_colors: dict[str, str] = {}
         self.use_custom_timer_colors = False
         self.timer_color_level = 0.0
+        self.haptic_event_patterns = default_haptic_event_patterns()
+        self.haptic_event_combos: dict[str, ScrollSafeComboBox] = {}
+        self.haptic_preview_buttons: dict[str, QPushButton] = {}
         self.flag_palette = get_anki_flag_palette()
 
         self.setModal(False)
@@ -1086,7 +1108,7 @@ class SettingsDialog(QDialog):
         eyebrow.setObjectName("speedStreakHeroEyebrow")
         title = QLabel("Settings", hero)
         title.setObjectName("speedStreakSettingsTitle")
-        subtitle = QLabel("Tune timers, flags, modes, and appearance.", hero)
+        subtitle = QLabel("Tune timers, flags, feedback, modes, and appearance.", hero)
         subtitle.setObjectName("speedStreakSettingsSub")
         header.addWidget(eyebrow)
         header.addWidget(title)
@@ -1114,6 +1136,7 @@ class SettingsDialog(QDialog):
         body_layout.addWidget(self._build_timers_section(body))
         body_layout.addWidget(self._build_flags_section(body))
         body_layout.addWidget(self._build_display_style_section(body))
+        body_layout.addWidget(self._build_feedback_section(body))
         body_layout.addWidget(self._build_performance_section(body))
         body_layout.addWidget(self._build_appearance_section(body))
         body_layout.addWidget(self._build_actions_section(body))
@@ -1233,6 +1256,16 @@ class SettingsDialog(QDialog):
         layout.setVerticalSpacing(8)
         return block, layout
 
+    def _build_inline_controls(self, parent: QWidget, *widgets: QWidget) -> QWidget:
+        container = QWidget(parent)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        for index, widget in enumerate(widgets):
+            stretch = 1 if index == 0 else 0
+            layout.addWidget(widget, stretch)
+        return container
+
     def _build_timers_section(self, parent: QWidget) -> QWidget:
         frame, layout = self._build_section_card(parent, "Timers", "timers")
         self.question_spin = ScrollSafeDoubleSpinBox(frame)
@@ -1320,66 +1353,149 @@ class SettingsDialog(QDialog):
         layout.addWidget(self._build_toggle_block(frame, self.show_card_timer_check, "Show a horizontal timer bar above the review card."))
         return frame
 
-    def _build_performance_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Performance", "performance")
-        self.vibration_settings_group = QFrame(frame)
-        self.vibration_settings_group.setProperty("class", "settingRow")
-        vibration_layout = QVBoxLayout(self.vibration_settings_group)
-        vibration_layout.setContentsMargins(12, 12, 12, 12)
-        vibration_layout.setSpacing(8)
-        vibration_title = QLabel("Vibration", self.vibration_settings_group)
-        vibration_title.setProperty("class", "fieldLabel")
-        vibration_copy = QLabel(
-            "Turn controller rumble on or off. When vibration is on, you can keep visuals or switch to vibration only.",
-            self.vibration_settings_group,
-        )
-        vibration_copy.setWordWrap(True)
-        vibration_copy.setProperty("class", "helpText")
-        vibration_layout.addWidget(vibration_title)
-        vibration_layout.addWidget(vibration_copy)
+    def _build_feedback_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(parent, "Feedback", "feedback")
 
-        self.haptics_enabled_switch = SidebarSwitch(self.vibration_settings_group)
-        self.haptics_enabled_switch.toggled.connect(self._on_vibration_enabled_toggled)
-        vibration_layout.addWidget(
+        audio_group = QFrame(frame)
+        audio_group.setProperty("class", "settingRow")
+        audio_layout = QVBoxLayout(audio_group)
+        audio_layout.setContentsMargins(12, 12, 12, 12)
+        audio_layout.setSpacing(8)
+        audio_title = QLabel("Audio Feedback", audio_group)
+        audio_title.setProperty("class", "fieldLabel")
+        audio_copy = QLabel(
+            "Audio feedback is off by default. Choose one file from the add-on's Audio folder and preview it here before turning it on.",
+            audio_group,
+        )
+        audio_copy.setWordWrap(True)
+        audio_copy.setProperty("class", "helpText")
+        audio_layout.addWidget(audio_title)
+        audio_layout.addWidget(audio_copy)
+
+        self.audio_enabled_switch = SidebarSwitch(audio_group)
+        self.audio_enabled_switch.toggled.connect(self._on_audio_enabled_toggled)
+        audio_layout.addWidget(
             self._build_setting_row(
-                self.vibration_settings_group,
-                "Vibration",
-                "Matches the controller-style switch from the main overlay.",
+                audio_group,
+                "Audio feedback",
+                "Default: Off.",
+                self.audio_enabled_switch,
+                control_width=0,
+            )
+        )
+
+        self.audio_file_combo = ScrollSafeComboBox(audio_group)
+        self.audio_file_combo.currentIndexChanged.connect(self._on_audio_file_changed)
+        self.audio_preview_button = QPushButton("Play", audio_group)
+        self.audio_preview_button.setProperty("class", "secondaryAction")
+        self.audio_preview_button.clicked.connect(self._preview_audio_feedback)
+        audio_controls = self._build_inline_controls(audio_group, self.audio_file_combo, self.audio_preview_button)
+        audio_layout.addWidget(
+            self._build_setting_row(
+                audio_group,
+                "Audio file",
+                f"Choose any clip in the Audio folder. Preview works even while audio feedback is off. Default clip: {DEFAULT_AUDIO_FILE}.",
+                audio_controls,
+                control_width=340,
+            )
+        )
+        layout.addWidget(audio_group)
+
+        haptics_group = QFrame(frame)
+        haptics_group.setProperty("class", "settingRow")
+        haptics_layout = QVBoxLayout(haptics_group)
+        haptics_layout.setContentsMargins(12, 12, 12, 12)
+        haptics_layout.setSpacing(8)
+        haptics_title = QLabel("Haptic Feedback", haptics_group)
+        haptics_title.setProperty("class", "fieldLabel")
+        haptics_copy = QLabel(
+            "Haptics stay on by default. Each event below shows when it fires and what the original default pattern was.",
+            haptics_group,
+        )
+        haptics_copy.setWordWrap(True)
+        haptics_copy.setProperty("class", "helpText")
+        haptics_layout.addWidget(haptics_title)
+        haptics_layout.addWidget(haptics_copy)
+
+        self.haptics_enabled_switch = SidebarSwitch(haptics_group)
+        self.haptics_enabled_switch.toggled.connect(self._on_vibration_enabled_toggled)
+        haptics_layout.addWidget(
+            self._build_setting_row(
+                haptics_group,
+                "Haptic feedback",
+                "Default: On.",
                 self.haptics_enabled_switch,
                 control_width=0,
             )
         )
 
-        self.feedback_mode_group = QFrame(self.vibration_settings_group)
+        self.feedback_mode_group = QFrame(haptics_group)
         self.feedback_mode_group.setProperty("class", "buttonRowGroup")
         feedback_layout = QVBoxLayout(self.feedback_mode_group)
         feedback_layout.setContentsMargins(12, 12, 12, 12)
         feedback_layout.setSpacing(8)
         self.feedback_mode_buttons = QButtonGroup(self.feedback_mode_group)
         self.feedback_mode_buttons.setExclusive(True)
-        self.display_and_vibration_radio = QRadioButton("Display + Vibration", self.feedback_mode_group)
+        self.display_and_vibration_radio = QRadioButton("Display + Haptics", self.feedback_mode_group)
         self.feedback_mode_buttons.addButton(self.display_and_vibration_radio)
         self.display_and_vibration_radio.toggled.connect(self._on_feedback_mode_changed)
         feedback_layout.addWidget(
             self._build_toggle_block(
                 self.feedback_mode_group,
                 self.display_and_vibration_radio,
-                "Keep the visual display on and use vibration feedback alongside it.",
+                "Keep the visual display on and use haptics alongside it.",
             )
         )
-        self.vibration_only_radio = QRadioButton("Vibration Only", self.feedback_mode_group)
+        self.vibration_only_radio = QRadioButton("Haptics Only", self.feedback_mode_group)
         self.feedback_mode_buttons.addButton(self.vibration_only_radio)
         self.vibration_only_radio.toggled.connect(self._on_feedback_mode_changed)
         feedback_layout.addWidget(
             self._build_toggle_block(
                 self.feedback_mode_group,
                 self.vibration_only_radio,
-                "Turns off streak and timer visuals, disables appearance editing, and keeps only haptics.",
+                "Turn off streak and timer visuals, disable appearance editing, and keep only haptics.",
             )
         )
-        vibration_layout.addWidget(self.feedback_mode_group)
-        layout.addWidget(self.vibration_settings_group)
+        haptics_layout.addWidget(self.feedback_mode_group)
 
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            combo = ScrollSafeComboBox(haptics_group)
+            for pattern_key, label in HAPTIC_PATTERN_OPTIONS:
+                combo.addItem(label, pattern_key)
+            combo.currentIndexChanged.connect(lambda _index=0, key=event_key: self._on_haptic_pattern_changed(key))
+            self.haptic_event_combos[event_key] = combo
+
+            preview_button = QPushButton("Test", haptics_group)
+            preview_button.setProperty("class", "secondaryAction")
+            preview_button.clicked.connect(lambda _=False, key=event_key: self._preview_haptic_feedback(key))
+            self.haptic_preview_buttons[event_key] = preview_button
+
+            controls = self._build_inline_controls(haptics_group, combo, preview_button)
+            default_label = haptic_pattern_label(item["default_pattern"])
+            haptics_layout.addWidget(
+                self._build_setting_row(
+                    haptics_group,
+                    item["label"],
+                    f"{item['description']} Default: {default_label}.",
+                    controls,
+                    control_width=340,
+                )
+            )
+
+        haptic_note = QLabel(
+            "Haptic previews use the currently selected pattern for that event. They need a connected controller with native XInput rumble support.",
+            haptics_group,
+        )
+        haptic_note.setWordWrap(True)
+        haptic_note.setProperty("class", "helpText")
+        haptics_layout.addWidget(haptic_note)
+        layout.addWidget(haptics_group)
+
+        return frame
+
+    def _build_performance_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(parent, "Performance", "performance")
         self.visual_mode_combo = ScrollSafeComboBox(frame)
         for value, label in VISUAL_MODE_OPTIONS:
             self.visual_mode_combo.addItem(label, value)
@@ -1472,7 +1588,7 @@ class SettingsDialog(QDialog):
         note.setProperty("class", "helpText")
         rows_layout.addWidget(note)
         layout.addWidget(self.rows_settings_group)
-        self._sync_vibration_controls()
+        self._sync_feedback_controls()
         self._sync_visual_mode_controls()
         return frame
 
@@ -1585,7 +1701,11 @@ class SettingsDialog(QDialog):
             self.show_card_timer_check.setChecked(bool(state.show_card_timer))
             self.orbit_animation_check.setChecked(bool(getattr(state, "orbit_animation_enabled", True)))
             self.reduced_motion_check.setChecked(bool(getattr(state, "reduced_motion_enabled", False)))
+            self.audio_enabled_switch.setChecked(bool(getattr(state, "audio_enabled", DEFAULT_AUDIO_ENABLED)))
+            self._populate_audio_combo(str(getattr(state, "selected_audio_file", DEFAULT_AUDIO_FILE) or DEFAULT_AUDIO_FILE))
             self.haptics_enabled_switch.setChecked(bool(getattr(state, "haptics_enabled", True)))
+            self.haptic_event_patterns = dict(getattr(state, "haptic_event_patterns", default_haptic_event_patterns()) or {})
+            self._populate_haptic_event_combos(self.haptic_event_patterns)
             if bool(getattr(state, "haptics_enabled", True)) and not bool(state.visuals_enabled):
                 self.vibration_only_radio.setChecked(True)
             else:
@@ -1594,12 +1714,48 @@ class SettingsDialog(QDialog):
             self.custom_colors = normalize_custom_colors(getattr(state, "custom_colors", {}) or {})
             self.use_custom_timer_colors = bool(getattr(state, "custom_timer_colors", False))
             self.timer_color_level = float(getattr(state, "custom_timer_color_level", 0.0) or 0.0)
-            self._sync_vibration_controls()
+            self._sync_feedback_controls()
             self._sync_visual_mode_controls()
             self._sync_theme_label()
             self.error_label.setText("")
         finally:
             self._syncing = False
+
+    def _populate_audio_combo(self, selected_audio_file: str) -> None:
+        files = list(self.controller.available_audio_feedback_files())
+        normalized = self.controller.normalize_audio_feedback_file(selected_audio_file)
+        self.audio_file_combo.blockSignals(True)
+        try:
+            self.audio_file_combo.clear()
+            if files:
+                for file_name in files:
+                    self.audio_file_combo.addItem(file_name, file_name)
+                index = self.audio_file_combo.findData(normalized)
+                self.audio_file_combo.setCurrentIndex(max(0, index))
+            else:
+                self.audio_file_combo.addItem("No audio files found", "")
+                self.audio_file_combo.setCurrentIndex(0)
+        finally:
+            self.audio_file_combo.blockSignals(False)
+        self.audio_file_combo.setEnabled(bool(files))
+        self.audio_preview_button.setEnabled(bool(normalized))
+
+    def _populate_haptic_event_combos(self, patterns: dict[str, str]) -> None:
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            combo = self.haptic_event_combos.get(event_key)
+            if combo is None:
+                continue
+            combo.blockSignals(True)
+            try:
+                selected = str(patterns.get(event_key, item["default_pattern"]) or item["default_pattern"])
+                index = combo.findData(selected)
+                if index < 0:
+                    index = combo.findData(item["default_pattern"])
+                combo.setCurrentIndex(max(0, index))
+            finally:
+                combo.blockSignals(False)
+            self._update_haptic_preview_button(event_key)
 
     def _populate_flag_combos(self, time_drain_flag: int, review_later_flag: int) -> None:
         self.time_drain_combo.blockSignals(True)
@@ -1689,29 +1845,81 @@ class SettingsDialog(QDialog):
             self._update_flag_combo_style(sender)
         self.persist_settings()
 
+    def _on_audio_enabled_toggled(self, checked: bool) -> None:
+        if self._syncing:
+            return
+        self._sync_theme_label()
+        self.persist_settings()
+
+    def _on_audio_file_changed(self) -> None:
+        self.audio_preview_button.setEnabled(bool(self.audio_file_combo.currentData()))
+        if self._syncing:
+            return
+        self.persist_settings()
+
+    def _preview_audio_feedback(self) -> None:
+        self.error_label.setText("")
+        file_name = str(self.audio_file_combo.currentData() or "")
+        if not file_name:
+            self.error_label.setText("Choose an audio file first.")
+            return
+        if not self.controller.preview_audio_feedback(file_name):
+            self.error_label.setText("Audio preview could not be played from the settings screen.")
+
     def _is_vibration_only_selected(self) -> bool:
         return bool(getattr(self, "haptics_enabled_switch", None) and self.haptics_enabled_switch.isChecked() and self.vibration_only_radio.isChecked())
 
-    def _sync_vibration_controls(self) -> None:
+    def _update_haptic_preview_button(self, event_key: str) -> None:
+        combo = self.haptic_event_combos.get(event_key)
+        button = self.haptic_preview_buttons.get(event_key)
+        if combo is None or button is None:
+            return
+        button.setEnabled(str(combo.currentData() or "") != HAPTIC_PATTERN_OFF)
+
+    def _sync_feedback_controls(self) -> None:
         haptics_enabled = bool(getattr(self, "haptics_enabled_switch", None) and self.haptics_enabled_switch.isChecked())
         if getattr(self, "feedback_mode_group", None) is not None:
-            self.feedback_mode_group.setVisible(haptics_enabled)
+            self.feedback_mode_group.setEnabled(haptics_enabled)
         if getattr(self, "appearance_section", None) is not None:
             self.appearance_section.setEnabled(not self._is_vibration_only_selected())
 
     def _on_vibration_enabled_toggled(self, checked: bool) -> None:
         if self._syncing:
             return
-        self._sync_vibration_controls()
+        if not checked and self.vibration_only_radio.isChecked():
+            self._syncing = True
+            try:
+                self.display_and_vibration_radio.setChecked(True)
+            finally:
+                self._syncing = False
+        self._sync_feedback_controls()
         self._sync_theme_label()
         self.persist_settings()
 
     def _on_feedback_mode_changed(self, checked: bool) -> None:
         if self._syncing or not checked:
             return
-        self._sync_vibration_controls()
+        self._sync_feedback_controls()
         self._sync_theme_label()
         self.persist_settings()
+
+    def _on_haptic_pattern_changed(self, event_key: str) -> None:
+        self._update_haptic_preview_button(event_key)
+        if self._syncing:
+            return
+        self.persist_settings()
+
+    def _preview_haptic_feedback(self, event_key: str) -> None:
+        self.error_label.setText("")
+        combo = self.haptic_event_combos.get(event_key)
+        if combo is None:
+            return
+        pattern_key = str(combo.currentData() or "")
+        if not pattern_key or pattern_key == HAPTIC_PATTERN_OFF:
+            self.error_label.setText("This event is set to Off, so there is nothing to preview.")
+            return
+        if not self.controller.preview_haptic_pattern(pattern_key):
+            self.error_label.setText("Haptic preview needs a connected controller with native XInput rumble support.")
 
     def persist_settings(self) -> None:
         if self._syncing:
@@ -1722,14 +1930,24 @@ class SettingsDialog(QDialog):
             self.error_label.setText("Time Drain and Review Later cannot use the same flag.")
             return
         self.error_label.setText("")
+        audio_enabled = bool(self.audio_enabled_switch.isChecked())
+        selected_audio_file = str(self.audio_file_combo.currentData() or "")
         haptics_enabled = bool(self.haptics_enabled_switch.isChecked())
+        haptic_event_patterns = {
+            item["event"]: str(self.haptic_event_combos[item["event"]].currentData() or item["default_pattern"])
+            for item in HAPTIC_EVENT_OPTIONS
+            if item["event"] in self.haptic_event_combos
+        }
         visuals_enabled = not (haptics_enabled and self.vibration_only_radio.isChecked())
         self.controller.apply_settings_from_dialog(
             question_seconds=float(self.question_spin.value()),
             answer_seconds=float(self.answer_spin.value()),
             time_drain_flag=time_drain_flag,
             review_later_flag=review_later_flag,
+            audio_enabled=audio_enabled,
+            selected_audio_file=selected_audio_file,
             haptics_enabled=haptics_enabled,
+            haptic_event_patterns=haptic_event_patterns,
             show_card_timer=bool(self.show_card_timer_check.isChecked()),
             display_mode=str(self.display_mode_combo.currentData() or DISPLAY_MODE_INLINE),
             visual_mode=str(self.visual_mode_combo.currentData() or VISUAL_MODE_SPHERE),
@@ -1743,6 +1961,7 @@ class SettingsDialog(QDialog):
             appearance_mode=self.current_theme_key,
             custom_colors=dict(self.custom_colors),
         )
+        self._sync_theme_label()
 
     def _sync_theme_label(self) -> None:
         theme = next(((key, theme_label, top, bottom) for key, theme_label, top, bottom in THEMES if key == self.current_theme_key), None)
@@ -1751,9 +1970,11 @@ class SettingsDialog(QDialog):
         if not bool(getattr(state, "haptics_enabled", True)):
             feedback_label = "Display Only"
         elif bool(state.visuals_enabled):
-            feedback_label = "Display + Vibration"
+            feedback_label = "Display + Haptics"
         else:
-            feedback_label = "Vibration Only"
+            feedback_label = "Haptics Only"
+        audio_label = "On" if bool(getattr(state, "audio_enabled", False)) else "Off"
+        audio_file = str(getattr(state, "selected_audio_file", DEFAULT_AUDIO_FILE) or DEFAULT_AUDIO_FILE)
         self.appearance_value.setText(f"Current Theme: {label}")
         resolved_colors = {**theme_default_colors(self.current_theme_key), **normalize_custom_colors(self.custom_colors)}
         display_label = display_mode_label(getattr(self.controller, "display_mode", DISPLAY_MODE_INLINE))
@@ -1770,7 +1991,7 @@ class SettingsDialog(QDialog):
                 f"Reduced motion {'on' if getattr(self.controller.engine.state, 'reduced_motion_enabled', False) else 'off'}"
             )
         self.color_value.setText(
-            f"Display: {display_label}  |  Feedback: {feedback_label}  |  Visual: {visual_mode_label(visual_mode)}\n"
+            f"Display: {display_label}  |  Haptics: {feedback_label}  |  Audio: {audio_label} ({audio_file})  |  Visual: {visual_mode_label(visual_mode)}\n"
             f"{visual_detail}\n"
             "Orb colors: "
             f"Orb {resolved_colors['core'].upper()}  "
@@ -1835,7 +2056,7 @@ class SettingsDialog(QDialog):
         decision = QMessageBox.question(
             self,
             "Confirm Default Settings",
-            "Reset all Speed Streak settings, including saved orb colors, back to their defaults?",
+            "Reset all Speed Streak settings, including feedback choices and saved orb colors, back to their defaults?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )

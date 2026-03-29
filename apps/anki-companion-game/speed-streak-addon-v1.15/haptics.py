@@ -6,6 +6,8 @@ import threading
 import time
 from typing import List, Tuple
 
+from .feedback_catalog import HAPTIC_PATTERN_LIBRARY
+
 
 class XInputVibration(ctypes.Structure):
     _fields_ = [
@@ -55,23 +57,29 @@ class HapticsController:
         return rc == 0
 
     def play_pattern(self, kind: str) -> None:
-        patterns = {
-            "reveal": [(90, 42000, 65535)],
-            "again": [(80, 42000, 58000), (55, 0, 0), (80, 42000, 62000)],
-            "hard": [(95, 24000, 36000)],
-            "good": [(120, 52000, 65535)],
-            "easy": [(125, 22000, 30000)],
-            "skip": [(80, 12000, 19000)],
-            "sync": [(95, 13000, 18000)],
-            "reset": [(120, 17000, 26000)],
-            "bossStart": [(80, 22000, 38000), (70, 0, 0), (110, 26000, 43000)],
-            "bossClear": [(180, 32000, 52000)],
-            "timeout": [(420, 52000, 65535), (95, 0, 0), (180, 36000, 50000)],
-        }
-        sequence = patterns.get(kind)
-        if not sequence or not self.available or not self._user_enabled:
-            return
+        self._play_pattern(kind, ignore_user_enabled=False)
+
+    def preview_pattern(self, kind: str) -> bool:
+        return self._play_pattern(kind, ignore_user_enabled=True)
+
+    def _play_pattern(self, kind: str, *, ignore_user_enabled: bool) -> bool:
+        sequence = self._native_sequence(kind)
+        if not sequence or not self.available or (not ignore_user_enabled and not self._user_enabled):
+            return False
         threading.Thread(target=self._run_sequence, args=(sequence,), daemon=True).start()
+        return True
+
+    def _native_sequence(self, kind: str) -> List[Tuple[int, int, int]]:
+        meta = HAPTIC_PATTERN_LIBRARY.get(str(kind or "").strip())
+        if not meta:
+            return []
+        sequence: List[Tuple[int, int, int]] = []
+        for step in meta.get("sequence", []):
+            duration = max(0, int(step.get("duration", 0) or 0))
+            weak = max(0.0, min(1.0, float(step.get("weak", 0) or 0.0)))
+            strong = max(0.0, min(1.0, float(step.get("strong", 0) or 0.0)))
+            sequence.append((duration, int(round(weak * 65535)), int(round(strong * 65535))))
+        return sequence
 
     def _run_sequence(self, sequence: List[Tuple[int, int, int]]) -> None:
         for duration_ms, left_motor, right_motor in sequence:
