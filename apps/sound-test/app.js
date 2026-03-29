@@ -83,6 +83,8 @@ const elements = {
   reviewQueueToggle: document.getElementById("reviewQueueToggle"),
   reviewQueueToggleLabel: document.querySelector("#reviewQueueToggle .queue-toggle-label"),
   reviewQueuePanel: document.getElementById("reviewQueuePanel"),
+  reviewQueueBackdrop: document.getElementById("reviewQueueBackdrop"),
+  reviewQueueCloseButton: document.getElementById("reviewQueueCloseButton"),
   reviewQueueList: document.getElementById("reviewQueueList"),
   browseMeta: document.getElementById("browseMeta"),
   swipeStage: document.getElementById("swipeStage"),
@@ -109,6 +111,12 @@ function initialize() {
 }
 
 function bindEvents() {
+  document.addEventListener("dblclick", (event) => {
+    if (event.target.closest("button")) {
+      event.preventDefault();
+    }
+  });
+
   elements.viewToggle.addEventListener("click", (event) => {
     const button = event.target.closest("[data-view]");
     if (!button) {
@@ -168,6 +176,24 @@ function bindEvents() {
     }
 
     state.reviewQueueOpen = !state.reviewQueueOpen;
+    renderSwipeView();
+  });
+
+  elements.reviewQueueBackdrop.addEventListener("click", () => {
+    if (!state.reviewQueueOpen) {
+      return;
+    }
+
+    state.reviewQueueOpen = false;
+    renderSwipeView();
+  });
+
+  elements.reviewQueueCloseButton.addEventListener("click", () => {
+    if (!state.reviewQueueOpen) {
+      return;
+    }
+
+    state.reviewQueueOpen = false;
     renderSwipeView();
   });
 
@@ -319,6 +345,13 @@ function bindSwipeGestures() {
 }
 
 function handleKeyboardShortcuts(event) {
+  if (event.key === "Escape" && state.reviewQueueOpen) {
+    event.preventDefault();
+    state.reviewQueueOpen = false;
+    renderSwipeView();
+    return;
+  }
+
   if (state.view !== "swipe") {
     return;
   }
