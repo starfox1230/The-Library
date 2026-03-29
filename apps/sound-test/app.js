@@ -22,6 +22,7 @@ const state = {
   status: "all",
   search: "",
   swipeIndex: 0,
+  swipeHistory: [],
   currentSoundId: null,
   currentBrowseId: null,
   drag: null,
@@ -150,6 +151,7 @@ function bindEvents() {
     }
 
     state.ratings = {};
+    state.swipeHistory = [];
     persistRatings();
     announce("All sound ratings were reset.");
     render();
@@ -299,6 +301,12 @@ function handleKeyboardShortcuts(event) {
     if (currentSound) {
       setActiveSound(currentSound.id, { autoplay: true, restart: true, syncBrowse: false });
     }
+    return;
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+    event.preventDefault();
+    undoLastSwipeAction();
     return;
   }
 
@@ -572,6 +580,7 @@ function applySwipeRating(nextRating) {
     return;
   }
 
+  const previousRating = getRating(currentSound.id);
   const nextSoundId = queueBefore[state.swipeIndex + 1]?.id || queueBefore[state.swipeIndex - 1]?.id || null;
   const exitClass = nextRating === "favorite" ? "exit-right" : nextRating === "disliked" ? "exit-left" : "exit-up";
 
@@ -579,6 +588,17 @@ function applySwipeRating(nextRating) {
   elements.swipeCard.classList.add(exitClass);
 
   window.setTimeout(() => {
+    pushSwipeHistory({
+      soundId: currentSound.id,
+      previousRating,
+      nextRating,
+      previousSwipeIndex: state.swipeIndex,
+      filterState: {
+        folder: state.folder,
+        status: state.status,
+        search: state.search,
+      },
+    });
     setRating(currentSound.id, nextRating);
     announce(`${currentSound.title} marked ${labelForStatus(nextRating)}.`);
 
@@ -605,12 +625,66 @@ function applySwipeRating(nextRating) {
 }
 
 function setRating(soundId, nextRating) {
+  if (nextRating === "unrated") {
+    delete state.ratings[soundId];
+    persistRatings();
+    return;
+  }
+
   if (!RATE_ACTIONS.includes(nextRating)) {
     return;
   }
 
   state.ratings[soundId] = nextRating;
   persistRatings();
+}
+
+function pushSwipeHistory(entry) {
+  state.swipeHistory.push(entry);
+
+  if (state.swipeHistory.length > 150) {
+    state.swipeHistory.shift();
+  }
+}
+
+function undoLastSwipeAction() {
+  if (state.view !== "swipe" || state.isSwipeAnimating) {
+    return;
+  }
+
+  const lastAction = state.swipeHistory.pop();
+  if (!lastAction) {
+    announce("Nothing to undo.");
+    return;
+  }
+
+  state.folder = lastAction.filterState.folder;
+  state.status = lastAction.filterState.status;
+  state.search = lastAction.filterState.search;
+  setRating(lastAction.soundId, lastAction.previousRating);
+  persistPreferences();
+
+  const queueAfterUndo = getFilteredSounds();
+  const restoredIndex = queueAfterUndo.findIndex((sound) => sound.id === lastAction.soundId);
+
+  if (restoredIndex >= 0) {
+    state.swipeIndex = restoredIndex;
+  } else if (queueAfterUndo.length) {
+    state.swipeIndex = Math.max(0, Math.min(lastAction.previousSwipeIndex, queueAfterUndo.length - 1));
+  } else {
+    state.swipeIndex = 0;
+  }
+
+  render();
+
+  if (restoredIndex >= 0) {
+    setActiveSound(lastAction.soundId, { autoplay: true, restart: true, syncBrowse: false });
+    const restoredSound = soundsById.get(lastAction.soundId);
+    announce(`Went back to ${restoredSound ? restoredSound.title : "the previous sound"}.`);
+    return;
+  }
+
+  announce("Undid the last swipe.");
 }
 
 function getRating(soundId) {
