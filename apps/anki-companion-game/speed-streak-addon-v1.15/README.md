@@ -12,7 +12,7 @@ It does not modify the original standalone files in the parent folder.
 - Added two display modes: an inline side pane and a separate external compatibility window. The external window is generally the recommended option because it renders more smoothly and plays better with add-ons like AnkiHub and AMBOSS.
 - Added a new `Brick Layout` view as the built-in ultra-low-resource mode alongside the original `Sphere/Satellites` view.
 - Added a full `Haptic/Audio Feedback` settings section with per-event audio and haptic customization, audio previews, audio uploads, and persistent uploaded-file ordering.
-- Added support for packaged nested audio folders plus optional `Audio_trimmed` files for faster-starting sound effects.
+- Packaged audio now ships in trimmed form so the built-in sounds start faster.
 - Added a `Shortcuts` settings section with a configurable pause shortcut, plus a new `Longest Streak` stat in the stats view.
 - Reworked the sidebar controls and settings layout, including symbol-based quick toggles for layout, display mode, haptics, and sound.
 
@@ -62,13 +62,13 @@ The installer preserves the installed add-on's `user_files` folder so Review Lat
 
 ### Trim packaged audio on Windows
 
-If you want the built-in sound packs to start faster, you can generate a parallel `Audio_trimmed` folder with:
+If you later add raw source packs back into an `Audio` folder, you can generate a trimmed `Audio_trimmed` folder with:
 
 ```powershell
 .\trim_audio_to_trimmed.ps1
 ```
 
-The script keeps the original `Audio` folder untouched, trims only leading silence, and writes the processed results into `Audio_trimmed` with the same subfolder structure. The add-on automatically prefers `Audio_trimmed` when those files exist and falls back to `Audio` for anything that has not been trimmed yet.
+The script trims only leading silence and writes the processed results into `Audio_trimmed` with the same subfolder structure. This repo currently ships the packaged audio in trimmed form.
 
 ### Faster install on macOS
 

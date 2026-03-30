@@ -20,7 +20,6 @@ from .display_mode import (
     normalize_display_mode,
 )
 from .feedback_catalog import (
-    AUDIO_DIRECTORY_NAME,
     AUDIO_TRIMMED_DIRECTORY_NAME,
     DEFAULT_AUDIO_ENABLED,
     DEFAULT_AUDIO_FILE,
@@ -160,7 +159,6 @@ class ReviewerOverlayController:
         self.audio_feedback = AudioFeedbackController(
             ADDON_ROOT / AUDIO_TRIMMED_DIRECTORY_NAME,
             ADDON_ROOT / "user_files",
-            fallback_audio_root=ADDON_ROOT / AUDIO_DIRECTORY_NAME,
         )
         self.stats_store = StatsStore(ADDON_ROOT)
         self.display_mode = DISPLAY_MODE_INLINE
@@ -595,7 +593,7 @@ class ReviewerOverlayController:
         try:
             mw.addonManager.setWebExports(
                 __name__,
-                r"(web|Audio|Audio_trimmed|user_files/audio_uploads)/.*\.(aac|css|flac|js|m4a|mp3|oga|ogg|opus|wav)",
+                r"(web|Audio_trimmed|user_files/audio_uploads)/.*\.(aac|css|flac|js|m4a|mp3|oga|ogg|opus|wav)",
             )
         except Exception:
             pass

@@ -57,6 +57,13 @@ if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Path $target | Out-Null
 }
 
+Get-ChildItem -Path $target -Force | Where-Object {
+    $preserveDirectories -notcontains $_.Name -and
+    -not (Test-Path (Join-Path $source $_.Name))
+} | ForEach-Object {
+    Remove-Item -LiteralPath $_.FullName -Recurse -Force
+}
+
 Get-ChildItem -Path $source -Force | Where-Object {
     $_.Name -notin @("install_to_anki.ps1", "generate_web_assets.py", ".DS_Store") -and
     $_.Name -notlike "*.ankiaddon" -and
