@@ -12,6 +12,7 @@ from aqt.qt import (
     QComboBox,
     QDialog,
     QDoubleSpinBox,
+    QFileDialog,
     QFrame,
     QIcon,
     QLinearGradient,
@@ -28,6 +29,7 @@ from aqt.qt import (
     QLineEdit,
     QListView,
     QMessageBox,
+    QMenu,
     QPalette,
     QPushButton,
     QRadioButton,
@@ -35,6 +37,7 @@ from aqt.qt import (
     QScrollArea,
     QSizePolicy,
     Qt,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -51,14 +54,17 @@ from .feedback_catalog import (
     HAPTIC_EVENT_OPTIONS,
     HAPTIC_PATTERN_OFF,
     HAPTIC_PATTERN_OPTIONS,
+    default_audio_event_files,
     default_haptic_event_patterns,
     haptic_pattern_label,
 )
 from .render_mode import (
     RENDER_MODE_CLASSIC,
+    RENDER_MODE_ULTRA_LOW_RESOURCE,
     RENDER_MODE_OPTIONS,
     render_mode_label,
 )
+from .shortcuts import SHORTCUT_OPTIONS, default_shortcut_bindings, normalize_shortcut_value
 from .sphere_mode import (
     SPHERE_MODE_CLASSIC,
     SPHERE_MODE_OPTIONS,
@@ -171,6 +177,8 @@ COLOR_FIELDS = [
     ("blue", "Easy Satellite", "Used for Easy ratings."),
 ]
 
+SHORTCUT_DEFAULTS = {str(item["key"]): str(item["default"]) for item in SHORTCUT_OPTIONS}
+
 VIBRATION_MODE_DISPLAY_AND_VIBRATION = "display_and_vibration"
 VIBRATION_MODE_VIBRATION_ONLY = "vibration_only"
 
@@ -247,17 +255,27 @@ SECTION_STYLE_TOKENS = {
         "border_color": "rgba(111, 171, 135, 0.18)",
         "title_color": "#b6dec1",
     },
+    "shortcuts": {
+        "frame_background": """
+            qlineargradient(x1:0, y1:0, x2:0, y2:1,
+              stop:0 rgba(38, 34, 49, 0.98),
+              stop:1 rgba(27, 24, 36, 0.98))
+        """,
+        "border_color": "rgba(173, 143, 222, 0.18)",
+        "title_color": "#d8c2ff",
+    },
 }
 
 SECTION_DESCRIPTIONS = {
     "actions": "Quick tools and reset actions for this profile.",
     "timers": "Set how long Speed Streak gives you during the question and answer phases.",
     "flags": "Choose which Anki flags Speed Streak uses for time-drain and review-later cards.",
-    "feedback": "Control the audio click and controller haptic feedback that fire during review events.",
+    "feedback": "Control per-event audio clips and controller haptic feedback that fire during review events.",
     "display_style": "Choose where Speed Streak appears and which visual helpers stay visible while you review.",
     "performance": "Choose which visual renderer to use and reduce motion if the effects feel heavy on your computer.",
     "appearance": "Choose a theme and orb palette without changing how the game behaves.",
     "help": "A few reminders for how the review workflow fits together.",
+    "shortcuts": "Change any Speed Streak shortcuts here. New shortcuts will appear in this section as they are added.",
 }
 
 
@@ -887,9 +905,15 @@ class SettingsDialog(QDialog):
         self.custom_colors: dict[str, str] = {}
         self.use_custom_timer_colors = False
         self.timer_color_level = 0.0
+        self.audio_event_files = default_audio_event_files()
+        self.audio_event_buttons: dict[str, QToolButton] = {}
+        self.audio_upload_buttons: dict[str, QPushButton] = {}
+        self.audio_preview_buttons: dict[str, QPushButton] = {}
         self.haptic_event_patterns = default_haptic_event_patterns()
         self.haptic_event_combos: dict[str, ScrollSafeComboBox] = {}
         self.haptic_preview_buttons: dict[str, QPushButton] = {}
+        self.shortcut_bindings = default_shortcut_bindings()
+        self.shortcut_inputs: dict[str, QLineEdit] = {}
         self.flag_palette = get_anki_flag_palette()
 
         self.setModal(False)
@@ -942,6 +966,17 @@ class SettingsDialog(QDialog):
               color: #93a1b8;
               font-size: 11px;
             }
+            QToolButton[class="sectionToggle"] {
+              background: transparent;
+              border: none;
+              padding: 2px 0;
+              text-align: left;
+              font-size: 17px;
+              font-weight: 800;
+            }
+            QToolButton[class="sectionToggle"]:hover {
+              color: #f4f7ff;
+            }
             QLabel[class="fieldLabel"] {
               color: #e5eaf5;
               font-size: 12px;
@@ -956,7 +991,7 @@ class SettingsDialog(QDialog):
               font-size: 12px;
               font-weight: 700;
             }
-            QPushButton[class="primaryAction"], QPushButton[class="secondaryAction"], QPushButton[class="reviewLaterAction"], QPushButton#speedStreakSettingsClose {
+            QPushButton[class="primaryAction"], QPushButton[class="secondaryAction"], QPushButton[class="reviewLaterAction"], QPushButton#speedStreakSettingsClose, QToolButton[class="secondaryAction"] {
               color: #edf1fb;
               border-radius: 12px;
               padding: 8px 12px;
@@ -974,8 +1009,17 @@ class SettingsDialog(QDialog):
               background: rgba(44, 57, 81, 0.96);
               border-color: rgba(103, 143, 214, 0.26);
             }
-            QPushButton[class="secondaryAction"], QPushButton#speedStreakSettingsClose {
+            QPushButton[class="secondaryAction"], QPushButton#speedStreakSettingsClose, QToolButton[class="secondaryAction"] {
               background: rgba(33, 40, 54, 0.96);
+            }
+            QToolButton[class="secondaryAction"] {
+              text-align: left;
+              min-width: 260px;
+            }
+            QToolButton[class="secondaryAction"]::menu-indicator {
+              subcontrol-origin: padding;
+              subcontrol-position: center right;
+              right: 10px;
             }
             QPushButton[class="dangerAction"] {
               color: #fff2f4;
@@ -993,7 +1037,7 @@ class SettingsDialog(QDialog):
                 stop:0 rgba(110, 158, 250, 0.96),
                 stop:1 rgba(76, 122, 214, 0.96));
             }
-            QPushButton[class="secondaryAction"]:hover, QPushButton[class="reviewLaterAction"]:hover, QPushButton#speedStreakSettingsClose:hover {
+            QPushButton[class="secondaryAction"]:hover, QPushButton[class="reviewLaterAction"]:hover, QPushButton#speedStreakSettingsClose:hover, QToolButton[class="secondaryAction"]:hover {
               background: rgba(42, 50, 66, 0.98);
             }
             QPushButton[class="dangerAction"]:hover {
@@ -1133,13 +1177,14 @@ class SettingsDialog(QDialog):
         body_layout.setContentsMargins(2, 2, 8, 2)
         body_layout.setSpacing(12)
 
+        body_layout.addWidget(self._build_actions_section(body))
         body_layout.addWidget(self._build_timers_section(body))
         body_layout.addWidget(self._build_flags_section(body))
         body_layout.addWidget(self._build_display_style_section(body))
         body_layout.addWidget(self._build_feedback_section(body))
         body_layout.addWidget(self._build_performance_section(body))
         body_layout.addWidget(self._build_appearance_section(body))
-        body_layout.addWidget(self._build_actions_section(body))
+        body_layout.addWidget(self._build_shortcuts_section(body))
         body_layout.addStretch(1)
 
         scroll.setWidget(body)
@@ -1165,27 +1210,67 @@ class SettingsDialog(QDialog):
             _dialog = None
         super().closeEvent(event)
 
-    def _build_section_card(self, parent: QWidget, title: str, accent: str) -> tuple[QFrame, QVBoxLayout]:
+    def _build_section_card(
+        self,
+        parent: QWidget,
+        title: str,
+        accent: str,
+        *,
+        collapsible: bool = True,
+        expanded: bool = False,
+    ) -> tuple[QFrame, QVBoxLayout]:
         frame = QFrame(parent)
         frame.setProperty("class", "sectionCard")
         frame.setProperty("accent", accent)
         frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         frame.setObjectName(f"speedStreakSectionCard_{accent}")
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(0)
         self._apply_section_card_style(frame, accent)
-        heading = QLabel(title, frame)
-        heading.setProperty("class", "sectionTitle")
-        heading.setStyleSheet(f"color: {SECTION_STYLE_TOKENS.get(accent, SECTION_STYLE_TOKENS['appearance'])['title_color']};")
-        layout.addWidget(heading)
+        title_color = SECTION_STYLE_TOKENS.get(accent, SECTION_STYLE_TOKENS["appearance"])["title_color"]
+        if collapsible:
+            heading_button = QToolButton(frame)
+            heading_button.setProperty("class", "sectionToggle")
+            heading_button.setText(title)
+            heading_button.setCheckable(True)
+            heading_button.setChecked(bool(expanded))
+            heading_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            heading_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+            heading_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            heading_button.setStyleSheet(f"color: {title_color};")
+            layout.addWidget(heading_button)
+        else:
+            heading = QLabel(title, frame)
+            heading.setProperty("class", "sectionTitle")
+            heading.setStyleSheet(f"color: {title_color};")
+            layout.addWidget(heading)
+        content = QWidget(frame)
+        content.setStyleSheet("background: transparent;")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 10, 0, 0)
+        content_layout.setSpacing(12)
         description = SECTION_DESCRIPTIONS.get(accent, "")
         if description:
-            copy = QLabel(description, frame)
+            copy = QLabel(description, content)
             copy.setWordWrap(True)
             copy.setProperty("class", "sectionCopy")
-            layout.addWidget(copy)
-        return frame, layout
+            content_layout.addWidget(copy)
+        content.setVisible(not collapsible or bool(expanded))
+        layout.addWidget(content)
+        if collapsible:
+            heading_button.toggled.connect(
+                lambda checked, button=heading_button, section_content=content: self._set_section_expanded(
+                    button,
+                    section_content,
+                    checked,
+                )
+            )
+        return frame, content_layout
+
+    def _set_section_expanded(self, button: QToolButton, content: QWidget, expanded: bool) -> None:
+        button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+        content.setVisible(bool(expanded))
 
     def _apply_section_card_style(self, frame: QFrame, accent: str) -> None:
         tokens = SECTION_STYLE_TOKENS.get(accent, SECTION_STYLE_TOKENS["appearance"])
@@ -1354,7 +1439,7 @@ class SettingsDialog(QDialog):
         return frame
 
     def _build_feedback_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Feedback", "feedback")
+        frame, layout = self._build_section_card(parent, "Haptic/Audio Feedback", "feedback")
 
         audio_group = QFrame(frame)
         audio_group.setProperty("class", "settingRow")
@@ -1364,7 +1449,7 @@ class SettingsDialog(QDialog):
         audio_title = QLabel("Audio Feedback", audio_group)
         audio_title.setProperty("class", "fieldLabel")
         audio_copy = QLabel(
-            "Audio feedback is off by default. Choose one file from the add-on's Audio folder and preview it here before turning it on.",
+            "Audio feedback stays off by default. Each review event can use its own clip, and uploaded files are copied into the add-on's preserved user_files folder so they stay available after reinstalling.",
             audio_group,
         )
         audio_copy.setWordWrap(True)
@@ -1384,21 +1469,42 @@ class SettingsDialog(QDialog):
             )
         )
 
-        self.audio_file_combo = ScrollSafeComboBox(audio_group)
-        self.audio_file_combo.currentIndexChanged.connect(self._on_audio_file_changed)
-        self.audio_preview_button = QPushButton("Play", audio_group)
-        self.audio_preview_button.setProperty("class", "secondaryAction")
-        self.audio_preview_button.clicked.connect(self._preview_audio_feedback)
-        audio_controls = self._build_inline_controls(audio_group, self.audio_file_combo, self.audio_preview_button)
-        audio_layout.addWidget(
-            self._build_setting_row(
-                audio_group,
-                "Audio file",
-                f"Choose any clip in the Audio folder. Preview works even while audio feedback is off. Default clip: {DEFAULT_AUDIO_FILE}.",
-                audio_controls,
-                control_width=340,
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            button = QToolButton(audio_group)
+            button.setProperty("class", "secondaryAction")
+            button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+            self.audio_event_buttons[event_key] = button
+
+            upload_button = QPushButton("Upload", audio_group)
+            upload_button.setProperty("class", "secondaryAction")
+            upload_button.clicked.connect(lambda _=False, key=event_key: self._upload_audio_feedback(key))
+            self.audio_upload_buttons[event_key] = upload_button
+
+            preview_button = QPushButton("Play", audio_group)
+            preview_button.setProperty("class", "secondaryAction")
+            preview_button.clicked.connect(lambda _=False, key=event_key: self._preview_audio_feedback(key))
+            self.audio_preview_buttons[event_key] = preview_button
+
+            controls = self._build_inline_controls(audio_group, button, upload_button, preview_button)
+            default_label = self.controller.audio_feedback_label(default_audio_event_files().get(event_key, DEFAULT_AUDIO_FILE))
+            audio_layout.addWidget(
+                self._build_setting_row(
+                    audio_group,
+                    item["label"],
+                    f"{item['description']} Default: {default_label}. Categories stay collapsed until you open one, and uploaded clips stay grouped at the top in the order you added them.",
+                    controls,
+                    control_width=430,
+                )
             )
+        audio_note = QLabel(
+            "Audio previews work even while audio feedback is turned off. Accepted uploads include OGG, MP3, WAV, FLAC, M4A, AAC, and OPUS.",
+            audio_group,
         )
+        audio_note.setWordWrap(True)
+        audio_note.setProperty("class", "helpText")
+        audio_layout.addWidget(audio_note)
         layout.addWidget(audio_group)
 
         haptics_group = QFrame(frame)
@@ -1504,7 +1610,7 @@ class SettingsDialog(QDialog):
             self._build_setting_row(
                 frame,
                 "Visual mode",
-                "Choose between the legacy sphere presentation and the alternate lightweight rows presentation.",
+                "Choose between the legacy sphere presentation and brick layout, which is the built-in ultra-low-resource option.",
                 self.visual_mode_combo,
                 control_width=250,
             )
@@ -1518,7 +1624,7 @@ class SettingsDialog(QDialog):
         sphere_title = QLabel("Sphere/Satellites Settings", self.sphere_settings_group)
         sphere_title.setProperty("class", "fieldLabel")
         sphere_copy = QLabel(
-            "These are the sphere controls from v1.14, plus an alternate consolidate renderer that compresses each completed bank of 10 into a static summary ring.",
+            "These controls apply only to sphere mode. Brick layout is already the built-in ultra-low-resource option, so it does not have its own extra sub-settings.",
             self.sphere_settings_group,
         )
         sphere_copy.setWordWrap(True)
@@ -1546,7 +1652,7 @@ class SettingsDialog(QDialog):
             self._build_setting_row(
                 self.sphere_settings_group,
                 "Render mode",
-                "Classic keeps the original continuous visual update style. Low Resource keeps smoother timer updates while avoiding the continuous browser animation loop. Ultra Low Resource steps the timers every half second, freezes satellite motion, and skips extra flare effects.",
+                "Applies to sphere mode only. Classic keeps the original continuous visual update style. Low Resource keeps smoother timer updates while avoiding the continuous browser animation loop. Ultra Low Resource steps the timers every half second, freezes satellite motion, and skips extra flare effects.",
                 self.render_mode_combo,
                 control_width=230,
             )
@@ -1561,33 +1667,13 @@ class SettingsDialog(QDialog):
             )
         )
         layout.addWidget(self.sphere_settings_group)
-
-        self.rows_settings_group = QFrame(frame)
-        self.rows_settings_group.setProperty("class", "settingRow")
-        rows_layout = QVBoxLayout(self.rows_settings_group)
-        rows_layout.setContentsMargins(12, 12, 12, 12)
-        rows_layout.setSpacing(8)
-        rows_title = QLabel("Lightweight Rows Settings", self.rows_settings_group)
-        rows_title.setProperty("class", "fieldLabel")
-        rows_copy = QLabel("This is the alternate low-activity view. It keeps motion short and progress chunked.", self.rows_settings_group)
-        rows_copy.setWordWrap(True)
-        rows_copy.setProperty("class", "helpText")
-        rows_layout.addWidget(rows_title)
-        rows_layout.addWidget(rows_copy)
-        self.reduced_motion_check = QCheckBox("Reduced Motion", frame)
-        self.reduced_motion_check.toggled.connect(self.persist_settings)
-        rows_layout.addWidget(
-            self._build_toggle_block(
-                self.rows_settings_group,
-                self.reduced_motion_check,
-                "Keeps feedback short and subtle so the lightweight view stays calm and battery-friendly.",
-            )
+        self.brick_mode_note = QLabel(
+            "Brick layout is already the built-in ultra-low-resource mode, so there are no extra brick display sub-settings here.",
+            frame,
         )
-        note = QLabel("Lightweight mode minimizes CPU/GPU activity.", self.rows_settings_group)
-        note.setWordWrap(True)
-        note.setProperty("class", "helpText")
-        rows_layout.addWidget(note)
-        layout.addWidget(self.rows_settings_group)
+        self.brick_mode_note.setWordWrap(True)
+        self.brick_mode_note.setProperty("class", "helpText")
+        layout.addWidget(self.brick_mode_note)
         self._sync_feedback_controls()
         self._sync_visual_mode_controls()
         return frame
@@ -1640,7 +1726,7 @@ class SettingsDialog(QDialog):
         return frame
 
     def _build_actions_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Actions", "actions")
+        frame, layout = self._build_section_card(parent, "Actions", "actions", collapsible=False, expanded=True)
         button_group, grid = self._build_button_group(frame)
 
         review_later_button = QPushButton("Review Later Manager", frame)
@@ -1666,10 +1752,50 @@ class SettingsDialog(QDialog):
         layout.addWidget(button_group)
         return frame
 
+    def _shortcut_default(self, shortcut_key: str) -> str:
+        return SHORTCUT_DEFAULTS.get(shortcut_key, "P")
+
+    def _build_shortcuts_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(parent, "Shortcuts", "shortcuts")
+        for item in SHORTCUT_OPTIONS:
+            shortcut_key = str(item["key"])
+            field = QLineEdit(frame)
+            field.setMaxLength(1)
+            field.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            field.setPlaceholderText(self._shortcut_default(shortcut_key))
+            field.editingFinished.connect(lambda key=shortcut_key: self._on_shortcut_edit_finished(key))
+            self.shortcut_inputs[shortcut_key] = field
+            layout.addWidget(
+                self._build_setting_row(
+                    frame,
+                    str(item["label"]),
+                    f"{item['description']} Default: {self._shortcut_default(shortcut_key)}.",
+                    field,
+                    control_width=88,
+                )
+            )
+        return frame
+
+    def _on_shortcut_edit_finished(self, shortcut_key: str) -> None:
+        field = self.shortcut_inputs.get(shortcut_key)
+        if field is None:
+            return
+        normalized = normalize_shortcut_value(field.text(), self._shortcut_default(shortcut_key))
+        if field.text() != normalized:
+            field.blockSignals(True)
+            try:
+                field.setText(normalized)
+            finally:
+                field.blockSignals(False)
+        self.shortcut_bindings[shortcut_key] = normalized
+        if self._syncing:
+            return
+        self.persist_settings()
+
     def _build_help_section(self, parent: QWidget) -> QWidget:
         frame, layout = self._build_section_card(parent, "Help", "help")
         help_text = QLabel(
-            "Press P to pause or unpause. Time Drain warns you when a flagged card is consuming time. "
+            f"Press {self.controller.shortcut_label('pause')} to pause or unpause. Time Drain warns you when a flagged card is consuming time. "
             "Review Later marks cards to revisit later and pairs with the Review Later Manager.",
             frame,
         )
@@ -1700,12 +1826,15 @@ class SettingsDialog(QDialog):
             )
             self.show_card_timer_check.setChecked(bool(state.show_card_timer))
             self.orbit_animation_check.setChecked(bool(getattr(state, "orbit_animation_enabled", True)))
-            self.reduced_motion_check.setChecked(bool(getattr(state, "reduced_motion_enabled", False)))
             self.audio_enabled_switch.setChecked(bool(getattr(state, "audio_enabled", DEFAULT_AUDIO_ENABLED)))
-            self._populate_audio_combo(str(getattr(state, "selected_audio_file", DEFAULT_AUDIO_FILE) or DEFAULT_AUDIO_FILE))
+            self.audio_event_files = dict(getattr(state, "audio_event_files", default_audio_event_files()) or {})
+            self._populate_audio_event_buttons(self.audio_event_files)
             self.haptics_enabled_switch.setChecked(bool(getattr(state, "haptics_enabled", True)))
             self.haptic_event_patterns = dict(getattr(state, "haptic_event_patterns", default_haptic_event_patterns()) or {})
             self._populate_haptic_event_combos(self.haptic_event_patterns)
+            self.shortcut_bindings = self.controller.current_shortcut_bindings()
+            for shortcut_key, field in self.shortcut_inputs.items():
+                field.setText(self.shortcut_bindings.get(shortcut_key, self._shortcut_default(shortcut_key)))
             if bool(getattr(state, "haptics_enabled", True)) and not bool(state.visuals_enabled):
                 self.vibration_only_radio.setChecked(True)
             else:
@@ -1721,24 +1850,101 @@ class SettingsDialog(QDialog):
         finally:
             self._syncing = False
 
-    def _populate_audio_combo(self, selected_audio_file: str) -> None:
-        files = list(self.controller.available_audio_feedback_files())
-        normalized = self.controller.normalize_audio_feedback_file(selected_audio_file)
-        self.audio_file_combo.blockSignals(True)
-        try:
-            self.audio_file_combo.clear()
-            if files:
-                for file_name in files:
-                    self.audio_file_combo.addItem(file_name, file_name)
-                index = self.audio_file_combo.findData(normalized)
-                self.audio_file_combo.setCurrentIndex(max(0, index))
-            else:
-                self.audio_file_combo.addItem("No audio files found", "")
-                self.audio_file_combo.setCurrentIndex(0)
-        finally:
-            self.audio_file_combo.blockSignals(False)
-        self.audio_file_combo.setEnabled(bool(files))
-        self.audio_preview_button.setEnabled(bool(normalized))
+    def _populate_audio_event_buttons(self, audio_event_files: dict[str, str]) -> None:
+        defaults = default_audio_event_files()
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            normalized = self.controller.normalize_audio_feedback_file(
+                str(audio_event_files.get(event_key, defaults.get(event_key, DEFAULT_AUDIO_FILE)) or "")
+            )
+            self.audio_event_files[event_key] = normalized
+            self._refresh_audio_event_button(event_key)
+
+    def _apply_audio_menu_style(self, menu: QMenu) -> None:
+        menu.setStyleSheet(
+            """
+            QMenu {
+              background: rgba(17, 22, 31, 0.99);
+              color: #edf1fb;
+              border: 1px solid rgba(116, 128, 153, 0.22);
+              padding: 6px;
+            }
+            QMenu::item {
+              padding: 6px 14px;
+              border-radius: 8px;
+            }
+            QMenu::item:selected {
+              background: rgba(74, 118, 207, 0.92);
+              color: #f7f9ff;
+            }
+            QMenu::separator {
+              height: 1px;
+              margin: 5px 8px;
+              background: rgba(116, 128, 153, 0.22);
+            }
+            """
+        )
+
+    def _build_audio_picker_menu(self, event_key: str, selected_key: str) -> QMenu:
+        button = self.audio_event_buttons.get(event_key)
+        menu = QMenu(button)
+        self._apply_audio_menu_style(menu)
+        groups = list(self.controller.available_audio_feedback_groups())
+        if not groups:
+            empty_action = menu.addAction("No audio files available")
+            empty_action.setEnabled(False)
+            return menu
+        for category, options in groups:
+            if not options:
+                continue
+            category_menu = menu.addMenu(category)
+            self._apply_audio_menu_style(category_menu)
+            for label, file_key in options:
+                action = category_menu.addAction(label)
+                action.setCheckable(True)
+                action.setChecked(file_key == selected_key)
+                action.triggered.connect(
+                    lambda _checked=False, key=event_key, selected_file=file_key: self._set_audio_event_file(key, selected_file)
+                )
+        return menu
+
+    def _current_audio_file_for_event(self, event_key: str) -> str:
+        defaults = default_audio_event_files()
+        selected = str(self.audio_event_files.get(event_key, defaults.get(event_key, DEFAULT_AUDIO_FILE)) or "")
+        return self.controller.normalize_audio_feedback_file(selected)
+
+    def _audio_button_text(self, file_name: str) -> str:
+        label = self.controller.audio_feedback_label(file_name) or "Choose audio clip"
+        if len(label) <= 44:
+            return label
+        return f"{label[:41].rstrip()}..."
+
+    def _refresh_audio_event_button(self, event_key: str) -> None:
+        button = self.audio_event_buttons.get(event_key)
+        if button is None:
+            return
+        file_name = self._current_audio_file_for_event(event_key)
+        has_audio = bool(file_name)
+        if has_audio:
+            button.setText(self._audio_button_text(file_name))
+            button.setToolTip(self.controller.audio_feedback_label(file_name))
+            button.setMenu(self._build_audio_picker_menu(event_key, file_name))
+        else:
+            button.setText("No audio files available")
+            button.setToolTip("")
+            button.setMenu(self._build_audio_picker_menu(event_key, ""))
+        button.setEnabled(has_audio)
+        self._update_audio_preview_button(event_key)
+
+    def _set_audio_event_file(self, event_key: str, file_name: str) -> None:
+        normalized = self.controller.normalize_audio_feedback_file(file_name)
+        if not normalized:
+            return
+        self.audio_event_files[event_key] = normalized
+        self._refresh_audio_event_button(event_key)
+        if self._syncing:
+            return
+        self.persist_settings()
 
     def _populate_haptic_event_combos(self, patterns: dict[str, str]) -> None:
         for item in HAPTIC_EVENT_OPTIONS:
@@ -1851,15 +2057,35 @@ class SettingsDialog(QDialog):
         self._sync_theme_label()
         self.persist_settings()
 
-    def _on_audio_file_changed(self) -> None:
-        self.audio_preview_button.setEnabled(bool(self.audio_file_combo.currentData()))
-        if self._syncing:
+    def _update_audio_preview_button(self, event_key: str) -> None:
+        button = self.audio_preview_buttons.get(event_key)
+        if button is None:
             return
+        button.setEnabled(bool(self._current_audio_file_for_event(event_key)))
+
+    def _upload_audio_feedback(self, event_key: str) -> None:
+        self.error_label.setText("")
+        source_path, _selected_filter = QFileDialog.getOpenFileName(
+            self,
+            "Import Audio Feedback",
+            "",
+            "Audio Files (*.aac *.flac *.m4a *.mp3 *.oga *.ogg *.opus *.wav)",
+        )
+        if not source_path:
+            return
+        try:
+            imported_key = self.controller.import_audio_feedback_file(source_path)
+        except Exception as exc:
+            self.error_label.setText(str(exc) or "Audio import failed.")
+            return
+
+        self.audio_event_files[event_key] = imported_key
+        self._populate_audio_event_buttons(self.audio_event_files)
         self.persist_settings()
 
-    def _preview_audio_feedback(self) -> None:
+    def _preview_audio_feedback(self, event_key: str) -> None:
         self.error_label.setText("")
-        file_name = str(self.audio_file_combo.currentData() or "")
+        file_name = self._current_audio_file_for_event(event_key)
         if not file_name:
             self.error_label.setText("Choose an audio file first.")
             return
@@ -1931,14 +2157,32 @@ class SettingsDialog(QDialog):
             return
         self.error_label.setText("")
         audio_enabled = bool(self.audio_enabled_switch.isChecked())
-        selected_audio_file = str(self.audio_file_combo.currentData() or "")
+        audio_event_files = {
+            item["event"]: self._current_audio_file_for_event(item["event"])
+            for item in HAPTIC_EVENT_OPTIONS
+            if item["event"] in self.audio_event_buttons
+        }
+        self.audio_event_files = audio_event_files
+        selected_audio_file = next((file_name for file_name in audio_event_files.values() if file_name), DEFAULT_AUDIO_FILE)
         haptics_enabled = bool(self.haptics_enabled_switch.isChecked())
         haptic_event_patterns = {
             item["event"]: str(self.haptic_event_combos[item["event"]].currentData() or item["default_pattern"])
             for item in HAPTIC_EVENT_OPTIONS
             if item["event"] in self.haptic_event_combos
         }
+        shortcut_bindings = {
+            item["key"]: normalize_shortcut_value(
+                self.shortcut_inputs[item["key"]].text() if item["key"] in self.shortcut_inputs else "",
+                self._shortcut_default(str(item["key"])),
+            )
+            for item in SHORTCUT_OPTIONS
+        }
+        self.shortcut_bindings = shortcut_bindings
         visuals_enabled = not (haptics_enabled and self.vibration_only_radio.isChecked())
+        visual_mode = str(self.visual_mode_combo.currentData() or VISUAL_MODE_SPHERE)
+        render_mode = str(self.render_mode_combo.currentData() or RENDER_MODE_CLASSIC)
+        if visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
+            render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
         self.controller.apply_settings_from_dialog(
             question_seconds=float(self.question_spin.value()),
             answer_seconds=float(self.answer_spin.value()),
@@ -1946,20 +2190,22 @@ class SettingsDialog(QDialog):
             review_later_flag=review_later_flag,
             audio_enabled=audio_enabled,
             selected_audio_file=selected_audio_file,
+            audio_event_files=audio_event_files,
             haptics_enabled=haptics_enabled,
             haptic_event_patterns=haptic_event_patterns,
             show_card_timer=bool(self.show_card_timer_check.isChecked()),
             display_mode=str(self.display_mode_combo.currentData() or DISPLAY_MODE_INLINE),
-            visual_mode=str(self.visual_mode_combo.currentData() or VISUAL_MODE_SPHERE),
+            visual_mode=visual_mode,
             sphere_mode=str(self.sphere_mode_combo.currentData() or SPHERE_MODE_CLASSIC),
-            render_mode=str(self.render_mode_combo.currentData() or RENDER_MODE_CLASSIC),
+            render_mode=render_mode,
             orbit_animation_enabled=bool(self.orbit_animation_check.isChecked()),
-            reduced_motion_enabled=bool(self.reduced_motion_check.isChecked()),
+            reduced_motion_enabled=(visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS),
             visuals_enabled=visuals_enabled,
             custom_timer_colors=bool(self.use_custom_timer_colors),
             custom_timer_color_level=float(self.timer_color_level),
             appearance_mode=self.current_theme_key,
             custom_colors=dict(self.custom_colors),
+            shortcut_bindings=shortcut_bindings,
         )
         self._sync_theme_label()
 
@@ -1973,8 +2219,23 @@ class SettingsDialog(QDialog):
             feedback_label = "Display + Haptics"
         else:
             feedback_label = "Haptics Only"
-        audio_label = "On" if bool(getattr(state, "audio_enabled", False)) else "Off"
-        audio_file = str(getattr(state, "selected_audio_file", DEFAULT_AUDIO_FILE) or DEFAULT_AUDIO_FILE)
+        audio_files = dict(getattr(state, "audio_event_files", default_audio_event_files()) or {})
+        normalized_audio_files = [
+            self.controller.normalize_audio_feedback_file(
+                str(audio_files.get(item["event"], default_audio_event_files().get(item["event"], DEFAULT_AUDIO_FILE)) or "")
+            )
+            for item in HAPTIC_EVENT_OPTIONS
+        ]
+        normalized_audio_files = [file_name for file_name in normalized_audio_files if file_name]
+        unique_audio_files = list(dict.fromkeys(normalized_audio_files))
+        if not bool(getattr(state, "audio_enabled", False)):
+            audio_label = "Off"
+        elif not unique_audio_files:
+            audio_label = "On"
+        elif len(unique_audio_files) == 1:
+            audio_label = f"On ({self.controller.audio_feedback_label(unique_audio_files[0]).split('/')[-1].strip()})"
+        else:
+            audio_label = f"On ({len(unique_audio_files)} clips)"
         self.appearance_value.setText(f"Current Theme: {label}")
         resolved_colors = {**theme_default_colors(self.current_theme_key), **normalize_custom_colors(self.custom_colors)}
         display_label = display_mode_label(getattr(self.controller, "display_mode", DISPLAY_MODE_INLINE))
@@ -1986,12 +2247,9 @@ class SettingsDialog(QDialog):
                 f"Orb animation {'on' if getattr(self.controller.engine.state, 'orbit_animation_enabled', True) else 'off'}"
             )
         else:
-            visual_detail = (
-                "Rows settings: "
-                f"Reduced motion {'on' if getattr(self.controller.engine.state, 'reduced_motion_enabled', False) else 'off'}"
-            )
+            visual_detail = "Brick layout: built-in ultra-low-resource mode."
         self.color_value.setText(
-            f"Display: {display_label}  |  Haptics: {feedback_label}  |  Audio: {audio_label} ({audio_file})  |  Visual: {visual_mode_label(visual_mode)}\n"
+            f"Display: {display_label}  |  Haptics: {feedback_label}  |  Audio: {audio_label}  |  Visual: {visual_mode_label(visual_mode)}\n"
             f"{visual_detail}\n"
             "Orb colors: "
             f"Orb {resolved_colors['core'].upper()}  "
@@ -2019,12 +2277,10 @@ class SettingsDialog(QDialog):
         visual_mode = str(getattr(self.visual_mode_combo, "currentData", lambda: VISUAL_MODE_SPHERE)() or VISUAL_MODE_SPHERE)
         sphere_selected = visual_mode == VISUAL_MODE_SPHERE
         rows_selected = visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS
-        for widget, visible in (
-            (getattr(self, "sphere_settings_group", None), sphere_selected),
-            (getattr(self, "rows_settings_group", None), rows_selected),
-        ):
-            if widget is not None:
-                widget.setVisible(visible)
+        if getattr(self, "sphere_settings_group", None) is not None:
+            self.sphere_settings_group.setVisible(sphere_selected)
+        if getattr(self, "brick_mode_note", None) is not None:
+            self.brick_mode_note.setVisible(rows_selected)
 
     def open_theme_picker(self) -> None:
         if self._is_vibration_only_selected():

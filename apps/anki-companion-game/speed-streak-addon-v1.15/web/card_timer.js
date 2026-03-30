@@ -11,6 +11,8 @@
     lastBackground: "",
     lastBackgroundProbeAt: 0,
     lastBackgroundProbeKey: "",
+    feedbackAudio: null,
+    feedbackAudioSrc: "",
   };
 
   const DEFAULT_CUSTOM_COLORS = {
@@ -442,11 +444,49 @@
     renderTimerState(data);
   }
 
+  function ensureFeedbackAudio() {
+    if (state.feedbackAudio) {
+      return state.feedbackAudio;
+    }
+    const audio = new Audio();
+    audio.preload = "auto";
+    state.feedbackAudio = audio;
+    return audio;
+  }
+
+  function playFeedbackAudio(url, interrupt) {
+    if (!url) {
+      return false;
+    }
+    const audio = ensureFeedbackAudio();
+    if (!interrupt && !audio.paused && !audio.ended) {
+      return false;
+    }
+    try {
+      if (state.feedbackAudioSrc !== url) {
+        audio.src = url;
+        state.feedbackAudioSrc = url;
+      }
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {});
+      }
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   window.SpeedStreakCardTimer = {
     receiveState(nextState) {
       ensureMounted();
       render(nextState);
       syncTimerLoop();
+    },
+    playFeedbackAudio(url, interrupt = true) {
+      ensureMounted();
+      return playFeedbackAudio(String(url || ""), Boolean(interrupt));
     },
     hide() {
       state.data = null;

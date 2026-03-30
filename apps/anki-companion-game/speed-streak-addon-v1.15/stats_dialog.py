@@ -189,7 +189,7 @@ class StatsDialog(QDialog):
     .summary-grid {{
       display: grid;
       gap: 14px;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }}
     .summary-card, .chart-card {{
       border: 1px solid var(--line);
@@ -351,6 +351,11 @@ class StatsDialog(QDialog):
         <div class="summary-label">Recorded Reviews</div>
         <div id="overallCards" class="summary-value">0</div>
         <div id="overallCardsSub" class="summary-sub">Historical answered-card events tracked by Speed Streak.</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Longest Streak</div>
+        <div id="longestStreak" class="summary-value">0</div>
+        <div id="longestStreakSub" class="summary-sub">Today's best: 0. Build your first recorded streak.</div>
       </div>
     </div>
     <div class="chart-grid">
@@ -553,6 +558,12 @@ class StatsDialog(QDialog):
       document.getElementById("overallCardsSub").textContent = overall.cards
         ? `${{formatSeconds(overall.avgActiveMs || 0)}} avg time, ${{formatPercent(overall.correctPct || 0)}} correct overall.`
         : "Historical answered-card events tracked by Speed Streak.";
+      const overallLongestStreak = Number(overall.longestStreak || 0);
+      const todayLongestStreak = Number(today.longestStreak || 0);
+      document.getElementById("longestStreak").textContent = String(overallLongestStreak);
+      document.getElementById("longestStreakSub").textContent = overallLongestStreak
+        ? `Today's best: ${{todayLongestStreak}}. Best recorded run so far.`
+        : `Today's best: ${{todayLongestStreak}}. Build your first recorded streak.`;
 
       const totalCards = series.reduce((sum, row) => sum + Number(row.cards || 0), 0);
       const avgMs = totalCards

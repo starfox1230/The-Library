@@ -6,7 +6,7 @@ VISUAL_MODE_LIGHTWEIGHT_ROWS = "lightweight_rows"
 
 VISUAL_MODE_OPTIONS = [
     (VISUAL_MODE_SPHERE, "Sphere/Satellites"),
-    (VISUAL_MODE_LIGHTWEIGHT_ROWS, "Lightweight Rows"),
+    (VISUAL_MODE_LIGHTWEIGHT_ROWS, "Brick Layout"),
 ]
 
 

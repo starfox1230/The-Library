@@ -9,7 +9,9 @@ from typing import Any, Dict, Optional
 from .feedback_catalog import (
     DEFAULT_AUDIO_ENABLED,
     DEFAULT_AUDIO_FILE,
+    default_audio_event_files,
     default_haptic_event_patterns,
+    normalize_audio_event_files,
     normalize_haptic_event_patterns,
 )
 
@@ -36,6 +38,7 @@ class CompanionState:
     enabled: bool = True
     audio_enabled: bool = DEFAULT_AUDIO_ENABLED
     selected_audio_file: str = DEFAULT_AUDIO_FILE
+    audio_event_files: dict[str, str] = field(default_factory=default_audio_event_files)
     haptics_enabled: bool = True
     haptic_event_patterns: dict[str, str] = field(default_factory=default_haptic_event_patterns)
     visuals_enabled: bool = True
@@ -99,10 +102,11 @@ class CompanionGameEngine:
     def export(self) -> Dict[str, Any]:
         s = self.state
         return {
-            "version": 7,
+            "version": 8,
             "enabled": int(s.enabled),
             "audioEnabled": int(s.audio_enabled),
             "selectedAudioFile": s.selected_audio_file,
+            "audioEventFiles": dict(s.audio_event_files),
             "hapticsEnabled": int(s.haptics_enabled),
             "hapticEventPatterns": dict(s.haptic_event_patterns),
             "visualsEnabled": int(s.visuals_enabled),
@@ -150,6 +154,7 @@ class CompanionGameEngine:
         enabled = self.state.enabled
         audio_enabled = self.state.audio_enabled
         selected_audio_file = self.state.selected_audio_file
+        audio_event_files = dict(self.state.audio_event_files)
         haptics_enabled = self.state.haptics_enabled
         haptic_event_patterns = dict(self.state.haptic_event_patterns)
         visuals_enabled = self.state.visuals_enabled
@@ -170,6 +175,7 @@ class CompanionGameEngine:
         self.state.enabled = enabled
         self.state.audio_enabled = audio_enabled
         self.state.selected_audio_file = selected_audio_file
+        self.state.audio_event_files = audio_event_files
         self.state.haptics_enabled = haptics_enabled
         self.state.haptic_event_patterns = haptic_event_patterns
         self.state.visuals_enabled = visuals_enabled
@@ -196,12 +202,13 @@ class CompanionGameEngine:
         s.review_later_flag = 4
         s.audio_enabled = DEFAULT_AUDIO_ENABLED
         s.selected_audio_file = DEFAULT_AUDIO_FILE
+        s.audio_event_files = default_audio_event_files()
         s.haptics_enabled = True
         s.haptic_event_patterns = default_haptic_event_patterns()
         s.visuals_enabled = True
         s.show_card_timer = True
         s.orbit_animation_enabled = True
-        s.reduced_motion_enabled = True
+        s.reduced_motion_enabled = False
         s.custom_timer_colors = False
         s.custom_timer_color_level = 0.0
         s.sidebar_collapsed = False
@@ -553,6 +560,7 @@ class CompanionGameEngine:
         review_later_flag: int | None = None,
         audio_enabled: bool | None = None,
         selected_audio_file: str | None = None,
+        audio_event_files: dict[str, str] | None = None,
         visuals_enabled: bool | None = None,
         haptics_enabled: bool | None = None,
         haptic_event_patterns: dict[str, str] | None = None,
@@ -578,6 +586,8 @@ class CompanionGameEngine:
             s.audio_enabled = bool(audio_enabled)
         if selected_audio_file is not None:
             s.selected_audio_file = str(selected_audio_file or DEFAULT_AUDIO_FILE).strip()
+        if audio_event_files is not None:
+            s.audio_event_files = normalize_audio_event_files(audio_event_files, fallback_file=s.selected_audio_file)
         if visuals_enabled is not None:
             s.visuals_enabled = bool(visuals_enabled)
         if haptics_enabled is not None:

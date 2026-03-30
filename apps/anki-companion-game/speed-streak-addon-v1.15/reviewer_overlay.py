@@ -17,15 +17,17 @@ from .audio_feedback import AudioFeedbackController
 from .display_mode import (
     DISPLAY_MODE_COMPATIBILITY,
     DISPLAY_MODE_INLINE,
-    display_mode_label,
     normalize_display_mode,
 )
 from .feedback_catalog import (
     AUDIO_DIRECTORY_NAME,
+    AUDIO_TRIMMED_DIRECTORY_NAME,
     DEFAULT_AUDIO_ENABLED,
     DEFAULT_AUDIO_FILE,
+    default_audio_event_files,
     default_haptic_event_patterns,
     haptic_pattern_sequences,
+    normalize_audio_event_files,
     normalize_haptic_event_patterns,
 )
 from .game_state import CompanionGameEngine
@@ -37,6 +39,7 @@ from .render_mode import (
     normalize_render_mode,
 )
 from .settings_dialog import open_settings_dialog
+from .shortcuts import default_shortcut_bindings, normalize_shortcut_bindings
 from .sphere_mode import SPHERE_MODE_CLASSIC, normalize_sphere_mode
 from .stats_dialog import open_stats_dialog
 from .stats_store import StatsStore
@@ -52,6 +55,8 @@ SIDEBAR_COLLAPSED_WIDTH = 36
 INLINE_CONTAINER_OBJECT_NAME = "speedStreakInlineContainer"
 INLINE_SIDEBAR_OBJECT_NAME = "speedStreakInlineSidebar"
 BROWSER_HAPTIC_PATTERN_SEQUENCES = haptic_pattern_sequences()
+SYNC_AUDIO_SUPPRESSION_SECONDS = 0.4
+WEBVIEW_AUDIO_EVENT_KEYS = {"again", "hard", "good", "easy"}
 
 
 class FloatingSidebarWindow(QWidget):
@@ -152,10 +157,14 @@ class ReviewerOverlayController:
     def __init__(self) -> None:
         self.engine = CompanionGameEngine()
         self.haptics = HapticsController()
-        self.audio_feedback = AudioFeedbackController(ADDON_ROOT / AUDIO_DIRECTORY_NAME)
+        self.audio_feedback = AudioFeedbackController(
+            ADDON_ROOT / AUDIO_TRIMMED_DIRECTORY_NAME,
+            ADDON_ROOT / "user_files",
+            fallback_audio_root=ADDON_ROOT / AUDIO_DIRECTORY_NAME,
+        )
         self.stats_store = StatsStore(ADDON_ROOT)
         self.display_mode = DISPLAY_MODE_INLINE
-        self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
+        self.visual_mode = VISUAL_MODE_SPHERE
         self.sphere_mode = SPHERE_MODE_CLASSIC
         self.render_mode = RENDER_MODE_CLASSIC
         self._last_nonce_sent = -1
@@ -180,6 +189,13 @@ class ReviewerOverlayController:
         self._last_reduced_live_update_bucket: Optional[int] = None
         self._card_timer_bootstrap = self._build_card_timer_bootstrap()
         self._sidebar_background = self._default_sidebar_background()
+        self._last_audio_feedback_started_at = 0.0
+        self._last_audio_feedback_event = ""
+        self._pending_answer_feedback_event = ""
+        self.shortcut_bindings = default_shortcut_bindings()
+        self._last_timer_display_signature = ""
+        self._last_timer_display_remaining_ms = -1
+        self._last_timer_display_anchor_ms = 0
         self._load_persisted_settings()
 
     def install(self) -> None:
@@ -200,8 +216,23 @@ class ReviewerOverlayController:
     def available_audio_feedback_files(self) -> list[str]:
         return self.audio_feedback.available_files()
 
+    def available_audio_feedback_options(self) -> list[tuple[str, str]]:
+        return [(option.label, option.key) for option in self.audio_feedback.available_options()]
+
+    def available_audio_feedback_groups(self, query: str = "") -> list[tuple[str, list[tuple[str, str]]]]:
+        return [
+            (category, [(option.file_label, option.key) for option in options])
+            for category, options in self.audio_feedback.grouped_options(query)
+        ]
+
     def normalize_audio_feedback_file(self, file_name: str) -> str:
         return self.audio_feedback.normalize_file(file_name)
+
+    def audio_feedback_label(self, file_name: str) -> str:
+        return self.audio_feedback.display_label(file_name)
+
+    def import_audio_feedback_file(self, source_path: str) -> str:
+        return self.audio_feedback.import_file(source_path)
 
     def preview_audio_feedback(self, file_name: str) -> bool:
         return self.audio_feedback.play(self.audio_feedback.normalize_file(file_name))
@@ -209,15 +240,43 @@ class ReviewerOverlayController:
     def preview_haptic_pattern(self, pattern_key: str) -> bool:
         return self.haptics.preview_pattern(pattern_key)
 
+    def current_shortcut_bindings(self) -> dict[str, str]:
+        return dict(normalize_shortcut_bindings(self.shortcut_bindings))
+
+    def shortcut_label(self, shortcut_key: str) -> str:
+        return self.current_shortcut_bindings().get(shortcut_key, default_shortcut_bindings().get(shortcut_key, ""))
+
+    def pause_shortcut_display(self) -> str:
+        return self.shortcut_label("pause")
+
     def _normalize_feedback_preferences(self) -> None:
         state = self.engine.state
-        state.selected_audio_file = self.audio_feedback.normalize_file(state.selected_audio_file)
+        state.audio_event_files = self.audio_feedback.normalize_event_files(
+            state.audio_event_files,
+            legacy_file=state.selected_audio_file,
+        )
+        state.selected_audio_file = self._preferred_audio_file(state.audio_event_files)
         state.haptic_event_patterns = normalize_haptic_event_patterns(state.haptic_event_patterns)
 
-    def _selected_audio_file(self) -> str:
-        selected = self.audio_feedback.normalize_file(self.engine.state.selected_audio_file)
-        self.engine.state.selected_audio_file = selected
-        return selected
+    def _preferred_audio_file(self, audio_event_files: dict[str, str] | None) -> str:
+        for file_name in dict(audio_event_files or {}).values():
+            normalized = self.audio_feedback.normalize_file(file_name)
+            if normalized:
+                return normalized
+        return self.audio_feedback.default_file()
+
+    def _audio_file_for_event(self, event_key: str) -> str:
+        audio_event_files = dict(self.engine.state.audio_event_files or {})
+        defaults = default_audio_event_files()
+        selected = self.audio_feedback.normalize_file(
+            audio_event_files.get(event_key, defaults.get(event_key, self.engine.state.selected_audio_file))
+        )
+        if selected:
+            return selected
+        legacy = self.audio_feedback.normalize_file(self.engine.state.selected_audio_file)
+        if legacy:
+            return legacy
+        return self.audio_feedback.default_file()
 
     def _haptic_pattern_for_event(self, event_key: str) -> str:
         patterns = self.engine.state.haptic_event_patterns or default_haptic_event_patterns()
@@ -226,18 +285,63 @@ class ReviewerOverlayController:
             return pattern_key
         return default_haptic_event_patterns().get(event_key, "")
 
-    def _play_audio_feedback(self) -> None:
+    def _play_audio_feedback(self, event_key: str) -> None:
         if not self.engine.state.audio_enabled:
             return
-        selected = self._selected_audio_file()
+        now = time.monotonic()
+        if (
+            event_key == "sync"
+            and self._last_audio_feedback_event
+            and self._last_audio_feedback_event != "sync"
+            and (now - self._last_audio_feedback_started_at) < SYNC_AUDIO_SUPPRESSION_SECONDS
+        ):
+            return
+        selected = self._audio_file_for_event(event_key)
         if selected:
-            self.audio_feedback.play(selected)
+            played = False
+            if event_key in WEBVIEW_AUDIO_EVENT_KEYS:
+                played = self._play_review_web_audio_feedback(selected, interrupt=True)
+            if not played:
+                played = self.audio_feedback.play(selected, interrupt=(event_key != "sync"))
+            if played:
+                self._last_audio_feedback_started_at = now
+                self._last_audio_feedback_event = event_key
+
+    def _play_review_web_audio_feedback(self, file_name: str, *, interrupt: bool) -> bool:
+        web = self._review_web or getattr(getattr(mw, "reviewer", None), "web", None)
+        if web is None:
+            return False
+        relative_path = self.audio_feedback.export_relative_path(file_name)
+        if not relative_path:
+            return False
+        try:
+            web.setPlaybackRequiresGesture(False)
+        except Exception:
+            pass
+        try:
+            audio_url = _web_asset_url(*Path(relative_path).parts)
+            interrupt_js = "true" if interrupt else "false"
+            web.eval(
+                f"""
+                (() => {{
+                  if (!window.SpeedStreakCardTimer) {{
+                    {self._card_timer_bootstrap}
+                  }}
+                  if (window.SpeedStreakCardTimer && window.SpeedStreakCardTimer.playFeedbackAudio) {{
+                    window.SpeedStreakCardTimer.playFeedbackAudio({json.dumps(audio_url)}, {interrupt_js});
+                  }}
+                }})()
+                """
+            )
+            return True
+        except Exception:
+            return False
 
     def _play_haptic_feedback(self, event_key: str) -> None:
         self.haptics.play_pattern(self._haptic_pattern_for_event(event_key))
 
     def _play_feedback_event(self, event_key: str) -> None:
-        self._play_audio_feedback()
+        self._play_audio_feedback(event_key)
         self._play_haptic_feedback(event_key)
 
     def on_js_message(self, handled: tuple[bool, Any], message: str, context: Any) -> tuple[bool, Any]:
@@ -285,6 +389,16 @@ class ReviewerOverlayController:
                 review_later_flag = int(data.get("reviewLaterFlag", 0))
                 audio_enabled = bool(data.get("audioEnabled", self.engine.state.audio_enabled))
                 selected_audio_file = str(data.get("selectedAudioFile", self.engine.state.selected_audio_file or DEFAULT_AUDIO_FILE))
+                raw_audio_event_files = data.get("audioEventFiles")
+                if raw_audio_event_files is None:
+                    if "selectedAudioFile" in data:
+                        raw_audio_event_files = {event_key: selected_audio_file for event_key in default_audio_event_files()}
+                    else:
+                        raw_audio_event_files = self.engine.state.audio_event_files
+                audio_event_files = normalize_audio_event_files(
+                    raw_audio_event_files,
+                    fallback_file=selected_audio_file,
+                )
                 haptics_enabled = bool(data.get("hapticsEnabled", self.engine.state.haptics_enabled))
                 haptic_event_patterns = normalize_haptic_event_patterns(
                     data.get("hapticEventPatterns", self.engine.state.haptic_event_patterns)
@@ -301,6 +415,9 @@ class ReviewerOverlayController:
                 visual_mode = normalize_visual_mode(data.get("visualMode", self.visual_mode))
                 sphere_mode = normalize_sphere_mode(data.get("sphereMode", self.sphere_mode))
                 render_mode = normalize_render_mode(data.get("renderMode", self.render_mode))
+                if visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
+                    render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
+                    reduced_motion_enabled = True
             except Exception:
                 return (True, None)
             previous_visuals_enabled = bool(self.engine.state.visuals_enabled)
@@ -311,6 +428,7 @@ class ReviewerOverlayController:
                 review_later_flag=review_later_flag,
                 audio_enabled=audio_enabled,
                 selected_audio_file=selected_audio_file,
+                audio_event_files=audio_event_files,
                 haptics_enabled=haptics_enabled,
                 haptic_event_patterns=haptic_event_patterns,
                 visuals_enabled=visuals_enabled,
@@ -344,6 +462,7 @@ class ReviewerOverlayController:
                 review_later_flag=state.review_later_flag,
                 audio_enabled=state.audio_enabled,
                 selected_audio_file=state.selected_audio_file,
+                audio_event_files=dict(state.audio_event_files),
                 haptics_enabled=state.haptics_enabled,
                 haptic_event_patterns=dict(state.haptic_event_patterns),
                 visuals_enabled=state.visuals_enabled,
@@ -360,10 +479,15 @@ class ReviewerOverlayController:
             self._apply_sidebar_width()
             self._push_state(only_if_changed=False)
             return (True, None)
+        if message == "speed-streak:toggle-display-mode":
+            next_mode = DISPLAY_MODE_COMPATIBILITY if self.display_mode == DISPLAY_MODE_INLINE else DISPLAY_MODE_INLINE
+            self.set_display_mode(next_mode, persist=True, reconfigure=True)
+            self._push_state(only_if_changed=False)
+            return (True, None)
         if message == "speed-streak:default-settings":
             self.engine.reset_settings_to_defaults()
             self._normalize_feedback_preferences()
-            self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
+            self.visual_mode = VISUAL_MODE_SPHERE
             self.sphere_mode = SPHERE_MODE_CLASSIC
             self.render_mode = RENDER_MODE_CLASSIC
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
@@ -388,6 +512,7 @@ class ReviewerOverlayController:
         review_later_flag: int,
         audio_enabled: bool,
         selected_audio_file: str,
+        audio_event_files: dict[str, str],
         haptics_enabled: bool,
         haptic_event_patterns: dict[str, str],
         show_card_timer: bool,
@@ -402,6 +527,7 @@ class ReviewerOverlayController:
         custom_timer_color_level: float,
         appearance_mode: str,
         custom_colors: dict[str, str] | None = None,
+        shortcut_bindings: dict[str, str] | None = None,
     ) -> None:
         previous_visuals_enabled = bool(self.engine.state.visuals_enabled)
         self.engine.update_time_limits(
@@ -411,6 +537,7 @@ class ReviewerOverlayController:
             review_later_flag=review_later_flag,
             audio_enabled=audio_enabled,
             selected_audio_file=selected_audio_file,
+            audio_event_files=audio_event_files,
             haptics_enabled=haptics_enabled,
             haptic_event_patterns=haptic_event_patterns,
             visuals_enabled=visuals_enabled,
@@ -422,12 +549,16 @@ class ReviewerOverlayController:
             appearance_mode=appearance_mode,
             custom_colors=custom_colors,
         )
+        self.shortcut_bindings = normalize_shortcut_bindings(shortcut_bindings)
         self._normalize_feedback_preferences()
         display_mode_changed = normalize_display_mode(display_mode) != self.display_mode or self._display_mode_prompt_pending
         self.set_display_mode(display_mode, persist=False, reconfigure=display_mode_changed)
         self.visual_mode = normalize_visual_mode(visual_mode)
         self.sphere_mode = normalize_sphere_mode(sphere_mode)
         self.render_mode = normalize_render_mode(render_mode)
+        if self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
+            self.render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
+            self.engine.state.reduced_motion_enabled = True
         self.haptics.set_enabled(self.engine.state.haptics_enabled)
         self._save_persisted_settings()
         if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
@@ -443,8 +574,9 @@ class ReviewerOverlayController:
 
     def reset_defaults_from_dialog(self) -> None:
         self.engine.reset_settings_to_defaults()
+        self.shortcut_bindings = default_shortcut_bindings()
         self._normalize_feedback_preferences()
-        self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
+        self.visual_mode = VISUAL_MODE_SPHERE
         self.sphere_mode = SPHERE_MODE_CLASSIC
         self.render_mode = RENDER_MODE_CLASSIC
         self.haptics.set_enabled(self.engine.state.haptics_enabled)
@@ -461,7 +593,10 @@ class ReviewerOverlayController:
 
     def _register_web_exports(self) -> None:
         try:
-            mw.addonManager.setWebExports(__name__, r"web/.*\.(css|js)")
+            mw.addonManager.setWebExports(
+                __name__,
+                r"(web|Audio|Audio_trimmed|user_files/audio_uploads)/.*\.(aac|css|flac|js|m4a|mp3|oga|ogg|opus|wav)",
+            )
         except Exception:
             pass
 
@@ -530,9 +665,16 @@ class ReviewerOverlayController:
         if should_continue:
             self._pending_review_undo_snapshot = self.engine.capture_review_undo_snapshot()
             self._pending_review_card_id = int(getattr(card, "id", 0) or 0)
+            self._pending_answer_feedback_event = ""
+            if self.engine.state.enabled and self.engine.state.phase == "answer" and not self.engine.state.paused:
+                event_key = self._feedback_event_for_ease(ease)
+                if event_key:
+                    self._pending_answer_feedback_event = event_key
+                    self._play_feedback_event(event_key)
         else:
             self._pending_review_undo_snapshot = None
             self._pending_review_card_id = 0
+            self._pending_answer_feedback_event = ""
         return ease_tuple
 
     def on_reviewer_did_answer_card(self, reviewer: Reviewer, card: Any, ease: int) -> None:
@@ -540,6 +682,7 @@ class ReviewerOverlayController:
         if not event:
             self._pending_review_undo_snapshot = None
             self._pending_review_card_id = 0
+            self._pending_answer_feedback_event = ""
             return
         card_id = int(getattr(card, "id", 0) or 0)
         if self._pending_review_undo_snapshot is not None and card_id == self._pending_review_card_id:
@@ -560,7 +703,7 @@ class ReviewerOverlayController:
     def on_state_shortcuts_will_change(self, state: Any, shortcuts: list[tuple[str, Any]]) -> None:
         if str(state) != "review":
             return
-        shortcuts.append(("P", self._on_pause_shortcut))
+        shortcuts.append((self.pause_shortcut_display(), self._on_pause_shortcut))
 
     def _start_timer(self) -> None:
         self._timer = mw.progress.timer(100, self._on_tick, repeat=True)
@@ -593,8 +736,6 @@ class ReviewerOverlayController:
         event = self.engine.check_timeout()
         if event:
             self._play_feedback_event("timeout")
-            self._push_state(only_if_changed=False)
-        elif self._should_push_live_update():
             self._push_state(only_if_changed=False)
 
     def _handle_non_review_state(self) -> None:
@@ -692,6 +833,7 @@ class ReviewerOverlayController:
         self._restore_review_focus()
 
     def _handle_answer_shown(self, reviewer: Reviewer) -> None:
+        self._ensure_display_surface(reviewer)
         card = getattr(reviewer, "card", None)
         if card is None:
             return
@@ -717,16 +859,10 @@ class ReviewerOverlayController:
             )
             if event_id > 0:
                 self._recorded_review_event_ids.append(event_id)
-        if event == "again":
-            self._play_feedback_event("again")
-        elif event == "again-on-time":
-            self._play_feedback_event("hard")
-        elif event == "hard":
-            self._play_feedback_event("hard")
-        elif event == "good":
-            self._play_feedback_event("good")
-        elif event == "easy":
-            self._play_feedback_event("easy")
+        resolved_event_key = self._resolved_feedback_event_key(event)
+        if resolved_event_key and resolved_event_key != self._pending_answer_feedback_event:
+            self._play_feedback_event(resolved_event_key)
+        self._pending_answer_feedback_event = ""
         self._push_state(only_if_changed=False)
 
     def _handle_skip(self) -> None:
@@ -734,6 +870,16 @@ class ReviewerOverlayController:
         if event == "skip":
             self._play_feedback_event("skip")
             self._push_state(only_if_changed=False)
+
+    def _feedback_event_for_ease(self, ease: int) -> str:
+        return {1: "again", 2: "hard", 3: "good", 4: "easy"}.get(int(ease or 0), "")
+
+    def _resolved_feedback_event_key(self, event: str) -> str:
+        if event == "again-on-time":
+            return "hard"
+        if event in {"again", "hard", "good", "easy"}:
+            return event
+        return ""
 
     def _push_state(self, *, only_if_changed: bool = True) -> None:
         if self._sidebar_web is None and self._review_web is None:
@@ -755,6 +901,8 @@ class ReviewerOverlayController:
                 "visualMode": self.visual_mode,
                 "sphereMode": self.sphere_mode,
                 "renderMode": self.render_mode,
+                "shortcutBindings": self.current_shortcut_bindings(),
+                "pauseShortcut": self.pause_shortcut_display(),
                 **timer_display,
             }
         )
@@ -773,11 +921,7 @@ class ReviewerOverlayController:
         return int(time.monotonic() / 0.5)
 
     def _should_push_live_update(self) -> bool:
-        if self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
-            return False
-        if not self._uses_reduced_render_timing():
-            return True
-        return self._current_reduced_live_update_bucket() != self._last_reduced_live_update_bucket
+        return False
 
     def _timer_display_step_ms(self) -> int:
         if self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
@@ -807,11 +951,29 @@ class ReviewerOverlayController:
         return ((remaining + step - 1) // step) * step
 
     def _build_timer_display_payload(self) -> dict[str, Any]:
+        state = self.engine.state
         now_ms = int(time.time() * 1000)
         step_ms = self._timer_display_step_ms()
         remaining_ms = self._snap_timer_remaining_ms(self._raw_timer_remaining_ms(now_ms), step_ms)
+        signature = "|".join(
+            (
+                str(state.phase or "idle"),
+                str(int(state.phase_start_epoch_ms or 0)),
+                str(int(state.phase_limit_ms or 0)),
+                str(int(bool(state.paused))),
+                str(int(bool(state.first_card_free))),
+                str(int(step_ms)),
+            )
+        )
+        anchor_ms = now_ms
+        if signature == self._last_timer_display_signature and remaining_ms == self._last_timer_display_remaining_ms:
+            anchor_ms = self._last_timer_display_anchor_ms or now_ms
+        else:
+            self._last_timer_display_signature = signature
+            self._last_timer_display_remaining_ms = remaining_ms
+            self._last_timer_display_anchor_ms = now_ms
         return {
-            "timerDisplayNowEpochMs": now_ms,
+            "timerDisplayNowEpochMs": anchor_ms,
             "timerDisplayRemainingMs": remaining_ms,
             "timerDisplayStepMs": step_ms,
             "timerDisplaySecondsText": f"{remaining_ms / 1000:.1f}",
@@ -887,6 +1049,7 @@ class ReviewerOverlayController:
         self._sidebar_web = sidebar_web
         self._review_web = review_web
         self._apply_sidebar_width()
+        self._schedule_sidebar_state_push()
         self._restore_review_focus()
 
     def _ensure_floating_sidebar(self, reviewer: Reviewer) -> None:
@@ -916,6 +1079,7 @@ class ReviewerOverlayController:
                 self._floating_window.showNormal()
             if not self._floating_window.isVisible():
                 self._floating_window.show()
+            self._schedule_sidebar_state_push()
 
     def _set_sidebar_hidden(self, hidden: bool) -> None:
         if self.display_mode == DISPLAY_MODE_COMPATIBILITY:
@@ -1058,18 +1222,31 @@ class ReviewerOverlayController:
                 self.visual_mode = VISUAL_MODE_SPHERE
             self.sphere_mode = normalize_sphere_mode(config.get("sphere_mode", SPHERE_MODE_CLASSIC))
             self.render_mode = normalize_render_mode(raw_render_mode)
+            if self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
+                self.render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
             self._display_mode_prompt_pending = not bool(config.get("display_mode_prompted", False))
             self._floating_geometry = str(config.get("floating_geometry", "") or "")
+            raw_shortcut_bindings = config.get("shortcut_bindings")
+            if raw_shortcut_bindings is None and config.get("pause_shortcut") is not None:
+                raw_shortcut_bindings = {"pause": config.get("pause_shortcut")}
+            self.shortcut_bindings = normalize_shortcut_bindings(raw_shortcut_bindings)
             reduced_motion_enabled = config.get("reduced_motion")
             if reduced_motion_enabled is None:
                 reduced_motion_enabled = self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS
+            elif self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
+                reduced_motion_enabled = True
+            selected_audio_file = str(config.get("selected_audio_file", DEFAULT_AUDIO_FILE))
+            raw_audio_event_files = config.get("audio_event_files")
+            if raw_audio_event_files is None:
+                raw_audio_event_files = {event_key: selected_audio_file for event_key in default_audio_event_files()}
             self.engine.update_time_limits(
                 question_seconds=float(config.get("question_seconds", 12)),
                 answer_seconds=float(config.get("answer_seconds", 8)),
                 time_drain_flag=int(config.get("time_drain_flag", 2)),
                 review_later_flag=int(config.get("review_later_flag", 4)),
                 audio_enabled=bool(config.get("audio_enabled", DEFAULT_AUDIO_ENABLED)),
-                selected_audio_file=str(config.get("selected_audio_file", DEFAULT_AUDIO_FILE)),
+                selected_audio_file=selected_audio_file,
+                audio_event_files=raw_audio_event_files,
                 haptics_enabled=bool(config.get("haptics_enabled", True)),
                 haptic_event_patterns=normalize_haptic_event_patterns(config.get("haptic_event_patterns", {})),
                 visuals_enabled=bool(config.get("visuals_enabled", True)),
@@ -1087,11 +1264,12 @@ class ReviewerOverlayController:
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
         except Exception:
             self.display_mode = DISPLAY_MODE_INLINE
-            self.visual_mode = VISUAL_MODE_LIGHTWEIGHT_ROWS
+            self.visual_mode = VISUAL_MODE_SPHERE
             self.sphere_mode = SPHERE_MODE_CLASSIC
             self.render_mode = RENDER_MODE_CLASSIC
             self._display_mode_prompt_pending = True
             self._floating_geometry = ""
+            self.shortcut_bindings = default_shortcut_bindings()
             self.engine.update_time_limits(
                 question_seconds=12,
                 answer_seconds=8,
@@ -1099,12 +1277,13 @@ class ReviewerOverlayController:
                 review_later_flag=4,
                 audio_enabled=DEFAULT_AUDIO_ENABLED,
                 selected_audio_file=DEFAULT_AUDIO_FILE,
+                audio_event_files=default_audio_event_files(),
                 haptics_enabled=True,
                 haptic_event_patterns=default_haptic_event_patterns(),
                 visuals_enabled=True,
                 show_card_timer=True,
                 orbit_animation_enabled=True,
-                reduced_motion_enabled=True,
+                reduced_motion_enabled=False,
                 custom_timer_colors=False,
                 custom_timer_color_level=0,
                 sidebar_collapsed=False,
@@ -1128,8 +1307,10 @@ class ReviewerOverlayController:
             "render_mode": self.render_mode,
             "display_mode_prompted": not self._display_mode_prompt_pending,
             "floating_geometry": self._floating_geometry,
+            "shortcut_bindings": self.current_shortcut_bindings(),
             "audio_enabled": bool(state.audio_enabled),
             "selected_audio_file": str(state.selected_audio_file),
+            "audio_event_files": dict(state.audio_event_files),
             "haptics_enabled": bool(state.haptics_enabled),
             "haptic_event_patterns": dict(state.haptic_event_patterns),
             "visuals_enabled": bool(state.visuals_enabled),
@@ -1318,6 +1499,13 @@ class ReviewerOverlayController:
         window.move(x, y)
         self._floating_geometry = window.export_geometry() or self._floating_geometry
 
+    def _schedule_sidebar_state_push(self) -> None:
+        if self._sidebar_web is None:
+            return
+        QTimer.singleShot(0, lambda: self._push_state(only_if_changed=False))
+        QTimer.singleShot(140, lambda: self._push_state(only_if_changed=False))
+        QTimer.singleShot(320, lambda: self._push_state(only_if_changed=False))
+
     def set_display_mode(self, display_mode: str, *, persist: bool = True, reconfigure: bool = True) -> None:
         normalized = normalize_display_mode(display_mode)
         changed = normalized != self.display_mode or self._display_mode_prompt_pending
@@ -1331,6 +1519,7 @@ class ReviewerOverlayController:
             self._last_reviewer_signature = ""
             if getattr(mw, "state", "") == "review":
                 self._sync_reviewer_surface()
+                self._schedule_sidebar_state_push()
         if persist:
             self._save_persisted_settings()
 
@@ -1364,19 +1553,18 @@ class ReviewerOverlayController:
         dialog = QMessageBox(mw)
         dialog.setWindowTitle(f"{ADDON_DISPLAY_NAME} Display Mode")
         dialog.setIcon(QMessageBox.Icon.Question)
-        dialog.setText("Choose how Speed Streak should appear while you review.")
+        dialog.setText("Choose where Speed Streak should appear while you review.")
         dialog.setInformativeText(
-            "Inline Left Pane keeps the dedicated left column and matches the classic Speed Streak layout.\n\n"
-            "Compatibility Window leaves Anki's review layout alone and opens Speed Streak in a separate "
-            "floating window instead. Choose Compatibility Window if you use AMBOSS, AnkiHub, or other add-ons that "
-            "add their own reviewer sidebars or buttons."
+            "External Window is recommended. It usually renders more smoothly and plays better with add-ons like "
+            "AnkiHub and AMBOSS because it leaves Anki's review layout alone.\n\n"
+            "Inline Side Pane keeps Speed Streak docked inside the review screen as a left column."
         )
-        inline_button = dialog.addButton(display_mode_label(DISPLAY_MODE_INLINE), QMessageBox.ButtonRole.AcceptRole)
+        inline_button = dialog.addButton("Inline Side Pane", QMessageBox.ButtonRole.ActionRole)
         compatibility_button = dialog.addButton(
-            display_mode_label(DISPLAY_MODE_COMPATIBILITY),
-            QMessageBox.ButtonRole.ActionRole,
+            "External Window (Recommended)",
+            QMessageBox.ButtonRole.AcceptRole,
         )
-        dialog.setDefaultButton(inline_button)
+        dialog.setDefaultButton(compatibility_button)
         dialog.exec()
         if dialog.clickedButton() is compatibility_button:
             return DISPLAY_MODE_COMPATIBILITY

@@ -78,8 +78,8 @@
 
   const template = `
     <div id="speed-streak-sidebar" class="speed-streak-sidebar hidden">
-      <button id="acgCollapseTab" class="acg-collapse-tab" type="button" title="Hide Speed Streak">
-        <span id="acgCollapseTabText" class="acg-collapse-tab-text">Hide</span>
+      <button id="acgCollapseTab" class="acg-collapse-tab" type="button" title="Hide Speed Streak" aria-label="Hide Speed Streak">
+        <span id="acgCollapseTabText" class="acg-collapse-tab-text">‹</span>
       </button>
       <div class="acg-foreground-controls">
         <button id="acgEnabledToggle" class="acg-enabled-toggle" type="button" aria-pressed="true" title="Toggle Speed Streak">
@@ -87,6 +87,10 @@
             <span id="acgEnabledKnob" class="acg-enabled-knob"></span>
           </span>
         </button>
+        <button id="acgDisplayModeToggle" class="acg-action acg-foreground-action acg-icon-toggle acg-display-mode-toggle" type="button" title="Switch to external window" aria-label="Switch to external window">↗</button>
+      </div>
+      <div class="acg-foreground-settings">
+        <button id="acgSettingsButton" class="acg-action acg-foreground-action acg-icon-toggle acg-settings-toggle" type="button" title="Settings" aria-label="Settings">⚙</button>
       </div>
       <div class="acg-inner">
         <div class="acg-top">
@@ -131,11 +135,46 @@
         <div class="acg-bottom">
           <div id="acgVisualsDisabledCopy" class="acg-visuals-disabled-copy">Vibration-only mode is active.</div>
           <div id="acgTimer" class="acg-timer">Ready</div>
-          <button id="acgSettingsButton" class="acg-action acg-foreground-action" type="button">Settings</button>
+          <div class="acg-bottom-bar">
+            <div class="acg-mode-grid" role="group" aria-label="Layout and resource mode">
+              <div class="acg-mode-column acg-mode-column-sphere">
+                <button id="acgLayoutSphere" class="acg-action acg-icon-toggle acg-mode-primary" type="button" title="Satellite view" aria-label="Satellite view">◎</button>
+                <div class="acg-resource-stack">
+                <button id="acgSphereConsolidateToggle" class="acg-action acg-icon-toggle acg-resource-toggle acg-leaf-toggle acg-leaf-toggle-small" type="button" title="Consolidate (low resource)" aria-label="Consolidate (low resource)">
+                    <svg class="acg-leaf-icon lucide lucide-leaf-icon lucide-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+                      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+                    </svg>
+                  </button>
+                  <button id="acgSphereUltraToggle" class="acg-action acg-icon-toggle acg-resource-toggle acg-leaf-toggle" type="button" title="Ultra low resource" aria-label="Ultra low resource">
+                    <svg class="acg-leaf-icon lucide lucide-leaf-icon lucide-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+                      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="acg-mode-column acg-mode-column-brick">
+                <button id="acgLayoutBrick" class="acg-action acg-icon-toggle acg-mode-primary" type="button" title="Brick layout (ultra-low resource)" aria-label="Brick layout (ultra-low resource)">▦</button>
+              </div>
+            </div>
+            <div class="acg-bottom-stack acg-bottom-right">
+              <button id="acgHapticsToggle" class="acg-action acg-icon-toggle" type="button" title="Haptics" aria-label="Haptics">
+                <svg class="acg-haptics-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <rect x="10" y="8" width="4" height="8" rx="2"></rect>
+                  <path d="M6.75 9c-1.45 1.55-1.45 4.45 0 6"></path>
+                  <path d="M17.25 9c1.45 1.55 1.45 4.45 0 6"></path>
+                  <path d="M3.75 6.5c-2.3 2.35-2.3 8.65 0 11"></path>
+                  <path d="M20.25 6.5c2.3 2.35 2.3 8.65 0 11"></path>
+                </svg>
+              </button>
+              <button id="acgAudioToggle" class="acg-action acg-icon-toggle" type="button" title="Sound off" aria-label="Sound off">🔇</button>
+            </div>
+          </div>
         </div>
         <div id="acgDim" class="acg-dim"></div>
         <div id="acgPauseOverlay" class="acg-pause-overlay">
-          <div class="acg-pause-copy">Press 'P' to Unpause</div>
+          <div class="acg-pause-copy">Press <span id="acgPauseShortcutLabel">P</span> to Unpause</div>
         </div>
         <div id="acgOffOverlay" class="acg-off-overlay">
           <div class="acg-off-copy">Speed Streak is Off</div>
@@ -273,7 +312,7 @@
                 <br><br>
                 If either timer expires, the streak is lost, the orb flashes into a failed state, and the orbit collapses. If you bury or hide a card, the next card gets a fresh timer without changing the streak or score.
                 <br><br>
-                Press <strong>P</strong> to pause or unpause. Opening Settings also pauses automatically. While paused, the sidebar dims and waits for you to resume. You can change the question and answer timers in Settings, toggle the top-of-card timer, and switch into vibration-only mode. The <strong>Show Stats</strong> screen opens a full-window overlay with your current-round pause time, today's pace, and historical charts.
+                Press <strong id="acgHelpPauseShortcut">P</strong> to pause or unpause. Opening Settings also pauses automatically. While paused, the sidebar dims and waits for you to resume. You can change the question and answer timers in Settings, toggle the top-of-card timer, and switch into vibration-only mode. The <strong>Show Stats</strong> screen opens a full-window overlay with your current-round pause time, today's pace, and historical charts.
                 <br><br>
                 The <strong>Time Drain Flag</strong> is a watched flag you choose in Settings. When the current review card has that same flag on its question side, the normal orbit view is temporarily replaced with a warning screen. That warning shows the live countdown in large text and says to press <strong>-</strong> to bury the card if it is becoming a time sink. This is meant for cards you still want to keep, but want the add-on to call out when they are slowing your session down.
                 <br><br>
@@ -308,11 +347,75 @@
       });
     }
 
+    const layoutSphereButton = document.getElementById("acgLayoutSphere");
+    if (layoutSphereButton) {
+      layoutSphereButton.addEventListener("click", () => saveSettings({
+        visualMode: "sphere",
+        sphereMode: "classic",
+        renderMode: "classic",
+      }));
+    }
+
+    const layoutBrickButton = document.getElementById("acgLayoutBrick");
+    if (layoutBrickButton) {
+      layoutBrickButton.addEventListener("click", () => saveSettings({
+        visualMode: "lightweight_rows",
+        renderMode: "ultra_low_resource",
+      }));
+    }
+
+    const sphereConsolidateToggle = document.getElementById("acgSphereConsolidateToggle");
+    if (sphereConsolidateToggle) {
+      sphereConsolidateToggle.addEventListener("click", () => {
+        const currentVisualMode = getVisualMode(state.data || {});
+        const currentSphereMode = getSphereMode(state.data || {});
+        const nextSphereMode = currentVisualMode === "sphere" && currentSphereMode === "consolidate"
+          ? "classic"
+          : "consolidate";
+        saveSettings({ visualMode: "sphere", sphereMode: nextSphereMode, renderMode: "classic" });
+      });
+    }
+
+    const sphereUltraToggle = document.getElementById("acgSphereUltraToggle");
+    if (sphereUltraToggle) {
+      sphereUltraToggle.addEventListener("click", () => {
+        const currentVisualMode = getVisualMode(state.data || {});
+        const currentRenderMode = getRenderMode(state.data || {});
+        const nextRenderMode = currentVisualMode === "sphere" && currentRenderMode === "ultra_low_resource"
+          ? "classic"
+          : "ultra_low_resource";
+        saveSettings({ visualMode: "sphere", renderMode: nextRenderMode, sphereMode: "classic" });
+      });
+    }
+
+    const hapticsToggle = document.getElementById("acgHapticsToggle");
+    if (hapticsToggle) {
+      hapticsToggle.addEventListener("click", () => {
+        saveSettings({ hapticsEnabled: !Boolean(state.data?.hapticsEnabled ?? true) });
+      });
+    }
+
+    const audioToggle = document.getElementById("acgAudioToggle");
+    if (audioToggle) {
+      audioToggle.addEventListener("click", () => {
+        saveSettings({ audioEnabled: !Boolean(state.data?.audioEnabled ?? false) });
+      });
+    }
+
     const enabledToggle = document.getElementById("acgEnabledToggle");
     if (enabledToggle) {
       enabledToggle.addEventListener("click", () => {
         if (typeof pycmd === "function") {
           pycmd("speed-streak:toggle-enabled");
+        }
+      });
+    }
+
+    const displayModeToggle = document.getElementById("acgDisplayModeToggle");
+    if (displayModeToggle) {
+      displayModeToggle.addEventListener("click", () => {
+        if (typeof pycmd === "function") {
+          pycmd("speed-streak:toggle-display-mode");
         }
       });
     }
@@ -568,6 +671,20 @@
     }
   }
 
+  function getPauseShortcut(data) {
+    const rawBindings = data && typeof data.shortcutBindings === "object" && data.shortcutBindings
+      ? data.shortcutBindings
+      : {};
+    const rawValue = String((data && data.pauseShortcut) || rawBindings.pause || "P").trim();
+    return rawValue || "P";
+  }
+
+  function syncShortcutCopy(data) {
+    const pauseShortcut = getPauseShortcut(data);
+    setText("acgPauseShortcutLabel", pauseShortcut);
+    setText("acgHelpPauseShortcut", pauseShortcut);
+  }
+
   function setStyleProperty(node, property, value) {
     if (!node) {
       return;
@@ -796,10 +913,22 @@
     const showCardTimer = Boolean($("acgShowCardTimer")?.checked);
     const orbitAnimationEnabled = Boolean($("acgOrbitAnimation")?.checked);
     const visualsEnabled = !Boolean($("acgVibrationOnlyMode")?.checked || $("acgVibrationOnlyModePerf")?.checked);
-    const visualMode = getVisualMode(state.data || {});
-    const sphereMode = getSphereMode(state.data || {});
-    const renderMode = getRenderMode(state.data || {});
+    const visualMode = Object.prototype.hasOwnProperty.call(overrides, "visualMode")
+      ? String(overrides.visualMode || getVisualMode(state.data || {}))
+      : getVisualMode(state.data || {});
+    const sphereMode = Object.prototype.hasOwnProperty.call(overrides, "sphereMode")
+      ? String(overrides.sphereMode || getSphereMode(state.data || {}))
+      : getSphereMode(state.data || {});
+    const renderMode = Object.prototype.hasOwnProperty.call(overrides, "renderMode")
+      ? String(overrides.renderMode || getRenderMode(state.data || {}))
+      : getRenderMode(state.data || {});
     const reducedMotion = Boolean(state.data?.reducedMotion);
+    const audioEnabled = Object.prototype.hasOwnProperty.call(overrides, "audioEnabled")
+      ? Boolean(overrides.audioEnabled)
+      : Boolean(state.data?.audioEnabled ?? false);
+    const hapticsEnabled = Object.prototype.hasOwnProperty.call(overrides, "hapticsEnabled")
+      ? Boolean(overrides.hapticsEnabled)
+      : Boolean(state.data?.hapticsEnabled ?? true);
     const appearanceMode = state.appearanceModeDraft || state.data?.appearanceMode || "midnight";
     const customTimerColors = Object.prototype.hasOwnProperty.call(overrides, "customTimerColors")
       ? Boolean(overrides.customTimerColors)
@@ -820,6 +949,8 @@
           answerSeconds: a,
           timeDrainFlag: f,
           reviewLaterFlag: rl,
+          audioEnabled,
+          hapticsEnabled,
           showCardTimer,
           orbitAnimationEnabled,
           visualMode,
@@ -888,6 +1019,76 @@
     const mode = state.appearanceModeDraft || "midnight";
     $("acgAppearanceMidnight")?.classList.toggle("active", mode === "midnight");
     $("acgAppearanceCard")?.classList.toggle("active", mode === "card");
+  }
+
+  function syncQuickControl(button, active, title) {
+    if (!button) {
+      return;
+    }
+    button.classList.toggle("is-on", Boolean(active));
+    button.classList.toggle("is-selected", Boolean(active));
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    if (title) {
+      button.setAttribute("title", title);
+      button.setAttribute("aria-label", title);
+    }
+  }
+
+  function syncQuickControls(data) {
+    const visualMode = getVisualMode(data);
+    const sphereMode = getSphereMode(data);
+    const renderMode = getRenderMode(data);
+    const audioEnabled = Boolean(data?.audioEnabled ?? false);
+    const hapticsEnabled = Boolean(data?.hapticsEnabled ?? true);
+    const audioToggle = $("acgAudioToggle");
+    const sphereButton = $("acgLayoutSphere");
+    const brickButton = $("acgLayoutBrick");
+    const sphereConsolidateToggle = $("acgSphereConsolidateToggle");
+    const sphereUltraToggle = $("acgSphereUltraToggle");
+    const displayModeToggle = $("acgDisplayModeToggle");
+    const displayMode = String(data?.displayMode || "inline");
+    const sphereConsolidateActive = visualMode === "sphere" && sphereMode === "consolidate" && renderMode !== "ultra_low_resource";
+    const sphereUltraActive = visualMode === "sphere" && renderMode === "ultra_low_resource";
+    const sphereResourceActive = sphereConsolidateActive || sphereUltraActive;
+    const brickResourceActive = visualMode === "lightweight_rows";
+
+    syncQuickControl(sphereButton, visualMode === "sphere", sphereResourceActive ? "Satellite view with reduced resources" : "Satellite view");
+    syncQuickControl(brickButton, visualMode === "lightweight_rows", "Brick layout (ultra-low resource)");
+    sphereButton?.classList.toggle("is-resource-active", sphereResourceActive);
+    brickButton?.classList.toggle("is-resource-active", brickResourceActive);
+    syncQuickControl(
+      sphereConsolidateToggle,
+      sphereConsolidateActive,
+      sphereConsolidateActive ? "Consolidate (low resource) on" : "Consolidate (low resource)"
+    );
+    syncQuickControl(
+      sphereUltraToggle,
+      sphereUltraActive,
+      sphereUltraActive ? "Ultra low resource on" : "Ultra low resource"
+    );
+    syncQuickControl(
+      $("acgHapticsToggle"),
+      hapticsEnabled,
+      hapticsEnabled ? "Haptics on" : "Haptics off"
+    );
+    syncQuickControl(
+      audioToggle,
+      audioEnabled,
+      audioEnabled ? "Sound on" : "Sound off"
+    );
+    if (audioToggle) {
+      audioToggle.textContent = audioEnabled ? "🔊" : "🔇";
+      audioToggle.setAttribute("aria-label", audioEnabled ? "Sound on" : "Sound off");
+    }
+    if (displayModeToggle) {
+      const compatibility = displayMode === "compatibility";
+      displayModeToggle.textContent = compatibility ? "↙" : "↗";
+      syncQuickControl(
+        displayModeToggle,
+        compatibility,
+        compatibility ? "Switch to inline side pane" : "Switch to external window"
+      );
+    }
   }
 
   function renderFlagSelects(timeDrainFlag, reviewLaterFlag) {
@@ -1980,11 +2181,14 @@
       enabledToggle.classList.toggle("off", !enabled);
       enabledToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
     }
+    syncQuickControls(data);
     if (collapseTab) {
-      collapseTab.setAttribute("title", sidebarCollapsed ? "Show Speed Streak" : "Hide Speed Streak");
+      const collapseLabel = sidebarCollapsed ? "Show Speed Streak" : "Hide Speed Streak";
+      collapseTab.setAttribute("title", collapseLabel);
+      collapseTab.setAttribute("aria-label", collapseLabel);
     }
     if (collapseTabText) {
-      setText(collapseTabText, sidebarCollapsed ? "Show" : "Hide");
+      setText(collapseTabText, sidebarCollapsed ? "›" : "‹");
     }
 
     if (coreWrap && orbitAnimationEnabled && visualMode === "sphere") {
@@ -2014,6 +2218,7 @@
     }
     state.appearanceModeDraft = appearanceMode;
     syncAppearanceButtons();
+    syncShortcutCopy(data);
     renderLiveTimerState(data);
 
     core.classList.toggle("paused", Boolean(data.paused));

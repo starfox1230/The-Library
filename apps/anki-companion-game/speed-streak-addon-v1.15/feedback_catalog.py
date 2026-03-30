@@ -4,8 +4,11 @@ from typing import Any
 
 
 AUDIO_DIRECTORY_NAME = "Audio"
+AUDIO_TRIMMED_DIRECTORY_NAME = "Audio_trimmed"
+AUDIO_UPLOADS_DIRECTORY_NAME = "audio_uploads"
+AUDIO_UPLOADS_MANIFEST_NAME = "uploaded_audio_order.json"
 DEFAULT_AUDIO_ENABLED = False
-DEFAULT_AUDIO_FILE = "click1.ogg"
+DEFAULT_AUDIO_FILE = "kenney_ui-audio/Audio/click1.ogg"
 
 HAPTIC_PATTERN_OFF = "off"
 
@@ -170,13 +173,45 @@ HAPTIC_EVENT_OPTIONS: tuple[dict[str, str], ...] = (
     },
 )
 
+DEFAULT_AUDIO_EVENT_FILES = {
+    "sync": "kenney_impact-sounds/Audio/footstep_grass_004.ogg",
+    "reveal": "kenney_rpg-audio/Audio/drawKnife2.ogg",
+    "again": "kenney_impact-sounds/Audio/impactSoft_heavy_000.ogg",
+    "hard": "kenney_impact-sounds/Audio/impactPlank_medium_002.ogg",
+    "good": "kenney_casino-audio/Audio/chips-handle-3.ogg",
+    "easy": "kenney_impact-sounds/Audio/impactMining_002.ogg",
+    "skip": "kenney_rpg-audio/Audio/bookFlip2.ogg",
+    "reset": "kenney_ui-audio/Audio/switch9.ogg",
+    "timeout": "kenney_impact-sounds/Audio/impactBell_heavy_000.ogg",
+}
+
 DEFAULT_HAPTIC_EVENT_PATTERNS = {
     item["event"]: item["default_pattern"] for item in HAPTIC_EVENT_OPTIONS
 }
 
 
+def default_audio_event_files() -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    for item in HAPTIC_EVENT_OPTIONS:
+        event_key = item["event"]
+        normalized[event_key] = str(DEFAULT_AUDIO_EVENT_FILES.get(event_key, DEFAULT_AUDIO_FILE) or DEFAULT_AUDIO_FILE)
+    return normalized
+
+
 def default_haptic_event_patterns() -> dict[str, str]:
     return dict(DEFAULT_HAPTIC_EVENT_PATTERNS)
+
+
+def normalize_audio_event_files(value: Any, *, fallback_file: str | None = None) -> dict[str, str]:
+    source = value if isinstance(value, dict) else {}
+    fallback = str(fallback_file or DEFAULT_AUDIO_FILE or "").strip()
+    normalized: dict[str, str] = {}
+    defaults = default_audio_event_files()
+    for item in HAPTIC_EVENT_OPTIONS:
+        event_key = item["event"]
+        selected = str(source.get(event_key, defaults.get(event_key, fallback)) or "").strip()
+        normalized[event_key] = selected or defaults.get(event_key, fallback)
+    return normalized
 
 
 def normalize_haptic_pattern_key(value: Any) -> str:

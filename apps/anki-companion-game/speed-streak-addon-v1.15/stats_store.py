@@ -80,6 +80,7 @@ class StatsStore:
             "incorrectCards": incorrect_cards,
             "correctPct": correct_pct,
             "incorrectPct": 100.0 - correct_pct if cards else 0.0,
+            "longestStreak": self._longest_streak(day=str(day)),
         }
 
     def historical_daily_stats(self) -> List[Dict[str, Any]]:
@@ -136,7 +137,27 @@ class StatsStore:
             "incorrectCards": max(0, cards - correct_cards),
             "correctPct": correct_pct,
             "incorrectPct": 100.0 - correct_pct if cards else 0.0,
+            "longestStreak": self._longest_streak(),
         }
+
+    def _longest_streak(self, day: str | None = None) -> int:
+        query = "select correct from review_events"
+        params: tuple[Any, ...] = ()
+        if day is not None:
+            query += " where day = ?"
+            params = (str(day),)
+        query += " order by answered_at asc, id asc"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        best = 0
+        current = 0
+        for row in rows:
+            if int(row["correct"] or 0):
+                current += 1
+                best = max(best, current)
+            else:
+                current = 0
+        return best
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)

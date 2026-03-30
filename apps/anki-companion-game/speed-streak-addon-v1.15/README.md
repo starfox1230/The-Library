@@ -4,11 +4,23 @@ This folder contains the Speed Streak v1.15 version of the project packaged as a
 
 It does not modify the original standalone files in the parent folder.
 
+## Changelog
+
+### v1.15 (from v1.14)
+
+- Rebuilt Speed Streak as a native Anki add-on, removing the old dependency on the external browser page, AnkiConnect, and AutoHotkey.
+- Added two display modes: an inline side pane and a separate external compatibility window. The external window is generally the recommended option because it renders more smoothly and plays better with add-ons like AnkiHub and AMBOSS.
+- Added a new `Brick Layout` view as the built-in ultra-low-resource mode alongside the original `Sphere/Satellites` view.
+- Added a full `Haptic/Audio Feedback` settings section with per-event audio and haptic customization, audio previews, audio uploads, and persistent uploaded-file ordering.
+- Added support for packaged nested audio folders plus optional `Audio_trimmed` files for faster-starting sound effects.
+- Added a `Shortcuts` settings section with a configurable pause shortcut, plus a new `Longest Streak` stat in the stats view.
+- Reworked the sidebar controls and settings layout, including symbol-based quick toggles for layout, display mode, haptics, and sound.
+
 ## What it does
 
 - Lets you choose between an inline left pane and a compatibility floating window at launch
 - Tracks streaks and timers natively
-- Includes both the original `Sphere/Satellites` view and a new battery-friendly `Lightweight Rows` mode
+- Includes both the original `Sphere/Satellites` view and a new battery-friendly `Brick Layout` mode
 - Sends controller rumble on Windows through XInput and uses a browser gamepad fallback on non-Windows platforms when available
 - Removes the need for the external browser page, AnkiConnect, and AutoHotkey
 
@@ -35,7 +47,7 @@ To install this manually:
 6. Start Anki again.
 
 If the add-on loads successfully, the review screen will show Speed Streak in the display mode you choose at launch.
-`v1.15` adds a new `Lightweight Rows` visual mode that is designed to minimize CPU/GPU activity while still giving you satisfying progress chunking.
+`v1.15` adds a new `Brick Layout` visual mode that is designed to minimize CPU/GPU activity while still giving you satisfying progress chunking.
 
 ### Faster install on Windows
 
@@ -47,6 +59,16 @@ You can also run:
 
 from this folder, and it will copy the add-on into Anki's default `addons21` directory for you.
 The installer preserves the installed add-on's `user_files` folder so Review Later cohort history survives updates.
+
+### Trim packaged audio on Windows
+
+If you want the built-in sound packs to start faster, you can generate a parallel `Audio_trimmed` folder with:
+
+```powershell
+.\trim_audio_to_trimmed.ps1
+```
+
+The script keeps the original `Audio` folder untouched, trims only leading silence, and writes the processed results into `Audio_trimmed` with the same subfolder structure. The add-on automatically prefers `Audio_trimmed` when those files exist and falls back to `Audio` for anything that has not been trimmed yet.
 
 ### Faster install on macOS
 
@@ -60,15 +82,15 @@ from this folder, and it will copy the add-on into the default macOS `addons21` 
 
 ## First run
 
-- On first launch, pick either `Inline Left Pane` or `Compatibility Window`.
-- Choose `Compatibility Window` if you use add-ons like AMBOSS or AnkiHub.
-- The default visual mode is `Lightweight Rows`, with `Reduced Motion` enabled.
+- On first launch, pick either `Inline Side Pane` or `External Window`.
+- `External Window` is recommended, especially if you use add-ons like AMBOSS or AnkiHub.
+- The default visual mode is `Sphere/Satellites`. `Brick Layout` is the built-in ultra-low-resource alternative.
 - Open a deck and start reviewing.
 - The overlay arms itself on the first question card.
 - Show the answer normally.
 - Rate the card normally with buttons or keys.
-- In Settings, `Sphere/Satellites` keeps the old orbit view and `Lightweight Rows` gives the new low-power visualization.
-- Press `P` to pause or resume the timer.
+- In Settings, `Sphere/Satellites` keeps the old orbit view and `Brick Layout` gives the new ultra-low-resource visualization.
+- Press your configured pause shortcut to pause or resume the timer. The default is `P`.
 - If you have a compatible controller connected, rumble should fire on reveal, rating, skip, reset, and timeout. Windows uses native XInput. Non-Windows platforms use the embedded browser's gamepad haptics support when available.
 
 ## Updating after changes
