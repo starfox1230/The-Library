@@ -99,6 +99,81 @@ class CompanionGameEngine:
     _last_review_metrics: Optional[Dict[str, Any]] = None
     _review_undo_stack: list[ReviewUndoSnapshot] = field(default_factory=list)
 
+    def _capture_user_preferences(self) -> Dict[str, Any]:
+        s = self.state
+        return {
+            "enabled": bool(s.enabled),
+            "audio_enabled": bool(s.audio_enabled),
+            "selected_audio_file": str(s.selected_audio_file),
+            "audio_event_files": dict(s.audio_event_files),
+            "haptics_enabled": bool(s.haptics_enabled),
+            "haptic_event_patterns": dict(s.haptic_event_patterns),
+            "visuals_enabled": bool(s.visuals_enabled),
+            "show_card_timer": bool(s.show_card_timer),
+            "orbit_animation_enabled": bool(s.orbit_animation_enabled),
+            "reduced_motion_enabled": bool(s.reduced_motion_enabled),
+            "custom_timer_colors": bool(s.custom_timer_colors),
+            "custom_timer_color_level": float(s.custom_timer_color_level),
+            "sidebar_collapsed": bool(s.sidebar_collapsed),
+            "appearance_mode": str(s.appearance_mode),
+            "custom_colors": dict(s.custom_colors),
+            "question_limit_ms": int(s.question_limit_ms),
+            "review_limit_ms": int(s.review_limit_ms),
+            "time_drain_flag": int(s.time_drain_flag),
+            "review_later_flag": int(s.review_later_flag),
+        }
+
+    def _restore_user_preferences(self, preferences: Dict[str, Any]) -> None:
+        s = self.state
+        s.enabled = bool(preferences.get("enabled", s.enabled))
+        s.audio_enabled = bool(preferences.get("audio_enabled", s.audio_enabled))
+        s.selected_audio_file = str(preferences.get("selected_audio_file", s.selected_audio_file))
+        s.audio_event_files = normalize_audio_event_files(
+            preferences.get("audio_event_files", s.audio_event_files),
+            fallback_file=s.selected_audio_file,
+        )
+        s.haptics_enabled = bool(preferences.get("haptics_enabled", s.haptics_enabled))
+        s.haptic_event_patterns = normalize_haptic_event_patterns(
+            preferences.get("haptic_event_patterns", s.haptic_event_patterns)
+        )
+        s.visuals_enabled = bool(preferences.get("visuals_enabled", s.visuals_enabled))
+        s.show_card_timer = bool(preferences.get("show_card_timer", s.show_card_timer))
+        s.orbit_animation_enabled = bool(preferences.get("orbit_animation_enabled", s.orbit_animation_enabled))
+        s.reduced_motion_enabled = bool(preferences.get("reduced_motion_enabled", s.reduced_motion_enabled))
+        s.custom_timer_colors = bool(preferences.get("custom_timer_colors", s.custom_timer_colors))
+        s.custom_timer_color_level = max(
+            -1.0,
+            min(1.0, float(preferences.get("custom_timer_color_level", s.custom_timer_color_level))),
+        )
+        s.sidebar_collapsed = bool(preferences.get("sidebar_collapsed", s.sidebar_collapsed))
+        s.appearance_mode = str(preferences.get("appearance_mode", s.appearance_mode) or "midnight")
+        s.custom_colors = self._normalize_custom_colors(preferences.get("custom_colors", s.custom_colors))
+        s.question_limit_ms = int(max(1, preferences.get("question_limit_ms", s.question_limit_ms)))
+        s.review_limit_ms = int(max(1, preferences.get("review_limit_ms", s.review_limit_ms)))
+        s.time_drain_flag = max(0, int(preferences.get("time_drain_flag", s.time_drain_flag)))
+        s.review_later_flag = max(0, int(preferences.get("review_later_flag", s.review_later_flag)))
+
+        if not s.haptics_enabled and not s.visuals_enabled:
+            s.visuals_enabled = True
+
+        if s.phase == "question":
+            s.phase_limit_ms = 0 if s.first_card_free or not s.visuals_enabled else s.question_limit_ms
+        elif s.phase == "answer":
+            s.phase_limit_ms = s.review_limit_ms if s.visuals_enabled else 0
+        else:
+            s.phase_limit_ms = 0
+
+        if not s.visuals_enabled:
+            self._clear_pause_state(accumulate_active=True)
+            s.streak = 0
+            s.streak_multiplier = 1.0
+            s.failure_visual_active = False
+            s.satellite_colors = []
+        elif s.paused and s.phase_limit_ms > 0:
+            s.paused_remaining_ms = min(max(0, s.paused_remaining_ms), s.phase_limit_ms)
+        else:
+            s.paused_remaining_ms = max(0, s.paused_remaining_ms)
+
     def export(self) -> Dict[str, Any]:
         s = self.state
         return {
@@ -151,46 +226,10 @@ class CompanionGameEngine:
         }
 
     def hard_reset(self) -> None:
-        enabled = self.state.enabled
-        audio_enabled = self.state.audio_enabled
-        selected_audio_file = self.state.selected_audio_file
-        audio_event_files = dict(self.state.audio_event_files)
-        haptics_enabled = self.state.haptics_enabled
-        haptic_event_patterns = dict(self.state.haptic_event_patterns)
-        visuals_enabled = self.state.visuals_enabled
-        show_card_timer = self.state.show_card_timer
-        orbit_animation_enabled = self.state.orbit_animation_enabled
-        reduced_motion_enabled = self.state.reduced_motion_enabled
-        custom_timer_colors = self.state.custom_timer_colors
-        custom_timer_color_level = self.state.custom_timer_color_level
-        sidebar_collapsed = self.state.sidebar_collapsed
-        appearance_mode = self.state.appearance_mode
-        custom_colors = dict(self.state.custom_colors)
-        question_limit_ms = self.state.question_limit_ms
-        review_limit_ms = self.state.review_limit_ms
-        time_drain_flag = self.state.time_drain_flag
-        review_later_flag = self.state.review_later_flag
+        preferences = self._capture_user_preferences()
         self.state = CompanionState()
         self.card = CardRuntime()
-        self.state.enabled = enabled
-        self.state.audio_enabled = audio_enabled
-        self.state.selected_audio_file = selected_audio_file
-        self.state.audio_event_files = audio_event_files
-        self.state.haptics_enabled = haptics_enabled
-        self.state.haptic_event_patterns = haptic_event_patterns
-        self.state.visuals_enabled = visuals_enabled
-        self.state.show_card_timer = show_card_timer
-        self.state.orbit_animation_enabled = orbit_animation_enabled
-        self.state.reduced_motion_enabled = reduced_motion_enabled
-        self.state.custom_timer_colors = custom_timer_colors
-        self.state.custom_timer_color_level = custom_timer_color_level
-        self.state.sidebar_collapsed = sidebar_collapsed
-        self.state.appearance_mode = appearance_mode
-        self.state.custom_colors = custom_colors
-        self.state.question_limit_ms = question_limit_ms
-        self.state.review_limit_ms = review_limit_ms
-        self.state.time_drain_flag = time_drain_flag
-        self.state.review_later_flag = review_later_flag
+        self._restore_user_preferences(preferences)
         self._last_review_metrics = None
         self._publish("reset", "Run reset.")
 
@@ -481,9 +520,11 @@ class CompanionGameEngine:
         self._review_undo_stack.append(snapshot)
 
     def discard_review_undo_snapshot(self, snapshot: ReviewUndoSnapshot) -> None:
+        preferences = self._capture_user_preferences()
         self.state = deepcopy(snapshot.state)
         self.card = deepcopy(snapshot.card)
         self._last_review_metrics = deepcopy(snapshot.last_review_metrics)
+        self._restore_user_preferences(preferences)
 
     def undo_last_review(self) -> bool:
         if not self._review_undo_stack:

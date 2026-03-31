@@ -109,7 +109,7 @@
       return explicit;
     }
     if (getVisualMode(data) === "lightweight_rows") {
-      return 200;
+      return 100;
     }
     return getRenderMode(data) === "ultra_low_resource" ? 500 : 100;
   }

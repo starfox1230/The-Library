@@ -9,7 +9,7 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-from aqt import dialogs, mw
+from aqt import dialogs, gui_hooks, mw
 from aqt.webview import AnkiWebView
 from aqt.qt import (
     QApplication,
@@ -220,6 +220,10 @@ def _note_tag_list(note: Any) -> list[str]:
     return [str(tag) for tag in getattr(note, "tags", [])]
 
 
+def _display_note_tags(note: Any) -> list[str]:
+    return [tag for tag in _note_tag_list(note) if not tag.startswith(f"{REVIEW_LATER_TAG_PREFIX}::")]
+
+
 def _sanitize_timestamp_tag_value(iso_value: str) -> str:
     return str(iso_value).replace(":", "-")
 
@@ -375,8 +379,8 @@ def sync_review_later_membership(*, card_id: int, note_id: int, card_ord: int, c
                 note = None
             entered_at = (
                 _state_entered_at(int(review_later_flag), int(card_id))
-                or (_review_later_tag_timestamp_for_ord(note, int(card_ord)) if note is not None else None)
                 or _active_db_entered_at(conn, card_id=int(card_id), flag=int(review_later_flag))
+                or (_review_later_tag_timestamp_for_ord(note, int(card_ord)) if note is not None else None)
                 or _now_iso()
             )
             _ensure_active_cohort(
@@ -387,19 +391,12 @@ def sync_review_later_membership(*, card_id: int, note_id: int, card_ord: int, c
                 entered_at=entered_at,
             )
             _set_state_entered_at(int(review_later_flag), int(card_id), entered_at)
-            if note is not None:
-                _ensure_review_later_note_tag(note, card_ord=int(card_ord), entered_at_iso=entered_at)
         else:
             _close_active_cohort(
                 conn,
                 card_id=int(card_id),
                 flag=int(review_later_flag),
             )
-            try:
-                note = _col_get_card(int(card_id)).note()
-                _remove_review_later_note_tag(note, card_ord=int(card_ord))
-            except Exception:
-                pass
             _remove_state_entered_at(int(review_later_flag), int(card_id))
         conn.commit()
 
@@ -429,8 +426,8 @@ def reconcile_review_later_flag(flag: int) -> None:
                 card_ord = int(getattr(card, "ord", 0) or 0)
                 entered_at = (
                     _state_entered_at(flag, card_id)
-                    or _review_later_tag_timestamp_for_ord(note, card_ord)
                     or _active_db_entered_at(conn, card_id=card_id, flag=flag)
+                    or _review_later_tag_timestamp_for_ord(note, card_ord)
                     or now_iso
                 )
                 _ensure_active_cohort(
@@ -441,18 +438,12 @@ def reconcile_review_later_flag(flag: int) -> None:
                     entered_at=entered_at,
                 )
                 _set_state_entered_at(flag, card_id, entered_at)
-                _ensure_review_later_note_tag(note, card_ord=card_ord, entered_at_iso=entered_at)
             except Exception:
                 continue
 
         stale_ids = active_card_ids - current_set
         for card_id in stale_ids:
             _close_active_cohort(conn, card_id=card_id, flag=flag, removed_at=now_iso)
-            try:
-                stale_card = _col_get_card(card_id)
-                _remove_review_later_note_tag(stale_card.note(), card_ord=int(getattr(stale_card, "ord", 0) or 0))
-            except Exception:
-                pass
             _remove_state_entered_at(flag, card_id)
 
         conn.commit()
@@ -466,18 +457,6 @@ def _active_cohort_map(flag: int) -> dict[int, datetime]:
         entered_at = state.get(str(card_id))
         if entered_at:
             cohort_map[card_id] = _cohort_datetime(entered_at)
-    for card_id in current_card_ids:
-        try:
-            if card_id in cohort_map:
-                continue
-            card = _col_get_card(card_id)
-            note = card.note()
-            card_ord = int(getattr(card, "ord", 0) or 0)
-            entered_at = _review_later_tag_timestamp_for_ord(note, card_ord)
-            if entered_at:
-                cohort_map[card_id] = _cohort_datetime(entered_at)
-        except Exception:
-            continue
     with _connect() as conn:
         rows = conn.execute(
             """
@@ -492,6 +471,18 @@ def _active_cohort_map(flag: int) -> dict[int, datetime]:
         card_id = int(row["card_id"])
         if card_id in current_card_ids and card_id not in cohort_map:
             cohort_map[card_id] = _cohort_datetime(str(row["entered_at"]))
+    for card_id in current_card_ids:
+        try:
+            if card_id in cohort_map:
+                continue
+            card = _col_get_card(card_id)
+            note = card.note()
+            card_ord = int(getattr(card, "ord", 0) or 0)
+            entered_at = _review_later_tag_timestamp_for_ord(note, card_ord)
+            if entered_at:
+                cohort_map[card_id] = _cohort_datetime(entered_at)
+        except Exception:
+            continue
     return cohort_map
 
 
@@ -512,13 +503,13 @@ def fetch_review_later_entries(flag: int) -> list[ReviewLaterEntry]:
                 entered_at = (
                     active_map.get(card_id)
                     or (
-                        _cohort_datetime(tag_entered_at)
-                        if (tag_entered_at := _review_later_tag_timestamp_for_ord(note, card_ord))
+                        _cohort_datetime(db_entered_at)
+                        if (db_entered_at := _active_db_entered_at(conn, card_id=card_id, flag=flag))
                         else None
                     )
                     or (
-                        _cohort_datetime(db_entered_at)
-                        if (db_entered_at := _active_db_entered_at(conn, card_id=card_id, flag=flag))
+                        _cohort_datetime(tag_entered_at)
+                        if (tag_entered_at := _review_later_tag_timestamp_for_ord(note, card_ord))
                         else None
                     )
                     or datetime.min
@@ -533,7 +524,7 @@ def fetch_review_later_entries(flag: int) -> list[ReviewLaterEntry]:
                         note_id=int(note.id),
                         deck_name=_deck_name(card),
                         note_type_name=_note_type_name(note),
-                        tags=[str(tag) for tag in getattr(note, "tags", [])],
+                        tags=_display_note_tags(note),
                         fields=fields,
                         front_html=front_html,
                         back_html=back_html,
@@ -556,21 +547,37 @@ def build_copy_text(entries: list[ReviewLaterEntry]) -> str:
     return "\n\n".join(chunks).strip()
 
 
-def preview_html(entries: list[ReviewLaterEntry]) -> str:
+def preview_html(entries: list[ReviewLaterEntry], pending_card_removals: set[int] | None = None) -> str:
+    pending_card_removals = set(pending_card_removals or set())
     if not entries:
         body = "<div class='empty'>No cards currently match the current Review Later filter.</div>"
     else:
         cards = []
         for entry in entries:
             tags = ", ".join(entry.tags) if entry.tags else "No tags"
+            pending_remove = entry.card_id in pending_card_removals
+            toggle_label = "Review Later Off" if pending_remove else "Review Later On"
+            toggle_class = "toggle pending" if pending_remove else "toggle active"
+            pending_copy = (
+                "<div class='pending-copy'>This card will be removed from Review Later when you save and close.</div>"
+                if pending_remove
+                else "<div class='pending-copy stable'>This card will stay in Review Later unless you toggle it off.</div>"
+            )
             cards.append(
                 f"""
-                <section class="entry">
-                  <div class="meta">
-                    <div><strong>{escape(entry.deck_name)}</strong></div>
-                    <div>{escape(entry.note_type_name)}</div>
-                    <div>Added {entry.added_at.strftime("%Y-%m-%d %H:%M:%S")}</div>
+                <section class="entry{' pending-remove' if pending_remove else ''}">
+                  <div class="entry-head">
+                    <div class="meta">
+                      <div><strong>{escape(entry.deck_name)}</strong></div>
+                      <div>{escape(entry.note_type_name)}</div>
+                      <div>Added {entry.added_at.strftime("%Y-%m-%d %H:%M:%S")}</div>
+                    </div>
+                    <div class="entry-actions">
+                      <button class="entry-action secondary" type="button" onclick="return speedStreakReviewLaterAction('open-card', {int(entry.card_id)})">Open in Browser</button>
+                      <button class="entry-action {toggle_class}" type="button" onclick="return speedStreakReviewLaterAction('toggle-card', {int(entry.card_id)})">{toggle_label}</button>
+                    </div>
                   </div>
+                  {pending_copy}
                   <div class="tags">{escape(tags)}</div>
                   <div class="card-face">
                     <div class="face-label">Front</div>
@@ -590,6 +597,14 @@ def preview_html(entries: list[ReviewLaterEntry]) -> str:
 <html>
 <head>
   <meta charset="utf-8">
+  <script>
+    function speedStreakReviewLaterAction(action, cardId) {{
+      if (typeof pycmd === "function") {{
+        pycmd(`speed-streak:review-later-manager:${{action}}:${{cardId}}`);
+      }}
+      return false;
+    }}
+  </script>
   <style>
     html, body {{
       margin: 0;
@@ -614,6 +629,19 @@ def preview_html(entries: list[ReviewLaterEntry]) -> str:
       gap: 12px;
       box-shadow: 0 14px 32px rgba(0, 0, 0, 0.26);
     }}
+    .entry.pending-remove {{
+      border-color: rgba(255, 170, 105, 0.28);
+      background:
+        radial-gradient(circle at top, rgba(255, 166, 82, 0.12), transparent 48%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    }}
+    .entry-head {{
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }}
     .meta {{
       color: #a8b7dc;
       display: flex;
@@ -623,6 +651,46 @@ def preview_html(entries: list[ReviewLaterEntry]) -> str:
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+    }}
+    .entry-actions {{
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }}
+    .entry-action {{
+      appearance: none;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.06);
+      color: #eef3ff;
+      font: 700 12px/1 "Segoe UI", system-ui, sans-serif;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }}
+    .entry-action.secondary {{
+      border-color: rgba(136, 169, 255, 0.2);
+    }}
+    .entry-action.active {{
+      border-color: rgba(101, 240, 194, 0.34);
+      background: rgba(41, 118, 88, 0.36);
+      color: #ddfff4;
+    }}
+    .entry-action.pending {{
+      border-color: rgba(255, 188, 122, 0.34);
+      background: rgba(122, 71, 28, 0.36);
+      color: #fff0db;
+    }}
+    .entry-action:hover {{
+      background: rgba(255,255,255,0.12);
+    }}
+    .pending-copy {{
+      color: #ffc98a;
+      font-size: 12px;
+      line-height: 1.45;
+    }}
+    .pending-copy.stable {{
+      color: #8ea0cc;
     }}
     .tags {{
       color: #d8e2ff;
@@ -694,9 +762,88 @@ def filter_entries(entries: list[ReviewLaterEntry], kind: str, past_days: int) -
 def search_query_for_entries(entries: list[ReviewLaterEntry], flag: int, kind: str) -> str:
     if not entries:
         return ""
-    if kind == "all" and flag > 0:
-        return _flag_search(flag)
     return " or ".join(f"cid:{entry.card_id}" for entry in entries)
+
+
+def _open_browser_for_query(query: str) -> None:
+    browser = dialogs.open("Browser", mw)
+    search_for = getattr(browser, "search_for", None)
+    if callable(search_for):
+        search_for(query)
+        return
+    search = getattr(browser, "search", None)
+    if callable(search):
+        search(query)
+        return
+    form = getattr(browser, "form", None)
+    if form and hasattr(form, "searchEdit"):
+        form.searchEdit.lineEdit().setText(query)
+        browser.onSearchActivated()
+        return
+    raise RuntimeError("Browser search API not available.")
+
+
+def _update_card(card: Any) -> None:
+    for method_name in ("flush", "save"):
+        method = getattr(card, method_name, None)
+        if callable(method):
+            try:
+                method()
+                return
+            except Exception:
+                continue
+    update_card = getattr(mw.col, "update_card", None)
+    if callable(update_card):
+        update_card(card)
+        return
+    update_card = getattr(mw.col, "updateCard", None)
+    if callable(update_card):
+        update_card(card)
+
+
+def _set_card_user_flag(card: Any, flag: int) -> None:
+    for method_name in ("set_user_flag", "setUserFlag"):
+        method = getattr(card, method_name, None)
+        if callable(method):
+            try:
+                method(int(flag))
+                return
+            except Exception:
+                continue
+    current_flags = int(getattr(card, "flags", 0) or 0)
+    setattr(card, "flags", (current_flags & ~0b111) | (int(flag) & 0b111))
+    _update_card(card)
+
+
+def _set_user_flag_for_cards(card_ids: list[int], flag: int) -> None:
+    unique_ids = [int(card_id) for card_id in dict.fromkeys(int(card_id) for card_id in card_ids if int(card_id) > 0)]
+    if not unique_ids:
+        return
+
+    collection_methods = [
+        ("set_user_flag_for_cards", ((int(flag), unique_ids), {})),
+        ("set_user_flag_for_cards", ((), {"flag": int(flag), "card_ids": unique_ids})),
+        ("set_user_flag_for_cards", ((), {"flag": int(flag), "cids": unique_ids})),
+        ("setUserFlag", ((int(flag), unique_ids), {})),
+        ("setUserFlag", ((unique_ids, int(flag)), {})),
+        ("set_user_flag", ((int(flag), unique_ids), {})),
+        ("set_user_flag", ((), {"flag": int(flag), "card_ids": unique_ids})),
+        ("set_user_flag", ((), {"flag": int(flag), "cids": unique_ids})),
+    ]
+    for method_name, (args, kwargs) in collection_methods:
+        method = getattr(mw.col, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            method(*args, **kwargs)
+            return
+        except TypeError:
+            continue
+        except Exception:
+            continue
+
+    for card_id in unique_ids:
+        _set_card_user_flag(_col_get_card(card_id), int(flag))
 
 
 class ReviewLaterManagerDialog(QDialog):
@@ -705,9 +852,12 @@ class ReviewLaterManagerDialog(QDialog):
         self.review_later_flag = int(review_later_flag)
         self.entries: list[ReviewLaterEntry] = []
         self.visible_entries: list[ReviewLaterEntry] = []
+        self.pending_card_removals: set[int] = set()
+        self._bridge_hook_installed = False
         self.setWindowTitle("Review Later Manager")
         self.resize(920, 700)
         self._build_ui()
+        self._attach_bridge_hook()
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -735,7 +885,7 @@ class ReviewLaterManagerDialog(QDialog):
         self.refresh_button = QPushButton("Refresh")
         self.copy_all_button = QPushButton("Copy All")
         self.filtered_deck_button = QPushButton("Make Filtered Deck")
-        self.browser_button = QPushButton("Open in Browser")
+        self.browser_button = QPushButton("Open All in Browser")
         self.close_button = QPushButton("Close")
         button_row.addWidget(self.refresh_button)
         button_row.addWidget(self.copy_all_button)
@@ -756,15 +906,60 @@ class ReviewLaterManagerDialog(QDialog):
         self.browser_button.clicked.connect(self.open_in_browser)
         self.close_button.clicked.connect(self.close)
 
+    def _attach_bridge_hook(self) -> None:
+        if self._bridge_hook_installed:
+            return
+        gui_hooks.webview_did_receive_js_message.append(self._on_preview_js_message)
+        self._bridge_hook_installed = True
+
+    def _detach_bridge_hook(self) -> None:
+        if not self._bridge_hook_installed:
+            return
+        try:
+            gui_hooks.webview_did_receive_js_message.remove(self._on_preview_js_message)
+        except Exception:
+            pass
+        self._bridge_hook_installed = False
+
+    def _on_preview_js_message(self, handled: tuple[bool, Any], message: str, context: Any) -> tuple[bool, Any]:
+        prefix = "speed-streak:review-later-manager:"
+        if not str(message or "").startswith(prefix):
+            return handled
+        payload = str(message)[len(prefix) :]
+        action, _, raw_card_id = payload.partition(":")
+        try:
+            card_id = int(raw_card_id or 0)
+        except Exception:
+            card_id = 0
+        if action == "open-card" and card_id > 0:
+            self.open_single_in_browser(card_id)
+            return (True, None)
+        if action == "toggle-card" and card_id > 0:
+            self.toggle_pending_removal(card_id)
+            return (True, None)
+        return (True, None)
+
+    def _render_preview(self) -> None:
+        self.preview.stdHtml(preview_html(self.visible_entries, self.pending_card_removals))
+
+    def _update_info_label(self) -> None:
+        pending_count = len(self.pending_card_removals)
+        suffix = f" | Pending removals: {pending_count}" if pending_count else ""
+        self.info_label.setText(
+            f"Review Later Flag: {self.review_later_flag} | Visible Cards: {len(self.visible_entries)} | Total Cards: {len(self.entries)}{suffix}"
+        )
+
     def refresh_entries(self) -> None:
         if self.review_later_flag <= 0:
             self.entries = []
             self.visible_entries = []
+            self.pending_card_removals.clear()
             self.info_label.setText("Choose a Review Later flag in Settings first.")
-            self.preview.stdHtml(preview_html([]))
+            self._render_preview()
             return
 
         self.entries = fetch_review_later_entries(self.review_later_flag)
+        self.pending_card_removals.intersection_update({entry.card_id for entry in self.entries})
         self._apply_filter()
 
     def showEvent(self, event: Any) -> None:
@@ -785,10 +980,8 @@ class ReviewLaterManagerDialog(QDialog):
         past_days = int(self.past_days.value())
         self.past_days.setEnabled(kind == "past_x")
         self.visible_entries = filter_entries(self.entries, kind, past_days)
-        self.info_label.setText(
-            f"Review Later Flag: {self.review_later_flag} | Visible Cards: {len(self.visible_entries)} | Total Cards: {len(self.entries)}"
-        )
-        self.preview.stdHtml(preview_html(self.visible_entries))
+        self._update_info_label()
+        self._render_preview()
 
     def copy_all(self) -> None:
         if not self.visible_entries:
@@ -811,23 +1004,76 @@ class ReviewLaterManagerDialog(QDialog):
             str(self.date_filter.currentData() or "all"),
         )
         try:
-            browser = dialogs.open("Browser", mw)
-            search_for = getattr(browser, "search_for", None)
-            if callable(search_for):
-                search_for(query)
-                return
-            search = getattr(browser, "search", None)
-            if callable(search):
-                search(query)
-                return
-            form = getattr(browser, "form", None)
-            if form and hasattr(form, "searchEdit"):
-                form.searchEdit.lineEdit().setText(query)
-                browser.onSearchActivated()
-                return
-            raise RuntimeError("Browser search API not available.")
+            _open_browser_for_query(query)
         except Exception as exc:
             QMessageBox.warning(self, "Review Later Manager", f"Could not open Browser.\n\n{exc}")
+
+    def open_single_in_browser(self, card_id: int) -> None:
+        entry = next((entry for entry in self.entries if int(entry.card_id) == int(card_id)), None)
+        if entry is None:
+            QMessageBox.information(self, "Review Later Manager", "That card is no longer available.")
+            return
+        try:
+            _open_browser_for_query(f"cid:{int(entry.card_id)}")
+        except Exception as exc:
+            QMessageBox.warning(self, "Review Later Manager", f"Could not open Browser.\n\n{exc}")
+
+    def toggle_pending_removal(self, card_id: int) -> None:
+        if int(card_id) in self.pending_card_removals:
+            self.pending_card_removals.remove(int(card_id))
+        else:
+            self.pending_card_removals.add(int(card_id))
+        self._update_info_label()
+        self._render_preview()
+
+    def _apply_pending_removals(self) -> None:
+        card_ids = sorted(int(card_id) for card_id in self.pending_card_removals if int(card_id) > 0)
+        if not card_ids:
+            return
+        _set_user_flag_for_cards(card_ids, 0)
+        reconcile_review_later_flag(self.review_later_flag)
+        self.pending_card_removals.clear()
+        mw.reset()
+
+    def _confirm_close(self) -> bool:
+        pending_count = len(self.pending_card_removals)
+        if pending_count <= 0:
+            return True
+        noun = "card" if pending_count == 1 else "cards"
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Review Later Manager")
+        dialog.setIcon(QMessageBox.Icon.Question)
+        dialog.setText(f"Save your changes to {pending_count} {noun}?")
+        dialog.setInformativeText(
+            "Choose Save to remove the Review Later flag from those cards now, "
+            "Close Without Saving to keep all flags as they are, or Cancel to stay in the manager."
+        )
+        save_button = dialog.addButton(f"Save {pending_count} {noun}", QMessageBox.ButtonRole.AcceptRole)
+        discard_button = dialog.addButton("Close Without Saving", QMessageBox.ButtonRole.DestructiveRole)
+        cancel_button = dialog.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        dialog.setDefaultButton(save_button)
+        dialog.exec()
+        clicked = dialog.clickedButton()
+        if clicked is save_button:
+            try:
+                self._apply_pending_removals()
+                return True
+            except Exception as exc:
+                QMessageBox.warning(self, "Review Later Manager", f"Could not save changes.\n\n{exc}")
+                return False
+        if clicked is discard_button:
+            self.pending_card_removals.clear()
+            return True
+        if clicked is cancel_button:
+            return False
+        return False
+
+    def closeEvent(self, event: Any) -> None:
+        if not self._confirm_close():
+            event.ignore()
+            return
+        self._detach_bridge_hook()
+        super().closeEvent(event)
 
     def make_filtered_deck(self) -> None:
         if not self.visible_entries:

@@ -923,7 +923,7 @@ class ReviewerOverlayController:
 
     def _timer_display_step_ms(self) -> int:
         if self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
-            return 200
+            return 100
         return 500 if self.render_mode == RENDER_MODE_ULTRA_LOW_RESOURCE else 100
 
     def _raw_timer_remaining_ms(self, now_ms: int) -> int:

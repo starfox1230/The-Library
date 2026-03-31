@@ -744,7 +744,7 @@
       return explicit;
     }
     if (isLightweightRowsMode(data)) {
-      return 200;
+      return 100;
     }
     return getRenderMode(data) === "ultra_low_resource" ? 500 : 100;
   }
