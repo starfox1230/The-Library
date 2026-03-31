@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timer Animation Visualizer</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#111a2e;
+      --panel2:#0f1728;
+      --text:#e6eefc;
+      --muted:#9fb2d8;
+      --accent:#5cc8ff;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --danger:#fb7185;
+      --border:#223355;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      color:var(--text);
+      background:radial-gradient(circle at 15% 10%, #152548, var(--bg));
+      padding:20px;
+    }
+    .wrap{max-width:1050px;margin:0 auto;display:grid;gap:16px}
+    .card{
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+    }
+    h1{margin:0 0 8px}
+    p{margin:6px 0;color:var(--muted)}
+    .controls{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+      gap:12px;
+      align-items:end;
+    }
+    label{font-size:.85rem;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,button{
+      width:100%;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#0a1324;
+      color:var(--text);
+      padding:10px 11px;
+      font:inherit;
+    }
+    button{cursor:pointer;background:#142744}
+    button:hover{border-color:#355d93}
+    .buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .stage{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media(max-width:840px){.stage{grid-template-columns:1fr}}
+    .sim{border:1px solid var(--border);border-radius:12px;padding:12px;background:#0a1324}
+    .sim h2{margin:0 0 8px;font-size:1rem}
+    .time{
+      font-size:2rem;
+      font-weight:800;
+      letter-spacing:.02em;
+      margin:8px 0 12px;
+      font-variant-numeric:tabular-nums;
+    }
+    .track{height:14px;border-radius:999px;background:#152742;overflow:hidden;border:1px solid #26416b}
+    .fill{
+      height:100%;
+      width:100%;
+      background:var(--good);
+      transform-origin:left center;
+      transition:width 90ms linear, background 140ms ease;
+    }
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip{border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:.8rem;color:var(--muted)}
+    .legend{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:8px;
+      color:var(--muted);
+      font-size:.95rem;
+    }
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Timer Animation Visualizer</h1>
+      <p>Compare two approaches:</p>
+      <div class="legend">
+        <div><strong>Realtime loop:</strong> recalculates progress every tick.</div>
+        <div><strong>Animation timeline:</strong> sets one animation and lets the browser run it until pause/resume/end.</div>
+      </div>
+    </section>
+
+    <section class="card controls">
+      <div>
+        <label for="secondsInput">Timer length (seconds)</label>
+        <input id="secondsInput" type="number" min="1" max="600" step="0.1" value="12" />
+      </div>
+      <div>
+        <label for="tickInput">Realtime loop tick (ms)</label>
+        <input id="tickInput" type="number" min="16" max="1000" step="1" value="100" />
+      </div>
+      <div>
+        <label for="textInput">Text refresh cadence (ms)</label>
+        <input id="textInput" type="number" min="16" max="1000" step="1" value="100" />
+      </div>
+      <div class="buttons">
+        <button id="startBtn">Start Timer</button>
+        <button id="pauseBtn">Pause / Resume</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <section class="stage">
+      <article class="sim">
+        <h2>Realtime Loop</h2>
+        <div id="loopTime" class="time">12.0s</div>
+        <div class="track"><div id="loopFill" class="fill"></div></div>
+        <div class="chips">
+          <span class="chip">Updates every <span id="loopTickLabel">100</span>ms</span>
+          <span class="chip">Many JS writes</span>
+        </div>
+      </article>
+
+      <article class="sim">
+        <h2>Animation Timeline</h2>
+        <div id="animTime" class="time">12.0s</div>
+        <div class="track"><div id="animFill" class="fill"></div></div>
+        <div class="chips">
+          <span class="chip">Bar runs on compositor timeline</span>
+          <span class="chip">JS mostly for state edges</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="card">
+      <p class="mono">Tip: keep the timer at 12s and change realtime tick between 16 / 100 / 250 to see workload difference without changing timer smoothness goals.</p>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const loopFill = $("loopFill");
+    const animFill = $("animFill");
+    const loopTime = $("loopTime");
+    const animTime = $("animTime");
+    const secondsInput = $("secondsInput");
+    const tickInput = $("tickInput");
+    const textInput = $("textInput");
+    const loopTickLabel = $("loopTickLabel");
+
+    const state = {
+      totalMs: 12000,
+      running: false,
+      paused: false,
+      startMs: 0,
+      pauseStartedMs: 0,
+      pausedAccumMs: 0,
+      loopTimer: 0,
+      textTimer: 0,
+      anim: null,
+      snapRemainingMs: 12000,
+    };
+
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function colorForRatio(ratio) {
+      if (ratio > 0.5) return "var(--good)";
+      if (ratio > 0.3) return "var(--warn)";
+      return "var(--danger)";
+    }
+    function formatSeconds(ms) { return `${(Math.max(0, ms) / 1000).toFixed(1)}s`; }
+
+    function nowRemainingMs() {
+      if (!state.running) return state.totalMs;
+      if (state.paused) return state.snapRemainingMs;
+      const elapsed = performance.now() - state.startMs - state.pausedAccumMs;
+      return clamp(state.totalMs - elapsed, 0, state.totalMs);
+    }
+
+    function drawLoopFrame() {
+      const remaining = nowRemainingMs();
+      const ratio = state.totalMs ? remaining / state.totalMs : 0;
+      loopFill.style.width = `${(ratio * 100).toFixed(3)}%`;
+      loopFill.style.background = colorForRatio(ratio);
+      loopTime.textContent = formatSeconds(remaining);
+      if (remaining <= 0) finish();
+    }
+
+    function drawAnimTextOnly() {
+      const remaining = nowRemainingMs();
+      animTime.textContent = formatSeconds(remaining);
+      if (remaining <= 0) finish();
+    }
+
+    function configureAnimationBar(remaining) {
+      const ratio = state.totalMs ? remaining / state.totalMs : 0;
+      animFill.getAnimations().forEach((a) => a.cancel());
+      animFill.style.width = `${(ratio * 100).toFixed(3)}%`;
+      animFill.style.background = colorForRatio(ratio);
+      if (remaining <= 0) return;
+      state.anim = animFill.animate(
+        [
+          { width: `${(ratio * 100).toFixed(3)}%`, background: colorForRatio(ratio) },
+          { width: "0%", background: "var(--danger)" },
+        ],
+        { duration: remaining, easing: "linear", fill: "forwards" }
+      );
+      if (state.paused) state.anim.pause();
+    }
+
+    function start() {
+      const seconds = clamp(Number(secondsInput.value || 12), 1, 600);
+      state.totalMs = Math.round(seconds * 1000);
+      state.running = true;
+      state.paused = false;
+      state.pausedAccumMs = 0;
+      state.startMs = performance.now();
+      state.snapRemainingMs = state.totalMs;
+      clearIntervals();
+      configureAnimationBar(state.totalMs);
+      const tickMs = clamp(Number(tickInput.value || 100), 16, 1000);
+      const textMs = clamp(Number(textInput.value || 100), 16, 1000);
+      loopTickLabel.textContent = String(tickMs);
+      state.loopTimer = window.setInterval(drawLoopFrame, tickMs);
+      state.textTimer = window.setInterval(drawAnimTextOnly, textMs);
+      drawLoopFrame();
+      drawAnimTextOnly();
+    }
+
+    function pauseResume() {
+      if (!state.running) return;
+      if (!state.paused) {
+        state.paused = true;
+        state.pauseStartedMs = performance.now();
+        state.snapRemainingMs = nowRemainingMs();
+        if (state.anim) state.anim.pause();
+      } else {
+        state.paused = false;
+        state.pausedAccumMs += performance.now() - state.pauseStartedMs;
+        configureAnimationBar(state.snapRemainingMs);
+      }
+    }
+
+    function reset() {
+      clearIntervals();
+      state.running = false;
+      state.paused = false;
+      state.pausedAccumMs = 0;
+      if (state.anim) state.anim.cancel();
+      const seconds = clamp(Number(secondsInput.value || 12), 1, 600);
+      const ms = Math.round(seconds * 1000);
+      loopFill.style.width = "100%";
+      loopFill.style.background = "var(--good)";
+      animFill.style.width = "100%";
+      animFill.style.background = "var(--good)";
+      loopTime.textContent = formatSeconds(ms);
+      animTime.textContent = formatSeconds(ms);
+    }
+
+    function finish() {
+      clearIntervals();
+      state.running = false;
+      state.paused = false;
+      if (state.anim) state.anim.cancel();
+      loopFill.style.width = "0%";
+      animFill.style.width = "0%";
+      loopFill.style.background = "var(--danger)";
+      animFill.style.background = "var(--danger)";
+      loopTime.textContent = "0.0s";
+      animTime.textContent = "0.0s";
+    }
+
+    function clearIntervals() {
+      window.clearInterval(state.loopTimer);
+      window.clearInterval(state.textTimer);
+      state.loopTimer = 0;
+      state.textTimer = 0;
+    }
+
+    $("startBtn").addEventListener("click", start);
+    $("pauseBtn").addEventListener("click", pauseResume);
+    $("resetBtn").addEventListener("click", reset);
+    secondsInput.addEventListener("change", reset);
+    reset();
+  </script>
+</body>
+</html>
