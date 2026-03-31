@@ -176,8 +176,7 @@
     function formatSeconds(ms) { return `${(Math.max(0, ms) / 1000).toFixed(1)}s`; }
 
     function nowRemainingMs() {
-      if (!state.running) return state.totalMs;
-      if (state.paused) return state.snapRemainingMs;
+      if (!state.running || state.paused) return state.snapRemainingMs;
       const elapsed = performance.now() - state.startMs - state.pausedAccumMs;
       return clamp(state.totalMs - elapsed, 0, state.totalMs);
     }
@@ -235,9 +234,10 @@
     function pauseResume() {
       if (!state.running) return;
       if (!state.paused) {
+        const remaining = nowRemainingMs();
         state.paused = true;
         state.pauseStartedMs = performance.now();
-        state.snapRemainingMs = nowRemainingMs();
+        state.snapRemainingMs = remaining;
         if (state.anim) state.anim.pause();
       } else {
         state.paused = false;
@@ -254,6 +254,7 @@
       if (state.anim) state.anim.cancel();
       const seconds = clamp(Number(secondsInput.value || 12), 1, 600);
       const ms = Math.round(seconds * 1000);
+      state.snapRemainingMs = ms;
       loopFill.style.width = "100%";
       loopFill.style.background = "var(--good)";
       animFill.style.width = "100%";
@@ -266,6 +267,7 @@
       clearIntervals();
       state.running = false;
       state.paused = false;
+      state.snapRemainingMs = 0;
       if (state.anim) state.anim.cancel();
       loopFill.style.width = "0%";
       animFill.style.width = "0%";
