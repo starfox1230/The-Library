@@ -428,8 +428,12 @@ def reconcile_review_later_flag(flag: int) -> None:
                     _state_entered_at(flag, card_id)
                     or _active_db_entered_at(conn, card_id=card_id, flag=flag)
                     or _review_later_tag_timestamp_for_ord(note, card_ord)
-                    or now_iso
                 )
+                if not entered_at:
+                    # Do not silently adopt every card that happens to share the Review Later
+                    # flag color. Only cards already tracked by Speed Streak (or carrying a
+                    # legacy Review Later tag) belong in the manager.
+                    continue
                 _ensure_active_cohort(
                     conn,
                     card_id=card_id,
@@ -492,7 +496,7 @@ def fetch_review_later_entries(flag: int) -> list[ReviewLaterEntry]:
 
     reconcile_review_later_flag(flag)
     active_map = _active_cohort_map(flag)
-    card_ids = [int(card_id) for card_id in mw.col.find_cards(_flag_search(flag))]
+    card_ids = [int(card_id) for card_id in mw.col.find_cards(_flag_search(flag)) if int(card_id) in active_map]
     entries: list[ReviewLaterEntry] = []
     with _connect() as conn:
         for card_id in card_ids:

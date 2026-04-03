@@ -758,6 +758,11 @@ class ReviewerOverlayController:
     def _handle_review_state(self) -> None:
         self._schedule_display_mode_prompt_if_needed()
         self._set_sidebar_hidden(False)
+        # If review re-entry or question sync already cleared the paused state, the
+        # non-review auto-pause marker is stale and should not consume the user's
+        # next manual pause action.
+        if self._auto_paused_for_non_review and not self.engine.state.paused:
+            self._auto_paused_for_non_review = False
         if self._auto_paused_for_non_review and self.engine.state.paused:
             if not self.engine.state.enabled or not self.engine.state.visuals_enabled:
                 return
