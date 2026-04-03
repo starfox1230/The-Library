@@ -107,6 +107,41 @@
       word-break: break-word;
     }
 
+    .ticker {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 0.02em;
+    }
+
+    .ticker-char {
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .digit-window {
+      display: inline-block;
+      position: relative;
+      height: 1em;
+      overflow: hidden;
+      width: 0.62em;
+      vertical-align: bottom;
+    }
+
+    .digit-strip {
+      display: flex;
+      flex-direction: column;
+      transform: translateY(0);
+      transition: transform 320ms cubic-bezier(0.2, 0.7, 0, 1);
+      will-change: transform;
+    }
+
+    .digit {
+      display: block;
+      height: 1em;
+      line-height: 1em;
+      text-align: center;
+    }
+
     .sub {
       margin: 0;
       color: var(--muted);
@@ -258,6 +293,8 @@
     const $settingsPanel = document.getElementById("settingsPanel");
     const $settingsToggle = document.getElementById("settingsToggle");
     const $shortcutButtons = Array.from(document.querySelectorAll(".shortcut"));
+    let lastRenderedBalance = null;
+    let liveTickerDirection = 1;
 
     function toDateTimeLocalValue(date) {
       const copy = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -323,12 +360,107 @@
       const current = balanceAt(state.principal, state.rate, state.startDate, now);
       const elapsedDays = yearFraction(state.startDate, now) * 365.2425;
 
-      $liveBalance.textContent = formatCurrency(current);
+      if (lastRenderedBalance !== null && current !== lastRenderedBalance) {
+        liveTickerDirection = current > lastRenderedBalance ? 1 : -1;
+      }
+      renderRollingCurrency(current);
+      lastRenderedBalance = current;
       if (elapsedDays >= 0) {
         $elapsedText.textContent = `${elapsedDays.toFixed(3)} days since starting point`;
       } else {
         $elapsedText.textContent = `${Math.abs(elapsedDays).toFixed(3)} days until starting point`; 
       }
+    }
+
+    function createDigitCell(initialDigit) {
+      const windowEl = document.createElement("span");
+      windowEl.className = "digit-window ticker-char";
+
+      const strip = document.createElement("span");
+      strip.className = "digit-strip";
+
+      for (let i = 0; i <= 9; i += 1) {
+        const node = document.createElement("span");
+        node.className = "digit";
+        node.textContent = String(i);
+        strip.appendChild(node);
+      }
+      for (let i = 0; i <= 9; i += 1) {
+        const node = document.createElement("span");
+        node.className = "digit";
+        node.textContent = String(i);
+        strip.appendChild(node);
+      }
+
+      windowEl.appendChild(strip);
+      windowEl.dataset.type = "digit";
+      windowEl.dataset.value = String(initialDigit);
+      strip.style.transition = "none";
+      strip.style.transform = `translateY(-${initialDigit}em)`;
+      requestAnimationFrame(() => { strip.style.transition = ""; });
+      return windowEl;
+    }
+
+    function renderRollingCurrency(amount) {
+      const text = formatCurrency(amount);
+      const previous = $liveBalance.dataset.rendered || "";
+      if (!$liveBalance.querySelector(".ticker")) {
+        $liveBalance.innerHTML = "";
+        const ticker = document.createElement("span");
+        ticker.className = "ticker";
+        $liveBalance.appendChild(ticker);
+      }
+
+      const ticker = $liveBalance.querySelector(".ticker");
+      if (ticker.childElementCount !== text.length || previous.length !== text.length) {
+        ticker.innerHTML = "";
+        for (const ch of text) {
+          if (/\d/.test(ch)) {
+            ticker.appendChild(createDigitCell(Number(ch)));
+          } else {
+            const staticChar = document.createElement("span");
+            staticChar.className = "ticker-char";
+            staticChar.dataset.type = "static";
+            staticChar.textContent = ch;
+            ticker.appendChild(staticChar);
+          }
+        }
+        $liveBalance.dataset.rendered = text;
+        return;
+      }
+
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const node = ticker.children[i];
+
+        if (!/\d/.test(char)) {
+          node.textContent = char;
+          continue;
+        }
+
+        const nextDigit = Number(char);
+        const prevDigit = Number(node.dataset.value ?? char);
+        const strip = node.querySelector(".digit-strip");
+        if (!strip || prevDigit === nextDigit) {
+          node.dataset.value = String(nextDigit);
+          continue;
+        }
+
+        const start = prevDigit + (liveTickerDirection >= 0 ? 0 : 10);
+        let end = nextDigit + (liveTickerDirection >= 0 ? 0 : 10);
+        if (liveTickerDirection >= 0 && end < start) end += 10;
+        if (liveTickerDirection < 0 && end > start) end -= 10;
+
+        strip.style.transition = "none";
+        strip.style.transform = `translateY(-${start}em)`;
+        requestAnimationFrame(() => {
+          strip.style.transition = "";
+          strip.style.transform = `translateY(-${end}em)`;
+        });
+        node.dataset.value = String(nextDigit);
+      }
+
+      $liveBalance.dataset.rendered = text;
     }
 
     function initialize() {
