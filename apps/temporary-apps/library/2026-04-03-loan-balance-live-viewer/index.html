@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loan Balance Live Viewer</title>
+  <style>
+    :root {
+      --bg: #071018;
+      --panel: #0f1d2a;
+      --panel-soft: rgba(15, 29, 42, 0.8);
+      --text: #e6f0fb;
+      --muted: #95a8be;
+      --accent: #34d3ff;
+      --accent-2: #22a7d1;
+      --good: #58f09f;
+      --border: #223547;
+      --glow: rgba(52, 211, 255, 0.3);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(1000px 500px at 20% 0%, rgba(52, 211, 255, 0.16), transparent 60%),
+        radial-gradient(700px 450px at 80% 100%, rgba(88, 240, 159, 0.1), transparent 65%),
+        linear-gradient(170deg, #04080d, var(--bg));
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+    }
+
+    .app {
+      width: min(1000px, 100%);
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 1.2rem;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.03);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .title-wrap h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2.2vw, 1.65rem);
+      letter-spacing: 0.02em;
+    }
+
+    .title-wrap p {
+      margin: 0.3rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .settings-toggle {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #122437, #0c1a28);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.2s ease;
+    }
+
+    .settings-toggle:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .balance-card {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(160deg, #0e2234, #0a1521);
+      padding: clamp(1rem, 2.4vw, 2rem);
+      text-align: center;
+    }
+
+    .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.78rem;
+    }
+
+    .balance {
+      margin: 0.35rem 0 0.5rem;
+      font-size: clamp(2rem, 7vw, 4.9rem);
+      line-height: 1.05;
+      font-weight: 800;
+      color: #f4fbff;
+      text-shadow: 0 0 32px var(--glow);
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+
+    .ticker {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 0.02em;
+    }
+
+    .ticker-char {
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .digit-window {
+      display: inline-block;
+      position: relative;
+      height: 1em;
+      overflow: hidden;
+      width: 0.62em;
+      vertical-align: bottom;
+    }
+
+    .digit-strip {
+      display: flex;
+      flex-direction: column;
+      transform: translateY(0);
+      transition: transform 320ms cubic-bezier(0.2, 0.7, 0, 1);
+      will-change: transform;
+    }
+
+    .digit {
+      display: block;
+      height: 1em;
+      line-height: 1em;
+      text-align: center;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .prediction-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.7rem;
+    }
+
+    .shortcut {
+      border: 1px solid var(--border);
+      background: #0b1825;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 0.7rem 0.65rem;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.15s ease;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+
+    .shortcut:hover,
+    .shortcut.active {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .forecast-card {
+      margin-top: 0.95rem;
+      border: 1px solid var(--border);
+      background: #0a1622;
+      border-radius: 14px;
+      padding: 0.9rem;
+    }
+
+    .forecast-value {
+      font-size: clamp(1.25rem, 3.5vw, 2.2rem);
+      margin: 0.2rem 0;
+      font-variant-numeric: tabular-nums;
+      color: var(--good);
+    }
+
+    .settings-panel {
+      margin-top: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #0b1724;
+      padding: 0.9rem;
+      display: none;
+    }
+
+    .settings-panel.open { display: block; }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.7rem;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: #06111b;
+      color: var(--text);
+      border-radius: 9px;
+      padding: 0.6rem 0.65rem;
+      font-size: 0.95rem;
+    }
+
+    .note {
+      margin-top: 0.7rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div class="title-wrap">
+        <h1>Loan Balance Live Viewer</h1>
+        <p>Real-time compounding estimate with quick future-date shortcuts.</p>
+      </div>
+      <button id="settingsToggle" class="settings-toggle" type="button">⚙️ Adjust</button>
+    </div>
+
+    <section class="balance-card">
+      <p class="label">Current Estimated Balance</p>
+      <p id="liveBalance" class="balance">$0.00</p>
+      <p id="elapsedText" class="sub">Calculating…</p>
+    </section>
+
+    <section class="prediction-grid" aria-label="Prediction shortcuts">
+      <button class="shortcut" data-days="7" type="button">+ 1 Week</button>
+      <button class="shortcut" data-days="30" type="button">+ 1 Month</button>
+      <button class="shortcut" data-days="365" type="button">+ 1 Year</button>
+      <button class="shortcut" data-days="730" type="button">+ 2 Years</button>
+    </section>
+
+    <section class="forecast-card" aria-live="polite">
+      <p class="label">Forecast Balance</p>
+      <p id="forecastValue" class="forecast-value">$0.00</p>
+      <p id="forecastDateText" class="sub">Choose a shortcut or specific date below.</p>
+    </section>
+
+    <section id="settingsPanel" class="settings-panel" aria-label="Inputs">
+      <div class="fields">
+        <div>
+          <label for="principalInput">Starting Balance ($)</label>
+          <input id="principalInput" type="number" min="0" step="0.01" value="165224.61" />
+        </div>
+        <div>
+          <label for="rateInput">Annual Interest Rate (%)</label>
+          <input id="rateInput" type="number" min="0" step="0.001" value="5.63" />
+        </div>
+        <div>
+          <label for="startInput">As-Of Date & Time</label>
+          <input id="startInput" type="datetime-local" />
+        </div>
+        <div>
+          <label for="targetDateInput">Predict On Date</label>
+          <input id="targetDateInput" type="date" />
+        </div>
+      </div>
+      <p class="note">Model uses continuous compounding for a smooth live number and predictions. Payments are intentionally not included yet.</p>
+    </section>
+  </main>
+
+  <script>
+    const $liveBalance = document.getElementById("liveBalance");
+    const $elapsedText = document.getElementById("elapsedText");
+    const $forecastValue = document.getElementById("forecastValue");
+    const $forecastDateText = document.getElementById("forecastDateText");
+    const $principalInput = document.getElementById("principalInput");
+    const $rateInput = document.getElementById("rateInput");
+    const $startInput = document.getElementById("startInput");
+    const $targetDateInput = document.getElementById("targetDateInput");
+    const $settingsPanel = document.getElementById("settingsPanel");
+    const $settingsToggle = document.getElementById("settingsToggle");
+    const $shortcutButtons = Array.from(document.querySelectorAll(".shortcut"));
+    let lastRenderedBalance = null;
+    let liveTickerDirection = 1;
+
+    function toDateTimeLocalValue(date) {
+      const copy = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return copy.toISOString().slice(0, 16);
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2,
+      }).format(amount);
+    }
+
+    function yearFraction(fromDate, toDate) {
+      const msInYear = 365.2425 * 24 * 60 * 60 * 1000;
+      return (toDate.getTime() - fromDate.getTime()) / msInYear;
+    }
+
+    function balanceAt(principal, aprPercent, startDate, targetDate) {
+      const r = aprPercent / 100;
+      const t = yearFraction(startDate, targetDate);
+      return principal * Math.exp(r * t);
+    }
+
+    function parseState() {
+      const principal = Number($principalInput.value);
+      const rate = Number($rateInput.value);
+      const startDate = new Date($startInput.value);
+      const isValid = Number.isFinite(principal) && principal >= 0
+        && Number.isFinite(rate) && rate >= 0
+        && !Number.isNaN(startDate.getTime());
+
+      return { principal, rate, startDate, isValid };
+    }
+
+    function setForecast(targetDate) {
+      const state = parseState();
+      if (!state.isValid || Number.isNaN(targetDate.getTime())) {
+        $forecastValue.textContent = "—";
+        $forecastDateText.textContent = "Enter valid values to view a prediction.";
+        return;
+      }
+
+      const predicted = balanceAt(state.principal, state.rate, state.startDate, targetDate);
+      $forecastValue.textContent = formatCurrency(predicted);
+      $forecastDateText.textContent = `Estimated on ${targetDate.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}`;
+    }
+
+    function clearShortcutState() {
+      $shortcutButtons.forEach((button) => button.classList.remove("active"));
+    }
+
+    function updateLiveBalance() {
+      const state = parseState();
+      if (!state.isValid) {
+        $liveBalance.textContent = "—";
+        $elapsedText.textContent = "Enter valid values to calculate.";
+        return;
+      }
+
+      const now = new Date();
+      const current = balanceAt(state.principal, state.rate, state.startDate, now);
+      const elapsedDays = yearFraction(state.startDate, now) * 365.2425;
+
+      if (lastRenderedBalance !== null && current !== lastRenderedBalance) {
+        liveTickerDirection = current > lastRenderedBalance ? 1 : -1;
+      }
+      renderRollingCurrency(current);
+      lastRenderedBalance = current;
+      if (elapsedDays >= 0) {
+        $elapsedText.textContent = `${elapsedDays.toFixed(3)} days since starting point`;
+      } else {
+        $elapsedText.textContent = `${Math.abs(elapsedDays).toFixed(3)} days until starting point`; 
+      }
+    }
+
+    function createDigitCell(initialDigit) {
+      const windowEl = document.createElement("span");
+      windowEl.className = "digit-window ticker-char";
+
+      const strip = document.createElement("span");
+      strip.className = "digit-strip";
+
+      for (let i = 0; i <= 9; i += 1) {
+        const node = document.createElement("span");
+        node.className = "digit";
+        node.textContent = String(i);
+        strip.appendChild(node);
+      }
+      for (let i = 0; i <= 9; i += 1) {
+        const node = document.createElement("span");
+        node.className = "digit";
+        node.textContent = String(i);
+        strip.appendChild(node);
+      }
+
+      windowEl.appendChild(strip);
+      windowEl.dataset.type = "digit";
+      windowEl.dataset.value = String(initialDigit);
+      strip.style.transition = "none";
+      strip.style.transform = `translateY(-${initialDigit}em)`;
+      requestAnimationFrame(() => { strip.style.transition = ""; });
+      return windowEl;
+    }
+
+    function renderRollingCurrency(amount) {
+      const text = formatCurrency(amount);
+      const previous = $liveBalance.dataset.rendered || "";
+      if (!$liveBalance.querySelector(".ticker")) {
+        $liveBalance.innerHTML = "";
+        const ticker = document.createElement("span");
+        ticker.className = "ticker";
+        $liveBalance.appendChild(ticker);
+      }
+
+      const ticker = $liveBalance.querySelector(".ticker");
+      if (ticker.childElementCount !== text.length || previous.length !== text.length) {
+        ticker.innerHTML = "";
+        for (const ch of text) {
+          if (/\d/.test(ch)) {
+            ticker.appendChild(createDigitCell(Number(ch)));
+          } else {
+            const staticChar = document.createElement("span");
+            staticChar.className = "ticker-char";
+            staticChar.dataset.type = "static";
+            staticChar.textContent = ch;
+            ticker.appendChild(staticChar);
+          }
+        }
+        $liveBalance.dataset.rendered = text;
+        return;
+      }
+
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const node = ticker.children[i];
+
+        if (!/\d/.test(char)) {
+          node.textContent = char;
+          continue;
+        }
+
+        const nextDigit = Number(char);
+        const prevDigit = Number(node.dataset.value ?? char);
+        const strip = node.querySelector(".digit-strip");
+        if (!strip || prevDigit === nextDigit) {
+          node.dataset.value = String(nextDigit);
+          continue;
+        }
+
+        const start = prevDigit + (liveTickerDirection >= 0 ? 0 : 10);
+        let end = nextDigit + (liveTickerDirection >= 0 ? 0 : 10);
+        if (liveTickerDirection >= 0 && end < start) end += 10;
+        if (liveTickerDirection < 0 && end > start) end -= 10;
+
+        strip.style.transition = "none";
+        strip.style.transform = `translateY(-${start}em)`;
+        requestAnimationFrame(() => {
+          strip.style.transition = "";
+          strip.style.transform = `translateY(-${end}em)`;
+        });
+        node.dataset.value = String(nextDigit);
+      }
+
+      $liveBalance.dataset.rendered = text;
+    }
+
+    function initialize() {
+      const now = new Date();
+      $startInput.value = toDateTimeLocalValue(now);
+      $targetDateInput.value = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      setForecast(new Date($targetDateInput.value));
+      updateLiveBalance();
+      window.setInterval(updateLiveBalance, 150);
+    }
+
+    $settingsToggle.addEventListener("click", () => {
+      $settingsPanel.classList.toggle("open");
+    });
+
+    [$principalInput, $rateInput, $startInput].forEach((input) => {
+      input.addEventListener("input", () => {
+        updateLiveBalance();
+        setForecast(new Date($targetDateInput.value));
+      });
+    });
+
+    $targetDateInput.addEventListener("change", () => {
+      clearShortcutState();
+      setForecast(new Date($targetDateInput.value));
+    });
+
+    $shortcutButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        clearShortcutState();
+        button.classList.add("active");
+
+        const days = Number(button.dataset.days);
+        const target = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        $targetDateInput.value = target.toISOString().slice(0, 10);
+        setForecast(target);
+      });
+    });
+
+    initialize();
+  </script>
+</body>
+</html>
