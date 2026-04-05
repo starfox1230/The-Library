@@ -742,6 +742,7 @@ class ReviewerOverlayController:
         self._last_reviewer_signature = ""
         self._last_reduced_live_update_bucket = None
         state = self.engine.state
+        self.engine.set_pause_stat_tracking_active(False)
         if (
             not self._auto_paused_for_non_review
             and state.synced
@@ -750,7 +751,7 @@ class ReviewerOverlayController:
             and state.phase_limit_ms > 0
             and state.visuals_enabled
         ):
-            event = self.engine.toggle_pause()
+            event = self.engine.toggle_pause(count_in_stats=False)
             if event:
                 self._auto_paused_for_non_review = True
                 self._push_state(only_if_changed=False)
@@ -770,6 +771,8 @@ class ReviewerOverlayController:
             self._auto_paused_for_non_review = False
             if event:
                 self._push_state(only_if_changed=False)
+            return
+        self.engine.set_pause_stat_tracking_active(True)
 
     def _sync_live_flag_state(self) -> None:
         reviewer = getattr(mw, "reviewer", None)

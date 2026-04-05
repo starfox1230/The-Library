@@ -94,7 +94,7 @@ class StatsDialog(QDialog):
         payload = {
             "generatedAt": datetime.now().isoformat(timespec="seconds"),
             "currentRoundPauseMs": self.engine.current_round_pause_ms(),
-            "pauseActive": bool(self.engine.state.paused),
+            "pauseActive": self.engine.pause_counts_toward_stats(),
             "today": self.store.today_summary(),
             "overall": self.store.overall_summary(),
             "history": self.store.historical_daily_stats(),

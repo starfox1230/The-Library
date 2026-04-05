@@ -81,6 +81,8 @@ class CompanionState:
     review_limit_ms: int = REVIEW_LIMIT_MS
     total_pause_ms: int = 0
     pause_started_epoch_ms: int = 0
+    pause_count_started_epoch_ms: int = 0
+    pause_origin: str = ""
     time_drain_flag: int = 2
     review_later_flag: int = 4
 
@@ -555,7 +557,7 @@ class CompanionGameEngine:
         s.phase_limit_ms = s.review_limit_ms if s.visuals_enabled else 0
         s.timeout_phase_latch = ""
 
-    def toggle_pause(self) -> Optional[str]:
+    def toggle_pause(self, *, count_in_stats: bool = True) -> Optional[str]:
         s = self.state
         if not s.enabled or not s.visuals_enabled or not s.synced or s.phase == "idle":
             return None
@@ -566,26 +568,48 @@ class CompanionGameEngine:
             s.paused = False
             if s.paused_remaining_ms > 0:
                 s.phase_start_epoch_ms = now_epoch_ms() - (s.phase_limit_ms - s.paused_remaining_ms)
-            if s.pause_started_epoch_ms > 0:
-                s.total_pause_ms += max(0, now_epoch_ms() - s.pause_started_epoch_ms)
+            self._accumulate_counted_pause_time()
             s.paused_remaining_ms = 0
             s.pause_started_epoch_ms = 0
+            s.pause_count_started_epoch_ms = 0
+            s.pause_origin = ""
             self._publish("resume", "Timer resumed.")
             return "resume"
 
-        elapsed = max(0, now_epoch_ms() - s.phase_start_epoch_ms)
+        now_ms = now_epoch_ms()
+        elapsed = max(0, now_ms - s.phase_start_epoch_ms)
         s.paused_remaining_ms = max(0, s.phase_limit_ms - elapsed)
         s.paused = True
-        s.pause_started_epoch_ms = now_epoch_ms()
+        s.pause_started_epoch_ms = now_ms
+        s.pause_count_started_epoch_ms = now_ms if count_in_stats else 0
+        s.pause_origin = "manual" if count_in_stats else "non-review"
         self._publish("pause", "Timer paused.")
         return "pause"
 
     def current_round_pause_ms(self) -> int:
         s = self.state
         total = int(s.total_pause_ms)
-        if s.paused and s.pause_started_epoch_ms > 0:
-            total += max(0, now_epoch_ms() - s.pause_started_epoch_ms)
+        if s.paused and s.pause_count_started_epoch_ms > 0:
+            total += max(0, now_epoch_ms() - s.pause_count_started_epoch_ms)
         return total
+
+    def pause_counts_toward_stats(self) -> bool:
+        s = self.state
+        return bool(s.paused and s.pause_count_started_epoch_ms > 0)
+
+    def set_pause_stat_tracking_active(self, active: bool) -> bool:
+        s = self.state
+        if not s.paused or s.pause_origin != "manual":
+            return False
+        if active:
+            if s.pause_count_started_epoch_ms > 0:
+                return False
+            s.pause_count_started_epoch_ms = now_epoch_ms()
+            return True
+        if s.pause_count_started_epoch_ms <= 0:
+            return False
+        self._accumulate_counted_pause_time()
+        return True
 
     def take_last_review_metrics(self) -> Optional[Dict[str, Any]]:
         metrics = self._last_review_metrics
@@ -743,8 +767,17 @@ class CompanionGameEngine:
 
     def _clear_pause_state(self, *, accumulate_active: bool) -> None:
         s = self.state
-        if accumulate_active and s.paused and s.pause_started_epoch_ms > 0:
-            s.total_pause_ms += max(0, now_epoch_ms() - s.pause_started_epoch_ms)
+        if accumulate_active:
+            self._accumulate_counted_pause_time()
         s.paused = False
         s.paused_remaining_ms = 0
         s.pause_started_epoch_ms = 0
+        s.pause_count_started_epoch_ms = 0
+        s.pause_origin = ""
+
+    def _accumulate_counted_pause_time(self) -> None:
+        s = self.state
+        if s.pause_count_started_epoch_ms <= 0:
+            return
+        s.total_pause_ms += max(0, now_epoch_ms() - s.pause_count_started_epoch_ms)
+        s.pause_count_started_epoch_ms = 0

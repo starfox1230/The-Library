@@ -10,6 +10,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Missed Today -> Open HTML Viewer`: creates a local HTML page of cards missed today and rewrites image/media paths to local collection-media file URLs so images render outside Anki.
 - `Missed Today -> Make Filtered Deck`: creates a filtered deck from today's missed cards with `resched = false`, so extra review does not affect future scheduling.
 - `No-Image Today Deck`: lets you choose one or more exact deck levels, looks at the cards Anki is surfacing there today, filters to cards with no question-side image, and builds a `resched = true` filtered deck named `No image cards YYYY-MM-DD HH-MM-SS`. The same action is also available from the deck gear menu for a single deck. If the cards came from another filtered deck, Pocket Knife can move them out first and then rebuild the prior filtered deck automatically after the no-image deck is deleted.
+- `Recent New Cards Deck`: builds a `resched = true` filtered deck from still-new cards created today or in the past few days, with a day-range prompt and both launcher/menu access plus a deck gear-menu entry for normal decks.
 - `Open Suspended Cards In Browser`: opens all currently suspended cards in the Browser and orders them from most recently suspended to least recently suspended.
 - `Filtered Deck -> Send Non-New Cards Home`: shows only filtered decks in a searchable picker, sends the selected deck's current non-new cards back to their original deck while keeping their current schedule, leaves still-new cards in place, and also appears in the deck gear menu for filtered decks.
 - `Add Cards -> Pink Picture-Frame Converter`: default-on button on the normal Add Cards screen that converts the current cloze note into `Visual_Card_Multitude`, sending cloze text to `English`, non-cloze text to `Question`, inline images to `Images`, and `Extra` to `More Info`. If you are already on `Visual_Card_Multitude`, the same button converts back to `saCloze++`, sending `Question` plus a clozed `English` block and `Images` into `Text`, and `More Info` back into `Extra`.
@@ -20,6 +21,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 
 - `Tools -> Anki Pocket Knife -> Open Pocket Knife Launcher`
 - `Tools -> Anki Pocket Knife -> Build No-Image Today Deck`
+- `Tools -> Anki Pocket Knife -> Build Recent New Cards Deck`
 - `Tools -> Anki Pocket Knife -> Open Suspended Cards In Browser`
 - `Tools -> Anki Pocket Knife -> Send Filtered Deck Non-New Cards Home`
 - `Tools -> Anki Pocket Knife -> Auto Deck For Cloze Add Cards`

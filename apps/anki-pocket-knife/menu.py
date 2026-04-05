@@ -31,6 +31,7 @@ from .missed_today import (
     summarize_missed_today,
 )
 from .no_image_today import open_no_image_today_dialog
+from .recent_new_cards import open_recent_new_cards_dialog
 from .return_non_new import open_return_non_new_dialog
 from .suspended_browser import open_suspended_cards_browser
 from .visual_card_multitude import (
@@ -179,6 +180,17 @@ class PocketKnifeLauncherDialog(QDialog):
         no_image_layout.addWidget(self.no_image_button)
         layout.addWidget(no_image_box)
 
+        recent_new_box = QGroupBox("Recent New Cards")
+        recent_new_layout = QVBoxLayout(recent_new_box)
+        recent_new_copy = QLabel(
+            "Build a rescheduling filtered deck from cards that are still new and were created today or in the past few days."
+        )
+        recent_new_copy.setWordWrap(True)
+        recent_new_layout.addWidget(recent_new_copy)
+        self.recent_new_button = QPushButton("Build Recent New Cards Deck")
+        recent_new_layout.addWidget(self.recent_new_button)
+        layout.addWidget(recent_new_box)
+
         browser_box = QGroupBox("Browser Tools")
         browser_layout = QVBoxLayout(browser_box)
         browser_copy = QLabel(
@@ -254,6 +266,7 @@ class PocketKnifeLauncherDialog(QDialog):
         self.html_button.clicked.connect(self._run_and_refresh(open_missed_today_html_viewer))
         self.deck_button.clicked.connect(self._run_and_refresh(make_missed_today_filtered_deck))
         self.no_image_button.clicked.connect(lambda *_args: open_no_image_today_dialog())
+        self.recent_new_button.clicked.connect(lambda *_args: open_recent_new_cards_dialog())
         self.suspended_browser_button.clicked.connect(lambda *_args: open_suspended_cards_browser())
         self.return_non_new_button.clicked.connect(lambda *_args: open_return_non_new_dialog())
         self.refresh_button.clicked.connect(self.refresh_missed_today_summary)
@@ -444,6 +457,10 @@ def _register_menu() -> None:
     no_image_action = QAction("Build No-Image Today Deck", mw)
     no_image_action.triggered.connect(lambda *_args: open_no_image_today_dialog())
     pocket_menu.addAction(no_image_action)
+
+    recent_new_action = QAction("Build Recent New Cards Deck", mw)
+    recent_new_action.triggered.connect(lambda *_args: open_recent_new_cards_dialog())
+    pocket_menu.addAction(recent_new_action)
 
     suspended_browser_action = QAction("Open Suspended Cards In Browser", mw)
     suspended_browser_action.triggered.connect(lambda *_args: open_suspended_cards_browser())
