@@ -1245,6 +1245,9 @@ class ReviewerOverlayController:
             raw_audio_event_files = config.get("audio_event_files")
             if raw_audio_event_files is None:
                 raw_audio_event_files = {event_key: selected_audio_file for event_key in default_audio_event_files()}
+            # Re-arm haptics on every Anki launch so an accidental toggle-off does
+            # not silently persist across sessions.
+            startup_haptics_enabled = True
             self.engine.update_time_limits(
                 question_seconds=float(config.get("question_seconds", 12)),
                 answer_seconds=float(config.get("answer_seconds", 8)),
@@ -1253,7 +1256,7 @@ class ReviewerOverlayController:
                 audio_enabled=bool(config.get("audio_enabled", DEFAULT_AUDIO_ENABLED)),
                 selected_audio_file=selected_audio_file,
                 audio_event_files=raw_audio_event_files,
-                haptics_enabled=bool(config.get("haptics_enabled", True)),
+                haptics_enabled=startup_haptics_enabled,
                 haptic_event_patterns=normalize_haptic_event_patterns(config.get("haptic_event_patterns", {})),
                 visuals_enabled=bool(config.get("visuals_enabled", True)),
                 show_card_timer=bool(config.get("show_card_timer", True)),
