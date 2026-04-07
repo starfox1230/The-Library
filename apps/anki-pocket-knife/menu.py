@@ -34,6 +34,7 @@ from .no_image_today import open_no_image_today_dialog
 from .recent_new_cards import open_recent_new_cards_dialog
 from .return_non_new import open_return_non_new_dialog
 from .suspended_browser import open_suspended_cards_browser
+from .tts_audio import is_tts_audio_enabled, set_tts_audio_enabled
 from .visual_card_multitude import (
     is_add_cards_auto_deck_enabled,
     is_visual_card_multitude_add_button_enabled,
@@ -51,6 +52,7 @@ _HOOK_REGISTERED = False
 _MENU_REGISTERED_FLAG = "_anki_pocket_knife_menu_registered"
 _dialog: "PocketKnifeLauncherDialog | None" = None
 _auto_scroll_action: QAction | None = None
+_tts_audio_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
@@ -229,7 +231,7 @@ class PocketKnifeLauncherDialog(QDialog):
         self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
         add_cards_layout.addWidget(self.visual_card_multitude_checkbox)
         self.add_cards_auto_deck_checkbox = QCheckBox(
-            "Auto-switch cloze notes between .New::Audio and .New::Visual based on Text images"
+            "Auto-switch cloze notes between .NEW::Audio and .New::Visual based on Text images"
         )
         self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
         add_cards_layout.addWidget(self.add_cards_auto_deck_checkbox)
@@ -245,13 +247,17 @@ class PocketKnifeLauncherDialog(QDialog):
         review_box = QGroupBox("Review Behavior")
         review_layout = QVBoxLayout(review_box)
         review_copy = QLabel(
-            "Optional reviewer helper: when enabled, revealing the answer jumps back to the top of the card automatically."
+            "Optional reviewer helpers: jump back to the top when you reveal the answer, and optionally allow or suppress "
+            "audio playback from TTS-enabled cards."
         )
         review_copy.setWordWrap(True)
         review_layout.addWidget(review_copy)
         self.auto_scroll_checkbox = QCheckBox("Auto-scroll to the top when answer is revealed")
         self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
         review_layout.addWidget(self.auto_scroll_checkbox)
+        self.tts_audio_checkbox = QCheckBox("Play audio from TTS-enabled cards")
+        self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
+        review_layout.addWidget(self.tts_audio_checkbox)
         layout.addWidget(review_box)
 
         close_row = QHBoxLayout()
@@ -276,6 +282,7 @@ class PocketKnifeLauncherDialog(QDialog):
             self._set_visual_card_multitude_auto_visual_deck_enabled
         )
         self.auto_scroll_checkbox.toggled.connect(self._set_auto_scroll_enabled)
+        self.tts_audio_checkbox.toggled.connect(self._set_tts_audio_enabled)
         self.close_button.clicked.connect(self.close)
 
         self.refresh_missed_today_summary()
@@ -296,6 +303,10 @@ class PocketKnifeLauncherDialog(QDialog):
             self.auto_scroll_checkbox.blockSignals(True)
             self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
             self.auto_scroll_checkbox.blockSignals(False)
+        if hasattr(self, "tts_audio_checkbox"):
+            self.tts_audio_checkbox.blockSignals(True)
+            self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
+            self.tts_audio_checkbox.blockSignals(False)
         if hasattr(self, "visual_card_multitude_checkbox"):
             self.visual_card_multitude_checkbox.blockSignals(True)
             self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
@@ -317,6 +328,10 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_auto_scroll_enabled(self, checked: bool) -> None:
         set_auto_scroll_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_tts_audio_enabled(self, checked: bool) -> None:
+        set_tts_audio_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_visual_card_multitude_enabled(self, checked: bool) -> None:
@@ -346,6 +361,7 @@ def open_launcher() -> None:
 
 def sync_settings_ui() -> None:
     global _auto_scroll_action
+    global _tts_audio_action
     global _add_cards_auto_deck_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
@@ -355,6 +371,11 @@ def sync_settings_ui() -> None:
         _auto_scroll_action.blockSignals(True)
         _auto_scroll_action.setChecked(auto_scroll_enabled)
         _auto_scroll_action.blockSignals(False)
+    tts_audio_enabled = is_tts_audio_enabled()
+    if _tts_audio_action is not None:
+        _tts_audio_action.blockSignals(True)
+        _tts_audio_action.setChecked(tts_audio_enabled)
+        _tts_audio_action.blockSignals(False)
     add_cards_auto_deck_enabled = is_add_cards_auto_deck_enabled()
     if _add_cards_auto_deck_action is not None:
         _add_cards_auto_deck_action.blockSignals(True)
@@ -374,6 +395,10 @@ def sync_settings_ui() -> None:
         _dialog.auto_scroll_checkbox.blockSignals(True)
         _dialog.auto_scroll_checkbox.setChecked(auto_scroll_enabled)
         _dialog.auto_scroll_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "tts_audio_checkbox"):
+        _dialog.tts_audio_checkbox.blockSignals(True)
+        _dialog.tts_audio_checkbox.setChecked(tts_audio_enabled)
+        _dialog.tts_audio_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "add_cards_auto_deck_checkbox"):
         _dialog.add_cards_auto_deck_checkbox.blockSignals(True)
         _dialog.add_cards_auto_deck_checkbox.setChecked(add_cards_auto_deck_enabled)
@@ -390,6 +415,11 @@ def sync_settings_ui() -> None:
 
 def _toggle_auto_scroll(checked: bool) -> None:
     set_auto_scroll_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_tts_audio(checked: bool) -> None:
+    set_tts_audio_enabled(bool(checked))
     sync_settings_ui()
 
 
@@ -410,6 +440,7 @@ def _toggle_visual_card_multitude_auto_visual_deck(checked: bool) -> None:
 
 def _register_menu() -> None:
     global _auto_scroll_action
+    global _tts_audio_action
     global _add_cards_auto_deck_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
@@ -502,6 +533,12 @@ def _register_menu() -> None:
     _auto_scroll_action.setChecked(is_auto_scroll_enabled())
     _auto_scroll_action.triggered.connect(_toggle_auto_scroll)
     pocket_menu.addAction(_auto_scroll_action)
+
+    _tts_audio_action = QAction("Play Audio From TTS-Enabled Cards", mw)
+    _tts_audio_action.setCheckable(True)
+    _tts_audio_action.setChecked(is_tts_audio_enabled())
+    _tts_audio_action.triggered.connect(_toggle_tts_audio)
+    pocket_menu.addAction(_tts_audio_action)
 
     sync_settings_ui()
 

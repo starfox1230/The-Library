@@ -1,0 +1,1 @@
+"""OpenAI cursor transcriber package."""

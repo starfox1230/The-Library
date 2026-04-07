@@ -28,7 +28,7 @@ BUTTON_ICON_PATH = addon_root() / "assets" / "pink_picture_frame.svg"
 BUTTON_ID = "pocket-knife-visual-card-multitude"
 AUTO_DECK_BUTTON_COMMAND = "pocket_knife_toggle_add_cards_auto_deck"
 AUTO_DECK_BUTTON_ID = "pocket-knife-auto-deck-toggle"
-AUTO_DECK_AUDIO_NAME = ".New::Audio"
+AUTO_DECK_AUDIO_NAME = ".NEW::Audio"
 AUTO_DECK_VISUAL_NAME = ".New::Visual"
 _HOOK_REGISTERED = False
 _BRIDGE_PATCHED = False
@@ -195,7 +195,7 @@ def _sync_auto_deck_toggle_button(editor: Editor) -> None:
     enabled = is_add_cards_auto_deck_enabled()
     button_text = "AD"
     button_title = (
-        "Automatically switch cloze notes between .New::Audio and .New::Visual based on images in Text"
+        "Automatically switch cloze notes between .NEW::Audio and .New::Visual based on images in Text"
     )
     if night_mode:
         background = "rgba(244, 114, 182, 0.24)" if enabled else "rgba(71, 85, 105, 0.38)"
@@ -534,7 +534,7 @@ def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
         None,
         AUTO_DECK_BUTTON_COMMAND,
         _toggle_add_cards_auto_deck,
-        tip="Toggle automatic .New::Audio / .New::Visual deck switching for cloze notes",
+        tip="Toggle automatic .NEW::Audio / .New::Visual deck switching for cloze notes",
         label="AD",
         id=AUTO_DECK_BUTTON_ID,
         disables=False,

@@ -8,6 +8,7 @@ from .common import user_files_dir
 SETTINGS_PATH = user_files_dir() / "settings.json"
 DEFAULT_SETTINGS = {
     "scroll_to_top_on_answer": True,
+    "tts_enabled_card_audio": False,
     "visual_card_multitude_add_button": True,
     "add_cards_cloze_auto_deck": False,
     "visual_card_multitude_auto_visual_deck": True,

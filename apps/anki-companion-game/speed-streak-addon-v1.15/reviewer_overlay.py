@@ -9,7 +9,7 @@ from typing import Any, Optional
 from aqt import gui_hooks, mw
 from aqt.reviewer import Reviewer
 from aqt.webview import AnkiWebView
-from aqt.qt import QAction, QByteArray, QHBoxLayout, QMenu, QMessageBox, QSizePolicy, Qt, QTimer, QVBoxLayout, QWidget
+from aqt.qt import QAction, QByteArray, QEvent, QHBoxLayout, QMenu, QMessageBox, QObject, QSizePolicy, Qt, QTimer, QVBoxLayout, QWidget
 
 from .addon_meta import ensure_meta_json
 from .anki_flag_colors import get_anki_flag_palette
@@ -58,6 +58,64 @@ SYNC_AUDIO_SUPPRESSION_SECONDS = 0.4
 WEBVIEW_AUDIO_EVENT_KEYS = {"again", "hard", "good", "easy"}
 
 
+def _export_widget_geometry(widget: QWidget) -> str:
+    try:
+        encoded = widget.saveGeometry().toBase64()
+        return bytes(encoded).decode("ascii") if encoded else ""
+    except Exception:
+        return ""
+
+
+def _restore_widget_geometry(widget: QWidget, encoded: str) -> bool:
+    text = str(encoded or "").strip()
+    if not text:
+        return False
+    try:
+        geometry = QByteArray.fromBase64(text.encode("ascii"))
+        return bool(geometry) and widget.restoreGeometry(geometry)
+    except Exception:
+        return False
+
+
+def _normalize_saved_window_bounds(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    normalized: dict[str, int] = {}
+    for key in ("x", "y", "width", "height"):
+        try:
+            normalized[key] = int(value.get(key, 0))
+        except Exception:
+            return {}
+    if normalized["width"] <= 0 or normalized["height"] <= 0:
+        return {}
+    return normalized
+
+
+class WindowGeometryTracker(QObject):
+    def __init__(self, widget: QWidget, on_geometry_changed: Any) -> None:
+        super().__init__(widget)
+        self._widget = widget
+        self._on_geometry_changed = on_geometry_changed
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._emit_geometry_changed)
+        widget.installEventFilter(self)
+
+    def eventFilter(self, watched: QObject, event: Any) -> bool:
+        if watched is self._widget and event is not None:
+            if event.type() in (
+                QEvent.Type.Move,
+                QEvent.Type.Resize,
+                QEvent.Type.WindowStateChange,
+            ):
+                self._timer.start(200)
+        return False
+
+    def _emit_geometry_changed(self) -> None:
+        if callable(self._on_geometry_changed):
+            self._on_geometry_changed()
+
+
 class FloatingSidebarWindow(QWidget):
     def __init__(self, on_geometry_changed: Any, on_request_review_focus: Any) -> None:
         super().__init__(mw)
@@ -88,15 +146,10 @@ class FloatingSidebarWindow(QWidget):
         layout.addWidget(self.web, 1)
 
     def export_geometry(self) -> str:
-        encoded = self.saveGeometry().toBase64()
-        return bytes(encoded).decode("ascii") if encoded else ""
+        return _export_widget_geometry(self)
 
     def restore_exported_geometry(self, encoded: str) -> bool:
-        text = str(encoded or "").strip()
-        if not text:
-            return False
-        geometry = QByteArray.fromBase64(text.encode("ascii"))
-        return bool(geometry) and self.restoreGeometry(geometry)
+        return _restore_widget_geometry(self, encoded)
 
     def moveEvent(self, event: Any) -> None:
         super().moveEvent(event)
@@ -171,6 +224,9 @@ class ReviewerOverlayController:
         self._sidebar_container = None
         self._floating_window: Optional[FloatingSidebarWindow] = None
         self._floating_geometry = ""
+        self._compatibility_main_geometry: dict[str, int] = {}
+        self._pre_compatibility_main_geometry: dict[str, int] = {}
+        self._geometry_persistence_suspended = False
         self._menu: Optional[QMenu] = None
         self._settings_action: Optional[QAction] = None
         self._review_later_action: Optional[QAction] = None
@@ -194,6 +250,7 @@ class ReviewerOverlayController:
         self._last_timer_display_signature = ""
         self._last_timer_display_remaining_ms = -1
         self._last_timer_display_anchor_ms = 0
+        self._main_window_geometry_tracker = WindowGeometryTracker(mw, self._on_main_window_geometry_changed)
         self._load_persisted_settings()
 
     def install(self) -> None:
@@ -1232,6 +1289,7 @@ class ReviewerOverlayController:
                 self.render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
             self._display_mode_prompt_pending = not bool(config.get("display_mode_prompted", False))
             self._floating_geometry = str(config.get("floating_geometry", "") or "")
+            self._compatibility_main_geometry = _normalize_saved_window_bounds(config.get("compatibility_main_geometry"))
             raw_shortcut_bindings = config.get("shortcut_bindings")
             if raw_shortcut_bindings is None and config.get("pause_shortcut") is not None:
                 raw_shortcut_bindings = {"pause": config.get("pause_shortcut")}
@@ -1278,6 +1336,7 @@ class ReviewerOverlayController:
             self.render_mode = RENDER_MODE_CLASSIC
             self._display_mode_prompt_pending = True
             self._floating_geometry = ""
+            self._compatibility_main_geometry = {}
             self.shortcut_bindings = default_shortcut_bindings()
             self.engine.update_time_limits(
                 question_seconds=12,
@@ -1316,6 +1375,7 @@ class ReviewerOverlayController:
             "render_mode": self.render_mode,
             "display_mode_prompted": not self._display_mode_prompt_pending,
             "floating_geometry": self._floating_geometry,
+            "compatibility_main_geometry": dict(self._compatibility_main_geometry),
             "shortcut_bindings": self.current_shortcut_bindings(),
             "audio_enabled": bool(state.audio_enabled),
             "selected_audio_file": str(state.selected_audio_file),
@@ -1419,6 +1479,135 @@ class ReviewerOverlayController:
             pass
         self._restore_review_focus()
 
+    def _current_main_window_bounds(self) -> dict[str, int]:
+        try:
+            geometry = mw.geometry()
+            return {
+                "x": int(geometry.x()),
+                "y": int(geometry.y()),
+                "width": int(geometry.width()),
+                "height": int(geometry.height()),
+            }
+        except Exception:
+            return {}
+
+    def _restore_main_window_bounds(self, bounds: dict[str, int]) -> bool:
+        normalized = _normalize_saved_window_bounds(bounds)
+        if not normalized:
+            return False
+
+        try:
+            if mw.isMinimized() or mw.isMaximized() or mw.isFullScreen():
+                mw.showNormal()
+        except Exception:
+            pass
+
+        min_width = max(1, int(getattr(mw, "minimumWidth", lambda: 0)() or 0))
+        min_height = max(1, int(getattr(mw, "minimumHeight", lambda: 0)() or 0))
+        x = normalized["x"]
+        y = normalized["y"]
+        width = max(min_width, normalized["width"])
+        height = max(min_height, normalized["height"])
+
+        screen = mw.screen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            max_width = max(min_width, available.width() - 24)
+            max_height = max(min_height, available.height() - 24)
+            width = min(width, max_width)
+            height = min(height, max_height)
+            x = max(available.left() + 12, min(x, available.right() - width - 12))
+            y = max(available.top() + 12, min(y, available.bottom() - height - 12))
+
+        try:
+            mw.setGeometry(x, y, width, height)
+            return True
+        except Exception:
+            return False
+
+    def _remember_pre_compatibility_main_geometry(self) -> None:
+        bounds = self._current_main_window_bounds()
+        if bounds:
+            self._pre_compatibility_main_geometry = bounds
+
+    def _restore_pre_compatibility_main_geometry(self) -> None:
+        if not self._pre_compatibility_main_geometry:
+            return
+        self._geometry_persistence_suspended = True
+        try:
+            self._restore_main_window_bounds(self._pre_compatibility_main_geometry)
+        finally:
+            self._geometry_persistence_suspended = False
+
+    def _compatibility_sidebar_width(self) -> int:
+        return SIDEBAR_EXPANDED_WIDTH
+
+    def _place_floating_window_on_right(self, width: int | None = None) -> None:
+        if self._floating_window is None:
+            return
+
+        sidebar_width = max(self._floating_window.minimumWidth(), int(width or self._compatibility_sidebar_width()))
+        main_bounds = self._current_main_window_bounds()
+        if not main_bounds:
+            return
+
+        gap = 14
+        margin = 12
+        height = max(self._floating_window.minimumHeight(), main_bounds["height"])
+        x = main_bounds["x"] + main_bounds["width"] + gap
+        y = main_bounds["y"]
+
+        screen = mw.screen() or self._floating_window.screen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            x = max(available.left() + margin, min(x, available.right() - sidebar_width - margin))
+            y = max(available.top() + margin, min(y, available.bottom() - height - margin))
+
+        self._floating_window.setGeometry(x, y, sidebar_width, height)
+        self._floating_geometry = self._floating_window.export_geometry() or self._floating_geometry
+
+    def _apply_default_compatibility_layout(self) -> None:
+        if self._floating_window is None:
+            return
+
+        try:
+            if mw.isMinimized() or mw.isMaximized() or mw.isFullScreen():
+                mw.showNormal()
+        except Exception:
+            pass
+
+        sidebar_width = self._compatibility_sidebar_width()
+        gap = 14
+        margin = 12
+        min_main_width = max(1, int(getattr(mw, "minimumWidth", lambda: 0)() or 0))
+        min_main_height = max(1, int(getattr(mw, "minimumHeight", lambda: 0)() or 0))
+        current = self._current_main_window_bounds()
+        if not current:
+            return
+
+        target_width = max(min_main_width, current["width"] - sidebar_width)
+        target_height = max(min_main_height, current["height"])
+        x = current["x"]
+        y = current["y"]
+
+        screen = mw.screen() or self._floating_window.screen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            max_main_width = max(min_main_width, available.width() - sidebar_width - gap - (margin * 2))
+            max_main_height = max(min_main_height, available.height() - (margin * 2))
+            target_width = min(target_width, max_main_width)
+            target_height = min(target_height, max_main_height)
+            max_x = available.right() - target_width - sidebar_width - gap - margin
+            max_y = available.bottom() - target_height - margin
+            x = max(available.left() + margin, min(x, max_x))
+            y = max(available.top() + margin, min(y, max_y))
+
+        mw.setGeometry(x, y, target_width, target_height)
+        self._place_floating_window_on_right(sidebar_width)
+        bounds = self._current_main_window_bounds()
+        if bounds:
+            self._compatibility_main_geometry = bounds
+
     def _detach_inline_sidebar(self) -> None:
         if self._sidebar_container is None or self._review_web is None:
             reviewer = getattr(mw, "reviewer", None)
@@ -1476,7 +1665,17 @@ class ReviewerOverlayController:
             self._floating_window.hide()
         self._sidebar_web = None
 
+    def _on_main_window_geometry_changed(self) -> None:
+        if self._geometry_persistence_suspended or self.display_mode != DISPLAY_MODE_COMPATIBILITY:
+            return
+        bounds = self._current_main_window_bounds()
+        if bounds:
+            self._compatibility_main_geometry = bounds
+            self._save_persisted_settings()
+
     def _on_floating_geometry_changed(self, geometry: str) -> None:
+        if self._geometry_persistence_suspended:
+            return
         if geometry:
             self._floating_geometry = geometry
             self._save_persisted_settings()
@@ -1484,29 +1683,37 @@ class ReviewerOverlayController:
     def _restore_or_place_floating_window(self) -> None:
         if self._floating_window is None:
             return
-        if self._floating_window.restore_exported_geometry(self._floating_geometry):
-            return
 
-        window = self._floating_window
-        width = 340
-        height = max(520, min(900, mw.height() - 80))
-        window.resize(width, height)
+        needs_save = False
+        self._geometry_persistence_suspended = True
+        try:
+            restored_main = self._restore_main_window_bounds(self._compatibility_main_geometry)
+            restored_floating = self._floating_window.restore_exported_geometry(self._floating_geometry)
 
-        frame = mw.frameGeometry()
-        x = frame.right() + 14
-        y = frame.top() + 40
-        screen = mw.screen()
-        if screen is not None:
-            available = screen.availableGeometry()
-            if x + width > available.right():
-                alternate_x = frame.left() - width - 14
-                if alternate_x >= available.left():
-                    x = alternate_x
-                else:
-                    x = max(available.left() + 12, min(x, available.right() - width - 12))
-            y = max(available.top() + 12, min(y, available.bottom() - height - 12))
-        window.move(x, y)
-        self._floating_geometry = window.export_geometry() or self._floating_geometry
+            if restored_main and restored_floating:
+                return
+            if restored_floating:
+                if not self._compatibility_main_geometry:
+                    bounds = self._current_main_window_bounds()
+                    if bounds:
+                        self._compatibility_main_geometry = bounds
+                        needs_save = True
+                return
+            if restored_main:
+                self._place_floating_window_on_right()
+                needs_save = True
+                return
+
+            self._apply_default_compatibility_layout()
+            needs_save = True
+        finally:
+            self._geometry_persistence_suspended = False
+            if needs_save:
+                bounds = self._current_main_window_bounds()
+                if bounds:
+                    self._compatibility_main_geometry = bounds
+                self._floating_geometry = self._floating_window.export_geometry() or self._floating_geometry
+                self._save_persisted_settings()
 
     def _schedule_sidebar_state_push(self) -> None:
         if self._sidebar_web is None:
@@ -1522,9 +1729,11 @@ class ReviewerOverlayController:
         self._display_mode_prompt_pending = False
         if changed and reconfigure:
             if normalized == DISPLAY_MODE_COMPATIBILITY:
+                self._remember_pre_compatibility_main_geometry()
                 self._detach_inline_sidebar()
             else:
                 self._deactivate_floating_sidebar()
+                self._restore_pre_compatibility_main_geometry()
             self._last_reviewer_signature = ""
             if getattr(mw, "state", "") == "review":
                 self._sync_reviewer_surface()
