@@ -23,6 +23,7 @@ from .early_review import (
     EARLY_REVIEW_SHORTCUT,
     build_early_review_filtered_deck,
 )
+from .f3_blocker import is_default_f3_shortcut_disabled, set_default_f3_shortcut_disabled
 from .missed_today import (
     copy_missed_today_text,
     export_missed_today_text_file,
@@ -37,9 +38,11 @@ from .suspended_browser import open_suspended_cards_browser
 from .tts_audio import is_tts_audio_enabled, set_tts_audio_enabled
 from .visual_card_multitude import (
     is_add_cards_auto_deck_enabled,
+    is_add_cards_multi_image_counter_enabled,
     is_visual_card_multitude_add_button_enabled,
     is_visual_card_multitude_auto_visual_deck_enabled,
     set_add_cards_auto_deck_enabled,
+    set_add_cards_multi_image_counter_enabled,
     set_visual_card_multitude_add_button_enabled,
     set_visual_card_multitude_auto_visual_deck_enabled,
 )
@@ -53,7 +56,9 @@ _MENU_REGISTERED_FLAG = "_anki_pocket_knife_menu_registered"
 _dialog: "PocketKnifeLauncherDialog | None" = None
 _auto_scroll_action: QAction | None = None
 _tts_audio_action: QAction | None = None
+_disable_f3_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
+_add_cards_multi_image_counter_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
 
@@ -204,6 +209,18 @@ class PocketKnifeLauncherDialog(QDialog):
         browser_layout.addWidget(self.suspended_browser_button)
         layout.addWidget(browser_box)
 
+        keyboard_box = QGroupBox("Keyboard Overrides")
+        keyboard_layout = QVBoxLayout(keyboard_box)
+        keyboard_copy = QLabel(
+            "Optional shortcut override: disable Anki's built-in plain F3 shortcut so that key is left unused."
+        )
+        keyboard_copy.setWordWrap(True)
+        keyboard_layout.addWidget(keyboard_copy)
+        self.disable_f3_checkbox = QCheckBox("Disable Anki's default F3 shortcut")
+        self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
+        keyboard_layout.addWidget(self.disable_f3_checkbox)
+        layout.addWidget(keyboard_box)
+
         filtered_cleanup_box = QGroupBox("Filtered Deck Cleanup")
         filtered_cleanup_layout = QVBoxLayout(filtered_cleanup_box)
         filtered_cleanup_copy = QLabel(
@@ -235,6 +252,13 @@ class PocketKnifeLauncherDialog(QDialog):
         )
         self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
         add_cards_layout.addWidget(self.add_cards_auto_deck_checkbox)
+        self.add_cards_multi_image_counter_checkbox = QCheckBox(
+            "Add a live 1/N counter above the first Text-field image when more than one image is present"
+        )
+        self.add_cards_multi_image_counter_checkbox.setChecked(
+            is_add_cards_multi_image_counter_enabled()
+        )
+        add_cards_layout.addWidget(self.add_cards_multi_image_counter_checkbox)
         self.visual_card_multitude_auto_visual_deck_checkbox = QCheckBox(
             "Auto-switch Visual_Card_Multitude notes to .New::Visual"
         )
@@ -276,8 +300,12 @@ class PocketKnifeLauncherDialog(QDialog):
         self.suspended_browser_button.clicked.connect(lambda *_args: open_suspended_cards_browser())
         self.return_non_new_button.clicked.connect(lambda *_args: open_return_non_new_dialog())
         self.refresh_button.clicked.connect(self.refresh_missed_today_summary)
+        self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
         self.visual_card_multitude_checkbox.toggled.connect(self._set_visual_card_multitude_enabled)
         self.add_cards_auto_deck_checkbox.toggled.connect(self._set_add_cards_auto_deck_enabled)
+        self.add_cards_multi_image_counter_checkbox.toggled.connect(
+            self._set_add_cards_multi_image_counter_enabled
+        )
         self.visual_card_multitude_auto_visual_deck_checkbox.toggled.connect(
             self._set_visual_card_multitude_auto_visual_deck_enabled
         )
@@ -307,6 +335,10 @@ class PocketKnifeLauncherDialog(QDialog):
             self.tts_audio_checkbox.blockSignals(True)
             self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
             self.tts_audio_checkbox.blockSignals(False)
+        if hasattr(self, "disable_f3_checkbox"):
+            self.disable_f3_checkbox.blockSignals(True)
+            self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
+            self.disable_f3_checkbox.blockSignals(False)
         if hasattr(self, "visual_card_multitude_checkbox"):
             self.visual_card_multitude_checkbox.blockSignals(True)
             self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
@@ -315,6 +347,12 @@ class PocketKnifeLauncherDialog(QDialog):
             self.add_cards_auto_deck_checkbox.blockSignals(True)
             self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
             self.add_cards_auto_deck_checkbox.blockSignals(False)
+        if hasattr(self, "add_cards_multi_image_counter_checkbox"):
+            self.add_cards_multi_image_counter_checkbox.blockSignals(True)
+            self.add_cards_multi_image_counter_checkbox.setChecked(
+                is_add_cards_multi_image_counter_enabled()
+            )
+            self.add_cards_multi_image_counter_checkbox.blockSignals(False)
         if hasattr(self, "visual_card_multitude_auto_visual_deck_checkbox"):
             self.visual_card_multitude_auto_visual_deck_checkbox.blockSignals(True)
             self.visual_card_multitude_auto_visual_deck_checkbox.setChecked(
@@ -334,12 +372,20 @@ class PocketKnifeLauncherDialog(QDialog):
         set_tts_audio_enabled(bool(checked))
         sync_settings_ui()
 
+    def _set_disable_f3_enabled(self, checked: bool) -> None:
+        set_default_f3_shortcut_disabled(bool(checked))
+        sync_settings_ui()
+
     def _set_visual_card_multitude_enabled(self, checked: bool) -> None:
         set_visual_card_multitude_add_button_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_add_cards_auto_deck_enabled(self, checked: bool) -> None:
         set_add_cards_auto_deck_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_add_cards_multi_image_counter_enabled(self, checked: bool) -> None:
+        set_add_cards_multi_image_counter_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_visual_card_multitude_auto_visual_deck_enabled(self, checked: bool) -> None:
@@ -362,7 +408,9 @@ def open_launcher() -> None:
 def sync_settings_ui() -> None:
     global _auto_scroll_action
     global _tts_audio_action
+    global _disable_f3_action
     global _add_cards_auto_deck_action
+    global _add_cards_multi_image_counter_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
 
@@ -376,11 +424,21 @@ def sync_settings_ui() -> None:
         _tts_audio_action.blockSignals(True)
         _tts_audio_action.setChecked(tts_audio_enabled)
         _tts_audio_action.blockSignals(False)
+    disable_f3_enabled = is_default_f3_shortcut_disabled()
+    if _disable_f3_action is not None:
+        _disable_f3_action.blockSignals(True)
+        _disable_f3_action.setChecked(disable_f3_enabled)
+        _disable_f3_action.blockSignals(False)
     add_cards_auto_deck_enabled = is_add_cards_auto_deck_enabled()
     if _add_cards_auto_deck_action is not None:
         _add_cards_auto_deck_action.blockSignals(True)
         _add_cards_auto_deck_action.setChecked(add_cards_auto_deck_enabled)
         _add_cards_auto_deck_action.blockSignals(False)
+    add_cards_multi_image_counter_enabled = is_add_cards_multi_image_counter_enabled()
+    if _add_cards_multi_image_counter_action is not None:
+        _add_cards_multi_image_counter_action.blockSignals(True)
+        _add_cards_multi_image_counter_action.setChecked(add_cards_multi_image_counter_enabled)
+        _add_cards_multi_image_counter_action.blockSignals(False)
     visual_card_enabled = is_visual_card_multitude_add_button_enabled()
     if _visual_card_multitude_action is not None:
         _visual_card_multitude_action.blockSignals(True)
@@ -399,10 +457,18 @@ def sync_settings_ui() -> None:
         _dialog.tts_audio_checkbox.blockSignals(True)
         _dialog.tts_audio_checkbox.setChecked(tts_audio_enabled)
         _dialog.tts_audio_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "disable_f3_checkbox"):
+        _dialog.disable_f3_checkbox.blockSignals(True)
+        _dialog.disable_f3_checkbox.setChecked(disable_f3_enabled)
+        _dialog.disable_f3_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "add_cards_auto_deck_checkbox"):
         _dialog.add_cards_auto_deck_checkbox.blockSignals(True)
         _dialog.add_cards_auto_deck_checkbox.setChecked(add_cards_auto_deck_enabled)
         _dialog.add_cards_auto_deck_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "add_cards_multi_image_counter_checkbox"):
+        _dialog.add_cards_multi_image_counter_checkbox.blockSignals(True)
+        _dialog.add_cards_multi_image_counter_checkbox.setChecked(add_cards_multi_image_counter_enabled)
+        _dialog.add_cards_multi_image_counter_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "visual_card_multitude_checkbox"):
         _dialog.visual_card_multitude_checkbox.blockSignals(True)
         _dialog.visual_card_multitude_checkbox.setChecked(visual_card_enabled)
@@ -423,6 +489,11 @@ def _toggle_tts_audio(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_disable_f3(checked: bool) -> None:
+    set_default_f3_shortcut_disabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_visual_card_multitude_button(checked: bool) -> None:
     set_visual_card_multitude_add_button_enabled(bool(checked))
     sync_settings_ui()
@@ -430,6 +501,11 @@ def _toggle_visual_card_multitude_button(checked: bool) -> None:
 
 def _toggle_add_cards_auto_deck(checked: bool) -> None:
     set_add_cards_auto_deck_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_add_cards_multi_image_counter(checked: bool) -> None:
+    set_add_cards_multi_image_counter_enabled(bool(checked))
     sync_settings_ui()
 
 
@@ -441,7 +517,9 @@ def _toggle_visual_card_multitude_auto_visual_deck(checked: bool) -> None:
 def _register_menu() -> None:
     global _auto_scroll_action
     global _tts_audio_action
+    global _disable_f3_action
     global _add_cards_auto_deck_action
+    global _add_cards_multi_image_counter_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
     if getattr(mw, _MENU_REGISTERED_FLAG, False):
@@ -503,11 +581,23 @@ def _register_menu() -> None:
 
     pocket_menu.addSeparator()
 
+    _disable_f3_action = QAction("Disable Anki's Default F3 Shortcut", mw)
+    _disable_f3_action.setCheckable(True)
+    _disable_f3_action.setChecked(is_default_f3_shortcut_disabled())
+    _disable_f3_action.triggered.connect(_toggle_disable_f3)
+    pocket_menu.addAction(_disable_f3_action)
+
     _add_cards_auto_deck_action = QAction("Auto Deck For Cloze Add Cards", mw)
     _add_cards_auto_deck_action.setCheckable(True)
     _add_cards_auto_deck_action.setChecked(is_add_cards_auto_deck_enabled())
     _add_cards_auto_deck_action.triggered.connect(_toggle_add_cards_auto_deck)
     pocket_menu.addAction(_add_cards_auto_deck_action)
+
+    _add_cards_multi_image_counter_action = QAction("Live Multi-Image Counter In Add Cards", mw)
+    _add_cards_multi_image_counter_action.setCheckable(True)
+    _add_cards_multi_image_counter_action.setChecked(is_add_cards_multi_image_counter_enabled())
+    _add_cards_multi_image_counter_action.triggered.connect(_toggle_add_cards_multi_image_counter)
+    pocket_menu.addAction(_add_cards_multi_image_counter_action)
 
     _visual_card_multitude_action = QAction("Pink Picture-Frame Button In Add Cards", mw)
     _visual_card_multitude_action.setCheckable(True)

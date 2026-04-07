@@ -14,8 +14,10 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Saved Cards -> Send To .NEW::Audio`: on the exact `Saved Cards` deck gear menu, moves every card in that deck to `.NEW::Audio`, builds a `resched = true` filtered deck from the cards that were still new, names it `New cards from Saved Cards Deck (YYYY-MM-DD HH-MM-SS)`, and then deletes the emptied `Saved Cards` deck.
 - `Open Suspended Cards In Browser`: opens all currently suspended cards in the Browser and orders them from most recently suspended to least recently suspended.
 - `Filtered Deck -> Send Non-New Cards Home`: shows only filtered decks in a searchable picker, sends the selected deck's current non-new cards back to their original deck while keeping their current schedule, leaves still-new cards in place, and also appears in the deck gear menu for filtered decks.
+- `Disable Default F3 Shortcut`: default-on toggle that removes Anki's built-in plain `F3` shortcut, so `F3` is left unused for your own workflow.
 - `Add Cards -> Pink Picture-Frame Converter`: default-on button on the normal Add Cards screen that converts the current cloze note into `Visual_Card_Multitude`, sending cloze text to `English`, non-cloze text to `Question`, inline images to `Images`, and `Extra` to `More Info`. If you are already on `Visual_Card_Multitude`, the same button converts back to `saCloze++`, sending `Question` plus a clozed `English` block and `Images` into `Text`, and `More Info` back into `Extra`.
 - `Add Cards -> Auto Deck Toggle`: toolbar toggle that can automatically switch cloze notes between `.NEW::Audio` and `.New::Visual` based on whether the `Text` field contains an image, and can also auto-switch `Visual_Card_Multitude` notes to `.New::Visual`.
+- `Add Cards -> Live Multi-Image Counter`: optional setting that adds a `1/N` label above the first image in a cloze note's `Text` field when more than one image is present, keeps it updated as images are added, strips it during cloze-to-visual conversion, and recreates it when converting back to cloze.
 - `Auto-Scroll On Answer Reveal`: optional toggle that jumps the reviewer back to the top of the card whenever you reveal the answer.
 - `TTS Card Audio Playback`: default-off toggle that lets you allow or suppress audio playback from TTS-enabled cards without muting normal non-TTS audio.
 
@@ -26,7 +28,9 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Build Recent New Cards Deck`
 - `Tools -> Anki Pocket Knife -> Open Suspended Cards In Browser`
 - `Tools -> Anki Pocket Knife -> Send Filtered Deck Non-New Cards Home`
+- `Tools -> Anki Pocket Knife -> Disable Anki's Default F3 Shortcut`
 - `Tools -> Anki Pocket Knife -> Auto Deck For Cloze Add Cards`
+- `Tools -> Anki Pocket Knife -> Live Multi-Image Counter In Add Cards`
 - `Tools -> Anki Pocket Knife -> Pink Picture-Frame Button In Add Cards`
 - `Tools -> Anki Pocket Knife -> Auto-Switch Visual_Card_Multitude To .New::Visual`
 - `Tools -> Anki Pocket Knife -> Auto-Scroll To Top On Answer Reveal`

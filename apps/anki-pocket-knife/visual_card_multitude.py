@@ -20,6 +20,7 @@ from .settings import get_setting, set_setting
 SETTING_NAME = "visual_card_multitude_add_button"
 AUTO_DECK_SETTING_NAME = "add_cards_cloze_auto_deck"
 VISUAL_DECK_SETTING_NAME = "visual_card_multitude_auto_visual_deck"
+MULTI_IMAGE_COUNTER_SETTING_NAME = "add_cards_multi_image_counter"
 TARGET_NOTETYPE_NAME = "Visual_Card_Multitude"
 REVERSE_TARGET_NOTETYPE_NAME = "saCloze++"
 BUTTON_COMMAND = "pocket_knife_visual_card_multitude"
@@ -40,6 +41,13 @@ _BR_RUN_RE = re.compile(r"(?:\s*<br\s*/?>\s*){3,}", re.IGNORECASE)
 _EDGE_BRS_RE = re.compile(
     r"^(?:\s*<br\s*/?>\s*)+|(?:\s*<br\s*/?>\s*)+$",
     re.IGNORECASE,
+)
+_MULTI_IMAGE_COUNTER_RE = re.compile(
+    r"<div\b[^>]*data-pocket-knife-image-counter=(['\"])true\1[^>]*>.*?</div>",
+    re.IGNORECASE | re.DOTALL,
+)
+_MULTI_IMAGE_COUNTER_HTML = (
+    '<div data-pocket-knife-image-counter="true">{label}</div>'
 )
 
 
@@ -78,6 +86,16 @@ def set_visual_card_multitude_auto_visual_deck_enabled(enabled: bool) -> bool:
     return value
 
 
+def is_add_cards_multi_image_counter_enabled() -> bool:
+    return bool(get_setting(MULTI_IMAGE_COUNTER_SETTING_NAME))
+
+
+def set_add_cards_multi_image_counter_enabled(enabled: bool) -> bool:
+    value = bool(set_setting(MULTI_IMAGE_COUNTER_SETTING_NAME, bool(enabled)))
+    sync_open_add_cards_editor_ui()
+    return value
+
+
 def _actual_note_field_name(note, wanted_name: str) -> str | None:
     wanted = str(wanted_name).casefold()
     for field_name in note.keys():
@@ -102,6 +120,22 @@ def _clean_html_fragment(html: str) -> str:
     return cleaned.strip()
 
 
+def _strip_multi_image_counter(html: str) -> str:
+    return _MULTI_IMAGE_COUNTER_RE.sub("", str(html or ""))
+
+
+def _apply_multi_image_counter_html(html: str) -> str:
+    base_html = _strip_multi_image_counter(html)
+    matches = list(_IMAGE_RE.finditer(base_html))
+    if len(matches) <= 1:
+        return base_html
+
+    first = matches[0]
+    label = f"1/{len(matches)}"
+    marker = _MULTI_IMAGE_COUNTER_HTML.format(label=label)
+    return f"{base_html[:first.start()]}{marker}{base_html[first.start():]}"
+
+
 def _extract_images_html(html: str) -> str:
     return "".join(match.group(0) for match in _IMAGE_RE.finditer(str(html or "")))
 
@@ -120,7 +154,7 @@ def _join_html_sections(*sections: str) -> str:
 
 
 def _convert_text_field_html(text_html: str) -> ConvertedVisualFields:
-    source_html = str(text_html or "")
+    source_html = _strip_multi_image_counter(text_html)
     cloze_segments = [
         _clean_html_fragment(_remove_images(match.group(1)))
         for match in _CLOZE_RE.finditer(source_html)
@@ -243,6 +277,7 @@ if (frameButton) {{
 def sync_open_add_cards_editor_ui() -> None:
     for editor in list(_OPEN_ADD_CARDS_EDITORS):
         try:
+            _apply_multi_image_counter_rules(editor)
             _sync_auto_deck_toggle_button(editor)
         except Exception:
             continue
@@ -291,6 +326,24 @@ def _text_field_html(note) -> str:
 
 def _text_field_has_image(note) -> bool:
     return bool(_IMAGE_RE.search(_text_field_html(note)))
+
+
+def _normalize_text_field_for_multi_image_counter(note) -> bool:
+    text_field_name = _actual_note_field_name(note, "Text")
+    if not text_field_name:
+        return False
+
+    current_html = str(note[text_field_name] or "")
+    if _note_is_cloze(note) and is_add_cards_multi_image_counter_enabled():
+        desired_html = _apply_multi_image_counter_html(current_html)
+    else:
+        desired_html = _strip_multi_image_counter(current_html)
+
+    if desired_html == current_html:
+        return False
+
+    note[text_field_name] = desired_html
+    return True
 
 
 def _target_deck_name_for_note(note) -> str | None:
@@ -374,6 +427,40 @@ def _apply_auto_deck_rules(editor: Editor) -> None:
     if desired_deck_id is None:
         return
     _set_selected_deck_id(editor.parentWindow, desired_deck_id)
+
+
+def _refresh_editor_after_text_change(editor: Editor) -> None:
+    load_note_keeping_focus = getattr(editor, "loadNoteKeepingFocus", None)
+    if callable(load_note_keeping_focus):
+        load_note_keeping_focus()
+        return
+
+    load_note = getattr(editor, "loadNote", None)
+    if callable(load_note):
+        try:
+            load_note(getattr(editor, "currentField", None))
+        except TypeError:
+            load_note()
+
+
+def _apply_multi_image_counter_rules(editor: Editor) -> None:
+    if not isinstance(getattr(editor, "parentWindow", None), AddCards):
+        return
+    if getattr(editor, "_anki_pocket_knife_syncing_multi_image_counter", False):
+        return
+
+    note = getattr(editor, "note", None)
+    if note is None:
+        return
+
+    if not _normalize_text_field_for_multi_image_counter(note):
+        return
+
+    setattr(editor, "_anki_pocket_knife_syncing_multi_image_counter", True)
+    try:
+        _refresh_editor_after_text_change(editor)
+    finally:
+        setattr(editor, "_anki_pocket_knife_syncing_multi_image_counter", False)
 
 
 def _toggle_add_cards_auto_deck(editor: Editor) -> None:
@@ -460,6 +547,10 @@ def _build_reverse_cloze_target_note(source_note) -> Note | None:
         f"{{{{c1::{english_html}}}}}" if english_html else "",
         images_html,
     )
+    if is_add_cards_multi_image_counter_enabled():
+        text_html = _apply_multi_image_counter_html(text_html)
+    else:
+        text_html = _strip_multi_image_counter(text_html)
 
     target_note = Note(mw.col, target_model)
     if getattr(source_note, "tags", None):
@@ -559,6 +650,7 @@ def _on_editor_did_load_note(editor: Editor) -> None:
     if not isinstance(getattr(editor, "parentWindow", None), AddCards):
         return
     _register_add_cards_editor(editor)
+    _apply_multi_image_counter_rules(editor)
     _sync_auto_deck_toggle_button(editor)
     _apply_auto_deck_rules(editor)
 
@@ -577,6 +669,7 @@ def _patch_editor_bridge() -> None:
         try:
             if isinstance(getattr(editor, "parentWindow", None), AddCards):
                 _register_add_cards_editor(editor)
+                _apply_multi_image_counter_rules(editor)
                 _sync_auto_deck_toggle_button(editor)
                 _apply_auto_deck_rules(editor)
         except Exception:
