@@ -31,6 +31,7 @@ class AppConfig:
     exit_hotkey: str
     exit_hotkey_label: str
     paste_hotkeys: tuple[str, ...]
+    recording_ready_delay_ms: int
     max_recording_seconds: int
     sample_rate_hz: int
     channels: int
@@ -71,6 +72,17 @@ def load_config() -> AppConfig:
         os.getenv("PASTE_HOTKEYS", "<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>")
     )
 
+    recording_ready_delay_raw = os.getenv(
+        "RECORDING_READY_DELAY_MS",
+        os.getenv("RECORDING_START_DELAY_MS", "0"),
+    ).strip()
+    try:
+        recording_ready_delay_ms = int(recording_ready_delay_raw)
+    except ValueError as exc:
+        raise ConfigError(
+            f"RECORDING_READY_DELAY_MS must be an integer, got {recording_ready_delay_raw!r}."
+        ) from exc
+
     return AppConfig(
         api_key=_get_required_env("OPENAI_API_KEY"),
         model=os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-transcribe").strip() or "gpt-4o-transcribe",
@@ -80,6 +92,7 @@ def load_config() -> AppConfig:
         exit_hotkey=exit_hotkey,
         exit_hotkey_label=hotkey_to_label(exit_hotkey),
         paste_hotkeys=paste_hotkeys,
+        recording_ready_delay_ms=recording_ready_delay_ms,
         max_recording_seconds=_get_int("MAX_RECORDING_SECONDS", 60),
         sample_rate_hz=_get_int("SAMPLE_RATE_HZ", 16000),
         channels=_get_int("CHANNELS", 1),

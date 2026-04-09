@@ -8,9 +8,11 @@ from .common import user_files_dir
 SETTINGS_PATH = user_files_dir() / "settings.json"
 DEFAULT_SETTINGS = {
     "scroll_to_top_on_answer": True,
+    "recent_leech_banner": True,
     "tts_enabled_card_audio": False,
     "disable_default_f3_shortcut": True,
     "visual_card_multitude_add_button": True,
+    "add_cards_diagnosis_button": True,
     "add_cards_cloze_auto_deck": True,
     "add_cards_multi_image_counter": True,
     "visual_card_multitude_auto_visual_deck": True,

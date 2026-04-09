@@ -4,7 +4,7 @@ import wave
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from threading import Lock
+from threading import Event, Lock
 
 import sounddevice
 
@@ -25,6 +25,7 @@ class MicrophoneRecorder:
         self._wave_path: Path | None = None
         self._warnings: list[str] = []
         self._lock = Lock()
+        self._received_first_chunk = Event()
 
     def start(self) -> Path:
         if self._stream is not None:
@@ -37,6 +38,7 @@ class MicrophoneRecorder:
         self._wave_file.setsampwidth(2)
         self._wave_file.setframerate(self._sample_rate_hz)
         self._warnings = []
+        self._received_first_chunk.clear()
 
         self._stream = sounddevice.RawInputStream(
             samplerate=self._sample_rate_hz,
@@ -78,9 +80,14 @@ class MicrophoneRecorder:
         except OSError:
             pass
 
+    def has_received_audio(self) -> bool:
+        return self._received_first_chunk.is_set()
+
     def _on_audio(self, indata: bytes, _frames: int, _time: object, status: sounddevice.CallbackFlags) -> None:
         if status:
             self._warnings.append(str(status))
+        if indata:
+            self._received_first_chunk.set()
         with self._lock:
             if self._wave_file is not None:
                 self._wave_file.writeframes(indata)

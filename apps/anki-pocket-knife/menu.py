@@ -13,8 +13,11 @@ from aqt.qt import (
     QLabel,
     QMenu,
     QPushButton,
+    QScrollArea,
     QSpinBox,
+    Qt,
     QVBoxLayout,
+    QWidget,
 )
 
 from .auto_scroll import is_auto_scroll_enabled, set_auto_scroll_enabled
@@ -32,16 +35,24 @@ from .missed_today import (
     summarize_missed_today,
 )
 from .no_image_today import open_no_image_today_dialog
+from .recent_leeches import (
+    is_recent_leech_banner_enabled,
+    open_recent_leeches_browser,
+    recent_leeches_summary,
+    set_recent_leech_banner_enabled,
+)
 from .recent_new_cards import open_recent_new_cards_dialog
 from .return_non_new import open_return_non_new_dialog
 from .suspended_browser import open_suspended_cards_browser
 from .tts_audio import is_tts_audio_enabled, set_tts_audio_enabled
 from .visual_card_multitude import (
     is_add_cards_auto_deck_enabled,
+    is_add_cards_diagnosis_button_enabled,
     is_add_cards_multi_image_counter_enabled,
     is_visual_card_multitude_add_button_enabled,
     is_visual_card_multitude_auto_visual_deck_enabled,
     set_add_cards_auto_deck_enabled,
+    set_add_cards_diagnosis_button_enabled,
     set_add_cards_multi_image_counter_enabled,
     set_visual_card_multitude_add_button_enabled,
     set_visual_card_multitude_auto_visual_deck_enabled,
@@ -55,9 +66,11 @@ _HOOK_REGISTERED = False
 _MENU_REGISTERED_FLAG = "_anki_pocket_knife_menu_registered"
 _dialog: "PocketKnifeLauncherDialog | None" = None
 _auto_scroll_action: QAction | None = None
+_recent_leech_banner_action: QAction | None = None
 _tts_audio_action: QAction | None = None
 _disable_f3_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
+_add_cards_diagnosis_action: QAction | None = None
 _add_cards_multi_image_counter_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
@@ -126,7 +139,12 @@ class PocketKnifeLauncherDialog(QDialog):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
+        outer_layout = QVBoxLayout(self)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content = QWidget(scroll)
+        layout = QVBoxLayout(content)
         layout.setSpacing(14)
 
         intro = QLabel(
@@ -201,12 +219,23 @@ class PocketKnifeLauncherDialog(QDialog):
         browser_box = QGroupBox("Browser Tools")
         browser_layout = QVBoxLayout(browser_box)
         browser_copy = QLabel(
-            "Open all currently suspended cards in the Browser with the most recently suspended cards first."
+            "Open recent leeches or all suspended cards in the Browser, and optionally show a recent-leeches banner "
+            "above the main deck list."
         )
         browser_copy.setWordWrap(True)
         browser_layout.addWidget(browser_copy)
+        self.recent_leeches_summary = QLabel()
+        self.recent_leeches_summary.setWordWrap(True)
+        browser_layout.addWidget(self.recent_leeches_summary)
+        self.recent_leeches_button = QPushButton("Open Recent Leeches In Browser")
+        browser_layout.addWidget(self.recent_leeches_button)
         self.suspended_browser_button = QPushButton("Open Suspended Cards In Browser")
         browser_layout.addWidget(self.suspended_browser_button)
+        self.recent_leech_banner_checkbox = QCheckBox(
+            "Show a recent-leeches banner above the main deck list"
+        )
+        self.recent_leech_banner_checkbox.setChecked(is_recent_leech_banner_enabled())
+        browser_layout.addWidget(self.recent_leech_banner_checkbox)
         layout.addWidget(browser_box)
 
         keyboard_box = QGroupBox("Keyboard Overrides")
@@ -252,6 +281,11 @@ class PocketKnifeLauncherDialog(QDialog):
         )
         self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
         add_cards_layout.addWidget(self.add_cards_auto_deck_checkbox)
+        self.add_cards_diagnosis_checkbox = QCheckBox(
+            "Dx diagnosis-template button on the Add Cards screen"
+        )
+        self.add_cards_diagnosis_checkbox.setChecked(is_add_cards_diagnosis_button_enabled())
+        add_cards_layout.addWidget(self.add_cards_diagnosis_checkbox)
         self.add_cards_multi_image_counter_checkbox = QCheckBox(
             "Add a live 1/N counter above the first Text-field image when more than one image is present"
         )
@@ -284,11 +318,15 @@ class PocketKnifeLauncherDialog(QDialog):
         review_layout.addWidget(self.tts_audio_checkbox)
         layout.addWidget(review_box)
 
+        layout.addStretch(1)
+        scroll.setWidget(content)
+        outer_layout.addWidget(scroll)
+
         close_row = QHBoxLayout()
         close_row.addStretch(1)
         self.close_button = QPushButton("Close")
         close_row.addWidget(self.close_button)
-        layout.addLayout(close_row)
+        outer_layout.addLayout(close_row)
 
         self.early_review_button.clicked.connect(self._build_early_review_deck)
         self.copy_button.clicked.connect(self._run_and_refresh(copy_missed_today_text))
@@ -297,12 +335,15 @@ class PocketKnifeLauncherDialog(QDialog):
         self.deck_button.clicked.connect(self._run_and_refresh(make_missed_today_filtered_deck))
         self.no_image_button.clicked.connect(lambda *_args: open_no_image_today_dialog())
         self.recent_new_button.clicked.connect(lambda *_args: open_recent_new_cards_dialog())
+        self.recent_leeches_button.clicked.connect(lambda *_args: open_recent_leeches_browser())
         self.suspended_browser_button.clicked.connect(lambda *_args: open_suspended_cards_browser())
         self.return_non_new_button.clicked.connect(lambda *_args: open_return_non_new_dialog())
         self.refresh_button.clicked.connect(self.refresh_missed_today_summary)
+        self.recent_leech_banner_checkbox.toggled.connect(self._set_recent_leech_banner_enabled)
         self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
         self.visual_card_multitude_checkbox.toggled.connect(self._set_visual_card_multitude_enabled)
         self.add_cards_auto_deck_checkbox.toggled.connect(self._set_add_cards_auto_deck_enabled)
+        self.add_cards_diagnosis_checkbox.toggled.connect(self._set_add_cards_diagnosis_enabled)
         self.add_cards_multi_image_counter_checkbox.toggled.connect(
             self._set_add_cards_multi_image_counter_enabled
         )
@@ -327,6 +368,12 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def refresh_missed_today_summary(self) -> None:
         self.missed_today_summary.setText(summarize_missed_today())
+        if hasattr(self, "recent_leeches_summary"):
+            self.recent_leeches_summary.setText(recent_leeches_summary())
+        if hasattr(self, "recent_leech_banner_checkbox"):
+            self.recent_leech_banner_checkbox.blockSignals(True)
+            self.recent_leech_banner_checkbox.setChecked(is_recent_leech_banner_enabled())
+            self.recent_leech_banner_checkbox.blockSignals(False)
         if hasattr(self, "auto_scroll_checkbox"):
             self.auto_scroll_checkbox.blockSignals(True)
             self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
@@ -347,6 +394,10 @@ class PocketKnifeLauncherDialog(QDialog):
             self.add_cards_auto_deck_checkbox.blockSignals(True)
             self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
             self.add_cards_auto_deck_checkbox.blockSignals(False)
+        if hasattr(self, "add_cards_diagnosis_checkbox"):
+            self.add_cards_diagnosis_checkbox.blockSignals(True)
+            self.add_cards_diagnosis_checkbox.setChecked(is_add_cards_diagnosis_button_enabled())
+            self.add_cards_diagnosis_checkbox.blockSignals(False)
         if hasattr(self, "add_cards_multi_image_counter_checkbox"):
             self.add_cards_multi_image_counter_checkbox.blockSignals(True)
             self.add_cards_multi_image_counter_checkbox.setChecked(
@@ -368,6 +419,10 @@ class PocketKnifeLauncherDialog(QDialog):
         set_auto_scroll_enabled(bool(checked))
         sync_settings_ui()
 
+    def _set_recent_leech_banner_enabled(self, checked: bool) -> None:
+        set_recent_leech_banner_enabled(bool(checked))
+        sync_settings_ui()
+
     def _set_tts_audio_enabled(self, checked: bool) -> None:
         set_tts_audio_enabled(bool(checked))
         sync_settings_ui()
@@ -382,6 +437,10 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_add_cards_auto_deck_enabled(self, checked: bool) -> None:
         set_add_cards_auto_deck_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_add_cards_diagnosis_enabled(self, checked: bool) -> None:
+        set_add_cards_diagnosis_button_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_add_cards_multi_image_counter_enabled(self, checked: bool) -> None:
@@ -407,9 +466,11 @@ def open_launcher() -> None:
 
 def sync_settings_ui() -> None:
     global _auto_scroll_action
+    global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
     global _add_cards_auto_deck_action
+    global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
@@ -419,6 +480,11 @@ def sync_settings_ui() -> None:
         _auto_scroll_action.blockSignals(True)
         _auto_scroll_action.setChecked(auto_scroll_enabled)
         _auto_scroll_action.blockSignals(False)
+    recent_leech_banner_enabled = is_recent_leech_banner_enabled()
+    if _recent_leech_banner_action is not None:
+        _recent_leech_banner_action.blockSignals(True)
+        _recent_leech_banner_action.setChecked(recent_leech_banner_enabled)
+        _recent_leech_banner_action.blockSignals(False)
     tts_audio_enabled = is_tts_audio_enabled()
     if _tts_audio_action is not None:
         _tts_audio_action.blockSignals(True)
@@ -434,6 +500,11 @@ def sync_settings_ui() -> None:
         _add_cards_auto_deck_action.blockSignals(True)
         _add_cards_auto_deck_action.setChecked(add_cards_auto_deck_enabled)
         _add_cards_auto_deck_action.blockSignals(False)
+    add_cards_diagnosis_enabled = is_add_cards_diagnosis_button_enabled()
+    if _add_cards_diagnosis_action is not None:
+        _add_cards_diagnosis_action.blockSignals(True)
+        _add_cards_diagnosis_action.setChecked(add_cards_diagnosis_enabled)
+        _add_cards_diagnosis_action.blockSignals(False)
     add_cards_multi_image_counter_enabled = is_add_cards_multi_image_counter_enabled()
     if _add_cards_multi_image_counter_action is not None:
         _add_cards_multi_image_counter_action.blockSignals(True)
@@ -457,6 +528,12 @@ def sync_settings_ui() -> None:
         _dialog.tts_audio_checkbox.blockSignals(True)
         _dialog.tts_audio_checkbox.setChecked(tts_audio_enabled)
         _dialog.tts_audio_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "recent_leech_banner_checkbox"):
+        _dialog.recent_leech_banner_checkbox.blockSignals(True)
+        _dialog.recent_leech_banner_checkbox.setChecked(recent_leech_banner_enabled)
+        _dialog.recent_leech_banner_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "recent_leeches_summary"):
+        _dialog.recent_leeches_summary.setText(recent_leeches_summary())
     if _dialog is not None and hasattr(_dialog, "disable_f3_checkbox"):
         _dialog.disable_f3_checkbox.blockSignals(True)
         _dialog.disable_f3_checkbox.setChecked(disable_f3_enabled)
@@ -465,6 +542,10 @@ def sync_settings_ui() -> None:
         _dialog.add_cards_auto_deck_checkbox.blockSignals(True)
         _dialog.add_cards_auto_deck_checkbox.setChecked(add_cards_auto_deck_enabled)
         _dialog.add_cards_auto_deck_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "add_cards_diagnosis_checkbox"):
+        _dialog.add_cards_diagnosis_checkbox.blockSignals(True)
+        _dialog.add_cards_diagnosis_checkbox.setChecked(add_cards_diagnosis_enabled)
+        _dialog.add_cards_diagnosis_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "add_cards_multi_image_counter_checkbox"):
         _dialog.add_cards_multi_image_counter_checkbox.blockSignals(True)
         _dialog.add_cards_multi_image_counter_checkbox.setChecked(add_cards_multi_image_counter_enabled)
@@ -481,6 +562,11 @@ def sync_settings_ui() -> None:
 
 def _toggle_auto_scroll(checked: bool) -> None:
     set_auto_scroll_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_recent_leech_banner(checked: bool) -> None:
+    set_recent_leech_banner_enabled(bool(checked))
     sync_settings_ui()
 
 
@@ -504,6 +590,11 @@ def _toggle_add_cards_auto_deck(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_add_cards_diagnosis(checked: bool) -> None:
+    set_add_cards_diagnosis_button_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_add_cards_multi_image_counter(checked: bool) -> None:
     set_add_cards_multi_image_counter_enabled(bool(checked))
     sync_settings_ui()
@@ -516,9 +607,11 @@ def _toggle_visual_card_multitude_auto_visual_deck(checked: bool) -> None:
 
 def _register_menu() -> None:
     global _auto_scroll_action
+    global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
     global _add_cards_auto_deck_action
+    global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
@@ -571,6 +664,10 @@ def _register_menu() -> None:
     recent_new_action.triggered.connect(lambda *_args: open_recent_new_cards_dialog())
     pocket_menu.addAction(recent_new_action)
 
+    recent_leeches_action = QAction("Open Recent Leeches In Browser", mw)
+    recent_leeches_action.triggered.connect(lambda *_args: open_recent_leeches_browser())
+    pocket_menu.addAction(recent_leeches_action)
+
     suspended_browser_action = QAction("Open Suspended Cards In Browser", mw)
     suspended_browser_action.triggered.connect(lambda *_args: open_suspended_cards_browser())
     pocket_menu.addAction(suspended_browser_action)
@@ -587,11 +684,23 @@ def _register_menu() -> None:
     _disable_f3_action.triggered.connect(_toggle_disable_f3)
     pocket_menu.addAction(_disable_f3_action)
 
+    _recent_leech_banner_action = QAction("Recent-Leech Banner On Deck List", mw)
+    _recent_leech_banner_action.setCheckable(True)
+    _recent_leech_banner_action.setChecked(is_recent_leech_banner_enabled())
+    _recent_leech_banner_action.triggered.connect(_toggle_recent_leech_banner)
+    pocket_menu.addAction(_recent_leech_banner_action)
+
     _add_cards_auto_deck_action = QAction("Auto Deck For Cloze Add Cards", mw)
     _add_cards_auto_deck_action.setCheckable(True)
     _add_cards_auto_deck_action.setChecked(is_add_cards_auto_deck_enabled())
     _add_cards_auto_deck_action.triggered.connect(_toggle_add_cards_auto_deck)
     pocket_menu.addAction(_add_cards_auto_deck_action)
+
+    _add_cards_diagnosis_action = QAction("Dx Diagnosis Button In Add Cards", mw)
+    _add_cards_diagnosis_action.setCheckable(True)
+    _add_cards_diagnosis_action.setChecked(is_add_cards_diagnosis_button_enabled())
+    _add_cards_diagnosis_action.triggered.connect(_toggle_add_cards_diagnosis)
+    pocket_menu.addAction(_add_cards_diagnosis_action)
 
     _add_cards_multi_image_counter_action = QAction("Live Multi-Image Counter In Add Cards", mw)
     _add_cards_multi_image_counter_action.setCheckable(True)

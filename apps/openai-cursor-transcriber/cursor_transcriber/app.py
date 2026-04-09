@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import threading
 from pathlib import Path
 from time import perf_counter
@@ -41,7 +42,12 @@ class CursorTranscriberApp(QObject):
             exit_hotkey_label=config.exit_hotkey_label,
         )
         self._hotkeys: GlobalHotKeys | None = None
+        self._capture_started_at: float | None = None
         self._recording_started_at: float | None = None
+        self._is_arming = False
+        self._ready_poll_timer = QTimer(self)
+        self._ready_poll_timer.setInterval(30)
+        self._ready_poll_timer.timeout.connect(self._check_recording_ready)
         self._recording_timer = QTimer(self)
         self._recording_timer.setInterval(100)
         self._recording_timer.timeout.connect(self._tick_recording)
@@ -73,6 +79,9 @@ class CursorTranscriberApp(QObject):
         if self._shutting_down:
             return
         self._shutting_down = True
+        self._ready_poll_timer.stop()
+        self._is_arming = False
+        self._capture_started_at = None
         self._recording_timer.stop()
         try:
             self._recorder.discard()
@@ -98,12 +107,15 @@ class CursorTranscriberApp(QObject):
             self._overlay.show_error("The previous recording is still transcribing.")
             self._overlay.schedule_hide(2200)
             return
-        if self._recording_started_at is None:
-            self._start_recording()
+        if self._is_arming:
+            self._stop_recording()
+            return
+        if self._capture_started_at is None:
+            self._begin_recording_warmup()
         else:
             self._stop_recording()
 
-    def _start_recording(self) -> None:
+    def _begin_recording_warmup(self) -> None:
         self._transcript_visible = False
         try:
             self._recorder.start()
@@ -120,12 +132,16 @@ class CursorTranscriberApp(QObject):
             self._overlay.schedule_hide(3200)
             return
 
-        self._recording_started_at = perf_counter()
-        self._recording_timer.start()
-        logging.info("Recording started")
-        self._tick_recording()
+        self._capture_started_at = perf_counter()
+        self._recording_started_at = None
+        self._is_arming = True
+        self._overlay.show_transcribing()
+        self._ready_poll_timer.start()
+        logging.info("Recording started, waiting for microphone readiness")
 
     def _stop_recording(self) -> None:
+        self._ready_poll_timer.stop()
+        self._is_arming = False
         self._recording_timer.stop()
         self._recording_started_at = None
         try:
@@ -135,8 +151,10 @@ class CursorTranscriberApp(QObject):
             self._overlay.show_error(f"Could not stop recording: {exc}")
             self._overlay.schedule_hide(3200)
             return
+        self._capture_started_at = None
 
         logging.info("Recording stopped: %s", recording_result.path)
+        self._save_debug_recording(recording_result.path)
         if recording_result.path.stat().st_size <= 44:
             self._recorder.cleanup(recording_result.path)
             self._overlay.show_error("No microphone audio was captured.")
@@ -168,6 +186,23 @@ class CursorTranscriberApp(QObject):
 
         if seconds_remaining <= 0:
             self._stop_recording()
+
+    def _check_recording_ready(self) -> None:
+        if self._shutting_down or not self._is_arming or self._capture_started_at is None:
+            return
+        if not self._recorder.has_received_audio():
+            return
+
+        elapsed_ms = (perf_counter() - self._capture_started_at) * 1000.0
+        if elapsed_ms < self._config.recording_ready_delay_ms:
+            return
+
+        self._ready_poll_timer.stop()
+        self._is_arming = False
+        self._recording_started_at = perf_counter()
+        self._recording_timer.start()
+        logging.info("Recording ready for speech after %.0f ms", elapsed_ms)
+        self._tick_recording()
 
     def _transcribe_worker(self, audio_path: Path) -> None:
         try:
@@ -209,6 +244,14 @@ class CursorTranscriberApp(QObject):
         self._qt_app.clipboard().setText(text)
 
     def _handle_paste_shortcut(self) -> None:
-        if self._transcript_visible and not self._is_transcribing and self._recording_started_at is None:
+        if self._transcript_visible and not self._is_transcribing and not self._is_arming and self._capture_started_at is None:
             self._transcript_visible = False
             self._overlay.hide()
+
+    def _save_debug_recording(self, recording_path: Path) -> None:
+        debug_path = self._config.runtime_dir / "last-recording.wav"
+        try:
+            shutil.copyfile(recording_path, debug_path)
+            logging.info("Saved debug recording to %s", debug_path)
+        except Exception:
+            logging.exception("Failed to save debug recording copy")

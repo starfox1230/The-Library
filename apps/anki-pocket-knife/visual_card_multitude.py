@@ -10,6 +10,7 @@ from anki.notes import Note
 from aqt import gui_hooks, mw
 from aqt.addcards import AddCards
 from aqt.editor import Editor
+from aqt.qt import QTimer
 from aqt.theme import theme_manager
 from aqt.utils import showWarning, tooltip
 
@@ -18,6 +19,7 @@ from .settings import get_setting, set_setting
 
 
 SETTING_NAME = "visual_card_multitude_add_button"
+DIAGNOSIS_BUTTON_SETTING_NAME = "add_cards_diagnosis_button"
 AUTO_DECK_SETTING_NAME = "add_cards_cloze_auto_deck"
 VISUAL_DECK_SETTING_NAME = "visual_card_multitude_auto_visual_deck"
 MULTI_IMAGE_COUNTER_SETTING_NAME = "add_cards_multi_image_counter"
@@ -27,6 +29,8 @@ BUTTON_COMMAND = "pocket_knife_visual_card_multitude"
 BUTTON_TOOLTIP = "Convert between saCloze++ and Visual_Card_Multitude"
 BUTTON_ICON_PATH = addon_root() / "assets" / "pink_picture_frame.svg"
 BUTTON_ID = "pocket-knife-visual-card-multitude"
+DIAGNOSIS_BUTTON_COMMAND = "pocket_knife_diagnosis_template"
+DIAGNOSIS_BUTTON_ID = "pocket-knife-diagnosis-template"
 AUTO_DECK_BUTTON_COMMAND = "pocket_knife_toggle_add_cards_auto_deck"
 AUTO_DECK_BUTTON_ID = "pocket-knife-auto-deck-toggle"
 AUTO_DECK_AUDIO_NAME = ".NEW::Audio"
@@ -46,9 +50,19 @@ _MULTI_IMAGE_COUNTER_RE = re.compile(
     r"<div\b[^>]*data-pocket-knife-image-counter=(['\"])true\1[^>]*>.*?</div>",
     re.IGNORECASE | re.DOTALL,
 )
+_DIAGNOSIS_CURSOR_MARKERS_RE = re.compile(
+    r"<span\b[^>]*data-pocket-knife-dx-marker=(['\"])(?:start|end)\1[^>]*></span>",
+    re.IGNORECASE,
+)
 _MULTI_IMAGE_COUNTER_HTML = (
     '<div data-pocket-knife-image-counter="true">{label}</div>'
 )
+_DIAGNOSIS_TEMPLATE_PREFIX = "Most likely diagnosis?<br><br>"
+_DIAGNOSIS_TEMPLATE_SUFFIX = "<br><br>"
+_DIAGNOSIS_CLOZE_PREFIX = "{{c1::"
+_DIAGNOSIS_CLOZE_SUFFIX = "}}"
+_DIAGNOSIS_CURSOR_START_MARKER = '<span data-pocket-knife-dx-marker="start"></span>'
+_DIAGNOSIS_CURSOR_END_MARKER = '<span data-pocket-knife-dx-marker="end"></span>'
 
 
 @dataclass(frozen=True)
@@ -64,6 +78,16 @@ def is_visual_card_multitude_add_button_enabled() -> bool:
 
 def set_visual_card_multitude_add_button_enabled(enabled: bool) -> bool:
     return bool(set_setting(SETTING_NAME, bool(enabled)))
+
+
+def is_add_cards_diagnosis_button_enabled() -> bool:
+    return bool(get_setting(DIAGNOSIS_BUTTON_SETTING_NAME))
+
+
+def set_add_cards_diagnosis_button_enabled(enabled: bool) -> bool:
+    value = bool(set_setting(DIAGNOSIS_BUTTON_SETTING_NAME, bool(enabled)))
+    sync_open_add_cards_editor_ui()
+    return value
 
 
 def is_add_cards_auto_deck_enabled() -> bool:
@@ -122,6 +146,10 @@ def _clean_html_fragment(html: str) -> str:
 
 def _strip_multi_image_counter(html: str) -> str:
     return _MULTI_IMAGE_COUNTER_RE.sub("", str(html or ""))
+
+
+def _strip_diagnosis_cursor_markers(html: str) -> str:
+    return _DIAGNOSIS_CURSOR_MARKERS_RE.sub("", str(html or ""))
 
 
 def _apply_multi_image_counter_html(html: str) -> str:
@@ -227,6 +255,8 @@ def _sync_auto_deck_toggle_button(editor: Editor) -> None:
 
     night_mode = bool(getattr(theme_manager, "night_mode", False))
     enabled = is_add_cards_auto_deck_enabled()
+    note = getattr(editor, "note", None)
+    diagnosis_enabled = _note_is_cloze(note)
     button_text = "AD"
     button_title = (
         "Automatically switch cloze notes between .NEW::Audio and .New::Visual based on images in Text"
@@ -237,12 +267,18 @@ def _sync_auto_deck_toggle_button(editor: Editor) -> None:
         text_color = "#fff1f7" if enabled else "#e2e8f0"
         frame_background = "rgba(244, 114, 182, 0.18)"
         frame_border = "#f9a8d4"
+        diagnosis_background = "rgba(56, 189, 248, 0.24)" if diagnosis_enabled else "rgba(71, 85, 105, 0.38)"
+        diagnosis_border = "#7dd3fc" if diagnosis_enabled else "#94a3b8"
+        diagnosis_text = "#e0f2fe" if diagnosis_enabled else "#94a3b8"
     else:
         background = "rgba(244, 114, 182, 0.18)" if enabled else "rgba(148, 163, 184, 0.14)"
         border = "#ec4899" if enabled else "#94a3b8"
         text_color = "#9d174d" if enabled else "#334155"
         frame_background = "rgba(244, 114, 182, 0.10)"
         frame_border = "#f472b6"
+        diagnosis_background = "rgba(56, 189, 248, 0.14)" if diagnosis_enabled else "rgba(148, 163, 184, 0.14)"
+        diagnosis_border = "#0284c7" if diagnosis_enabled else "#94a3b8"
+        diagnosis_text = "#0f4c81" if diagnosis_enabled else "#64748b"
     _run_toolbar_js(
         editor,
         f"""
@@ -261,7 +297,7 @@ if (button) {{
 }}
 const frameButton = document.getElementById({json.dumps(BUTTON_ID)});
 if (frameButton) {{
-  frameButton.title = {json.dumps(_frame_button_tooltip(getattr(editor, "note", None)))};
+  frameButton.title = {json.dumps(_frame_button_tooltip(getattr(editor, "note", None)))}; 
   frameButton.style.background = {json.dumps(frame_background)};
   frameButton.style.borderColor = {json.dumps(frame_border)};
   frameButton.style.borderRadius = "8px";
@@ -269,6 +305,22 @@ if (frameButton) {{
   frameButton.style.margin = "";
   frameButton.style.marginInlineStart = "";
   frameButton.style.marginInlineEnd = "";
+}}
+const diagnosisButton = document.getElementById({json.dumps(DIAGNOSIS_BUTTON_ID)});
+if (diagnosisButton) {{
+  diagnosisButton.textContent = "Dx";
+  diagnosisButton.title = {json.dumps(_diagnosis_button_tooltip(note))};
+  diagnosisButton.disabled = {json.dumps(not diagnosis_enabled)};
+  diagnosisButton.style.background = {json.dumps(diagnosis_background)};
+  diagnosisButton.style.borderColor = {json.dumps(diagnosis_border)};
+  diagnosisButton.style.color = {json.dumps(diagnosis_text)};
+  diagnosisButton.style.fontWeight = "700";
+  diagnosisButton.style.whiteSpace = "nowrap";
+  diagnosisButton.style.margin = "";
+  diagnosisButton.style.marginInlineStart = "";
+  diagnosisButton.style.marginInlineEnd = "";
+  diagnosisButton.style.opacity = diagnosisButton.disabled ? "0.62" : "1";
+  diagnosisButton.style.cursor = diagnosisButton.disabled ? "not-allowed" : "";
 }}
 """,
     )
@@ -309,12 +361,31 @@ def _note_is_cloze(note) -> bool:
     return _note_type_name(note).casefold().startswith("sacloze")
 
 
+def _field_ord(note, wanted_name: str) -> int | None:
+    try:
+        note_type = note.note_type() or {}
+    except Exception:
+        note_type = {}
+    wanted = str(wanted_name).casefold()
+    for index, field in enumerate(note_type.get("flds", [])):
+        name = str(field.get("name") or "")
+        if name.casefold() == wanted:
+            return index
+    return None
+
+
 def _frame_button_tooltip(note) -> str:
     if _note_is_visual_card_multitude(note):
         return f"Convert the current {TARGET_NOTETYPE_NAME} note into {REVERSE_TARGET_NOTETYPE_NAME}"
     if _note_is_cloze(note):
         return f"Convert the current cloze note into {TARGET_NOTETYPE_NAME}"
     return BUTTON_TOOLTIP
+
+
+def _diagnosis_button_tooltip(note) -> str:
+    if _note_is_cloze(note):
+        return "Replace Text-field text with a Diagnosis cloze template and keep any images below it"
+    return "Dx template is only available when the current note type is cloze"
 
 
 def _text_field_html(note) -> str:
@@ -344,6 +415,29 @@ def _normalize_text_field_for_multi_image_counter(note) -> bool:
 
     note[text_field_name] = desired_html
     return True
+
+
+def _build_diagnosis_text_html(text_html: str) -> str:
+    source_html = _strip_diagnosis_cursor_markers(_strip_multi_image_counter(text_html))
+    first_cloze_match = _CLOZE_RE.search(source_html)
+    preserved_cloze_html = ""
+    if first_cloze_match:
+        preserved_cloze_html = _clean_html_fragment(_remove_images(first_cloze_match.group(1)))
+    cloze_contents = (
+        f"{_DIAGNOSIS_CURSOR_START_MARKER}"
+        f"{preserved_cloze_html}"
+        f"{_DIAGNOSIS_CURSOR_END_MARKER}"
+    )
+    images_html = _extract_images_html(source_html)
+    combined = (
+        f"{_DIAGNOSIS_TEMPLATE_PREFIX}"
+        f"{_DIAGNOSIS_CLOZE_PREFIX}{cloze_contents}{_DIAGNOSIS_CLOZE_SUFFIX}"
+        f"{_DIAGNOSIS_TEMPLATE_SUFFIX}"
+        f"{images_html}"
+    )
+    if is_add_cards_multi_image_counter_enabled():
+        return _apply_multi_image_counter_html(combined)
+    return _strip_multi_image_counter(combined)
 
 
 def _target_deck_name_for_note(note) -> str | None:
@@ -443,6 +537,172 @@ def _refresh_editor_after_text_change(editor: Editor) -> None:
             load_note()
 
 
+def _place_diagnosis_cursor(editor: Editor, field_ord: int | None = None) -> None:
+    _run_toolbar_js(
+        editor,
+        f"""
+const fieldOrd = {json.dumps(field_ord)};
+let attempts = 0;
+const startSelector = '[data-pocket-knife-dx-marker="start"]';
+const endSelector = '[data-pocket-knife-dx-marker="end"]';
+const isElementNode = (node) => !!node && node.nodeType === 1;
+const isDocumentLike = (node) => !!node && (node.nodeType === 9 || node.nodeType === 11);
+const isEditable = (node) => {{
+  if (!isElementNode(node)) {{
+    return false;
+  }}
+  if (node.isContentEditable) {{
+    return true;
+  }}
+  const raw = String(node.getAttribute?.("contenteditable") || "").toLowerCase();
+  return raw === "" || raw === "true";
+}};
+const iframeDocument = (node) => {{
+  if (!isElementNode(node) || String(node.tagName || "").toUpperCase() !== "IFRAME") {{
+    return null;
+  }}
+  try {{
+    return node.contentDocument || node.contentWindow?.document || null;
+  }} catch (_error) {{
+    return null;
+  }}
+}};
+const findMarker = (root, selector) => {{
+  if (!root) {{
+    return null;
+  }}
+  const frameDoc = iframeDocument(root);
+  if (frameDoc) {{
+    return findMarker(frameDoc, selector);
+  }}
+  if (isDocumentLike(root)) {{
+    const direct = root.querySelector?.(selector) || null;
+    if (direct) {{
+      return direct;
+    }}
+    const active = root.activeElement || null;
+    if (active) {{
+      const activeFound = findMarker(active, selector);
+      if (activeFound) {{
+        return activeFound;
+      }}
+    }}
+    const nested = root.querySelectorAll?.("iframe, [contenteditable]") || [];
+    for (const node of nested) {{
+      const found = findMarker(node, selector);
+      if (found) {{
+        return found;
+      }}
+    }}
+    return null;
+  }}
+  if (!isElementNode(root)) {{
+    return null;
+  }}
+  if (root.matches?.(selector)) {{
+    return root;
+  }}
+  if (root.shadowRoot) {{
+    const shadowFound = findMarker(root.shadowRoot, selector);
+    if (shadowFound) {{
+      return shadowFound;
+    }}
+  }}
+  return root.querySelector?.(selector) || null;
+}};
+const editableAncestor = (node) => {{
+  let current = node;
+  while (current) {{
+    if (isEditable(current)) {{
+      return current;
+    }}
+    current = current.parentElement || current.parentNode || null;
+  }}
+  return null;
+}};
+const placeCursor = () => {{
+  attempts += 1;
+  if (typeof focusField === "function" && typeof fieldOrd === "number") {{
+    try {{
+      focusField(fieldOrd);
+    }} catch (_error) {{
+      // ignore
+    }}
+  }}
+  const startMarker = findMarker(document, startSelector);
+  const endMarker = findMarker(document, endSelector);
+  if (!startMarker || !endMarker) {{
+    if (attempts < 40) {{
+      setTimeout(placeCursor, 50);
+    }}
+    return;
+  }}
+  const host = editableAncestor(startMarker) || editableAncestor(endMarker);
+  if (!host) {{
+    if (attempts < 40) {{
+      setTimeout(placeCursor, 50);
+    }}
+    return;
+  }}
+  try {{
+    host.focus({{ preventScroll: true }});
+  }} catch (_error) {{
+    host.focus();
+  }}
+  host.scrollIntoView({{ block: "nearest" }});
+  const applySelection = () => {{
+    const liveStart = findMarker(document, startSelector) || startMarker;
+    const liveEnd = findMarker(document, endSelector) || endMarker;
+    if (!liveStart || !liveEnd) {{
+      return;
+    }}
+    const liveHost = editableAncestor(liveStart) || editableAncestor(liveEnd) || host;
+    if (liveHost) {{
+      try {{
+        liveHost.focus({{ preventScroll: true }});
+      }} catch (_error) {{
+        liveHost.focus();
+      }}
+    }}
+    const ownerDoc = (liveHost && liveHost.ownerDocument) || document;
+    const ownerWin = ownerDoc.defaultView || window;
+    const range = ownerDoc.createRange();
+    const selection = ownerDoc.getSelection ? ownerDoc.getSelection() : ownerWin.getSelection?.();
+    range.setStartAfter(liveStart);
+    range.setEndBefore(liveEnd);
+    if (range.toString() === "") {{
+      range.collapse(true);
+    }}
+    if (selection) {{
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }}
+  }};
+  applySelection();
+  setTimeout(applySelection, 120);
+  setTimeout(() => {{
+    applySelection();
+    if (startMarker.isConnected) {{
+      startMarker.remove();
+    }}
+    if (endMarker.isConnected) {{
+      endMarker.remove();
+    }}
+  }}, 240);
+}};
+placeCursor();
+""",
+    )
+
+
+def _apply_pending_diagnosis_cursor(editor: Editor) -> None:
+    field_ord = getattr(editor, "_anki_pocket_knife_pending_diagnosis_cursor_ord", None)
+    if field_ord is None:
+        return
+    setattr(editor, "_anki_pocket_knife_pending_diagnosis_cursor_ord", None)
+    QTimer.singleShot(50, lambda: _place_diagnosis_cursor(editor, int(field_ord)))
+
+
 def _apply_multi_image_counter_rules(editor: Editor) -> None:
     if not isinstance(getattr(editor, "parentWindow", None), AddCards):
         return
@@ -469,6 +729,35 @@ def _toggle_add_cards_auto_deck(editor: Editor) -> None:
     if enabled:
         _apply_auto_deck_rules(editor)
     tooltip(f"Add Cards auto deck {'enabled' if enabled else 'disabled'}.")
+
+
+def apply_diagnosis_template(editor: Editor) -> None:
+    if not isinstance(getattr(editor, "parentWindow", None), AddCards):
+        return
+
+    source_note = getattr(editor, "note", None)
+    if source_note is None:
+        showWarning("No Add Cards note is currently loaded.")
+        return
+    if not _note_is_cloze(source_note):
+        tooltip("Dx is only available for cloze note types.")
+        return
+
+    text_field_name = _actual_note_field_name(source_note, "Text")
+    text_field_ord = _field_ord(source_note, "Text")
+    if text_field_name is None or text_field_ord is None:
+        showWarning("This note does not have a usable Text field.")
+        return
+
+    source_note[text_field_name] = _build_diagnosis_text_html(source_note[text_field_name])
+    setattr(editor, "_anki_pocket_knife_pending_diagnosis_cursor_ord", int(text_field_ord))
+    load_note = getattr(editor, "loadNote", None)
+    if callable(load_note):
+        load_note(int(text_field_ord))
+    source_note[text_field_name] = _strip_diagnosis_cursor_markers(source_note[text_field_name])
+    QTimer.singleShot(50, lambda: _place_diagnosis_cursor(editor, int(text_field_ord)))
+    _apply_auto_deck_rules(editor)
+    tooltip("Diagnosis template inserted.")
 
 
 def _build_visual_target_note(source_note, *, converted: ConvertedVisualFields) -> Note | None:
@@ -643,6 +932,17 @@ def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
             disables=False,
         )
         buttons.append(button)
+    if is_add_cards_diagnosis_button_enabled():
+        diagnosis_button = editor.addButton(
+            None,
+            DIAGNOSIS_BUTTON_COMMAND,
+            apply_diagnosis_template,
+            tip="Replace Text with a Diagnosis cloze template and keep images",
+            label="Dx",
+            id=DIAGNOSIS_BUTTON_ID,
+            disables=False,
+        )
+        buttons.append(diagnosis_button)
     return buttons
 
 
@@ -653,6 +953,7 @@ def _on_editor_did_load_note(editor: Editor) -> None:
     _apply_multi_image_counter_rules(editor)
     _sync_auto_deck_toggle_button(editor)
     _apply_auto_deck_rules(editor)
+    _apply_pending_diagnosis_cursor(editor)
 
 
 def _patch_editor_bridge() -> None:

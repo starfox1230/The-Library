@@ -5,7 +5,8 @@ A small Windows desktop app that stays local on your computer, listens for a glo
 ## What it does
 
 - Press `F3` once to start recording.
-- A floating recording badge appears near your cursor with a countdown bar and a 60-second limit.
+- Recording starts immediately, and the loading indicator stays up only until the microphone actually starts delivering audio. By default there is no extra artificial delay.
+- After that, the recording badge appears near your cursor with the 60-second countdown.
 - Press `F3` again to stop.
 - The app sends the recording to OpenAI using `gpt-4o-transcribe`.
 - The full transcript is copied to your clipboard.
@@ -45,6 +46,7 @@ You can also change the hotkeys in the same file:
 TOGGLE_HOTKEY=<f3>
 EXIT_HOTKEY=<shift>+<f3>
 PASTE_HOTKEYS=<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>
+RECORDING_READY_DELAY_MS=0
 ```
 
 ## Run it
