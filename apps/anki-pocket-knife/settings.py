@@ -12,7 +12,7 @@ DEFAULT_SETTINGS = {
     "disable_default_f3_shortcut": True,
     "visual_card_multitude_add_button": True,
     "add_cards_cloze_auto_deck": True,
-    "add_cards_multi_image_counter": False,
+    "add_cards_multi_image_counter": True,
     "visual_card_multitude_auto_visual_deck": True,
 }
 

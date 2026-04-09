@@ -11,6 +11,7 @@ from .helpers import format_duration, preview_text
 
 @dataclass
 class OverlayState:
+    mode: str
     title: str
     body: str
     hint: str
@@ -20,7 +21,7 @@ class OverlayState:
 
 
 @dataclass(frozen=True)
-class LayoutMetrics:
+class BubbleLayoutMetrics:
     bubble_width: int
     bubble_height: int
     content_width: int
@@ -32,8 +33,16 @@ class LayoutMetrics:
     timer_label_height: int
 
 
+@dataclass(frozen=True)
+class RecordingChipMetrics:
+    chip_width: int
+    chip_height: int
+    time_width: int
+    time_height: int
+
+
 class CursorOverlay(QWidget):
-    _shadow_margin = 18
+    _shadow_margin = 0
     _corner_radius = 18
     _padding_x = 16
     _padding_y = 14
@@ -44,6 +53,12 @@ class CursorOverlay(QWidget):
     _timer_gap = 6
     _timer_track_height = 10
     _min_bubble_height = 96
+
+    _chip_height = 54
+    _chip_padding_x = 10
+    _chip_gap = 12
+    _chip_ring_size = 34
+    _chip_ring_width = 4
 
     def __init__(
         self,
@@ -61,6 +76,7 @@ class CursorOverlay(QWidget):
         self._toggle_hotkey_label = toggle_hotkey_label
         self._exit_hotkey_label = exit_hotkey_label
         self._state = OverlayState(
+            mode="bubble",
             title="",
             body="",
             hint="",
@@ -70,6 +86,8 @@ class CursorOverlay(QWidget):
         self._title_font = QFont("Segoe UI", 10, QFont.Weight.DemiBold)
         self._body_font = QFont("Segoe UI", 10)
         self._hint_font = QFont("Segoe UI", 8)
+        self._time_font = QFont("Consolas", 11, QFont.Weight.Bold)
+        self._time_font.setStyleHint(QFont.StyleHint.Monospace)
 
         self._hide_timer = QTimer(self)
         self._hide_timer.setSingleShot(True)
@@ -78,6 +96,8 @@ class CursorOverlay(QWidget):
         self._follow_timer = QTimer(self)
         self._follow_timer.setInterval(33)
         self._follow_timer.timeout.connect(self._follow_cursor)
+        self._last_anchor = "br"
+        self._spinner_angle = 0
 
         self.setWindowFlags(
             Qt.WindowType.Tool
@@ -101,20 +121,21 @@ class CursorOverlay(QWidget):
     def show_recording(self, *, seconds_remaining: float, max_seconds: int) -> None:
         ratio = max(0.0, min(1.0, seconds_remaining / max_seconds if max_seconds else 0.0))
         self._set_state(
-            title="Recording",
-            body=f"{format_duration(seconds_remaining)} left",
-            hint=f"Press {self._toggle_hotkey_label} again to stop",
-            accent="#ef4444",
+            mode="recording_chip",
+            title="",
+            body=format_duration(seconds_remaining),
+            hint="",
+            accent=self._recording_timer_color(ratio),
             timer_ratio=ratio,
-            timer_label="Mic live",
         )
 
     def show_transcribing(self) -> None:
         self._set_state(
-            title="Transcribing",
-            body="Sending the recording to OpenAI...",
+            mode="loading_chip",
+            title="",
+            body="",
             hint="",
-            accent="#38bdf8",
+            accent="#fbbf24",
         )
 
     def show_transcript(self, text: str) -> None:
@@ -142,48 +163,105 @@ class CursorOverlay(QWidget):
         super().hide()
 
     def sizeHint(self) -> QSize:  # type: ignore[override]
-        layout = self._measure_layout()
-        return QSize(
-            layout.bubble_width + (self._shadow_margin * 2),
-            layout.bubble_height + (self._shadow_margin * 2),
-        )
+        if self._state.mode == "recording_chip":
+            chip = self._measure_recording_chip()
+            return QSize(chip.chip_width, chip.chip_height)
+        if self._state.mode == "loading_chip":
+            chip = self._measure_loading_chip()
+            return QSize(chip.chip_width, chip.chip_height)
+
+        layout = self._measure_bubble_layout()
+        return QSize(layout.bubble_width, layout.bubble_height)
 
     def paintEvent(self, _event) -> None:  # type: ignore[override]
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-        layout = self._measure_layout()
+        if self._state.mode == "recording_chip":
+            self._paint_recording_chip(painter)
+            return
+        if self._state.mode == "loading_chip":
+            self._paint_loading_chip(painter)
+            return
+
+        self._paint_bubble(painter)
+
+    def _paint_bubble(self, painter: QPainter) -> None:
+        layout = self._measure_bubble_layout()
         bubble_rect = QRectF(
-            self._shadow_margin,
-            self._shadow_margin,
-            layout.bubble_width,
-            layout.bubble_height,
+            0.5,
+            0.5,
+            max(1.0, layout.bubble_width - 1.0),
+            max(1.0, layout.bubble_height - 1.0),
         )
         bubble_path = QPainterPath()
         bubble_path.addRoundedRect(bubble_rect, self._corner_radius, self._corner_radius)
 
-        self._draw_shadow(painter, bubble_path)
         self._draw_bubble_shell(painter, bubble_rect, bubble_path)
-        self._draw_content(painter, bubble_rect, layout)
+        self._draw_bubble_content(painter, bubble_rect, layout)
 
-    def _draw_shadow(self, painter: QPainter, bubble_path: QPainterPath) -> None:
+    def _paint_recording_chip(self, painter: QPainter) -> None:
+        chip = self._measure_recording_chip()
+        chip_rect = QRectF(
+            0.5,
+            0.5,
+            max(1.0, chip.chip_width - 1.0),
+            max(1.0, chip.chip_height - 1.0),
+        )
+        chip_path = QPainterPath()
+        chip_path.addRoundedRect(chip_rect, chip.chip_height / 2, chip.chip_height / 2)
+
+        self._draw_recording_chip_shell(painter, chip_rect, chip_path)
+
+        ring_rect = QRectF(
+            chip_rect.left() + self._chip_padding_x,
+            chip_rect.top() + ((chip_rect.height() - self._chip_ring_size) / 2),
+            self._chip_ring_size,
+            self._chip_ring_size,
+        )
+        self._draw_recording_ring(painter, ring_rect)
+
+        text_rect = QRect(
+            round(ring_rect.right() + self._chip_gap),
+            round(chip_rect.top()),
+            chip.time_width,
+            round(chip_rect.height()),
+        )
         painter.save()
-        painter.setPen(Qt.PenStyle.NoPen)
-        shadow_color = QColor(2, 6, 23)
-
-        for offset, alpha in ((10, 16), (7, 22), (4, 32), (2, 48)):
-            painter.setBrush(QColor(shadow_color.red(), shadow_color.green(), shadow_color.blue(), alpha))
-            painter.drawPath(bubble_path.translated(0, offset))
-
+        painter.setPen(QColor("#f8fafc"))
+        painter.setFont(self._time_font)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._state.body)
         painter.restore()
+
+    def _paint_loading_chip(self, painter: QPainter) -> None:
+        chip = self._measure_loading_chip()
+        chip_rect = QRectF(
+            0.5,
+            0.5,
+            max(1.0, chip.chip_width - 1.0),
+            max(1.0, chip.chip_height - 1.0),
+        )
+        chip_path = QPainterPath()
+        chip_path.addRoundedRect(chip_rect, chip.chip_height / 2, chip.chip_height / 2)
+
+        self._draw_recording_chip_shell(painter, chip_rect, chip_path)
+
+        ring_rect = QRectF(
+            chip_rect.left() + ((chip_rect.width() - self._chip_ring_size) / 2),
+            chip_rect.top() + ((chip_rect.height() - self._chip_ring_size) / 2),
+            self._chip_ring_size,
+            self._chip_ring_size,
+        )
+        self._draw_loading_spinner(painter, ring_rect)
 
     def _draw_bubble_shell(self, painter: QPainter, bubble_rect: QRectF, bubble_path: QPainterPath) -> None:
         painter.save()
 
         fill_gradient = QLinearGradient(bubble_rect.topLeft(), bubble_rect.bottomLeft())
-        fill_gradient.setColorAt(0.0, QColor("#17263a"))
-        fill_gradient.setColorAt(0.45, QColor("#122033"))
-        fill_gradient.setColorAt(1.0, QColor("#0d1727"))
+        top_color, mid_color, bottom_color = self._bubble_fill_colors()
+        fill_gradient.setColorAt(0.0, top_color)
+        fill_gradient.setColorAt(0.45, mid_color)
+        fill_gradient.setColorAt(1.0, bottom_color)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(fill_gradient)
         painter.drawPath(bubble_path)
@@ -197,19 +275,30 @@ class CursorOverlay(QWidget):
         painter.drawRect(glow_rect)
         painter.setClipping(False)
 
-        painter.setPen(QPen(QColor(255, 255, 255, 34), 1))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawPath(bubble_path)
+        painter.restore()
 
-        inner_rect = bubble_rect.adjusted(1.5, 1.5, -1.5, -1.5)
-        inner_path = QPainterPath()
-        inner_path.addRoundedRect(inner_rect, self._corner_radius - 1, self._corner_radius - 1)
-        painter.setPen(QPen(QColor(255, 255, 255, 10), 1))
-        painter.drawPath(inner_path)
+    def _draw_recording_chip_shell(self, painter: QPainter, chip_rect: QRectF, chip_path: QPainterPath) -> None:
+        painter.save()
+
+        chip_gradient = QLinearGradient(chip_rect.topLeft(), chip_rect.bottomLeft())
+        chip_gradient.setColorAt(0.0, QColor("#162538"))
+        chip_gradient.setColorAt(1.0, QColor("#0e1828"))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(chip_gradient)
+        painter.drawPath(chip_path)
+
+        shine_gradient = QLinearGradient(chip_rect.topLeft(), chip_rect.bottomLeft())
+        shine_gradient.setColorAt(0.0, QColor(255, 255, 255, 26))
+        shine_gradient.setColorAt(0.35, QColor(255, 255, 255, 10))
+        shine_gradient.setColorAt(1.0, QColor(255, 255, 255, 0))
+        painter.setClipPath(chip_path)
+        painter.setBrush(shine_gradient)
+        painter.drawRect(chip_rect)
+        painter.setClipping(False)
 
         painter.restore()
 
-    def _draw_content(self, painter: QPainter, bubble_rect: QRectF, layout: LayoutMetrics) -> None:
+    def _draw_bubble_content(self, painter: QPainter, bubble_rect: QRectF, layout: BubbleLayoutMetrics) -> None:
         content_left = bubble_rect.left() + self._padding_x
         content_top = bubble_rect.top() + self._padding_y
         content_width = layout.content_width
@@ -285,6 +374,71 @@ class CursorOverlay(QWidget):
         painter.drawEllipse(dot_rect)
         painter.restore()
 
+    def _draw_recording_ring(self, painter: QPainter, ring_rect: QRectF) -> None:
+        ratio = self._state.timer_ratio or 0.0
+
+        painter.save()
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+
+        track_pen = QPen(QColor(255, 255, 255, 32), self._chip_ring_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        painter.setPen(track_pen)
+        painter.drawEllipse(ring_rect)
+
+        if ratio > 0:
+            glow_color = QColor(self._state.accent)
+            glow_color.setAlpha(46)
+            glow_pen = QPen(glow_color, self._chip_ring_width + 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+            painter.setPen(glow_pen)
+            painter.drawArc(ring_rect, 90 * 16, int(-360 * ratio * 16))
+
+            arc_pen = QPen(self._state.accent, self._chip_ring_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+            painter.setPen(arc_pen)
+            painter.drawArc(ring_rect, 90 * 16, int(-360 * ratio * 16))
+
+        core_rect = ring_rect.adjusted(9, 9, -9, -9)
+        halo_rect = core_rect.adjusted(-3, -3, 3, 3)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(255, 94, 106, 60))
+        painter.drawEllipse(halo_rect)
+
+        core_gradient = QLinearGradient(core_rect.topLeft(), core_rect.bottomLeft())
+        core_gradient.setColorAt(0.0, QColor("#ff7580"))
+        core_gradient.setColorAt(1.0, QColor("#ef4444"))
+        painter.setBrush(core_gradient)
+        painter.drawEllipse(core_rect)
+
+        highlight_rect = core_rect.adjusted(2, 2, -5, -6)
+        painter.setBrush(QColor(255, 255, 255, 120))
+        painter.drawEllipse(highlight_rect)
+        painter.restore()
+
+    def _draw_loading_spinner(self, painter: QPainter, ring_rect: QRectF) -> None:
+        painter.save()
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+
+        track_pen = QPen(QColor(255, 255, 255, 24), self._chip_ring_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        painter.setPen(track_pen)
+        painter.drawEllipse(ring_rect)
+
+        glow_color = QColor(self._state.accent)
+        glow_color.setAlpha(56)
+        glow_pen = QPen(glow_color, self._chip_ring_width + 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        painter.setPen(glow_pen)
+        painter.drawArc(ring_rect, self._spinner_angle * 16, -120 * 16)
+
+        arc_pen = QPen(self._state.accent, self._chip_ring_width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        painter.setPen(arc_pen)
+        painter.drawArc(ring_rect, self._spinner_angle * 16, -120 * 16)
+
+        core_rect = ring_rect.adjusted(10, 10, -10, -10)
+        core_gradient = QLinearGradient(core_rect.topLeft(), core_rect.bottomLeft())
+        core_gradient.setColorAt(0.0, QColor("#fde68a"))
+        core_gradient.setColorAt(1.0, QColor("#f59e0b"))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(core_gradient)
+        painter.drawEllipse(core_rect)
+        painter.restore()
+
     def _draw_timer(self, painter: QPainter, *, x: float, y: float, width: int, label_height: int) -> None:
         painter.save()
 
@@ -317,11 +471,13 @@ class CursorOverlay(QWidget):
         title: str,
         body: str,
         hint: str,
-        accent: str,
+        accent: str | QColor,
         timer_ratio: float | None = None,
         timer_label: str = "",
+        mode: str = "bubble",
     ) -> None:
         self._state = OverlayState(
+            mode=mode,
             title=title,
             body=body,
             hint=hint,
@@ -329,6 +485,8 @@ class CursorOverlay(QWidget):
             timer_ratio=timer_ratio,
             timer_label=timer_label,
         )
+        if mode != "loading_chip":
+            self._spinner_angle = 0
         self.resize(self.sizeHint())
         self._hide_timer.stop()
         self.show()
@@ -344,13 +502,25 @@ class CursorOverlay(QWidget):
             return
 
         available = screen.availableGeometry()
-        x = min(cursor_pos.x() + self._offset_x, available.right() - self.width() - 12)
-        y = min(cursor_pos.y() + self._offset_y, available.bottom() - self.height() - 12)
-        x = max(available.left() + 12, x)
-        y = max(available.top() + 12, y)
-        self.move(x, y)
+        anchor = self._last_anchor if self._last_anchor else "br"
+        rect = self._overlay_rect_for_anchor(cursor_pos, available, anchor)
 
-    def _measure_layout(self) -> LayoutMetrics:
+        if self._state.mode == "bubble" and rect.contains(cursor_pos):
+            for alternate_anchor in self._alternate_anchors(anchor):
+                alternate_rect = self._overlay_rect_for_anchor(cursor_pos, available, alternate_anchor)
+                if not alternate_rect.contains(cursor_pos):
+                    rect = alternate_rect
+                    anchor = alternate_anchor
+                    break
+
+        self._last_anchor = anchor
+        self.move(rect.topLeft())
+
+        if self._state.mode == "loading_chip":
+            self._spinner_angle = (self._spinner_angle + 10) % 360
+            self.update()
+
+    def _measure_bubble_layout(self) -> BubbleLayoutMetrics:
         content_width = self._max_width - (self._padding_x * 2)
         title_width = content_width - self._icon_size - self._header_gap
 
@@ -366,7 +536,7 @@ class CursorOverlay(QWidget):
         if self._state.timer_ratio is not None:
             bubble_height += 12 + timer_label_height + self._timer_gap + self._timer_track_height
 
-        return LayoutMetrics(
+        return BubbleLayoutMetrics(
             bubble_width=self._max_width,
             bubble_height=max(self._min_bubble_height, bubble_height),
             content_width=content_width,
@@ -378,6 +548,28 @@ class CursorOverlay(QWidget):
             timer_label_height=timer_label_height,
         )
 
+    def _measure_recording_chip(self) -> RecordingChipMetrics:
+        metrics = QFontMetrics(self._time_font)
+        time_width = metrics.horizontalAdvance("00:00")
+        time_height = metrics.height()
+        chip_width = self._chip_padding_x + self._chip_ring_size + self._chip_gap + time_width + self._chip_padding_x
+        return RecordingChipMetrics(
+            chip_width=chip_width,
+            chip_height=self._chip_height,
+            time_width=time_width,
+            time_height=time_height,
+        )
+
+    def _measure_loading_chip(self) -> RecordingChipMetrics:
+        metrics = QFontMetrics(self._time_font)
+        chip_width = self._chip_ring_size + (self._chip_padding_x * 2)
+        return RecordingChipMetrics(
+            chip_width=chip_width,
+            chip_height=self._chip_height,
+            time_width=0,
+            time_height=metrics.height(),
+        )
+
     @staticmethod
     def _measure_text_height(text: str, font: QFont, width: int) -> int:
         if not text:
@@ -385,3 +577,74 @@ class CursorOverlay(QWidget):
         metrics = QFontMetrics(font)
         rect = metrics.boundingRect(QRect(0, 0, width, 2000), Qt.TextFlag.TextWordWrap, text)
         return rect.height()
+
+    @staticmethod
+    def _blend_colors(start: QColor, end: QColor, ratio: float) -> QColor:
+        mix = max(0.0, min(1.0, ratio))
+        return QColor(
+            round(start.red() + ((end.red() - start.red()) * mix)),
+            round(start.green() + ((end.green() - start.green()) * mix)),
+            round(start.blue() + ((end.blue() - start.blue()) * mix)),
+            round(start.alpha() + ((end.alpha() - start.alpha()) * mix)),
+        )
+
+    def _recording_timer_color(self, ratio: float) -> QColor:
+        full = QColor("#34d399")
+        middle = QColor("#fbbf24")
+        empty = QColor("#ef4444")
+
+        if ratio >= 0.5:
+            return self._blend_colors(middle, full, (ratio - 0.5) / 0.5)
+        return self._blend_colors(empty, middle, ratio / 0.5)
+
+    def _bubble_fill_colors(self) -> tuple[QColor, QColor, QColor]:
+        top_base = QColor("#17263a")
+        mid_base = QColor("#122033")
+        bottom_base = QColor("#0d1727")
+
+        if self._state.title == "Copied to clipboard":
+            return (
+                self._blend_colors(top_base, self._state.accent, 0.24),
+                self._blend_colors(mid_base, self._state.accent, 0.20),
+                self._blend_colors(bottom_base, self._state.accent, 0.16),
+            )
+
+        if self._state.title == "Something went wrong":
+            return (
+                self._blend_colors(top_base, self._state.accent, 0.22),
+                self._blend_colors(mid_base, self._state.accent, 0.18),
+                self._blend_colors(bottom_base, self._state.accent, 0.14),
+            )
+
+        return top_base, mid_base, bottom_base
+
+    @staticmethod
+    def _alternate_anchors(anchor: str) -> tuple[str, ...]:
+        if anchor == "br":
+            return ("tl", "tr", "bl")
+        if anchor == "tl":
+            return ("br", "bl", "tr")
+        if anchor == "tr":
+            return ("bl", "br", "tl")
+        return ("tr", "tl", "br")
+
+    def _overlay_rect_for_anchor(self, cursor_pos, available: QRect, anchor: str) -> QRect:
+        width = self.width()
+        height = self.height()
+
+        if anchor == "tl":
+            x = cursor_pos.x() - width - self._offset_x
+            y = cursor_pos.y() - height - self._offset_y
+        elif anchor == "tr":
+            x = cursor_pos.x() + self._offset_x
+            y = cursor_pos.y() - height - self._offset_y
+        elif anchor == "bl":
+            x = cursor_pos.x() - width - self._offset_x
+            y = cursor_pos.y() + self._offset_y
+        else:
+            x = cursor_pos.x() + self._offset_x
+            y = cursor_pos.y() + self._offset_y
+
+        x = max(available.left() + 8, min(x, available.left() + available.width() - width - 8))
+        y = max(available.top() + 8, min(y, available.top() + available.height() - height - 8))
+        return QRect(x, y, width, height)
