@@ -25,11 +25,10 @@ from aqt.qt import (
     QWidget,
 )
 
+from .data_paths import speed_streak_data_root
+
 
 ADDON_ROOT = Path(__file__).resolve().parent
-USER_FILES_DIR = ADDON_ROOT / "user_files"
-DB_PATH = USER_FILES_DIR / "review_later.sqlite3"
-STATE_PATH = USER_FILES_DIR / "review_later_state.json"
 REVIEW_LATER_TAG_PREFIX = "speed_streak::review_later"
 
 
@@ -76,13 +75,22 @@ class ReviewLaterEntry:
     back_text: str
 
 
-def _ensure_user_files() -> None:
-    USER_FILES_DIR.mkdir(parents=True, exist_ok=True)
+def _data_root() -> Path:
+    root = speed_streak_data_root(ADDON_ROOT)
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _db_path() -> Path:
+    return _data_root() / "review_later.sqlite3"
+
+
+def _state_path() -> Path:
+    return _data_root() / "review_later_state.json"
 
 
 def _connect() -> sqlite3.Connection:
-    _ensure_user_files()
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(_db_path())
     conn.row_factory = sqlite3.Row
     conn.execute(
         """
@@ -112,11 +120,11 @@ def _connect() -> sqlite3.Connection:
 
 
 def _load_state() -> dict[str, dict[str, str]]:
-    _ensure_user_files()
-    if not STATE_PATH.exists():
+    state_path = _state_path()
+    if not state_path.exists():
         return {}
     try:
-        data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        data = json.loads(state_path.read_text(encoding="utf-8"))
     except Exception:
         return {}
     if not isinstance(data, dict):
@@ -134,8 +142,9 @@ def _load_state() -> dict[str, dict[str, str]]:
 
 
 def _save_state(state: dict[str, dict[str, str]]) -> None:
-    _ensure_user_files()
-    STATE_PATH.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
+    state_path = _state_path()
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def _state_entered_at(flag: int, card_id: int) -> str | None:

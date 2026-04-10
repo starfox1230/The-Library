@@ -1449,7 +1449,7 @@ class SettingsDialog(QDialog):
         audio_title = QLabel("Audio Feedback", audio_group)
         audio_title.setProperty("class", "fieldLabel")
         audio_copy = QLabel(
-            "Audio feedback stays off by default. Each review event can use its own clip, and uploaded files are copied into the add-on's preserved user_files folder so they stay available after reinstalling.",
+            "Audio feedback stays off by default. Each review event can use its own clip, and uploaded files are copied into this Anki profile's Speed Streak data folder so they stay available after reinstalling.",
             audio_group,
         )
         audio_copy.setWordWrap(True)

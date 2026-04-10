@@ -65,6 +65,7 @@ class AudioFeedbackController:
         self.audio_root = Path(audio_root)
         self.fallback_audio_root = Path(fallback_audio_root) if fallback_audio_root is not None else None
         self.user_files_root = Path(user_files_root) if user_files_root is not None else self.audio_root.parent / "user_files"
+        self._addon_root = self.audio_root.parent
         self.upload_root = self.user_files_root / AUDIO_UPLOADS_DIRECTORY_NAME
         self.upload_manifest_path = self.user_files_root / AUDIO_UPLOADS_MANIFEST_NAME
         self._cached_options: Optional[list[AudioFileOption]] = None
@@ -203,12 +204,18 @@ class AudioFeedbackController:
             uploaded_name = normalized[len(_UPLOADED_AUDIO_KEY_PREFIX) :]
             path = self.upload_root / uploaded_name
             if path.exists():
-                return f"{self.user_files_root.name}/{AUDIO_UPLOADS_DIRECTORY_NAME}/{uploaded_name}".replace("\\", "/")
+                try:
+                    return path.relative_to(self._addon_root).as_posix()
+                except Exception:
+                    return ""
             return ""
         for root in self._packaged_roots():
             path = root / Path(normalized)
             if path.exists():
-                return f"{root.name}/{normalized}".replace("\\", "/")
+                try:
+                    return path.relative_to(self._addon_root).as_posix()
+                except Exception:
+                    return f"{root.name}/{normalized}".replace("\\", "/")
         return ""
 
     def _invalidate_catalog_cache(self) -> None:

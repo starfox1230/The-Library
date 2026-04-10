@@ -14,6 +14,7 @@ from aqt.qt import QAction, QApplication, QByteArray, QEvent, QHBoxLayout, QMenu
 from .addon_meta import ensure_meta_json
 from .anki_flag_colors import get_anki_flag_palette
 from .audio_feedback import AudioFeedbackController
+from .data_paths import speed_streak_data_root
 from .display_mode import (
     DISPLAY_MODE_COMPATIBILITY,
     DISPLAY_MODE_INLINE,
@@ -232,11 +233,12 @@ class ReviewerOverlayController:
     def __init__(self) -> None:
         self.engine = CompanionGameEngine()
         self.haptics = HapticsController()
+        self.data_root = speed_streak_data_root(ADDON_ROOT)
         self.audio_feedback = AudioFeedbackController(
             ADDON_ROOT / AUDIO_TRIMMED_DIRECTORY_NAME,
-            ADDON_ROOT / "user_files",
+            self.data_root,
         )
-        self.stats_store = StatsStore(ADDON_ROOT)
+        self.stats_store = StatsStore(self.data_root)
         self.display_mode = DISPLAY_MODE_INLINE
         self.visual_mode = VISUAL_MODE_SPHERE
         self.sphere_mode = SPHERE_MODE_CLASSIC

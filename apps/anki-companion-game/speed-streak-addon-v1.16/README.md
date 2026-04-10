@@ -62,7 +62,7 @@ You can also run:
 ```
 
 from this folder, and it will copy the add-on into Anki's default `addons21` directory for you.
-The installer preserves the installed add-on's `user_files` folder so Review Later cohort history survives updates.
+Speed Streak keeps its mutable data in the current Anki profile's `addons-data/speed_streak` folder. The installer still preserves a legacy `user_files` folder so older installs can migrate forward safely.
 
 ### Trim packaged audio on Windows
 
@@ -83,6 +83,7 @@ You can also run:
 ```
 
 from this folder, and it will copy the add-on into the default macOS `addons21` directory for you while preserving `user_files`.
+That legacy preserve step is only for migration compatibility. Live Speed Streak data is stored in the current profile's `addons-data/speed_streak` folder.
 
 ## First run
 
@@ -106,7 +107,7 @@ The simplest reliable workflow is:
 3. Start Anki again.
 
 Anki add-ons are loaded at startup, so a full quit and reopen is the easiest way to reload changes.
-The installed add-on's `user_files` folder is preserved during updates, so Review Later cohort history survives reinstalls.
+Live Speed Streak data now lives in the current Anki profile's `addons-data/speed_streak` folder. The legacy `user_files` folder is still preserved during installs so older data can migrate forward safely.
 
 ## Publishing On AnkiWeb
 
@@ -137,7 +138,7 @@ To build the package on macOS:
 The packaging script excludes:
 
 - `__pycache__`
-- `user_files`
+- legacy `user_files`
 - the local install/build helper scripts
 
 After building:

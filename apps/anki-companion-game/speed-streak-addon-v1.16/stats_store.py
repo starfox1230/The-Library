@@ -9,12 +9,12 @@ from typing import Any, Dict, List
 
 @dataclass
 class StatsStore:
-    addon_root: Path
+    data_root: Path
 
     def __post_init__(self) -> None:
-        self.user_files = self.addon_root / "user_files"
-        self.user_files.mkdir(parents=True, exist_ok=True)
-        self.db_path = self.user_files / "speed_streak_stats.sqlite3"
+        self.data_root = Path(self.data_root)
+        self.data_root.mkdir(parents=True, exist_ok=True)
+        self.db_path = self.data_root / "speed_streak_stats.sqlite3"
         self._init_db()
 
     def record_review(self, *, card_id: int, deck_name: str, active_ms: int, ease: int, correct: int) -> int:
