@@ -20,6 +20,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Add Cards -> Dx Diagnosis Template`: default-on `Dx` button beside the picture-frame button that is only enabled for cloze note types and rewrites the `Text` field to `Diagnosis?<br><br>{{c1::}}<br><br>` above any existing images, then places the cursor inside the empty cloze.
 - `Add Cards -> Auto Deck Toggle`: toolbar toggle that can automatically switch cloze notes between `.NEW::Audio` and `.New::Visual` based on whether the `Text` field contains an image, and can also auto-switch `Visual_Card_Multitude` notes to `.New::Visual`.
 - `Add Cards -> Live Multi-Image Counter`: optional setting that adds a `1/N` label above the first image in a cloze note's `Text` field when more than one image is present, keeps it updated as images are added, strips it during cloze-to-visual conversion, and recreates it when converting back to cloze.
+- `Add Cards -> Tab Cycles Clozes`: default-on setting that changes `Tab` in the cloze note `Text` field so it cycles through cloze deletions instead of jumping to the next field. `Shift+Tab` cycles backward.
 - `Auto-Scroll On Answer Reveal`: optional toggle that jumps the reviewer back to the top of the card whenever you reveal the answer.
 - `TTS Card Audio Playback`: default-off toggle that lets you allow or suppress audio playback from TTS-enabled cards without muting normal non-TTS audio.
 
@@ -36,6 +37,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Auto Deck For Cloze Add Cards`
 - `Tools -> Anki Pocket Knife -> Dx Diagnosis Button In Add Cards`
 - `Tools -> Anki Pocket Knife -> Live Multi-Image Counter In Add Cards`
+- `Tools -> Anki Pocket Knife -> Tab Cycles Clozes In Add Cards`
 - `Tools -> Anki Pocket Knife -> Pink Picture-Frame Button In Add Cards`
 - `Tools -> Anki Pocket Knife -> Auto-Switch Visual_Card_Multitude To .New::Visual`
 - `Tools -> Anki Pocket Knife -> Auto-Scroll To Top On Answer Reveal`

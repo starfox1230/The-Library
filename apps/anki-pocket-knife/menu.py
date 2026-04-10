@@ -49,11 +49,13 @@ from .visual_card_multitude import (
     is_add_cards_auto_deck_enabled,
     is_add_cards_diagnosis_button_enabled,
     is_add_cards_multi_image_counter_enabled,
+    is_add_cards_tab_cycles_clozes_enabled,
     is_visual_card_multitude_add_button_enabled,
     is_visual_card_multitude_auto_visual_deck_enabled,
     set_add_cards_auto_deck_enabled,
     set_add_cards_diagnosis_button_enabled,
     set_add_cards_multi_image_counter_enabled,
+    set_add_cards_tab_cycles_clozes_enabled,
     set_visual_card_multitude_add_button_enabled,
     set_visual_card_multitude_auto_visual_deck_enabled,
 )
@@ -72,6 +74,7 @@ _disable_f3_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
 _add_cards_diagnosis_action: QAction | None = None
 _add_cards_multi_image_counter_action: QAction | None = None
+_add_cards_tab_cycles_clozes_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
 
@@ -293,6 +296,13 @@ class PocketKnifeLauncherDialog(QDialog):
             is_add_cards_multi_image_counter_enabled()
         )
         add_cards_layout.addWidget(self.add_cards_multi_image_counter_checkbox)
+        self.add_cards_tab_cycles_clozes_checkbox = QCheckBox(
+            "Tab cycles through cloze deletions when you're in the Text field"
+        )
+        self.add_cards_tab_cycles_clozes_checkbox.setChecked(
+            is_add_cards_tab_cycles_clozes_enabled()
+        )
+        add_cards_layout.addWidget(self.add_cards_tab_cycles_clozes_checkbox)
         self.visual_card_multitude_auto_visual_deck_checkbox = QCheckBox(
             "Auto-switch Visual_Card_Multitude notes to .New::Visual"
         )
@@ -346,6 +356,9 @@ class PocketKnifeLauncherDialog(QDialog):
         self.add_cards_diagnosis_checkbox.toggled.connect(self._set_add_cards_diagnosis_enabled)
         self.add_cards_multi_image_counter_checkbox.toggled.connect(
             self._set_add_cards_multi_image_counter_enabled
+        )
+        self.add_cards_tab_cycles_clozes_checkbox.toggled.connect(
+            self._set_add_cards_tab_cycles_clozes_enabled
         )
         self.visual_card_multitude_auto_visual_deck_checkbox.toggled.connect(
             self._set_visual_card_multitude_auto_visual_deck_enabled
@@ -404,6 +417,12 @@ class PocketKnifeLauncherDialog(QDialog):
                 is_add_cards_multi_image_counter_enabled()
             )
             self.add_cards_multi_image_counter_checkbox.blockSignals(False)
+        if hasattr(self, "add_cards_tab_cycles_clozes_checkbox"):
+            self.add_cards_tab_cycles_clozes_checkbox.blockSignals(True)
+            self.add_cards_tab_cycles_clozes_checkbox.setChecked(
+                is_add_cards_tab_cycles_clozes_enabled()
+            )
+            self.add_cards_tab_cycles_clozes_checkbox.blockSignals(False)
         if hasattr(self, "visual_card_multitude_auto_visual_deck_checkbox"):
             self.visual_card_multitude_auto_visual_deck_checkbox.blockSignals(True)
             self.visual_card_multitude_auto_visual_deck_checkbox.setChecked(
@@ -447,6 +466,10 @@ class PocketKnifeLauncherDialog(QDialog):
         set_add_cards_multi_image_counter_enabled(bool(checked))
         sync_settings_ui()
 
+    def _set_add_cards_tab_cycles_clozes_enabled(self, checked: bool) -> None:
+        set_add_cards_tab_cycles_clozes_enabled(bool(checked))
+        sync_settings_ui()
+
     def _set_visual_card_multitude_auto_visual_deck_enabled(self, checked: bool) -> None:
         set_visual_card_multitude_auto_visual_deck_enabled(bool(checked))
         sync_settings_ui()
@@ -472,6 +495,7 @@ def sync_settings_ui() -> None:
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
+    global _add_cards_tab_cycles_clozes_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
 
@@ -510,6 +534,11 @@ def sync_settings_ui() -> None:
         _add_cards_multi_image_counter_action.blockSignals(True)
         _add_cards_multi_image_counter_action.setChecked(add_cards_multi_image_counter_enabled)
         _add_cards_multi_image_counter_action.blockSignals(False)
+    add_cards_tab_cycles_clozes_enabled = is_add_cards_tab_cycles_clozes_enabled()
+    if _add_cards_tab_cycles_clozes_action is not None:
+        _add_cards_tab_cycles_clozes_action.blockSignals(True)
+        _add_cards_tab_cycles_clozes_action.setChecked(add_cards_tab_cycles_clozes_enabled)
+        _add_cards_tab_cycles_clozes_action.blockSignals(False)
     visual_card_enabled = is_visual_card_multitude_add_button_enabled()
     if _visual_card_multitude_action is not None:
         _visual_card_multitude_action.blockSignals(True)
@@ -550,6 +579,10 @@ def sync_settings_ui() -> None:
         _dialog.add_cards_multi_image_counter_checkbox.blockSignals(True)
         _dialog.add_cards_multi_image_counter_checkbox.setChecked(add_cards_multi_image_counter_enabled)
         _dialog.add_cards_multi_image_counter_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "add_cards_tab_cycles_clozes_checkbox"):
+        _dialog.add_cards_tab_cycles_clozes_checkbox.blockSignals(True)
+        _dialog.add_cards_tab_cycles_clozes_checkbox.setChecked(add_cards_tab_cycles_clozes_enabled)
+        _dialog.add_cards_tab_cycles_clozes_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "visual_card_multitude_checkbox"):
         _dialog.visual_card_multitude_checkbox.blockSignals(True)
         _dialog.visual_card_multitude_checkbox.setChecked(visual_card_enabled)
@@ -600,6 +633,11 @@ def _toggle_add_cards_multi_image_counter(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_add_cards_tab_cycles_clozes(checked: bool) -> None:
+    set_add_cards_tab_cycles_clozes_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_visual_card_multitude_auto_visual_deck(checked: bool) -> None:
     set_visual_card_multitude_auto_visual_deck_enabled(bool(checked))
     sync_settings_ui()
@@ -613,6 +651,7 @@ def _register_menu() -> None:
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
+    global _add_cards_tab_cycles_clozes_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
     if getattr(mw, _MENU_REGISTERED_FLAG, False):
@@ -707,6 +746,12 @@ def _register_menu() -> None:
     _add_cards_multi_image_counter_action.setChecked(is_add_cards_multi_image_counter_enabled())
     _add_cards_multi_image_counter_action.triggered.connect(_toggle_add_cards_multi_image_counter)
     pocket_menu.addAction(_add_cards_multi_image_counter_action)
+
+    _add_cards_tab_cycles_clozes_action = QAction("Tab Cycles Clozes In Add Cards", mw)
+    _add_cards_tab_cycles_clozes_action.setCheckable(True)
+    _add_cards_tab_cycles_clozes_action.setChecked(is_add_cards_tab_cycles_clozes_enabled())
+    _add_cards_tab_cycles_clozes_action.triggered.connect(_toggle_add_cards_tab_cycles_clozes)
+    pocket_menu.addAction(_add_cards_tab_cycles_clozes_action)
 
     _visual_card_multitude_action = QAction("Pink Picture-Frame Button In Add Cards", mw)
     _visual_card_multitude_action.setCheckable(True)

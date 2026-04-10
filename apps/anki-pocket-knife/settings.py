@@ -15,6 +15,7 @@ DEFAULT_SETTINGS = {
     "add_cards_diagnosis_button": True,
     "add_cards_cloze_auto_deck": True,
     "add_cards_multi_image_counter": True,
+    "add_cards_tab_cycles_clozes": True,
     "visual_card_multitude_auto_visual_deck": True,
 }
 

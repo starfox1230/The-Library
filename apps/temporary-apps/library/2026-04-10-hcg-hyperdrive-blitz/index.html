@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hCG Hyperdrive Blitz</title>
+  <style>
+    :root {
+      --bg1:#050918; --bg2:#0f1c3d; --panel:rgba(8,16,36,.92); --line:rgba(121,182,255,.25);
+      --text:#eef4ff; --muted:#9bb5d7; --cyan:#49e5ff; --lime:#b8ff56; --gold:#ffd44d; --orange:#ff8a3d; --rose:#ff5f7c;
+      --phase:var(--cyan);
+    }
+    * { box-sizing:border-box; }
+    html { color-scheme:dark; }
+    body {
+      margin:0; min-height:100vh; color:var(--text); font-family:"Trebuchet MS",Verdana,sans-serif; padding:12px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(73,229,255,.18), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(255,138,61,.18), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(184,255,86,.08), transparent 36%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+    }
+    body::before {
+      content:""; position:fixed; inset:0; pointer-events:none; opacity:.18;
+      background:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size:38px 38px;
+      mask-image:radial-gradient(circle at center, black 42%, transparent 92%);
+    }
+    body.phase-surge { --phase:var(--lime); }
+    body.phase-overdrive { --phase:var(--gold); }
+    body.phase-frenzy { --phase:var(--orange); }
+    body.flash-good { animation:good .22s ease-out; }
+    body.flash-bad { animation:bad .24s ease-out; }
+    @keyframes good { from { background-color:rgba(184,255,86,.18); } to { background-color:transparent; } }
+    @keyframes bad { from { background-color:rgba(255,95,124,.2); } to { background-color:transparent; } }
+    .shell { max-width:1220px; margin:0 auto; display:grid; gap:12px; position:relative; z-index:1; }
+    .panel {
+      background:linear-gradient(165deg, rgba(11,22,50,.95), rgba(5,10,24,.92));
+      border:1px solid var(--line); border-radius:22px; box-shadow:0 24px 50px rgba(0,0,0,.42);
+    }
+    h1,h2,h3 { font-family:Impact,"Arial Black",sans-serif; letter-spacing:.02em; }
+    .hero { padding:18px; position:relative; overflow:hidden; }
+    .hero::after {
+      content:""; position:absolute; right:-70px; bottom:-150px; width:280px; height:280px; border-radius:50%;
+      background:radial-gradient(circle, rgba(73,229,255,.2), transparent 70%);
+    }
+    .eyebrow,.pill,.chip,.tag {
+      display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05); font-size:.77rem; font-weight:800;
+      letter-spacing:.08em; text-transform:uppercase;
+    }
+    .eyebrow,.chip { color:var(--muted); }
+    .pill { color:var(--phase); box-shadow:0 0 20px rgba(73,229,255,.14); }
+    .hero h1 { margin:12px 0 8px; font-size:clamp(2.2rem, 5vw, 4.2rem); line-height:.95; max-width:11ch; }
+    .hero p { margin:0; max-width:62ch; color:var(--muted); line-height:1.52; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+    button {
+      appearance:none; border:1px solid rgba(255,255,255,.14); border-radius:16px; color:var(--text);
+      background:linear-gradient(180deg, rgba(29,50,98,.96), rgba(11,21,44,.96)); font:inherit; cursor:pointer;
+      transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; padding:12px 16px; font-weight:900;
+    }
+    button:hover,button:focus-visible { transform:translateY(-2px); border-color:rgba(255,255,255,.3); box-shadow:0 16px 28px rgba(0,0,0,.34); outline:none; }
+    .primary {
+      background:
+        linear-gradient(180deg, rgba(73,229,255,.3), rgba(23,83,130,.9)),
+        linear-gradient(180deg, rgba(12,34,65,.98), rgba(7,16,34,.98));
+      border-color:rgba(73,229,255,.56);
+    }
+    .micro,.stat,.brief-block,.tip,.overlay-stat {
+      background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.08); border-radius:18px;
+    }
+    .micro { min-width:170px; padding:12px 14px; }
+    .label { color:var(--muted); font-size:.76rem; letter-spacing:.08em; text-transform:uppercase; }
+    .micro strong,.stat strong,.record strong,.overlay-stat strong { display:block; margin-top:4px; font-size:1.14rem; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(310px,.9fr); gap:12px; align-items:start; }
+    .arena { position:relative; overflow:hidden; padding:16px; }
+    .arena::before {
+      content:""; position:absolute; left:-100px; bottom:-140px; width:300px; height:300px; border-radius:50%;
+      background:radial-gradient(circle, rgba(184,255,86,.12), transparent 70%);
+    }
+    .topline { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
+    .hud { display:grid; grid-template-columns:repeat(6, minmax(96px,1fr)); gap:8px; margin-bottom:12px; }
+    .stat { padding:12px; min-height:86px; }
+    .stat small { display:block; margin-top:4px; color:var(--muted); font-size:.8rem; }
+    .bars { display:grid; gap:10px; margin-bottom:14px; }
+    .bar-row { display:grid; gap:5px; }
+    .meta { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:.83rem; }
+    .track {
+      height:16px; overflow:hidden; border-radius:999px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.06);
+    }
+    .fill { display:block; height:100%; transform-origin:left center; transition:transform .09s linear; }
+    .run { background:linear-gradient(90deg, var(--cyan), var(--lime)); }
+    .window { background:linear-gradient(90deg, var(--gold), var(--orange) 68%, var(--rose)); }
+    .charge { background:linear-gradient(90deg, rgba(73,229,255,.75), rgba(255,212,77,.96)); }
+    .prompt {
+      min-height:210px; padding:16px; border-radius:22px; position:relative; overflow:hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), transparent),
+        linear-gradient(160deg, rgba(19,41,84,.96), rgba(8,15,33,.96));
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .prompt::after {
+      content:""; position:absolute; right:-70px; bottom:-90px; width:220px; height:220px; border-radius:50%;
+      background:radial-gradient(circle, rgba(255,212,77,.14), transparent 72%);
+    }
+    .tag { color:var(--cyan); background:rgba(73,229,255,.12); border-color:rgba(73,229,255,.22); width:fit-content; }
+    .prompt h2 { margin:10px 0 8px; font-size:clamp(1.45rem, 3vw, 2.25rem); line-height:1.03; max-width:15ch; }
+    .prompt p { margin:0; color:#d9e5fc; line-height:1.55; max-width:58ch; }
+    .choices { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; margin-top:14px; }
+    .choice {
+      min-height:126px; text-align:left; padding:14px 14px 14px 58px; position:relative;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), transparent),
+        linear-gradient(180deg, rgba(15,29,58,.98), rgba(7,16,34,.98));
+    }
+    .key {
+      position:absolute; left:14px; top:14px; width:32px; height:32px; display:grid; place-items:center; border-radius:12px;
+      background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); color:var(--gold); font-weight:900;
+    }
+    .choice-title { display:block; font-weight:900; line-height:1.35; font-size:1rem; }
+    .choice-hint { display:block; margin-top:7px; color:var(--muted); font-size:.82rem; }
+    .choice.ok { border-color:rgba(184,255,86,.72); box-shadow:0 0 0 1px rgba(184,255,86,.2), 0 0 24px rgba(184,255,86,.14); }
+    .choice.bad { border-color:rgba(255,95,124,.72); box-shadow:0 0 0 1px rgba(255,95,124,.2), 0 0 24px rgba(255,95,124,.14); }
+    .choice.mute { opacity:.58; transform:scale(.985); }
+    .feedback { margin-top:14px; padding:14px 16px; border-radius:18px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); }
+    .feedback strong { font-size:1rem; }
+    .feedback p { margin:5px 0 0; color:var(--muted); line-height:1.48; }
+    .feedback.good strong { color:var(--lime); }
+    .feedback.bad strong { color:var(--rose); }
+    .brief { padding:16px; display:grid; gap:12px; }
+    .brief h2 { margin:0; font-size:1.4rem; }
+    .brief p { margin:0; color:var(--muted); line-height:1.52; }
+    .brief-block { padding:14px; }
+    .brief-block h3 { margin:0 0 8px; font-size:1rem; }
+    .brief-list { display:grid; gap:8px; }
+    .fact,.record { padding:11px 12px; border-radius:15px; background:rgba(7,15,33,.68); border:1px solid rgba(255,255,255,.07); }
+    .fact strong { display:block; margin-bottom:3px; font-size:.95rem; }
+    .fact span,.tip span { color:var(--muted); font-size:.87rem; line-height:1.42; }
+    .record-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+    .howto { padding:16px; display:flex; flex-wrap:wrap; gap:10px; }
+    .tip { flex:1 1 220px; padding:14px; }
+    .tip strong { display:block; margin-bottom:6px; font-size:.95rem; }
+    .overlay {
+      position:absolute; inset:0; display:grid; place-items:center; padding:16px; z-index:4;
+      background:rgba(3,8,20,.62); backdrop-filter:blur(7px); transition:opacity .18s ease, visibility .18s ease;
+    }
+    .overlay.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+    .overlay-card {
+      width:min(560px,100%); padding:20px; border-radius:24px;
+      background:linear-gradient(160deg, rgba(12,24,52,.98), rgba(6,14,31,.98));
+      border:1px solid rgba(255,255,255,.12); box-shadow:0 24px 60px rgba(0,0,0,.4);
+    }
+    .overlay-card h2 { margin:0 0 8px; font-size:clamp(1.7rem, 4vw, 2.35rem); }
+    .overlay-card p { margin:0; color:var(--muted); line-height:1.55; }
+    .overlay-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:14px 0; }
+    .overlay-stat { padding:12px; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+    .medal {
+      display:inline-flex; padding:7px 12px; margin-top:14px; border-radius:999px; color:var(--gold); font-size:.78rem;
+      text-transform:uppercase; letter-spacing:.06em; font-weight:900; background:rgba(255,212,77,.12); border:1px solid rgba(255,212,77,.22);
+    }
+    @media (max-width:1020px) {
+      .layout { grid-template-columns:1fr; }
+      .hud { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    }
+    @media (max-width:700px) {
+      body { padding:8px; }
+      .hero,.arena,.brief,.howto { padding:14px; }
+      .hud,.choices,.record-grid,.overlay-grid { grid-template-columns:1fr; }
+      .hero h1 { max-width:100%; }
+    }
+  </style>
+</head>
+<body class="phase-warmup">
+  <main class="shell">
+    <section class="panel hero">
+      <div class="eyebrow">Temporary Library Arcade Drill</div>
+      <h1>hCG Hyperdrive Blitz</h1>
+      <p>Turn these pregnancy-test and ultrasound cutoffs into a reaction game. Every card is timed, every streak tightens the window, and the only way to stay alive is to answer fast.</p>
+      <div class="row">
+        <button id="heroStart" class="primary" type="button">Launch A New Run</button>
+        <button id="soundToggle" type="button">Sound: On</button>
+      </div>
+      <div class="row">
+        <div class="micro"><div class="label">Controls</div><strong>A / S / D / F or tap</strong></div>
+        <div class="micro"><div class="label">Loop</div><strong>45-second reaction sprint</strong></div>
+        <div class="micro"><div class="label">Notes Loaded</div><strong id="noteCount">7</strong></div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="panel arena">
+        <div class="topline">
+          <div id="phasePill" class="pill">Warmup</div>
+          <div id="statusChip" class="chip">Stand by for launch</div>
+        </div>
+        <div class="hud">
+          <div class="stat"><div class="label">Score</div><strong id="score">0</strong><small id="scoreMeta">Build the combo</small></div>
+          <div class="stat"><div class="label">Streak</div><strong id="streak">0</strong><small id="streakMeta">0 best this run</small></div>
+          <div class="stat"><div class="label">Multiplier</div><strong id="mult">x1</strong><small id="multMeta">Warmup</small></div>
+          <div class="stat"><div class="label">Shields</div><strong id="lives">3</strong><small id="livesMeta">Three misses max</small></div>
+          <div class="stat"><div class="label">Run Clock</div><strong id="clock">45.0s</strong><small id="clockMeta">Correct answers add time</small></div>
+          <div class="stat"><div class="label">Fastest</div><strong id="fastest">--</strong><small id="fastestMeta">Reaction speed</small></div>
+        </div>
+        <div class="bars">
+          <div class="bar-row"><div class="meta"><span>Run energy</span><span id="runMeta">45.0s left</span></div><div class="track"><span id="runFill" class="fill run" style="transform:scaleX(1)"></span></div></div>
+          <div class="bar-row"><div class="meta"><span>Reaction window</span><span id="windowMeta">Hit launch to begin</span></div><div class="track"><span id="windowFill" class="fill window" style="transform:scaleX(1)"></span></div></div>
+          <div class="bar-row"><div class="meta"><span>Overdrive charge</span><span id="chargeMeta">0 / 5 streak</span></div><div class="track"><span id="chargeFill" class="fill charge" style="transform:scaleX(0)"></span></div></div>
+        </div>
+        <section class="prompt" aria-live="polite">
+          <div id="promptType" class="tag">Ready Room</div>
+          <h2 id="promptMain">Press launch when you want the room to go loud.</h2>
+          <p id="promptSub">Correct answers boost score, extend the run, and charge Overdrive. Wrong answers or timeouts crack shields.</p>
+        </section>
+        <div class="choices">
+          <button class="choice" type="button" data-choice="0" disabled><span class="key">A</span><span class="choice-title">Choice 1</span><span class="choice-hint">Launch to enable answers.</span></button>
+          <button class="choice" type="button" data-choice="1" disabled><span class="key">S</span><span class="choice-title">Choice 2</span><span class="choice-hint">Launch to enable answers.</span></button>
+          <button class="choice" type="button" data-choice="2" disabled><span class="key">D</span><span class="choice-title">Choice 3</span><span class="choice-hint">Launch to enable answers.</span></button>
+          <button class="choice" type="button" data-choice="3" disabled><span class="key">F</span><span class="choice-title">Choice 4</span><span class="choice-hint">Launch to enable answers.</span></button>
+        </div>
+        <section id="feedback" class="feedback"><strong id="feedbackTitle">Arcade rules</strong><p id="feedbackText">Stay above zero shields, respond before the window empties, and use streaks to climb into Overdrive.</p></section>
+
+        <div id="startOverlay" class="overlay">
+          <div class="overlay-card">
+            <h2>Reaction Run Loaded</h2>
+            <p>You have 45 seconds, 3 shields, and a shrinking answer window. Nail the pregnancy-test ranges, the TVUS and transabdominal cutoffs, and the classic abnormal-pregnancy trap card before the pace overwhelms you.</p>
+            <div class="overlay-grid">
+              <div class="overlay-stat"><div class="label">Fast answers</div><strong>More points</strong></div>
+              <div class="overlay-stat"><div class="label">Five-streak</div><strong>Overdrive</strong></div>
+              <div class="overlay-stat"><div class="label">Wrong or slow</div><strong>Shields crack</strong></div>
+            </div>
+            <div class="actions">
+              <button id="overlayStart" class="primary" type="button">Start Hyperdrive</button>
+              <button id="overlayHide" type="button">Show Me The Briefing</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="endOverlay" class="overlay hidden">
+          <div class="overlay-card">
+            <h2 id="endTitle">Run Complete</h2>
+            <p id="endSummary">You survived the cutoff gauntlet. Check the stats, then slam restart and go beat your score.</p>
+            <div class="overlay-grid">
+              <div class="overlay-stat"><div class="label">Final score</div><strong id="endScore">0</strong></div>
+              <div class="overlay-stat"><div class="label">Accuracy</div><strong id="endAccuracy">0%</strong></div>
+              <div class="overlay-stat"><div class="label">Best streak</div><strong id="endStreak">0</strong></div>
+            </div>
+            <div id="endMedal" class="medal">Cadet</div>
+            <div class="actions">
+              <button id="restart" class="primary" type="button">Run It Again</button>
+              <button id="closeEnd" type="button">Keep Browsing</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel brief">
+        <div>
+          <div class="label">Rapid Intel</div>
+          <h2>Study Briefing</h2>
+          <p>Keep this panel open for quick pattern-recognition cues while the game burns the cutoffs into memory.</p>
+        </div>
+        <section class="brief-block">
+          <h3>Pregnancy test reads</h3>
+          <div class="brief-list">
+            <div class="fact"><strong>&lt; 5 mIU/mL</strong><span>Negative for pregnancy.</span></div>
+            <div class="fact"><strong>5 to 25 mIU/mL</strong><span>Equivocal or indeterminate for pregnancy.</span></div>
+            <div class="fact"><strong>&gt; 25 mIU/mL</strong><span>Positive for pregnancy in most references.</span></div>
+          </div>
+        </section>
+        <section class="brief-block">
+          <h3>Ultrasound cutoffs</h3>
+          <div class="brief-list">
+            <div class="fact"><strong>About 1,500 mIU/mL</strong><span>Many early intrauterine pregnancies become visible on transvaginal ultrasound.</span></div>
+            <div class="fact"><strong>About 3,500 mIU/mL</strong><span>Conservative transvaginal ultrasound discriminatory level.</span></div>
+            <div class="fact"><strong>6,000 to 6,500 mIU/mL</strong><span>Classic transabdominal ultrasound discriminatory zone.</span></div>
+          </div>
+        </section>
+        <section class="brief-block">
+          <h3>Boss trap</h3>
+          <div class="fact"><strong>&gt; 3,500 mIU/mL and no IUP on TVUS</strong><span>Concerning for an abnormal pregnancy, but not enough by itself to prove ectopic pregnancy.</span></div>
+        </section>
+        <section class="brief-block">
+          <h3>Records</h3>
+          <div class="record-grid">
+            <div class="record"><div class="label">High score</div><strong id="recordScore">0</strong></div>
+            <div class="record"><div class="label">Best streak</div><strong id="recordStreak">0</strong></div>
+            <div class="record"><div class="label">Notes loaded</div><strong id="recordNotes">7</strong></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="panel howto">
+      <div class="tip"><strong>Combo logic</strong><span>Every three in a row increases your multiplier. Hit five straight to trigger Overdrive and squeeze extra points out of every answer.</span></div>
+      <div class="tip"><strong>Reaction pressure</strong><span>The prompt window gets shorter as your streak and question count rise, so fast recognition matters more than slow reading.</span></div>
+      <div class="tip"><strong>What gets drilled</strong><span>The run remixes pregnancy-test ranges, ultrasound visibility thresholds, and the classic "above 3,500 with no IUP" interpretation.</span></div>
+    </section>
+  </main>
+
+  <script>
+    const NOTES=[
+      {content:"A serum hCG level of {{c1::less than 5 mIU/mL}} is considered {{c2::negative for pregnancy}}.",id:"note-001"},
+      {content:"A serum hCG level of {{c1::5 to 25 mIU/mL}} is considered {{c2::equivocal or indeterminate for pregnancy}}.",id:"note-002"},
+      {content:"A serum hCG level of {{c1::greater than 25 mIU/mL}} is considered {{c2::positive for pregnancy}} in most clinical references.",id:"note-003"},
+      {content:"In radiology, a serum hCG level of about {{c1::1,500 mIU/mL}} means that many early intrauterine pregnancies are {{c2::visible on transvaginal ultrasound}}.",id:"note-004"},
+      {content:"In radiology, a serum hCG level of about {{c1::3,500 mIU/mL}} is the conservative {{c2::transvaginal ultrasound discriminatory level}}.",id:"note-005"},
+      {content:"If the serum hCG level is above {{c1::3,500 mIU/mL}} and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is {{c2::concerning for an abnormal pregnancy}} but {{c3::does not by itself prove ectopic pregnancy}}.",id:"note-006"},
+      {content:"In radiology, a serum hCG level of about {{c1::6,000 to 6,500 mIU/mL}} is the classic {{c2::transabdominal ultrasound discriminatory zone}}.",id:"note-007"},
+    ];
+    const READS=[
+      {cutoff:"< 5 mIU/mL",answer:"Negative for pregnancy"},
+      {cutoff:"5 to 25 mIU/mL",answer:"Equivocal / indeterminate"},
+      {cutoff:"> 25 mIU/mL",answer:"Positive for pregnancy"},
+    ];
+    const SCANS=[
+      {cutoff:"~1,500 mIU/mL",answer:"Many early IUPs visible on TVUS"},
+      {cutoff:"~3,500 mIU/mL",answer:"Conservative TVUS discriminatory level"},
+      {cutoff:"6,000 to 6,500 mIU/mL",answer:"Classic transabdominal discriminatory zone"},
+    ];
+    const TRAP={prompt:"> 3,500 mIU/mL with no intrauterine pregnancy seen on TVUS",answer:"Concerning for abnormal pregnancy; not diagnostic of ectopic"};
+    const STATUS_POOL=["Negative for pregnancy","Equivocal / indeterminate","Positive for pregnancy","Concerning for abnormal pregnancy"];
+    const CUTOFF_POOL=["< 5 mIU/mL","5 to 25 mIU/mL","> 25 mIU/mL","~1,500 mIU/mL","~3,500 mIU/mL","6,000 to 6,500 mIU/mL"];
+    const SCAN_POOL=["Many early IUPs visible on TVUS","Conservative TVUS discriminatory level","Classic transabdominal discriminatory zone","Negative for pregnancy","Positive for pregnancy"];
+    const TRAP_POOL=[
+      "Concerning for abnormal pregnancy; not diagnostic of ectopic",
+      "This proves an ectopic pregnancy",
+      "This confirms a normal IUP",
+      "This means the pregnancy test is negative",
+    ];
+    const KEYS=["A","S","D","F"], RUN=45, LIVES=3, STORE="temporaryApps.hcgHyperdriveBlitz.records";
+    const $=(id)=>document.getElementById(id);
+    const refs={
+      noteCount:$("noteCount"), phase:$("phasePill"), status:$("statusChip"), score:$("score"), scoreMeta:$("scoreMeta"), streak:$("streak"),
+      streakMeta:$("streakMeta"), mult:$("mult"), multMeta:$("multMeta"), lives:$("lives"), livesMeta:$("livesMeta"), clock:$("clock"),
+      clockMeta:$("clockMeta"), fastest:$("fastest"), fastestMeta:$("fastestMeta"), runMeta:$("runMeta"), windowMeta:$("windowMeta"),
+      chargeMeta:$("chargeMeta"), runFill:$("runFill"), windowFill:$("windowFill"), chargeFill:$("chargeFill"), promptType:$("promptType"),
+      promptMain:$("promptMain"), promptSub:$("promptSub"), feedback:$("feedback"), feedbackTitle:$("feedbackTitle"), feedbackText:$("feedbackText"),
+      startOverlay:$("startOverlay"), endOverlay:$("endOverlay"), endTitle:$("endTitle"), endSummary:$("endSummary"), endScore:$("endScore"),
+      endAccuracy:$("endAccuracy"), endStreak:$("endStreak"), endMedal:$("endMedal"), recordScore:$("recordScore"), recordStreak:$("recordStreak"),
+      recordNotes:$("recordNotes"), sound:$("soundToggle"), choices:[...document.querySelectorAll(".choice")],
+    };
+    refs.noteCount.textContent=String(NOTES.length); refs.recordNotes.textContent=String(NOTES.length);
+    const records=loadRecords(); let audio=null;
+    let game=resetGame();
+
+    function resetGame(){ return {running:false,waiting:false,score:0,correct:0,answered:0,streak:0,best:0,lives:LIVES,time:RUN,limit:3.1,window:3.1,q:null,startAt:0,nextTimer:null,lastFrame:0,fastest:null,sound:refs.sound.dataset.on!=="false",recent:[]}; }
+    function loadRecords(){ try{const raw=localStorage.getItem(STORE); const data=raw?JSON.parse(raw):{}; return {bestScore:Number(data.bestScore)||0,bestStreak:Number(data.bestStreak)||0};}catch{return {bestScore:0,bestStreak:0};} }
+    function saveRecords(){ localStorage.setItem(STORE, JSON.stringify(records)); }
+    function rand(list){ return list[Math.floor(Math.random()*list.length)]; }
+    function shuf(list){ const copy=[...list]; for(let i=copy.length-1;i>0;i-=1){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; } return copy; }
+    function choices(correct,pool){ const distract=shuf(pool.filter((item)=>item!==correct)).slice(0,3); const list=shuf([correct,...distract]); return {list,answer:list.indexOf(correct)}; }
+    function phase(streak=game.streak){ if(streak>=10){ return {name:"Plasma Frenzy",cls:"phase-frenzy",key:"frenzy"}; } if(streak>=5){ return {name:"Overdrive",cls:"phase-overdrive",key:"overdrive"}; } if(streak>=2){ return {name:"Surge",cls:"phase-surge",key:"surge"}; } return {name:"Warmup",cls:"phase-warmup",key:"warmup"}; }
+    function mult(streak=game.streak){ return Math.min(5, 1+Math.floor(streak/3)); }
+    function limit(){ const cycle=Math.floor(game.correct/4)*.12; const pace=phase().key==="warmup"?0:phase().key==="surge"? .18 : phase().key==="overdrive" ? .4 : .68; return Math.max(1.02, 3.18-cycle-pace); }
+    function fmtTime(value){ return `${Math.max(0,value).toFixed(1)}s`; }
+    function fmtPct(value){ return `${Math.round(value)}%`; }
+    function fmtMs(value){ return Number.isFinite(value)? `${Math.round(value)} ms` : "--"; }
+    function speak(title,text,kind=""){ refs.feedback.className=`feedback ${kind}`.trim(); refs.feedbackTitle.textContent=title; refs.feedbackText.textContent=text; }
+    function pulse(kind){ document.body.classList.remove("flash-good","flash-bad"); void document.body.offsetWidth; document.body.classList.add(kind); setTimeout(()=>document.body.classList.remove(kind), 280); }
+    function setChoices(enabled){ refs.choices.forEach((button)=>{ button.disabled=!enabled; }); }
+    function renderQuestion(){
+      if(!game.q){ return; }
+      refs.promptType.textContent=game.q.type; refs.promptMain.textContent=game.q.prompt; refs.promptSub.textContent=game.q.sub;
+      refs.choices.forEach((button,index)=>{ button.classList.remove("ok","bad","mute"); button.querySelector(".choice-title").textContent=game.q.list[index]; button.querySelector(".choice-hint").textContent=`Hit ${KEYS[index]} or tap`; });
+    }
+    function qReadByCutoff(){ const fact=rand(READS), data=choices(fact.answer, STATUS_POOL); return {key:`read-cutoff-${fact.cutoff}`,type:"Pregnancy Read",prompt:`hCG ${fact.cutoff}`,sub:"Pick the best pregnancy-test interpretation before the window collapses.",list:data.list,answer:data.answer,why:`${fact.cutoff} maps to ${fact.answer.toLowerCase()}.`}; }
+    function qCutoffByRead(){ const fact=rand(READS), data=choices(fact.cutoff, CUTOFF_POOL); return {key:`read-answer-${fact.answer}`,type:"Cutoff Recall",prompt:fact.answer,sub:"Which hCG range matches that interpretation?",list:data.list,answer:data.answer,why:`${fact.answer} corresponds to ${fact.cutoff}.`}; }
+    function qScanByCutoff(){ const fact=rand(SCANS), data=choices(fact.answer, SCAN_POOL); return {key:`scan-cutoff-${fact.cutoff}`,type:"Imaging Threshold",prompt:`hCG ${fact.cutoff}`,sub:"What is the best associated ultrasound meaning?",list:data.list,answer:data.answer,why:`${fact.cutoff} points to ${fact.answer.toLowerCase()}.`}; }
+    function qCutoffByScan(){ const fact=rand(SCANS), data=choices(fact.cutoff, CUTOFF_POOL); return {key:`scan-answer-${fact.answer}`,type:"Threshold Match",prompt:fact.answer,sub:"Which cutoff fits this ultrasound milestone?",list:data.list,answer:data.answer,why:`${fact.answer} is tied to ${fact.cutoff}.`}; }
+    function qTrap(){ const data=choices(TRAP.answer, TRAP_POOL); return {key:"trap",type:"Boss Trap",prompt:TRAP.prompt,sub:"Pick the safest interpretation. One option is the classic overcall trap.",list:data.list,answer:data.answer,why:"Above 3,500 with no IUP on TVUS is concerning for abnormal pregnancy, but it does not by itself prove ectopic pregnancy."}; }
+    function qTrue(){
+      const set=rand([
+        {key:"t1",answer:"Less than 5 mIU/mL is negative for pregnancy.",list:["Less than 5 mIU/mL is negative for pregnancy.","5 to 25 mIU/mL is definitely positive for pregnancy.","Greater than 25 mIU/mL is indeterminate for pregnancy.","About 1,500 mIU/mL is the classic transabdominal zone."],why:"A serum hCG under 5 mIU/mL is considered negative for pregnancy."},
+        {key:"t2",answer:"About 3,500 mIU/mL is the conservative TVUS discriminatory level.",list:["About 3,500 mIU/mL is the conservative TVUS discriminatory level.","About 1,500 mIU/mL proves ectopic pregnancy if no IUP is seen.","6,000 to 6,500 mIU/mL is the negative pregnancy cutoff.","Greater than 25 mIU/mL is the transabdominal zone."],why:"About 3,500 mIU/mL is the conservative transvaginal discriminatory level."},
+        {key:"t3",answer:"No IUP above 3,500 mIU/mL is concerning, but not diagnostic of ectopic pregnancy.",list:["No IUP above 3,500 mIU/mL is concerning, but not diagnostic of ectopic pregnancy.","No IUP above 3,500 mIU/mL guarantees a normal IUP.","5 to 25 mIU/mL means visible IUP on transabdominal ultrasound.","Less than 5 mIU/mL is the conservative TVUS level."],why:"That scenario is concerning for abnormal pregnancy, but it does not by itself prove ectopic pregnancy."},
+      ]);
+      const list=shuf(set.list); return {key:set.key,type:"Truth Check",prompt:"Pick the true statement.",sub:"One answer is clean. The rest are booby-trapped.",list,answer:list.indexOf(set.answer),why:set.why};
+    }
+    const MAKERS=[qReadByCutoff,qCutoffByRead,qScanByCutoff,qCutoffByScan,qTrap,qTrue];
+    function nextQuestion(){
+      let q=null, tries=0;
+      do{ q=rand(MAKERS)(); tries+=1; } while(tries<10 && game.recent.includes(q.key));
+      game.q=q; game.limit=limit(); game.window=game.limit; game.startAt=performance.now(); game.waiting=false; game.recent=[...game.recent.slice(-3), q.key];
+      renderQuestion(); setChoices(true); refs.status.textContent=`Incoming: ${q.type}`; speak("Window live","Answer fast to keep the run alive and stack multiplier.");
+    }
+    function flashChoices(sel, good){
+      refs.choices.forEach((button,index)=>{ button.classList.remove("ok","bad","mute"); if(index===good){ button.classList.add("ok"); return; } if(index===sel){ button.classList.add("bad"); return; } button.classList.add("mute"); });
+    }
+    function updateHud(){
+      const p=phase(), accuracy=game.answered? game.correct/game.answered*100 : 0, charge=game.streak>=5 ? 1 : (game.streak%5)/5;
+      document.body.classList.remove("phase-warmup","phase-surge","phase-overdrive","phase-frenzy"); document.body.classList.add(p.cls);
+      refs.phase.textContent=p.name; refs.score.textContent=game.score.toLocaleString(); refs.scoreMeta.textContent=game.running? `Accuracy ${fmtPct(accuracy)}` : "Build the combo";
+      refs.streak.textContent=String(game.streak); refs.streakMeta.textContent=`${game.best} best this run`; refs.mult.textContent=`x${mult()}`; refs.multMeta.textContent=p.name;
+      refs.lives.textContent=String(game.lives); refs.livesMeta.textContent=game.lives===1? "Sudden death" : "Shielded"; refs.clock.textContent=fmtTime(game.time); refs.clockMeta.textContent=game.running? "Correct answers add time" : "45-second sprint";
+      refs.fastest.textContent=fmtMs(game.fastest); refs.fastestMeta.textContent=game.fastest? "Best reaction" : "Reaction speed";
+      refs.runMeta.textContent=`${fmtTime(game.time)} left`; refs.windowMeta.textContent=game.running? `${fmtTime(game.window)} to answer` : "Hit launch to begin"; refs.chargeMeta.textContent=game.streak>=5? "Overdrive active" : `${game.streak%5} / 5 streak`;
+      refs.runFill.style.transform=`scaleX(${Math.max(0, game.time/RUN)})`; refs.windowFill.style.transform=`scaleX(${Math.max(0, game.window/game.limit)})`; refs.chargeFill.style.transform=`scaleX(${charge})`;
+      refs.recordScore.textContent=records.bestScore.toLocaleString(); refs.recordStreak.textContent=String(records.bestStreak);
+    }
+    function award(){
+      const react=performance.now()-game.startAt, nextStreak=game.streak+1, ratio=Math.max(0, Math.min(1, game.window/game.limit));
+      const bonus=phase(nextStreak).key==="overdrive" ? 60 : phase(nextStreak).key==="frenzy" ? 110 : 0, points=(120+Math.round(ratio*170))*mult(nextStreak)+bonus;
+      game.score+=points; game.correct+=1; game.answered+=1; game.streak=nextStreak; game.best=Math.max(game.best, game.streak); game.time=Math.min(RUN, game.time+.45+ratio*.6); game.fastest=game.fastest===null? react : Math.min(game.fastest, react);
+      if(game.score>records.bestScore){ records.bestScore=game.score; } if(game.best>records.bestStreak){ records.bestStreak=game.best; } saveRecords();
+      refs.status.textContent=`+${points} points`; speak(game.streak>=5? "Overdrive maintained" : "Direct hit", `${game.q.why} Fast reaction: ${fmtMs(react)}.`, "good"); pulse("flash-good"); tone("good");
+    }
+    function damage(kind){
+      game.answered+=1; game.streak=0; game.lives=Math.max(0, game.lives-1); game.time=Math.max(0, game.time-(kind==="timeout"?1.8:1.1));
+      refs.status.textContent=kind==="timeout" ? "Window missed" : "Shield cracked";
+      speak(kind==="timeout" ? "Too slow" : "Wrong lane", `${game.q.why} ${game.lives>0? "Reset and fire again." : "No shields left."}`, "bad"); pulse("flash-bad"); tone("bad");
+    }
+    function answer(index){
+      if(!game.running || game.waiting || !game.q){ return; }
+      game.waiting=true; setChoices(false); const good=game.q.answer, ok=index===good; flashChoices(index, good);
+      if(ok){ award(); } else { damage("wrong"); } updateHud();
+      game.nextTimer=window.setTimeout(()=>{ if(!game.running){ return; } if(game.lives<=0 || game.time<=0){ endRun(); return; } nextQuestion(); updateHud(); }, ok? 260 : 700);
+    }
+    function timeout(){
+      if(!game.running || game.waiting || !game.q){ return; }
+      game.waiting=true; setChoices(false); flashChoices(-1, game.q.answer); damage("timeout"); updateHud();
+      game.nextTimer=window.setTimeout(()=>{ if(!game.running){ return; } if(game.lives<=0 || game.time<=0){ endRun(); return; } nextQuestion(); updateHud(); }, 760);
+    }
+    function medal(score){ if(score>=8000){ return "Hypernova"; } if(score>=6000){ return "Gold Reactor"; } if(score>=4000){ return "Silver Surge"; } if(score>=2200){ return "Bronze Booster"; } return "Cadet"; }
+    function endRun(){
+      game.running=false; setChoices(false); window.clearTimeout(game.nextTimer); const accuracy=game.answered? game.correct/game.answered*100 : 0, mark=medal(game.score);
+      refs.endTitle.textContent=game.lives<=0 ? "Shields Down" : "Clock Expired";
+      refs.endSummary.textContent=game.lives<=0 ? "The reaction pace finally punched through your shields. The rematch is where the gains happen." : "The timer ran out before the reactor did. You kept the cutoff ladder moving under pressure.";
+      refs.endScore.textContent=game.score.toLocaleString(); refs.endAccuracy.textContent=fmtPct(accuracy); refs.endStreak.textContent=String(game.best); refs.endMedal.textContent=mark; refs.endOverlay.classList.remove("hidden");
+      refs.status.textContent="Run complete"; refs.promptType.textContent="Debrief"; refs.promptMain.textContent="Restart when you want another sprint."; refs.promptSub.textContent=`Final score ${game.score.toLocaleString()} with ${fmtPct(accuracy)} accuracy and a ${game.best}-card streak.`; speak("Debrief ready", `Medal earned: ${mark}. Records save automatically in this browser.`); updateHud();
+    }
+    function start(){
+      window.clearTimeout(game.nextTimer); game=resetGame(); game.sound=refs.sound.dataset.on!=="false"; refs.startOverlay.classList.add("hidden"); refs.endOverlay.classList.add("hidden");
+      refs.status.textContent="Run live"; refs.promptType.textContent="Launch"; refs.promptMain.textContent="Calibrating the cutoff reactor..."; refs.promptSub.textContent="First card loading."; refs.choices.forEach((button)=>button.classList.remove("ok","bad","mute"));
+      game.running=true; game.lastFrame=performance.now(); speak("Launch confirmed", `Loaded ${NOTES.length} notes into the blitz queue.`); nextQuestion(); updateHud(); ensureAudio(); requestAnimationFrame(loop);
+    }
+    function loop(ts){
+      if(!game.running){ return; }
+      const delta=Math.min(.05, (ts-game.lastFrame)/1000); game.lastFrame=ts; if(!game.waiting){ game.time=Math.max(0, game.time-delta); game.window=Math.max(0, game.window-delta); }
+      if(game.time<=0){ endRun(); return; } if(game.window<=0 && !game.waiting){ timeout(); } updateHud(); requestAnimationFrame(loop);
+    }
+    function ensureAudio(){ if(!game.sound || audio){ return; } try{ audio=new window.AudioContext(); }catch{ audio=null; } }
+    function tone(kind){
+      if(!game.sound){ return; } ensureAudio(); if(!audio){ return; }
+      const now=audio.currentTime, osc=audio.createOscillator(), gain=audio.createGain();
+      osc.type=kind==="bad" ? "square" : "triangle"; osc.frequency.setValueAtTime(kind==="bad" ? 180 : 440, now); osc.frequency.exponentialRampToValueAtTime(kind==="bad" ? 110 : 660, now+.12);
+      gain.gain.setValueAtTime(.0001, now); gain.gain.exponentialRampToValueAtTime(kind==="bad" ? .06 : .08, now+.01); gain.gain.exponentialRampToValueAtTime(.0001, now+.14);
+      osc.connect(gain); gain.connect(audio.destination); osc.start(now); osc.stop(now+.16);
+    }
+    function toggleSound(){ const next=refs.sound.dataset.on==="false"; refs.sound.dataset.on=next? "true" : "false"; refs.sound.textContent=`Sound: ${next? "On" : "Off"}`; game.sound=next; if(next){ ensureAudio(); } }
+    refs.choices.forEach((button)=>button.addEventListener("click", ()=>answer(Number(button.dataset.choice))));
+    document.addEventListener("keydown", (event)=>{
+      if(event.repeat){ return; }
+      const key=event.key.toLowerCase(), choice=KEYS.map((item)=>item.toLowerCase()).indexOf(key);
+      if(choice>=0){ event.preventDefault(); answer(choice); return; }
+      if(key===" " || key==="enter"){ if(!game.running){ event.preventDefault(); start(); } }
+    });
+    $("heroStart").addEventListener("click", start); $("overlayStart").addEventListener("click", start); $("restart").addEventListener("click", start); refs.sound.addEventListener("click", toggleSound);
+    $("overlayHide").addEventListener("click", ()=>{ refs.startOverlay.classList.add("hidden"); refs.status.textContent="Briefing open"; speak("Study the panel","When you're ready, hit Launch A New Run or press Enter."); });
+    $("closeEnd").addEventListener("click", ()=>refs.endOverlay.classList.add("hidden"));
+    refs.sound.dataset.on="true"; updateHud();
+  </script>
+</body>
+</html>
