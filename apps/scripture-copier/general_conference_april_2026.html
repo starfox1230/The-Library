@@ -1,0 +1,820 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>General Conference Tracker - April 2026</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #101823;
+    --card-2: #0e1520;
+    --text: #e6f1ff;
+    --muted: #9fb3c8;
+    --accent: #37e3ff;
+    --accent-2: #6df2ff;
+    --danger: #ff6b6b;
+    --good: #2fe6a5;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+
+  header { display: grid; gap: 12px; margin-bottom: 12px; }
+  .titlebar { display:flex; align-items:center; justify-content:space-between; }
+  .titlebar h1 { margin:0; font-size: 20px; letter-spacing:.3px; }
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; border-color: rgba(255,255,255,.12); }
+  .btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+  .btn.icon { padding: 8px; width: 40px; height: 40px; justify-content: center; }
+
+  .bar { background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
+  .controls { display:flex; gap:8px; flex-wrap: wrap; }
+
+  /* Progress */
+  .progress { display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .progress-bar { flex:1; height: 10px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
+  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width .25s ease; }
+  .progress pct { font-variant-numeric: tabular-nums; }
+
+  /* Next Up */
+  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .nextup .thumb { position: relative; aspect-ratio: 16/9; background: #06111a; overflow: hidden; }
+  .nextup img { width:100%; height:100%; object-fit:cover; display:block; }
+  .nextup .chip { position:absolute; left:10px; top:10px; background: rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
+  .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .nextup .meta .t { font-size: 18px; font-weight: 600; }
+
+  /* View buttons */
+  .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
+  .seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
+  .seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
+
+  /* Category Filters (collapsible) */
+  .filterbar { margin: 6px 0 12px; }
+  .filter-panel[hidden] { display: none !important; }
+
+  .filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .chk {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px; border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px; background: var(--card-2); color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .chk span { flex: 1; }
+
+  #btnFilterToggle { width: 100%; justify-content: space-between; }
+
+  /* Talks list - redesigned row layout */
+  .list { display: grid; gap:10px; }
+  .row {
+    display: grid;
+    grid-template-columns: clamp(110px, 18vw, 160px) 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "thumb main"
+      "thumb main"
+      "actions actions";
+    gap:12px;
+    align-items: stretch;
+    padding: 10px;
+    background: var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+  }
+  .thumb-sm {
+    grid-area: thumb;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #06111a;
+    aspect-ratio: 16 / 9;
+    align-self: start;
+    cursor: pointer;
+  }
+  .thumb-sm img { width:100%; height:100%; object-fit: cover; display:block; }
+
+  .row-main { grid-area: main; display: grid; grid-template-rows: auto auto; row-gap: 6px; min-width: 0; }
+  .row-title { font-weight: 700; font-size: 16px; letter-spacing:.2px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-title button { all: unset; color: var(--text); cursor: pointer; }
+  .row-title button:hover { text-decoration: underline; }
+  .row-speaker { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
+
+  .iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); }
+  .iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
+  .star { font-size:18px; line-height:1; color:#bcd; }
+  .star.fav { color: #ffe08a; text-shadow: 0 0 10px rgba(255,224,138,.35); }
+  .check { width:22px; height:22px; border-radius:6px; display:inline-grid; place-items:center; border:1px solid rgba(255,255,255,.18); background: #0a0f18; color:#88ffd1; cursor:pointer; }
+  .check.on { background: rgba(47,230,165,.12); border-color: rgba(47,230,165,.55); }
+
+  /* Watch count pill */
+  .countpill { display:flex; align-items:center; gap:6px; background: #0a121b; border:1px solid rgba(255,255,255,.08); border-radius: 999px; padding: 6px 8px; }
+  .countpill input { width: 40px; background: transparent; border: none; color:var(--text); text-align:center; font-variant-numeric: tabular-nums; outline:none; }
+  .countpill button { background:transparent; border:none; color:var(--text); width:24px; height:24px; border-radius:8px; cursor:pointer; }
+  .countpill button:active { transform: scale(.95); }
+
+  /* Footer controls */
+  .settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
+
+  /* Modal */
+  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
+  .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .modal-body { padding: 12px; }
+  textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
+
+  /* Toast */
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.7); color: #dbf7ff; padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.15); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; z-index: 999; }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+  /* Fine tweaks */
+  @media (min-width: 680px) {
+    .row { gap:14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="titlebar">
+        <h1>General Conference Tracker - April 2026</h1>
+        <div class="controls">
+          <button class="btn small ghost" id="btnSettings">Settings</button>
+        </div>
+      </div>
+      <div class="progress" aria-label="Overall progress">
+        <div class="progress-bar" aria-hidden="true"><span id="progFill"></span></div>
+        <div class="pct" id="progPct">0%</div>
+      </div>
+    </header>
+
+    <!-- Next Up Card -->
+    <section class="nextup" id="nextUp" hidden>
+      <div class="thumb">
+        <img id="nextThumb" alt="Next up thumbnail" />
+        <div class="chip">Next Up</div>
+      </div>
+      <div class="meta">
+        <div class="t" id="nextTitle">&nbsp;</div>
+        <button class="btn" id="btnPlayNext">Open</button>
+      </div>
+    </section>
+
+    <!-- View filters -->
+    <div class="filters" role="tablist" aria-label="View">
+      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+      <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+    </div>
+
+    <!-- Category Filters (collapsible) -->
+    <div class="filterbar">
+      <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
+        <span>Filters</span><span aria-hidden="true">â–¾</span>
+      </button>
+      <div id="filterPanel" class="filter-panel" hidden>
+        <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
+        <label class="chk"><input type="checkbox" id="catFirst"> <span>First Presidency</span></label>
+        <label class="chk"><input type="checkbox" id="catTwelve"> <span>Quorum of the Twelve</span></label>
+        <label class="chk"><input type="checkbox" id="catWomen"> <span>Women</span></label>
+      </div>
+    </div>
+
+    <!-- Talks List -->
+    <section class="list" id="list"></section>
+
+    <!-- Settings / Exports -->
+    <section class="settings">
+      <button class="btn small" id="btnDownload">Download All</button>
+      <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
+      <input id="fileRestore" type="file" accept="application/json" hidden />
+      <button class="btn small" id="btnEmail">Email Export</button>
+      <button class="btn small" id="btnNotesDownload">Notes â†’ File</button>
+      <button class="btn small" id="btnNotesCopy">Notes â†’ Clipboard</button>
+    </section>
+  </div>
+
+  <!-- Notes Modal -->
+  <dialog id="notesModal">
+    <div class="modal-head">
+      <div id="notesTitle" style="font-weight:600;">Notes</div>
+      <button class="btn small ghost" id="closeNotes">Close</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="notes" id="notesArea" placeholder="Quick thoughtsâ€¦"></textarea>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+// -----------------------------
+// Data: April 2026 Talks (official YouTube lineup)
+// -----------------------------
+const talks = [
+  {title:"Introduction", speaker:"Dallin H. Oaks", videoId:"L7CpHLF337E", youtubeUrl:"https://www.youtube.com/watch?v=L7CpHLF337E", transcriptPath:"GC_Transcripts_April_2026/01 - Dallin H. Oaks April 2026 General Conference.txt"},
+  {title:"Solemn Assembly", speaker:"D. Todd Christofferson", videoId:"XtFN9wL0EEk", youtubeUrl:"https://www.youtube.com/watch?v=XtFN9wL0EEk&t=670s", transcriptPath:"GC_Transcripts_April_2026/02 - D. Todd Christofferson April 2026 General Conference.txt", startSeconds:670},
+  {title:"About His Business", speaker:"Patrick Kearon", videoId:"YH8I1SNli_Q", youtubeUrl:"https://www.youtube.com/watch?v=YH8I1SNli_Q", transcriptPath:"GC_Transcripts_April_2026/03 - Patrick Kearon April 2026 General Conference.txt"},
+  {title:"Ministering\u2014\u201cThat Ye Love One Another; as I Have Loved You\u201d", speaker:"Kristin M. Yee", videoId:"diajhld0guU", youtubeUrl:"https://www.youtube.com/watch?v=diajhld0guU", transcriptPath:"GC_Transcripts_April_2026/04 - Kristin M. Yee April 2026 General Conference.txt"},
+  {title:"Come Home", speaker:"Clark G. Gilbert", videoId:"OJ2pLI0tZvY", youtubeUrl:"https://www.youtube.com/watch?v=OJ2pLI0tZvY", transcriptPath:"GC_Transcripts_April_2026/05 - Clark G. Gilbert April 2026 General Conference.txt"},
+  {title:"All Who Have Endured Valiantly", speaker:"David A. Bednar", videoId:"12iBAjV6goc", youtubeUrl:"https://www.youtube.com/watch?v=12iBAjV6goc", transcriptPath:"GC_Transcripts_April_2026/06 - David A. Bednar April 2026 General Conference.txt"},
+  {title:"Follow the Prophet; He Knows the Way", speaker:"Michael John U. Teh", videoId:"LU_52T-G87c", youtubeUrl:"https://www.youtube.com/watch?v=LU_52T-G87c", transcriptPath:"GC_Transcripts_April_2026/07 - Michael John U. Teh April 2026 General Conference.txt"},
+  {title:"Tithing\u2014Putting God First", speaker:"Jorge T. Becerra", videoId:"TVMXfwMQGmM", youtubeUrl:"https://www.youtube.com/watch?v=TVMXfwMQGmM", transcriptPath:"GC_Transcripts_April_2026/08 - Jorge T. Becerra April 2026 General Conference.txt"},
+  {title:"Prayers for Peace", speaker:"Henry B. Eyring", videoId:"4QFpT79xfDA", youtubeUrl:"https://www.youtube.com/watch?v=4QFpT79xfDA", transcriptPath:"GC_Transcripts_April_2026/09 - Henry B. Eyring April 2026 General Conference.txt"},
+  {title:"Sustaining of General Authorities, Area Seventies, and General Officers", speaker:"D. Todd Christofferson", videoId:"lSXjuNQg0mo", youtubeUrl:"https://www.youtube.com/watch?v=lSXjuNQg0mo", transcriptPath:"GC_Transcripts_April_2026/10 - D. Todd Christofferson April 2026 General Conference.txt"},
+  {title:"Church Auditing Department Report, 2025", speaker:"Jared B. Larson", videoId:"lLl5iUgRft8", youtubeUrl:"https://www.youtube.com/watch?v=lLl5iUgRft8", transcriptPath:"GC_Transcripts_April_2026/11 - Jared B. Larson April 2026 General Conference.txt"},
+  {title:"Lost Luggage, Redeemed Souls", speaker:"Gary E. Stevenson", videoId:"BAbv9hWjeQU", youtubeUrl:"https://www.youtube.com/watch?v=BAbv9hWjeQU", transcriptPath:"GC_Transcripts_April_2026/12 - Gary E. Stevenson April 2026 General Conference.txt"},
+  {title:"Christ\u2014Author and Finisher of Our Faith", speaker:"Eduardo F. Ortega", videoId:"aQClDyEND2s", youtubeUrl:"https://www.youtube.com/watch?v=aQClDyEND2s", transcriptPath:"GC_Transcripts_April_2026/13 - Eduardo F. Ortega April 2026 General Conference.txt"},
+  {title:"\u201cI Will Give Away All My Sins to Know Thee\u201d", speaker:"Wan-Liang Wu", videoId:"48Hokn_SDx8", youtubeUrl:"https://www.youtube.com/watch?v=48Hokn_SDx8", transcriptPath:"GC_Transcripts_April_2026/14 - Wan-Liang Wu April 2026 General Conference.txt"},
+  {title:"Jesus Christ Is Not Our Burden; He Is Our Relief", speaker:"David J. Wunderli", videoId:"OIYF_Vq-jQw", youtubeUrl:"https://www.youtube.com/watch?v=OIYF_Vq-jQw", transcriptPath:"GC_Transcripts_April_2026/15 - David J. Wunderli April 2026 General Conference.txt"},
+  {title:"Love All; Love Each", speaker:"G\u00e9rald Causs\u00e9", videoId:"wSgpSoMc5ns", youtubeUrl:"https://www.youtube.com/watch?v=wSgpSoMc5ns", transcriptPath:"GC_Transcripts_April_2026/16 - Gerald Causse April 2026 General Conference.txt"},
+  {title:"Jesus Christ Is the Way", speaker:"Brian J. Holmes", videoId:"yKRgZ4LHcwQ", youtubeUrl:"https://www.youtube.com/watch?v=yKRgZ4LHcwQ", transcriptPath:"GC_Transcripts_April_2026/17 - Brian J. Holmes April 2026 General Conference.txt"},
+  {title:"He Knows You by Name", speaker:"Clement M. Matswagothata", videoId:"qvGsBOiKB60", youtubeUrl:"https://www.youtube.com/watch?v=qvGsBOiKB60", transcriptPath:"GC_Transcripts_April_2026/18 - Clement M. Matswagothata April 2026 General Conference.txt"},
+  {title:"Jesus Christ\u2014the True Vine", speaker:"Ulisses Soares", videoId:"3wawtTi3ICo", youtubeUrl:"https://www.youtube.com/watch?v=3wawtTi3ICo", transcriptPath:"GC_Transcripts_April_2026/19 - Ulisses Soares April 2026 General Conference.txt"},
+  {title:"Encounter at the Empty Tomb", speaker:"Dieter F. Uchtdorf", videoId:"u85GtSPqKQI", youtubeUrl:"https://www.youtube.com/watch?v=u85GtSPqKQI", transcriptPath:"GC_Transcripts_April_2026/20 - Dieter F. Uchtdorf April 2026 General Conference.txt"},
+  {title:"Best Days and Worst Days", speaker:"Emily Belle Freeman", videoId:"oE0MbaKJvr8", youtubeUrl:"https://www.youtube.com/watch?v=oE0MbaKJvr8", transcriptPath:"GC_Transcripts_April_2026/21 - Emily Belle Freeman April 2026 General Conference.txt"},
+  {title:"I Feel My Savior\u2019s Love", speaker:"Pedro X. Larreal", videoId:"OddT263qUt4", youtubeUrl:"https://www.youtube.com/watch?v=OddT263qUt4", transcriptPath:"GC_Transcripts_April_2026/22 - Pedro X. Larreal April 2026 General Conference.txt"},
+  {title:"Choose Jesus Christ as Your Guide", speaker:"Edward B. Rowe", videoId:"wUzXgc6pQSU", youtubeUrl:"https://www.youtube.com/watch?v=wUzXgc6pQSU", transcriptPath:"GC_Transcripts_April_2026/23 - Edward B. Rowe April 2026 General Conference.txt"},
+  {title:"He Is Risen", speaker:"Ronald A. Rasband", videoId:"I9zKhmtdApo", youtubeUrl:"https://www.youtube.com/watch?v=I9zKhmtdApo", transcriptPath:"GC_Transcripts_April_2026/24 - Ronald A. Rasband April 2026 General Conference.txt"},
+  {title:"Because of Jesus Christ", speaker:"Dale G. Renlund", videoId:"aD25AL2KMjc", youtubeUrl:"https://www.youtube.com/watch?v=aD25AL2KMjc", transcriptPath:"GC_Transcripts_April_2026/25 - Dale G. Renlund April 2026 General Conference.txt"},
+  {title:"The Joy of a Covenant Relationship with God", speaker:"Thierry K. Mutombo", videoId:"zNaYwHHxif0", youtubeUrl:"https://www.youtube.com/watch?v=zNaYwHHxif0", transcriptPath:"GC_Transcripts_April_2026/26 - Thierry K. Mutombo April 2026 General Conference.txt"},
+  {title:"A Peculiar Treasure", speaker:"Alan R. Walker", videoId:"V3e18YdX6a8", youtubeUrl:"https://www.youtube.com/watch?v=V3e18YdX6a8", transcriptPath:"GC_Transcripts_April_2026/27 - Alan R. Walker April 2026 General Conference.txt"},
+  {title:"Alive in Christ", speaker:"Dallin H. Oaks", videoId:"e1qUeZyT57w", youtubeUrl:"https://www.youtube.com/watch?v=e1qUeZyT57w", transcriptPath:"GC_Transcripts_April_2026/28 - Dallin H. Oaks April 2026 General Conference.txt"},
+  {title:"The Character of Christ", speaker:"D. Todd Christofferson", videoId:"rD15_2xk4JU", youtubeUrl:"https://www.youtube.com/watch?v=rD15_2xk4JU", transcriptPath:"GC_Transcripts_April_2026/29 - D. Todd Christofferson April 2026 General Conference.txt"},
+  {title:"Remember, Remember", speaker:"Chi Hong (Sam) Wong", videoId:"YChY3DsYzJc", youtubeUrl:"https://www.youtube.com/watch?v=YChY3DsYzJc", transcriptPath:"GC_Transcripts_April_2026/30 - Chi Hong Sam Wong April 2026 General Conference.txt"},
+  {title:"I Glory in My Jesus", speaker:"Aaron T. Hall", videoId:"Hf8wQ88HBns", youtubeUrl:"https://www.youtube.com/watch?v=Hf8wQ88HBns", transcriptPath:"GC_Transcripts_April_2026/31 - Aaron T. Hall April 2026 General Conference.txt"},
+  {title:"\u201cHere Am I, Send Me\u201d", speaker:"Susan H. Porter", videoId:"dIatbj9ZQKE", youtubeUrl:"https://www.youtube.com/watch?v=dIatbj9ZQKE", transcriptPath:"GC_Transcripts_April_2026/32 - Susan H. Porter April 2026 General Conference.txt"},
+  {title:"Eternal Marriage Is an Eternal Journey", speaker:"Neil L. Andersen", videoId:"3I9IIa8KU-s", youtubeUrl:"https://www.youtube.com/watch?v=3I9IIa8KU-s", transcriptPath:"GC_Transcripts_April_2026/33 - Neil L. Andersen April 2026 General Conference.txt"},
+  {title:"Keys, Covenants, and Easter", speaker:"Quentin L. Cook", videoId:"DKVsnLBLTAA", youtubeUrl:"https://www.youtube.com/watch?v=DKVsnLBLTAA", transcriptPath:"GC_Transcripts_April_2026/34 - Quentin L. Cook April 2026 General Conference.txt"},
+  {title:"Come unto Christ\u2014Together", speaker:"Taniela B. Wakolo", videoId:"tNKnoZ3Nqd8", youtubeUrl:"https://www.youtube.com/watch?v=tNKnoZ3Nqd8", transcriptPath:"GC_Transcripts_April_2026/35 - Taniela B. Wakolo April 2026 General Conference.txt"},
+  {title:"\u2019Tis Eastertide: No One Walks Alone", speaker:"Gerrit W. Gong", videoId:"E7lqBuL76PI", youtubeUrl:"https://www.youtube.com/watch?v=E7lqBuL76PI", transcriptPath:"GC_Transcripts_April_2026/36 - Gerrit W. Gong April 2026 General Conference.txt"},
+  {title:"Closing Remarks", speaker:"Dallin H. Oaks", videoId:"BMrYjuJjTlQ", youtubeUrl:"https://www.youtube.com/watch?v=BMrYjuJjTlQ", transcriptPath:"GC_Transcripts_April_2026/37 - Dallin H. Oaks April 2026 General Conference.txt"}
+];
+
+const transcriptCache = {}; // Cache to hold pre-loaded transcript text
+const talkOrder = new Map(talks.map((talk, index) => [talk.videoId, index]));
+
+// Annotate talks with category buckets
+const FIRST_PRESIDENCY = new Set(["Russell M. Nelson","Dallin H. Oaks","Henry B. Eyring"]);
+const TWELVE = new Set([
+  "Jeffrey R. Holland","D. Todd Christofferson","Gary E. Stevenson","Dieter F. Uchtdorf",
+  "Ronald A. Rasband","Quentin L. Cook","Patrick Kearon","Neil L. Andersen",
+  "Gerrit W. Gong","Dale G. Renlund","Ulisses Soares","David A. Bednar"
+]);
+const WOMEN = new Set(["Kristin M. Yee","Emily Belle Freeman","Susan H. Porter"]);
+function speakerCategory(name){
+  if (FIRST_PRESIDENCY.has(name)) return 'first';
+  if (TWELVE.has(name)) return 'twelve';
+  if (WOMEN.has(name)) return 'women';
+  return 'other';
+}
+talks.forEach(t => { t.category = speakerCategory(t.speaker || ""); });
+
+// -----------------------------
+// State & Persistence
+// -----------------------------
+const STORAGE_KEY = "gc:apr-2026:state";
+const DEFAULT_STATE = {
+  version: 3,
+  conferenceId: "apr-2026",
+  watched: [], // current round only
+  favorites: [],
+  notes: {},
+  watchCounts: {}, // videoId -> total count (across all rounds)
+  round: 1,
+  seenAt: {}, // videoId -> sequence number of most recent view
+  seenSeq: 0,
+  ui: {
+    filter: 'need',                 // default view: Need
+    filterOpen: false,              // filters collapsed by default
+    cats: { all: true, first: false, twelve: false, women: false } // default category = All
+  }
+};
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return { ...DEFAULT_STATE };
+    const obj = JSON.parse(raw);
+    // Migrations
+    if(!obj.watchCounts) obj.watchCounts = {};
+    if(!obj.round) obj.round = 1;
+    if(!obj.seenAt) obj.seenAt = {};
+    if(!obj.seenSeq) obj.seenSeq = 0;
+    if(!obj.version || obj.version < 3){
+      obj.version = 3;
+    }
+    // Ensure UI fields exist
+    obj.ui = obj.ui || {};
+    if(typeof obj.ui.filter !== 'string') obj.ui.filter = 'need';
+    if(typeof obj.ui.filterOpen !== 'boolean') obj.ui.filterOpen = false;
+    obj.ui.cats = obj.ui.cats || { all: true, first: false, twelve: false, women: false };
+    return obj;
+  } catch(e){
+    console.warn('Failed to parse state', e); return { ...DEFAULT_STATE };
+  }
+}
+
+function saveState(next){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
+let state = loadState();
+
+// Helpers
+const isWatched = (id) => state.watched.includes(id);
+const setWatched = (id, val, {incrementCount=false}={}) => {
+  const was = isWatched(id);
+  if(val && !was){
+    state.watched.push(id);
+    if(incrementCount){
+      state.watchCounts[id] = (state.watchCounts[id]||0)+1;
+    }
+  }
+  if(!val && was){
+    state.watched = state.watched.filter(x => x!==id);
+  }
+  if(val){
+    state.seenSeq = (state.seenSeq||0) + 1;
+    state.seenAt[id] = state.seenSeq;
+  } else {
+    if(state.seenAt){ delete state.seenAt[id]; }
+  }
+  if(state.watched.length === talks.length){
+    state.round += 1;
+    state.watched = [];
+    toast(`Round ${state.round-1} complete! Starting round ${state.round}.`);
+  }
+  saveState(state);
+  renderAll();
+};
+
+const isFav = (id) => state.favorites.includes(id);
+const toggleFav = (id) => { state.favorites = isFav(id) ? state.favorites.filter(x=>x!==id) : [...state.favorites, id]; saveState(state); renderAll(); };
+
+function nextUnwatched(){
+  for(const t of talks){ if(!isWatched(t.videoId)) return t; }
+  return null;
+}
+
+// -----------------------------
+// UI Rendering
+// -----------------------------
+const listEl = document.getElementById('list');
+const progFill = document.getElementById('progFill');
+const progPct = document.getElementById('progPct');
+const nextUp = document.getElementById('nextUp');
+const nextThumb = document.getElementById('nextThumb');
+const nextTitle = document.getElementById('nextTitle');
+const btnPlayNext = document.getElementById('btnPlayNext');
+
+// Category filter elements
+const btnFilterToggle = document.getElementById('btnFilterToggle');
+const filterPanel = document.getElementById('filterPanel');
+const catAll   = document.getElementById('catAll');
+const catFirst = document.getElementById('catFirst');
+const catTwelve= document.getElementById('catTwelve');
+const catWomen = document.getElementById('catWomen');
+
+function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
+
+// Robust thumbnail loader with fallback
+function loadThumb(img, videoId) {
+  const reliableThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const highResThumb = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+  img.setAttribute('referrerpolicy', 'no-referrer');
+  const tester = new Image();
+  tester.onload = () => { img.src = tester.naturalWidth < 300 ? reliableThumb : highResThumb; };
+  tester.onerror = () => { img.src = reliableThumb; };
+  tester.src = highResThumb;
+}
+
+function renderProgress(){
+  const p = percent();
+  progFill.style.width = p + '%';
+  progPct.textContent = p + '%';
+}
+
+function renderNextUp(){
+  const t = nextUnwatched();
+  if(!t){ nextUp.hidden = true; return; }
+  nextUp.hidden = false;
+  nextTitle.textContent = t.title;
+  loadThumb(nextThumb, t.videoId);
+  btnPlayNext.onclick = (event) => {
+    event.preventDefault();
+    openYouTubeAppAndMark(t);
+  };
+  nextUp.querySelector('.thumb').onclick = (event) => {
+    event.preventDefault();
+    openYouTubeAppAndMark(t);
+  };
+}
+
+function rowHTML(t){
+  const watched = isWatched(t.videoId);
+  const fav = isFav(t.videoId);
+  const count = state.watchCounts[t.videoId] || 0;
+  return `
+    <div class="row" data-id="${t.videoId}">
+      <div class="thumb-sm" title="Open in YouTube">
+        <img class="rthumb" alt="Thumbnail for ${t.title}">
+      </div>
+      <div class="row-main">
+        <div class="row-title">
+          <button class="link-open" data-id="${t.videoId}">${t.title}</button>
+        </div>
+        <div class="row-speaker">${t.speaker || ''}</div>
+      </div>
+      <div class="row-actions">
+        <div class="countpill" title="Times watched">
+          <button class="minus" aria-label="decrease">âˆ’</button>
+          <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
+          <button class="plus" aria-label="increase">+</button>
+        </div>
+        <button class="iconbtn copy" title="Copy transcript">ðŸ“‹</button>
+        <button class="iconbtn notes" title="Notes">ðŸ“</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">â˜…</span></button>
+        <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'âœ“':''}</div>
+      </div>
+    </div>
+  `;
+}
+
+function currentFilter(){ return (state.ui && state.ui.filter) ? state.ui.filter : 'need'; }
+
+function applyCategoryFilter(arr){
+  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
+  if (c.all || (!c.first && !c.twelve && !c.women)) return arr; // All/default
+
+  return arr.filter(t => {
+    if (c.first  && t.category === 'first')  return true;
+    if (c.twelve && t.category === 'twelve') return true;
+    if (c.women  && t.category === 'women')  return true;
+    return false;
+  });
+}
+
+function filteredTalks(){
+  const f = currentFilter();
+  let base;
+  if(f==='need')  base = talks.filter(t=>!isWatched(t.videoId));
+  else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
+  else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
+  else base = talks; // 'all'
+  const filtered = applyCategoryFilter(base);
+  if(f==='seen'){
+    const seenMap = state.seenAt || {};
+    filtered.sort((a,b)=>{
+      const av = seenMap[a.videoId];
+      const bv = seenMap[b.videoId];
+      const aHasSeq = typeof av === 'number' && av > 0;
+      const bHasSeq = typeof bv === 'number' && bv > 0;
+      if(aHasSeq && bHasSeq && av !== bv){
+        return bv - av; // newest watched first
+      }
+      // Default to reverse conference order when watch sequence is unavailable
+      return (talkOrder.get(b.videoId) || 0) - (talkOrder.get(a.videoId) || 0);
+    });
+  }
+  return filtered;
+}
+
+function renderList(){
+  listEl.innerHTML = filteredTalks().map(rowHTML).join('');
+  listEl.querySelectorAll('.row').forEach(row => {
+    const id = row.dataset.id;
+    const t = talks.find(x=>x.videoId===id);
+    const img = row.querySelector('.rthumb');
+    if (img) loadThumb(img, id);
+
+    row.querySelector('.link-open').onclick = (event) => {
+      event.preventDefault();
+      openYouTubeAppAndMark(t);
+    };
+    row.querySelector('.thumb-sm').onclick = (event) => {
+      event.preventDefault();
+      openYouTubeAppAndMark(t);
+    };
+
+    row.querySelector('.copy').onclick = () => copyTranscript(t.transcriptPath);
+    row.querySelector('.notes').onclick = () => openNotes(id, t.title);
+    row.querySelector('.fav').onclick = () => toggleFav(id);
+    row.querySelector('.check').onclick = () => {
+      const now = !isWatched(id);
+      setWatched(id, now, {incrementCount: now});
+    };
+    const minus = row.querySelector('.minus');
+    const plus = row.querySelector('.plus');
+    const input = row.querySelector('.count');
+    minus.onclick = () => { setCount(id, Math.max(0, (state.watchCounts[id]||0)-1)); input.value = state.watchCounts[id]; };
+    plus.onclick = () => { setCount(id, (state.watchCounts[id]||0)+1); input.value = state.watchCounts[id]; };
+    input.onchange = () => { let v = parseInt(input.value||'0',10); if(isNaN(v)||v<0) v=0; setCount(id, v); input.value = state.watchCounts[id]; };
+  });
+}
+
+function setCount(id, n){ state.watchCounts[id] = n; saveState(state); renderProgress(); }
+
+function renderFilters(){
+  document.querySelectorAll('.seg').forEach(seg => {
+    const is = seg.dataset.filter === currentFilter();
+    seg.classList.toggle('active', is);
+    seg.setAttribute('aria-selected', String(is));
+    seg.onclick = () => { state.ui.filter = seg.dataset.filter; saveState(state); renderAll(); };
+  });
+}
+
+function renderCategoryUI(){
+  const open = !!(state.ui && state.ui.filterOpen);
+  if (filterPanel) {
+    filterPanel.hidden = !open;
+  }
+  if (btnFilterToggle) {
+    btnFilterToggle.setAttribute('aria-expanded', String(open));
+    const arrow = btnFilterToggle.lastElementChild;
+    if (arrow) arrow.textContent = open ? 'â–´' : 'â–¾';
+  }
+  const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
+  if (catAll)    catAll.checked    = !!c.all;
+  if (catFirst)  catFirst.checked  = !!c.first;
+  if (catTwelve) catTwelve.checked = !!c.twelve;
+  if (catWomen)  catWomen.checked  = !!c.women;
+}
+
+function renderAll(){
+  renderProgress();
+  renderNextUp();
+  renderFilters();
+  renderCategoryUI();
+  renderList();
+}
+
+// -----------------------------
+// Deep Link + Auto Mark
+// -----------------------------
+function openYouTubeAppAndMark(t){
+  setWatched(t.videoId, true, {incrementCount:true});
+  const start = t.startSeconds ? t.startSeconds : null;
+  const ua = navigator.userAgent || '';
+  const isiOS = /iPad|iPhone|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+  let appUrl = null;
+
+  if(isiOS){ 
+    appUrl = `youtube://www.youtube.com/watch?v=${t.videoId}${start?`&t=${start}s`:``}`; 
+  } else if(isAndroid){ 
+    appUrl = `vnd.youtube:${t.videoId}${start?`?t=${start}s`:``}`; 
+  }
+  if(appUrl){
+    window.location.href = appUrl;
+  }
+}
+
+// -----------------------------
+// Pre-load Transcripts
+// -----------------------------
+async function preloadTranscripts() {
+  await Promise.all(talks.map(async (talk) => {
+    try {
+      const res = await fetch(encodeURI(talk.transcriptPath));
+      if (res.ok) {
+        const text = await res.text();
+        transcriptCache[talk.transcriptPath] = text;
+      } else {
+        console.warn(`Failed to preload transcript: ${talk.transcriptPath}`);
+      }
+    } catch (e) {
+      console.error(`Error fetching ${talk.transcriptPath}`, e);
+    }
+  }));
+  console.log('All transcripts preloaded and cached.');
+}
+
+// -----------------------------
+// Clipboard / Transcript
+// -----------------------------
+async function copyTranscript(path){
+  try {
+    const txt = transcriptCache[path];
+    if (typeof txt !== 'string') throw new Error(`Transcript not in cache: ${path}`);
+    await navigator.clipboard.writeText(txt);
+    toast('Transcript copied.');
+  } catch(e){
+    console.error('Copy failed:', e);
+    toast('Copy transcript failed.');
+  }
+}
+
+// -----------------------------
+// Notes Modal
+// -----------------------------
+const notesModal = document.getElementById('notesModal');
+const notesTitle = document.getElementById('notesTitle');
+const notesArea = document.getElementById('notesArea');
+const closeNotesBtn = document.getElementById('closeNotes');
+let currentNotesVid = null;
+
+function openNotes(videoId, title){
+  currentNotesVid = videoId;
+  notesTitle.textContent = title + ' â€” Notes';
+  notesArea.value = state.notes[videoId] || '';
+  notesModal.showModal();
+}
+closeNotesBtn.onclick = () => notesModal.close();
+notesModal.addEventListener('close', ()=>{ currentNotesVid = null; });
+
+let notesTimer = null;
+notesArea.addEventListener('input', () => {
+  if(!currentNotesVid) return;
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(()=>{
+    state.notes[currentNotesVid] = notesArea.value;
+    saveState(state);
+  }, 250);
+});
+
+// -----------------------------
+// Exports / Backup / Restore
+// -----------------------------
+function getFullState(){ return state; }
+
+function downloadAll(){
+  const blob = new Blob([JSON.stringify(getFullState(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.download = 'gc-tracker-apr-2026-backup.json';
+  a.href = URL.createObjectURL(blob);
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+async function emailExport(){
+  try{
+    const blob = new Blob([JSON.stringify(getFullState())], {type:'application/json'});
+    const file = new File([blob], 'gc-tracker-apr-2026-backup.json', {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:'GC Backup', text:'My General Conference Tracker backup' });
+      return;
+    }
+  }catch(_){ /* ignore */ }
+  const body = encodeURIComponent(JSON.stringify(getFullState(), null, 2));
+  window.location.href = `mailto:?subject=GC%20Backup&body=${body}`;
+}
+
+function restoreFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(data.version>=1 && data.conferenceId==='apr-2026'){
+        state = data;
+        if(!state.watchCounts) state.watchCounts = {};
+        if(!state.round) state.round = 1;
+        if(!state.seenAt) state.seenAt = {};
+        if(!state.seenSeq) state.seenSeq = 0;
+        state.ui = state.ui || {};
+        if(typeof state.ui.filter !== 'string') state.ui.filter = 'need';
+        if(typeof state.ui.filterOpen !== 'boolean') state.ui.filterOpen = false;
+        state.ui.cats = state.ui.cats || { all: true, first: false, twelve: false, women: false };
+        saveState(state); renderAll(); toast('Restore complete.');
+      } else {
+        toast('Backup not recognized.');
+      }
+    }catch(e){ toast('Invalid file.'); }
+  };
+  reader.readAsText(file);
+}
+
+function notesOnlyText(){
+  const parts = [];
+  for(const t of talks){
+    const n = (state.notes[t.videoId]||'').trim();
+    if(n){ parts.push(`${t.title}\n${n}\n`); }
+  }
+  return parts.join('\n');
+}
+
+function downloadNotes(){
+  const txt = notesOnlyText() || 'â€” No notes yet â€”';
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.download = 'gc-notes-apr-2026.txt';
+  a.href = URL.createObjectURL(blob);
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+async function copyNotes(){
+  const txt = notesOnlyText();
+  if(!txt){ toast('No notes yet.'); return; }
+  try{ await navigator.clipboard.writeText(txt); toast('Notes copied.'); }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); toast('Notes copied (fallback).'); }catch(_){toast('Copy failed.');}
+    document.body.removeChild(ta);
+  }
+}
+
+// -----------------------------
+// Settings / Misc
+// -----------------------------
+const btnSettings = document.getElementById('btnSettings');
+btnSettings.onclick = () => {
+  toast('Tips: Long-press titles to open in app; use Settings for backup & notes export.');
+};
+
+document.getElementById('btnDownload').onclick = downloadAll;
+document.getElementById('btnEmail').onclick = emailExport;
+document.getElementById('btnNotesDownload').onclick = downloadNotes;
+document.getElementById('btnNotesCopy').onclick = copyNotes;
+
+document.getElementById('fileRestore').addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0]; if(f) restoreFromFile(f);
+  e.target.value = '';
+});
+
+// -----------------------------
+// Toast
+// -----------------------------
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 1800);
+}
+
+// -----------------------------
+// Filters toggle wiring (fixed)
+// -----------------------------
+function toggleFilters(openState){
+  state.ui.filterOpen = (typeof openState === 'boolean') ? openState : !state.ui.filterOpen;
+  saveState(state);
+  renderCategoryUI();
+}
+
+function onCatChange(ev){
+  const id = ev.target.id;
+  // If "All" turned on â†’ turn others off
+  if (id === 'catAll' && catAll && catAll.checked) {
+    state.ui.cats = { all:true, first:false, twelve:false, women:false };
+  } else {
+    state.ui.cats.all    = false;
+    state.ui.cats.first  = !!(catFirst && catFirst.checked);
+    state.ui.cats.twelve = !!(catTwelve && catTwelve.checked);
+    state.ui.cats.women  = !!(catWomen && catWomen.checked);
+    if (!state.ui.cats.first && !state.ui.cats.twelve && !state.ui.cats.women) {
+      state.ui.cats = { all:true, first:false, twelve:false, women:false };
+    }
+  }
+  saveState(state);
+  renderAll();
+}
+
+if (btnFilterToggle) {
+  btnFilterToggle.addEventListener('click', () => toggleFilters());
+  btnFilterToggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFilters(); }
+  });
+}
+[catAll, catFirst, catTwelve, catWomen].forEach(el => {
+  if (el) el.addEventListener('change', onCatChange);
+});
+
+// -----------------------------
+// Init
+// -----------------------------
+preloadTranscripts();
+renderAll();
+</script>
+</body>
+</html>
+
