@@ -42,6 +42,10 @@ _TAB_CLOZE_FILTER: "_AddCardsTabClozeAppFilter | None" = None
 _OPEN_ADD_CARDS_EDITORS: "weakref.WeakSet[Editor]" = weakref.WeakSet()
 
 _CLOZE_RE = re.compile(r"\{\{c\d+::(.*?)(?:::(.*?))?\}\}", re.IGNORECASE | re.DOTALL)
+_CLOZE_INDEXED_RE = re.compile(
+    r"\{\{(c\d+)::(.*?)(?:::(.*?))?\}\}",
+    re.IGNORECASE | re.DOTALL,
+)
 _IMAGE_RE = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
 _BR_RUN_RE = re.compile(r"(?:\s*<br\s*/?>\s*){3,}", re.IGNORECASE)
 _EDGE_BRS_RE = re.compile(
@@ -93,6 +97,7 @@ class _AddCardsTabClozeAppFilter(QObject):
             key = event.key()
         except Exception:
             key = Qt.Key.Key_unknown
+
         reverse = bool(
             (modifiers & Qt.KeyboardModifier.ShiftModifier)
             or key == Qt.Key.Key_Backtab
@@ -104,10 +109,105 @@ class _AddCardsTabClozeAppFilter(QObject):
             pass
 
         if event.type() == QEvent.Type.ShortcutOverride:
-            note = getattr(editor, "note", None)
-            text_field_ord = _field_ord(note, "Text") if note is not None else None
-            _cycle_active_text_field_cloze(editor, reverse=reverse, field_ord=text_field_ord)
+            _schedule_cycle_active_text_field_cloze(editor, reverse=reverse)
         return True
+
+
+def _is_tab_cycle_key_event(event: QEvent) -> bool:
+    if event.type() not in (
+        QEvent.Type.ShortcutOverride,
+        QEvent.Type.KeyPress,
+        QEvent.Type.KeyRelease,
+    ):
+        return False
+    if not isinstance(event, QKeyEvent):
+        return False
+    try:
+        key = event.key()
+        modifiers = event.modifiers()
+    except Exception:
+        return False
+    if key not in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab):
+        return False
+    blocked = (
+        Qt.KeyboardModifier.ControlModifier
+        | Qt.KeyboardModifier.AltModifier
+        | Qt.KeyboardModifier.MetaModifier
+    )
+    return not bool(modifiers & blocked)
+
+
+def _object_is_within(root: QObject | None, candidate: QObject | None) -> bool:
+    current = candidate
+    while current is not None:
+        if current is root:
+            return True
+        parent = getattr(current, "parent", None)
+        if not callable(parent):
+            return False
+        try:
+            current = parent()
+        except Exception:
+            return False
+    return False
+
+
+def _current_field_ord(editor: Editor) -> int | None:
+    current_field = getattr(editor, "currentField", None)
+    if callable(current_field):
+        try:
+            current_field = current_field()
+        except Exception:
+            current_field = None
+    try:
+        if current_field is None:
+            return None
+        return int(current_field)
+    except Exception:
+        return None
+
+
+def _editor_for_tab_event(watched: QObject | None) -> Editor | None:
+    app = QApplication.instance()
+    focus_widget = app.focusWidget() if app is not None else None
+    active_window = app.activeWindow() if app is not None else None
+
+    for editor in list(_OPEN_ADD_CARDS_EDITORS):
+        add_cards = getattr(editor, "parentWindow", None)
+        if not isinstance(add_cards, AddCards):
+            continue
+
+        note = getattr(editor, "note", None)
+        if note is None or not _note_is_cloze(note):
+            continue
+
+        text_field_ord = _field_ord(note, "Text")
+        if text_field_ord is None or _current_field_ord(editor) != int(text_field_ord):
+            continue
+
+        web = getattr(editor, "web", None)
+        if web is None:
+            continue
+
+        if watched is web or _object_is_within(web, watched):
+            return editor
+        if focus_widget is web or _object_is_within(web, focus_widget):
+            return editor
+        if active_window is add_cards:
+            return editor
+
+    return None
+
+
+def _ensure_tab_cloze_event_filter() -> None:
+    global _TAB_CLOZE_FILTER
+
+    app = QApplication.instance()
+    if app is None or _TAB_CLOZE_FILTER is not None:
+        return
+
+    _TAB_CLOZE_FILTER = _AddCardsTabClozeAppFilter()
+    app.installEventFilter(_TAB_CLOZE_FILTER)
 
 
 def is_visual_card_multitude_add_button_enabled() -> bool:
@@ -297,6 +397,10 @@ require("anki/ui").loaded.then(() => {{
     )
 
 
+def _sync_tab_cycle_state(editor: Editor) -> None:
+    return
+
+
 def _sync_auto_deck_toggle_button(editor: Editor) -> None:
     if not isinstance(getattr(editor, "parentWindow", None), AddCards):
         return
@@ -379,6 +483,7 @@ def sync_open_add_cards_editor_ui() -> None:
         try:
             _apply_multi_image_counter_rules(editor)
             _sync_auto_deck_toggle_button(editor)
+            _sync_tab_cycle_state(editor)
         except Exception:
             continue
     _sync_menu_settings_ui()
@@ -585,97 +690,57 @@ def _refresh_editor_after_text_change(editor: Editor) -> None:
             load_note()
 
 
-def _is_tab_cycle_key_event(event: QEvent) -> bool:
-    if event.type() not in (
-        QEvent.Type.ShortcutOverride,
-        QEvent.Type.KeyPress,
-        QEvent.Type.KeyRelease,
-    ):
-        return False
-    if not isinstance(event, QKeyEvent):
-        return False
-    try:
-        if event.key() not in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab):
-            return False
-        modifiers = event.modifiers()
-    except Exception:
-        return False
-    blocked_modifiers = (
-        Qt.KeyboardModifier.ControlModifier
-        | Qt.KeyboardModifier.AltModifier
-        | Qt.KeyboardModifier.MetaModifier
-    )
-    if modifiers & blocked_modifiers:
-        return False
-    return True
-
-
-def _object_is_within(root: object, candidate: object) -> bool:
-    if root is None or candidate is None:
-        return False
-    current = candidate
-    seen: set[int] = set()
-    while current is not None:
-        if current is root:
-            return True
-        marker = id(current)
-        if marker in seen:
-            break
-        seen.add(marker)
-        parent = getattr(current, "parent", None)
-        if callable(parent):
+def _next_tab_cycle_index(editor: Editor, source_html: str, count: int, reverse: bool) -> int:
+    state = getattr(editor, "_anki_pocket_knife_tab_cycle_state", None)
+    target = count - 1 if reverse else 0
+    if isinstance(state, dict):
+        if state.get("source_html") == source_html and state.get("count") == count:
             try:
-                current = parent()
-                continue
+                last_index = int(state.get("index"))
             except Exception:
-                pass
-        current = None
-    return False
+                last_index = None
+            if last_index is not None:
+                target = (
+                    (last_index - 1 + count) % count
+                    if reverse
+                    else (last_index + 1) % count
+                )
+    setattr(
+        editor,
+        "_anki_pocket_knife_tab_cycle_state",
+        {"source_html": source_html, "count": count, "index": target},
+    )
+    return target
 
 
-def _editor_matches_tab_event(editor: Editor, watched: object, focus_widget: object) -> bool:
-    web = getattr(editor, "web", None)
-    if web is None:
-        return False
-    if watched is web or focus_widget is web:
-        return True
-    return _object_is_within(web, watched) or _object_is_within(web, focus_widget)
+def _mark_target_cloze_for_selection(text_html: str, target_index: int) -> str | None:
+    source_html = _strip_diagnosis_cursor_markers(str(text_html or ""))
+    matches = list(_CLOZE_INDEXED_RE.finditer(source_html))
+    if not matches:
+        return None
 
-
-def _editor_for_tab_event(watched: object) -> Editor | None:
-    app = QApplication.instance()
-    focus_widget = app.focusWidget() if app is not None else None
-
-    for editor in list(_OPEN_ADD_CARDS_EDITORS):
-        try:
-            if not isinstance(getattr(editor, "parentWindow", None), AddCards):
-                continue
-            note = getattr(editor, "note", None)
-            if note is None or not _note_is_cloze(note):
-                continue
-            if not _CLOZE_RE.search(_text_field_html(note)):
-                continue
-            text_field_ord = _field_ord(note, "Text")
-            current_field = getattr(editor, "currentField", None)
-            if text_field_ord is None or int(current_field) != int(text_field_ord):
-                continue
-            if not _editor_matches_tab_event(editor, watched, focus_widget):
-                continue
-            return editor
-        except Exception:
-            continue
-    return None
-
-
-def _ensure_tab_cloze_event_filter() -> None:
-    global _TAB_CLOZE_FILTER
-
-    app = QApplication.instance()
-    if app is None or _TAB_CLOZE_FILTER is not None:
-        return
-
-    _TAB_CLOZE_FILTER = _AddCardsTabClozeAppFilter()
-    app.installEventFilter(_TAB_CLOZE_FILTER)
+    normalized_index = target_index % len(matches)
+    pieces: list[str] = []
+    cursor = 0
+    for index, match in enumerate(matches):
+        pieces.append(source_html[cursor:match.start()])
+        cloze_label = str(match.group(1) or "c1")
+        cloze_inner = str(match.group(2) or "")
+        cloze_hint = match.group(3)
+        if index == normalized_index:
+            cloze_inner = (
+                f"{_DIAGNOSIS_CURSOR_START_MARKER}"
+                f"{cloze_inner}"
+                f"{_DIAGNOSIS_CURSOR_END_MARKER}"
+            )
+        replacement = f"{{{{{cloze_label}::{cloze_inner}"
+        if cloze_hint is not None:
+            replacement += f"::{cloze_hint}"
+        replacement += "}}"
+        pieces.append(replacement)
+        cursor = match.end()
+    pieces.append(source_html[cursor:])
+    return "".join(pieces)
 
 
 def _cycle_active_text_field_cloze(
@@ -684,236 +749,55 @@ def _cycle_active_text_field_cloze(
     reverse: bool,
     field_ord: int | None,
 ) -> None:
-    js = """
-const reverse = __REVERSE__;
-const fieldOrd = __FIELD_ORD__;
-const isElementNode = (node) => !!node && node.nodeType === 1;
-const isDocumentLike = (node) => !!node && (node.nodeType === 9 || node.nodeType === 11);
-const isEditable = (node) => {
-  if (!isElementNode(node)) {
-    return false;
-  }
-  if (node.isContentEditable) {
-    return true;
-  }
-  const raw = String(node.getAttribute?.("contenteditable") || "").toLowerCase();
-  return raw === "" || raw === "true";
-};
-const iframeDocument = (node) => {
-  if (!isElementNode(node) || String(node.tagName || "").toUpperCase() !== "IFRAME") {
-    return null;
-  }
-  try {
-    return node.contentDocument || node.contentWindow?.document || null;
-  } catch (_error) {
-    return null;
-  }
-};
-const editableNodes = (root, out) => {
-  if (!root) {
-    return;
-  }
-  const frameDoc = iframeDocument(root);
-  if (frameDoc) {
-    editableNodes(frameDoc, out);
-    return;
-  }
-  if (isDocumentLike(root)) {
-    const active = root.activeElement || null;
-    if (active) {
-      editableNodes(active, out);
-    }
-    root.querySelectorAll?.('[contenteditable], iframe').forEach((node) => editableNodes(node, out));
-    return;
-  }
-  if (!isElementNode(root)) {
-    return;
-  }
-  if (isEditable(root)) {
-    out.push(root);
-  }
-  if (root.shadowRoot) {
-    editableNodes(root.shadowRoot, out);
-  }
-  root.querySelectorAll?.('[contenteditable], iframe').forEach((node) => editableNodes(node, out));
-};
-const matchesFieldOrd = (node) => {
-  if (!isElementNode(node) || typeof fieldOrd !== "number") {
-    return true;
-  }
-  const ordText = String(fieldOrd);
-  let current = node;
-  while (current) {
-    if (
-      current.id === `f${ordText}` ||
-      current.getAttribute?.("data-ord") === ordText ||
-      current.getAttribute?.("data-ordinal") === ordText ||
-      current.getAttribute?.("data-field-ord") === ordText ||
-      current.getAttribute?.("data-field-index") === ordText
-    ) {
-      return true;
-    }
-    current = current.parentElement || current.parentNode || null;
-  }
-  return false;
-};
-const findActiveEditable = () => {
-  const candidates = [];
-  const active = document.activeElement || null;
-  if (active) {
-    editableNodes(active, candidates);
-  }
-  editableNodes(document, candidates);
-  const seen = new Set();
-  const unique = candidates.filter((node) => {
-    if (!isElementNode(node) || seen.has(node)) {
-      return false;
-    }
-    seen.add(node);
-    return true;
-  });
-  return unique.find((node) => matchesFieldOrd(node)) || unique[0] || null;
-};
-const host = findActiveEditable();
-if (!host) {
-  return;
-}
-const ownerDoc = host.ownerDocument || document;
-const ownerWin = ownerDoc.defaultView || window;
-const selection = ownerDoc.getSelection ? ownerDoc.getSelection() : ownerWin.getSelection?.();
-const text = host.textContent || "";
-const fullPattern = new RegExp(__FULL_PATTERN__, "gi");
-const prefixPattern = new RegExp(__PREFIX_PATTERN__, "i");
-const clozes = [];
-let match;
-while ((match = fullPattern.exec(text)) !== null) {
-  const full = String(match[0] || "");
-  const prefix = prefixPattern.exec(full);
-  if (!prefix) {
-    continue;
-  }
-  const prefixLen = prefix[0].length;
-  const closingIndex = full.lastIndexOf("}}");
-  if (closingIndex < prefixLen) {
-    continue;
-  }
-  const hintIndex = full.indexOf("::", prefixLen);
-  const innerEnd = hintIndex !== -1 && hintIndex < closingIndex ? hintIndex : closingIndex;
-  clozes.push({
-    start: match.index + prefixLen,
-    end: match.index + innerEnd,
-  });
-}
-if (!clozes.length) {
-  return;
-}
-const nodeInsideHost = (node) => {
-  if (!node) {
-    return false;
-  }
-  if (node === host) {
-    return true;
-  }
-  const candidate = node.nodeType === 3 ? node.parentNode : node;
-  return !!candidate && host.contains(candidate);
-};
-const offsetWithinHost = (node, offset) => {
-  const nodeFilter = ownerWin.NodeFilter || NodeFilter;
-  const walker = ownerDoc.createTreeWalker(host, nodeFilter.SHOW_TEXT);
-  let total = 0;
-  while (walker.nextNode()) {
-    const current = walker.currentNode;
-    const currentText = current.textContent || "";
-    if (current === node) {
-      return total + Math.max(0, Math.min(offset, currentText.length));
-    }
-    total += currentText.length;
-  }
-  return total;
-};
-let selectionStart = 0;
-let selectionEnd = 0;
-if (selection && nodeInsideHost(selection.anchorNode) && nodeInsideHost(selection.focusNode)) {
-  const anchor = offsetWithinHost(selection.anchorNode, selection.anchorOffset);
-  const focus = offsetWithinHost(selection.focusNode, selection.focusOffset);
-  selectionStart = Math.min(anchor, focus);
-  selectionEnd = Math.max(anchor, focus);
-}
-let currentIndex = clozes.findIndex((item) =>
-  Math.abs(item.start - selectionStart) <= 1 && Math.abs(item.end - selectionEnd) <= 1
-);
-if (currentIndex === -1) {
-  currentIndex = clozes.findIndex(
-    (item) => selectionStart >= item.start && selectionEnd <= item.end && selectionEnd >= item.start
-  );
-}
-let targetIndex = 0;
-if (currentIndex !== -1) {
-  targetIndex = reverse
-    ? (currentIndex - 1 + clozes.length) % clozes.length
-    : (currentIndex + 1) % clozes.length;
-} else if (reverse) {
-  targetIndex = clozes.findIndex((item) => item.end >= selectionStart);
-  if (targetIndex === -1) {
-    targetIndex = clozes.length - 1;
-  } else {
-    targetIndex = Math.max(0, targetIndex - 1);
-  }
-} else {
-  targetIndex = clozes.findIndex((item) => item.start > selectionEnd);
-  if (targetIndex === -1) {
-    targetIndex = 0;
-  }
-}
-const target = clozes[Math.max(0, Math.min(targetIndex, clozes.length - 1))];
-const locateOffset = (targetOffset) => {
-  const nodeFilter = ownerWin.NodeFilter || NodeFilter;
-  const walker = ownerDoc.createTreeWalker(host, nodeFilter.SHOW_TEXT);
-  let remaining = targetOffset;
-  let lastNode = null;
-  while (walker.nextNode()) {
-    const current = walker.currentNode;
-    const currentText = current.textContent || "";
-    lastNode = current;
-    if (remaining <= currentText.length) {
-      return [current, remaining];
-    }
-    remaining -= currentText.length;
-  }
-  if (lastNode) {
-    return [lastNode, (lastNode.textContent || "").length];
-  }
-  return null;
-};
-const startPoint = locateOffset(target.start);
-const endPoint = locateOffset(target.end);
-if (!startPoint || !endPoint) {
-  return;
-}
-try {
-  host.focus({ preventScroll: true });
-} catch (_error) {
-  host.focus();
-}
-const range = ownerDoc.createRange();
-range.setStart(startPoint[0], startPoint[1]);
-range.setEnd(endPoint[0], endPoint[1]);
-if (target.start === target.end) {
-  range.collapse(true);
-}
-if (selection) {
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-host.scrollIntoView({ block: "nearest" });
-"""
-    js = (
-        js.replace("__REVERSE__", json.dumps(bool(reverse)))
-        .replace("__FIELD_ORD__", json.dumps(field_ord))
-        .replace("__FULL_PATTERN__", json.dumps(r"\{\{c\d+::[\s\S]*?\}\}"))
-        .replace("__PREFIX_PATTERN__", json.dumps(r"^\{\{c\d+::"))
-    )
-    _run_toolbar_js(editor, js)
+    note = getattr(editor, "note", None)
+    if note is None or not _note_is_cloze(note):
+        return
+
+    text_field_name = _actual_note_field_name(note, "Text")
+    text_field_ord = field_ord if field_ord is not None else _field_ord(note, "Text")
+    if text_field_name is None or text_field_ord is None:
+        return
+
+    source_html = _strip_diagnosis_cursor_markers(str(note[text_field_name] or ""))
+    matches = list(_CLOZE_INDEXED_RE.finditer(source_html))
+    if not matches:
+        return
+
+    target_index = _next_tab_cycle_index(editor, source_html, len(matches), reverse)
+    marked_html = _mark_target_cloze_for_selection(source_html, target_index)
+    if marked_html is None:
+        return
+
+    note[text_field_name] = marked_html
+    load_note = getattr(editor, "loadNote", None)
+    if callable(load_note):
+        load_note(int(text_field_ord))
+    note[text_field_name] = _strip_diagnosis_cursor_markers(marked_html)
+    QTimer.singleShot(50, lambda: _place_diagnosis_cursor(editor, int(text_field_ord)))
+
+
+def _schedule_cycle_active_text_field_cloze(editor: Editor, *, reverse: bool) -> None:
+    if getattr(editor, "_anki_pocket_knife_tab_cycle_pending", False):
+        return
+
+    setattr(editor, "_anki_pocket_knife_tab_cycle_pending", True)
+
+    def run() -> None:
+        setattr(editor, "_anki_pocket_knife_tab_cycle_pending", False)
+        try:
+            note = getattr(editor, "note", None)
+            if note is None:
+                return
+            text_field_ord = _field_ord(note, "Text")
+            _cycle_active_text_field_cloze(
+                editor,
+                reverse=reverse,
+                field_ord=text_field_ord,
+            )
+        except Exception:
+            pass
+
+    QTimer.singleShot(0, run)
 
 
 def _place_diagnosis_cursor(editor: Editor, field_ord: int | None = None) -> None:
@@ -1331,6 +1215,7 @@ def _on_editor_did_load_note(editor: Editor) -> None:
     _register_add_cards_editor(editor)
     _apply_multi_image_counter_rules(editor)
     _sync_auto_deck_toggle_button(editor)
+    _sync_tab_cycle_state(editor)
     _apply_auto_deck_rules(editor)
     _apply_pending_diagnosis_cursor(editor)
 
@@ -1351,6 +1236,7 @@ def _patch_editor_bridge() -> None:
                 _register_add_cards_editor(editor)
                 _apply_multi_image_counter_rules(editor)
                 _sync_auto_deck_toggle_button(editor)
+                _sync_tab_cycle_state(editor)
                 _apply_auto_deck_rules(editor)
         except Exception:
             pass
@@ -1368,8 +1254,9 @@ def install() -> None:
     _ensure_tab_cloze_event_filter()
     gui_hooks.editor_did_init_buttons.append(_on_setup_editor_buttons)
     gui_hooks.editor_did_load_note.append(_on_editor_did_load_note)
+    if hasattr(gui_hooks, "main_window_did_init"):
+        gui_hooks.main_window_did_init.append(lambda: _ensure_tab_cloze_event_filter())
     if hasattr(gui_hooks, "theme_did_change"):
         gui_hooks.theme_did_change.append(sync_open_add_cards_editor_ui)
-    gui_hooks.main_window_did_init.append(_ensure_tab_cloze_event_filter)
     _patch_editor_bridge()
     _HOOK_REGISTERED = True
