@@ -201,7 +201,7 @@
     <!-- Category Filters (collapsible) -->
     <div class="filterbar">
       <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
-        <span>Filters</span><span aria-hidden="true">â–¾</span>
+        <span>Filters</span><span aria-hidden="true">&#9662;</span>
       </button>
       <div id="filterPanel" class="filter-panel" hidden>
         <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
@@ -220,8 +220,8 @@
       <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
       <input id="fileRestore" type="file" accept="application/json" hidden />
       <button class="btn small" id="btnEmail">Email Export</button>
-      <button class="btn small" id="btnNotesDownload">Notes â†’ File</button>
-      <button class="btn small" id="btnNotesCopy">Notes â†’ Clipboard</button>
+      <button class="btn small" id="btnNotesDownload">Notes -> File</button>
+      <button class="btn small" id="btnNotesCopy">Notes -> Clipboard</button>
     </section>
   </div>
 
@@ -232,7 +232,7 @@
       <button class="btn small ghost" id="closeNotes">Close</button>
     </div>
     <div class="modal-body">
-      <textarea class="notes" id="notesArea" placeholder="Quick thoughtsâ€¦"></textarea>
+      <textarea class="notes" id="notesArea" placeholder="Quick thoughts..."></textarea>
     </div>
   </dialog>
 
@@ -354,16 +354,19 @@ let state = loadState();
 
 // Helpers
 const isWatched = (id) => state.watched.includes(id);
-const setWatched = (id, val, {incrementCount=false}={}) => {
+const setWatched = (id, val, {countDelta=0}={}) => {
   const was = isWatched(id);
   if(val && !was){
     state.watched.push(id);
-    if(incrementCount){
-      state.watchCounts[id] = (state.watchCounts[id]||0)+1;
+    if(countDelta){
+      state.watchCounts[id] = Math.max(0, (state.watchCounts[id]||0) + countDelta);
     }
   }
   if(!val && was){
     state.watched = state.watched.filter(x => x!==id);
+    if(countDelta){
+      state.watchCounts[id] = Math.max(0, (state.watchCounts[id]||0) + countDelta);
+    }
   }
   if(val){
     state.seenSeq = (state.seenSeq||0) + 1;
@@ -459,14 +462,14 @@ function rowHTML(t){
       </div>
       <div class="row-actions">
         <div class="countpill" title="Times watched">
-          <button class="minus" aria-label="decrease">âˆ’</button>
+          <button class="minus" aria-label="decrease">-</button>
           <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
           <button class="plus" aria-label="increase">+</button>
         </div>
-        <button class="iconbtn copy" title="Copy transcript">ðŸ“‹</button>
-        <button class="iconbtn notes" title="Notes">ðŸ“</button>
-        <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">â˜…</span></button>
-        <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'âœ“':''}</div>
+        <button class="iconbtn copy" title="Copy transcript">Copy</button>
+        <button class="iconbtn notes" title="Notes">Notes</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">&#9733;</span></button>
+        <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'&#10003;':''}</div>
       </div>
     </div>
   `;
@@ -533,7 +536,7 @@ function renderList(){
     row.querySelector('.fav').onclick = () => toggleFav(id);
     row.querySelector('.check').onclick = () => {
       const now = !isWatched(id);
-      setWatched(id, now, {incrementCount: now});
+      setWatched(id, now, {countDelta: now ? 1 : -1});
     };
     const minus = row.querySelector('.minus');
     const plus = row.querySelector('.plus');
@@ -563,7 +566,7 @@ function renderCategoryUI(){
   if (btnFilterToggle) {
     btnFilterToggle.setAttribute('aria-expanded', String(open));
     const arrow = btnFilterToggle.lastElementChild;
-    if (arrow) arrow.textContent = open ? 'â–´' : 'â–¾';
+    if (arrow) arrow.textContent = open ? '\u25B4' : '\u25BE';
   }
   const c = (state.ui && state.ui.cats) ? state.ui.cats : { all:true };
   if (catAll)    catAll.checked    = !!c.all;
@@ -584,7 +587,7 @@ function renderAll(){
 // Deep Link + Auto Mark
 // -----------------------------
 function openYouTubeAppAndMark(t){
-  setWatched(t.videoId, true, {incrementCount:true});
+  setWatched(t.videoId, true, {countDelta: 1});
   const start = t.startSeconds ? t.startSeconds : null;
   const ua = navigator.userAgent || '';
   const isiOS = /iPad|iPhone|iPod/.test(ua);
@@ -647,7 +650,7 @@ let currentNotesVid = null;
 
 function openNotes(videoId, title){
   currentNotesVid = videoId;
-  notesTitle.textContent = title + ' â€” Notes';
+  notesTitle.textContent = title + ' - Notes';
   notesArea.value = state.notes[videoId] || '';
   notesModal.showModal();
 }
@@ -724,7 +727,7 @@ function notesOnlyText(){
 }
 
 function downloadNotes(){
-  const txt = notesOnlyText() || 'â€” No notes yet â€”';
+  const txt = notesOnlyText() || '-- No notes yet --';
   const blob = new Blob([txt], {type:'text/plain'});
   const a = document.createElement('a');
   a.download = 'gc-notes-apr-2026.txt';
@@ -783,7 +786,7 @@ function toggleFilters(openState){
 
 function onCatChange(ev){
   const id = ev.target.id;
-  // If "All" turned on â†’ turn others off
+  // If "All" is turned on, turn the other filters off.
   if (id === 'catAll' && catAll && catAll.checked) {
     state.ui.cats = { all:true, first:false, twelve:false, women:false };
   } else {

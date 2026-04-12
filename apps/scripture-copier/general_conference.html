@@ -352,16 +352,19 @@ let state = loadState();
 
 // Helpers
 const isWatched = (id) => state.watched.includes(id);
-const setWatched = (id, val, {incrementCount=false}={}) => {
+const setWatched = (id, val, {countDelta=0}={}) => {
   const was = isWatched(id);
   if(val && !was){
     state.watched.push(id);
-    if(incrementCount){
-      state.watchCounts[id] = (state.watchCounts[id]||0)+1;
+    if(countDelta){
+      state.watchCounts[id] = Math.max(0, (state.watchCounts[id]||0) + countDelta);
     }
   }
   if(!val && was){
     state.watched = state.watched.filter(x => x!==id);
+    if(countDelta){
+      state.watchCounts[id] = Math.max(0, (state.watchCounts[id]||0) + countDelta);
+    }
   }
   if(val){
     state.seenSeq = (state.seenSeq||0) + 1;
@@ -531,7 +534,7 @@ function renderList(){
     row.querySelector('.fav').onclick = () => toggleFav(id);
     row.querySelector('.check').onclick = () => {
       const now = !isWatched(id);
-      setWatched(id, now, {incrementCount: now});
+      setWatched(id, now, {countDelta: now ? 1 : -1});
     };
     const minus = row.querySelector('.minus');
     const plus = row.querySelector('.plus');
@@ -582,7 +585,7 @@ function renderAll(){
 // Deep Link + Auto Mark
 // -----------------------------
 function openYouTubeAppAndMark(t){
-  setWatched(t.videoId, true, {incrementCount:true});
+  setWatched(t.videoId, true, {countDelta: 1});
   const start = t.startSeconds ? t.startSeconds : null;
   const ua = navigator.userAgent || '';
   const isiOS = /iPad|iPhone|iPod/.test(ua);
