@@ -70,6 +70,18 @@
   /* Category Filters (collapsible) */
   .filterbar { margin: 6px 0 12px; }
   .filter-panel[hidden] { display: none !important; }
+  .sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0 0 12px;
+    padding-top: 6px;
+  }
+  .sticky-nav-inner {
+    padding: 8px 0 4px;
+    background: linear-gradient(180deg, rgba(11,15,20,.96), rgba(11,15,20,.9));
+    backdrop-filter: blur(10px);
+  }
 
   .filter-panel {
     display: grid;
@@ -151,6 +163,19 @@
   dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
   .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .modal-body { padding: 12px; }
+  .modal-copy {
+    white-space: pre-wrap;
+    line-height: 1.55;
+    color: var(--text);
+    max-height: 70vh;
+    overflow: auto;
+  }
+  .modal-subtle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 12px;
+  }
+  .settings-actions { display:flex; flex-wrap:wrap; gap:10px; }
   textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
 
   /* Toast */
@@ -190,24 +215,28 @@
       </div>
     </section>
 
-    <!-- View filters -->
-    <div class="filters" role="tablist" aria-label="View">
-      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
-      <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
-      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
-      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
-    </div>
+    <div class="sticky-nav">
+      <div class="sticky-nav-inner">
+        <!-- View filters -->
+        <div class="filters" role="tablist" aria-label="View">
+          <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+          <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+          <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+          <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+        </div>
 
-    <!-- Category Filters (collapsible) -->
-    <div class="filterbar">
-      <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
-        <span>Filters</span><span aria-hidden="true">&#9662;</span>
-      </button>
-      <div id="filterPanel" class="filter-panel" hidden>
-        <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
-        <label class="chk"><input type="checkbox" id="catFirst"> <span>First Presidency</span></label>
-        <label class="chk"><input type="checkbox" id="catTwelve"> <span>Quorum of the Twelve</span></label>
-        <label class="chk"><input type="checkbox" id="catWomen"> <span>Women</span></label>
+        <!-- Category Filters (collapsible) -->
+        <div class="filterbar">
+          <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
+            <span>Filters</span><span aria-hidden="true">&#9662;</span>
+          </button>
+          <div id="filterPanel" class="filter-panel" hidden>
+            <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
+            <label class="chk"><input type="checkbox" id="catFirst"> <span>First Presidency</span></label>
+            <label class="chk"><input type="checkbox" id="catTwelve"> <span>Quorum of the Twelve</span></label>
+            <label class="chk"><input type="checkbox" id="catWomen"> <span>Women</span></label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -233,6 +262,32 @@
     </div>
     <div class="modal-body">
       <textarea class="notes" id="notesArea" placeholder="Quick thoughts..."></textarea>
+    </div>
+  </dialog>
+
+  <dialog id="summaryModal">
+    <div class="modal-head">
+      <div>
+        <div id="summaryTitle" style="font-weight:600;">Summary</div>
+        <div id="summaryMeta" class="modal-subtle"></div>
+      </div>
+      <button class="btn small ghost" id="closeSummary">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-copy" id="summaryBody"></div>
+    </div>
+  </dialog>
+
+  <dialog id="settingsModal">
+    <div class="modal-head">
+      <div style="font-weight:600;">Settings</div>
+      <button class="btn small ghost" id="closeSettings">Close</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-subtle">Open the local April 2026 conference PDF used for the summary text.</p>
+      <div class="settings-actions">
+        <a class="btn" href="GC_Transcripts_April_2026/April2026GeneralConferenceEnglishPDFs.pdf" target="_blank" rel="noopener">View PDF</a>
+      </div>
     </div>
   </dialog>
 
@@ -280,10 +335,12 @@ const talks = [
 ];
 
 const transcriptCache = {}; // Cache to hold pre-loaded transcript text
+const summaryCache = {};
+const SUMMARY_JSON_PATH = "GC_Transcripts_April_2026/April2026GeneralConferenceSummaries.json";
 const talkOrder = new Map(talks.map((talk, index) => [talk.videoId, index]));
 
 // Annotate talks with category buckets
-const FIRST_PRESIDENCY = new Set(["Russell M. Nelson","Dallin H. Oaks","Henry B. Eyring"]);
+const FIRST_PRESIDENCY = new Set(["Russell M. Nelson","Dallin H. Oaks","Henry B. Eyring","D. Todd Christofferson"]);
 const TWELVE = new Set([
   "Jeffrey R. Holland","D. Todd Christofferson","Gary E. Stevenson","Dieter F. Uchtdorf",
   "Ronald A. Rasband","Quentin L. Cook","Patrick Kearon","Neil L. Andersen",
@@ -463,8 +520,9 @@ function rowHTML(t){
           <input class="count" type="number" inputmode="numeric" min="0" value="${count}" />
           <button class="plus" aria-label="increase">+</button>
         </div>
-        <button class="iconbtn copy" title="Copy transcript">Copy</button>
-        <button class="iconbtn notes" title="Notes">Notes</button>
+        <button class="iconbtn copy" title="Copy transcript">&#128203;</button>
+        <button class="iconbtn notes" title="Notes">&#128221;</button>
+        <button class="iconbtn sum" title="Summary">Sum</button>
         <button class="iconbtn fav" title="Favorite"><span class="star ${fav?'fav':''}">&#9733;</span></button>
         <div class="check ${watched?'on':''}" role="checkbox" aria-checked="${watched}" title="Mark watched">${watched?'&#10003;':''}</div>
       </div>
@@ -530,6 +588,7 @@ function renderList(){
 
     row.querySelector('.copy').onclick = () => copyTranscript(t.transcriptPath);
     row.querySelector('.notes').onclick = () => openNotes(id, t.title);
+    row.querySelector('.sum').onclick = () => openSummary(id, t.title, t.speaker);
     row.querySelector('.fav').onclick = () => toggleFav(id);
     row.querySelector('.check').onclick = () => {
       const now = !isWatched(id);
@@ -621,6 +680,20 @@ async function preloadTranscripts() {
   console.log('All transcripts preloaded and cached.');
 }
 
+async function preloadSummaries() {
+  try {
+    const res = await fetch(encodeURI(SUMMARY_JSON_PATH));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    data.forEach((item) => {
+      if (item && item.videoId) summaryCache[item.videoId] = item;
+    });
+    console.log('Conference summaries loaded.');
+  } catch (e) {
+    console.error('Failed to load summaries', e);
+  }
+}
+
 // -----------------------------
 // Clipboard / Transcript
 // -----------------------------
@@ -653,6 +726,24 @@ function openNotes(videoId, title){
 }
 closeNotesBtn.onclick = () => notesModal.close();
 notesModal.addEventListener('close', ()=>{ currentNotesVid = null; });
+
+// -----------------------------
+// Summary Modal
+// -----------------------------
+const summaryModal = document.getElementById('summaryModal');
+const summaryTitle = document.getElementById('summaryTitle');
+const summaryMeta = document.getElementById('summaryMeta');
+const summaryBody = document.getElementById('summaryBody');
+const closeSummaryBtn = document.getElementById('closeSummary');
+
+function openSummary(videoId, title, speaker){
+  const item = summaryCache[videoId];
+  summaryTitle.textContent = title + ' - Summary';
+  summaryMeta.textContent = item && item.office ? `${speaker} • ${item.office}` : speaker;
+  summaryBody.textContent = item && item.summary ? item.summary : 'Summary not loaded yet.';
+  summaryModal.showModal();
+}
+closeSummaryBtn.onclick = () => summaryModal.close();
 
 let notesTimer = null;
 notesArea.addEventListener('input', () => {
@@ -747,9 +838,10 @@ async function copyNotes(){
 // Settings / Misc
 // -----------------------------
 const btnSettings = document.getElementById('btnSettings');
-btnSettings.onclick = () => {
-  toast('Tips: Long-press titles to open in app; use Settings for backup & notes export.');
-};
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsBtn = document.getElementById('closeSettings');
+btnSettings.onclick = () => settingsModal.showModal();
+closeSettingsBtn.onclick = () => settingsModal.close();
 
 document.getElementById('btnDownload').onclick = downloadAll;
 document.getElementById('btnEmail').onclick = emailExport;
@@ -813,6 +905,7 @@ if (btnFilterToggle) {
 // Init
 // -----------------------------
 preloadTranscripts();
+preloadSummaries();
 renderAll();
 </script>
 </body>
