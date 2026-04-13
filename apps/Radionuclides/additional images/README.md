@@ -30,7 +30,7 @@ These subfolders are reserved for future additional images for each radionuclide
 The app now checks for additional images in this order:
 
 1. Local directory listing, when the page is served by a server that exposes folder contents.
-2. A cached GitHub repository-tree lookup, which auto-discovers arbitrary filenames from the repo without a manual manifest.
+2. A GitHub API lookup against the app's `apps/Radionuclides/additional images/<slug>/` folder, which auto-discovers arbitrary filenames from the repo without a manual manifest.
 3. A numbered-file fallback for strict local/offline cases.
 
 That means arbitrary filenames like `Girl with glowing orb at cave entrance.png` will work on supported local servers and on the deployed GitHub-backed app.
