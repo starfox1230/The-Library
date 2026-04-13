@@ -25,8 +25,14 @@ These subfolders are reserved for future additional images for each radionuclide
 - `xe-133/`
 - `y-90/`
 
-## Naming requirement
+## Naming behavior
 
-For local/offline mode, each radionuclide folder should use sequential numeric filenames (`1.png`, `2.png`, `3.jpg`, etc.).
+The app now checks for additional images in this order:
 
-The app can auto-discover arbitrary filenames only when directory listing or GitHub API access is available. If those are unavailable, it falls back to probing numbered files.
+1. Local directory listing, when the page is served by a server that exposes folder contents.
+2. A cached GitHub repository-tree lookup, which auto-discovers arbitrary filenames from the repo without a manual manifest.
+3. A numbered-file fallback for strict local/offline cases.
+
+That means arbitrary filenames like `Girl with glowing orb at cave entrance.png` will work on supported local servers and on the deployed GitHub-backed app.
+
+If you open the app in an environment that does not expose directory listings and cannot reach GitHub, use sequential numeric filenames (`1.png`, `2.png`, `3.jpg`, etc.) so the fallback can still discover them.

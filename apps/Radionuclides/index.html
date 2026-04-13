@@ -326,11 +326,13 @@
     const ADDITIONAL_DIR_NAME = "additional images"; // folder at same level as index.html
     const ADDITIONAL_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
     const ADDITIONAL_IMAGE_PROBE_LIMIT = 20;
-    const GITHUB_CONTENTS_API_BASE = "https://api.github.com/repos/starfox1230/The-Library/contents";
+    const GITHUB_TREE_API_BASE = "https://api.github.com/repos/starfox1230/The-Library/git/trees";
     const GITHUB_REF_CANDIDATES = ["gh-pages", "main", "master"];
+    const GITHUB_ADDITIONAL_IMAGES_TREE_PATH = ["apps", "Radionuclides", ADDITIONAL_DIR_NAME];
 
     // Cache which slug we've loaded (avoid reloading if user toggles)
     let loadedSlug = null;
+    let githubAdditionalImagesIndexPromise = null;
     const searchAdditionalCache = new Map();
     const additionalFilesCache = new Map();
 
@@ -757,23 +759,14 @@
     }
 
     async function resolveAdditionalFilenames(slug) {
-      const folderPath = `${ADDITIONAL_DIR_NAME}/${slug}`;
-
-      for (const ref of GITHUB_REF_CANDIDATES) {
-        const apiPath = folderPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-        const url = `${GITHUB_CONTENTS_API_BASE}/${apiPath}?ref=${encodeURIComponent(ref)}`;
-        const list = await fetchJsonMaybe(url);
-        if (Array.isArray(list)) {
-          return list
-            .filter(item => item && item.type === "file" && isAllowedExt(item.name))
-            .map(item => item.name)
-            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
-        }
+      const listedFiles = await probeLocalDirectoryListing(slug);
+      if (listedFiles !== null) {
+        return listedFiles;
       }
 
-      const listedFiles = await probeLocalDirectoryListing(slug);
-      if (listedFiles.length > 0) {
-        return listedFiles;
+      const githubFiles = await getGithubAdditionalFiles(slug);
+      if (githubFiles !== null) {
+        return githubFiles;
       }
 
       // Fallback for local/offline usage where directory listing APIs are unavailable.
@@ -822,7 +815,7 @@
     async function probeLocalDirectoryListing(slug) {
       const listingUrl = joinEncodedPath([ADDITIONAL_DIR_NAME, slug]) + "/";
       const response = await fetchTextMaybe(listingUrl);
-      if (!response) return [];
+      if (response === null) return null;
 
       const fileNames = [];
       const regex = /href=["']([^"']+)["']/gi;
@@ -836,6 +829,73 @@
       }
 
       return fileNames.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+    }
+
+    async function getGithubAdditionalFiles(slug) {
+      const index = await getGithubAdditionalImagesIndex();
+      if (index === null) {
+        return null;
+      }
+      return index.get(slug) || [];
+    }
+
+    async function getGithubAdditionalImagesIndex() {
+      if (!githubAdditionalImagesIndexPromise) {
+        githubAdditionalImagesIndexPromise = loadGithubAdditionalImagesIndex();
+      }
+      return githubAdditionalImagesIndexPromise;
+    }
+
+    async function loadGithubAdditionalImagesIndex() {
+      for (const ref of GITHUB_REF_CANDIDATES) {
+        const tree = await fetchGithubAdditionalImagesTree(ref);
+        if (tree && Array.isArray(tree.tree)) {
+          return buildGithubAdditionalImagesIndex(tree.tree);
+        }
+      }
+      return null;
+    }
+
+    async function fetchGithubAdditionalImagesTree(ref) {
+      let treeId = ref;
+
+      for (const segment of GITHUB_ADDITIONAL_IMAGES_TREE_PATH) {
+        const tree = await fetchJsonMaybe(`${GITHUB_TREE_API_BASE}/${encodeURIComponent(treeId)}`);
+        if (!tree || !Array.isArray(tree.tree)) {
+          return null;
+        }
+
+        const nextTree = tree.tree.find(item => item && item.type === "tree" && item.path === segment);
+        if (!nextTree || !nextTree.sha) {
+          return null;
+        }
+
+        treeId = nextTree.sha;
+      }
+
+      return await fetchJsonMaybe(`${GITHUB_TREE_API_BASE}/${encodeURIComponent(treeId)}?recursive=1`);
+    }
+
+    function buildGithubAdditionalImagesIndex(entries) {
+      const index = new Map();
+
+      for (const entry of entries) {
+        if (!entry || entry.type !== "blob" || typeof entry.path !== "string") continue;
+
+        const [slug, fileName] = entry.path.split("/");
+        if (!slug || !fileName || !isAllowedExt(fileName)) continue;
+
+        if (!index.has(slug)) {
+          index.set(slug, []);
+        }
+        index.get(slug).push(fileName);
+      }
+
+      index.forEach(files => {
+        files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+      });
+
+      return index;
     }
 
     function canLoadImage(src) {
