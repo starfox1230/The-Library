@@ -28,6 +28,9 @@
       display: flex; align-items: center; justify-content: center;
       min-height: 100vh; padding: 1rem; overflow-x: hidden; flex-direction: column;
     }
+    body.modal-open {
+      overflow: hidden;
+    }
     #container {
       background: rgba(20, 20, 30, 0.6);
       backdrop-filter: blur(5px);
@@ -91,6 +94,16 @@
       border-radius: var(--border-radius-sm);
       border: 1px solid rgba(0, 255, 156, 0.1);
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); vertical-align: middle;
+      cursor: zoom-in;
+      transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    }
+    .expandable-image:hover,
+    .expandable-image:focus-visible,
+    .additional-thumb:hover,
+    .additional-thumb:focus-visible {
+      transform: scale(1.01);
+      box-shadow: 0 0 22px rgba(0, 255, 156, 0.18);
+      outline: none;
     }
     .image-container .expandable-image:last-child { margin-bottom: 0; }
 
@@ -114,9 +127,59 @@
       width: 100%; height: auto; border-radius: var(--border-radius-sm);
       border: 1px solid rgba(0,255,156,0.15);
       box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      cursor: zoom-in;
+      transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
     }
     #additional-status {
       margin-top: 0.5rem; font-size: 0.95rem; color: #cfd3d6;
+    }
+
+    .image-modal.hidden { display: none; }
+    .image-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(4, 8, 12, 0.88);
+      backdrop-filter: blur(8px);
+    }
+    .image-modal-content {
+      position: relative;
+      width: min(94vw, 1200px);
+      max-height: 92vh;
+      padding: 0.85rem;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 255, 156, 0.25);
+      background: rgba(8, 16, 20, 0.96);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.65), 0 0 30px rgba(0, 255, 156, 0.15);
+    }
+    .image-modal-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-size: 1.2rem;
+      line-height: 1;
+      z-index: 1;
+    }
+    .image-modal img {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      max-height: calc(92vh - 1.7rem);
+      height: auto;
+      margin: 0 auto;
+      border-radius: 14px;
+      object-fit: contain;
     }
 
     @media (max-width: 600px) {
@@ -127,6 +190,16 @@
       .controls { gap: 0.5rem; }
       #answer { max-height: 150px; }
       .image-container { max-height: 1200px; }
+      .image-modal {
+        padding: 0.75rem;
+      }
+      .image-modal-content {
+        width: 100%;
+        padding: 0.6rem;
+      }
+      .image-modal img {
+        max-height: calc(100vh - 2.2rem);
+      }
     }
 
     /* Radionuclide Explorer */
@@ -260,6 +333,13 @@
     </div>
   </div>
 
+  <div id="image-modal" class="image-modal hidden" aria-hidden="true">
+    <div class="image-modal-content" role="dialog" aria-modal="true" aria-label="Expanded image">
+      <button id="image-modal-close" type="button" class="image-modal-close" aria-label="Close image viewer">X</button>
+      <img id="image-modal-img" alt="">
+    </div>
+  </div>
+
   <script>
     /* ===============================
        Data & Questions
@@ -315,6 +395,9 @@
     const fullListContainerEl = document.getElementById("full-list-container");
     const fullListImgPngEl    = document.getElementById("full-list-img-png");
     const fullListImgJpegEl   = document.getElementById("full-list-img-jpeg");
+    const imageModalEl        = document.getElementById("image-modal");
+    const imageModalImgEl     = document.getElementById("image-modal-img");
+    const imageModalCloseEl   = document.getElementById("image-modal-close");
 
     // New: Additional images UI
     const additionalControlsEl = document.getElementById("additional-controls");
@@ -429,6 +512,37 @@
       }
       fullListContainerEl.classList.toggle("hidden");
       if (event?.target?.blur) event.target.blur();
+    }
+
+    function openImageModal(src, alt = "") {
+      if (!src) return;
+      imageModalImgEl.src = src;
+      imageModalImgEl.alt = alt;
+      imageModalEl.classList.remove("hidden");
+      imageModalEl.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open");
+      imageModalCloseEl.focus();
+    }
+
+    function closeImageModal() {
+      if (imageModalEl.classList.contains("hidden")) return;
+      imageModalEl.classList.add("hidden");
+      imageModalEl.setAttribute("aria-hidden", "true");
+      imageModalImgEl.src = "";
+      imageModalImgEl.alt = "";
+      document.body.classList.remove("modal-open");
+    }
+
+    function handleImageClick(event) {
+      const img = event.target.closest("img.expandable-image, img.additional-thumb");
+      if (!img || imageModalEl.contains(img)) return;
+      openImageModal(img.currentSrc || img.src, img.alt || "Expanded radionuclide image");
+    }
+
+    function handleDocumentKeydown(event) {
+      if (event.key === "Escape") {
+        closeImageModal();
+      }
     }
 
     // Toggle Flashcards <-> Explorer
@@ -904,6 +1018,14 @@
       }, 150);
 
       setupSearchFilters();
+      document.addEventListener("click", handleImageClick);
+      document.addEventListener("keydown", handleDocumentKeydown);
+      imageModalEl.addEventListener("click", event => {
+        if (event.target === imageModalEl) {
+          closeImageModal();
+        }
+      });
+      imageModalCloseEl.addEventListener("click", closeImageModal);
     };
   </script>
 </body>
