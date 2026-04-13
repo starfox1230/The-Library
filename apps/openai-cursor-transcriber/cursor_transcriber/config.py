@@ -69,7 +69,7 @@ def load_config() -> AppConfig:
     toggle_hotkey = os.getenv("TOGGLE_HOTKEY", "<f3>").strip() or "<f3>"
     exit_hotkey = os.getenv("EXIT_HOTKEY", "<shift>+<f3>").strip() or "<shift>+<f3>"
     paste_hotkeys = parse_hotkey_list(
-        os.getenv("PASTE_HOTKEYS", "<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>")
+        os.getenv("PASTE_HOTKEYS", "<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>,<ctrl>+c")
     )
 
     recording_ready_delay_raw = os.getenv(

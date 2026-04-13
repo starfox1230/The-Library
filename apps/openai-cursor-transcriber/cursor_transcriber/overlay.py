@@ -142,7 +142,7 @@ class CursorOverlay(QWidget):
         self._set_state(
             title="Copied to clipboard",
             body=preview_text(text),
-            hint="Paste with your keyboard shortcut to dismiss",
+            hint="Paste or copy with your keyboard shortcut to dismiss",
             accent="#14b8a6",
         )
 

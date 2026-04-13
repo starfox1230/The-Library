@@ -12,6 +12,7 @@ A small Windows desktop app that stays local on your computer, listens for a glo
 - The full transcript is copied to your clipboard.
 - A preview bubble stays next to your cursor until you paste with `Ctrl+V`, `Ctrl+Shift+V`, or `Shift+Insert`.
 - Press `Shift+F3` to quit the app.
+- The app also shows a tray icon in the Windows notification area, so you can confirm it is running and quit it from the caret menu.
 
 ## Desktop stack
 
@@ -45,9 +46,11 @@ You can also change the hotkeys in the same file:
 ```dotenv
 TOGGLE_HOTKEY=<f3>
 EXIT_HOTKEY=<shift>+<f3>
-PASTE_HOTKEYS=<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>
+PASTE_HOTKEYS=<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>,<ctrl>+c
 RECORDING_READY_DELAY_MS=0
 ```
+
+The built-in app hotkeys live in `.env`. If you create a Windows desktop shortcut and give that shortcut its own keyboard shortcut, that is a separate Windows setting stored on the `.lnk` file, not in `.env`.
 
 ## Run it
 
@@ -58,11 +61,20 @@ RECORDING_READY_DELAY_MS=0
 `run.ps1` prefers `pythonw.exe`, so the app can run quietly in the background without leaving a console window open.
 
 For the simplest double-click launch, use [`Start Cursor Transcriber.vbs`](C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\openai-cursor-transcriber\Start Cursor Transcriber.vbs). That starts the app hidden in the background.
+Launching it again now will not start a second competing copy of the app. Instead, it shows a small "already running" message and exits.
+When it is running, you should also see a small tray icon under the Windows notification-area caret, with a menu for status, shortcuts, and quit.
+
+To open your Windows Startup folder, press `Win + R`, type `shell:startup`, and press Enter.
+The full path is:
+
+```text
+%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup
+```
 
 ## Notes
 
 - The overlay shows a wrapped preview, while the full transcript goes to the clipboard.
-- Right-click context-menu paste is not intercepted, so the cursor tag clears automatically only for the configured keyboard paste shortcuts.
+- Right-click context-menu paste is not intercepted, so the cursor tag clears automatically only for the configured keyboard shortcuts such as `Ctrl+V`, `Shift+Insert`, or `Ctrl+C`.
 - If Windows blocks microphone access, enable microphone permission in Windows Settings.
 - Logs are written to [`C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\openai-cursor-transcriber\runtime\app.log`](C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\openai-cursor-transcriber\runtime\app.log).
 
