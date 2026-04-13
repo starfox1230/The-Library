@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RISC Review Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4efe3;
+      --bg-soft: #ece4d2;
+      --paper: rgba(255, 251, 244, 0.92);
+      --paper-strong: #fffaf1;
+      --ink: #273228;
+      --ink-soft: #5f6d5c;
+      --line: rgba(79, 96, 74, 0.18);
+      --line-strong: rgba(53, 75, 57, 0.3);
+      --accent: #2e6f61;
+      --accent-strong: #1f5449;
+      --accent-soft: rgba(46, 111, 97, 0.12);
+      --warm: #c78438;
+      --warm-soft: rgba(199, 132, 56, 0.16);
+      --done: #4b7f41;
+      --done-soft: rgba(75, 127, 65, 0.16);
+      --shadow: 0 18px 40px rgba(63, 48, 24, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(199, 132, 56, 0.2), transparent 24%),
+        radial-gradient(circle at top right, rgba(46, 111, 97, 0.16), transparent 22%),
+        linear-gradient(180deg, #f8f2e5 0%, var(--bg) 44%, #efe6d7 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 78%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 28px));
+      margin: 24px auto 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.35fr 0.95fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .hero-panel,
+    .metrics,
+    .toolbar,
+    .chapter,
+    .error-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-panel {
+      padding: 26px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-panel::after {
+      content: "";
+      position: absolute;
+      right: -38px;
+      top: -32px;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(46, 111, 97, 0.16), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Fraunces", serif;
+      font-size: clamp(2rem, 4.6vw, 3.4rem);
+      line-height: 0.96;
+      letter-spacing: -0.03em;
+    }
+
+    .lede {
+      margin: 14px 0 18px;
+      max-width: 68ch;
+      color: var(--ink-soft);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .hero-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .hero-links a,
+    .hero-links span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.94rem;
+    }
+
+    .hero-links a:hover {
+      border-color: var(--line-strong);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .metrics {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-content: start;
+    }
+
+    .metric {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(244, 239, 227, 0.92));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 104px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-label {
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+
+    .metric-value {
+      font-family: "Fraunces", serif;
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      line-height: 1;
+    }
+
+    .metric-sub {
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 14px;
+      z-index: 10;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .toolbar-grid {
+      display: grid;
+      grid-template-columns: 1.2fr auto auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-label {
+      color: var(--ink-soft);
+      font-size: 0.83rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    input[type="search"] {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    input[type="search"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: rgba(46, 111, 97, 0.58);
+      box-shadow: 0 0 0 4px rgba(46, 111, 97, 0.14);
+    }
+
+    .chip-row,
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--ink);
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      background: white;
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      color: white;
+      border-color: transparent;
+    }
+
+    button.soft {
+      background: var(--warm-soft);
+      border-color: rgba(199, 132, 56, 0.3);
+    }
+
+    button.is-active {
+      background: var(--done-soft);
+      border-color: rgba(75, 127, 65, 0.3);
+      color: var(--done);
+    }
+
+    .save-line {
+      margin-top: 12px;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+    }
+
+    .chapter-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    details.chapter,
+    details.section {
+      overflow: hidden;
+    }
+
+    .chapter[open] {
+      border-color: var(--line-strong);
+    }
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .chapter-summary,
+    .section-summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 20px 22px;
+    }
+
+    .chapter-title {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chapter-name {
+      font-family: "Fraunces", serif;
+      font-size: clamp(1.15rem, 2vw, 1.55rem);
+      line-height: 1.08;
+    }
+
+    .chapter-progress-line {
+      width: min(280px, 100%);
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(39, 50, 40, 0.08);
+      border: 1px solid rgba(39, 50, 40, 0.08);
+    }
+
+    .chapter-progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--warm), var(--accent));
+      transition: width 160ms ease;
+    }
+
+    .chapter-meta,
+    .section-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+      text-align: right;
+      color: var(--ink-soft);
+      font-size: 0.94rem;
+    }
+
+    .chapter-body {
+      padding: 0 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .overview-card,
+    .section-panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 241, 231, 0.88));
+      border-radius: 20px;
+    }
+
+    .overview-card {
+      padding: 18px;
+    }
+
+    .overview-header,
+    .section-content-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .overview-header h3,
+    .section-content-header h4 {
+      margin: 0;
+      font-family: "Fraunces", serif;
+      font-size: 1.15rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--ink-soft);
+    }
+
+    .badge.done {
+      color: var(--done);
+      border-color: rgba(75, 127, 65, 0.28);
+      background: var(--done-soft);
+    }
+
+    .badge.pending {
+      color: var(--warm);
+      border-color: rgba(199, 132, 56, 0.24);
+      background: var(--warm-soft);
+    }
+
+    .section-body {
+      padding: 0 18px 18px;
+    }
+
+    .section-panel[hidden],
+    .chapter[hidden] {
+      display: none;
+    }
+
+    .section-content {
+      display: grid;
+      gap: 12px;
+    }
+
+    .info-block {
+      border: 1px solid rgba(46, 111, 97, 0.12);
+      background: rgba(255, 255, 255, 0.62);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .info-block h5 {
+      margin: 0 0 10px;
+      color: var(--accent-strong);
+      font-size: 0.96rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .info-block p {
+      margin: 0;
+      color: var(--ink);
+      line-height: 1.65;
+    }
+
+    .info-block p + p {
+      margin-top: 10px;
+    }
+
+    .info-block ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--ink);
+      line-height: 1.62;
+    }
+
+    .info-block li + li {
+      margin-top: 8px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: rgba(46, 111, 97, 0.1);
+      border-radius: 6px;
+      padding: 0.12em 0.4em;
+      font-size: 0.95em;
+    }
+
+    .notes-card {
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .notes-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 132px;
+      resize: vertical;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: inherit;
+      line-height: 1.58;
+    }
+
+    .notes-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+    }
+
+    .small-button {
+      min-height: 36px;
+      padding: 0 12px;
+      font-size: 0.9rem;
+    }
+
+    .error-card {
+      padding: 22px;
+    }
+
+    .error-card h2 {
+      margin: 0 0 10px;
+      font-family: "Fraunces", serif;
+      font-size: 1.6rem;
+    }
+
+    .error-card p {
+      margin: 0 0 12px;
+      color: var(--ink-soft);
+      line-height: 1.7;
+    }
+
+    @media (max-width: 920px) {
+      .hero,
+      .toolbar-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chapter-summary,
+      .section-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .chapter-meta,
+      .section-meta {
+        align-items: flex-start;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 18px, 100%);
+        margin-top: 10px;
+      }
+
+      .hero-panel,
+      .metrics,
+      .toolbar {
+        border-radius: 22px;
+      }
+
+      .hero-panel {
+        padding: 22px 18px;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr 1fr;
+        padding: 14px;
+      }
+
+      .metric {
+        min-height: 92px;
+      }
+
+      .chapter-body,
+      .chapter-summary,
+      .section-summary {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-panel">
+        <p class="eyebrow">RISC review loop</p>
+        <h1>RISC Review Workbench</h1>
+        <p class="lede">Review each subsection from the planning doc, leave your thoughts underneath it, and let the app autosave locally while you study across sessions.</p>
+        <div class="hero-links">
+          <a href="../core-studying/Radioisotope%20Safety%20Document/RISC-game-design-plan.md" target="_blank" rel="noopener noreferrer">Open the source design doc</a>
+          <span>Autosaves on this device and browser only</span>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Sections with notes</div>
+          <div class="metric-value" id="metricCompleted">0</div>
+          <div class="metric-sub" id="metricCompletedSub">out of 0 subsections</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Overall progress</div>
+          <div class="metric-value" id="metricPercent">0%</div>
+          <div class="metric-sub">based on subsection notes</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Chapters started</div>
+          <div class="metric-value" id="metricChaptersStarted">0</div>
+          <div class="metric-sub">chapters with at least one note</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Chapters complete</div>
+          <div class="metric-value" id="metricChaptersDone">0</div>
+          <div class="metric-sub">all subsections commented</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="toolbar-grid">
+        <div class="field">
+          <label class="field-label" for="searchInput">Find a chapter or subsection</label>
+          <input id="searchInput" type="search" placeholder="Search by section title or your notes">
+        </div>
+        <div class="field">
+          <div class="field-label">Show</div>
+          <div class="chip-row">
+            <button class="filter-chip" data-filter="all" type="button">All</button>
+            <button class="filter-chip" data-filter="remaining" type="button">Remaining</button>
+            <button class="filter-chip" data-filter="commented" type="button">Commented</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Review tools</div>
+          <div class="button-row">
+            <button id="expandAllBtn" type="button">Open everything</button>
+            <button id="collapseAllBtn" type="button">Close everything</button>
+            <button id="nextIncompleteBtn" class="soft" type="button">Next incomplete</button>
+            <button id="shareBtn" class="primary" type="button">Share / email notes</button>
+            <button id="copyBtn" type="button">Copy notes</button>
+            <button id="downloadTxtBtn" type="button">Download TXT</button>
+            <button id="downloadJsonBtn" type="button">Download JSON</button>
+          </div>
+        </div>
+      </div>
+      <div class="save-line" id="saveLine">Loading plan content…</div>
+    </section>
+
+    <div class="chapter-stack" id="appRoot"></div>
+  </div>
+
+  <script>
+    const PLAN_URL = "../core-studying/Radioisotope%20Safety%20Document/RISC-game-design-plan.md";
+    const STORAGE_KEY = "risc-review-workbench.notes.v1";
+    const FILTER_KEY = "risc-review-workbench.filter.v1";
+    const SEARCH_KEY = "risc-review-workbench.search.v1";
+
+    const state = {
+      chapters: [],
+      notes: loadJson(STORAGE_KEY, {}),
+      filter: localStorage.getItem(FILTER_KEY) || "all",
+      search: localStorage.getItem(SEARCH_KEY) || ""
+    };
+
+    const els = {
+      appRoot: document.getElementById("appRoot"),
+      saveLine: document.getElementById("saveLine"),
+      searchInput: document.getElementById("searchInput"),
+      metricCompleted: document.getElementById("metricCompleted"),
+      metricCompletedSub: document.getElementById("metricCompletedSub"),
+      metricPercent: document.getElementById("metricPercent"),
+      metricChaptersStarted: document.getElementById("metricChaptersStarted"),
+      metricChaptersDone: document.getElementById("metricChaptersDone"),
+      expandAllBtn: document.getElementById("expandAllBtn"),
+      collapseAllBtn: document.getElementById("collapseAllBtn"),
+      nextIncompleteBtn: document.getElementById("nextIncompleteBtn"),
+      shareBtn: document.getElementById("shareBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+      downloadTxtBtn: document.getElementById("downloadTxtBtn"),
+      downloadJsonBtn: document.getElementById("downloadJsonBtn")
+    };
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    async function init() {
+      bindToolbar();
+      els.searchInput.value = state.search;
+      syncFilterButtons();
+      try {
+        const markdown = await loadPlanMarkdown();
+        state.chapters = parsePlan(markdown);
+        renderApp();
+        refreshUI();
+        setSaveLine("Ready. Notes autosave locally as you type.");
+      } catch (error) {
+        renderError(error);
+        setSaveLine("Could not load the source plan.");
+      }
+    }
+
+    function bindToolbar() {
+      els.searchInput.addEventListener("input", (event) => {
+        state.search = event.target.value;
+        localStorage.setItem(SEARCH_KEY, state.search);
+        applyFilters();
+      });
+
+      document.querySelectorAll(".filter-chip").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.filter = button.dataset.filter;
+          localStorage.setItem(FILTER_KEY, state.filter);
+          syncFilterButtons();
+          applyFilters();
+        });
+      });
+
+      els.expandAllBtn.addEventListener("click", () => setAllDetails(true));
+      els.collapseAllBtn.addEventListener("click", () => setAllDetails(false));
+      els.nextIncompleteBtn.addEventListener("click", jumpToNextIncomplete);
+      els.shareBtn.addEventListener("click", shareResults);
+      els.copyBtn.addEventListener("click", copyResults);
+      els.downloadTxtBtn.addEventListener("click", () => downloadBlob("risc-review-notes.txt", buildExportText(), "text/plain"));
+      els.downloadJsonBtn.addEventListener("click", () => downloadBlob("risc-review-notes.json", buildExportJson(), "application/json"));
+    }
+
+    async function loadPlanMarkdown() {
+      const response = await fetch(PLAN_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Plan fetch failed.");
+      }
+      return response.text();
+    }
+
+    function parsePlan(markdown) {
+      const chapters = [];
+      let currentChapter = null;
+      let currentSection = null;
+
+      function pushSection() {
+        if (!currentChapter || !currentSection) return;
+        if (currentSection.title === "Chapter Overview") {
+          currentChapter.overview = currentSection;
+        } else {
+          currentChapter.sections.push(currentSection);
+        }
+        currentSection = null;
+      }
+
+      markdown.split(/\r?\n/).forEach((line) => {
+        if (line.startsWith("## Chapter ")) {
+          pushSection();
+          currentChapter = {
+            id: slugify(line),
+            title: line.replace(/^##\s+/, "").trim(),
+            overview: { title: "Chapter Overview", blocks: [] },
+            sections: []
+          };
+          chapters.push(currentChapter);
+          return;
+        }
+
+        if (line.startsWith("### ")) {
+          pushSection();
+          currentSection = {
+            id: currentChapter ? slugify(currentChapter.title + " " + line) : slugify(line),
+            title: line.replace(/^###\s+/, "").trim(),
+            blocks: []
+          };
+          return;
+        }
+
+        if (!currentSection) return;
+        currentSection.blocks.push(line);
+      });
+
+      pushSection();
+
+      chapters.forEach((chapter) => {
+        chapter.overviewBlocks = toBlocks(chapter.overview.blocks || []);
+        chapter.sections = chapter.sections.map((section) => ({
+          ...section,
+          number: extractNumber(section.title),
+          blocks: toBlocks(section.blocks || [])
+        }));
+      });
+
+      return chapters;
+    }
+
+    function toBlocks(lines) {
+      const blocks = [];
+      let current = { title: "", items: [], paragraphs: [] };
+
+      function flush() {
+        const hasContent = current.title || current.items.length || current.paragraphs.length;
+        if (!hasContent) return;
+        blocks.push(current);
+        current = { title: "", items: [], paragraphs: [] };
+      }
+
+      lines.forEach((rawLine) => {
+        const line = rawLine.trim();
+        if (!line) return;
+
+        const headingMatch = line.match(/^\*\*(.+?)\*\*$/);
+        if (headingMatch) {
+          flush();
+          current.title = headingMatch[1];
+          return;
+        }
+
+        if (line.startsWith("- ")) {
+          current.items.push(line.slice(2));
+          return;
+        }
+
+        current.paragraphs.push(line);
+      });
+
+      flush();
+      return blocks;
+    }
+
+    function renderApp() {
+      els.appRoot.innerHTML = "";
+
+      state.chapters.forEach((chapter) => {
+        const chapterEl = document.createElement("details");
+        chapterEl.className = "chapter";
+        chapterEl.dataset.chapterId = chapter.id;
+
+        const summary = document.createElement("summary");
+        summary.className = "chapter-summary";
+        summary.innerHTML = `
+          <div class="chapter-title">
+            <div class="chapter-name">${escapeHtml(chapter.title)}</div>
+            <div class="chapter-progress-line"><div class="chapter-progress-fill"></div></div>
+          </div>
+          <div class="chapter-meta">
+            <span class="badge pending chapter-badge">0%</span>
+            <span class="chapter-count">0 / ${chapter.sections.length} noted</span>
+          </div>
+        `;
+
+        const body = document.createElement("div");
+        body.className = "chapter-body";
+
+        const overview = document.createElement("section");
+        overview.className = "overview-card";
+        overview.innerHTML = `
+          <div class="overview-header">
+            <h3>Chapter overview</h3>
+            <span class="badge">Guide rail</span>
+          </div>
+        `;
+        overview.appendChild(renderBlocks(chapter.overviewBlocks));
+        body.appendChild(overview);
+
+        chapter.sections.forEach((section) => {
+          const sectionEl = document.createElement("details");
+          sectionEl.className = "section section-panel";
+          sectionEl.dataset.sectionId = section.id;
+          sectionEl.dataset.sectionTitle = section.title.toLowerCase();
+          sectionEl.dataset.chapterTitle = chapter.title.toLowerCase();
+
+          const note = state.notes[section.id] || "";
+          const summaryText = section.number ? section.title : section.title.replace(/^Derived:\s*/, "");
+          const summaryEl = document.createElement("summary");
+          summaryEl.className = "section-summary";
+          summaryEl.innerHTML = `
+            <div>
+              <div class="chapter-name" style="font-size:1.1rem;">${escapeHtml(summaryText)}</div>
+            </div>
+            <div class="section-meta">
+              <span class="badge ${note.trim() ? "done" : "pending"} section-badge">${note.trim() ? "Noted" : "Needs notes"}</span>
+            </div>
+          `;
+
+          const sectionBody = document.createElement("div");
+          sectionBody.className = "section-body";
+
+          const contentHeader = document.createElement("div");
+          contentHeader.className = "section-content-header";
+          contentHeader.innerHTML = `
+            <h4>${escapeHtml(section.title)}</h4>
+            <span class="badge">${section.number ? "Subsection" : "Derived"}</span>
+          `;
+          sectionBody.appendChild(contentHeader);
+          sectionBody.appendChild(renderBlocks(section.blocks));
+
+          const notesCard = document.createElement("div");
+          notesCard.className = "notes-card";
+          notesCard.innerHTML = `
+            <div class="notes-label">
+              <span>Your notes for this section</span>
+              <span class="note-state">${note.trim() ? "Saved locally" : "Not started"}</span>
+            </div>
+          `;
+
+          const textarea = document.createElement("textarea");
+          textarea.placeholder = "Type your thoughts here. This saves automatically on this device.";
+          textarea.value = note;
+          textarea.dataset.sectionId = section.id;
+          autosize(textarea);
+
+          const footer = document.createElement("div");
+          footer.className = "notes-footer";
+          footer.innerHTML = `
+            <span class="word-count">${wordCountLabel(note)}</span>
+            <button class="small-button clear-note-btn" type="button">Clear note</button>
+          `;
+
+          textarea.addEventListener("input", () => {
+            state.notes[section.id] = textarea.value;
+            saveNotes();
+            autosize(textarea);
+            notesCard.querySelector(".note-state").textContent = textarea.value.trim() ? "Saved locally" : "Not started";
+            footer.querySelector(".word-count").textContent = wordCountLabel(textarea.value);
+            refreshUI();
+          });
+
+          footer.querySelector(".clear-note-btn").addEventListener("click", () => {
+            textarea.value = "";
+            state.notes[section.id] = "";
+            saveNotes();
+            autosize(textarea);
+            notesCard.querySelector(".note-state").textContent = "Not started";
+            footer.querySelector(".word-count").textContent = wordCountLabel("");
+            refreshUI();
+            textarea.focus();
+          });
+
+          notesCard.appendChild(textarea);
+          notesCard.appendChild(footer);
+          sectionBody.appendChild(notesCard);
+
+          sectionEl.appendChild(summaryEl);
+          sectionEl.appendChild(sectionBody);
+          body.appendChild(sectionEl);
+        });
+
+        chapterEl.appendChild(summary);
+        chapterEl.appendChild(body);
+        els.appRoot.appendChild(chapterEl);
+      });
+    }
+
+    function renderBlocks(blocks) {
+      const fragment = document.createElement("div");
+      fragment.className = "section-content";
+
+      blocks.forEach((block) => {
+        const blockEl = document.createElement("section");
+        blockEl.className = "info-block";
+        if (block.title) {
+          const title = document.createElement("h5");
+          title.textContent = block.title;
+          blockEl.appendChild(title);
+        }
+
+        block.paragraphs.forEach((paragraph) => {
+          const p = document.createElement("p");
+          p.innerHTML = formatInline(paragraph);
+          blockEl.appendChild(p);
+        });
+
+        if (block.items.length) {
+          const ul = document.createElement("ul");
+          block.items.forEach((item) => {
+            const li = document.createElement("li");
+            li.innerHTML = formatInline(item);
+            ul.appendChild(li);
+          });
+          blockEl.appendChild(ul);
+        }
+
+        fragment.appendChild(blockEl);
+      });
+
+      return fragment;
+    }
+
+    function refreshUI() {
+      const totalSections = state.chapters.reduce((sum, chapter) => sum + chapter.sections.length, 0);
+      let completedSections = 0;
+      let chaptersStarted = 0;
+      let chaptersDone = 0;
+
+      state.chapters.forEach((chapter) => {
+        const chapterEl = document.querySelector(`[data-chapter-id="${chapter.id}"]`);
+        if (!chapterEl) return;
+
+        const chapterDone = chapter.sections.filter((section) => hasNote(section.id)).length;
+        const chapterTotal = chapter.sections.length;
+        const percent = chapterTotal ? Math.round((chapterDone / chapterTotal) * 100) : 0;
+
+        completedSections += chapterDone;
+        if (chapterDone > 0) chaptersStarted += 1;
+        if (chapterDone === chapterTotal) chaptersDone += 1;
+
+        chapterEl.querySelector(".chapter-progress-fill").style.width = `${percent}%`;
+        const badge = chapterEl.querySelector(".chapter-badge");
+        badge.textContent = `${percent}%`;
+        badge.className = `badge chapter-badge ${percent === 100 ? "done" : chapterDone > 0 ? "pending" : ""}`.trim();
+        chapterEl.querySelector(".chapter-count").textContent = `${chapterDone} / ${chapterTotal} noted`;
+
+        chapter.sections.forEach((section) => {
+          const sectionEl = chapterEl.querySelector(`[data-section-id="${section.id}"]`);
+          if (!sectionEl) return;
+          const noted = hasNote(section.id);
+          const sectionBadge = sectionEl.querySelector(".section-badge");
+          sectionBadge.textContent = noted ? "Noted" : "Needs notes";
+          sectionBadge.className = `badge section-badge ${noted ? "done" : "pending"}`;
+        });
+      });
+
+      const percentTotal = totalSections ? Math.round((completedSections / totalSections) * 100) : 0;
+      els.metricCompleted.textContent = String(completedSections);
+      els.metricCompletedSub.textContent = `out of ${totalSections} subsections`;
+      els.metricPercent.textContent = `${percentTotal}%`;
+      els.metricChaptersStarted.textContent = String(chaptersStarted);
+      els.metricChaptersDone.textContent = String(chaptersDone);
+
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const term = state.search.trim().toLowerCase();
+      const activeSection = document.activeElement ? document.activeElement.closest(".section") : null;
+
+      state.chapters.forEach((chapter) => {
+        const chapterEl = document.querySelector(`[data-chapter-id="${chapter.id}"]`);
+        if (!chapterEl) return;
+        const chapterMatches = chapter.title.toLowerCase().includes(term);
+        let visibleCount = 0;
+
+        chapter.sections.forEach((section) => {
+          const sectionEl = chapterEl.querySelector(`[data-section-id="${section.id}"]`);
+          if (!sectionEl) return;
+
+          const noteText = (state.notes[section.id] || "").toLowerCase();
+          const commented = hasNote(section.id);
+          const matchesFilter =
+            state.filter === "all" ||
+            (state.filter === "remaining" && !commented) ||
+            (state.filter === "commented" && commented);
+          const matchesSearch = !term || chapterMatches || section.title.toLowerCase().includes(term) || noteText.includes(term);
+          const keepFocused = activeSection && activeSection.dataset.sectionId === section.id;
+          const visible = (matchesFilter && matchesSearch) || keepFocused;
+
+          sectionEl.hidden = !visible;
+          if (visible) visibleCount += 1;
+        });
+
+        chapterEl.hidden = visibleCount === 0;
+        if (term && visibleCount > 0) {
+          chapterEl.open = true;
+        }
+      });
+    }
+
+    function setAllDetails(open) {
+      document.querySelectorAll("details.chapter, details.section").forEach((detail) => {
+        detail.open = open;
+      });
+    }
+
+    function jumpToNextIncomplete() {
+      const visibleIncomplete = Array.from(document.querySelectorAll(".section"))
+        .find((sectionEl) => !sectionEl.hidden && !hasNote(sectionEl.dataset.sectionId));
+      const target = visibleIncomplete || Array.from(document.querySelectorAll(".section"))
+        .find((sectionEl) => !hasNote(sectionEl.dataset.sectionId));
+
+      if (!target) {
+        setSaveLine("Everything already has notes. Nice work.");
+        return;
+      }
+
+      const chapter = target.closest(".chapter");
+      if (chapter) chapter.open = true;
+      target.open = true;
+      target.scrollIntoView({ block: "start", behavior: "smooth" });
+      const area = target.querySelector("textarea");
+      if (area) {
+        setTimeout(() => area.focus({ preventScroll: true }), 240);
+      }
+    }
+
+    async function shareResults() {
+      const exportText = buildExportText();
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: "RISC review notes", text: exportText });
+          setSaveLine("Shared successfully.");
+          return;
+        }
+      } catch (error) {
+        setSaveLine("Share was canceled.");
+        return;
+      }
+
+      window.location.href = `mailto:?subject=${encodeURIComponent("RISC review notes")}&body=${encodeURIComponent(exportText)}`;
+      setSaveLine("Opened your email app draft.");
+    }
+
+    async function copyResults() {
+      const exportText = buildExportText();
+      try {
+        await navigator.clipboard.writeText(exportText);
+        setSaveLine("Copied your notes to the clipboard.");
+      } catch (error) {
+        setSaveLine("Clipboard copy failed in this browser.");
+      }
+    }
+
+    function buildExportText() {
+      const lines = [];
+      const stamped = new Date().toLocaleString();
+      const total = state.chapters.reduce((sum, chapter) => sum + chapter.sections.length, 0);
+      const completed = state.chapters.reduce((sum, chapter) => sum + chapter.sections.filter((section) => hasNote(section.id)).length, 0);
+      const percent = total ? Math.round((completed / total) * 100) : 0;
+
+      lines.push("RISC Review Workbench Export");
+      lines.push(`Generated: ${stamped}`);
+      lines.push(`Progress: ${completed}/${total} subsections noted (${percent}%)`);
+      lines.push("");
+
+      state.chapters.forEach((chapter) => {
+        const notedSections = chapter.sections.filter((section) => hasNote(section.id));
+        if (!notedSections.length) return;
+        lines.push(chapter.title);
+        notedSections.forEach((section) => {
+          lines.push(`- ${section.title}`);
+          lines.push((state.notes[section.id] || "").trim());
+          lines.push("");
+        });
+      });
+
+      if (lines.length <= 4) {
+        lines.push("No notes have been added yet.");
+      }
+
+      return lines.join("\n");
+    }
+
+    function buildExportJson() {
+      const payload = {
+        generatedAt: new Date().toISOString(),
+        filter: state.filter,
+        search: state.search,
+        chapters: state.chapters.map((chapter) => ({
+          title: chapter.title,
+          sections: chapter.sections
+            .filter((section) => hasNote(section.id))
+            .map((section) => ({
+              id: section.id,
+              title: section.title,
+              note: (state.notes[section.id] || "").trim()
+            }))
+        })).filter((chapter) => chapter.sections.length)
+      };
+      return JSON.stringify(payload, null, 2);
+    }
+ 
+    function saveNotes() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.notes));
+      setSaveLine(`Saved locally at ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`);
+    }
+
+    function renderError(error) {
+      els.appRoot.innerHTML = `
+        <section class="error-card">
+          <h2>Couldn’t load the plan file.</h2>
+          <p>This app reads directly from the RISC planning document so the review content stays in sync. If you opened the page as a raw file, your browser may be blocking local fetch requests.</p>
+          <p>Use the library site link, or open the source markdown directly from the button above.</p>
+          <p><code>${escapeHtml(String(error && error.message ? error.message : error))}</code></p>
+        </section>
+      `;
+    }
+
+    function downloadBlob(filename, text, type) {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setSaveLine(`Downloaded ${filename}.`);
+    }
+
+    function syncFilterButtons() {
+      document.querySelectorAll(".filter-chip").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.filter === state.filter);
+      });
+    }
+
+    function hasNote(sectionId) {
+      return !!(state.notes[sectionId] || "").trim();
+    }
+
+    function wordCountLabel(text) {
+      const trimmed = (text || "").trim();
+      if (!trimmed) return "0 words saved";
+      return `${trimmed.split(/\s+/).length} words saved`;
+    }
+
+    function extractNumber(title) {
+      const match = title.match(/^(\d+(?:\.\d+)+)/);
+      return match ? match[1] : "";
+    }
+
+    function autosize(textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.max(132, textarea.scrollHeight)}px`;
+    }
+
+    function setSaveLine(message) {
+      els.saveLine.textContent = message;
+    }
+
+    function slugify(text) {
+      return text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    function loadJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function formatInline(text) {
+      return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+  </script>
+</body>
+</html>
