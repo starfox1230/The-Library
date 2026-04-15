@@ -28,6 +28,9 @@ class SectionSpec:
     file_name: str
     start_page: int
     end_page: int
+    start_marker: str | None = None
+    end_marker: str | None = None
+    start_occurrence: int = 1
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="01. Introduction and Radiation protection.txt",
                 start_page=5,
                 end_page=7,
+                start_marker="Radioisotope Safety Content (RISC) Study Guide",
+                end_marker="2 Radiation biology",
             ),
             SectionSpec(
                 key="01.02",
@@ -63,6 +68,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="02. Radiation Biology.txt",
                 start_page=8,
                 end_page=14,
+                start_marker="2 Radiation biology",
+                end_marker="3. Transport and management of radioactive materials",
             ),
             SectionSpec(
                 key="01.03",
@@ -70,6 +77,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="03. Transport and management of radioactive materials.txt",
                 start_page=15,
                 end_page=20,
+                start_marker="3. Transport and management of radioactive materials",
+                end_marker="4. Regulatory exposure limits to radioactive materials",
             ),
             SectionSpec(
                 key="01.04",
@@ -77,6 +86,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="04. Regulatory exposure limits to radioactive materials.txt",
                 start_page=21,
                 end_page=24,
+                start_marker="4. Regulatory exposure limits to radioactive materials",
+                end_marker="5. Radiopharmaceutical administration",
             ),
             SectionSpec(
                 key="01.05",
@@ -84,6 +95,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="05. Radiopharmaceutical administration.txt",
                 start_page=25,
                 end_page=29,
+                start_marker="5. Radiopharmaceutical administration",
+                end_marker="6. Administrative/practice regulations, responsibilities and training",
             ),
             SectionSpec(
                 key="01.06",
@@ -91,6 +104,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="06. Administrative and practice regulations, responsibilities and training.txt",
                 start_page=30,
                 end_page=43,
+                start_marker="6. Administrative/practice regulations, responsibilities and training",
+                end_marker="7. Emergency procedures, accidents/incidents, special circumstances",
             ),
             SectionSpec(
                 key="01.07",
@@ -98,6 +113,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="07. Emergency procedures, accidents and incidents, special circumstances.txt",
                 start_page=44,
                 end_page=52,
+                start_marker="7. Emergency procedures, accidents/incidents, special circumstances",
+                end_marker="Appendix 1. Radiation-Measuring Instrumentation and Quality Control Tests",
             ),
             SectionSpec(
                 key="01.08",
@@ -105,6 +122,8 @@ DOCUMENT_SPECS: dict[str, DocumentSpec] = {
                 file_name="08. Appendix 1. Radiation-Measuring Instrumentation and Quality Control Tests.txt",
                 start_page=53,
                 end_page=54,
+                start_marker="Appendix 1. Radiation-Measuring Instrumentation and Quality Control Tests",
+                end_marker="Appendix 2. ABR Currently-in-Use Radiopharmaceuticals (Through 12/31/2025)",
             ),
         ),
     ),
@@ -212,6 +231,45 @@ def build_section_text(
     return "\n".join(lines).strip() + "\n"
 
 
+def flatten_clean_lines(
+    page_lines: list[list[str]],
+    ignored_line_patterns: tuple[re.Pattern[str], ...],
+) -> list[str]:
+    lines: list[str] = []
+    for page in page_lines:
+        for line in page:
+            if any(pattern.fullmatch(line) for pattern in ignored_line_patterns):
+                continue
+            lines.append(line)
+    return lines
+
+
+def find_marker_index(lines: list[str], marker: str, occurrence: int = 1) -> int:
+    count = 0
+    for index, line in enumerate(lines):
+        if line == marker:
+            count += 1
+            if count == occurrence:
+                return index
+    raise ValueError(f"Marker not found ({occurrence}x): {marker!r}")
+
+
+def build_marker_section_text(
+    lines: list[str],
+    start_marker: str,
+    end_marker: str | None,
+    *,
+    start_occurrence: int = 1,
+) -> str:
+    start_index = find_marker_index(lines, start_marker, occurrence=start_occurrence)
+    end_index = find_marker_index(lines, end_marker) if end_marker else len(lines)
+    if end_index <= start_index:
+        raise ValueError(
+            f"End marker {end_marker!r} occurred before start marker {start_marker!r}"
+        )
+    return "\n".join(lines[start_index:end_index]).strip() + "\n"
+
+
 def generate_document(spec: DocumentSpec, *, extractor: str) -> None:
     if not spec.pdf_path.exists():
         raise FileNotFoundError(f"Source PDF not found: {spec.pdf_path}")
@@ -222,16 +280,28 @@ def generate_document(spec: DocumentSpec, *, extractor: str) -> None:
         extractor=extractor,
         strip_page_furniture=True,
     )
+    flattened_lines = flatten_clean_lines(
+        extraction.page_lines,
+        ignored_line_patterns=spec.ignored_line_patterns,
+    )
 
     spec.output_dir.mkdir(parents=True, exist_ok=True)
 
     for section in spec.sections:
-        section_text = build_section_text(
-            extraction.page_lines,
-            start_page=section.start_page,
-            end_page=section.end_page,
-            ignored_line_patterns=spec.ignored_line_patterns,
-        )
+        if section.start_marker:
+            section_text = build_marker_section_text(
+                flattened_lines,
+                start_marker=section.start_marker,
+                end_marker=section.end_marker,
+                start_occurrence=section.start_occurrence,
+            )
+        else:
+            section_text = build_section_text(
+                extraction.page_lines,
+                start_page=section.start_page,
+                end_page=section.end_page,
+                ignored_line_patterns=spec.ignored_line_patterns,
+            )
         section_path = spec.output_dir / section.file_name
         section_path.write_text(section_text, encoding="utf-8")
 
