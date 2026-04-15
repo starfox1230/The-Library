@@ -1,4 +1,5 @@
 from .auto_scroll import install as install_auto_scroll
+from .clipboard_json_cards import install as install_clipboard_json_cards
 from .f3_blocker import install as install_f3_blocker
 from .hard_cards import install as install_hard_cards
 from .menu import install
@@ -15,6 +16,7 @@ from .visual_card_multitude import install as install_visual_card_multitude
 
 
 install_auto_scroll()
+install_clipboard_json_cards()
 install_f3_blocker()
 install_hard_cards()
 install_no_image_today()

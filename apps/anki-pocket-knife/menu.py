@@ -21,6 +21,10 @@ from aqt.qt import (
 )
 
 from .auto_scroll import is_auto_scroll_enabled, set_auto_scroll_enabled
+from .clipboard_json_cards import (
+    ACTION_LABEL as CLIPBOARD_JSON_ACTION_LABEL,
+    import_cards_from_clipboard_json,
+)
 from .early_review import (
     EARLY_REVIEW_DEFAULT_COUNT,
     EARLY_REVIEW_SHORTCUT,
@@ -773,6 +777,10 @@ def _register_menu() -> None:
     )
     early_review_action.triggered.connect(lambda *_args: build_early_review_filtered_deck())
     pocket_menu.addAction(early_review_action)
+
+    clipboard_json_action = QAction(CLIPBOARD_JSON_ACTION_LABEL, mw)
+    clipboard_json_action.triggered.connect(lambda *_args: import_cards_from_clipboard_json())
+    pocket_menu.addAction(clipboard_json_action)
 
     pocket_menu.addSeparator()
 

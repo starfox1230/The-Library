@@ -6,6 +6,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 
 - `Early Review Deck`: reuses the existing early-review behavior and builds a filtered deck from tomorrow's review cards, prioritizing the longest intervals first.
 - `Study Repair`: adds a button above the main deck list and a launcher/menu action that ranks cards reviewed in the last configurable hours by recent instability, shows why each card ranked highly, opens that exact set in the Browser, and copies clean note-field content for a separate tutor workflow without changing scheduling.
+- `Clipboard JSON -> New saCloze++ Cards`: adds `Make New Cards From Clipboard JSON` to the deck-browser right-click menu and the Pocket Knife Tools menu, reads a clipboard JSON array of objects with `html` plus optional `tags`, and imports each entry into the current normal deck as a new `saCloze++` note with the HTML placed directly into `Text`.
 - `Missed Today -> Copy Text`: copies the front/back text of every card you missed in the current Anki day.
 - `Missed Today -> Save Text File`: writes that same export to a local text file inside `user_files`.
 - `Missed Today -> Open HTML Viewer`: creates a local HTML page of cards missed today and rewrites image/media paths to local collection-media file URLs so images render outside Anki.
@@ -32,6 +33,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Open Pocket Knife Launcher`
 - `Tools -> Anki Pocket Knife -> Build No-Image Today Deck`
 - `Tools -> Anki Pocket Knife -> Build Recent New Cards Deck`
+- `Tools -> Anki Pocket Knife -> Make New Cards From Clipboard JSON`
 - `Tools -> Anki Pocket Knife -> Open Study Repair`
 - `Tools -> Anki Pocket Knife -> Open Recent Leeches In Browser`
 - `Tools -> Anki Pocket Knife -> Open Suspended Cards In Browser`
@@ -48,6 +50,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Reviewer Image Overlay Shortcuts (Ctrl+Shift+5 / Ctrl+Shift+4)`
 - `Tools -> Anki Pocket Knife -> Remember Reviewer Image Position On Close`
 - `Tools -> Anki Pocket Knife -> Play Audio From TTS-Enabled Cards`
+- Deck-browser right click: `Make New Cards From Clipboard JSON`
 - Default launcher shortcut: `Ctrl+Shift+Q` if Anki has not already claimed it
 - Default early-review shortcut inside this add-on: `Ctrl+Alt+F`
 
