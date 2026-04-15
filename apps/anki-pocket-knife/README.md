@@ -19,6 +19,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Filtered Deck -> Send Non-New Cards Home`: shows only filtered decks in a searchable picker, sends the selected deck's current non-new cards back to their original deck while keeping their current schedule, leaves still-new cards in place, and also appears in the deck gear menu for filtered decks.
 - `Disable Default F3 Shortcut`: default-on toggle that removes Anki's built-in plain `F3` shortcut, so `F3` is left unused for your own workflow.
 - `Add Cards -> Pink Picture-Frame Converter`: default-on button on the normal Add Cards screen that converts the current cloze note into `Visual_Card_Multitude`, sending cloze text to `English`, non-cloze text to `Question`, inline images to `Images`, and `Extra` to `More Info`. If you are already on `Visual_Card_Multitude`, the same button converts back to `saCloze++`, sending `Question` plus a clozed `English` block and `Images` into `Text`, and `More Info` back into `Extra`.
+- `Add Cards -> Sticky Fields Default On`: default-on setting that initializes Add Cards note types with every field thumbtack turned on when they do not already have saved sticky-pin choices, then leaves later thumbtack changes as that note type's saved default.
 - `Add Cards -> Dx Diagnosis Template`: default-on `Dx` button beside the picture-frame button that is only enabled for cloze note types and rewrites the `Text` field to `Diagnosis?<br><br>{{c1::}}<br><br>` above any existing images, then places the cursor inside the empty cloze.
 - `Add Cards -> Auto Deck Toggle`: toolbar toggle that can automatically switch cloze notes between `.NEW::Audio` and `.New::Visual` based on whether the `Text` field contains an image, and can also auto-switch `Visual_Card_Multitude` notes to `.New::Visual`.
 - `Add Cards -> Live Multi-Image Counter`: optional setting that adds a `1/N` label above the first image in a cloze note's `Text` field when more than one image is present, keeps it updated as images are added, strips it during cloze-to-visual conversion, and recreates it when converting back to cloze.
@@ -40,6 +41,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Send Filtered Deck Non-New Cards Home`
 - `Tools -> Anki Pocket Knife -> Disable Anki's Default F3 Shortcut`
 - `Tools -> Anki Pocket Knife -> Recent-Leech Banner On Deck List`
+- `Tools -> Anki Pocket Knife -> Default Sticky Fields On In Add Cards`
 - `Tools -> Anki Pocket Knife -> Auto Deck For Cloze Add Cards`
 - `Tools -> Anki Pocket Knife -> Dx Diagnosis Button In Add Cards`
 - `Tools -> Anki Pocket Knife -> Live Multi-Image Counter In Add Cards`

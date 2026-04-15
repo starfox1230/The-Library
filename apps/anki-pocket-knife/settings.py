@@ -14,6 +14,7 @@ DEFAULT_SETTINGS = {
     "tts_enabled_card_audio": False,
     "disable_default_f3_shortcut": True,
     "visual_card_multitude_add_button": True,
+    "add_cards_sticky_fields_default_on": True,
     "add_cards_diagnosis_button": True,
     "add_cards_cloze_auto_deck": True,
     "add_cards_multi_image_counter": True,

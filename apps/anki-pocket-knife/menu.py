@@ -62,12 +62,14 @@ from .visual_card_multitude import (
     is_add_cards_auto_deck_enabled,
     is_add_cards_diagnosis_button_enabled,
     is_add_cards_multi_image_counter_enabled,
+    is_add_cards_sticky_fields_default_on_enabled,
     is_add_cards_tab_cycles_clozes_enabled,
     is_visual_card_multitude_add_button_enabled,
     is_visual_card_multitude_auto_visual_deck_enabled,
     set_add_cards_auto_deck_enabled,
     set_add_cards_diagnosis_button_enabled,
     set_add_cards_multi_image_counter_enabled,
+    set_add_cards_sticky_fields_default_on_enabled,
     set_add_cards_tab_cycles_clozes_enabled,
     set_visual_card_multitude_add_button_enabled,
     set_visual_card_multitude_auto_visual_deck_enabled,
@@ -89,6 +91,7 @@ _disable_f3_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
 _add_cards_diagnosis_action: QAction | None = None
 _add_cards_multi_image_counter_action: QAction | None = None
+_add_cards_sticky_fields_action: QAction | None = None
 _add_cards_tab_cycles_clozes_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
@@ -306,6 +309,13 @@ class PocketKnifeLauncherDialog(QDialog):
         )
         self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
         add_cards_layout.addWidget(self.visual_card_multitude_checkbox)
+        self.add_cards_sticky_fields_checkbox = QCheckBox(
+            "Default Add Cards field thumbtacks to on for new note types"
+        )
+        self.add_cards_sticky_fields_checkbox.setChecked(
+            is_add_cards_sticky_fields_default_on_enabled()
+        )
+        add_cards_layout.addWidget(self.add_cards_sticky_fields_checkbox)
         self.add_cards_auto_deck_checkbox = QCheckBox(
             "Auto-switch cloze notes between .NEW::Audio and .New::Visual based on Text images"
         )
@@ -393,6 +403,9 @@ class PocketKnifeLauncherDialog(QDialog):
         self.recent_leech_banner_checkbox.toggled.connect(self._set_recent_leech_banner_enabled)
         self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
         self.visual_card_multitude_checkbox.toggled.connect(self._set_visual_card_multitude_enabled)
+        self.add_cards_sticky_fields_checkbox.toggled.connect(
+            self._set_add_cards_sticky_fields_default_on_enabled
+        )
         self.add_cards_auto_deck_checkbox.toggled.connect(self._set_add_cards_auto_deck_enabled)
         self.add_cards_diagnosis_checkbox.toggled.connect(self._set_add_cards_diagnosis_enabled)
         self.add_cards_multi_image_counter_checkbox.toggled.connect(
@@ -458,6 +471,12 @@ class PocketKnifeLauncherDialog(QDialog):
             self.visual_card_multitude_checkbox.blockSignals(True)
             self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
             self.visual_card_multitude_checkbox.blockSignals(False)
+        if hasattr(self, "add_cards_sticky_fields_checkbox"):
+            self.add_cards_sticky_fields_checkbox.blockSignals(True)
+            self.add_cards_sticky_fields_checkbox.setChecked(
+                is_add_cards_sticky_fields_default_on_enabled()
+            )
+            self.add_cards_sticky_fields_checkbox.blockSignals(False)
         if hasattr(self, "add_cards_auto_deck_checkbox"):
             self.add_cards_auto_deck_checkbox.blockSignals(True)
             self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
@@ -517,6 +536,10 @@ class PocketKnifeLauncherDialog(QDialog):
         set_visual_card_multitude_add_button_enabled(bool(checked))
         sync_settings_ui()
 
+    def _set_add_cards_sticky_fields_default_on_enabled(self, checked: bool) -> None:
+        set_add_cards_sticky_fields_default_on_enabled(bool(checked))
+        sync_settings_ui()
+
     def _set_add_cards_auto_deck_enabled(self, checked: bool) -> None:
         set_add_cards_auto_deck_enabled(bool(checked))
         sync_settings_ui()
@@ -560,6 +583,7 @@ def sync_settings_ui() -> None:
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
+    global _add_cards_sticky_fields_action
     global _add_cards_tab_cycles_clozes_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
@@ -598,6 +622,11 @@ def sync_settings_ui() -> None:
         _disable_f3_action.blockSignals(True)
         _disable_f3_action.setChecked(disable_f3_enabled)
         _disable_f3_action.blockSignals(False)
+    add_cards_sticky_fields_enabled = is_add_cards_sticky_fields_default_on_enabled()
+    if _add_cards_sticky_fields_action is not None:
+        _add_cards_sticky_fields_action.blockSignals(True)
+        _add_cards_sticky_fields_action.setChecked(add_cards_sticky_fields_enabled)
+        _add_cards_sticky_fields_action.blockSignals(False)
     add_cards_auto_deck_enabled = is_add_cards_auto_deck_enabled()
     if _add_cards_auto_deck_action is not None:
         _add_cards_auto_deck_action.blockSignals(True)
@@ -656,6 +685,10 @@ def sync_settings_ui() -> None:
         _dialog.disable_f3_checkbox.blockSignals(True)
         _dialog.disable_f3_checkbox.setChecked(disable_f3_enabled)
         _dialog.disable_f3_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "add_cards_sticky_fields_checkbox"):
+        _dialog.add_cards_sticky_fields_checkbox.blockSignals(True)
+        _dialog.add_cards_sticky_fields_checkbox.setChecked(add_cards_sticky_fields_enabled)
+        _dialog.add_cards_sticky_fields_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "add_cards_auto_deck_checkbox"):
         _dialog.add_cards_auto_deck_checkbox.blockSignals(True)
         _dialog.add_cards_auto_deck_checkbox.setChecked(add_cards_auto_deck_enabled)
@@ -717,6 +750,11 @@ def _toggle_visual_card_multitude_button(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_add_cards_sticky_fields_default_on(checked: bool) -> None:
+    set_add_cards_sticky_fields_default_on_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_add_cards_auto_deck(checked: bool) -> None:
     set_add_cards_auto_deck_enabled(bool(checked))
     sync_settings_ui()
@@ -752,6 +790,7 @@ def _register_menu() -> None:
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
+    global _add_cards_sticky_fields_action
     global _add_cards_tab_cycles_clozes_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
@@ -837,6 +876,12 @@ def _register_menu() -> None:
     _recent_leech_banner_action.setChecked(is_recent_leech_banner_enabled())
     _recent_leech_banner_action.triggered.connect(_toggle_recent_leech_banner)
     pocket_menu.addAction(_recent_leech_banner_action)
+
+    _add_cards_sticky_fields_action = QAction("Default Sticky Fields On In Add Cards", mw)
+    _add_cards_sticky_fields_action.setCheckable(True)
+    _add_cards_sticky_fields_action.setChecked(is_add_cards_sticky_fields_default_on_enabled())
+    _add_cards_sticky_fields_action.triggered.connect(_toggle_add_cards_sticky_fields_default_on)
+    pocket_menu.addAction(_add_cards_sticky_fields_action)
 
     _add_cards_auto_deck_action = QAction("Auto Deck For Cloze Add Cards", mw)
     _add_cards_auto_deck_action.setCheckable(True)

@@ -14,11 +14,12 @@ from aqt.qt import QApplication, QEvent, QKeyEvent, QObject, QTimer, Qt
 from aqt.theme import theme_manager
 from aqt.utils import showWarning, tooltip
 
-from .common import addon_root
+from .common import addon_root, user_files_dir
 from .settings import get_setting, set_setting
 
 
 SETTING_NAME = "visual_card_multitude_add_button"
+STICKY_FIELDS_DEFAULT_ON_SETTING_NAME = "add_cards_sticky_fields_default_on"
 DIAGNOSIS_BUTTON_SETTING_NAME = "add_cards_diagnosis_button"
 AUTO_DECK_SETTING_NAME = "add_cards_cloze_auto_deck"
 VISUAL_DECK_SETTING_NAME = "visual_card_multitude_auto_visual_deck"
@@ -34,6 +35,7 @@ DIAGNOSIS_BUTTON_COMMAND = "pocket_knife_diagnosis_template"
 DIAGNOSIS_BUTTON_ID = "pocket-knife-diagnosis-template"
 AUTO_DECK_BUTTON_COMMAND = "pocket_knife_toggle_add_cards_auto_deck"
 AUTO_DECK_BUTTON_ID = "pocket-knife-auto-deck-toggle"
+STICKY_FIELDS_STATE_PATH = user_files_dir() / "sticky_fields_state.json"
 AUTO_DECK_AUDIO_NAME = ".NEW::Audio"
 AUTO_DECK_VISUAL_NAME = ".New::Visual"
 _HOOK_REGISTERED = False
@@ -216,6 +218,16 @@ def is_visual_card_multitude_add_button_enabled() -> bool:
 
 def set_visual_card_multitude_add_button_enabled(enabled: bool) -> bool:
     return bool(set_setting(SETTING_NAME, bool(enabled)))
+
+
+def is_add_cards_sticky_fields_default_on_enabled() -> bool:
+    return bool(get_setting(STICKY_FIELDS_DEFAULT_ON_SETTING_NAME))
+
+
+def set_add_cards_sticky_fields_default_on_enabled(enabled: bool) -> bool:
+    value = bool(set_setting(STICKY_FIELDS_DEFAULT_ON_SETTING_NAME, bool(enabled)))
+    sync_open_add_cards_editor_ui()
+    return value
 
 
 def is_add_cards_diagnosis_button_enabled() -> bool:
@@ -481,6 +493,7 @@ if (diagnosisButton) {{
 def sync_open_add_cards_editor_ui() -> None:
     for editor in list(_OPEN_ADD_CARDS_EDITORS):
         try:
+            _ensure_add_cards_sticky_fields_default(editor)
             _apply_multi_image_counter_rules(editor)
             _sync_auto_deck_toggle_button(editor)
             _sync_tab_cycle_state(editor)
@@ -495,6 +508,17 @@ def _note_type_name(note) -> str:
     except Exception:
         return ""
     return str(note_type.get("name", ""))
+
+
+def _note_type_id(note) -> int | None:
+    try:
+        note_type = note.note_type() or {}
+    except Exception:
+        return None
+    try:
+        return int(note_type.get("id"))
+    except Exception:
+        return None
 
 
 def _note_is_visual_card_multitude(note) -> bool:
@@ -512,6 +536,147 @@ def _note_is_cloze(note) -> bool:
     except Exception:
         pass
     return _note_type_name(note).casefold().startswith("sacloze")
+
+
+def _load_sticky_fields_initialized_note_type_ids() -> set[int]:
+    if not STICKY_FIELDS_STATE_PATH.exists():
+        return set()
+
+    try:
+        payload = json.loads(STICKY_FIELDS_STATE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+
+    if not isinstance(payload, dict):
+        return set()
+
+    raw_ids = payload.get("initialized_note_type_ids", [])
+    if not isinstance(raw_ids, list):
+        return set()
+
+    note_type_ids: set[int] = set()
+    for raw_id in raw_ids:
+        try:
+            note_type_ids.add(int(raw_id))
+        except Exception:
+            continue
+    return note_type_ids
+
+
+def _save_sticky_fields_initialized_note_type_ids(note_type_ids: set[int]) -> None:
+    payload = {"initialized_note_type_ids": sorted(int(note_type_id) for note_type_id in note_type_ids)}
+    STICKY_FIELDS_STATE_PATH.write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _sticky_fields_default_already_initialized(note_type_id: int | None) -> bool:
+    if note_type_id is None:
+        return False
+    return int(note_type_id) in _load_sticky_fields_initialized_note_type_ids()
+
+
+def _mark_sticky_fields_default_initialized(note_type_id: int | None) -> None:
+    if note_type_id is None:
+        return
+
+    note_type_ids = _load_sticky_fields_initialized_note_type_ids()
+    target_id = int(note_type_id)
+    if target_id in note_type_ids:
+        return
+
+    note_type_ids.add(target_id)
+    _save_sticky_fields_initialized_note_type_ids(note_type_ids)
+
+
+def _persist_note_type(editor: Editor, note_type: dict) -> bool:
+    try:
+        from aqt.operations.notetype import update_notetype_legacy
+    except Exception:
+        update_notetype_legacy = None
+
+    if callable(update_notetype_legacy):
+        try:
+            update_notetype_legacy(parent=mw, notetype=note_type).run_in_background(initiator=editor)
+            return True
+        except Exception:
+            pass
+
+    models = getattr(getattr(mw, "col", None), "models", None)
+    if models is None:
+        return False
+
+    for method_name in ("update_dict", "save"):
+        method = getattr(models, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            method(note_type)
+            return True
+        except Exception:
+            continue
+
+    return False
+
+
+def _sync_editor_sticky_fields(editor: Editor, sticky_states: list[bool]) -> None:
+    _run_toolbar_js(
+        editor,
+        f"""
+if (typeof setSticky === "function") {{
+  setSticky({json.dumps([bool(state) for state in sticky_states])});
+}}
+""",
+    )
+
+
+def _mark_editor_sticky_fields_initialized(editor: Editor) -> None:
+    note = getattr(editor, "note", None)
+    if note is None:
+        return
+    _mark_sticky_fields_default_initialized(_note_type_id(note))
+
+
+def _ensure_add_cards_sticky_fields_default(editor: Editor) -> None:
+    if not isinstance(getattr(editor, "parentWindow", None), AddCards):
+        return
+    if not is_add_cards_sticky_fields_default_on_enabled():
+        return
+
+    note = getattr(editor, "note", None)
+    if note is None:
+        return
+
+    note_type_id = _note_type_id(note)
+    if _sticky_fields_default_already_initialized(note_type_id):
+        return
+
+    try:
+        note_type = note.note_type() or {}
+    except Exception:
+        return
+
+    fields = note_type.get("flds", [])
+    if not isinstance(fields, list) or not fields:
+        _mark_sticky_fields_default_initialized(note_type_id)
+        return
+
+    existing_sticky_states = [bool(field.get("sticky")) for field in fields]
+    if any(existing_sticky_states):
+        _mark_sticky_fields_default_initialized(note_type_id)
+        return
+
+    sticky_states: list[bool] = []
+    for field in fields:
+        field["sticky"] = True
+        sticky_states.append(True)
+
+    if not _persist_note_type(editor, note_type):
+        return
+    _sync_editor_sticky_fields(editor, sticky_states)
+
+    _mark_sticky_fields_default_initialized(note_type_id)
 
 
 def _field_ord(note, wanted_name: str) -> int | None:
@@ -1213,6 +1378,7 @@ def _on_editor_did_load_note(editor: Editor) -> None:
     if not isinstance(getattr(editor, "parentWindow", None), AddCards):
         return
     _register_add_cards_editor(editor)
+    _ensure_add_cards_sticky_fields_default(editor)
     _apply_multi_image_counter_rules(editor)
     _sync_auto_deck_toggle_button(editor)
     _sync_tab_cycle_state(editor)
@@ -1233,7 +1399,10 @@ def _patch_editor_bridge() -> None:
         result = original(editor, cmd)
         try:
             if isinstance(getattr(editor, "parentWindow", None), AddCards):
+                if cmd.startswith("toggleSticky"):
+                    _mark_editor_sticky_fields_initialized(editor)
                 _register_add_cards_editor(editor)
+                _ensure_add_cards_sticky_fields_default(editor)
                 _apply_multi_image_counter_rules(editor)
                 _sync_auto_deck_toggle_button(editor)
                 _sync_tab_cycle_state(editor)
