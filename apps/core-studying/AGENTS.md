@@ -19,6 +19,9 @@ Do not consider the task complete unless the verifier passes.
 ## Preferred workflow for PDF-backed books
 - Prefer a repeatable script in `scripts/` over hand-editing dozens of `.txt` files.
 - If the PDF has a usable bookmark outline, prefer generating sections from the outline rather than splitting manually.
+- Treat bookmark or outline page numbers as search hints, not final boundaries.
+- Split sections on the visible heading line in the extracted text whenever possible, even if the bookmark lands on the prior page.
+- Validate boundaries after generation: each non-intro section file should begin with its own heading, not the tail of the previous section.
 - Keep generated text UTF-8 and copy-pasteable. Strip repeated headers/footers/page numbers when possible.
 - If the PDF outline has OCR glitches or mojibake, fix them in the generator with explicit overrides rather than hand-patching generated text.
 - Keep the source PDF in the book folder when it is part of the workflow for regeneration.
@@ -35,7 +38,7 @@ The app supports either of these chapter shapes:
 Examples already in this repo:
 - `Neuroradiology Core Requisites`: flat chapter entries with `TXT/...` files
 - `Brant and Helms`: nested `"sections"` plus `"introFile"`
-- `Nuclear Medicine - The Requisites`: outline-driven generated `TXT/...` files
+- `Nuclear Medicine - The Requisites`: outline-driven generated `TXT/...` files with heading-based subsection boundary detection
 
 ## Notes for future agents
 - `apps/core-studying/index.html` is the Textbook Copier UI and is the source of truth for supported manifest fields.

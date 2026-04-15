@@ -30,7 +30,16 @@ CHAPTER_RE = re.compile(r"^(?P<number>\d+)\.\s+(?P<title>.+)$")
 APPENDIX_RE = re.compile(r"^Appendix\s+(?P<number>\d+)\.\s+(?P<title>.+)$")
 INVALID_FILENAME_CHARS_RE = re.compile(r'[<>:"/\\|?*]')
 MULTISPACE_RE = re.compile(r"\s+")
-MOJIBAKE_HINT_RE = re.compile(r"[Ãâ€™œžŸ]")
+MATCH_RE = re.compile(r"[^a-z0-9]+")
+MOJIBAKE_MARKERS = (
+    "\u00c3",
+    "\u00e2",
+    "\u20ac",
+    "\u2122",
+    "\u0153",
+    "\u017e",
+    "\u0178",
+)
 
 TITLE_OVERRIDES = {
     "Data Acquisition of Emission Tomographyn": "Data Acquisition of Emission Tomography",
@@ -44,6 +53,19 @@ class Section:
     start_page: int
     end_page: int
     file_name: str
+
+
+@dataclass(frozen=True)
+class ResolvedSection:
+    key: str
+    title: str
+    file_name: str
+    start_page: int
+    start_line: int
+    end_page: int
+    end_line_exclusive: int
+    heading_page: int
+    heading_line: int
 
 
 @dataclass(frozen=True)
@@ -80,6 +102,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def repair_mojibake(text: str) -> str:
+    repaired = text
+    while any(marker in repaired for marker in MOJIBAKE_MARKERS):
+        try:
+            candidate = repaired.encode("cp1252").decode("utf-8")
+        except UnicodeError:
+            break
+        if candidate == repaired:
+            break
+        repaired = candidate
+    return repaired
+
+
 def normalize_title(title: str) -> str:
     title = repair_mojibake(title)
     title = MULTISPACE_RE.sub(" ", title.strip())
@@ -102,24 +137,102 @@ def safe_filename(title: str) -> str:
     return ascii_title or "section"
 
 
-def build_section_text(page_lines: list[list[str]], start_page: int, end_page: int) -> str:
+def normalize_for_match(text: str) -> str:
+    normalized = (
+        unicodedata.normalize("NFKD", repair_mojibake(text))
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2212", "-")
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .lower()
+    )
+    return MATCH_RE.sub("", normalized)
+
+
+def find_heading_line(page_lines: list[str], title: str) -> int | None:
+    target = normalize_for_match(title)
+    normalized_lines = [normalize_for_match(line) for line in page_lines]
+
+    for start_index, line in enumerate(normalized_lines):
+        if not line:
+            continue
+
+        combined = ""
+        for end_index in range(start_index, min(len(normalized_lines), start_index + 6)):
+            piece = normalized_lines[end_index]
+            if not piece:
+                continue
+            combined += piece
+
+            if combined == target or combined.startswith(target):
+                return start_index + 1
+            if not target.startswith(combined):
+                break
+
+    return None
+
+
+def find_heading_position(
+    page_lines: list[list[str]],
+    *,
+    title: str,
+    start_page: int,
+    end_page: int,
+) -> tuple[int, int]:
+    for page_number in range(start_page, end_page + 1):
+        line_number = find_heading_line(page_lines[page_number - 1], title)
+        if line_number is not None:
+            return page_number, line_number
+
+    raise ValueError(
+        f"Could not find visible heading for {title!r} between pages {start_page} and {end_page}"
+    )
+
+
+def candidate_heading_titles(title: str) -> list[str]:
+    candidates = [title]
+    appendix_match = APPENDIX_RE.match(title)
+    if appendix_match:
+        candidates.append(appendix_match.group("title"))
+    return candidates
+
+
+def build_section_text(
+    page_lines: list[list[str]],
+    *,
+    start_page: int,
+    start_line: int,
+    end_page: int,
+    end_line_exclusive: int,
+) -> str:
     lines: list[str] = []
     for page_number in range(start_page, end_page + 1):
-        lines.extend(repair_mojibake(line) for line in page_lines[page_number - 1])
+        page = [repair_mojibake(line) for line in page_lines[page_number - 1]]
+        from_index = start_line - 1 if page_number == start_page else 0
+        to_index = end_line_exclusive - 1 if page_number == end_page else len(page)
+        if to_index > from_index:
+            lines.extend(page[from_index:to_index])
     return "\n".join(lines).strip() + "\n"
 
 
-def repair_mojibake(text: str) -> str:
-    repaired = text
-    while MOJIBAKE_HINT_RE.search(repaired):
-        try:
-            candidate = repaired.encode("cp1252").decode("utf-8")
-        except UnicodeError:
-            break
-        if candidate == repaired:
-            break
-        repaired = candidate
-    return repaired
+def text_starts_with_heading(text: str, title: str) -> bool:
+    target = normalize_for_match(title)
+    lines = [line for line in text.splitlines() if line.strip()]
+    combined = ""
+
+    for line in lines[:6]:
+        combined += normalize_for_match(line)
+        if combined == target or combined.startswith(target):
+            return True
+        if not target.startswith(combined):
+            return False
+
+    return False
+
+
+def text_starts_with_any_heading(text: str, titles: list[str]) -> bool:
+    return any(text_starts_with_heading(text, title) for title in titles)
 
 
 def load_outline() -> tuple[list[ChapterDraft], list[AppendixDraft], int, int]:
@@ -247,7 +360,8 @@ def finalize_appendices(
         if end_page < draft.start_page:
             end_page = draft.start_page
         letter = chr(ord("A") + index)
-        short_title = APPENDIX_RE.match(draft.title).group("title") if APPENDIX_RE.match(draft.title) else draft.title
+        match = APPENDIX_RE.match(draft.title)
+        short_title = match.group("title") if match else draft.title
         file_name = f"Appendix {letter} - {safe_filename(short_title)}.txt"
         sections.append(
             Section(
@@ -262,18 +376,106 @@ def finalize_appendices(
     return Chapter(key="Supplement", title="Appendices", sections=tuple(sections))
 
 
+def resolve_section_boundaries(chapter: Chapter, page_lines: list[list[str]]) -> list[ResolvedSection]:
+    heading_positions: list[tuple[int, int]] = []
+
+    for index, section in enumerate(chapter.sections):
+        search_end_page = (
+            chapter.sections[index + 1].start_page
+            if index + 1 < len(chapter.sections)
+            else section.end_page
+        )
+        last_error: ValueError | None = None
+        for candidate_title in candidate_heading_titles(section.title):
+            try:
+                heading_positions.append(
+                    find_heading_position(
+                        page_lines,
+                        title=candidate_title,
+                        start_page=section.start_page,
+                        end_page=search_end_page,
+                    )
+                )
+                break
+            except ValueError as exc:
+                last_error = exc
+        else:
+            raise last_error if last_error is not None else ValueError(
+                f"Could not resolve heading for {section.title!r}"
+            )
+
+    resolved_sections: list[ResolvedSection] = []
+    for index, section in enumerate(chapter.sections):
+        heading_page, heading_line = heading_positions[index]
+
+        if index == 0:
+            start_page, start_line = section.start_page, 1
+        else:
+            start_page, start_line = heading_page, heading_line
+
+        if index + 1 < len(chapter.sections):
+            end_page, end_line_exclusive = heading_positions[index + 1]
+        else:
+            end_page = section.end_page
+            end_line_exclusive = len(page_lines[end_page - 1]) + 1
+
+        resolved_sections.append(
+            ResolvedSection(
+                key=section.key,
+                title=section.title,
+                file_name=section.file_name,
+                start_page=start_page,
+                start_line=start_line,
+                end_page=end_page,
+                end_line_exclusive=end_line_exclusive,
+                heading_page=heading_page,
+                heading_line=heading_line,
+            )
+        )
+
+    return resolved_sections
+
+
+def validate_boundaries(
+    chapter: Chapter,
+    resolved_sections: list[ResolvedSection],
+    page_lines: list[list[str]],
+) -> None:
+    for index, resolved in enumerate(resolved_sections):
+        text = build_section_text(
+            page_lines,
+            start_page=resolved.start_page,
+            start_line=resolved.start_line,
+            end_page=resolved.end_page,
+            end_line_exclusive=resolved.end_line_exclusive,
+        )
+        if index > 0 and not text_starts_with_any_heading(text, candidate_heading_titles(resolved.title)):
+            raise ValueError(
+                f"Section {resolved.key} in {chapter.key} does not start with its heading {resolved.title!r}"
+            )
+
+
 def write_outputs(chapters: list[Chapter], page_lines: list[list[str]]) -> None:
     TXT_DIR.mkdir(parents=True, exist_ok=True)
 
     manifest: dict[str, dict[str, object]] = {}
     for chapter in chapters:
+        resolved_sections = resolve_section_boundaries(chapter, page_lines)
+        validate_boundaries(chapter, resolved_sections, page_lines)
+
         manifest_entry: dict[str, object] = {"title": chapter.title}
-        for section in chapter.sections:
-            text = build_section_text(page_lines, section.start_page, section.end_page)
-            (TXT_DIR / section.file_name).write_text(text, encoding="utf-8")
-            manifest_entry[section.key] = {
-                "title": section.title,
-                "file": f"TXT/{section.file_name}",
+        for resolved in resolved_sections:
+            text = build_section_text(
+                page_lines,
+                start_page=resolved.start_page,
+                start_line=resolved.start_line,
+                end_page=resolved.end_page,
+                end_line_exclusive=resolved.end_line_exclusive,
+            )
+            (TXT_DIR / resolved.file_name).write_text(text, encoding="utf-8")
+            manifest_entry[resolved.key] = {
+                "title": resolved.title,
+                "file": f"TXT/{resolved.file_name}",
             }
         manifest[chapter.key] = manifest_entry
 
