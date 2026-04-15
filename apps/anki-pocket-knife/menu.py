@@ -27,6 +27,7 @@ from .early_review import (
     build_early_review_filtered_deck,
 )
 from .f3_blocker import is_default_f3_shortcut_disabled, set_default_f3_shortcut_disabled
+from .hard_cards import open_hard_cards_dialog
 from .missed_today import (
     copy_missed_today_text,
     export_missed_today_text_file,
@@ -42,6 +43,14 @@ from .recent_leeches import (
     set_recent_leech_banner_enabled,
 )
 from .recent_new_cards import open_recent_new_cards_dialog
+from .review_image_overlay import (
+    CLOSE_SHORTCUT,
+    CYCLE_SHORTCUT,
+    is_review_image_overlay_enabled,
+    is_review_image_overlay_remember_position_enabled,
+    set_review_image_overlay_enabled,
+    set_review_image_overlay_remember_position_enabled,
+)
 from .return_non_new import open_return_non_new_dialog
 from .suspended_browser import open_suspended_cards_browser
 from .tts_audio import is_tts_audio_enabled, set_tts_audio_enabled
@@ -68,6 +77,8 @@ _HOOK_REGISTERED = False
 _MENU_REGISTERED_FLAG = "_anki_pocket_knife_menu_registered"
 _dialog: "PocketKnifeLauncherDialog | None" = None
 _auto_scroll_action: QAction | None = None
+_review_image_overlay_action: QAction | None = None
+_review_image_overlay_remember_position_action: QAction | None = None
 _recent_leech_banner_action: QAction | None = None
 _tts_audio_action: QAction | None = None
 _disable_f3_action: QAction | None = None
@@ -176,6 +187,18 @@ class PocketKnifeLauncherDialog(QDialog):
         early_review_row.addWidget(self.early_review_button)
         early_review_layout.addLayout(early_review_row)
         layout.addWidget(early_review_box)
+
+        study_repair_box = QGroupBox("Study Repair")
+        study_repair_layout = QVBoxLayout(study_repair_box)
+        study_repair_copy = QLabel(
+            "Rank recently reviewed cards that still look unstable or not truly learned, then open that exact set "
+            "in Browser or copy clean note content for a tutor workflow."
+        )
+        study_repair_copy.setWordWrap(True)
+        study_repair_layout.addWidget(study_repair_copy)
+        self.study_repair_button = QPushButton("Open Study Repair")
+        study_repair_layout.addWidget(self.study_repair_button)
+        layout.addWidget(study_repair_box)
 
         missed_today_box = QGroupBox("Missed Today")
         missed_today_layout = QVBoxLayout(missed_today_box)
@@ -315,7 +338,8 @@ class PocketKnifeLauncherDialog(QDialog):
         review_box = QGroupBox("Review Behavior")
         review_layout = QVBoxLayout(review_box)
         review_copy = QLabel(
-            "Optional reviewer helpers: jump back to the top when you reveal the answer, and optionally allow or suppress "
+            "Optional reviewer helpers: jump back to the top when you reveal the answer, cycle card images in a fullscreen "
+            f"overlay with {CYCLE_SHORTCUT}, close that overlay with {CLOSE_SHORTCUT}, and optionally allow or suppress "
             "audio playback from TTS-enabled cards."
         )
         review_copy.setWordWrap(True)
@@ -323,6 +347,18 @@ class PocketKnifeLauncherDialog(QDialog):
         self.auto_scroll_checkbox = QCheckBox("Auto-scroll to the top when answer is revealed")
         self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
         review_layout.addWidget(self.auto_scroll_checkbox)
+        self.review_image_overlay_checkbox = QCheckBox(
+            f"Reviewer image overlay shortcuts ({CYCLE_SHORTCUT} cycle, {CLOSE_SHORTCUT} close)"
+        )
+        self.review_image_overlay_checkbox.setChecked(is_review_image_overlay_enabled())
+        review_layout.addWidget(self.review_image_overlay_checkbox)
+        self.review_image_overlay_remember_position_checkbox = QCheckBox(
+            "Remember image position after closing the overlay"
+        )
+        self.review_image_overlay_remember_position_checkbox.setChecked(
+            is_review_image_overlay_remember_position_enabled()
+        )
+        review_layout.addWidget(self.review_image_overlay_remember_position_checkbox)
         self.tts_audio_checkbox = QCheckBox("Play audio from TTS-enabled cards")
         self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
         review_layout.addWidget(self.tts_audio_checkbox)
@@ -339,6 +375,7 @@ class PocketKnifeLauncherDialog(QDialog):
         outer_layout.addLayout(close_row)
 
         self.early_review_button.clicked.connect(self._build_early_review_deck)
+        self.study_repair_button.clicked.connect(lambda *_args: open_hard_cards_dialog())
         self.copy_button.clicked.connect(self._run_and_refresh(copy_missed_today_text))
         self.export_button.clicked.connect(self._run_and_refresh(export_missed_today_text_file))
         self.html_button.clicked.connect(self._run_and_refresh(open_missed_today_html_viewer))
@@ -364,6 +401,10 @@ class PocketKnifeLauncherDialog(QDialog):
             self._set_visual_card_multitude_auto_visual_deck_enabled
         )
         self.auto_scroll_checkbox.toggled.connect(self._set_auto_scroll_enabled)
+        self.review_image_overlay_checkbox.toggled.connect(self._set_review_image_overlay_enabled)
+        self.review_image_overlay_remember_position_checkbox.toggled.connect(
+            self._set_review_image_overlay_remember_position_enabled
+        )
         self.tts_audio_checkbox.toggled.connect(self._set_tts_audio_enabled)
         self.close_button.clicked.connect(self.close)
 
@@ -391,6 +432,16 @@ class PocketKnifeLauncherDialog(QDialog):
             self.auto_scroll_checkbox.blockSignals(True)
             self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
             self.auto_scroll_checkbox.blockSignals(False)
+        if hasattr(self, "review_image_overlay_checkbox"):
+            self.review_image_overlay_checkbox.blockSignals(True)
+            self.review_image_overlay_checkbox.setChecked(is_review_image_overlay_enabled())
+            self.review_image_overlay_checkbox.blockSignals(False)
+        if hasattr(self, "review_image_overlay_remember_position_checkbox"):
+            self.review_image_overlay_remember_position_checkbox.blockSignals(True)
+            self.review_image_overlay_remember_position_checkbox.setChecked(
+                is_review_image_overlay_remember_position_enabled()
+            )
+            self.review_image_overlay_remember_position_checkbox.blockSignals(False)
         if hasattr(self, "tts_audio_checkbox"):
             self.tts_audio_checkbox.blockSignals(True)
             self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
@@ -436,6 +487,14 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_auto_scroll_enabled(self, checked: bool) -> None:
         set_auto_scroll_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_review_image_overlay_enabled(self, checked: bool) -> None:
+        set_review_image_overlay_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_review_image_overlay_remember_position_enabled(self, checked: bool) -> None:
+        set_review_image_overlay_remember_position_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_recent_leech_banner_enabled(self, checked: bool) -> None:
@@ -489,6 +548,8 @@ def open_launcher() -> None:
 
 def sync_settings_ui() -> None:
     global _auto_scroll_action
+    global _review_image_overlay_action
+    global _review_image_overlay_remember_position_action
     global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
@@ -504,6 +565,20 @@ def sync_settings_ui() -> None:
         _auto_scroll_action.blockSignals(True)
         _auto_scroll_action.setChecked(auto_scroll_enabled)
         _auto_scroll_action.blockSignals(False)
+    review_image_overlay_enabled = is_review_image_overlay_enabled()
+    if _review_image_overlay_action is not None:
+        _review_image_overlay_action.blockSignals(True)
+        _review_image_overlay_action.setChecked(review_image_overlay_enabled)
+        _review_image_overlay_action.blockSignals(False)
+    review_image_overlay_remember_position_enabled = (
+        is_review_image_overlay_remember_position_enabled()
+    )
+    if _review_image_overlay_remember_position_action is not None:
+        _review_image_overlay_remember_position_action.blockSignals(True)
+        _review_image_overlay_remember_position_action.setChecked(
+            review_image_overlay_remember_position_enabled
+        )
+        _review_image_overlay_remember_position_action.blockSignals(False)
     recent_leech_banner_enabled = is_recent_leech_banner_enabled()
     if _recent_leech_banner_action is not None:
         _recent_leech_banner_action.blockSignals(True)
@@ -553,6 +628,16 @@ def sync_settings_ui() -> None:
         _dialog.auto_scroll_checkbox.blockSignals(True)
         _dialog.auto_scroll_checkbox.setChecked(auto_scroll_enabled)
         _dialog.auto_scroll_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "review_image_overlay_checkbox"):
+        _dialog.review_image_overlay_checkbox.blockSignals(True)
+        _dialog.review_image_overlay_checkbox.setChecked(review_image_overlay_enabled)
+        _dialog.review_image_overlay_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "review_image_overlay_remember_position_checkbox"):
+        _dialog.review_image_overlay_remember_position_checkbox.blockSignals(True)
+        _dialog.review_image_overlay_remember_position_checkbox.setChecked(
+            review_image_overlay_remember_position_enabled
+        )
+        _dialog.review_image_overlay_remember_position_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "tts_audio_checkbox"):
         _dialog.tts_audio_checkbox.blockSignals(True)
         _dialog.tts_audio_checkbox.setChecked(tts_audio_enabled)
@@ -595,6 +680,16 @@ def sync_settings_ui() -> None:
 
 def _toggle_auto_scroll(checked: bool) -> None:
     set_auto_scroll_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_review_image_overlay(checked: bool) -> None:
+    set_review_image_overlay_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_review_image_overlay_remember_position(checked: bool) -> None:
+    set_review_image_overlay_remember_position_enabled(bool(checked))
     sync_settings_ui()
 
 
@@ -645,6 +740,8 @@ def _toggle_visual_card_multitude_auto_visual_deck(checked: bool) -> None:
 
 def _register_menu() -> None:
     global _auto_scroll_action
+    global _review_image_overlay_action
+    global _review_image_overlay_remember_position_action
     global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
@@ -702,6 +799,10 @@ def _register_menu() -> None:
     recent_new_action = QAction("Build Recent New Cards Deck", mw)
     recent_new_action.triggered.connect(lambda *_args: open_recent_new_cards_dialog())
     pocket_menu.addAction(recent_new_action)
+
+    study_repair_action = QAction("Open Study Repair", mw)
+    study_repair_action.triggered.connect(lambda *_args: open_hard_cards_dialog())
+    pocket_menu.addAction(study_repair_action)
 
     recent_leeches_action = QAction("Open Recent Leeches In Browser", mw)
     recent_leeches_action.triggered.connect(lambda *_args: open_recent_leeches_browser())
@@ -777,6 +878,28 @@ def _register_menu() -> None:
     _auto_scroll_action.setChecked(is_auto_scroll_enabled())
     _auto_scroll_action.triggered.connect(_toggle_auto_scroll)
     pocket_menu.addAction(_auto_scroll_action)
+
+    _review_image_overlay_action = QAction(
+        f"Reviewer Image Overlay Shortcuts ({CYCLE_SHORTCUT} / {CLOSE_SHORTCUT})",
+        mw,
+    )
+    _review_image_overlay_action.setCheckable(True)
+    _review_image_overlay_action.setChecked(is_review_image_overlay_enabled())
+    _review_image_overlay_action.triggered.connect(_toggle_review_image_overlay)
+    pocket_menu.addAction(_review_image_overlay_action)
+
+    _review_image_overlay_remember_position_action = QAction(
+        "Remember Reviewer Image Position On Close",
+        mw,
+    )
+    _review_image_overlay_remember_position_action.setCheckable(True)
+    _review_image_overlay_remember_position_action.setChecked(
+        is_review_image_overlay_remember_position_enabled()
+    )
+    _review_image_overlay_remember_position_action.triggered.connect(
+        _toggle_review_image_overlay_remember_position
+    )
+    pocket_menu.addAction(_review_image_overlay_remember_position_action)
 
     _tts_audio_action = QAction("Play Audio From TTS-Enabled Cards", mw)
     _tts_audio_action.setCheckable(True)

@@ -13,3 +13,11 @@ Do not consider the task complete unless the verification script passes.
 
 ## Why this exists
 A previous change added a temporary app folder but forgot to update the landing-page registration path. These instructions and the verifier prevent that regression.
+
+## When modifying `apps/core-studying`
+If a task touches `apps/core-studying/`, read `apps/core-studying/AGENTS.md` before making changes.
+
+For book registration, manifest, or generated text changes under `apps/core-studying/`, run:
+- `python scripts/verify_core_studying_books.py`
+
+Do not consider those changes complete unless the verifier passes.

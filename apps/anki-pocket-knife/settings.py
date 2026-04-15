@@ -8,6 +8,8 @@ from .common import user_files_dir
 SETTINGS_PATH = user_files_dir() / "settings.json"
 DEFAULT_SETTINGS = {
     "scroll_to_top_on_answer": True,
+    "review_image_overlay_shortcuts": True,
+    "review_image_overlay_remember_position": False,
     "recent_leech_banner": True,
     "tts_enabled_card_audio": False,
     "disable_default_f3_shortcut": True,
