@@ -8,6 +8,7 @@ from aqt.qt import QAction, QApplication, QMenu
 from aqt.utils import showInfo, showWarning
 
 from .clipboard_json_cards_core import ClipboardJsonCard, parse_clipboard_json_cards
+from .saved_cards_audio import SOURCE_DECK_NAME
 
 
 ACTION_LABEL = "Make New Cards From Clipboard JSON"
@@ -39,70 +40,118 @@ def _actual_model_field_name(model: dict[str, Any], wanted_name: str) -> str | N
     return None
 
 
-def _deck_name(deck_id: int) -> str:
-    decks = getattr(mw.col, "decks", None)
-    if decks is None:
-        return "Current Deck"
-
-    name_method = getattr(decks, "name", None)
-    if callable(name_method):
-        try:
-            return str(name_method(int(deck_id)))
-        except Exception:
-            pass
-
-    get_method = getattr(decks, "get", None)
-    if callable(get_method):
-        try:
-            deck = get_method(int(deck_id)) or {}
-        except Exception:
-            deck = {}
-        if isinstance(deck, dict) and deck.get("name"):
-            return str(deck.get("name"))
-
-    return "Current Deck"
-
-
-def _current_deck_info() -> tuple[int, str, bool] | None:
+def _deck_for_id(deck_id: int) -> dict[str, Any] | None:
     decks = getattr(mw.col, "decks", None)
     if decks is None:
         return None
 
-    current_method = getattr(decks, "current", None)
-    if callable(current_method):
-        try:
-            deck = current_method() or {}
-        except Exception:
-            deck = {}
-        if isinstance(deck, dict) and deck.get("id") is not None:
-            try:
-                deck_id = int(deck["id"])
-            except Exception:
-                deck_id = None
-            if deck_id is not None:
-                return (
-                    deck_id,
-                    str(deck.get("name") or _deck_name(deck_id)),
-                    bool(deck.get("dyn", False)),
-                )
+    get_method = getattr(decks, "get", None)
+    if not callable(get_method):
+        return None
 
-    selected_method = getattr(decks, "selected", None)
-    if callable(selected_method):
+    try:
+        deck = get_method(int(deck_id)) or {}
+    except Exception:
+        return None
+    return deck if isinstance(deck, dict) and deck else None
+
+
+def _deck_id_for_exact_name(deck_name: str) -> int | None:
+    decks = getattr(mw.col, "decks", None)
+    if decks is None:
+        return None
+
+    by_name = getattr(decks, "by_name", None)
+    if callable(by_name):
         try:
-            deck_id = int(selected_method())
+            deck = by_name(deck_name)
+        except Exception:
+            deck = None
+        if isinstance(deck, dict) and deck.get("id") is not None and str(deck.get("name", "")) == deck_name:
+            return int(deck["id"])
+
+    id_for_name = getattr(decks, "id_for_name", None)
+    if callable(id_for_name):
+        try:
+            deck_id = id_for_name(deck_name)
         except Exception:
             deck_id = None
         if deck_id is not None:
-            deck = {}
-            get_method = getattr(decks, "get", None)
-            if callable(get_method):
-                try:
-                    deck = get_method(deck_id) or {}
-                except Exception:
-                    deck = {}
-            return (deck_id, _deck_name(deck_id), bool(deck.get("dyn", False)))
+            deck = _deck_for_id(int(deck_id))
+            if deck and str(deck.get("name", "")) == deck_name:
+                return int(deck_id)
+
+    all_names_and_ids = getattr(decks, "all_names_and_ids", None)
+    if callable(all_names_and_ids):
+        try:
+            raw_items = list(all_names_and_ids() or [])
+        except Exception:
+            raw_items = []
+        for item in raw_items:
+            raw_id = None
+            raw_name = None
+            if isinstance(item, dict):
+                raw_id = item.get("id")
+                raw_name = item.get("name")
+            elif isinstance(item, (tuple, list)) and len(item) >= 2:
+                first, second = item[0], item[1]
+                if isinstance(first, int):
+                    raw_id, raw_name = first, second
+                else:
+                    raw_name, raw_id = first, second
+            if raw_id is None or raw_name != deck_name:
+                continue
+            return int(raw_id)
 
     return None
+
+
+def _created_deck_id(raw_result: Any) -> int | None:
+    try:
+        if raw_result is None:
+            return None
+        if isinstance(raw_result, int):
+            return int(raw_result)
+        if isinstance(raw_result, dict) and raw_result.get("id") is not None:
+            return int(raw_result["id"])
+        raw_id = getattr(raw_result, "id", None)
+        if raw_id is not None:
+            return int(raw_id)
+    except Exception:
+        return None
+    return None
+
+
+def _ensure_saved_cards_deck() -> tuple[int, str]:
+    deck_id = _deck_id_for_exact_name(SOURCE_DECK_NAME)
+    decks = getattr(mw.col, "decks", None)
+    if deck_id is None and decks is not None:
+        create_method = getattr(decks, "add_normal_deck_with_name", None)
+        if callable(create_method):
+            try:
+                deck_id = _created_deck_id(create_method(SOURCE_DECK_NAME))
+            except Exception:
+                deck_id = None
+        if deck_id is None:
+            legacy_id = getattr(decks, "id", None)
+            if callable(legacy_id):
+                try:
+                    deck_id = _created_deck_id(legacy_id(SOURCE_DECK_NAME))
+                except Exception:
+                    deck_id = None
+
+    if deck_id is None:
+        raise RuntimeError(f"Could not find or create the '{SOURCE_DECK_NAME}' deck.")
+
+    deck = _deck_for_id(deck_id)
+    if not deck or str(deck.get("name", "")) != SOURCE_DECK_NAME:
+        raise RuntimeError(f"Could not resolve the exact '{SOURCE_DECK_NAME}' deck.")
+    if bool(deck.get("dyn", False)):
+        raise RuntimeError(
+            f"'{SOURCE_DECK_NAME}' exists as a filtered deck. Rename or remove it, then try again."
+        )
+
+    return int(deck_id), str(deck.get("name") or SOURCE_DECK_NAME)
 
 
 def _target_model() -> dict[str, Any] | None:
@@ -173,17 +222,10 @@ def import_cards_from_clipboard_json() -> None:
         showInfo("Clipboard JSON did not contain any cards to import.")
         return
 
-    deck_info = _current_deck_info()
-    if deck_info is None:
-        showWarning("Could not determine the current deck for importing notes.")
-        return
-
-    deck_id, deck_name, is_filtered = deck_info
-    if is_filtered:
-        showWarning(
-            "The current deck is a filtered deck.\n\n"
-            "Switch to a normal deck on the deck list first, then run the import again."
-        )
+    try:
+        deck_id, deck_name = _ensure_saved_cards_deck()
+    except Exception as exc:
+        showWarning(f"Could not prepare the '{SOURCE_DECK_NAME}' deck.\n\n{exc}")
         return
 
     model = _target_model()

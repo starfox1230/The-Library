@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ABR Guide Diff Summary</title>
+  <style>
+    :root {
+      --bg: #0f1720;
+      --panel: #152231;
+      --panel-strong: #1d3145;
+      --text: #edf4fb;
+      --muted: #a9bfd4;
+      --accent: #67d4ff;
+      --accent-strong: #1fb2e1;
+      --border: rgba(121, 164, 201, 0.26);
+      --shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+      --warn: #ffd166;
+      --good: #8ee59b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(103, 212, 255, 0.10), transparent 34%),
+        linear-gradient(180deg, #0b121a 0%, #0f1720 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .back-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .hero {
+      background: linear-gradient(145deg, rgba(29, 49, 69, 0.95), rgba(16, 32, 47, 0.95));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -60px -80px auto;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(103, 212, 255, 0.18), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      border: 1px solid rgba(103, 212, 255, 0.35);
+      color: var(--accent);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 3.7vw, 3.4rem);
+      line-height: 1.05;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 850px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.65;
+    }
+
+    .hero-actions,
+    .jump-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .chip,
+    .hero-actions a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+    }
+
+    .hero-actions a.primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+      color: #08131c;
+      border-color: transparent;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 24px 0 8px;
+    }
+
+    .summary-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+    }
+
+    .summary-card span {
+      color: var(--muted);
+      line-height: 1.45;
+      display: block;
+    }
+
+    .doc {
+      margin-top: 26px;
+      background: rgba(15, 23, 32, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .doc-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .doc-header h2 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .doc p.lead {
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 0 0 18px;
+      max-width: 940px;
+    }
+
+    .change-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .change-card {
+      background: linear-gradient(180deg, rgba(21, 34, 49, 0.92), rgba(16, 32, 47, 0.92));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .change-card h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      line-height: 1.35;
+    }
+
+    .change-card ul {
+      margin: 0 0 14px 18px;
+      padding: 0;
+      color: var(--text);
+      line-height: 1.62;
+    }
+
+    .change-card li + li {
+      margin-top: 8px;
+    }
+
+    .why {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .note-strip {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .note-strip strong {
+      color: var(--text);
+    }
+
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.65;
+      padding-bottom: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100% - 20px, 1180px);
+      }
+
+      .hero,
+      .doc {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <a class="back-link" href="../../index.html">Back to The Library</a>
+      <div class="jump-links">
+        <a class="chip" href="#risc">Jump to RISC</a>
+        <a class="chip" href="#nis">Jump to NIS</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="eyebrow">ABR Study Guide Changes</div>
+      <h1>Meaningful 2025 -&gt; 2026 Guide Differences</h1>
+      <p>
+        This page combines the meaningful change summaries for the ABR
+        Radioisotope Safety Content (RISC) and Non-Interpretive Skills (NIS)
+        study guides. The goal is to surface the substantive factual updates
+        and ignore noise such as year swaps, footers, repagination, and table-of-contents drift.
+      </p>
+
+      <div class="hero-actions">
+        <a class="primary" href="../core-studying/index.html">Open Textbook Copier</a>
+        <a href="../core-studying/Radioisotope%20Safety%20Document/comparison-output/risc-study-guide-2025-v2-1__vs__risc-study-guide-2026.diff.html">Open RISC diff HTML</a>
+        <a href="../core-studying/Non-Interpretive%20Skills%20Document/comparison-output/2025-nis-study-guide-v2__vs__nis-study-guide-2026.diff.html">Open NIS diff HTML</a>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <strong>RISC</strong>
+          <span>Major real changes are concentrated in radiation biology definitions, deterministic eye-dose thresholds, sealed-source leak testing language, and the expanded Mo-99/Tc-99m generator discussion.</span>
+        </div>
+        <div class="summary-card">
+          <strong>NIS</strong>
+          <span>Most major changes are concentrated in Chapter 4, especially MR safety operations, iodinated contrast policy, kidney-injury terminology, and new gadolinium contrast-agent details.</span>
+        </div>
+        <div class="summary-card">
+          <strong>Noise Removed</strong>
+          <span>Year changes, page numbers, footer text, table-of-contents repagination, and other layout churn were intentionally filtered out here.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc" id="risc">
+      <div class="doc-header">
+        <h2>RISC 2025 -&gt; 2026</h2>
+      </div>
+      <div class="tag-row">
+        <span class="tag">Document: Radioisotope Safety Content</span>
+        <span class="tag">Real changes only</span>
+        <span class="tag">Diff report linked above</span>
+      </div>
+      <p class="lead">
+        The raw RISC diff had a lot of footer and year noise, but the meaningful changes are
+        fairly concentrated. Below, each item states the actual changed fact rather than only naming the topic.
+      </p>
+
+      <div class="change-list">
+        <article class="change-card">
+          <h3>Population dose reference and ALARA wording</h3>
+          <ul>
+            <li>The average annual U.S. dose reference changed from <strong>500 to 600 mrem (5 to 6 mSv)</strong> to <strong>about 620 mrem (6.2 mSv)</strong>.</li>
+            <li>The ALARA explanation changed from minimizing dose to <strong>patients and personnel</strong> to minimizing dose to <strong>the public and personnel</strong>.</li>
+          </ul>
+          <p class="why">
+            This does not create a new legal dose limit, but it changes the baseline framing. The ALARA wording is also more regulator-style because patient exposure is handled differently from worker and public protection.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Effective half-life, collective dose, and lethal dose definitions were added</h3>
+          <ul>
+            <li>The 2026 guide adds the effective half-life relationship <strong>1/Te = 1/Tp + 1/Tb</strong>, which is commonly rearranged as <strong>Te = (Tp x Tb) / (Tp + Tb)</strong>.</li>
+            <li>It explicitly defines <strong>collective dose</strong> as the sum of the individual doses received by a specified population from a specified source over a given period.</li>
+            <li>It adds <strong>LD 50/30</strong> as the radiation dose expected to cause death in 50 percent of an exposed population within 30 days, with a typical range of <strong>400 to 450 rem (4 to 5 Sv)</strong>.</li>
+          </ul>
+          <p class="why">
+            These are conceptual study-guide upgrades. Effective half-life matters for how long activity actually persists in a patient. Collective dose is a population burden concept rather than a personal risk number. LD 50/30 distinguishes accident-level deterministic injury from routine imaging exposure.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Deterministic eye-threshold table was materially revised</h3>
+          <ul>
+            <li><strong>Opacification (fractionated)</strong> dropped from <strong>5 Gy</strong> to <strong>0.5 Gy</strong>.</li>
+            <li><strong>Cataract (single acute)</strong> dropped from <strong>5 Gy</strong> to <strong>0.5 Gy</strong>.</li>
+            <li>The extracted 2026 table no longer clearly shows the old <strong>cataract (fractionated) 8 Gy</strong> row.</li>
+          </ul>
+          <p class="why">
+            This is one of the biggest study-relevant shifts in the whole RISC guide because it makes the lens look much more radiosensitive and reinforces that tissue-reaction thresholds, especially for the eye, should be taken more seriously.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>LNT model explanation was strengthened</h3>
+          <ul>
+            <li>The 2026 guide now says the linear no-threshold model provides <strong>a conservative approach to radiation protection</strong>.</li>
+          </ul>
+          <p class="why">
+            That sentence matters because it explains the role of LNT in policy: the guide is not saying every tiny dose has directly measurable harm in an individual person, but that radiation protection should be designed conservatively.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Sealed-source leak testing language became more operational</h3>
+          <ul>
+            <li>Sealed sources are now described as needing <strong>leak tests (wipe tested)</strong> every 6 months.</li>
+            <li>The guide now says a leak is determined <strong>by a wipe test</strong>.</li>
+            <li>The report is described as needing the <strong>date of the wipe test</strong>.</li>
+          </ul>
+          <p class="why">
+            This turns a general compliance statement into a more exam-ready operational one. The method, the trigger for calling it a leak, and the reporting detail are all more explicit than before.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Worker exposure reporting language became more precise</h3>
+          <ul>
+            <li>The REIRS wording shifts from general worker <strong>exposures</strong> to <strong>individual dose equivalent exposures</strong>.</li>
+          </ul>
+          <p class="why">
+            That makes the physics and regulatory language tighter. Exposure and dose equivalent are not interchangeable ideas, so the 2026 wording is more technically exact.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Mo-99/Tc-99m generator explanation was expanded</h3>
+          <ul>
+            <li>The 2026 guide adds a description of the common <strong>chromatographic</strong> Mo-99/Tc-99m generator.</li>
+            <li>It explains that <strong>Mo-99</strong> is held on a column and that the daughter product <strong>Tc-99m</strong> is eluted off the column as usable pertechnetate solution.</li>
+            <li>It adds the product-quality language that the eluate is expected to be <strong>sterile</strong>, <strong>pyrogen-free</strong>, and <strong>isotonic</strong>.</li>
+          </ul>
+          <p class="why">
+            This is a real operational-content increase. It makes the guide better at explaining not just that generators exist, but how the parent-daughter separation works and what the final injected product is supposed to be like.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Mo-99 breakthrough and quality control got a stronger rationale</h3>
+          <ul>
+            <li>The 2026 guide now explains that <strong>Mo-99 has a 66 hour half-life</strong>.</li>
+            <li>It states that Mo-99 emits <strong>high-energy gamma photons and beta particles</strong>.</li>
+            <li>It therefore explains more directly why <strong>Mo-99 breakthrough</strong> into the Tc-99m product is tightly regulated.</li>
+          </ul>
+          <p class="why">
+            This adds the "why" behind generator QC. The intended diagnostic agent is Tc-99m, so parent radionuclide contamination means unnecessary and unintended extra patient dose.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Instrumentation appendix became more specific</h3>
+          <ul>
+            <li>The well-counter description now says it can determine the <strong>specific radionuclide contamination</strong>, not just count activity in general.</li>
+            <li>Radio-TLC is now described as being used to analyze <strong>radiochemical purity</strong> rather than the looser word <strong>purity</strong>.</li>
+          </ul>
+          <p class="why">
+            These are small but meaningful technical upgrades. A well counter with energy discrimination can help separate isotopes, and radiochemical purity is the correct term when the question is whether the radioactivity is in the desired chemical form.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Mo-99 appears in the radionuclide quick-reference material</h3>
+          <ul>
+            <li>The 2026 physical-properties appendix appears to add a <strong>Mo-99</strong> row with its half-life and emissions.</li>
+          </ul>
+          <p class="why">
+            That makes the appendix better aligned with the expanded generator and breakthrough discussion, since Mo-99 is the parent radionuclide behind the most important nuclear-medicine generator in routine practice.
+          </p>
+        </article>
+      </div>
+
+      <div class="note-strip">
+        <strong>What was intentionally ignored:</strong> year changes, page numbers, repagination, footer text, minor capitalization changes, and raw extraction oddities that did not change the actual meaning.
+      </div>
+    </section>
+
+    <section class="doc" id="nis">
+      <div class="doc-header">
+        <h2>NIS 2025 -&gt; 2026</h2>
+      </div>
+      <div class="tag-row">
+        <span class="tag">Document: Non-Interpretive Skills</span>
+        <span class="tag">Chapter 4 carries most of the real change</span>
+        <span class="tag">MR + contrast updates dominate</span>
+      </div>
+      <p class="lead">
+        The NIS raw diff is noisy because the 2026 guide is six pages longer and Chapter 4 was expanded.
+        The items below are the real content changes rather than simple reflow.
+      </p>
+
+      <div class="change-list">
+        <article class="change-card">
+          <h3>Scope and framing were updated at the front of the guide</h3>
+          <ul>
+            <li>The 2026 guide says the main changes from 2025 are updates related to <strong>MR safety</strong> and <strong>contrast administration</strong>.</li>
+            <li>It now states more explicitly that <strong>medical physics, including radiation safety, is a separate topic</strong> and tells examinees to consult the <strong>ABR Physics Study Guide</strong> for that material.</li>
+          </ul>
+          <p class="why">
+            This is not a big factual chapter change, but it helps define study boundaries more clearly. It also signals that most real updates are expected in MR safety and contrast sections, which is exactly what the diff shows.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>MR scanner construction and MR operations were explained in more detail</h3>
+          <ul>
+            <li>The MRI scanner is described as a <strong>coil within a coil within a coil</strong>, with the main coil, gradient coils, and RF coils creating different magnetic fields for different purposes.</li>
+            <li>The 2026 section adds stronger operational language around roles such as <strong>MRMD</strong>, <strong>MRSO</strong>, and <strong>MRSE</strong>.</li>
+            <li>Zone III is described more explicitly as a strictly controlled area, and daily Zone IV personnel are now described as candidates for <strong>pocketless attire</strong>.</li>
+          </ul>
+          <p class="why">
+            This makes the MR chapter less like a short definition sheet and more like a practical operations guide. That is more useful for exam questions tied to workflow, environment, and supervision.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>MR screening language became more explicit and more practical</h3>
+          <ul>
+            <li>If patient history is unreliable, the 2026 guide emphasizes screening through <strong>other sources such as family members and the medical record</strong>.</li>
+            <li>If there is concern for retained intraocular metal, the 2026 guide explicitly mentions <strong>orbital X-rays or thin-section head CT</strong>.</li>
+            <li>The guide now states more clearly that <strong>metal-containing implants are never MR safe</strong>; they are categorized as <strong>MR unsafe</strong> or <strong>MR conditional</strong>.</li>
+          </ul>
+          <p class="why">
+            These are meaningful because they sharpen how screening should be performed in real life. They also remove ambiguity around implant labeling, which is a common exam-style point.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>CIED and emergency management details were expanded</h3>
+          <ul>
+            <li>The 2026 guide gives more explicit protocol language for scanning patients with <strong>cardiac implantable electronic devices (CIEDs)</strong>.</li>
+            <li>It reinforces the need to follow all MR-conditional scanning conditions, use a <strong>radiology/cardiology team approach</strong>, have <strong>ACLS-trained personnel</strong> and a <strong>crash cart</strong> available, and ensure <strong>post-MRI CIED reprogramming</strong>.</li>
+          </ul>
+          <p class="why">
+            This is not just wording cleanup. It adds practical safety expectations for how these patients are handled, which is exactly the kind of thing a modern NIS guide should clarify.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Quenching became a fuller emergency-safety topic</h3>
+          <ul>
+            <li>The heading changed from <strong>Quenching</strong> to <strong>Quenching (Emergency Magnet Shutoff)</strong>.</li>
+            <li>The 2026 guide explains that quench events can release rapidly expanding helium gas into Zone IV if a <strong>quench pipe fails or becomes obstructed</strong>.</li>
+            <li>It explicitly describes the risks of <strong>oxygen displacement</strong>, <strong>hypoxia/asphyxiation</strong>, <strong>fogging or reduced visibility</strong>, and the need for <strong>immediate evacuation of Zone IV</strong>.</li>
+          </ul>
+          <p class="why">
+            This is one of the clearest substantive MR safety expansions. The 2026 guide goes beyond naming a quench and explains the actual room-level hazards and response logic.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Iodinated contrast premedication guidance was tightened around ACR 2024</h3>
+          <ul>
+            <li>The reference point moves from the <strong>ACR Manual on Contrast Media (2020)</strong> to the <strong>ACR Manual on Contrast Media (2024)</strong>.</li>
+            <li>The guide says ACR suggests considering premedication mainly for a prior <strong>allergic-like or unknown-type reaction to the same class</strong> of contrast that will be given.</li>
+            <li>It now explicitly says ACR does <strong>not recommend routine premedication</strong> for allergies to unrelated substances, asthma alone, or allergic-like reactions to a <strong>different</strong> contrast class.</li>
+            <li>The guide also states that the only proven benefit of corticosteroid premedication is reduction in the number of <strong>mild</strong> reactions.</li>
+          </ul>
+          <p class="why">
+            This is a meaningful policy-style update. It narrows who should be premedicated and makes the evidence statement more honest: premedication is not clearly proven to prevent moderate or severe reactions.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Kidney-injury terminology was modernized and better defined</h3>
+          <ul>
+            <li>The older terms <strong>PC-AKI</strong> and <strong>CIN</strong> were replaced by <strong>CA-AKI</strong> and <strong>CI-AKI</strong>.</li>
+            <li><strong>CA-AKI</strong> is defined as an acute deterioration in renal function after intravascular iodinated contrast, whether or not contrast is actually proven to be the cause.</li>
+            <li><strong>CI-AKI</strong> is defined as the subset of CA-AKI that is actually caused by contrast.</li>
+            <li>The 2026 guide explicitly says older literature often overestimated true contrast-caused kidney injury by treating nearly all post-contrast AKI as if it were contrast-induced.</li>
+            <li>It says true CI-AKI is likely much less common than older literature suggested and that major precautions mainly apply to patients with <strong>severe CKD (eGFR less than 30)</strong> or <strong>AKI</strong>.</li>
+          </ul>
+          <p class="why">
+            This is one of the biggest factual cleanups in the NIS guide because it changes how the renal-risk discussion is framed. It is less alarmist and more methodologically careful.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Young children received a genuinely new iodinated-contrast note</h3>
+          <ul>
+            <li>The 2026 guide adds a section on <strong>iodinated contrast media in young children</strong>.</li>
+            <li>It explains that the FDA updated thyroid-function monitoring guidance for children <strong>under age 3</strong> who receive intravascular iodinated contrast.</li>
+            <li>It also says those monitoring decisions should be individualized based on risk factors such as <strong>prematurity</strong>, <strong>very low birth weight</strong>, and other conditions that may affect thyroid function.</li>
+            <li>The guide then notes that these guidelines remain <strong>controversial</strong> and are <strong>not endorsed</strong> by the ACR Committee on Drugs and Contrast Media.</li>
+          </ul>
+          <p class="why">
+            This is not just a wording tweak. It is a new specific fact pattern that did not appear in the older guide and is exactly the kind of update that could surprise someone studying from the 2025 version alone.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Gadolinium-based contrast content added a new named lower-risk agent</h3>
+          <ul>
+            <li>Table 4.1 now includes <strong>gadopiclenol</strong>, marketed as <strong>Elucirem</strong> and <strong>Vueway</strong>.</li>
+            <li>The guide identifies it as a <strong>nonionic macrocyclic</strong> agent in the <strong>lower-risk</strong> NSF group.</li>
+            <li>It states that gadopiclenol was <strong>approved by the FDA in 2022</strong>.</li>
+            <li>It says the agent has the <strong>highest relaxivity</strong> of the GBCM agents approved in the United States.</li>
+            <li>It also says it was approved at a dose of <strong>0.05 mmol/kg</strong>, which is half the usual <strong>0.1 mmol/kg</strong> gadolinium dose used by most other agents.</li>
+          </ul>
+          <p class="why">
+            This is the clearest named-agent factual update in the entire NIS diff. It changes the GBCM quick-reference landscape and is exactly the sort of new detail that can show up in a current-version study guide.
+          </p>
+        </article>
+
+        <article class="change-card">
+          <h3>Extravasation and contrast operations were expanded, but less dramatically</h3>
+          <ul>
+            <li>The 2026 guide gives a more explicit description of extravasation risk factors, including <strong>uncommunicative patients</strong>, <strong>altered circulation</strong>, <strong>prior radiation to the extremity</strong>, and injections in the <strong>hand, foot, or ankle</strong>.</li>
+            <li>It emphasizes that severe symptoms may not be immediate and that patients should be monitored for delayed progression.</li>
+          </ul>
+          <p class="why">
+            These are real additions, but they are smaller than the MR, kidney-injury, and GBCM updates above. They matter more as operational details than as major conceptual shifts.
+          </p>
+        </article>
+      </div>
+
+      <div class="note-strip">
+        <strong>Bottom line:</strong> for NIS, most meaningful 2026 change is concentrated in Chapter 4. The rest of the guide is comparatively stable, with much of the raw diff explained by page growth and text reflow rather than new tested content.
+      </div>
+    </section>
+
+    <footer>
+      Built from the local 2025 and 2026 guide comparisons already generated in this library.
+      Use the linked diff reports when you want raw side-by-side context, and use this page when you want the filtered "what actually changed" view.
+    </footer>
+  </div>
+</body>
+</html>

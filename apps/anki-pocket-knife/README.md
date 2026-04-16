@@ -6,7 +6,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 
 - `Early Review Deck`: reuses the existing early-review behavior and builds a filtered deck from tomorrow's review cards, prioritizing the longest intervals first.
 - `Study Repair`: adds a button above the main deck list and a launcher/menu action that ranks cards reviewed in the last configurable hours by recent instability, shows why each card ranked highly, opens that exact set in the Browser, and copies clean note-field content for a separate tutor workflow without changing scheduling.
-- `Clipboard JSON -> New saCloze++ Cards`: adds `Make New Cards From Clipboard JSON` to the deck-browser right-click menu and the Pocket Knife Tools menu, reads a clipboard JSON array of objects with `html` plus optional `tags`, and imports each entry into the current normal deck as a new `saCloze++` note with the HTML placed directly into `Text`.
+- `Clipboard JSON -> New saCloze++ Cards`: adds `Make New Cards From Clipboard JSON` to the deck-browser right-click menu and the Pocket Knife Tools menu, reads a clipboard JSON array of objects with `html` plus optional `tags`, and imports each entry into the exact `Saved Cards` deck as a new `saCloze++` note with the HTML placed directly into `Text`.
 - `Missed Today -> Copy Text`: copies the front/back text of every card you missed in the current Anki day.
 - `Missed Today -> Save Text File`: writes that same export to a local text file inside `user_files`.
 - `Missed Today -> Open HTML Viewer`: creates a local HTML page of cards missed today and rewrites image/media paths to local collection-media file URLs so images render outside Anki.
