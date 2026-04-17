@@ -7,7 +7,16 @@ from aqt import gui_hooks, mw
 from aqt.qt import QKeySequence, QShortcut, Qt
 from aqt.utils import tooltip
 
-from .review_image_overlay_core import extract_image_sources, merge_image_sources
+from .common import note_fields as extract_note_fields
+from .review_image_overlay_core import (
+    build_image_occlusion_entry,
+    build_overlay_entries_from_sources,
+    extract_image_sources,
+    has_layered_overlay_entries,
+    merge_overlay_entries,
+    normalize_overlay_entry,
+    overlay_entry_layers,
+)
 from .settings import get_setting, set_setting
 
 
@@ -94,7 +103,57 @@ def _scroll_reviewer_to_top() -> None:
     )
 
 
-def _normalize_image_sources(raw_value: Any) -> list[str]:
+def _card_note_fields(card: Any) -> dict[str, str]:
+    note_getter = getattr(card, "note", None)
+    if not callable(note_getter):
+        return {}
+
+    try:
+        note = note_getter()
+    except Exception:
+        return {}
+
+    try:
+        return extract_note_fields(note)
+    except Exception:
+        return {}
+
+
+def _entry_sources(entry: dict[str, Any] | None) -> set[str]:
+    if not isinstance(entry, dict):
+        return set()
+    return set(overlay_entry_layers(entry))
+
+
+def _question_overlay_entries(card: Any) -> list[dict[str, Any]]:
+    question_html = str(card.question() or "")
+    question_entries = build_overlay_entries_from_sources(extract_image_sources(question_html))
+    occlusion_entry = build_image_occlusion_entry(_card_note_fields(card), answer_side=False)
+    if occlusion_entry is None:
+        return question_entries
+
+    used_sources = _entry_sources(occlusion_entry)
+    extra_entries = build_overlay_entries_from_sources(
+        [source for source in extract_image_sources(question_html) if source not in used_sources]
+    )
+    return merge_overlay_entries([occlusion_entry], extra_entries)
+
+
+def _answer_overlay_entries(card: Any, question_entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    answer_html = str(card.answer() or "")
+    occlusion_entry = build_image_occlusion_entry(_card_note_fields(card), answer_side=True)
+    if occlusion_entry is not None:
+        used_sources = _entry_sources(occlusion_entry)
+        extra_entries = build_overlay_entries_from_sources(
+            [source for source in extract_image_sources(answer_html) if source not in used_sources]
+        )
+        return merge_overlay_entries([occlusion_entry], extra_entries)
+
+    answer_entries = build_overlay_entries_from_sources(extract_image_sources(answer_html))
+    return merge_overlay_entries(question_entries, answer_entries)
+
+
+def _normalize_overlay_entries(raw_value: Any) -> list[dict[str, Any]]:
     parsed = raw_value
     if isinstance(raw_value, str):
         text = raw_value.strip()
@@ -108,8 +167,7 @@ def _normalize_image_sources(raw_value: Any) -> list[str]:
     if not isinstance(parsed, list):
         return []
 
-    cleaned = [str(value or "").strip() for value in parsed]
-    return merge_image_sources(cleaned)
+    return merge_overlay_entries(parsed)
 
 
 def _visible_images_query_script() -> str:
@@ -187,10 +245,39 @@ def _overlay_bootstrap_script() -> str:
       const rootId = "{OVERLAY_ROOT_ID}";
       const styleId = "pocket-knife-review-image-overlay-style";
       const state = {{
-        images: [],
+        entries: [],
         index: 0,
         open: false,
       }};
+
+      function normalizeEntry(rawEntry, fallbackIndex) {{
+        if (typeof rawEntry === "string") {{
+          const source = String(rawEntry || "").trim();
+          if (!source) {{
+            return null;
+          }}
+          return {{
+            key: `image::${{source}}`,
+            layers: [source],
+          }};
+        }}
+
+        if (!rawEntry || typeof rawEntry !== "object") {{
+          return null;
+        }}
+
+        const layers = Array.isArray(rawEntry.layers)
+          ? rawEntry.layers.map((value) => String(value || "").trim()).filter(Boolean)
+          : [];
+        if (!layers.length) {{
+          return null;
+        }}
+
+        return {{
+          key: String(rawEntry.key || `entry::${{fallbackIndex}}::${{layers.join("|")}}`).trim(),
+          layers,
+        }};
+      }}
 
       function ensureStyle() {{
         if (document.getElementById(styleId)) {{
@@ -220,13 +307,26 @@ def _overlay_bootstrap_script() -> str:
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+          }}
+          #${{rootId}} .pkio-stack {{
+            position: absolute;
+            inset: 0;
           }}
           #${{rootId}} .pkio-image {{
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: contain;
             user-select: none;
             -webkit-user-drag: none;
+          }}
+          #${{rootId}} .pkio-image-base {{
+            z-index: 0;
+          }}
+          #${{rootId}} .pkio-image-layer {{
+            z-index: 1;
           }}
           #${{rootId}} .pkio-counter {{
             position: absolute;
@@ -254,7 +354,6 @@ def _overlay_bootstrap_script() -> str:
         root.setAttribute("aria-hidden", "true");
         root.innerHTML = `
           <div class="pkio-stage">
-            <img class="pkio-image" alt="Current card image" />
             <div class="pkio-counter" aria-live="polite"></div>
           </div>
         `;
@@ -262,42 +361,61 @@ def _overlay_bootstrap_script() -> str:
         return root;
       }}
 
-      function currentImage() {{
-        return state.images[state.index] || "";
+      function currentEntry() {{
+        return state.entries[state.index] || null;
       }}
 
       function render() {{
         ensureStyle();
         const root = ensureRoot();
-        const image = root.querySelector(".pkio-image");
+        const stage = root.querySelector(".pkio-stage");
         const counter = root.querySelector(".pkio-counter");
-        const hasImages = state.images.length > 0;
-        const activeSource = currentImage();
+        const hasEntries = state.entries.length > 0;
+        const activeEntry = currentEntry();
 
-        root.classList.toggle("is-open", state.open && hasImages);
-        root.setAttribute("aria-hidden", state.open && hasImages ? "false" : "true");
+        root.classList.toggle("is-open", state.open && hasEntries);
+        root.setAttribute("aria-hidden", state.open && hasEntries ? "false" : "true");
 
-        if (!hasImages) {{
-          image.removeAttribute("src");
+        Array.from(stage.querySelectorAll(".pkio-stack")).forEach((node) => node.remove());
+
+        if (!hasEntries || !activeEntry) {{
           counter.textContent = "";
           state.open = false;
           state.index = 0;
           return;
         }}
 
-        image.src = activeSource;
-        counter.textContent = `${{state.index + 1}} / ${{state.images.length}}`;
+        const stack = document.createElement("div");
+        stack.className = "pkio-stack";
+
+        activeEntry.layers.forEach((source, layerIndex) => {{
+          const image = document.createElement("img");
+          image.className = layerIndex === 0
+            ? "pkio-image pkio-image-base"
+            : "pkio-image pkio-image-layer";
+          image.src = source;
+          image.alt = layerIndex === 0 ? "Current card image" : "";
+          if (layerIndex > 0) {{
+            image.setAttribute("aria-hidden", "true");
+          }}
+          stack.appendChild(image);
+        }});
+
+        stage.insertBefore(stack, counter);
+        counter.textContent = `${{state.index + 1}} / ${{state.entries.length}}`;
       }}
 
-      function setImages(images, options = {{}}) {{
-        const nextImages = Array.isArray(images)
-          ? images.map((value) => String(value || "").trim()).filter(Boolean)
+      function setEntries(entries, options = {{}}) {{
+        const nextEntries = Array.isArray(entries)
+          ? entries
+              .map((entry, index) => normalizeEntry(entry, index))
+              .filter(Boolean)
           : [];
-        const previousImage = currentImage();
+        const previousKey = currentEntry() ? String(currentEntry().key || "") : "";
 
-        state.images = nextImages;
+        state.entries = nextEntries;
 
-        if (!nextImages.length) {{
+        if (!nextEntries.length) {{
           state.index = 0;
           state.open = false;
           render();
@@ -306,11 +424,11 @@ def _overlay_bootstrap_script() -> str:
 
         if (options.reset) {{
           state.index = 0;
-        }} else if (options.preserveCurrent && previousImage) {{
-          const preservedIndex = nextImages.indexOf(previousImage);
-          state.index = preservedIndex >= 0 ? preservedIndex : Math.min(state.index, nextImages.length - 1);
+        }} else if (options.preserveCurrent && previousKey) {{
+          const preservedIndex = nextEntries.findIndex((entry) => String(entry.key || "") === previousKey);
+          state.index = preservedIndex >= 0 ? preservedIndex : Math.min(state.index, nextEntries.length - 1);
         }} else {{
-          state.index = Math.min(state.index, nextImages.length - 1);
+          state.index = Math.min(state.index, nextEntries.length - 1);
         }}
 
         if (options.close) {{
@@ -321,7 +439,7 @@ def _overlay_bootstrap_script() -> str:
       }}
 
       function next() {{
-        if (!state.images.length) {{
+        if (!state.entries.length) {{
           state.open = false;
           render();
           return false;
@@ -331,7 +449,7 @@ def _overlay_bootstrap_script() -> str:
           render();
           return true;
         }}
-        state.index = (state.index + 1) % state.images.length;
+        state.index = (state.index + 1) % state.entries.length;
         render();
         return true;
       }}
@@ -342,7 +460,7 @@ def _overlay_bootstrap_script() -> str:
       }}
 
       window[namespace] = {{
-        setImages,
+        setEntries,
         next,
         hide,
       }};
@@ -353,18 +471,18 @@ def _overlay_bootstrap_script() -> str:
 
 def _command_script(
     *,
-    images: list[str] | None = None,
+    entries: list[dict[str, Any]] | None = None,
     reset: bool = False,
     close: bool = False,
     preserve_current: bool = False,
     action: str | None = None,
 ) -> str:
     commands: list[str] = [_overlay_bootstrap_script()]
-    if images is not None:
+    if entries is not None:
         commands.append(
             f"""
-            window.{OVERLAY_JS_NAMESPACE}.setImages(
-              {json.dumps(images)},
+            window.{OVERLAY_JS_NAMESPACE}.setEntries(
+              {json.dumps(entries)},
               {{
                 reset: {str(bool(reset)).lower()},
                 close: {str(bool(close)).lower()},
@@ -384,8 +502,8 @@ class _ReviewerImageOverlayController:
     def __init__(self) -> None:
         self._cycle_shortcut: QShortcut | None = None
         self._close_shortcut: QShortcut | None = None
-        self._question_images: list[str] = []
-        self._active_images: list[str] = []
+        self._question_entries: list[dict[str, Any]] = []
+        self._active_entries: list[dict[str, Any]] = []
         self._current_card_id = 0
 
     def install(self) -> None:
@@ -401,17 +519,16 @@ class _ReviewerImageOverlayController:
 
     def on_reviewer_did_show_question(self, card: Any) -> None:
         self._current_card_id = _card_id(card)
-        self._question_images = extract_image_sources(str(card.question() or ""))
-        self._active_images = list(self._question_images)
+        self._question_entries = _question_overlay_entries(card)
+        self._active_entries = list(self._question_entries)
         self._sync_overlay(reset=True, close=True, preserve_current=False)
 
     def on_reviewer_did_show_answer(self, card: Any) -> None:
         card_id = _card_id(card)
         if card_id != self._current_card_id:
             self._current_card_id = card_id
-            self._question_images = extract_image_sources(str(card.question() or ""))
-        answer_images = extract_image_sources(str(card.answer() or ""))
-        self._active_images = merge_image_sources(self._question_images, answer_images)
+            self._question_entries = _question_overlay_entries(card)
+        self._active_entries = _answer_overlay_entries(card, self._question_entries)
         self._sync_overlay(reset=True, close=True, preserve_current=False)
 
     def on_reviewer_did_answer_card(self, reviewer: Any, card: Any, ease: int) -> None:
@@ -425,9 +542,11 @@ class _ReviewerImageOverlayController:
             return
         if _reviewer_web() is None:
             return
-        if self._refresh_active_images_from_dom(self._show_next_image):
+        if not has_layered_overlay_entries(self._active_entries) and self._refresh_active_images_from_dom(
+            self._show_next_entry
+        ):
             return
-        self._show_next_image(list(self._active_images))
+        self._show_next_entry(list(self._active_entries))
 
     def on_close_shortcut(self) -> None:
         if _reviewer_web() is None:
@@ -435,10 +554,10 @@ class _ReviewerImageOverlayController:
         self.hide_overlay(scroll_to_top=True)
 
     def hide_overlay(self, *, scroll_to_top: bool = False) -> None:
-        if self._active_images and not is_review_image_overlay_remember_position_enabled():
+        if self._active_entries and not is_review_image_overlay_remember_position_enabled():
             self._eval(
                 _command_script(
-                    images=self._active_images,
+                    entries=self._active_entries,
                     reset=True,
                     close=True,
                     preserve_current=False,
@@ -449,15 +568,15 @@ class _ReviewerImageOverlayController:
         if scroll_to_top:
             _scroll_reviewer_to_top()
 
-    def _show_next_image(self, images: list[str]) -> None:
-        self._active_images = list(images)
-        if not self._active_images:
+    def _show_next_entry(self, entries: list[dict[str, Any]]) -> None:
+        self._active_entries = [entry for entry in (normalize_overlay_entry(raw_entry) for raw_entry in entries) if entry]
+        if not self._active_entries:
             tooltip("No images found on the current card.")
             self.hide_overlay()
             return
         self._eval(
             _command_script(
-                images=self._active_images,
+                entries=self._active_entries,
                 preserve_current=True,
                 action="next",
             )
@@ -465,7 +584,7 @@ class _ReviewerImageOverlayController:
 
     def _refresh_active_images_from_dom(
         self,
-        callback: Callable[[list[str]], None],
+        callback: Callable[[list[dict[str, Any]]], None],
     ) -> bool:
         web = _reviewer_web()
         if web is None:
@@ -476,7 +595,7 @@ class _ReviewerImageOverlayController:
             return False
 
         def on_result(value: Any) -> None:
-            callback(_normalize_image_sources(value))
+            callback(_normalize_overlay_entries(value))
 
         eval_with_callback(_visible_images_query_script(), on_result)
         return True
@@ -487,7 +606,7 @@ class _ReviewerImageOverlayController:
             return
         self._eval(
             _command_script(
-                images=self._active_images,
+                entries=self._active_entries,
                 reset=reset,
                 close=close,
                 preserve_current=preserve_current,

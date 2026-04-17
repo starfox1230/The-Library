@@ -78,3 +78,25 @@ Performance and energy-use reduction pass.
   - left-justified controls and fixed width/overflow issues that made the window harder to use
 - Updated flag selectors to use Anki's actual runtime flag colors instead of approximate guessed colors.
 - Added `meta.json` self-healing/bootstrap during config writes and local install flows so settings saves do not fail when the installed add-on folder is missing that file.
+
+## `speed-streak-addon-v1.15`
+
+Native add-on packaging and feature expansion release.
+
+- Rebuilt Speed Streak as a native Anki add-on, removing the old dependency on the external browser page, AnkiConnect, and AutoHotkey.
+- Added inline and external display modes, plus the new `Brick Layout` ultra-low-resource visual mode.
+- Added per-event audio and haptic customization, audio uploads, configurable pause shortcuts, and longest-streak stats.
+
+## `speed-streak-addon-v1.16`
+
+Comparison build for the external-window layout experiment.
+
+- Preserved the `Brick Layout` visual mode while restoring the review-only external-window layout persistence experiment for side-by-side testing against `v1.15`.
+
+## `speed-streak-addon-v1.17`
+
+Review Later deck-page button release.
+
+- Added a new Review Later Manager toggle that enables or disables a Speed Streak deck-page button showing how many cards were added to Review Later today.
+- Made that deck-page button stay hidden when today's count is zero and open the Review Later Manager when clicked.
+- Scoped the new deck-page button wiring to Speed Streak-specific config keys and JS messages so it does not clash with Pocket Knife.

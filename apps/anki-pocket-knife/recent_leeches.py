@@ -9,7 +9,7 @@ from aqt import gui_hooks, mw
 from aqt.qt import QAction
 from aqt.utils import showInfo
 
-from .common import user_files_dir
+from .common import build_shared_deck_action_item, inject_shared_deck_action_html, user_files_dir
 from .settings import get_setting, set_setting
 
 
@@ -289,23 +289,17 @@ def open_recent_leeches_browser() -> None:
 
 def _recent_leech_button_label(count: int) -> str:
     if count == 1:
-        return "1 leech in the last 48 hours, click to view."
-    return f"{count} leeches in the last 48 hours, click to view."
+        return "1 leech"
+    return f"{count} leeches"
 
 
 def _deck_browser_banner_html(count: int) -> str:
-    label = _recent_leech_button_label(int(count))
-    return f"""
-<div class="anki-pocket-knife-recent-leeches" style="margin: 0 0 14px 0;">
-  <button
-    type="button"
-    onclick="pycmd('{RECENT_LEECH_OPEN_MESSAGE}'); return false;"
-    style="display: inline-block; box-sizing: border-box; padding: 10px 12px; text-align: left; cursor: pointer; max-width: min(100%, 44rem); white-space: normal;"
-  >
-    {label}
-  </button>
-</div>
-"""
+    return build_shared_deck_action_item(
+        key="anki-pocket-knife:recent-leeches",
+        order=10,
+        message=RECENT_LEECH_OPEN_MESSAGE,
+        label=_recent_leech_button_label(int(count)),
+    )
 
 
 def _on_deck_browser_will_render_content(deck_browser: Any, content: Any) -> None:
@@ -320,12 +314,12 @@ def _on_deck_browser_will_render_content(deck_browser: Any, content: Any) -> Non
     banner_html = _deck_browser_banner_html(count)
     current_tree = getattr(content, "tree", None)
     if isinstance(current_tree, str):
-        content.tree = f"{banner_html}{current_tree}"
+        content.tree = inject_shared_deck_action_html(current_tree, banner_html)
         return
 
     current_stats = getattr(content, "stats", None)
     if isinstance(current_stats, str):
-        content.stats = f"{banner_html}{current_stats}"
+        content.stats = inject_shared_deck_action_html(current_stats, banner_html)
 
 
 def _is_deck_browser_context(context: Any) -> bool:

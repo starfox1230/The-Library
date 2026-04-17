@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
+import re
 from typing import Any
 
 from aqt import mw
@@ -10,10 +12,115 @@ def addon_root() -> Path:
     return Path(__file__).resolve().parent
 
 
+SHARED_DECK_ACTIONS_STYLE_ID = "anki-shared-deck-actions-style"
+SHARED_DECK_ACTIONS_CONTAINER_START = "<!--anki-shared-deck-actions:start-->"
+SHARED_DECK_ACTIONS_CONTAINER_END = "<!--anki-shared-deck-actions:end-->"
+SHARED_DECK_ACTIONS_CONTAINER_OPEN = '<div id="anki-shared-deck-actions-row" class="anki-shared-deck-actions-row">'
+SHARED_DECK_ACTIONS_CONTAINER_CLOSE = "</div>"
+SHARED_DECK_ACTIONS_STYLE = f"""
+<style id="{SHARED_DECK_ACTIONS_STYLE_ID}">
+  #anki-shared-deck-actions-row {{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px 0;
+  }}
+
+  .anki-shared-deck-action-slot {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }}
+
+  .anki-shared-deck-action-button {{
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    background: var(--canvas, #ffffff);
+    color: inherit;
+    font: 600 13px/1.2 "Segoe UI", system-ui, sans-serif;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }}
+
+  .anki-shared-deck-action-button:hover {{
+    background: rgba(127, 127, 127, 0.08);
+  }}
+</style>
+""".strip()
+_SHARED_DECK_ACTION_BLOCK_RE = re.compile(
+    r"<!--anki-shared-deck-action:(?P<key>.+?):start-->(?P<block>.*?)<!--anki-shared-deck-action:(?P=key):end-->",
+    re.DOTALL,
+)
+_SHARED_DECK_ACTION_CONTAINER_RE = re.compile(
+    re.escape(SHARED_DECK_ACTIONS_CONTAINER_START)
+    + r"(?P<body>.*?)"
+    + re.escape(SHARED_DECK_ACTIONS_CONTAINER_END),
+    re.DOTALL,
+)
+_SHARED_DECK_ACTION_ORDER_RE = re.compile(r'data-anki-deck-action-order="(?P<order>-?\d+)"')
+
+
 def user_files_dir() -> Path:
     path = addon_root() / "user_files"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def build_shared_deck_action_item(*, key: str, order: int, message: str, label: str) -> str:
+    safe_message = str(message).replace("\\", "\\\\").replace("'", "\\'")
+    return (
+        f"<!--anki-shared-deck-action:{key}:start-->"
+        f'<div class="anki-shared-deck-action-slot" data-anki-deck-action-order="{int(order)}" '
+        f'data-anki-deck-action-key="{escape(str(key), quote=True)}">'
+        f'<button type="button" class="anki-shared-deck-action-button" '
+        f'onclick="pycmd(\'{safe_message}\'); return false;">{escape(str(label))}</button>'
+        f"</div>"
+        f"<!--anki-shared-deck-action:{key}:end-->"
+    )
+
+
+def _shared_deck_action_order(item_html: str) -> int:
+    match = _SHARED_DECK_ACTION_ORDER_RE.search(str(item_html))
+    if match is None:
+        return 0
+    try:
+        return int(match.group("order"))
+    except Exception:
+        return 0
+
+
+def inject_shared_deck_action_html(content_html: str, item_html: str) -> str:
+    html = str(content_html or "")
+    prefix = "" if SHARED_DECK_ACTIONS_STYLE_ID in html else f"{SHARED_DECK_ACTIONS_STYLE}\n"
+    match = _SHARED_DECK_ACTION_CONTAINER_RE.search(html)
+    if match is None:
+        container_html = (
+            f"{SHARED_DECK_ACTIONS_CONTAINER_START}"
+            f"{SHARED_DECK_ACTIONS_CONTAINER_OPEN}{item_html}{SHARED_DECK_ACTIONS_CONTAINER_CLOSE}"
+            f"{SHARED_DECK_ACTIONS_CONTAINER_END}"
+        )
+        return f"{prefix}{container_html}{html}"
+
+    existing_items = [entry.group(0) for entry in _SHARED_DECK_ACTION_BLOCK_RE.finditer(match.group("body"))]
+    existing_items.append(str(item_html))
+    existing_items.sort(key=_shared_deck_action_order)
+    container_html = (
+        f"{SHARED_DECK_ACTIONS_CONTAINER_START}"
+        f"{SHARED_DECK_ACTIONS_CONTAINER_OPEN}{''.join(existing_items)}{SHARED_DECK_ACTIONS_CONTAINER_CLOSE}"
+        f"{SHARED_DECK_ACTIONS_CONTAINER_END}"
+    )
+    return f"{prefix}{html[:match.start()]}{container_html}{html[match.end():]}"
 
 
 def collection_media_dir() -> Path:

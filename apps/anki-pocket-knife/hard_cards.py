@@ -30,6 +30,7 @@ except Exception:
     QueryOp = None
 
 from .common import note_fields, note_type_name, user_files_dir
+from .common import build_shared_deck_action_item, inject_shared_deck_action_html
 from .hard_cards_core import (
     HardCardMetrics,
     RankedHardCard,
@@ -471,17 +472,12 @@ def _is_deck_browser_context(context: Any) -> bool:
 
 
 def _study_repair_button_html() -> str:
-    return f"""
-<div class="anki-pocket-knife-study-repair" style="margin: 0 0 14px 0;">
-  <button
-    type="button"
-    onclick="pycmd('{DECK_BROWSER_OPEN_MESSAGE}'); return false;"
-    style="display: inline-block; box-sizing: border-box; padding: 10px 12px; text-align: left; cursor: pointer; max-width: min(100%, 44rem); white-space: normal;"
-  >
-    Study Repair: rank recent hard cards
-  </button>
-</div>
-"""
+    return build_shared_deck_action_item(
+        key="anki-pocket-knife:study-repair",
+        order=20,
+        message=DECK_BROWSER_OPEN_MESSAGE,
+        label="Study Repair",
+    )
 
 
 def _on_deck_browser_will_render_content(deck_browser: Any, content: Any) -> None:
@@ -489,12 +485,12 @@ def _on_deck_browser_will_render_content(deck_browser: Any, content: Any) -> Non
     banner_html = _study_repair_button_html()
     current_tree = getattr(content, "tree", None)
     if isinstance(current_tree, str):
-        content.tree = f"{banner_html}{current_tree}"
+        content.tree = inject_shared_deck_action_html(current_tree, banner_html)
         return
 
     current_stats = getattr(content, "stats", None)
     if isinstance(current_stats, str):
-        content.stats = f"{banner_html}{current_stats}"
+        content.stats = inject_shared_deck_action_html(current_stats, banner_html)
 
 
 def _on_webview_did_receive_js_message(
