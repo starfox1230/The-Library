@@ -1404,6 +1404,15 @@ class SettingsDialog(QDialog):
                 control_width=210,
             )
         )
+        self.time_drain_review_last_check = QCheckBox("Review time-drain cards last", frame)
+        self.time_drain_review_last_check.toggled.connect(self.persist_settings)
+        layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.time_drain_review_last_check,
+                "Default: Off. Keeps flagged time-drain cards in today's queue, but reviews them only after every non-time-drain card. If you flag the current card mid-review, the current showing stays put and only later reappearances move to the end of the session.",
+            )
+        )
         layout.addWidget(
             self._build_setting_row(
                 frame,
@@ -1796,7 +1805,7 @@ class SettingsDialog(QDialog):
         frame, layout = self._build_section_card(parent, "Help", "help")
         help_text = QLabel(
             f"Press {self.controller.shortcut_label('pause')} to pause or unpause. Time Drain warns you when a flagged card is consuming time. "
-            "Review Later marks cards to revisit later and pairs with the Review Later Manager.",
+            "You can also defer time-drain cards until the end of the current session. Review Later marks cards to revisit later and pairs with the Review Later Manager.",
             frame,
         )
         help_text.setWordWrap(True)
@@ -1825,6 +1834,7 @@ class SettingsDialog(QDialog):
                 max(0, self.render_mode_combo.findData(getattr(self.controller, "render_mode", RENDER_MODE_CLASSIC)))
             )
             self.show_card_timer_check.setChecked(bool(state.show_card_timer))
+            self.time_drain_review_last_check.setChecked(bool(getattr(state, "time_drain_review_last", False)))
             self.orbit_animation_check.setChecked(bool(getattr(state, "orbit_animation_enabled", True)))
             self.audio_enabled_switch.setChecked(bool(getattr(state, "audio_enabled", DEFAULT_AUDIO_ENABLED)))
             self.audio_event_files = dict(getattr(state, "audio_event_files", default_audio_event_files()) or {})
@@ -2187,6 +2197,7 @@ class SettingsDialog(QDialog):
             question_seconds=float(self.question_spin.value()),
             answer_seconds=float(self.answer_spin.value()),
             time_drain_flag=time_drain_flag,
+            time_drain_review_last=bool(self.time_drain_review_last_check.isChecked()),
             review_later_flag=review_later_flag,
             audio_enabled=audio_enabled,
             selected_audio_file=selected_audio_file,

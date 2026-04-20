@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from .common import user_files_dir
 
@@ -20,10 +21,35 @@ DEFAULT_SETTINGS = {
     "add_cards_multi_image_counter": True,
     "add_cards_tab_cycles_clozes": True,
     "visual_card_multitude_auto_visual_deck": True,
+    "lightning_mode_card_limit": 100,
+    "lightning_mode_question_seconds": 10,
+    "lightning_mode_answer_seconds": 5,
 }
 
 
-def load_settings() -> dict[str, bool]:
+def _coerce_setting_value(raw_value: Any, default_value: Any) -> Any:
+    if isinstance(default_value, bool):
+        return bool(raw_value)
+
+    if isinstance(default_value, int):
+        try:
+            return int(raw_value)
+        except Exception:
+            return int(default_value)
+
+    if isinstance(default_value, float):
+        try:
+            return float(raw_value)
+        except Exception:
+            return float(default_value)
+
+    if isinstance(default_value, str):
+        return str(raw_value)
+
+    return raw_value
+
+
+def load_settings() -> dict[str, Any]:
     if not SETTINGS_PATH.exists():
         return dict(DEFAULT_SETTINGS)
 
@@ -38,27 +64,30 @@ def load_settings() -> dict[str, bool]:
     settings = dict(DEFAULT_SETTINGS)
     for key, default_value in DEFAULT_SETTINGS.items():
         raw_value = data.get(key, default_value)
-        settings[key] = bool(raw_value)
+        settings[key] = _coerce_setting_value(raw_value, default_value)
     return settings
 
 
-def save_settings(settings: dict[str, bool]) -> None:
+def save_settings(settings: dict[str, Any]) -> None:
     normalized = dict(DEFAULT_SETTINGS)
-    for key in normalized:
-        normalized[key] = bool(settings.get(key, normalized[key]))
+    for key, default_value in normalized.items():
+        normalized[key] = _coerce_setting_value(settings.get(key, default_value), default_value)
     SETTINGS_PATH.write_text(json.dumps(normalized, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def get_setting(name: str) -> bool:
-    return bool(load_settings().get(name, DEFAULT_SETTINGS.get(name, False)))
+def get_setting(name: str) -> Any:
+    default_value = DEFAULT_SETTINGS.get(name, False)
+    return load_settings().get(name, default_value)
 
 
-def set_setting(name: str, value: bool) -> bool:
+def set_setting(name: str, value: Any) -> Any:
     settings = load_settings()
-    settings[str(name)] = bool(value)
+    key = str(name)
+    default_value = DEFAULT_SETTINGS.get(key)
+    settings[key] = _coerce_setting_value(value, default_value) if default_value is not None else value
     save_settings(settings)
-    return bool(settings[str(name)])
+    return settings[key]
 
 
 def toggle_setting(name: str) -> bool:
-    return set_setting(name, not get_setting(name))
+    return bool(set_setting(name, not bool(get_setting(name))))

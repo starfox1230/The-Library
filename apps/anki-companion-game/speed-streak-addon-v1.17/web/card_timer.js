@@ -418,12 +418,15 @@
 
     const timerRamp = getTimerRampColors(data);
     const ratio = timer.total ? clamp(timer.remaining / timer.total, 0, 1) : 0;
+    const maxLabelSeconds = Math.max(Number(timer.total || 0) / 1000, Number(timer.secondsText || 0));
+    const labelWidth = Math.max(4, `${maxLabelSeconds.toFixed(1)}s`.length);
     const danger = ratio <= 0.3;
     const blendTarget = ratio > 0.5 ? timerRamp.yellow : timerRamp.red;
     const blendStart = ratio > 0.5 ? timerRamp.green : timerRamp.yellow;
     const localT = ratio > 0.5 ? (1 - ratio) / 0.5 : (0.5 - ratio) / 0.5;
     const color = blendRgb(blendStart, blendTarget, clamp(localT, 0, 1));
 
+    setStyleProperty(root, "--sst-value-width", `${labelWidth}ch`);
     setText(value, `${timer.secondsText}s`);
     setStyleProperty(root, "--sst-progress", `${ratio}`);
     setStyleProperty(root, "--sst-color", color);

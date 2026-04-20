@@ -84,6 +84,7 @@ class CompanionState:
     pause_count_started_epoch_ms: int = 0
     pause_origin: str = ""
     time_drain_flag: int = 2
+    time_drain_review_last: bool = False
     review_later_flag: int = 4
 
 
@@ -122,6 +123,7 @@ class CompanionGameEngine:
             "question_limit_ms": int(s.question_limit_ms),
             "review_limit_ms": int(s.review_limit_ms),
             "time_drain_flag": int(s.time_drain_flag),
+            "time_drain_review_last": bool(s.time_drain_review_last),
             "review_later_flag": int(s.review_later_flag),
         }
 
@@ -153,6 +155,7 @@ class CompanionGameEngine:
         s.question_limit_ms = int(max(1, preferences.get("question_limit_ms", s.question_limit_ms)))
         s.review_limit_ms = int(max(1, preferences.get("review_limit_ms", s.review_limit_ms)))
         s.time_drain_flag = max(0, int(preferences.get("time_drain_flag", s.time_drain_flag)))
+        s.time_drain_review_last = bool(preferences.get("time_drain_review_last", s.time_drain_review_last))
         s.review_later_flag = max(0, int(preferences.get("review_later_flag", s.review_later_flag)))
 
         if not s.haptics_enabled and not s.visuals_enabled:
@@ -224,6 +227,7 @@ class CompanionGameEngine:
             "reviewLimitMs": s.review_limit_ms,
             "totalPauseMs": self.current_round_pause_ms(),
             "timeDrainFlag": s.time_drain_flag,
+            "timeDrainReviewLast": int(s.time_drain_review_last),
             "reviewLaterFlag": s.review_later_flag,
         }
 
@@ -240,6 +244,7 @@ class CompanionGameEngine:
         s.question_limit_ms = ANSWER_LIMIT_MS
         s.review_limit_ms = REVIEW_LIMIT_MS
         s.time_drain_flag = 2
+        s.time_drain_review_last = False
         s.review_later_flag = 4
         s.audio_enabled = DEFAULT_AUDIO_ENABLED
         s.selected_audio_file = DEFAULT_AUDIO_FILE
@@ -622,6 +627,7 @@ class CompanionGameEngine:
         question_seconds: float,
         answer_seconds: float,
         time_drain_flag: int | None = None,
+        time_drain_review_last: bool | None = None,
         review_later_flag: int | None = None,
         audio_enabled: bool | None = None,
         selected_audio_file: str | None = None,
@@ -645,6 +651,8 @@ class CompanionGameEngine:
         s.review_limit_ms = answer_ms
         if time_drain_flag is not None:
             s.time_drain_flag = max(0, int(time_drain_flag))
+        if time_drain_review_last is not None:
+            s.time_drain_review_last = bool(time_drain_review_last)
         if review_later_flag is not None:
             s.review_later_flag = max(0, int(review_later_flag))
         if audio_enabled is not None:
@@ -696,7 +704,7 @@ class CompanionGameEngine:
 
         self._publish(
             "settings",
-            f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, review later flag {s.review_later_flag}, audio {'on' if s.audio_enabled else 'off'}, haptics {'on' if s.haptics_enabled else 'off'}, visuals {'on' if s.visuals_enabled else 'off'}, orbit animation {'on' if s.orbit_animation_enabled else 'off'}, reduced motion {'on' if s.reduced_motion_enabled else 'off'}, appearance {s.appearance_mode}.",
+            f"Timers updated: question {question_seconds:.1f}s, answer {answer_seconds:.1f}s, time drain flag {s.time_drain_flag}, time drain review last {'on' if s.time_drain_review_last else 'off'}, review later flag {s.review_later_flag}, audio {'on' if s.audio_enabled else 'off'}, haptics {'on' if s.haptics_enabled else 'off'}, visuals {'on' if s.visuals_enabled else 'off'}, orbit animation {'on' if s.orbit_animation_enabled else 'off'}, reduced motion {'on' if s.reduced_motion_enabled else 'off'}, appearance {s.appearance_mode}.",
         )
         return "settings"
 

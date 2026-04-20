@@ -2,6 +2,7 @@ from .auto_scroll import install as install_auto_scroll
 from .clipboard_json_cards import install as install_clipboard_json_cards
 from .f3_blocker import install as install_f3_blocker
 from .hard_cards import install as install_hard_cards
+from .lightning_mode import install as install_lightning_mode
 from .menu import install
 from .no_image_today import install as install_no_image_today
 from .recent_leeches import install as install_recent_leeches
@@ -19,6 +20,7 @@ install_auto_scroll()
 install_clipboard_json_cards()
 install_f3_blocker()
 install_hard_cards()
+install_lightning_mode()
 install_no_image_today()
 install_recent_leeches()
 install_recent_new_cards()

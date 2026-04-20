@@ -10,6 +10,8 @@ _CODE_FENCE_RE = re.compile(
     r"^\s*```(?:json)?\s*(.*?)\s*```\s*$",
     re.IGNORECASE | re.DOTALL,
 )
+_CLOZE_MARKER_RE = re.compile(r"\{\{c\d+::", re.IGNORECASE)
+_MARKDOWN_LINE_PREFIX_RE = re.compile(r"^(?:[-*+]\s+|\d+[.)]\s+|(?:>\s*)+)")
 
 
 @dataclass(frozen=True)
@@ -50,11 +52,7 @@ def _normalize_tags(raw_tags: object, *, item_index: int) -> tuple[str, ...]:
     return tuple(normalized)
 
 
-def parse_clipboard_json_cards(raw_text: str) -> list[ClipboardJsonCard]:
-    text = _strip_code_fence(raw_text).strip()
-    if not text:
-        raise ValueError("Clipboard is empty.")
-
+def _parse_json_cards(text: str) -> list[ClipboardJsonCard]:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -87,3 +85,58 @@ def parse_clipboard_json_cards(raw_text: str) -> list[ClipboardJsonCard]:
         )
 
     return cards
+
+
+def _normalize_cloze_card_line(raw_line: str) -> str:
+    line = str(raw_line or "").strip()
+    while True:
+        updated = _MARKDOWN_LINE_PREFIX_RE.sub("", line, count=1).strip()
+        if updated == line:
+            return line
+        line = updated
+
+
+def _looks_like_cloze_card_line(line: str) -> bool:
+    return bool(_CLOZE_MARKER_RE.search(str(line or "")))
+
+
+def _parse_cloze_line_cards(text: str) -> list[ClipboardJsonCard] | None:
+    raw_lines = str(text or "").splitlines()
+    lines: list[tuple[int, str]] = []
+    for line_number, raw_line in enumerate(raw_lines, start=1):
+        normalized = _normalize_cloze_card_line(raw_line)
+        if normalized:
+            lines.append((line_number, normalized))
+
+    if not lines:
+        return []
+
+    if not _looks_like_cloze_card_line(lines[0][1]):
+        return None
+
+    cards: list[ClipboardJsonCard] = []
+    for line_number, line in lines:
+        if not _looks_like_cloze_card_line(line):
+            raise ValueError(
+                f"Line {line_number}: expected a cloze card containing '{{{{c1::...}}}}'."
+            )
+        cards.append(ClipboardJsonCard(html=line, tags=()))
+    return cards
+
+
+def parse_clipboard_json_cards(raw_text: str) -> list[ClipboardJsonCard]:
+    text = _strip_code_fence(raw_text).strip()
+    if not text:
+        raise ValueError("Clipboard is empty.")
+
+    try:
+        return _parse_json_cards(text)
+    except ValueError as json_error:
+        cloze_cards = _parse_cloze_line_cards(text)
+        if cloze_cards is not None:
+            return cloze_cards
+        raise ValueError(
+            "Clipboard must contain either a JSON array of card objects with an 'html' string "
+            "and optional 'tags', or one cloze card per non-empty line.\n\n"
+            f"{json_error}"
+        ) from json_error

@@ -11,7 +11,7 @@ from .clipboard_json_cards_core import ClipboardJsonCard, parse_clipboard_json_c
 from .saved_cards_audio import SOURCE_DECK_NAME
 
 
-ACTION_LABEL = "Make New Cards From Clipboard JSON"
+ACTION_LABEL = "Make New Cards From Clipboard"
 NOTETYPE_NAME = "saCloze++"
 TEXT_FIELD_NAME = "Text"
 _HOOK_REGISTERED = False
@@ -212,8 +212,9 @@ def import_cards_from_clipboard_json() -> None:
         cards = parse_clipboard_json_cards(_clipboard_text())
     except Exception as exc:
         showWarning(
-            "Could not import cards from the clipboard JSON.\n\n"
-            "Expected a JSON array of objects with an 'html' string and optional 'tags'.\n\n"
+            "Could not import cards from the clipboard.\n\n"
+            "Expected either a JSON array of objects with an 'html' string and optional 'tags', "
+            "or one cloze card per non-empty clipboard line.\n\n"
             f"{exc}"
         )
         return

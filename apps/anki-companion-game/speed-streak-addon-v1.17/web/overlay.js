@@ -76,6 +76,23 @@
     7: "#9f63d3",
   };
 
+  function timeDrainToggleMarkup() {
+    return `
+      <label class="acg-time-drain-toggle" for="acgTimeDrainReviewLast">
+        <span class="acg-time-drain-toggle-copy">
+          <span class="acg-time-drain-toggle-label">Review Time Drains Last</span>
+          <span class="acg-time-drain-toggle-subcopy">Future repeats move behind the rest of this session.</span>
+        </span>
+        <span class="acg-time-drain-toggle-control">
+          <input id="acgTimeDrainReviewLast" class="acg-time-drain-toggle-input" type="checkbox" />
+          <span class="acg-time-drain-toggle-track" aria-hidden="true">
+            <span class="acg-time-drain-toggle-knob"></span>
+          </span>
+        </span>
+      </label>
+    `;
+  }
+
   const template = `
     <div id="speed-streak-sidebar" class="speed-streak-sidebar hidden">
       <button id="acgCollapseTab" class="acg-collapse-tab" type="button" title="Hide Speed Streak" aria-label="Hide Speed Streak">
@@ -190,6 +207,7 @@
             <div class="acg-time-drain-title">Time Drain</div>
             <div id="acgTimeDrainTimer" class="acg-time-drain-timer">--</div>
             <div class="acg-time-drain-body">This card is a time drain, press '-' to bury! Quick!</div>
+            ${timeDrainToggleMarkup()}
           </div>
         </div>
         <div id="acgToast" class="acg-toast"></div>
@@ -334,6 +352,8 @@
 
   function ensureMounted() {
     if (state.mounted) {
+      ensureTimeDrainToggleControl();
+      bindTimeDrainToggleInput();
       return;
     }
     const host = document.body || document.documentElement;
@@ -341,7 +361,10 @@
       return;
     }
 
-    host.insertAdjacentHTML("beforeend", template);
+    if (!document.getElementById("speed-streak-sidebar")) {
+      host.insertAdjacentHTML("beforeend", template);
+    }
+    ensureTimeDrainToggleControl();
 
     const settingsButton = document.getElementById("acgSettingsButton");
     if (settingsButton) {
@@ -600,6 +623,8 @@
       reviewLaterSelect.addEventListener("change", () => saveSettings());
     }
 
+    bindTimeDrainToggleInput();
+
     renderFlagSelects(0, 0);
 
     state.mounted = true;
@@ -607,6 +632,26 @@
 
   function $(id) {
     return document.getElementById(id);
+  }
+
+  function ensureTimeDrainToggleControl() {
+    if ($("acgTimeDrainReviewLast")) {
+      return;
+    }
+    const body = document.querySelector("#acgTimeDrainOverlay .acg-time-drain-body");
+    if (!body) {
+      return;
+    }
+    body.insertAdjacentHTML("afterend", timeDrainToggleMarkup());
+  }
+
+  function bindTimeDrainToggleInput() {
+    const input = $("acgTimeDrainReviewLast");
+    if (!input || input.dataset.bound === "1") {
+      return;
+    }
+    input.dataset.bound = "1";
+    input.addEventListener("change", () => saveSettings());
   }
 
   function getFlagPalette(data = state.data) {
@@ -914,6 +959,7 @@
     const q = Number($("acgQuestionSeconds")?.value || 12);
     const a = Number($("acgAnswerSeconds")?.value || 8);
     const f = Number($("acgTimeDrainFlag")?.value || 0);
+    const timeDrainReviewLast = Boolean($("acgTimeDrainReviewLast")?.checked);
     const rl = Number($("acgReviewLaterFlag")?.value || 0);
     const showCardTimer = Boolean($("acgShowCardTimer")?.checked);
     const orbitAnimationEnabled = Boolean($("acgOrbitAnimation")?.checked);
@@ -953,6 +999,7 @@
           questionSeconds: q,
           answerSeconds: a,
           timeDrainFlag: f,
+          timeDrainReviewLast,
           reviewLaterFlag: rl,
           audioEnabled,
           hapticsEnabled,
@@ -990,6 +1037,7 @@
       customTimerColors: state.useCustomTimerColorsDraft,
       customTimerColorLevel: state.timerColorLevelDraft,
       timeDrainFlag: Number(data.timeDrainFlag || 0),
+      timeDrainReviewLast: Boolean(data.timeDrainReviewLast),
       reviewLaterFlag: Number(data.reviewLaterFlag || 0),
       flagPalette: data.flagPalette || {},
     });
@@ -1013,6 +1061,10 @@
     const orbitAnimationInput = $("acgOrbitAnimation");
     if (orbitAnimationInput && document.activeElement !== orbitAnimationInput) {
       orbitAnimationInput.checked = Boolean(data.orbitAnimationEnabled ?? true);
+    }
+    const timeDrainReviewLastInput = $("acgTimeDrainReviewLast");
+    if (timeDrainReviewLastInput && document.activeElement !== timeDrainReviewLastInput) {
+      timeDrainReviewLastInput.checked = Boolean(data.timeDrainReviewLast);
     }
     syncVibrationOnlyInputs(!Boolean(data.visualsEnabled), document.activeElement?.id || "");
     renderColorInputs(state.colorDrafts);

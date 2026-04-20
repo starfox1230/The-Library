@@ -46,8 +46,16 @@ def _save_suspended_times(values: dict[int, int]) -> None:
     SUSPENDED_TIMES_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def _current_suspended_rows() -> list[tuple[int, int]]:
-    rows = mw.col.db.all(
+def _current_suspended_rows() -> list[tuple[int, int]] | None:
+    collection = getattr(mw, "col", None)
+    if collection is None:
+        return None
+
+    db = getattr(collection, "db", None)
+    if db is None:
+        return None
+
+    rows = db.all(
         """
         SELECT c.id, c.mod
         FROM cards AS c
@@ -60,6 +68,9 @@ def _current_suspended_rows() -> list[tuple[int, int]]:
 
 def sync_suspended_card_times() -> dict[int, int]:
     current_rows = _current_suspended_rows()
+    if current_rows is None:
+        return _load_suspended_times()
+
     current_map = {card_id: mod_value for card_id, mod_value in current_rows}
 
     stored_times = _load_suspended_times()
@@ -83,6 +94,9 @@ def sync_suspended_card_times() -> dict[int, int]:
 
 def ordered_suspended_card_ids() -> list[int]:
     current_rows = _current_suspended_rows()
+    if current_rows is None:
+        return []
+
     if not current_rows:
         stored_times = _load_suspended_times()
         if stored_times:
@@ -135,6 +149,10 @@ def _browser_cards_mode(browser: Any) -> None:
 
 
 def open_suspended_cards_browser() -> None:
+    if getattr(mw, "col", None) is None:
+        showInfo("Anki's collection is still loading. Try again in a moment.")
+        return
+
     browser = None
     dialogs = getattr(aqt, "dialogs", None)
     opener = getattr(dialogs, "open", None) if dialogs is not None else None

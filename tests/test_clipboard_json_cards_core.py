@@ -59,6 +59,45 @@ def test_parse_clipboard_json_cards_accepts_json_code_fences_and_original_html_f
     assert cards[0].tags == ("tag-one", "tag-two")
 
 
+def test_parse_clipboard_json_cards_accepts_one_cloze_card_per_line():
+    module = _load_module()
+
+    cards = module.parse_clipboard_json_cards(
+        """
+        {{c1::An acute peripancreatic fluid collection, or APFC::What collection}} occurs {{c2::within 4 weeks of::when in}} {{c3::interstitial edematous pancreatitis}}.
+        {{c1::An acute necrotic collection, or ANC::What collection}} occurs {{c3::within 4 weeks of::when in}} {{c2::necrotizing pancreatitis}}.
+        {{c1::A pancreatic pseudocyst::What collection}} occurs {{c3::at 4 weeks or more after::when in}} {{c2::interstitial edematous pancreatitis}}.
+        {{c1::Walled-off necrosis, or WON::What collection}} occurs {{c3::at 4 weeks or more after::when in}} {{c2::necrotizing pancreatitis}}.
+        """
+    )
+
+    assert [card.html for card in cards] == [
+        "{{c1::An acute peripancreatic fluid collection, or APFC::What collection}} occurs {{c2::within 4 weeks of::when in}} {{c3::interstitial edematous pancreatitis}}.",
+        "{{c1::An acute necrotic collection, or ANC::What collection}} occurs {{c3::within 4 weeks of::when in}} {{c2::necrotizing pancreatitis}}.",
+        "{{c1::A pancreatic pseudocyst::What collection}} occurs {{c3::at 4 weeks or more after::when in}} {{c2::interstitial edematous pancreatitis}}.",
+        "{{c1::Walled-off necrosis, or WON::What collection}} occurs {{c3::at 4 weeks or more after::when in}} {{c2::necrotizing pancreatitis}}.",
+    ]
+    assert all(card.tags == () for card in cards)
+
+
+def test_parse_clipboard_json_cards_accepts_markdown_list_prefixes_for_cloze_lines():
+    module = _load_module()
+
+    cards = module.parse_clipboard_json_cards(
+        """
+        1. {{c1::First card}}
+        - {{c1::Second card}}
+        > {{c1::Third card}}
+        """
+    )
+
+    assert [card.html for card in cards] == [
+        "{{c1::First card}}",
+        "{{c1::Second card}}",
+        "{{c1::Third card}}",
+    ]
+
+
 def test_parse_clipboard_json_cards_rejects_missing_html():
     module = _load_module()
 
@@ -77,3 +116,20 @@ def test_parse_clipboard_json_cards_rejects_non_array_payload():
         raise AssertionError("Expected parse_clipboard_json_cards() to raise ValueError.")
     except ValueError as exc:
         assert "array of card objects" in str(exc)
+        assert "one cloze card per non-empty line" in str(exc)
+
+
+def test_parse_clipboard_json_cards_rejects_partial_cloze_line_sets():
+    module = _load_module()
+
+    try:
+        module.parse_clipboard_json_cards(
+            """
+            {{c1::First card}}
+            This line is not a cloze card.
+            """
+        )
+        raise AssertionError("Expected parse_clipboard_json_cards() to raise ValueError.")
+    except ValueError as exc:
+        assert "Line 2" in str(exc)
+        assert "{{c1::...}}" in str(exc)

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import aqt.reviewer as reviewer_mod
 import json
 import time
 from pathlib import Path
 from urllib.parse import unquote
 from typing import Any, Optional
 
+from anki.cards import Card
 from aqt import gui_hooks, mw
 from aqt.reviewer import Reviewer
 from aqt.webview import AnkiWebView
@@ -65,6 +67,19 @@ BROWSER_HAPTIC_PATTERN_SEQUENCES = haptic_pattern_sequences()
 SYNC_AUDIO_SUPPRESSION_SECONDS = 0.4
 WEBVIEW_AUDIO_EVENT_KEYS = {"again", "hard", "good", "easy"}
 COMPATIBILITY_LAYOUT_VERSION = 3
+TIME_DRAIN_FETCH_BATCH_SIZES = (32, 128, 512, 2048, 8192, 32768)
+
+
+class ReorderedQueuedCardsView:
+    def __init__(self, source: Any, cards: list[Any]) -> None:
+        self._source = source
+        self.cards = cards
+        self.new_count = int(getattr(source, "new_count", 0) or 0)
+        self.learning_count = int(getattr(source, "learning_count", 0) or 0)
+        self.review_count = int(getattr(source, "review_count", 0) or 0)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._source, name)
 
 
 def _export_widget_geometry(widget: QWidget) -> str:
@@ -301,6 +316,7 @@ class ReviewerOverlayController:
         self._load_persisted_settings()
 
     def install(self) -> None:
+        self._install_reviewer_queue_wrapper()
         self._register_web_exports()
         self._install_menu()
         gui_hooks.webview_did_receive_js_message.append(self.on_js_message)
@@ -317,6 +333,111 @@ class ReviewerOverlayController:
         gui_hooks.state_did_undo.append(self.on_state_did_undo)
         gui_hooks.state_shortcuts_will_change.append(self.on_state_shortcuts_will_change)
         self._start_timer()
+
+    def _install_reviewer_queue_wrapper(self) -> None:
+        if self._wrapped:
+            return
+        original = getattr(Reviewer, "_get_next_v3_card", None)
+        if not callable(original) or getattr(original, "__speed_streak_time_drain_wrapper__", False):
+            self._wrapped = True
+            return
+
+        def wrapped(reviewer: Reviewer) -> None:
+            active_controller = controller
+            if active_controller is None:
+                original(reviewer)
+                return
+            active_controller._get_next_v3_card_with_time_drain_reordering(reviewer, original)
+
+        setattr(wrapped, "__speed_streak_time_drain_wrapper__", True)
+        Reviewer._get_next_v3_card = wrapped
+        self._wrapped = True
+
+    def _get_next_v3_card_with_time_drain_reordering(self, reviewer: Reviewer, original: Any) -> None:
+        queued_cards = self._queued_cards_with_time_drain_review_last(reviewer)
+        if queued_cards is None:
+            original(reviewer)
+            return
+        cards = list(getattr(queued_cards, "cards", []))
+        if not cards:
+            reviewer._v3 = None
+            reviewer.card = None
+            return
+        v3_card_info = getattr(reviewer_mod, "V3CardInfo", None)
+        if v3_card_info is None:
+            original(reviewer)
+            return
+        reviewer._v3 = v3_card_info.from_queue(queued_cards)
+        backend_card = reviewer._v3.top_card().card
+        try:
+            reviewer.card = Card(reviewer.mw.col, backend_card=backend_card)
+        except TypeError:
+            reviewer.card = Card(reviewer.mw.col)
+            reviewer.card._load_from_backend_card(backend_card)
+        reviewer.card.start_timer()
+
+    def _queued_cards_with_time_drain_review_last(self, reviewer: Reviewer) -> Any | None:
+        state = self.engine.state
+        # Reorder only future fetches; the card already on screen stays in place so
+        # changing the flag mid-review affects only later reappearances.
+        if not bool(getattr(state, "time_drain_review_last", False)):
+            return None
+        time_drain_flag = int(getattr(state, "time_drain_flag", 0) or 0)
+        if time_drain_flag <= 0:
+            return None
+        scheduler = getattr(getattr(getattr(reviewer, "mw", None), "col", None), "sched", None)
+        get_queued_cards = getattr(scheduler, "get_queued_cards", None)
+        if not callable(get_queued_cards):
+            return None
+
+        last_output = None
+        for fetch_limit in TIME_DRAIN_FETCH_BATCH_SIZES:
+            output = get_queued_cards(fetch_limit=fetch_limit)
+            cards = list(getattr(output, "cards", []))
+            if not cards:
+                return output
+            last_output = output
+            first_non_time_drain_index = next(
+                (
+                    index
+                    for index, queued_card in enumerate(cards)
+                    if self._flag_for_queued_card(reviewer, queued_card) != time_drain_flag
+                ),
+                None,
+            )
+            if first_non_time_drain_index is None:
+                if len(cards) < fetch_limit:
+                    return output
+                continue
+            if first_non_time_drain_index == 0:
+                return output
+            ordered_cards = [
+                cards[first_non_time_drain_index],
+                *cards[:first_non_time_drain_index],
+                *cards[first_non_time_drain_index + 1 :],
+            ]
+            return ReorderedQueuedCardsView(output, ordered_cards)
+        return last_output
+
+    def _flag_for_queued_card(self, reviewer: Reviewer, queued_card: Any) -> int:
+        backend_card = getattr(queued_card, "card", None)
+        if backend_card is None:
+            return 0
+        try:
+            return int(getattr(backend_card, "flags", 0) or 0) & 0b111
+        except Exception:
+            pass
+        try:
+            probe_card = Card(reviewer.mw.col, backend_card=backend_card)
+        except TypeError:
+            try:
+                probe_card = Card(reviewer.mw.col)
+                probe_card._load_from_backend_card(backend_card)
+            except Exception:
+                return 0
+        except Exception:
+            return 0
+        return self._flag_for_card(probe_card)
 
     def available_audio_feedback_files(self) -> list[str]:
         return self.audio_feedback.available_files()
@@ -532,6 +653,7 @@ class ReviewerOverlayController:
                 question_seconds = float(data.get("questionSeconds", 12))
                 answer_seconds = float(data.get("answerSeconds", 8))
                 time_drain_flag = int(data.get("timeDrainFlag", 0))
+                time_drain_review_last = bool(data.get("timeDrainReviewLast", self.engine.state.time_drain_review_last))
                 review_later_flag = int(data.get("reviewLaterFlag", 0))
                 audio_enabled = bool(data.get("audioEnabled", self.engine.state.audio_enabled))
                 selected_audio_file = str(data.get("selectedAudioFile", self.engine.state.selected_audio_file or DEFAULT_AUDIO_FILE))
@@ -571,6 +693,7 @@ class ReviewerOverlayController:
                 question_seconds=question_seconds,
                 answer_seconds=answer_seconds,
                 time_drain_flag=time_drain_flag,
+                time_drain_review_last=time_drain_review_last,
                 review_later_flag=review_later_flag,
                 audio_enabled=audio_enabled,
                 selected_audio_file=selected_audio_file,
@@ -606,6 +729,7 @@ class ReviewerOverlayController:
                 question_seconds=state.question_limit_ms / 1000,
                 answer_seconds=state.review_limit_ms / 1000,
                 time_drain_flag=state.time_drain_flag,
+                time_drain_review_last=state.time_drain_review_last,
                 review_later_flag=state.review_later_flag,
                 audio_enabled=state.audio_enabled,
                 selected_audio_file=state.selected_audio_file,
@@ -661,6 +785,7 @@ class ReviewerOverlayController:
         question_seconds: float,
         answer_seconds: float,
         time_drain_flag: int,
+        time_drain_review_last: bool,
         review_later_flag: int,
         audio_enabled: bool,
         selected_audio_file: str,
@@ -686,6 +811,7 @@ class ReviewerOverlayController:
             question_seconds=question_seconds,
             answer_seconds=answer_seconds,
             time_drain_flag=time_drain_flag,
+            time_drain_review_last=time_drain_review_last,
             review_later_flag=review_later_flag,
             audio_enabled=audio_enabled,
             selected_audio_file=selected_audio_file,
@@ -1495,6 +1621,7 @@ class ReviewerOverlayController:
                 question_seconds=float(config.get("question_seconds", 12)),
                 answer_seconds=float(config.get("answer_seconds", 8)),
                 time_drain_flag=int(config.get("time_drain_flag", 2)),
+                time_drain_review_last=bool(config.get("time_drain_review_last", False)),
                 review_later_flag=int(config.get("review_later_flag", 4)),
                 audio_enabled=bool(config.get("audio_enabled", DEFAULT_AUDIO_ENABLED)),
                 selected_audio_file=selected_audio_file,
@@ -1528,6 +1655,7 @@ class ReviewerOverlayController:
                 question_seconds=12,
                 answer_seconds=8,
                 time_drain_flag=2,
+                time_drain_review_last=False,
                 review_later_flag=4,
                 audio_enabled=DEFAULT_AUDIO_ENABLED,
                 selected_audio_file=DEFAULT_AUDIO_FILE,
@@ -1588,6 +1716,7 @@ class ReviewerOverlayController:
             "question_seconds": state.question_limit_ms / 1000,
             "answer_seconds": state.review_limit_ms / 1000,
             "time_drain_flag": state.time_drain_flag,
+            "time_drain_review_last": bool(state.time_drain_review_last),
             "review_later_flag": state.review_later_flag,
             "review_later_today_deck_button_enabled": bool(self.review_later_today_deck_button_enabled),
         }

@@ -32,6 +32,15 @@ from .early_review import (
 )
 from .f3_blocker import is_default_f3_shortcut_disabled, set_default_f3_shortcut_disabled
 from .hard_cards import open_hard_cards_dialog
+from .lightning_mode import (
+    build_lightning_mode_filtered_deck_for_current_deck,
+    lightning_answer_seconds,
+    lightning_card_limit,
+    lightning_question_seconds,
+    set_lightning_answer_seconds,
+    set_lightning_card_limit,
+    set_lightning_question_seconds,
+)
 from .missed_today import (
     copy_missed_today_text,
     export_missed_today_text_file,
@@ -48,10 +57,11 @@ from .recent_leeches import (
 )
 from .recent_new_cards import open_recent_new_cards_dialog
 from .review_image_overlay import (
-    CLOSE_SHORTCUT,
-    CYCLE_SHORTCUT,
+    EXIT_SHORTCUT,
     is_review_image_overlay_enabled,
     is_review_image_overlay_remember_position_enabled,
+    NEXT_SHORTCUT,
+    PREVIOUS_SHORTCUT,
     set_review_image_overlay_enabled,
     set_review_image_overlay_remember_position_enabled,
 )
@@ -238,6 +248,39 @@ class PocketKnifeLauncherDialog(QDialog):
         no_image_layout.addWidget(self.no_image_button)
         layout.addWidget(no_image_box)
 
+        lightning_box = QGroupBox("Lightning Mode")
+        lightning_layout = QVBoxLayout(lightning_box)
+        lightning_copy = QLabel(
+            "Build a rescheduling filtered deck from the most recent still-new cards in the current deck tree, even if "
+            "some of those cards are already sitting in other filtered decks. Lightning decks force auto-advance, show "
+            "the answer after the question timer expires, and bury cards that still time out on the answer side."
+        )
+        lightning_copy.setWordWrap(True)
+        lightning_layout.addWidget(lightning_copy)
+
+        lightning_grid = QGridLayout()
+        lightning_grid.addWidget(QLabel("Cards to pull:"), 0, 0)
+        self.lightning_card_limit_spin = QSpinBox()
+        self.lightning_card_limit_spin.setRange(1, 1000)
+        self.lightning_card_limit_spin.setValue(lightning_card_limit())
+        lightning_grid.addWidget(self.lightning_card_limit_spin, 0, 1)
+        lightning_grid.addWidget(QLabel("Question seconds:"), 1, 0)
+        self.lightning_question_seconds_spin = QSpinBox()
+        self.lightning_question_seconds_spin.setRange(1, 60)
+        self.lightning_question_seconds_spin.setValue(lightning_question_seconds())
+        lightning_grid.addWidget(self.lightning_question_seconds_spin, 1, 1)
+        lightning_grid.addWidget(QLabel("Answer seconds:"), 2, 0)
+        self.lightning_answer_seconds_spin = QSpinBox()
+        self.lightning_answer_seconds_spin.setRange(1, 60)
+        self.lightning_answer_seconds_spin.setValue(lightning_answer_seconds())
+        lightning_grid.addWidget(self.lightning_answer_seconds_spin, 2, 1)
+        lightning_grid.setColumnStretch(2, 1)
+        lightning_layout.addLayout(lightning_grid)
+
+        self.lightning_button = QPushButton("Build Lightning Mode For Current Deck")
+        lightning_layout.addWidget(self.lightning_button)
+        layout.addWidget(lightning_box)
+
         recent_new_box = QGroupBox("Recent New Cards")
         recent_new_layout = QVBoxLayout(recent_new_box)
         recent_new_copy = QLabel(
@@ -353,7 +396,8 @@ class PocketKnifeLauncherDialog(QDialog):
         review_layout = QVBoxLayout(review_box)
         review_copy = QLabel(
             "Optional reviewer helpers: jump back to the top when you reveal the answer, cycle card images in a fullscreen "
-            f"overlay with {CYCLE_SHORTCUT}, close that overlay with {CLOSE_SHORTCUT}, and optionally allow or suppress "
+            f"overlay with {NEXT_SHORTCUT}, go backward with {PREVIOUS_SHORTCUT}, close it with {EXIT_SHORTCUT} while "
+            "it's open or the top-left Close button, and optionally allow or suppress "
             "audio playback from TTS-enabled cards."
         )
         review_copy.setWordWrap(True)
@@ -362,7 +406,7 @@ class PocketKnifeLauncherDialog(QDialog):
         self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
         review_layout.addWidget(self.auto_scroll_checkbox)
         self.review_image_overlay_checkbox = QCheckBox(
-            f"Reviewer image overlay shortcuts ({CYCLE_SHORTCUT} cycle, {CLOSE_SHORTCUT} close)"
+            f"Reviewer image overlay shortcuts ({NEXT_SHORTCUT} next, {PREVIOUS_SHORTCUT} previous, {EXIT_SHORTCUT} close)"
         )
         self.review_image_overlay_checkbox.setChecked(is_review_image_overlay_enabled())
         review_layout.addWidget(self.review_image_overlay_checkbox)
@@ -395,11 +439,17 @@ class PocketKnifeLauncherDialog(QDialog):
         self.html_button.clicked.connect(self._run_and_refresh(open_missed_today_html_viewer))
         self.deck_button.clicked.connect(self._run_and_refresh(make_missed_today_filtered_deck))
         self.no_image_button.clicked.connect(lambda *_args: open_no_image_today_dialog())
+        self.lightning_button.clicked.connect(
+            lambda *_args: build_lightning_mode_filtered_deck_for_current_deck(parent=self)
+        )
         self.recent_new_button.clicked.connect(lambda *_args: open_recent_new_cards_dialog())
         self.recent_leeches_button.clicked.connect(lambda *_args: open_recent_leeches_browser())
         self.suspended_browser_button.clicked.connect(lambda *_args: open_suspended_cards_browser())
         self.return_non_new_button.clicked.connect(lambda *_args: open_return_non_new_dialog())
         self.refresh_button.clicked.connect(self.refresh_missed_today_summary)
+        self.lightning_card_limit_spin.valueChanged.connect(self._set_lightning_card_limit)
+        self.lightning_question_seconds_spin.valueChanged.connect(self._set_lightning_question_seconds)
+        self.lightning_answer_seconds_spin.valueChanged.connect(self._set_lightning_answer_seconds)
         self.recent_leech_banner_checkbox.toggled.connect(self._set_recent_leech_banner_enabled)
         self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
         self.visual_card_multitude_checkbox.toggled.connect(self._set_visual_card_multitude_enabled)
@@ -467,6 +517,18 @@ class PocketKnifeLauncherDialog(QDialog):
             self.disable_f3_checkbox.blockSignals(True)
             self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
             self.disable_f3_checkbox.blockSignals(False)
+        if hasattr(self, "lightning_card_limit_spin"):
+            self.lightning_card_limit_spin.blockSignals(True)
+            self.lightning_card_limit_spin.setValue(lightning_card_limit())
+            self.lightning_card_limit_spin.blockSignals(False)
+        if hasattr(self, "lightning_question_seconds_spin"):
+            self.lightning_question_seconds_spin.blockSignals(True)
+            self.lightning_question_seconds_spin.setValue(lightning_question_seconds())
+            self.lightning_question_seconds_spin.blockSignals(False)
+        if hasattr(self, "lightning_answer_seconds_spin"):
+            self.lightning_answer_seconds_spin.blockSignals(True)
+            self.lightning_answer_seconds_spin.setValue(lightning_answer_seconds())
+            self.lightning_answer_seconds_spin.blockSignals(False)
         if hasattr(self, "visual_card_multitude_checkbox"):
             self.visual_card_multitude_checkbox.blockSignals(True)
             self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
@@ -530,6 +592,18 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_disable_f3_enabled(self, checked: bool) -> None:
         set_default_f3_shortcut_disabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_lightning_card_limit(self, value: int) -> None:
+        set_lightning_card_limit(int(value))
+        sync_settings_ui()
+
+    def _set_lightning_question_seconds(self, value: int) -> None:
+        set_lightning_question_seconds(int(value))
+        sync_settings_ui()
+
+    def _set_lightning_answer_seconds(self, value: int) -> None:
+        set_lightning_answer_seconds(int(value))
         sync_settings_ui()
 
     def _set_visual_card_multitude_enabled(self, checked: bool) -> None:
@@ -843,6 +917,12 @@ def _register_menu() -> None:
     no_image_action.triggered.connect(lambda *_args: open_no_image_today_dialog())
     pocket_menu.addAction(no_image_action)
 
+    lightning_action = QAction("Build Lightning Mode For Current Deck", mw)
+    lightning_action.triggered.connect(
+        lambda *_args: build_lightning_mode_filtered_deck_for_current_deck()
+    )
+    pocket_menu.addAction(lightning_action)
+
     recent_new_action = QAction("Build Recent New Cards Deck", mw)
     recent_new_action.triggered.connect(lambda *_args: open_recent_new_cards_dialog())
     pocket_menu.addAction(recent_new_action)
@@ -933,7 +1013,7 @@ def _register_menu() -> None:
     pocket_menu.addAction(_auto_scroll_action)
 
     _review_image_overlay_action = QAction(
-        f"Reviewer Image Overlay Shortcuts ({CYCLE_SHORTCUT} / {CLOSE_SHORTCUT})",
+        f"Reviewer Image Overlay Shortcuts ({NEXT_SHORTCUT} / {PREVIOUS_SHORTCUT} / {EXIT_SHORTCUT})",
         mw,
     )
     _review_image_overlay_action.setCheckable(True)
