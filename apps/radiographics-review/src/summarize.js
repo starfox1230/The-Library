@@ -1,21 +1,5 @@
-const {
-  normalizeWhitespace,
-  splitSentences,
-  stripHtml,
-  truncate,
-  uniqueBy,
-} = require("./utils");
-
-function cleanSentence(sentence) {
-  return normalizeWhitespace(
-    stripHtml(sentence)
-      .replace(/\bOPEN IN VIEWER\b/gi, "")
-      .replace(/\bDownload as PowerPoint\b/gi, "")
-      .replace(/\s+\((?:Fig(?:ure)?|Table)\s*[A-Za-z0-9.\- ]+\)/gi, "")
-      .replace(/\s+\(\d+(?:\s*[-,–]\s*\d+)*\)/g, "")
-      .replace(/\s+/g, " "),
-  ).trim();
-}
+const { normalizeWhitespace, splitSentences, truncate, uniqueBy } = require("./utils");
+const { cleanFigureCaption, cleanStudyText } = require("./studyText");
 
 function looksLikeNoise(sentence) {
   const lowered = sentence.toLowerCase();
@@ -36,17 +20,20 @@ function looksLikeNoise(sentence) {
 function collectNarrativeSentences(article) {
   const sources = [];
 
-  if (Array.isArray(article.bodyBlocks)) {
+  if (Array.isArray(article.cleanedBodyBlocks) && article.cleanedBodyBlocks.length > 0) {
+    sources.push(...article.cleanedBodyBlocks);
+  } else if (Array.isArray(article.bodyBlocks)) {
     sources.push(...article.bodyBlocks);
   }
+
   if (article.abstract) {
     sources.push(article.abstract);
   }
 
   return uniqueBy(
     sources
-      .flatMap((text) => splitSentences(text))
-      .map(cleanSentence)
+      .flatMap((text) => splitSentences(cleanStudyText(text)))
+      .map((sentence) => normalizeWhitespace(sentence))
       .filter((sentence) => !looksLikeNoise(sentence)),
     (sentence) => sentence.toLowerCase(),
   );
@@ -57,7 +44,7 @@ function findSentence(sentences, matcher, excluded = new Set()) {
 }
 
 function rewriteSentence(sentence) {
-  return cleanSentence(sentence)
+  return cleanStudyText(sentence)
     .replace(/^It typically affects\b/i, "Typically affects")
     .replace(/^It usually affects\b/i, "Usually affects")
     .replace(/^Radiographs may demonstrate\b/i, "Radiographs show")
@@ -124,7 +111,7 @@ function buildSummarySections(article, maxSections = 5) {
   const imagingSentences = [
     findSentence(sentences, (lowered) => /\b(radiograph|radiographs|x-ray)\b/.test(lowered), used),
     findSentence(sentences, (lowered) => /\bct\b/.test(lowered), used),
-    findSentence(sentences, (lowered) => /\bmri\b|\bmr image\b|\bmr imaging\b/.test(lowered), used),
+    findSentence(sentences, (lowered) => /\b(mri|mr image|mr imaging)\b/.test(lowered), used),
     findSentence(sentences, (lowered) => /\b(ultrasound|sonography)\b/.test(lowered), used),
   ].filter(Boolean);
   if (imagingSentences.length > 0) {
@@ -185,10 +172,10 @@ function buildKeyFacts(article, maxFacts = 5) {
 }
 
 function buildTeachingPoint(caption) {
-  const cleanedCaption = cleanSentence(caption)
+  const cleanedCaption = cleanFigureCaption(caption)
     .replace(/^Figure\s+\d+\.?\s*/i, "")
     .replace(/^Visual Abstract\.?\s*/i, "");
-  const sentences = splitSentences(cleanedCaption).map(cleanSentence).filter(Boolean);
+  const sentences = splitSentences(cleanedCaption).map((sentence) => normalizeWhitespace(sentence)).filter(Boolean);
 
   if (sentences.length === 0) {
     return "High-yield figure from the article.";
@@ -239,30 +226,8 @@ function buildTeachingPoint(caption) {
   return truncate(normalizeTeachingPoint(withoutCaseLead.join(" ")), 260);
 }
 
-function pickAnkiFigures(figures, maxFigures) {
-  const visualAbstract = figures.find((figure) => figure.isVisualAbstract);
-  const regularFigures = figures.filter(
-    (figure) => !figure.isVisualAbstract && figure.localImagePath && figure.caption,
-  );
-
-  const picked = [];
-  if (visualAbstract) {
-    picked.push(visualAbstract);
-  }
-
-  for (const figure of regularFigures) {
-    picked.push(figure);
-    if (picked.length >= maxFigures) {
-      break;
-    }
-  }
-
-  return picked;
-}
-
 module.exports = {
   buildKeyFacts,
   buildSummarySections,
   buildTeachingPoint,
-  pickAnkiFigures,
 };

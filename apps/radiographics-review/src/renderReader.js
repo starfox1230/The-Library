@@ -1,5 +1,5 @@
-const path = require("node:path");
-const { escapeHtml, formatDate, splitSentences, truncate } = require("./utils");
+const { escapeHtml, splitSentences, truncate } = require("./utils");
+const { buildArticleMetadataLine } = require("./studyText");
 
 function formatAuthors(authors) {
   if (!authors?.length) {
@@ -71,7 +71,9 @@ function buildFigureSections(figures) {
 }
 
 function buildNarrativeDetails(article) {
-  const bodyBlocks = Array.isArray(article.bodyBlocks) ? article.bodyBlocks.filter(Boolean) : [];
+  const bodyBlocks = Array.isArray(article.cleanedBodyBlocks)
+    ? article.cleanedBodyBlocks.filter(Boolean)
+    : [];
   if (bodyBlocks.length === 0) {
     return "";
   }
@@ -88,17 +90,56 @@ function buildNarrativeDetails(article) {
   `;
 }
 
+function buildCopyScript() {
+  return `
+    <script>
+      (function () {
+        const link = document.querySelector("[data-copy-src]");
+        if (!link) {
+          return;
+        }
+
+        const originalText = link.textContent;
+        link.addEventListener("click", async function (event) {
+          const src = link.getAttribute("data-copy-src");
+          if (!src) {
+            return;
+          }
+
+          if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+            return;
+          }
+
+          event.preventDefault();
+          try {
+            const response = await fetch(src, { credentials: "same-origin" });
+            if (!response.ok) {
+              throw new Error("Copy source request failed.");
+            }
+            const text = await response.text();
+            await navigator.clipboard.writeText(text);
+            link.textContent = "Copied for Chat";
+            window.setTimeout(function () {
+              link.textContent = originalText;
+            }, 1800);
+          } catch (error) {
+            window.open(src, "_blank", "noopener");
+          }
+        });
+      })();
+    </script>
+  `;
+}
+
 function buildReaderHtml(article) {
   const heroFigure = article.figures.find((figure) => figure.isVisualAbstract) || article.figures[0];
   const summarySections = normalizeSummarySections(article);
   const leadSource =
     summarySections[0]?.text ||
     article.abstract ||
-    (Array.isArray(article.bodyBlocks) ? article.bodyBlocks[0] : "") ||
+    (Array.isArray(article.cleanedBodyBlocks) ? article.cleanedBodyBlocks[0] : "") ||
     "No summary was extracted from the article page.";
-  const digestLead =
-    splitSentences(leadSource)[0] ||
-    leadSource;
+  const digestLead = splitSentences(leadSource)[0] || leadSource;
   const heroImageBlock = heroFigure
     ? `
       <div class="hero-visual">
@@ -114,6 +155,11 @@ function buildReaderHtml(article) {
       `<a href="${escapeHtml(article.link)}" target="_blank" rel="noreferrer">Open at RadioGraphics</a>`,
     );
   }
+  if (article.copyChatRelativePath) {
+    quickLinks.push(
+      `<a href="${escapeHtml(article.copyChatRelativePath)}" target="_blank" rel="noreferrer" data-copy-src="${escapeHtml(article.copyChatRelativePath)}">Copy for Chat</a>`,
+    );
+  }
   if (article.pdfUrl) {
     quickLinks.push(`<a href="${escapeHtml(article.pdfUrl)}" target="_blank" rel="noreferrer">PDF</a>`);
   }
@@ -125,13 +171,7 @@ function buildReaderHtml(article) {
   const figureNav = buildFigureNav(article.figures);
   const summaryGrid = buildSummaryGrid(summarySections);
   const pageTitle = escapeHtml(article.title);
-  const metadataBits = [
-    article.journal || "RadioGraphics",
-    formatDate(article.publishedAt) || "Unknown date",
-    article.volume ? `Vol ${article.volume}` : "",
-    article.issue ? `Issue ${article.issue}` : "",
-    article.pages ? `Pages ${article.pages}` : "",
-  ].filter(Boolean);
+  const metadataLine = buildArticleMetadataLine(article);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -145,7 +185,6 @@ function buildReaderHtml(article) {
         --muted: #576863;
         --paper: #f5f1e8;
         --panel: rgba(255, 251, 245, 0.92);
-        --panel-strong: #fffaf2;
         --accent: #aa5e2b;
         --accent-2: #184a45;
         --line: rgba(20, 33, 29, 0.12);
@@ -347,7 +386,7 @@ function buildReaderHtml(article) {
         <article class="hero-copy">
           <div class="eyebrow">RadioGraphics Digest</div>
           <h1>${pageTitle}</h1>
-          <div class="meta-row">${escapeHtml(metadataBits.join(" | "))}</div>
+          <div class="meta-row">${escapeHtml(metadataLine)}</div>
           <div class="authors">${escapeHtml(formatAuthors(article.authors))}</div>
           <p class="digest-lead">${escapeHtml(digestLead)}</p>
           <div class="action-row">${quickLinks.join("")}</div>
@@ -374,6 +413,7 @@ function buildReaderHtml(article) {
         </div>
       </section>
     </main>
+    ${buildCopyScript()}
   </body>
 </html>
 `;
@@ -395,11 +435,7 @@ function buildCardSummary(article) {
 function buildArticlesIndex(articles) {
   const cards = articles
     .map((article) => {
-      const metadataBits = [
-        formatDate(article.publishedAt) || "Undated",
-        article.volume ? `Vol ${article.volume}` : "",
-        article.issue ? `Issue ${article.issue}` : "",
-      ].filter(Boolean);
+      const metadataLine = buildArticleMetadataLine(article);
 
       return `
         <article class="card">
@@ -408,7 +444,7 @@ function buildArticlesIndex(articles) {
               ? `<a class="thumb" href="${escapeHtml(article.readerIndexPath)}"><img src="${escapeHtml(article.thumbnailIndexPath)}" alt="${escapeHtml(article.title)}"></a>`
               : ""
           }
-          <div class="eyebrow">${escapeHtml(metadataBits.join(" | "))}</div>
+          <div class="eyebrow">${escapeHtml(metadataLine)}</div>
           <h2>${escapeHtml(article.title)}</h2>
           <p>${escapeHtml(buildCardSummary(article))}</p>
           <div class="links">
@@ -525,7 +561,7 @@ function buildArticlesIndex(articles) {
     <main>
       <section class="hero">
         <h1>RadioGraphics Review Library</h1>
-        <p>Each article gets a phone-friendly study page, a direct link back to RadioGraphics, and a downloadable Anki package. New runs add to this library; your phone only needs to read the finished output.</p>
+        <p>Each article gets a phone-friendly study page, a direct link back to RadioGraphics, a copy-ready study packet, and a downloadable Anki package. New runs add one article at a time to this library.</p>
       </section>
       <section class="grid">
         ${cards}

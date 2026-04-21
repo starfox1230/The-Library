@@ -6,15 +6,22 @@ const {
   stopBrowserProcess,
 } = require("./browserControl");
 const { buildAnkiPackage } = require("./anki");
+const { loadGeneratedArticles } = require("./library");
+const { buildAnkiNotes } = require("./notes");
 const { buildArticlesIndex, buildReaderHtml } = require("./renderReader");
 const {
   buildKeyFacts,
   buildSummarySections,
   buildTeachingPoint,
-  pickAnkiFigures,
 } = require("./summarize");
 const {
+  buildCopyForChatText,
+  cleanFigureCaption,
+  cleanProseBlock,
+} = require("./studyText");
+const {
   formatDate,
+  normalizeWhitespace,
   readJson,
   slugify,
   stripHtml,
@@ -68,14 +75,6 @@ async function extractPageArticle(page, seedArticle) {
       return "";
     }
 
-    function cleanBodyBlock(text) {
-      return clean(text)
-        .replace(/\bOPEN IN VIEWER\b/gi, "")
-        .replace(/\bDownload as PowerPoint\b/gi, "")
-        .replace(/\s+\((?:Fig(?:ure)?|Table)\s*[A-Za-z0-9.\- ]+\)/gi, "")
-        .trim();
-    }
-
     function extractBodyBlocks() {
       const root =
         document.querySelector("#bodymatter") ||
@@ -99,7 +98,7 @@ async function extractPageArticle(page, seedArticle) {
             continue;
           }
 
-          const text = cleanBodyBlock(child.innerText || "");
+          const text = clean(child.innerText || "");
           if (text.length >= 40) {
             blocks.push(text);
           }
@@ -116,7 +115,7 @@ async function extractPageArticle(page, seedArticle) {
     const figures = Array.from(document.querySelectorAll("figure.graphic")).map((figure, index) => {
       const image = figure.querySelector("img");
       const src = image?.currentSrc || image?.src || "";
-      const caption = clean(figure.querySelector("figcaption, .caption")?.innerText || "");
+      const rawCaption = clean(figure.querySelector("figcaption, .caption")?.innerText || "");
       const isVisualAbstract =
         /\.va\./i.test(src) ||
         clean(figure.innerText || "").toLowerCase().includes("visual abstract");
@@ -124,7 +123,7 @@ async function extractPageArticle(page, seedArticle) {
       return {
         index: index + 1,
         src,
-        caption,
+        rawCaption,
         isVisualAbstract,
       };
     });
@@ -135,7 +134,7 @@ async function extractPageArticle(page, seedArticle) {
         meta("og:title") ||
         clean(document.querySelector("h1")?.innerText || document.title || ""),
       abstract: meta("description") || abstractText(),
-      bodyBlocks: extractBodyBlocks(),
+      rawBodyBlocks: extractBodyBlocks(),
       pdfUrl: meta("citation_pdf_url"),
       authors: Array.from(document.querySelectorAll('meta[name="citation_author"]'))
         .map((node) => clean(node.content))
@@ -150,23 +149,36 @@ async function extractPageArticle(page, seedArticle) {
   ).map((figure, index) => {
     const label = figure.isVisualAbstract
       ? "Visual Abstract"
-      : figure.caption.match(/^Figure\s+\d+/i)?.[0] || `Figure ${index + 1}`;
+      : figure.rawCaption.match(/^Figure\s+\d+/i)?.[0] || `Figure ${index + 1}`;
     return {
       ...figure,
       label,
     };
   });
 
+  const rawBodyBlocks = (payload.rawBodyBlocks || [])
+    .map((block) => normalizeWhitespace(stripHtml(block)))
+    .filter(Boolean);
+  const cleanedBodyBlocks = rawBodyBlocks
+    .map((block) => cleanProseBlock(block))
+    .filter(Boolean);
+
   return {
     ...seedArticle,
     title: stripHtml(payload.title || seedArticle.title).replace(/\s*\|\s*RadioGraphics\s*$/i, ""),
     link: page.url(),
-    abstract: stripHtml(payload.abstract || "")
-      .replace(/^View all available purchase options.*$/i, "")
-      .replace(/^To read the full-text.*$/i, "")
-      .trim(),
-    bodyBlocks: (payload.bodyBlocks || []).map((block) => stripHtml(block).trim()).filter(Boolean),
-    bodyText: (payload.bodyBlocks || []).map((block) => stripHtml(block).trim()).filter(Boolean).join("\n\n"),
+    abstract: cleanProseBlock(
+      stripHtml(payload.abstract || "")
+        .replace(/^View all available purchase options.*$/i, "")
+        .replace(/^To read the full-text.*$/i, "")
+        .trim(),
+    ),
+    rawBodyBlocks,
+    rawBodyText: rawBodyBlocks.join("\n\n"),
+    cleanedBodyBlocks,
+    cleanedBodyText: cleanedBodyBlocks.join("\n\n"),
+    bodyBlocks: cleanedBodyBlocks,
+    bodyText: cleanedBodyBlocks.join("\n\n"),
     pdfUrl: payload.pdfUrl || "",
     authors: unique([...(payload.authors || []), ...(seedArticle.authors || [])]),
     figures: dedupedFigures,
@@ -238,13 +250,15 @@ async function captureFigureAssets(page, figures, assetsDir) {
       await imageLocator.screenshot({ path: filePath });
     }
 
+    const cleanedCaption = cleanFigureCaption(figure.rawCaption);
     savedFigures.push({
       ...figure,
+      caption: cleanedCaption,
       anchor: slugify(figure.label, 32),
       localImageName: fileName,
       localImagePath: filePath,
       relativeImagePath: path.posix.join("assets", fileName),
-      teachingPoint: buildTeachingPoint(figure.caption),
+      teachingPoint: buildTeachingPoint(cleanedCaption),
     });
 
     if (!figure.isVisualAbstract) {
@@ -256,41 +270,29 @@ async function captureFigureAssets(page, figures, assetsDir) {
 }
 
 function writeReaderIndex(config) {
-  const articleDirs = fs
-    .readdirSync(config.articlesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(config.articlesDir, entry.name));
-  const articles = articleDirs
-    .map((articleDir) => readJson(path.join(articleDir, "article.json"), null))
-    .filter(Boolean)
-    .sort((left, right) => {
-      const leftTime = Date.parse(left.publishedAt || "") || 0;
-      const rightTime = Date.parse(right.publishedAt || "") || 0;
-      return rightTime - leftTime;
-    })
-    .map((article) => ({
-      ...article,
-      readerIndexPath: path.posix.join(
-        "articles",
-        path.basename(article.articleDir),
-        "reader.html",
-      ),
-      thumbnailIndexPath:
-        article.figures?.[0]?.relativeImagePath
-          ? path.posix.join(
-              "articles",
-              path.basename(article.articleDir),
-              article.figures[0].relativeImagePath,
-            )
-          : "",
-      ankiIndexPath: article.ankiPackageRelativePath
+  const articles = loadGeneratedArticles(config).map((article) => ({
+    ...article,
+    readerIndexPath: path.posix.join(
+      "articles",
+      path.basename(article.articleDir),
+      "reader.html",
+    ),
+    thumbnailIndexPath:
+      article.figures?.[0]?.relativeImagePath
         ? path.posix.join(
             "articles",
             path.basename(article.articleDir),
-            article.ankiPackageRelativePath,
+            article.figures[0].relativeImagePath,
           )
         : "",
-    }));
+    ankiIndexPath: article.ankiPackageRelativePath
+      ? path.posix.join(
+          "articles",
+          path.basename(article.articleDir),
+          article.ankiPackageRelativePath,
+        )
+      : "",
+  }));
 
   const indexHtml = buildArticlesIndex(articles);
   const appIndexPath = path.join(config.workspaceRoot, "index.html");
@@ -344,19 +346,32 @@ async function captureArticlePackages(config, articles) {
 
         const extracted = await extractPageArticle(page, article);
         const figures = await captureFigureAssets(page, extracted.figures, assetsDir);
-        const summarySections = buildSummarySections(extracted);
+        const generatedAt = new Date().toISOString();
         const articlePayload = {
           ...extracted,
           slug: slugify(extracted.title, 80),
           articleDir,
+          generatedAt,
           figures,
-          summarySections,
-          keyFacts: buildKeyFacts(extracted),
+          summarySections: buildSummarySections({ ...extracted, figures }),
+          keyFacts: buildKeyFacts({ ...extracted, figures }),
         };
 
         const jsonPath = path.join(articleDir, "article.json");
+        const copyChatPath = path.join(articleDir, "copy-for-chat.txt");
+        const notesJsonPath = path.join(ankiDir, "notes.json");
         articlePayload.jsonPath = jsonPath;
-        articlePayload.ankiFigures = pickAnkiFigures(figures, config.defaultAnkiFigureLimit);
+        articlePayload.copyChatPath = copyChatPath;
+        articlePayload.copyChatRelativePath = "copy-for-chat.txt";
+        articlePayload.ankiNotesPath = notesJsonPath;
+        articlePayload.ankiNotesRelativePath = path.posix.join("anki", "notes.json");
+
+        const noteBundle = buildAnkiNotes(articlePayload, generatedAt);
+        articlePayload.ankiBatchTag = noteBundle.batchTag;
+        articlePayload.ankiNotesCount = noteBundle.notes.length;
+
+        fs.writeFileSync(copyChatPath, buildCopyForChatText(articlePayload), "utf8");
+        writeJson(notesJsonPath, noteBundle.notes);
         writeJson(jsonPath, articlePayload);
 
         const ankiResult = await buildAnkiPackage(config, articlePayload);
@@ -387,7 +402,7 @@ async function captureArticlePackages(config, articles) {
 
     return {
       enabled: true,
-      reason: "Article readers and Anki packages were generated from the dedicated browser profile.",
+      reason: "Article readers, copy packets, note JSON, and Anki packages were generated from the dedicated browser profile.",
       articles: packagedArticles,
       indexPath: writeReaderIndex(config),
     };
@@ -398,5 +413,6 @@ async function captureArticlePackages(config, articles) {
 }
 
 module.exports = {
+  articleDirName,
   captureArticlePackages,
 };

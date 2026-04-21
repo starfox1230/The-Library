@@ -1,13 +1,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { ensureDirectories, getConfig } = require("./config");
-const { fetchRecentArticles } = require("./crossref");
-const { formatDate, readJson, truncate, writeJson } = require("./utils");
+const { fetchArticlesPage, fetchRecentArticles } = require("./crossref");
+const { loadGeneratedArticles, loadProcessedDois } = require("./library");
+const { formatDate, truncate, writeJson } = require("./utils");
 
 function parseArgs(argv) {
   const args = {
     enrich: true,
-    maxResults: undefined,
+    maxResults: 1,
     lookbackDays: undefined,
     includeSeen: false,
   };
@@ -33,6 +34,10 @@ function parseArgs(argv) {
     }
   }
 
+  if (!args.maxResults || args.maxResults < 1) {
+    args.maxResults = 1;
+  }
+
   return args;
 }
 
@@ -54,7 +59,7 @@ function buildDigestMarkdown(metadata) {
   ];
 
   if (metadata.newArticles.length === 0) {
-    lines.push("No new articles were detected in the current lookback window.");
+    lines.push("No new or backfill articles were selected in the current run.");
     if (metadata.indexPath) {
       lines.push(`Library index: ${metadata.indexPath}`);
     }
@@ -72,6 +77,14 @@ function buildDigestMarkdown(metadata) {
 
     if (article.readerPath) {
       lines.push(`- Reader: ${article.readerPath}`);
+    }
+
+    if (article.copyChatPath) {
+      lines.push(`- Copy packet: ${article.copyChatPath}`);
+    }
+
+    if (article.ankiNotesPath) {
+      lines.push(`- Anki notes JSON: ${article.ankiNotesPath}`);
     }
 
     if (article.ankiPackagePath) {
@@ -104,8 +117,8 @@ function buildDigestMarkdown(metadata) {
       lines.push(`- Authors: ${displayAuthors}`);
     }
 
-    if (article.abstract) {
-      lines.push(`- Abstract: ${truncate(article.abstract, 900)}`);
+    if (article.cleanedBodyBlocks?.length) {
+      lines.push(`- Prose sample: ${truncate(article.cleanedBodyBlocks[0], 280)}`);
     }
 
     if (article.keyFacts?.length) {
@@ -127,35 +140,93 @@ function buildDigestMarkdown(metadata) {
   return lines.join("\n");
 }
 
+function recentFromDate(config, overrideDays) {
+  const lookbackDays = overrideDays || config.defaultLookbackDays;
+  const fromDate = new Date();
+  fromDate.setUTCDate(fromDate.getUTCDate() - lookbackDays);
+  return fromDate.toISOString().slice(0, 10);
+}
+
+async function collectQueueArticles(config, options = {}) {
+  const limit = options.maxResults || 1;
+  const processedDois = options.includeSeen ? new Set() : loadProcessedDois(config);
+  const reservedDois = new Set(processedDois);
+  const selected = [];
+  const recentScan = await fetchRecentArticles(config, {
+    maxResults: config.defaultMaxResults,
+    lookbackDays: options.lookbackDays,
+  });
+  const scannedCount = recentScan.length;
+
+  async function searchPhase(searchOptions) {
+    let cursor = "*";
+    let pageCount = 0;
+
+    while (selected.length < limit && pageCount < 200) {
+      const page = await fetchArticlesPage(config, {
+        rows: config.defaultMaxResults,
+        cursor,
+        fromDate: searchOptions.fromDate,
+      });
+
+      if (page.items.length === 0) {
+        break;
+      }
+
+      for (const article of page.items) {
+        if (reservedDois.has(article.doi)) {
+          continue;
+        }
+        selected.push(article);
+        reservedDois.add(article.doi);
+        if (selected.length >= limit) {
+          break;
+        }
+      }
+
+      if (!page.nextCursor || page.nextCursor === cursor) {
+        break;
+      }
+
+      cursor = page.nextCursor;
+      pageCount += 1;
+    }
+  }
+
+  await searchPhase({ fromDate: recentFromDate(config, options.lookbackDays) });
+
+  if (selected.length < limit && !options.includeSeen) {
+    await searchPhase({});
+  }
+
+  return {
+    scannedCount,
+    selected,
+    processedDois: Array.from(processedDois),
+  };
+}
+
 async function main() {
   const config = getConfig();
   ensureDirectories(config);
 
   const args = parseArgs(process.argv.slice(2));
-  const state = readJson(config.statePath, {
-    seenDois: [],
-    lastRunAt: null,
-    lastDigestPath: null,
-  });
-  const seenDois = new Set(state.seenDois || []);
-
-  const recentArticles = await fetchRecentArticles(config, {
-    maxResults: args.maxResults,
+  const generatedArticles = loadGeneratedArticles(config);
+  const queue = await collectQueueArticles(config, {
+    includeSeen: args.includeSeen,
     lookbackDays: args.lookbackDays,
+    maxResults: args.maxResults,
   });
-  const candidateArticles = args.includeSeen
-    ? recentArticles
-    : recentArticles.filter((article) => !seenDois.has(article.doi));
 
   let packaging;
   if (args.enrich) {
     const { captureArticlePackages } = require("./articlePipeline");
-    packaging = await captureArticlePackages(config, candidateArticles);
+    packaging = await captureArticlePackages(config, queue.selected);
   } else {
     packaging = {
       enabled: false,
       reason: "Disabled with --no-enrich.",
-      articles: candidateArticles.map((article) => ({
+      articles: queue.selected.map((article) => ({
         ...article,
         status: "metadata-only",
       })),
@@ -178,7 +249,7 @@ async function main() {
 
   const digestBody = buildDigestMarkdown({
     generatedAtLocal: localTimestamp,
-    scannedCount: recentArticles.length,
+    scannedCount: queue.scannedCount,
     newCount: packaging.articles.length,
     packagingSummary,
     indexPath: packaging.indexPath,
@@ -187,18 +258,27 @@ async function main() {
 
   fs.writeFileSync(digestPath, `${digestBody}\n`, "utf8");
 
-  const processedDois = packaging.articles
-    .filter((article) => article.status !== "error" && article.status !== "metadata-only")
-    .map((article) => article.doi);
+  const outputDois = new Set([
+    ...generatedArticles.map((article) => article.doi).filter(Boolean),
+    ...packaging.articles
+      .filter((article) => article.status !== "error" && article.status !== "metadata-only")
+      .map((article) => article.doi),
+  ]);
 
   writeJson(config.statePath, {
-    seenDois: Array.from(new Set([...(state.seenDois || []), ...processedDois])),
+    seenDois: [
+      ...new Set([
+        ...queue.processedDois,
+        ...outputDois,
+      ]),
+    ],
+    processedDoisFromOutputs: Array.from(outputDois),
     lastRunAt: now.toISOString(),
     lastDigestPath: digestPath,
   });
 
   console.log(`Wrote digest to ${digestPath}`);
-  console.log(`Recent records scanned: ${recentArticles.length}`);
+  console.log(`Recent records scanned: ${queue.scannedCount}`);
   console.log(`Articles packaged: ${packaging.articles.length}`);
   console.log(`Packaging run: ${packagingSummary}`);
   if (packaging.indexPath) {

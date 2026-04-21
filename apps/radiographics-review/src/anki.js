@@ -1,11 +1,21 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
+const { slugify } = require("./utils");
 
 function buildAnkiPackage(config, article) {
   return new Promise((resolve, reject) => {
-    const outputPath = path.join(article.articleDir, "anki", `${article.slug}.apkg`);
+    const packageSlug = slugify(article.title || article.doi || "article", 40);
+    const outputPath = path.join(
+      article.articleDir,
+      "anki",
+      `${slugify(article.doi || "rg", 24)}-${packageSlug}.apkg`,
+    );
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    if (!article.ankiNotesPath) {
+      reject(new Error("Missing article.ankiNotesPath before Anki package build."));
+      return;
+    }
 
     const pythonPath = process.env.PYTHONPATH
       ? `${config.pythonRuntimeDir}${path.delimiter}${process.env.PYTHONPATH}`
@@ -13,7 +23,15 @@ function buildAnkiPackage(config, article) {
     const scriptPath = path.join(config.workspaceRoot, "scripts", "build_anki_package.py");
     const child = spawn(
       "py",
-      [scriptPath, "--article-json", article.jsonPath, "--output", outputPath],
+      [
+        scriptPath,
+        "--article-json",
+        article.jsonPath,
+        "--notes-json",
+        article.ankiNotesPath,
+        "--output",
+        outputPath,
+      ],
       {
         cwd: config.workspaceRoot,
         env: {
