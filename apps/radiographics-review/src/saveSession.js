@@ -23,6 +23,7 @@ async function main() {
     console.log(
       `Profile path: ${config.browserProfileDir}`,
     );
+    console.log(`Optional stored credential setup: npm run set-credentials`);
     console.log("1. Complete any Cloudflare challenge in that browser window.");
     console.log("2. Sign into RSNA there.");
     console.log("3. Open a RadioGraphics article page and confirm it loads normally.");

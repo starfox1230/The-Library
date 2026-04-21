@@ -19,6 +19,7 @@ const {
   cleanFigureCaption,
   cleanProseBlock,
 } = require("./studyText");
+const { ensureAuthenticatedArticleAccess, looksLikeAccessWallText } = require("./rsnaAuth");
 const {
   formatDate,
   normalizeWhitespace,
@@ -48,26 +49,6 @@ function imageExtension(src) {
   }
 
   return ".png";
-}
-
-const ACCESS_WALL_PATTERNS = [
-  /\bget full access to this article\b/i,
-  /\balready a subscriber\b/i,
-  /\bsign in as an individual\b/i,
-  /\bvia your institution\b/i,
-  /\bavailable purchase options\b/i,
-  /\baccess through your institution\b/i,
-  /\bindividual access\b/i,
-];
-
-function looksLikeAccessWallText(text) {
-  const value = normalizeWhitespace(String(text || ""));
-  if (!value) {
-    return false;
-  }
-
-  const matches = ACCESS_WALL_PATTERNS.filter((pattern) => pattern.test(value)).length;
-  return matches >= 2 || /\bget full access to this article\b/i.test(value);
 }
 
 function filterAccessWallBlocks(blocks) {
@@ -405,11 +386,9 @@ async function captureArticlePackages(config, articles) {
         });
         await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
 
-        const challengeText = (await page.textContent("body").catch(() => "")) || "";
-        if (/verify you are human|checking your browser|cloudflare/i.test(challengeText)) {
-          throw new Error(
-            "Cloudflare challenge detected. Re-run `npm run login` and complete the challenge in the dedicated browser profile.",
-          );
+        const authResult = await ensureAuthenticatedArticleAccess(page, config, article.link);
+        if (!authResult.success) {
+          throw new Error(authResult.reason);
         }
 
         const extracted = await extractPageArticle(page, article);

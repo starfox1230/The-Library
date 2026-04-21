@@ -1,4 +1,5 @@
-const { normalizeWhitespace, splitSentences, uniqueBy } = require("./utils");
+const { normalizeWhitespace } = require("./utils");
+const { extractArticleInsights } = require("./summarize");
 
 function chicagoDateStamp(dateLike = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -7,7 +8,9 @@ function chicagoDateStamp(dateLike = new Date()) {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(new Date(dateLike));
-  const byType = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  const byType = Object.fromEntries(
+    parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]),
+  );
   return `${byType.year}.${byType.month}.${byType.day}`;
 }
 
@@ -23,77 +26,25 @@ function buildBatchTag(article, dateLike = new Date()) {
   return `#AnkiChat::${chicagoDateStamp(dateLike)}_${tagSubject(article.title)}`;
 }
 
-function removeTerminalPeriod(text) {
+function trimTerminalPunctuation(text) {
   return normalizeWhitespace(String(text || "").replace(/[. ]+$/g, ""));
 }
 
-function removeLeadingCue(text) {
-  return normalizeWhitespace(
-    String(text || "")
-      .replace(/^\([A-Z,\s]+\)\s*/i, "")
-      .replace(/^Figure\s+\d+\.?\s*/i, ""),
-  );
+function findSentence(sentences, pattern) {
+  return (sentences || []).find((sentence) => pattern.test(sentence));
 }
 
-function stripTrailingClause(text) {
-  return normalizeWhitespace(
-    String(text || "")
-      .replace(/,\s*(although|but)\b.+$/i, "")
-      .replace(/\s+(although|but)\b.+$/i, ""),
-  );
-}
-
-function diagnosisQuestionForFigure(figure) {
-  const caption = (figure.caption || "").toLowerCase();
-  if (/\b(radiograph|radiographs|x-ray)\b/.test(caption)) {
-    return "What diagnosis is suggested by this radiographic appearance?";
-  }
-  if (/\b(mri|mr image|mr imaging)\b/.test(caption)) {
-    return "What diagnosis is suggested by this MRI appearance?";
-  }
-  if (/\b(ct|computed tomography)\b/.test(caption)) {
-    return "What diagnosis is suggested by this CT appearance?";
-  }
-  if (/\b(ultrasound|sonography)\b/.test(caption)) {
-    return "What diagnosis is suggested by this sonographic appearance?";
-  }
-  return "What diagnosis is shown in this figure?";
-}
-
-function buildQuestionNote(question, answer, batchTag, id, options = {}) {
-  const parts = [
-    normalizeWhitespace(question),
-    `{{c1::${removeTerminalPeriod(answer)}}}`,
-  ];
-
-  if (options.imageName) {
-    parts.push(`<img src="${options.imageName}">`);
-  }
-
+function buildContentNote(content, batchTag) {
   return {
-    content: parts.join("<br><br>"),
+    content: normalizeWhitespace(content),
     tags: [batchTag],
-    id,
   };
 }
 
-function buildSentenceNote(sentence, batchTag, id) {
-  return {
-    content: normalizeWhitespace(sentence),
-    tags: [batchTag],
-    id,
-  };
-}
-
-function collectCaptionSentences(article) {
-  return uniqueBy(
-    (article.figures || [])
-      .flatMap((figure) => splitSentences(figure.caption || "").map((sentence) => ({
-        figure,
-        sentence: removeLeadingCue(sentence),
-      })))
-      .filter((entry) => entry.sentence.length > 20),
-    (entry) => entry.sentence.toLowerCase(),
+function buildImageDiagnosisNote(answer, imageName, batchTag) {
+  return buildContentNote(
+    `Most likely diagnosis?<br><br>{{c1::${trimTerminalPunctuation(answer)}}}<br><br><img src="${imageName}">`,
+    batchTag,
   );
 }
 
@@ -116,11 +67,8 @@ function pickDiagnosisFigure(article) {
       if (/\b(ultrasound|sonography)\b/.test(lowered)) {
         score += 4;
       }
-      if (/\bphotograph\b/.test(lowered)) {
-        score += 2;
-      }
-      if (/\b(pathophysiology|proposed causes|diagram|algorithm)\b/.test(lowered)) {
-        score -= 6;
+      if (/\b(pathophysiology|diagram|algorithm|visual abstract)\b/.test(lowered)) {
+        score -= 8;
       }
 
       return {
@@ -133,9 +81,171 @@ function pickDiagnosisFigure(article) {
   return ranked[0]?.score > 0 ? ranked[0].figure : null;
 }
 
+function buildDiseaseNotes(article, insights, batchTag, pushNote) {
+  const title = insights.subject;
+
+  const definitionSentence = insights.rawSentences.definingSentence || insights.rawSentences.leadSentence || "";
+  const characterizedMatch = definitionSentence.match(/\bcharacterized by\b\s+(.+?)(?:\.|$)/i);
+  if (characterizedMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `${title} is characterized by {{c1::${trimTerminalPunctuation(characterizedMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  if (insights.distribution) {
+    const distributionAnswer = trimTerminalPunctuation(
+      insights.distribution
+        .replace(new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+`, "i"), "")
+        .replace(/^(typically affects|usually affects|most often affects)\s+/i, ""),
+    );
+    if (distributionAnswer) {
+      pushNote(
+        buildContentNote(
+          `${title} typically affects {{c1::${distributionAnswer}}}.`,
+          batchTag,
+        ),
+      );
+    }
+  }
+
+  if (insights.radiographFindings) {
+    pushNote(
+      buildContentNote(
+        `In ${title}, radiographs typically show {{c1::${trimTerminalPunctuation(insights.radiographFindings)}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  if (insights.ctFindings) {
+    pushNote(
+      buildContentNote(
+        `In ${title}, CT typically shows {{c1::${trimTerminalPunctuation(insights.ctFindings)}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  if (insights.mriFindings) {
+    pushNote(
+      buildContentNote(
+        `In ${title}, MRI typically shows {{c1::${trimTerminalPunctuation(insights.mriFindings)}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  if (insights.managementFrom && insights.managementTo) {
+    pushNote(
+      buildContentNote(
+        `In symptomatic ${title}, management ranges from {{c1::${trimTerminalPunctuation(insights.managementFrom)}}} to {{c2::${trimTerminalPunctuation(insights.managementTo)}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const diagnosisFigure = pickDiagnosisFigure(article);
+  if (diagnosisFigure) {
+    pushNote(
+      buildImageDiagnosisNote(title, diagnosisFigure.localImageName, batchTag),
+    );
+  }
+}
+
+function buildTechniqueNotes(article, insights, batchTag, pushNote) {
+  const title = insights.subject;
+  const sentences = insights.sentences || [];
+
+  const leadSentence = insights.rawSentences.leadSentence || "";
+  const conceptMatch = leadSentence.match(/\bis (?:a|an)\s+(.+?)(?:\.|$)/i);
+  if (conceptMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `${title} is a {{c1::${trimTerminalPunctuation(conceptMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const polymerizationSentence = findSentence(sentences, /\bpolymerizes on contact with\b/i);
+  const polymerizationMatch = polymerizationSentence?.match(/\bpolymerizes on contact with\b\s+(.+?)(?:,|\.|$)/i);
+  if (polymerizationMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `${title} rapidly polymerizes on contact with {{c1::${trimTerminalPunctuation(polymerizationMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const mixingSentence = findSentence(sentences, /\bmixing\b.+\bwith\b.+\bto\b/i);
+  const mixingMatch =
+    mixingSentence?.match(/\bmixing\b.+?\bwith\b\s+(.+?)\s+\bto\b\s+(.+?)(?:\.|$)/i) ||
+    mixingSentence?.match(/\bmixed with\b\s+(.+?)\s+\bto\b\s+(.+?)(?:\.|$)/i);
+  if (mixingMatch?.[1] && mixingMatch?.[2]) {
+    pushNote(
+      buildContentNote(
+        `In ${title}, NBCA is mixed with {{c1::${trimTerminalPunctuation(mixingMatch[1])}}} to {{c2::${trimTerminalPunctuation(mixingMatch[2])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const useSentence = insights.rawSentences.useCaseSentence || findSentence(sentences, /\bespecially effective\b/i) || "";
+  const useMatch = useSentence.match(/\bespecially effective\b(?:\s+in|\s+for)?\s+(.+?)(?:\.|$)/i);
+  if (useMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `${title} is especially useful for {{c1::${trimTerminalPunctuation(useMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const riskSentence = insights.rawSentences.riskSentence || findSentence(sentences, /\brisk of\b/i) || "";
+  const riskMatch = riskSentence.match(/\brisk of\b\s+(.+?)(?:,|\.|$)/i);
+  if (riskMatch?.[1]) {
+    const riskAnswer = trimTerminalPunctuation(
+      riskMatch[1].replace(/\s+remains\b.+$/i, ""),
+    );
+    const suffix = /tissue necrosis|ischemia/i.test(riskSentence)
+      ? " and can cause tissue necrosis or ischemia"
+      : "";
+    pushNote(
+      buildContentNote(
+        `A major complication of ${title} is {{c1::${riskAnswer}}}${suffix}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const pearlSentence =
+    findSentence(sentences, /\bunderstanding of the vascular anatomy and hemodynamics is essential\b/i) ||
+    findSentence(sentences, /\bsuccessful outcomes rely on\b/i) ||
+    insights.rawSentences.technicalPearlSentence ||
+    "";
+  const pearlMatch =
+    pearlSentence.match(/\bis essential to\b\s+(.+?)(?:\.|$)/i) ||
+    pearlSentence.match(/\brely on\b\s+(.+?)(?:\.|$)/i);
+  if (pearlMatch?.[1]) {
+    const stem = /\bis essential to\b/i.test(pearlSentence)
+      ? `During ${title}, understanding vascular anatomy and hemodynamics is essential to`
+      : `Successful outcomes with ${title} rely on`;
+    pushNote(
+      buildContentNote(
+        `${stem} {{c1::${trimTerminalPunctuation(pearlMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+}
+
 function buildArticleNotes(article, dateLike = new Date()) {
   const batchTag = buildBatchTag(article, dateLike);
-  const title = article.title || "This article";
+  const insights = extractArticleInsights(article);
   const notes = [];
   const seen = new Set();
 
@@ -151,150 +261,17 @@ function buildArticleNotes(article, dateLike = new Date()) {
     seen.add(key);
   }
 
-  const proseSentences = uniqueBy(
-    (article.cleanedBodyBlocks || [])
-      .flatMap((block) => splitSentences(block))
-      .map((sentence) => normalizeWhitespace(sentence))
-      .filter((sentence) => sentence.length > 20),
-    (sentence) => sentence.toLowerCase(),
-  );
-
-  const characterizedSentence = proseSentences.find((sentence) => /\bcharacterized by\b/i.test(sentence));
-  if (characterizedSentence) {
-    const match = characterizedSentence.match(/\bcharacterized by\b\s+(.+?)(?:\.|$)/i);
-    if (match?.[1]) {
-      pushNote(
-        buildQuestionNote(
-          `Which tissue pattern defines ${title}?`,
-          match[1],
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const distributionSentence = proseSentences.find((sentence) =>
-    /\b(typically affects|usually affects|most often affects)\b/i.test(sentence),
-  );
-  if (distributionSentence) {
-    const answer = distributionSentence
-      .replace(/\b(It|This condition|The disease)\s+/i, "")
-      .replace(/\b(typically affects|usually affects|most often affects)\b/i, "")
-      .replace(/^\s+/, "");
-    if (answer) {
-      pushNote(
-        buildQuestionNote(
-          `What anatomic distribution is typical for ${title}?`,
-          stripTrailingClause(answer),
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const radiographSentence = proseSentences.find((sentence) => /\b(radiograph|radiographs|x-ray)\b/i.test(sentence));
-  if (radiographSentence) {
-    const answer = removeTerminalPeriod(
-      radiographSentence
-        .replace(/^Radiographs?\s+(?:may\s+)?(?:show|demonstrate)\s+/i, ""),
-    );
-    if (answer) {
-      pushNote(
-        buildQuestionNote(
-          `Which radiographic finding pattern suggests ${title}?`,
-          answer,
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const ctSentence = proseSentences.find((sentence) => /\bct\b/i.test(sentence));
-  if (ctSentence) {
-    const answer = removeTerminalPeriod(
-      ctSentence
-        .replace(/^CT\s+shows\s+/i, "")
-        .replace(/^Characteristic CT findings include\s+/i, ""),
-    );
-    if (answer) {
-      pushNote(
-        buildQuestionNote(
-          `Which CT finding pattern suggests ${title}?`,
-          answer,
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const mriSentence = proseSentences.find((sentence) => /\b(mri|mr image|mr imaging)\b/i.test(sentence));
-  if (mriSentence) {
-    const answer = removeTerminalPeriod(
-      mriSentence
-        .replace(/^MRI\s+shows\s+/i, "")
-        .replace(/^At\s+(?:T1-weighted|T2-weighted)\s+MRI,\s*/i, "")
-        .replace(/^On MRI,\s*/i, ""),
-    );
-    if (answer) {
-      pushNote(
-        buildQuestionNote(
-          `Which MRI finding pattern suggests ${title}?`,
-          answer,
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const managementSentence = proseSentences.find((sentence) =>
-    /\b(treatment(?: options)? range(?:s)? from|management(?: options)? range(?:s)? from)\b/i.test(sentence),
-  );
-  if (managementSentence) {
-    const match = managementSentence.match(/\brange(?:s)? from\b\s+(.+?)\s+\bto\b\s+(.+?)(?:\.|$)/i);
-    if (match?.[1] && match?.[2]) {
-      pushNote(
-        buildSentenceNote(
-          `Management for symptomatic ${title} ranges from {{c1::${removeTerminalPeriod(match[1])}}} to {{c2::${removeTerminalPeriod(match[2])}}}.`,
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const captionSentences = collectCaptionSentences(article);
-  const proposedCauses = captionSentences.find((entry) => /\bproposed causes?\b/i.test(entry.sentence));
-  if (proposedCauses) {
-    const match = proposedCauses.sentence.match(/\b(.+?)\s+are the proposed causes?\b/i);
-    if (match?.[1]) {
-      pushNote(
-        buildQuestionNote(
-          `Which mechanisms are proposed causes of ${title}?`,
-          match[1],
-          batchTag,
-        ),
-      );
-    }
-  }
-
-  const diagnosisFigure = pickDiagnosisFigure(article);
-  if (diagnosisFigure) {
-    pushNote(
-      buildQuestionNote(
-        diagnosisQuestionForFigure(diagnosisFigure),
-        title,
-        batchTag,
-        undefined,
-        { imageName: diagnosisFigure.localImageName },
-      ),
-    );
+  if (insights.mode === "technique") {
+    buildTechniqueNotes(article, insights, batchTag, pushNote);
+  } else {
+    buildDiseaseNotes(article, insights, batchTag, pushNote);
   }
 
   if (notes.length === 0) {
     for (const section of article.summarySections || []) {
       pushNote(
-        buildQuestionNote(
-          `What is an important point about ${title}?`,
-          section.text,
+        buildContentNote(
+          `${section.label} for ${insights.subject} includes {{c1::${trimTerminalPunctuation(section.text)}}}.`,
           batchTag,
         ),
       );
@@ -343,8 +320,15 @@ function validateNotes(notes, batchTag) {
     if (!/\{\{c\d+::/.test(text)) {
       throw new Error(`Note is missing cloze syntax: ${text}`);
     }
-    if (/->|=>|←|→|↔/.test(text)) {
+    if (/->|=>|â†|â†’|â†”/.test(text)) {
       throw new Error(`Note contains arrow notation: ${text}`);
+    }
+    if (
+      /\b(high-yield figure from the article|key teaching point|which .* pattern suggests|not yet been well established)\b/i.test(
+        text,
+      )
+    ) {
+      throw new Error(`Note failed quality filter: ${text}`);
     }
   }
 }
