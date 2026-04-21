@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { escapeHtml, formatDate } = require("./utils");
+const { escapeHtml, formatDate, splitSentences, truncate } = require("./utils");
 
 function formatAuthors(authors) {
   if (!authors?.length) {
@@ -13,6 +13,17 @@ function formatAuthors(authors) {
   return `${authors.slice(0, 6).join(", ")}, et al.`;
 }
 
+function normalizeSummarySections(article) {
+  if (Array.isArray(article.summarySections) && article.summarySections.length > 0) {
+    return article.summarySections;
+  }
+
+  return (article.keyFacts || []).map((fact, index) => ({
+    label: index === 0 ? "Key point" : `Key point ${index + 1}`,
+    text: fact,
+  }));
+}
+
 function buildFigureNav(figures) {
   return figures
     .map(
@@ -22,15 +33,33 @@ function buildFigureNav(figures) {
     .join("");
 }
 
+function buildSummaryGrid(summarySections) {
+  return summarySections
+    .map(
+      (section) => `
+        <article class="summary-card">
+          <div class="summary-label">${escapeHtml(section.label)}</div>
+          <p>${escapeHtml(section.text)}</p>
+        </article>
+      `,
+    )
+    .join("\n");
+}
+
 function buildFigureSections(figures) {
   return figures
     .map(
       (figure) => `
         <section class="figure-panel" id="${escapeHtml(figure.anchor)}">
           <div class="figure-copy">
-            <div class="eyebrow">${escapeHtml(figure.label)}</div>
+            <div class="figure-meta-row">
+              <div class="eyebrow">${escapeHtml(figure.label)}</div>
+            </div>
             <h2>${escapeHtml(figure.teachingPoint)}</h2>
-            <p class="caption">${escapeHtml(figure.caption || "")}</p>
+            <details class="caption-details">
+              <summary>Full figure caption</summary>
+              <p class="caption">${escapeHtml(figure.caption || "")}</p>
+            </details>
           </div>
           <div class="figure-image-wrap">
             <img src="${escapeHtml(figure.relativeImagePath)}" alt="${escapeHtml(figure.label)}">
@@ -41,8 +70,35 @@ function buildFigureSections(figures) {
     .join("\n");
 }
 
+function buildNarrativeDetails(article) {
+  const bodyBlocks = Array.isArray(article.bodyBlocks) ? article.bodyBlocks.filter(Boolean) : [];
+  if (bodyBlocks.length === 0) {
+    return "";
+  }
+
+  const paragraphs = bodyBlocks
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join("");
+
+  return `
+    <details class="source-details">
+      <summary>View extracted article prose</summary>
+      <div class="source-copy">${paragraphs}</div>
+    </details>
+  `;
+}
+
 function buildReaderHtml(article) {
   const heroFigure = article.figures.find((figure) => figure.isVisualAbstract) || article.figures[0];
+  const summarySections = normalizeSummarySections(article);
+  const leadSource =
+    summarySections[0]?.text ||
+    article.abstract ||
+    (Array.isArray(article.bodyBlocks) ? article.bodyBlocks[0] : "") ||
+    "No summary was extracted from the article page.";
+  const digestLead =
+    splitSentences(leadSource)[0] ||
+    leadSource;
   const heroImageBlock = heroFigure
     ? `
       <div class="hero-visual">
@@ -51,24 +107,23 @@ function buildReaderHtml(article) {
       </div>
     `
     : "";
-
-  const keyFacts = article.keyFacts
-    .map((fact) => `<li>${escapeHtml(fact)}</li>`)
-    .join("");
   const quickLinks = [];
 
   if (article.link) {
-    quickLinks.push(`<a href="${escapeHtml(article.link)}" target="_blank" rel="noreferrer">Open Article</a>`);
+    quickLinks.push(
+      `<a href="${escapeHtml(article.link)}" target="_blank" rel="noreferrer">Open at RadioGraphics</a>`,
+    );
   }
   if (article.pdfUrl) {
     quickLinks.push(`<a href="${escapeHtml(article.pdfUrl)}" target="_blank" rel="noreferrer">PDF</a>`);
   }
   if (article.ankiPackageRelativePath) {
-    quickLinks.push(`<a href="${escapeHtml(article.ankiPackageRelativePath)}">Anki Package</a>`);
+    quickLinks.push(`<a href="${escapeHtml(article.ankiPackageRelativePath)}">Download Anki Package</a>`);
   }
 
   const figureSections = buildFigureSections(article.figures);
   const figureNav = buildFigureNav(article.figures);
+  const summaryGrid = buildSummaryGrid(summarySections);
   const pageTitle = escapeHtml(article.title);
   const metadataBits = [
     article.journal || "RadioGraphics",
@@ -77,7 +132,6 @@ function buildReaderHtml(article) {
     article.issue ? `Issue ${article.issue}` : "",
     article.pages ? `Pages ${article.pages}` : "",
   ].filter(Boolean);
-  const relativeJsonPath = path.posix.join(".", path.basename(article.jsonPath));
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -90,7 +144,8 @@ function buildReaderHtml(article) {
         --ink: #14211d;
         --muted: #576863;
         --paper: #f5f1e8;
-        --panel: rgba(255, 251, 245, 0.88);
+        --panel: rgba(255, 251, 245, 0.92);
+        --panel-strong: #fffaf2;
         --accent: #aa5e2b;
         --accent-2: #184a45;
         --line: rgba(20, 33, 29, 0.12);
@@ -122,7 +177,8 @@ function buildReaderHtml(article) {
       }
       .hero-copy,
       .hero-visual,
-      .sidebar,
+      .summary-card,
+      .narrative-panel,
       .figure-panel {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -136,7 +192,8 @@ function buildReaderHtml(article) {
         font-size: clamp(2rem, 4vw, 3.8rem);
         line-height: 1.02;
       }
-      .eyebrow {
+      .eyebrow,
+      .summary-label {
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -149,16 +206,20 @@ function buildReaderHtml(article) {
         font-size: 0.78rem;
         font-weight: 700;
       }
+      .summary-label {
+        background: rgba(170, 94, 43, 0.1);
+        color: var(--accent);
+      }
       .meta-row,
       .authors {
         margin-top: 10px;
         color: var(--muted);
         font-size: 0.96rem;
       }
-      .abstract {
+      .digest-lead {
         margin-top: 18px;
         color: #273833;
-        font-size: 1.02rem;
+        font-size: 1.06rem;
         line-height: 1.75;
       }
       .action-row,
@@ -193,54 +254,74 @@ function buildReaderHtml(article) {
         color: var(--muted);
         font-size: 0.9rem;
       }
-      .content-grid {
+      .summary-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 300px;
-        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
         margin-top: 24px;
       }
-      .sidebar {
-        position: sticky;
-        top: 18px;
-        height: fit-content;
+      .summary-card {
         padding: 22px;
       }
-      .sidebar h2 {
-        margin: 0 0 16px;
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-      }
-      .sidebar ul {
-        margin: 0;
-        padding-left: 18px;
+      .summary-card p {
+        margin: 14px 0 0;
         line-height: 1.7;
+        color: #273833;
       }
-      .sidebar li + li {
-        margin-top: 12px;
+      .narrative-panel {
+        margin-top: 24px;
+        padding: 24px;
       }
-      .sidebar small {
-        display: block;
+      .narrative-panel h2,
+      .figure-area h2 {
+        margin: 0 0 10px;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+      }
+      .narrative-panel p,
+      .figure-area p {
+        line-height: 1.75;
+        color: #30453f;
+      }
+      .source-details,
+      .caption-details {
         margin-top: 18px;
-        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.52);
+      }
+      .source-details summary,
+      .caption-details summary {
+        cursor: pointer;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+      .source-copy,
+      .caption {
+        padding: 0 16px 16px;
+      }
+      .figure-area {
+        margin-top: 28px;
       }
       .figure-stack {
         display: grid;
         gap: 22px;
+        margin-top: 18px;
       }
-      .figure-panel { padding: 18px; }
+      .figure-panel {
+        padding: 18px;
+      }
+      .figure-meta-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
       .figure-copy h2 {
-        margin: 12px 0;
+        margin: 12px 0 0;
         font-family: "Georgia", "Times New Roman", serif;
-        font-size: clamp(1.4rem, 3vw, 2.1rem);
-        line-height: 1.15;
-      }
-      .caption {
-        margin: 0;
-        color: #30453f;
-        line-height: 1.7;
-        white-space: pre-wrap;
+        font-size: clamp(1.35rem, 3vw, 2rem);
+        line-height: 1.18;
       }
       .figure-image-wrap {
         margin-top: 16px;
@@ -254,11 +335,9 @@ function buildReaderHtml(article) {
         height: auto;
       }
       @media (max-width: 980px) {
-        .hero,
-        .content-grid {
+        .hero {
           grid-template-columns: 1fr;
         }
-        .sidebar { position: static; }
       }
     </style>
   </head>
@@ -266,27 +345,33 @@ function buildReaderHtml(article) {
     <main class="shell">
       <section class="hero">
         <article class="hero-copy">
-          <div class="eyebrow">RadioGraphics Reader</div>
+          <div class="eyebrow">RadioGraphics Digest</div>
           <h1>${pageTitle}</h1>
-          <div class="meta-row">${escapeHtml(metadataBits.join(" · "))}</div>
+          <div class="meta-row">${escapeHtml(metadataBits.join(" | "))}</div>
           <div class="authors">${escapeHtml(formatAuthors(article.authors))}</div>
-          <p class="abstract">${escapeHtml(article.abstract || "No abstract was available from the article page.")}</p>
+          <p class="digest-lead">${escapeHtml(digestLead)}</p>
           <div class="action-row">${quickLinks.join("")}</div>
           <div class="jump-row">${figureNav}</div>
         </article>
         ${heroImageBlock}
       </section>
 
-      <section class="content-grid">
+      <section class="summary-grid">
+        ${summaryGrid}
+      </section>
+
+      <section class="narrative-panel">
+        <h2>Why This Article Matters</h2>
+        <p>This page is meant to be a quick study digest rather than a full-text mirror. Use the summary cards first, review the figures next, and open the original article when you want the full discussion and references.</p>
+        ${buildNarrativeDetails(article)}
+      </section>
+
+      <section class="figure-area">
+        <h2>Figure Review</h2>
+        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first, with the full caption tucked behind a toggle.</p>
         <div class="figure-stack">
           ${figureSections}
         </div>
-        <aside class="sidebar">
-          <h2>Key Facts</h2>
-          <ul>${keyFacts}</ul>
-          <small>DOI: ${escapeHtml(article.doi)}</small>
-          <small>Article JSON: ${escapeHtml(relativeJsonPath)}</small>
-        </aside>
       </section>
     </main>
   </body>
@@ -294,16 +379,40 @@ function buildReaderHtml(article) {
 `;
 }
 
+function buildCardSummary(article) {
+  const summarySections = normalizeSummarySections(article);
+  const parts = summarySections
+    .slice(0, 2)
+    .map((section) => `${section.label}: ${section.text}`);
+
+  if (parts.length > 0) {
+    return truncate(parts.join(" "), 280);
+  }
+
+  return truncate((article.keyFacts || []).slice(0, 2).join(" "), 280);
+}
+
 function buildArticlesIndex(articles) {
   const cards = articles
-    .map(
-      (article) => `
+    .map((article) => {
+      const metadataBits = [
+        formatDate(article.publishedAt) || "Undated",
+        article.volume ? `Vol ${article.volume}` : "",
+        article.issue ? `Issue ${article.issue}` : "",
+      ].filter(Boolean);
+
+      return `
         <article class="card">
-          <div class="eyebrow">${escapeHtml(formatDate(article.publishedAt) || "Undated")}</div>
+          ${
+            article.thumbnailIndexPath
+              ? `<a class="thumb" href="${escapeHtml(article.readerIndexPath)}"><img src="${escapeHtml(article.thumbnailIndexPath)}" alt="${escapeHtml(article.title)}"></a>`
+              : ""
+          }
+          <div class="eyebrow">${escapeHtml(metadataBits.join(" | "))}</div>
           <h2>${escapeHtml(article.title)}</h2>
-          <p>${escapeHtml((article.keyFacts || []).slice(0, 2).join(" "))}</p>
+          <p>${escapeHtml(buildCardSummary(article))}</p>
           <div class="links">
-            <a href="${escapeHtml(article.readerIndexPath)}">Reader</a>
+            <a href="${escapeHtml(article.readerIndexPath)}">Study Page</a>
             ${
               article.ankiIndexPath
                 ? `<a href="${escapeHtml(article.ankiIndexPath)}">Anki Package</a>`
@@ -311,8 +420,8 @@ function buildArticlesIndex(articles) {
             }
           </div>
         </article>
-      `,
-    )
+      `;
+    })
     .join("\n");
 
   return `<!DOCTYPE html>
@@ -329,25 +438,58 @@ function buildArticlesIndex(articles) {
         color: #14211d;
       }
       main {
-        width: min(1100px, calc(100vw - 32px));
+        width: min(1120px, calc(100vw - 32px));
         margin: 0 auto;
         padding: 32px 0 48px;
       }
+      .hero {
+        margin-bottom: 24px;
+      }
+      .hero h1 {
+        margin: 0 0 10px;
+        font-family: "Georgia", serif;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+      }
+      .hero p {
+        margin: 0;
+        max-width: 760px;
+        line-height: 1.7;
+        color: #30453f;
+      }
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
       }
       .card {
-        background: rgba(255, 251, 245, 0.9);
+        background: rgba(255, 251, 245, 0.92);
         border-radius: 24px;
         border: 1px solid rgba(20, 33, 29, 0.12);
-        padding: 20px;
+        padding: 18px;
+        box-shadow: 0 18px 40px rgba(20, 33, 29, 0.08);
+      }
+      .thumb {
+        display: block;
+        margin: -6px -6px 16px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #e6dece;
+      }
+      .thumb img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
       }
       .card h2 {
         margin: 12px 0;
         font-family: "Georgia", serif;
         line-height: 1.1;
+      }
+      .card p {
+        margin: 0 0 16px;
+        color: #30453f;
+        line-height: 1.65;
       }
       .links {
         display: flex;
@@ -381,8 +523,10 @@ function buildArticlesIndex(articles) {
   </head>
   <body>
     <main>
-      <h1>RadioGraphics Review Library</h1>
-      <p>Image-first article readers and Anki packages generated from your RSNA session.</p>
+      <section class="hero">
+        <h1>RadioGraphics Review Library</h1>
+        <p>Each article gets a phone-friendly study page, a direct link back to RadioGraphics, and a downloadable Anki package. New runs add to this library; your phone only needs to read the finished output.</p>
+      </section>
       <section class="grid">
         ${cards}
       </section>

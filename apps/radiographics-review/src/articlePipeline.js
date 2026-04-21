@@ -7,7 +7,12 @@ const {
 } = require("./browserControl");
 const { buildAnkiPackage } = require("./anki");
 const { buildArticlesIndex, buildReaderHtml } = require("./renderReader");
-const { buildKeyFacts, buildTeachingPoint, pickAnkiFigures } = require("./summarize");
+const {
+  buildKeyFacts,
+  buildSummarySections,
+  buildTeachingPoint,
+  pickAnkiFigures,
+} = require("./summarize");
 const {
   formatDate,
   readJson,
@@ -23,6 +28,19 @@ function articleDirName(article) {
   const doiSlug = slugify(article.doi || "article", 32);
   const titleSlug = slugify(article.title || "article", 72);
   return `${published}-${doiSlug}-${titleSlug}`;
+}
+
+function imageExtension(src) {
+  try {
+    const extension = path.extname(new URL(src).pathname).toLowerCase();
+    if ([".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(extension)) {
+      return extension === ".jpeg" ? ".jpg" : extension;
+    }
+  } catch (error) {
+    // Ignore malformed URLs and fall back to PNG.
+  }
+
+  return ".png";
 }
 
 async function extractPageArticle(page, seedArticle) {
@@ -50,6 +68,51 @@ async function extractPageArticle(page, seedArticle) {
       return "";
     }
 
+    function cleanBodyBlock(text) {
+      return clean(text)
+        .replace(/\bOPEN IN VIEWER\b/gi, "")
+        .replace(/\bDownload as PowerPoint\b/gi, "")
+        .replace(/\s+\((?:Fig(?:ure)?|Table)\s*[A-Za-z0-9.\- ]+\)/gi, "")
+        .trim();
+    }
+
+    function extractBodyBlocks() {
+      const root =
+        document.querySelector("#bodymatter") ||
+        document.querySelector(".hlFld-Fulltext") ||
+        document.querySelector("main article") ||
+        document.querySelector("article");
+      if (!root) {
+        return [];
+      }
+
+      const containers = [root.querySelector(".core-container"), root].filter(Boolean);
+      const blocks = [];
+
+      for (const container of containers) {
+        const children = Array.from(container.children || []);
+        for (const child of children) {
+          if (!(child instanceof HTMLElement)) {
+            continue;
+          }
+          if (child.matches(".figure-wrap, figure, .table-wrap, .media-wrap, .supplemental-materials")) {
+            continue;
+          }
+
+          const text = cleanBodyBlock(child.innerText || "");
+          if (text.length >= 40) {
+            blocks.push(text);
+          }
+        }
+
+        if (blocks.length > 0) {
+          return [...new Set(blocks)];
+        }
+      }
+
+      return [];
+    }
+
     const figures = Array.from(document.querySelectorAll("figure.graphic")).map((figure, index) => {
       const image = figure.querySelector("img");
       const src = image?.currentSrc || image?.src || "";
@@ -72,6 +135,7 @@ async function extractPageArticle(page, seedArticle) {
         meta("og:title") ||
         clean(document.querySelector("h1")?.innerText || document.title || ""),
       abstract: meta("description") || abstractText(),
+      bodyBlocks: extractBodyBlocks(),
       pdfUrl: meta("citation_pdf_url"),
       authors: Array.from(document.querySelectorAll('meta[name="citation_author"]'))
         .map((node) => clean(node.content))
@@ -101,10 +165,35 @@ async function extractPageArticle(page, seedArticle) {
       .replace(/^View all available purchase options.*$/i, "")
       .replace(/^To read the full-text.*$/i, "")
       .trim(),
+    bodyBlocks: (payload.bodyBlocks || []).map((block) => stripHtml(block).trim()).filter(Boolean),
+    bodyText: (payload.bodyBlocks || []).map((block) => stripHtml(block).trim()).filter(Boolean).join("\n\n"),
     pdfUrl: payload.pdfUrl || "",
     authors: unique([...(payload.authors || []), ...(seedArticle.authors || [])]),
     figures: dedupedFigures,
   };
+}
+
+async function hideFigureCaptureOverlays(page) {
+  await page.evaluate(() => {
+    const selectors = [
+      "#cookie-popup",
+      ".st-header",
+      ".navbar-in",
+      ".references-popup-wrapper",
+      ".figure-pop-btn",
+      ".core-figure-tools",
+      "#publication__menu__content",
+      "#a2a_modal",
+      "#a2apage_full",
+    ];
+
+    for (const selector of selectors) {
+      for (const node of document.querySelectorAll(selector)) {
+        node.style.setProperty("display", "none", "important");
+        node.style.setProperty("visibility", "hidden", "important");
+      }
+    }
+  }).catch(() => {});
 }
 
 async function captureFigureAssets(page, figures, assetsDir) {
@@ -112,22 +201,42 @@ async function captureFigureAssets(page, figures, assetsDir) {
   const total = await locator.count();
   const savedFigures = [];
   let numberedFigure = 1;
+  const request = page.context().request;
 
   for (let index = 0; index < Math.min(total, figures.length); index += 1) {
     const figure = figures[index];
-    const imageLocator = locator.nth(index).locator("img").first();
-    const hasImage = await imageLocator.count();
-    if (!hasImage) {
+    if (!figure.src) {
       continue;
     }
 
+    const extension = imageExtension(figure.src);
     const fileName = figure.isVisualAbstract
-      ? "visual-abstract.png"
-      : `figure-${String(numberedFigure).padStart(2, "0")}.png`;
+      ? `visual-abstract${extension}`
+      : `figure-${String(numberedFigure).padStart(2, "0")}${extension}`;
     const filePath = path.join(assetsDir, fileName);
 
-    await imageLocator.scrollIntoViewIfNeeded();
-    await imageLocator.screenshot({ path: filePath });
+    let saved = false;
+    try {
+      const response = await request.get(figure.src);
+      if (response.ok()) {
+        fs.writeFileSync(filePath, await response.body());
+        saved = true;
+      }
+    } catch (error) {
+      saved = false;
+    }
+
+    if (!saved) {
+      const imageLocator = locator.nth(index).locator("img").first();
+      const hasImage = await imageLocator.count();
+      if (!hasImage) {
+        continue;
+      }
+
+      await hideFigureCaptureOverlays(page);
+      await imageLocator.scrollIntoViewIfNeeded();
+      await imageLocator.screenshot({ path: filePath });
+    }
 
     savedFigures.push({
       ...figure,
@@ -166,6 +275,14 @@ function writeReaderIndex(config) {
         path.basename(article.articleDir),
         "reader.html",
       ),
+      thumbnailIndexPath:
+        article.figures?.[0]?.relativeImagePath
+          ? path.posix.join(
+              "articles",
+              path.basename(article.articleDir),
+              article.figures[0].relativeImagePath,
+            )
+          : "",
       ankiIndexPath: article.ankiPackageRelativePath
         ? path.posix.join(
             "articles",
@@ -227,11 +344,13 @@ async function captureArticlePackages(config, articles) {
 
         const extracted = await extractPageArticle(page, article);
         const figures = await captureFigureAssets(page, extracted.figures, assetsDir);
+        const summarySections = buildSummarySections(extracted);
         const articlePayload = {
           ...extracted,
           slug: slugify(extracted.title, 80),
           articleDir,
           figures,
+          summarySections,
           keyFacts: buildKeyFacts(extracted),
         };
 

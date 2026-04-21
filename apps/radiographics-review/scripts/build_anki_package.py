@@ -100,8 +100,19 @@ def cloze_html(prompt: str, answer: str, image_names: list[str] | None = None) -
     return "<br><br>".join(parts)
 
 
+def build_key_fact_list(article: dict) -> str:
+    summary_sections = article.get("summarySections") or []
+    if summary_sections:
+        return "".join(
+            f"<li><b>{escape_text(section.get('label', 'Key point'))}:</b> {escape_text(section.get('text', ''))}</li>"
+            for section in summary_sections[:5]
+        )
+
+    return "".join(f"<li>{escape_text(fact)}</li>" for fact in article.get("keyFacts", [])[:5])
+
+
 def extra_html(article: dict, *, caption: str = "", lead: str = "") -> str:
-    facts = "".join(f"<li>{escape_text(fact)}</li>" for fact in article.get("keyFacts", [])[:5])
+    facts = build_key_fact_list(article)
     parts = [f"<div><b>{escape_text(article['title'])}</b></div>"]
     if lead:
         parts.append(f"<div>{escape_text(lead)}</div>")
@@ -111,10 +122,18 @@ def extra_html(article: dict, *, caption: str = "", lead: str = "") -> str:
         [
             "<hr>",
             f"<div><b>Key facts</b><ul>{facts}</ul></div>",
-            f"<div class='source'><a href=\"{escape_text(article['link'])}\">Open article</a> · DOI: {escape_text(article['doi'])}</div>",
+            f"<div class='source'><a href=\"{escape_text(article['link'])}\">Open article</a> &middot; DOI: {escape_text(article['doi'])}</div>",
         ]
     )
     return "".join(parts)
+
+
+def build_summary_cards(article: dict) -> list[dict]:
+    summary_sections = article.get("summarySections") or []
+    if summary_sections:
+        return summary_sections[:4]
+
+    return [{"label": "High-yield takeaway", "text": fact} for fact in article.get("keyFacts", [])[:3]]
 
 
 def build_notes(article: dict) -> tuple[list[genanki.Note], list[str]]:
@@ -129,9 +148,8 @@ def build_notes(article: dict) -> tuple[list[genanki.Note], list[str]]:
 
     figures = article.get("ankiFigures", [])
     visual = next((figure for figure in figures if figure.get("isVisualAbstract")), None)
-    key_facts = article.get("keyFacts", [])[:3]
 
-    for index, fact in enumerate(key_facts):
+    for index, section in enumerate(build_summary_cards(article)):
         image_names = []
         if index == 0 and visual and visual.get("localImageName"):
             image_names = [visual["localImageName"]]
@@ -139,7 +157,11 @@ def build_notes(article: dict) -> tuple[list[genanki.Note], list[str]]:
         note = genanki.Note(
             model=MODEL,
             fields=[
-                cloze_html("High-yield takeaway?", fact, image_names=image_names),
+                cloze_html(
+                    f"{section.get('label', 'High-yield takeaway')}?",
+                    section.get("text", ""),
+                    image_names=image_names,
+                ),
                 extra_html(article, lead="Article-level summary"),
             ],
             guid=genanki.guid_for(article["doi"], "summary", str(index)),
