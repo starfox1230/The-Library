@@ -67,9 +67,19 @@ function buildImageQuestionAnswerNote(question, answer, imageName, batchTag) {
   );
 }
 
+function sentenceCase(text) {
+  const value = normalizeWhitespace(String(text || ""));
+  if (!value) {
+    return "";
+  }
+
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
 function compactFindingText(text) {
   return trimTerminalPunctuation(
     String(text || "")
+      .trim()
       .replace(/\bhypertrophy of both soft and osseous tissues, as well as\b/i, "soft-tissue and osseous hypertrophy with")
       .replace(/\bhypointense fibrous bands within adipose tissue\b/i, "hypointense fibrous bands in adipose tissue")
       .replace(/\s+that cannot be accessed\b.+$/i, "")
@@ -78,6 +88,9 @@ function compactFindingText(text) {
       .replace(/,\s*with no gender predilection\b/i, "")
       .replace(/^also seen is\s+/i, "")
       .replace(/^note the\s+/i, "")
+      .replace(/^the\s+/i, "")
+      .replace(/^a\s+/i, "")
+      .replace(/^an\s+/i, "")
       .replace(/\s{2,}/g, " "),
   );
 }
@@ -139,6 +152,12 @@ function pickDiagnosisFigures(article, maxFigures = 3) {
 
 function detectFigureModality(figure) {
   const lowered = `${figure?.caption || ""} ${figure?.label || ""}`.toLowerCase();
+  if (/\bspot image\b/.test(lowered)) {
+    return "spot image";
+  }
+  if (/\bfluoroscopic image\b/.test(lowered)) {
+    return "fluoroscopic image";
+  }
   if (/\b(mri|mr image|mr imaging|t1-weighted|t2-weighted)\b/.test(lowered)) {
     return "MRI";
   }
@@ -160,7 +179,50 @@ function detectFigureModality(figure) {
   return "image";
 }
 
-function extractArrowFindingCandidates(figure) {
+function normalizeMarkerLabel(marker) {
+  return normalizeWhitespace(String(marker || "").toLowerCase());
+}
+
+function markerVerb(marker) {
+  return /\barrows\b|\barrowheads\b/.test(marker) ? "do" : "does";
+}
+
+function isDeviceOnlyAnswer(answer) {
+  return /\b(catheter|catheterized|microcatheter|balloon catheter|sheath|needle|drainage tube|coil|guiding catheter|stone basket|stent|tip)\b/i.test(
+    answer,
+  );
+}
+
+function isPathologyAnswer(answer) {
+  return /\b(pseudoaneurysm|extravasation|bleeding|leakage|glue cast|avm|varix|endoleak|tumor blush|vascular lake|hematoma|shunt|portal vein invasion|opacification|aneurysm|tumor|mass|nidus|occlusion|stenosis|thrombus|fibrofatty infiltration|fatty infiltration|ankylosis|osteoarthritis)\b/i.test(
+    answer,
+  );
+}
+
+function refineLabeledAnswer(answer) {
+  let value = compactFindingText(answer)
+    .replace(/^.*?\b(?:shows?|demonstrates?|reveals?|revealed|depicts?|illustrates?)\b\s+/i, "")
+    .replace(/^(?:and|from|with|via|near|after|around|within|at|in)\s+/i, "")
+    .replace(/^note the\s+/i, "")
+    .replace(/^(?:a|an|the)\s+/i, "")
+    .replace(/\s+\b(?:was|were)\s+noted\b.*$/i, "")
+    .replace(/\s+\bare draining\b.*$/i, "")
+    .replace(/\s+\bwas filled\b.*$/i, "")
+    .trim();
+
+  const prioritizedTail = value
+    .split(/\s+\band\b\s+/i)
+    .map((part) => normalizeWhitespace(part))
+    .reverse()
+    .find((part) => isPathologyAnswer(part));
+  if (prioritizedTail) {
+    value = prioritizedTail.replace(/^(?:a|an|the)\s+/i, "");
+  }
+
+  return sentenceCase(value);
+}
+
+function extractLegacyDiseaseArrowFinding(figure) {
   const caption = String(figure?.caption || "");
   if (!caption || !/\barrow(?:s|heads)?\b/i.test(caption)) {
     return [];
@@ -209,7 +271,7 @@ function extractArrowFindingCandidates(figure) {
       }
 
       candidates.push({
-        answer,
+        answer: sentenceCase(answer),
         score,
       });
     }
@@ -220,24 +282,125 @@ function extractArrowFindingCandidates(figure) {
     .filter((candidate, index, list) => list.findIndex((item) => item.answer.toLowerCase() === candidate.answer.toLowerCase()) === index);
 }
 
-function buildFigureEvidenceNotes(article, title, batchTag, pushNote) {
-  for (const figure of article.figures || []) {
-    if (!figure?.localImageName) {
+function extractArrowFindingCandidates(figure) {
+  const caption = String(figure?.caption || "");
+  if (!caption || !/\barrow(?:s|heads)?\b/i.test(caption)) {
+    return [];
+  }
+
+  const candidates = [];
+  const pattern = /([^.;]{1,180}?)\s*\(([^)]*\barrow(?:s|heads)?\b[^)]*)\)/gi;
+  let match;
+  while ((match = pattern.exec(caption)) !== null) {
+    const answer = refineLabeledAnswer(match[1]);
+    const marker = normalizeMarkerLabel(match[2]);
+    if (!answer || countWords(answer) < 2 || countWords(answer) > 16) {
       continue;
     }
 
-    const modality = detectFigureModality(figure);
-    const arrowFinding = extractArrowFindingCandidates(figure)[0];
-    if (arrowFinding) {
+    let score = 0;
+    if (isPathologyAnswer(answer)) {
+      score += 8;
+    }
+    if (/\b(glue cast|pseudoaneurysm|extravasation|bleeding|leakage|avm|varix|endoleak|vascular lake|tumor blush|portal vein invasion|opacification)\b/i.test(answer)) {
+      score += 4;
+    }
+    if (/\b(black|white|open|solid|curved|straight)\b/.test(marker)) {
+      score += 1;
+    }
+    if (countWords(answer) <= 8) {
+      score += 3;
+    } else if (countWords(answer) <= 12) {
+      score += 2;
+    }
+    if (isDeviceOnlyAnswer(answer)) {
+      score -= 6;
+    }
+    if (/\b(catheterized|inserted|advanced|removed|embolized|injected|deflated|filled|treated)\b/i.test(answer)) {
+      score -= 8;
+    }
+    if (/\b(artery|vein|duct|cavity|bronchus|kidney|portal vein|aorta|sac)\b/i.test(answer)) {
+      score += 1;
+    }
+
+    candidates.push({
+      answer,
+      marker,
+      score,
+    });
+  }
+
+  return candidates
+    .sort((left, right) => right.score - left.score)
+    .filter((candidate) => candidate.score >= 6)
+    .filter(
+      (candidate, index, list) =>
+        list.findIndex(
+          (item) =>
+            item.answer.toLowerCase() === candidate.answer.toLowerCase() &&
+            item.marker === candidate.marker,
+        ) === index,
+    );
+}
+
+function buildFigureEvidenceQuestion(title, figure, candidate) {
+  const modality = detectFigureModality(figure);
+  const marker = candidate?.marker || "arrow";
+  const verb = markerVerb(marker);
+  return `In ${title}, what ${verb} the ${marker} indicate on this ${modality}?`;
+}
+
+function buildTechniqueFigureEvidenceNotes(article, title, batchTag, pushNote) {
+  const rankedCandidates = [];
+  for (const figure of article.figures || []) {
+    if (!figure?.localImageName || figure.isVisualAbstract) {
+      continue;
+    }
+
+    const arrowFindings = extractArrowFindingCandidates(figure).slice(0, 2);
+    for (const arrowFinding of arrowFindings) {
+      rankedCandidates.push({
+        figure,
+        arrowFinding,
+      });
+    }
+  }
+
+  rankedCandidates
+    .sort((left, right) => right.arrowFinding.score - left.arrowFinding.score)
+    .slice(0, 14)
+    .forEach(({ figure, arrowFinding }) => {
       pushNote(
         buildImageQuestionAnswerNote(
-          `In ${title}, what do the arrows indicate on this ${modality}?`,
+          buildFigureEvidenceQuestion(title, figure, arrowFinding),
           arrowFinding.answer,
           figure.localImageName,
           batchTag,
         ),
       );
+    });
+}
+
+function buildDiseaseFigureEvidenceNotes(article, title, batchTag, pushNote) {
+  for (const figure of article.figures || []) {
+    if (!figure?.localImageName || figure.isVisualAbstract) {
+      continue;
     }
+
+    const modality = detectFigureModality(figure);
+    const arrowFinding = extractLegacyDiseaseArrowFinding(figure)[0];
+    if (!arrowFinding) {
+      continue;
+    }
+
+    pushNote(
+      buildImageQuestionAnswerNote(
+        `In ${title}, what do the arrows indicate on this ${modality}?`,
+        arrowFinding.answer,
+        figure.localImageName,
+        batchTag,
+      ),
+    );
   }
 }
 
@@ -374,7 +537,7 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
   }
 
   buildPathogenesisNotes(article, title, batchTag, pushNote);
-  buildFigureEvidenceNotes(article, title, batchTag, pushNote);
+  buildDiseaseFigureEvidenceNotes(article, title, batchTag, pushNote);
 
   for (const diagnosisFigure of pickDiagnosisFigures(article)) {
     pushNote(
@@ -501,6 +664,8 @@ function buildTechniqueNotes(article, insights, batchTag, pushNote) {
       ),
     );
   }
+
+  buildTechniqueFigureEvidenceNotes(article, title, batchTag, pushNote);
 }
 
 function buildArticleNotes(article, dateLike = new Date()) {

@@ -28,7 +28,7 @@ test("disease article notes avoid generic question stems", () => {
   const { notes } = buildAnkiNotes(mlmArticle, new Date("2026-04-21T12:00:00-05:00"));
   const contents = notes.map((note) => note.content).join("\n");
   const diagnosisCards = notes.filter((note) => /Most likely diagnosis\?/i.test(note.content || ""));
-  const arrowCards = notes.filter((note) => /what do the arrows indicate/i.test(note.content || ""));
+  const imageCards = notes.filter((note) => /<img src=/i.test(note.content || ""));
 
   assert.match(contents, /progressive form of \{\{c1::localized gigantism\}\}/i);
   assert.match(contents, /Macrodystrophia lipomatosa macrodactyly \(MLM\) is characterized by/i);
@@ -36,7 +36,8 @@ test("disease article notes avoid generic question stems", () => {
   assert.match(contents, /proposed molecular cause .* \{\{c1::somatic activating PIK3CA mutations\}\}/i);
   assert.match(contents, /Most likely diagnosis\?/i);
   assert.ok(diagnosisCards.length >= 2);
-  assert.ok(arrowCards.length >= 1);
+  assert.ok(imageCards.length >= 4);
+  assert.match(contents, /what (?:do|does) the .*arrow/i);
   assert.doesNotMatch(contents, /\bWhich .* pattern suggests\b/i);
   assert.doesNotMatch(contents, /\bkey teaching point\b/i);
 });
@@ -58,11 +59,15 @@ test("technique article summary does not collapse into disease imaging cards", (
 test("technique article notes capture mechanism and risk", () => {
   const { notes } = buildAnkiNotes(nbcaArticle, new Date("2026-04-21T12:00:00-05:00"));
   const contents = notes.map((note) => note.content).join("\n");
+  const imageCards = notes.filter((note) => /<img src=/i.test(note.content || ""));
 
   assert.match(contents, /\{\{c1::liquid embolic agent\}\}/i);
   assert.match(contents, /rapidly polymerizes on contact with \{\{c1::ionic substances such as blood or saline\}\}/i);
   assert.match(contents, /flush the microcatheter before .*?<br><br>\{\{c1::5% dextrose\}\}/i);
   assert.match(contents, /major complication .* \{\{c1::nontarget embolization\}\}/i);
+  assert.ok(imageCards.length >= 10);
+  assert.match(contents, /what does the arrow indicate on this image\?<br><br>\{\{c1::Contrast medium leakage in the uterine cavity\}\}/i);
+  assert.match(contents, /what does the solid arrow indicate on this CT\?<br><br>\{\{c1::Duodenal varix\}\}/i);
   assert.doesNotMatch(contents, /Most likely diagnosis\?/i);
 });
 
