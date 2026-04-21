@@ -66,7 +66,7 @@ function buildSummaryGrid(summarySections) {
 }
 
 function buildLightboxCaption(figure) {
-  return [figure.label, figure.teachingPoint].filter(Boolean).join(" | ");
+  return figure.caption || figure.rawCaption || figure.teachingPoint || figure.label || "";
 }
 
 function buildImageButton(figure, className = "") {
@@ -95,10 +95,6 @@ function buildFigureSections(figures) {
               <div class="eyebrow">${escapeHtml(figure.label)}</div>
             </div>
             <h2>${escapeHtml(figure.teachingPoint)}</h2>
-            <details class="caption-details">
-              <summary>Full figure caption</summary>
-              <p class="caption">${escapeHtml(figure.caption || "")}</p>
-            </details>
           </div>
           <div class="figure-image-wrap">
             ${buildImageButton(figure)}
@@ -458,21 +454,18 @@ function buildReaderHtml(article) {
         line-height: 1.75;
         color: #30453f;
       }
-      .source-details,
-      .caption-details {
+      .source-details {
         margin-top: 18px;
         border: 1px solid var(--line);
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.52);
       }
-      .source-details summary,
-      .caption-details summary {
+      .source-details summary {
         cursor: pointer;
         padding: 14px 16px;
         font-weight: 700;
       }
-      .source-copy,
-      .caption {
+      .source-copy {
         padding: 0 16px 16px;
       }
       .figure-area {
@@ -580,7 +573,7 @@ function buildReaderHtml(article) {
 
       <section class="figure-area" id="figures">
         <h2>Figure Review</h2>
-        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first, with the full caption tucked behind a toggle. Tap any figure to open it fullscreen.</p>
+        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first. Tap any figure to open it fullscreen and read the full caption there.</p>
         <div class="figure-stack">
           ${figureSections}
         </div>
