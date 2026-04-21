@@ -23,6 +23,7 @@ LIGHTNING_MODE_ANSWER_SECONDS_SETTING = "lightning_mode_answer_seconds"
 FILTERED_LIGHTNING_SESSIONS_CONFIG_KEY = "anki_pocket_knife_lightning_sessions"
 QUESTION_ACTION_SHOW_ANSWER = 0
 ANSWER_ACTION_BURY_CARD = 0
+LIGHTNING_MODE_PAUSE_SHORTCUT = "P"
 _HOOK_REGISTERED = False
 _MAX_CARDS_PER_TERM = 250
 _SESSION_TIMER_INTERVAL_MS = 2500
@@ -46,11 +47,20 @@ class SpeedStreakTimerOverride:
     answer_seconds: float
 
 
+@dataclass(frozen=True)
+class LightningTimerPauseState:
+    card_id: int
+    reviewer_state: str
+    remaining_ms: int
+
+
 _speed_streak_override: SpeedStreakTimerOverride | None = None
 _original_config_dict_for_deck_id: Any = None
 _deck_config_patch_installed = False
+_reviewer_timeout_patch_installed = False
 _filtered_lightning_session_timer: QTimer | None = None
 _pending_lightning_answer_targets: dict[int, int] = {}
+_lightning_timer_pause_state: LightningTimerPauseState | None = None
 
 
 def lightning_card_limit() -> int:
@@ -660,20 +670,99 @@ def _exclude_pending_lightning_cards(*, target_deck_id: int, card_ids: list[int]
         _stop_filtered_lightning_session_timer()
 
 
-def _prune_session_pending_ids_to_live_target(session: dict[str, Any]) -> dict[str, Any]:
+def _refresh_session_target_metadata(session: dict[str, Any]) -> dict[str, Any]:
     target_deck = _target_lightning_deck_for_session(session)
     if not target_deck:
         return dict(session)
 
-    live_target_card_ids = set(_filtered_deck_live_card_ids(int(target_deck.get("id", 0) or 0)))
-    pending_ids = _clean_card_ids(session.get("pending_lightning_card_ids"))
-    pruned_pending_ids = [card_id for card_id in pending_ids if card_id in live_target_card_ids]
-
     updated_session = dict(session)
-    updated_session["pending_lightning_card_ids"] = pruned_pending_ids
     updated_session["target_deck_id"] = int(target_deck.get("id", 0) or 0)
     updated_session["target_deck_name"] = str(target_deck.get("name", "") or "")
     return updated_session
+
+
+def _buried_card_ids_by_type(card_ids: list[int]) -> tuple[list[int], list[int]]:
+    unique_ids = _clean_card_ids(card_ids)
+    if not unique_ids:
+        return [], []
+
+    user_buried_ids: list[int] = []
+    sched_buried_ids: list[int] = []
+    for chunk in _chunked(unique_ids, _MAX_CARDS_PER_TERM):
+        rows = _db_rows(
+            f"""
+            SELECT c.id, c.queue
+            FROM cards AS c
+            WHERE c.id IN ({_placeholders(len(chunk))})
+              AND c.queue IN (-3, -2)
+            """,
+            *chunk,
+        )
+        for raw_card_id, raw_queue in rows:
+            try:
+                safe_card_id = int(raw_card_id or 0)
+                safe_queue = int(raw_queue or 0)
+            except Exception:
+                continue
+            if safe_card_id <= 0:
+                continue
+            if safe_queue == -3:
+                user_buried_ids.append(safe_card_id)
+            elif safe_queue == -2:
+                sched_buried_ids.append(safe_card_id)
+
+    return _clean_card_ids(user_buried_ids), _clean_card_ids(sched_buried_ids)
+
+
+def _unbury_card_ids(card_ids: list[int]) -> bool:
+    unique_ids = _clean_card_ids(card_ids)
+    if not unique_ids:
+        return True
+
+    unbury = getattr(mw.col.sched, "unbury_cards", None)
+    if callable(unbury):
+        try:
+            unbury(unique_ids)
+            return True
+        except Exception:
+            pass
+
+    unsuspend = getattr(mw.col.sched, "unsuspend_cards", None)
+    if callable(unsuspend):
+        try:
+            unsuspend(unique_ids)
+            return True
+        except Exception:
+            pass
+
+    return False
+
+
+def _rebury_card_ids(*, user_buried_ids: list[int], sched_buried_ids: list[int]) -> bool:
+    bury = getattr(mw.col.sched, "bury_cards", None)
+    if not callable(bury):
+        return not _clean_card_ids(user_buried_ids + sched_buried_ids)
+
+    user_ids = _clean_card_ids(user_buried_ids)
+    sched_ids = _clean_card_ids(sched_buried_ids)
+
+    try:
+        if user_ids:
+            bury(user_ids, manual=True)
+        if sched_ids:
+            bury(sched_ids, manual=False)
+    except TypeError:
+        try:
+            if user_ids:
+                bury(user_ids)
+            if sched_ids:
+                bury(sched_ids)
+        except Exception:
+            return False
+    except Exception:
+        return False
+
+    return True
 
 
 def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
@@ -689,6 +778,14 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
     pending_ids = _clean_card_ids(session.get("pending_lightning_card_ids"))
     restore_ids = _clean_card_ids(leftover_ids + pending_ids)
     original_terms = deepcopy(session.get("source_filtered_deck_original_terms"))
+    user_buried_ids, sched_buried_ids = _buried_card_ids_by_type(restore_ids)
+    buried_restore_ids = _clean_card_ids(user_buried_ids + sched_buried_ids)
+    unburied_for_restore = False
+
+    if buried_restore_ids:
+        if not _unbury_card_ids(buried_restore_ids):
+            return False
+        unburied_for_restore = True
 
     try:
         restored = _rebuild_filtered_deck_with_exact_card_ids(
@@ -697,7 +794,19 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
             original_terms=original_terms,
         )
     except Exception:
+        if unburied_for_restore:
+            _rebury_card_ids(
+                user_buried_ids=user_buried_ids,
+                sched_buried_ids=sched_buried_ids,
+            )
         return False
+
+    if restored and unburied_for_restore:
+        if not _rebury_card_ids(
+            user_buried_ids=user_buried_ids,
+            sched_buried_ids=sched_buried_ids,
+        ):
+            return False
 
     return bool(restored)
 
@@ -714,7 +823,7 @@ def check_pending_filtered_lightning_sessions() -> None:
     for session in sessions:
         target_deck = _target_lightning_deck_for_session(session)
         if target_deck is not None:
-            updated_session = _prune_session_pending_ids_to_live_target(session)
+            updated_session = _refresh_session_target_metadata(session)
             if updated_session != session:
                 changed = True
             remaining_sessions.append(updated_session)
@@ -977,8 +1086,8 @@ def _build_lightning_mode_for_filtered_deck(source_deck: dict[str, Any]) -> bool
         f"Created '{lightning_deck_name}' with {len(selected_lightning_card_ids)} recent new card(s) from the current "
         f"gathered contents of '{source_name}'.\n\n"
         f"'{source_name}' was rebuilt immediately with its remaining {len(leftover_source_card_ids)} card(s), and "
-        "Pocket Knife will restore any untouched Lightning cards back into that filtered deck if you later delete the "
-        "Lightning deck.\n\n"
+        "Pocket Knife will restore any remaining Lightning cards, including buried ones, back into that filtered deck "
+        "if you later delete the Lightning deck.\n\n"
         f"Auto-advance is configured for {lightning_question_seconds()}s on the question side and "
         f"{lightning_answer_seconds()}s on the answer side. Unanswered answer-side timeouts will bury the card."
     )
@@ -1176,6 +1285,253 @@ def _set_reviewer_auto_advance_enabled(enabled: bool) -> None:
             pass
 
 
+def _refresh_review_state_shortcuts() -> bool:
+    if str(getattr(mw, "state", "") or "") != "review":
+        return False
+
+    reviewer = getattr(mw, "reviewer", None)
+    clear_shortcuts = getattr(mw, "clearStateShortcuts", None)
+    set_shortcuts = getattr(mw, "setStateShortcuts", None)
+    shortcut_keys = getattr(reviewer, "_shortcutKeys", None) if reviewer is not None else None
+    if not callable(clear_shortcuts) or not callable(set_shortcuts) or not callable(shortcut_keys):
+        return False
+
+    try:
+        shortcuts = list(shortcut_keys())
+    except Exception:
+        return False
+
+    try:
+        clear_shortcuts()
+        set_shortcuts(shortcuts)
+    except Exception:
+        return False
+
+    return True
+
+
+def _speed_streak_is_paused() -> bool:
+    found = _find_speed_streak_controller()
+    if found is None:
+        return False
+
+    _module_name, controller = found
+    state = getattr(getattr(controller, "engine", None), "state", None)
+    if state is None:
+        return False
+
+    try:
+        return bool(getattr(state, "paused", False))
+    except Exception:
+        return False
+
+
+def _should_block_lightning_auto_advance(reviewer: Any) -> bool:
+    if not _speed_streak_is_paused():
+        return False
+    if str(getattr(mw, "state", "") or "") != "review":
+        return False
+
+    active_reviewer = getattr(mw, "reviewer", None)
+    if reviewer is None or active_reviewer is None or reviewer is not active_reviewer:
+        return False
+
+    card = getattr(reviewer, "card", None)
+    if card is None:
+        return False
+
+    return _is_lightning_deck_id(_displayed_deck_id_for_card(card))
+
+
+def _patch_reviewer_auto_advance_timeouts() -> None:
+    global _reviewer_timeout_patch_installed
+
+    if _reviewer_timeout_patch_installed:
+        return
+
+    try:
+        from aqt.reviewer import Reviewer
+    except Exception:
+        return
+
+    original_show_answer_timeout = getattr(Reviewer, "_on_show_answer_timeout", None)
+    original_show_question_timeout = getattr(Reviewer, "_on_show_question_timeout", None)
+    if not callable(original_show_answer_timeout) or not callable(original_show_question_timeout):
+        return
+
+    def wrapped_show_answer_timeout(self: Any, *args: Any, **kwargs: Any) -> Any:
+        if _should_block_lightning_auto_advance(self):
+            return None
+        return original_show_answer_timeout(self, *args, **kwargs)
+
+    def wrapped_show_question_timeout(self: Any, *args: Any, **kwargs: Any) -> Any:
+        if _should_block_lightning_auto_advance(self):
+            return None
+        return original_show_question_timeout(self, *args, **kwargs)
+
+    Reviewer._on_show_answer_timeout = wrapped_show_answer_timeout
+    Reviewer._on_show_question_timeout = wrapped_show_question_timeout
+    _reviewer_timeout_patch_installed = True
+
+
+def _clear_lightning_timer_pause_state() -> None:
+    global _lightning_timer_pause_state
+    _lightning_timer_pause_state = None
+
+
+def _active_lightning_timer_slot() -> tuple[Any, str, QTimer | None, int] | None:
+    reviewer = getattr(mw, "reviewer", None)
+    card = _current_lightning_review_card()
+    if reviewer is None or card is None:
+        return None
+
+    reviewer_state = str(getattr(reviewer, "state", "") or "")
+    timer_attr_name = ""
+    if reviewer_state == "question":
+        timer_attr_name = "_show_answer_timer"
+    elif reviewer_state == "answer":
+        timer_attr_name = "_show_question_timer"
+    else:
+        return None
+
+    timer = getattr(reviewer, timer_attr_name, None)
+    card_id = getattr(card, "id", 0)
+    try:
+        safe_card_id = int(card_id or 0)
+    except Exception:
+        safe_card_id = 0
+    if safe_card_id <= 0:
+        return None
+    return reviewer, reviewer_state, timer, safe_card_id
+
+
+def _sync_lightning_timer_pause_state() -> None:
+    global _lightning_timer_pause_state
+
+    paused = _lightning_timer_pause_state
+    if paused is None:
+        return
+
+    slot = _active_lightning_timer_slot()
+    if slot is None:
+        _lightning_timer_pause_state = None
+        return
+
+    _reviewer, reviewer_state, _timer, card_id = slot
+    if int(paused.card_id) != int(card_id) or str(paused.reviewer_state) != str(reviewer_state):
+        _lightning_timer_pause_state = None
+
+
+def _resume_lightning_timer_if_paused() -> bool:
+    paused = _lightning_timer_pause_state
+    if paused is None:
+        return False
+
+    slot = _active_lightning_timer_slot()
+    if slot is None:
+        _clear_lightning_timer_pause_state()
+        return False
+
+    _reviewer, reviewer_state, timer, card_id = slot
+    if int(paused.card_id) != int(card_id) or str(paused.reviewer_state) != str(reviewer_state):
+        _clear_lightning_timer_pause_state()
+        return False
+    if timer is None:
+        _clear_lightning_timer_pause_state()
+        return False
+
+    try:
+        timer.start(max(1, int(paused.remaining_ms)))
+    except Exception:
+        _clear_lightning_timer_pause_state()
+        return False
+
+    _clear_lightning_timer_pause_state()
+    return True
+
+
+def _pause_active_lightning_timer() -> bool:
+    global _lightning_timer_pause_state
+
+    slot = _active_lightning_timer_slot()
+    if slot is None:
+        _clear_lightning_timer_pause_state()
+        return False
+
+    _reviewer, reviewer_state, timer, card_id = slot
+    if timer is None:
+        return False
+
+    remaining_getter = getattr(timer, "remainingTime", None)
+    is_active_getter = getattr(timer, "isActive", None)
+    try:
+        remaining_ms = int(remaining_getter()) if callable(remaining_getter) else 0
+    except Exception:
+        remaining_ms = 0
+    try:
+        is_active = bool(is_active_getter()) if callable(is_active_getter) else remaining_ms > 0
+    except Exception:
+        is_active = remaining_ms > 0
+
+    if not is_active and remaining_ms <= 0:
+        return False
+
+    try:
+        timer.stop()
+    except Exception:
+        return False
+
+    _lightning_timer_pause_state = LightningTimerPauseState(
+        card_id=int(card_id),
+        reviewer_state=str(reviewer_state),
+        remaining_ms=max(1, int(remaining_ms or 1)),
+    )
+    return True
+
+
+def _toggle_lightning_timer_pause() -> bool:
+    _sync_lightning_timer_pause_state()
+    if _resume_lightning_timer_if_paused():
+        return True
+    return _pause_active_lightning_timer()
+
+
+def _ensure_speed_streak_pause_bridge() -> Any | None:
+    found = _find_speed_streak_controller()
+    if found is None:
+        return None
+
+    _module_name, controller = found
+    original = getattr(controller, "_on_pause_shortcut", None)
+    if not callable(original):
+        return controller
+
+    if getattr(controller, "_anki_pocket_knife_lightning_pause_bridge_installed", False):
+        return controller
+
+    def wrapped_pause_shortcut(*args: Any, **kwargs: Any) -> None:
+        original(*args, **kwargs)
+        _toggle_lightning_timer_pause()
+
+    setattr(controller, "_anki_pocket_knife_original_pause_shortcut", original)
+    setattr(controller, "_on_pause_shortcut", wrapped_pause_shortcut)
+    setattr(controller, "_anki_pocket_knife_lightning_pause_bridge_installed", True)
+    return controller
+
+
+def _on_lightning_pause_shortcut() -> None:
+    controller = _ensure_speed_streak_pause_bridge()
+    if controller is not None:
+        pause_shortcut = getattr(controller, "_on_pause_shortcut", None)
+        if callable(pause_shortcut):
+            try:
+                pause_shortcut()
+                return
+            except Exception:
+                pass
+    _toggle_lightning_timer_pause()
+
+
 def _find_speed_streak_controller() -> tuple[str, Any] | None:
     for module_name, module in list(sys.modules.items()):
         if not module_name or not module_name.endswith("reviewer_overlay"):
@@ -1216,6 +1572,12 @@ def _apply_speed_streak_override() -> None:
         return
 
     module_name, controller = found
+    pause_bridge_installed = bool(
+        getattr(controller, "_anki_pocket_knife_lightning_pause_bridge_installed", False)
+    )
+    _ensure_speed_streak_pause_bridge()
+    if not pause_bridge_installed:
+        _refresh_review_state_shortcuts()
     state = getattr(getattr(controller, "engine", None), "state", None)
     if state is None:
         return
@@ -1264,6 +1626,7 @@ def _restore_speed_streak_override() -> None:
 
 
 def _sync_lightning_reviewer_runtime(card: Any) -> None:
+    _sync_lightning_timer_pause_state()
     deck_id = _displayed_deck_id_for_card(card)
     if _is_lightning_deck_id(deck_id):
         try:
@@ -1274,6 +1637,7 @@ def _sync_lightning_reviewer_runtime(card: Any) -> None:
         _apply_speed_streak_override()
         return
 
+    _clear_lightning_timer_pause_state()
     _set_reviewer_auto_advance_enabled(False)
     _restore_speed_streak_override()
 
@@ -1300,6 +1664,7 @@ def _on_reviewer_will_answer_card(answer_context: tuple[bool, int], reviewer: An
 def _on_reviewer_did_answer_card(reviewer: Any, card: Any, ease: int) -> None:
     del reviewer
     del ease
+    _clear_lightning_timer_pause_state()
     card_id = getattr(card, "id", 0)
     try:
         safe_card_id = int(card_id or 0)
@@ -1320,15 +1685,17 @@ def _on_reviewer_did_answer_card(reviewer: Any, card: Any, ease: int) -> None:
 
 
 def _on_reviewer_will_bury_card(card_id: int) -> None:
-    _mark_lightning_card_id_handled(int(card_id))
+    _clear_lightning_timer_pause_state()
 
 
 def _on_reviewer_will_suspend_card(card_id: int) -> None:
+    _clear_lightning_timer_pause_state()
     _mark_lightning_card_id_handled(int(card_id))
 
 
 def _on_reviewer_will_end() -> None:
     _pending_lightning_answer_targets.clear()
+    _clear_lightning_timer_pause_state()
     _set_reviewer_auto_advance_enabled(False)
     _restore_speed_streak_override()
 
@@ -1343,8 +1710,15 @@ def _on_state_did_change(new_state: str, old_state: str) -> None:
         return
 
     _pending_lightning_answer_targets.clear()
+    _clear_lightning_timer_pause_state()
     _set_reviewer_auto_advance_enabled(False)
     _restore_speed_streak_override()
+
+
+def _on_state_shortcuts_will_change(state: Any, shortcuts: list[tuple[str, Any]]) -> None:
+    if str(state or "") != "review":
+        return
+    shortcuts.append((LIGHTNING_MODE_PAUSE_SHORTCUT, _on_lightning_pause_shortcut))
 
 
 def install() -> None:
@@ -1353,6 +1727,7 @@ def install() -> None:
         return
 
     _patch_deck_config_lookup()
+    _patch_reviewer_auto_advance_timeouts()
 
     deck_options_hook = getattr(gui_hooks, "deck_browser_will_show_options_menu", None)
     if deck_options_hook is not None:
@@ -1396,6 +1771,10 @@ def install() -> None:
     state_did_change = getattr(gui_hooks, "state_did_change", None)
     if state_did_change is not None:
         state_did_change.append(_on_state_did_change)
+
+    state_shortcuts_will_change = getattr(gui_hooks, "state_shortcuts_will_change", None)
+    if state_shortcuts_will_change is not None:
+        state_shortcuts_will_change.append(_on_state_shortcuts_will_change)
 
     main_window_did_init = getattr(gui_hooks, "main_window_did_init", None)
     if main_window_did_init is not None:

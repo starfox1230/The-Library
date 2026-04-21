@@ -516,6 +516,8 @@ class _ReviewerImageOverlayWidget(QWidget):
     _PILL_MARGIN = 16.0
     _PILL_HEIGHT = 34.0
     _PILL_HORIZONTAL_PADDING = 14.0
+    _DEFAULT_BACKGROUND = (0, 0, 0, 251)
+    _LAST_IMAGE_BACKGROUND = (128, 0, 128, 251)
 
     def __init__(self) -> None:
         super().__init__(mw)
@@ -680,7 +682,7 @@ class _ReviewerImageOverlayWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
-        painter.fillRect(self.rect(), QColor(0, 0, 0, 251))
+        painter.fillRect(self.rect(), self._background_color())
 
         entry = self.current_entry()
         if entry is None:
@@ -726,6 +728,12 @@ class _ReviewerImageOverlayWidget(QWidget):
             if cached.is_valid:
                 assets.append(cached)
         return assets
+
+    def _background_color(self) -> QColor:
+        rgba = self._DEFAULT_BACKGROUND
+        if self._entries and self._index == len(self._entries) - 1:
+            rgba = self._LAST_IMAGE_BACKGROUND
+        return QColor(*rgba)
 
     def _draw_center_message(self, painter: QPainter, message: str) -> None:
         painter.save()

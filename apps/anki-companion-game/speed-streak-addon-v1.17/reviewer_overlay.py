@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import aqt.reviewer as reviewer_mod
 import json
 import time
 from pathlib import Path
@@ -68,20 +67,6 @@ SYNC_AUDIO_SUPPRESSION_SECONDS = 0.4
 WEBVIEW_AUDIO_EVENT_KEYS = {"again", "hard", "good", "easy"}
 COMPATIBILITY_LAYOUT_VERSION = 3
 TIME_DRAIN_FETCH_BATCH_SIZES = (32, 128, 512, 2048, 8192, 32768)
-
-
-class ReorderedQueuedCardsView:
-    def __init__(self, source: Any, cards: list[Any]) -> None:
-        self._source = source
-        self.cards = cards
-        self.new_count = int(getattr(source, "new_count", 0) or 0)
-        self.learning_count = int(getattr(source, "learning_count", 0) or 0)
-        self.review_count = int(getattr(source, "review_count", 0) or 0)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._source, name)
-
-
 def _export_widget_geometry(widget: QWidget) -> str:
     try:
         encoded = widget.saveGeometry().toBase64()
@@ -306,6 +291,7 @@ class ReviewerOverlayController:
         self._last_timer_display_remaining_ms = -1
         self._last_timer_display_anchor_ms = 0
         self._non_review_surface_applied = False
+        self._deferred_time_drain_card_ids: list[int] = []
         self.review_later_today_deck_button_enabled = False
         self._deck_browser_refresh_pending = False
         self._persist_settings_timer = QTimer(mw)
@@ -354,49 +340,42 @@ class ReviewerOverlayController:
         self._wrapped = True
 
     def _get_next_v3_card_with_time_drain_reordering(self, reviewer: Reviewer, original: Any) -> None:
-        queued_cards = self._queued_cards_with_time_drain_review_last(reviewer)
-        if queued_cards is None:
+        if not self._time_drain_review_last_enabled():
+            self._restore_deferred_time_drain_cards()
             original(reviewer)
             return
-        cards = list(getattr(queued_cards, "cards", []))
-        if not cards:
-            reviewer._v3 = None
-            reviewer.card = None
-            return
-        v3_card_info = getattr(reviewer_mod, "V3CardInfo", None)
-        if v3_card_info is None:
-            original(reviewer)
-            return
-        reviewer._v3 = v3_card_info.from_queue(queued_cards)
-        backend_card = reviewer._v3.top_card().card
-        try:
-            reviewer.card = Card(reviewer.mw.col, backend_card=backend_card)
-        except TypeError:
-            reviewer.card = Card(reviewer.mw.col)
-            reviewer.card._load_from_backend_card(backend_card)
-        reviewer.card.start_timer()
 
-    def _queued_cards_with_time_drain_review_last(self, reviewer: Reviewer) -> Any | None:
+        for _attempt in range(512):
+            if not self._defer_top_time_drain_card_if_needed(reviewer):
+                break
+
+        original(reviewer)
+
+    def _time_drain_review_last_enabled(self) -> bool:
         state = self.engine.state
-        # Reorder only future fetches; the card already on screen stays in place so
-        # changing the flag mid-review affects only later reappearances.
-        if not bool(getattr(state, "time_drain_review_last", False)):
-            return None
+        return bool(getattr(state, "time_drain_review_last", False)) and int(
+            getattr(state, "time_drain_flag", 0) or 0
+        ) > 0
+
+    def _defer_top_time_drain_card_if_needed(self, reviewer: Reviewer) -> bool:
+        if not self._time_drain_review_last_enabled():
+            return False
+
+        state = self.engine.state
         time_drain_flag = int(getattr(state, "time_drain_flag", 0) or 0)
-        if time_drain_flag <= 0:
-            return None
         scheduler = getattr(getattr(getattr(reviewer, "mw", None), "col", None), "sched", None)
         get_queued_cards = getattr(scheduler, "get_queued_cards", None)
-        if not callable(get_queued_cards):
-            return None
+        bury_cards = getattr(scheduler, "bury_cards", None)
+        if not callable(get_queued_cards) or not callable(bury_cards):
+            return False
 
-        last_output = None
         for fetch_limit in TIME_DRAIN_FETCH_BATCH_SIZES:
             output = get_queued_cards(fetch_limit=fetch_limit)
             cards = list(getattr(output, "cards", []))
             if not cards:
-                return output
-            last_output = output
+                return self._restore_deferred_time_drain_cards()
+            if self._flag_for_queued_card(reviewer, cards[0]) != time_drain_flag:
+                return False
             first_non_time_drain_index = next(
                 (
                     index
@@ -407,17 +386,71 @@ class ReviewerOverlayController:
             )
             if first_non_time_drain_index is None:
                 if len(cards) < fetch_limit:
-                    return output
+                    return False
                 continue
             if first_non_time_drain_index == 0:
-                return output
-            ordered_cards = [
-                cards[first_non_time_drain_index],
-                *cards[:first_non_time_drain_index],
-                *cards[first_non_time_drain_index + 1 :],
-            ]
-            return ReorderedQueuedCardsView(output, ordered_cards)
-        return last_output
+                return False
+            return self._bury_queued_time_drain_card(bury_cards, cards[0])
+        return False
+
+    def _queued_card_id(self, queued_card: Any) -> int:
+        backend_card = getattr(queued_card, "card", None)
+        if backend_card is None:
+            return 0
+        try:
+            return int(getattr(backend_card, "id", 0) or 0)
+        except Exception:
+            return 0
+
+    def _bury_queued_time_drain_card(self, bury_cards: Any, queued_card: Any) -> bool:
+        card_id = self._queued_card_id(queued_card)
+        if card_id <= 0:
+            return False
+        try:
+            bury_cards([card_id], manual=False)
+        except TypeError:
+            try:
+                bury_cards([card_id])
+            except Exception:
+                return False
+        except Exception:
+            return False
+        self._remember_deferred_time_drain_card(card_id)
+        return True
+
+    def _remember_deferred_time_drain_card(self, card_id: int) -> None:
+        if int(card_id or 0) <= 0:
+            return
+        target_id = int(card_id)
+        self._deferred_time_drain_card_ids = [
+            existing_id
+            for existing_id in self._deferred_time_drain_card_ids
+            if int(existing_id or 0) != target_id
+        ]
+        self._deferred_time_drain_card_ids.append(target_id)
+
+    def _restore_deferred_time_drain_cards(self) -> bool:
+        if not self._deferred_time_drain_card_ids:
+            return False
+        scheduler = getattr(getattr(mw, "col", None), "sched", None)
+        unbury_cards = getattr(scheduler, "unbury_cards", None)
+        if not callable(unbury_cards):
+            return False
+
+        deferred_ids = [
+            int(card_id)
+            for card_id in dict.fromkeys(int(card_id or 0) for card_id in self._deferred_time_drain_card_ids)
+            if int(card_id) > 0
+        ]
+        self._deferred_time_drain_card_ids = []
+        restored = False
+        for card_id in deferred_ids:
+            try:
+                unbury_cards([card_id])
+                restored = True
+            except Exception:
+                continue
+        return restored
 
     def _flag_for_queued_card(self, reviewer: Reviewer, queued_card: Any) -> int:
         backend_card = getattr(queued_card, "card", None)
@@ -649,6 +682,8 @@ class ReviewerOverlayController:
         if message.startswith("speed-streak:update-settings:"):
             payload = message.split("speed-streak:update-settings:", 1)[1]
             try:
+                previous_time_drain_flag = int(self.engine.state.time_drain_flag or 0)
+                previous_time_drain_review_last = bool(self.engine.state.time_drain_review_last)
                 data = json.loads(payload)
                 question_seconds = float(data.get("questionSeconds", 12))
                 answer_seconds = float(data.get("answerSeconds", 8))
@@ -715,6 +750,11 @@ class ReviewerOverlayController:
             self.visual_mode = visual_mode
             self.sphere_mode = sphere_mode
             self.render_mode = render_mode
+            if (
+                previous_time_drain_flag != int(self.engine.state.time_drain_flag or 0)
+                or previous_time_drain_review_last != bool(self.engine.state.time_drain_review_last)
+            ):
+                self._restore_deferred_time_drain_cards()
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
             self._save_persisted_settings()
             self._request_deck_browser_refresh()
@@ -757,6 +797,7 @@ class ReviewerOverlayController:
             return (True, None)
         if message == "speed-streak:default-settings":
             self.engine.reset_settings_to_defaults()
+            self._restore_deferred_time_drain_cards()
             self._normalize_feedback_preferences()
             self.visual_mode = VISUAL_MODE_SPHERE
             self.sphere_mode = SPHERE_MODE_CLASSIC
@@ -1054,6 +1095,7 @@ class ReviewerOverlayController:
             self._push_state(only_if_changed=False)
 
     def _handle_non_review_state(self) -> None:
+        self._restore_deferred_time_drain_cards()
         self._flush_pending_review_later_sync()
         self._flush_requested_deck_browser_refresh()
         if not self._non_review_surface_applied:
