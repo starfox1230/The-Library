@@ -9,7 +9,10 @@ function removeUiBoilerplate(text) {
     .replace(/\bOPEN IN VIEWER\b/gi, "")
     .replace(/\bDownload as PowerPoint\b/gi, "")
     .replace(/\bView all available purchase options\b/gi, "")
-    .replace(/\bTo read the full-text\b/gi, "");
+    .replace(/\bTo read the full-text\b/gi, "")
+    .replace(/\bSupplemental material is available for this article\.?\b/gi, "")
+    .replace(/Â©RSNA,\s*\d{4}/gi, "")
+    .replace(/©RSNA,\s*\d{4}/gi, "");
 }
 
 function cleanStudyText(text) {

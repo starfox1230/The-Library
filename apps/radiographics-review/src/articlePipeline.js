@@ -50,6 +50,45 @@ function imageExtension(src) {
   return ".png";
 }
 
+const ACCESS_WALL_PATTERNS = [
+  /\bget full access to this article\b/i,
+  /\balready a subscriber\b/i,
+  /\bsign in as an individual\b/i,
+  /\bvia your institution\b/i,
+  /\bavailable purchase options\b/i,
+  /\baccess through your institution\b/i,
+  /\bindividual access\b/i,
+];
+
+function looksLikeAccessWallText(text) {
+  const value = normalizeWhitespace(String(text || ""));
+  if (!value) {
+    return false;
+  }
+
+  const matches = ACCESS_WALL_PATTERNS.filter((pattern) => pattern.test(value)).length;
+  return matches >= 2 || /\bget full access to this article\b/i.test(value);
+}
+
+function filterAccessWallBlocks(blocks) {
+  return (blocks || []).filter((block) => !looksLikeAccessWallText(block));
+}
+
+function ensureArticleBodyAccess(extracted) {
+  const joinedText = normalizeWhitespace(
+    [
+      ...(extracted.cleanedBodyBlocks || []),
+      extracted.cleanedBodyText || "",
+    ].join(" "),
+  );
+
+  if (!joinedText || looksLikeAccessWallText(joinedText)) {
+    throw new Error(
+      "Article full text was not accessible in the current RSNA session. Re-run `npm run login` in the dedicated browser profile, confirm the full article body loads, and then try again.",
+    );
+  }
+}
+
 async function extractPageArticle(page, seedArticle) {
   const payload = await page.evaluate(() => {
     function clean(text) {
@@ -73,6 +112,25 @@ async function extractPageArticle(page, seedArticle) {
         return sectionText.replace(/^abstract\s*/i, "").trim();
       }
       return "";
+    }
+
+    function looksLikeAccessWallText(text) {
+      const value = clean(text || "");
+      if (!value) {
+        return false;
+      }
+
+      const patterns = [
+        /\bget full access to this article\b/i,
+        /\balready a subscriber\b/i,
+        /\bsign in as an individual\b/i,
+        /\bvia your institution\b/i,
+        /\bavailable purchase options\b/i,
+        /\baccess through your institution\b/i,
+        /\bindividual access\b/i,
+      ];
+      const matches = patterns.filter((pattern) => pattern.test(value)).length;
+      return matches >= 2 || /\bget full access to this article\b/i.test(value);
     }
 
     function extractBodyBlocks() {
@@ -99,7 +157,7 @@ async function extractPageArticle(page, seedArticle) {
           }
 
           const text = clean(child.innerText || "");
-          if (text.length >= 40) {
+          if (text.length >= 40 && !looksLikeAccessWallText(text)) {
             blocks.push(text);
           }
         }
@@ -156,16 +214,23 @@ async function extractPageArticle(page, seedArticle) {
     };
   });
 
-  const rawBodyBlocks = (payload.rawBodyBlocks || [])
+  const rawBodyBlocks = filterAccessWallBlocks(
+    (payload.rawBodyBlocks || [])
     .map((block) => normalizeWhitespace(stripHtml(block)))
-    .filter(Boolean);
-  const cleanedBodyBlocks = rawBodyBlocks
+    .filter(Boolean),
+  );
+  const cleanedBodyBlocks = filterAccessWallBlocks(
+    rawBodyBlocks
     .map((block) => cleanProseBlock(block))
-    .filter(Boolean);
+    .filter(Boolean),
+  );
 
-  return {
+  const extracted = {
     ...seedArticle,
-    title: stripHtml(payload.title || seedArticle.title).replace(/\s*\|\s*RadioGraphics\s*$/i, ""),
+    title: stripHtml(payload.title || seedArticle.title)
+      .replace(/\s*\|\s*RadioGraphics\s*$/i, "")
+      .replace(/\s*RadioGraphics\s*$/i, "")
+      .trim(),
     link: page.url(),
     abstract: cleanProseBlock(
       stripHtml(payload.abstract || "")
@@ -183,6 +248,9 @@ async function extractPageArticle(page, seedArticle) {
     authors: unique([...(payload.authors || []), ...(seedArticle.authors || [])]),
     figures: dedupedFigures,
   };
+
+  ensureArticleBodyAccess(extracted);
+  return extracted;
 }
 
 async function hideFigureCaptureOverlays(page) {
