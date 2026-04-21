@@ -199,6 +199,7 @@ function buildPageScript() {
         const lightboxImage = lightbox.querySelector("[data-lightbox-image]");
         const lightboxCaption = lightbox.querySelector("[data-lightbox-caption]");
         const lightboxStage = lightbox.querySelector(".lightbox-stage");
+        const lightboxClose = lightbox.querySelector("[data-lightbox-close]");
 
         function closeLightbox() {
           lightbox.hidden = true;
@@ -206,6 +207,7 @@ function buildPageScript() {
           lightboxImage.removeAttribute("src");
           lightboxImage.alt = "";
           lightboxCaption.textContent = "";
+          lightbox.scrollTop = 0;
         }
 
         function openLightbox(trigger) {
@@ -219,6 +221,7 @@ function buildPageScript() {
           lightboxCaption.textContent = trigger.getAttribute("data-lightbox-caption") || "";
           lightbox.hidden = false;
           document.body.classList.add("lightbox-open");
+          lightbox.scrollTop = 0;
         }
 
         document.querySelectorAll("[data-lightbox-src]").forEach(function (trigger) {
@@ -231,6 +234,12 @@ function buildPageScript() {
         if (lightboxStage) {
           lightboxStage.addEventListener("click", function (event) {
             event.stopPropagation();
+          });
+        }
+        if (lightboxClose) {
+          lightboxClose.addEventListener("click", function (event) {
+            event.stopPropagation();
+            closeLightbox();
           });
         }
 
@@ -541,17 +550,36 @@ function buildReaderHtml(article) {
         position: fixed;
         inset: 0;
         z-index: 999;
-        display: grid;
-        place-items: center;
-        padding: 24px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 20px 16px 28px;
         background: rgba(0, 0, 0, 0.94);
       }
       .lightbox[hidden] {
         display: none !important;
       }
+      .lightbox-close {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 1000;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.56);
+        color: white;
+        font-size: 1.6rem;
+        line-height: 1;
+        cursor: pointer;
+      }
       .lightbox-stage {
-        max-width: min(100vw - 48px, 1500px);
-        max-height: calc(100vh - 48px);
+        width: min(100%, 1500px);
+        margin: 42px auto 0;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -560,13 +588,13 @@ function buildReaderHtml(article) {
       .lightbox-stage img {
         display: block;
         max-width: 100%;
-        max-height: calc(100vh - 120px);
         width: auto;
         height: auto;
         background: black;
       }
       .lightbox-caption {
         max-width: min(100%, 960px);
+        padding-bottom: 24px;
         color: rgba(255, 255, 255, 0.86);
         text-align: center;
         line-height: 1.6;
@@ -582,7 +610,7 @@ function buildReaderHtml(article) {
     <main class="shell">
       <section class="hero">
         <article class="hero-copy">
-          <a class="eyebrow eyebrow-link" href="../index.html">RadioGraphics Digest</a>
+          <a class="eyebrow eyebrow-link" href="../../index.html">RadioGraphics Digest</a>
           <h1>${pageTitle}</h1>
           <div class="meta-row">${escapeHtml(metadataLine)}</div>
           <div class="authors">${escapeHtml(formatAuthors(article.authors))}</div>
@@ -612,6 +640,7 @@ function buildReaderHtml(article) {
       </section>
     </main>
     <div class="lightbox" data-lightbox hidden>
+      <button class="lightbox-close" type="button" data-lightbox-close aria-label="Close expanded figure view">×</button>
       <div class="lightbox-stage" role="dialog" aria-modal="true" aria-label="Expanded figure view">
         <img data-lightbox-image alt="">
         <div class="lightbox-caption" data-lightbox-caption></div>

@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildSummarySections } = require("../src/summarize");
+const { buildSummarySections, buildTeachingPoint } = require("../src/summarize");
 const { buildAnkiNotes } = require("../src/notes");
 const { buildArticlesIndex, buildReaderHtml } = require("../src/renderReader");
 
@@ -78,7 +78,37 @@ test("reader and library navigation link back into the study library", () => {
   ]);
 
   assert.match(readerHtml, /document\.createElement\("base"\)/i);
-  assert.match(readerHtml, /href="\.\.\/index\.html">RadioGraphics Digest<\/a>/i);
+  assert.match(readerHtml, /href="\.\.\/\.\.\/index\.html">RadioGraphics Digest<\/a>/i);
   assert.match(indexHtml, /document\.createElement\("base"\)/i);
   assert.match(indexHtml, /class="title-link" href="articles\/example\/reader\.html">Macrodystrophia Lipomatosis Macrodactyly<\/a>/i);
+});
+
+test("figure teaching point ignores not-shown and movie-only sentences", () => {
+  const teachingPoint = buildTeachingPoint(
+    "Figure 23. Septic arthritis of the right hip in a 62-year-old woman. CT (not shown) showed a pseudoaneurysm within the iliacus muscle. Right internal iliac angiogram shows a large pseudoaneurysm (arrow) supplied by a bleeding branch (arrowhead). Movie 18 illustrates intermittent visualization of the culprit vessel of a large pseudoaneurysm at angiography.",
+  );
+
+  assert.equal(
+    teachingPoint,
+    "Right internal iliac angiogram shows a large pseudoaneurysm (arrow) supplied by a bleeding branch (arrowhead).",
+  );
+});
+
+test("figure teaching point can combine visible panels while excluding movie references", () => {
+  const teachingPoint = buildTeachingPoint(
+    "Figure 6. Hemoptysis in a 76-year-old man. Chest CT (not shown) revealed bronchiectasis and a fibrotic lesion in the left upper lobe of the lung. (A) Bronchial angiogram shows mild hypertrophy of the left bronchial artery and opacification of a peripheral pulmonary artery (arrow). (B) Spot image after glue embolization of the left bronchial artery shows a glue cast in the left bronchial artery (arrowheads). Note the small glue cast (arrow) at the point of the shunt between the bronchial artery and pulmonary artery. Movie 5 shows glue embolization performed to treat an entangled vascular structure.",
+  );
+
+  assert.doesNotMatch(teachingPoint, /\bnot shown\b/i);
+  assert.doesNotMatch(teachingPoint, /\bmovie\b/i);
+  assert.match(teachingPoint, /\bBronchial angiogram shows mild hypertrophy\b/i);
+  assert.match(teachingPoint, /\bSpot image after glue embolization\b/i);
+});
+
+test("reader lightbox includes close control and scrollable overlay", () => {
+  const readerHtml = buildReaderHtml(mlmArticle);
+
+  assert.match(readerHtml, /data-lightbox-close/i);
+  assert.match(readerHtml, /\.lightbox\s*\{[\s\S]*overflow-y:\s*auto;/i);
+  assert.match(readerHtml, /\.lightbox-close\s*\{[\s\S]*position:\s*fixed;/i);
 });

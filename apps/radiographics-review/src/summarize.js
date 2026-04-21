@@ -453,21 +453,52 @@ function buildTeachingPoint(caption) {
     return "High-yield figure from the article.";
   }
 
-  const normalizeTeachingPoint = (sentence) =>
-    sentence
+  const normalizeTeachingPoint = (sentence) => {
+    const cleaned = sentence
       .replace(/^\([A-Z,\s]+\)\s*/i, "")
+      .replace(/^Note the\s+/i, "")
       .trim();
 
-  const rankedSentence = sentences
-    .map((sentence) => {
+    if (!cleaned) {
+      return cleaned;
+    }
+
+    return `${cleaned.slice(0, 1).toUpperCase()}${cleaned.slice(1)}`;
+  };
+
+  const scoredSentences = sentences.map((sentence, index) => {
       const lowered = sentence.toLowerCase();
       let score = 0;
+      const referencesNonVisibleContent =
+        /\bnot shown\b/.test(lowered) ||
+        /\bmovie\s+\d+\b/.test(lowered) ||
+        /\bvideo\s+\d+\b/.test(lowered) ||
+        /\bdownload\b/.test(lowered) ||
+        /\bopen in viewer\b/.test(lowered);
+      const hasVisibleFigureNoun =
+        /\b(angiogram|venogram|spot image|radiograph|radiographs|x-ray|ct|ct scan|mri|mr image|mr imaging|ultrasound|sonography|photograph|drawing|diagram)\b/.test(
+          lowered,
+        );
+      const hasDisplayVerb =
+        /\b(show|shows|demonstrates|demonstrate|depicts|reveals|revealed|illustrates|illustrated|obtained during)\b/.test(
+          lowered,
+        );
+      const startsWithPanelLabel = /^\([a-z]\)\s*/i.test(sentence);
 
-      if (/\b(radiograph|radiographs|ct|mri|mr image|mr imaging|ultrasound)\b/.test(lowered)) {
+      if (hasVisibleFigureNoun) {
         score += 5;
       }
-      if (/\b(show|shows|demonstrates|demonstrate|findings|illustrates|depicts)\b/.test(lowered)) {
+      if (hasDisplayVerb) {
         score += 3;
+      }
+      if (startsWithPanelLabel && hasVisibleFigureNoun && hasDisplayVerb) {
+        score += 3;
+      }
+      if (/\b(drawing|diagram)\s+illustrates\b/.test(lowered)) {
+        score += 3;
+      }
+      if (/\b(extravasation|pseudoaneurysm|leakage|glue cast|opacification|bleeding|shunt|washout|migration|hypertrophy)\b/.test(lowered)) {
+        score += 2;
       }
       if (/\b(pathophysiology|proliferation|fibroadipose|fatty infiltration|lipomatosis|broadened phalanges|ankylosis|osteoarthritis|osseous|bone)\b/.test(lowered)) {
         score += 4;
@@ -478,13 +509,48 @@ function buildTeachingPoint(caption) {
       if (/\b\d{1,3}-year-old\b/.test(lowered)) {
         score -= 2;
       }
+      if (/\bnote the\b/.test(lowered) && !/\b(extravasation|pseudoaneurysm|leakage|glue cast|opacification|bleeding|shunt|washout|migration)\b/.test(lowered)) {
+        score -= 4;
+      }
+      if (referencesNonVisibleContent) {
+        score -= 14;
+      }
 
       return {
+        index,
         sentence,
         score,
+        hasVisibleFigureNoun,
+        hasDisplayVerb,
+        referencesNonVisibleContent,
       };
-    })
-    .sort((left, right) => right.score - left.score)[0];
+    });
+
+  const pairedVisibleSentences = scoredSentences
+    .filter(
+      (item) =>
+        !item.referencesNonVisibleContent &&
+        item.score >= 7 &&
+        item.hasVisibleFigureNoun &&
+        item.hasDisplayVerb,
+    )
+    .sort((left, right) => left.index - right.index)
+    .slice(0, 2)
+    .map((item) => normalizeTeachingPoint(item.sentence));
+
+  const pairedTeachingPoint = normalizeWhitespace(pairedVisibleSentences.join(" "));
+  if (pairedVisibleSentences.length >= 2 && pairedTeachingPoint.length <= 260) {
+    return truncate(pairedTeachingPoint, 260);
+  }
+
+  const rankedSentence = scoredSentences
+    .filter((item) => !item.referencesNonVisibleContent)
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      return left.index - right.index;
+    })[0];
 
   if (rankedSentence?.score > 0) {
     return truncate(normalizeTeachingPoint(rankedSentence.sentence), 220);
