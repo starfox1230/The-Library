@@ -341,6 +341,9 @@ function buildReaderHtml(article) {
         background: rgba(170, 94, 43, 0.1);
         color: var(--accent);
       }
+      .eyebrow-link {
+        text-decoration: none;
+      }
       .meta-row,
       .authors {
         margin-top: 10px;
@@ -404,6 +407,12 @@ function buildReaderHtml(article) {
         border-radius: 22px;
         background: rgba(255, 255, 255, 0.82);
         border: 1px solid rgba(20, 33, 29, 0.12);
+      }
+      .figure-picker summary::after {
+        content: "v";
+      }
+      .figure-picker[open] summary::after {
+        content: "^";
       }
       .hero-visual { padding: 18px; }
       .hero-visual img {
@@ -550,7 +559,7 @@ function buildReaderHtml(article) {
     <main class="shell">
       <section class="hero">
         <article class="hero-copy">
-          <div class="eyebrow">RadioGraphics Digest</div>
+          <a class="eyebrow eyebrow-link" href="../index.html">RadioGraphics Digest</a>
           <h1>${pageTitle}</h1>
           <div class="meta-row">${escapeHtml(metadataLine)}</div>
           <div class="authors">${escapeHtml(formatAuthors(article.authors))}</div>
@@ -617,7 +626,7 @@ function buildArticlesIndex(articles) {
               : ""
           }
           <div class="eyebrow">${escapeHtml(metadataLine)}</div>
-          <h2>${escapeHtml(article.title)}</h2>
+          <h2><a class="title-link" href="${escapeHtml(article.readerIndexPath)}">${escapeHtml(article.title)}</a></h2>
           <p>${escapeHtml(buildCardSummary(article))}</p>
           <div class="links">
             <a href="${escapeHtml(article.readerIndexPath)}">Study Page</a>
@@ -693,6 +702,14 @@ function buildArticlesIndex(articles) {
         margin: 12px 0;
         font-family: "Georgia", serif;
         line-height: 1.1;
+      }
+      .title-link {
+        color: inherit;
+        text-decoration: none;
+      }
+      .title-link:hover,
+      .title-link:focus-visible {
+        text-decoration: underline;
       }
       .card p {
         margin: 0 0 16px;

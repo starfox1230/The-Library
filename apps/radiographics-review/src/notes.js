@@ -34,11 +34,23 @@ function findSentence(sentences, pattern) {
   return (sentences || []).find((sentence) => pattern.test(sentence));
 }
 
+function countWords(text) {
+  const normalized = normalizeWhitespace(String(text || ""));
+  return normalized ? normalized.split(/\s+/).length : 0;
+}
+
 function buildContentNote(content, batchTag) {
   return {
     content: normalizeWhitespace(content),
     tags: [batchTag],
   };
+}
+
+function buildQuestionAnswerNote(question, answer, batchTag) {
+  return buildContentNote(
+    `${normalizeWhitespace(question)}<br><br>{{c1::${trimTerminalPunctuation(answer)}}}`,
+    batchTag,
+  );
 }
 
 function buildImageDiagnosisNote(answer, imageName, batchTag) {
@@ -48,7 +60,31 @@ function buildImageDiagnosisNote(answer, imageName, batchTag) {
   );
 }
 
-function pickDiagnosisFigure(article) {
+function compactFindingText(text) {
+  return trimTerminalPunctuation(
+    String(text || "")
+      .replace(/\bhypertrophy of both soft and osseous tissues, as well as\b/i, "soft-tissue and osseous hypertrophy with")
+      .replace(/\bhypointense fibrous bands within adipose tissue\b/i, "hypointense fibrous bands in adipose tissue")
+      .replace(/\s+that cannot be accessed\b.+$/i, "")
+      .replace(/\s+or in cases requiring urgent hemostasis due to severe hemorrhage\b/i, "")
+      .replace(/\s{2,}/g, " "),
+  );
+}
+
+function noteWordCount(text) {
+  const plain = normalizeWhitespace(
+    String(text || "")
+      .replace(/<img\b[^>]*>/gi, " ")
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\{\{c\d+::/g, "")
+      .replace(/::[^}]+(?=\}\})/g, "")
+      .replace(/\}\}/g, ""),
+  );
+  return countWords(plain);
+}
+
+function pickDiagnosisFigures(article, maxFigures = 3) {
   const ranked = (article.figures || [])
     .filter((figure) => figure.localImageName && !figure.isVisualAbstract)
     .map((figure) => {
@@ -70,6 +106,12 @@ function pickDiagnosisFigure(article) {
       if (/\b(pathophysiology|diagram|algorithm|visual abstract)\b/.test(lowered)) {
         score -= 8;
       }
+      if (/\bconsistent with\b/.test(lowered)) {
+        score += 3;
+      }
+      if (/\bfindings of\b/.test(lowered)) {
+        score += 2;
+      }
 
       return {
         figure,
@@ -78,13 +120,50 @@ function pickDiagnosisFigure(article) {
     })
     .sort((left, right) => right.score - left.score);
 
-  return ranked[0]?.score > 0 ? ranked[0].figure : null;
+  return ranked
+    .filter(({ score }) => score > 0)
+    .slice(0, maxFigures)
+    .map(({ figure }) => figure);
 }
 
 function buildDiseaseNotes(article, insights, batchTag, pushNote) {
   const title = insights.subject;
+  const leadSentence = insights.rawSentences.leadSentence || "";
+  const definitionSentence = insights.rawSentences.definingSentence || leadSentence || "";
+  const combinedDefinition = normalizeWhitespace([leadSentence, definitionSentence].filter(Boolean).join(" "));
 
-  const definitionSentence = insights.rawSentences.definingSentence || insights.rawSentences.leadSentence || "";
+  const diseaseTypeMatch = combinedDefinition.match(
+    /\bis a[n]?\s+(.+? disease)(?:\s+affecting|\s+with|\s+characterized|\s*,|\.|$)/i,
+  );
+  if (diseaseTypeMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `${title} is a {{c1::${trimTerminalPunctuation(diseaseTypeMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const formMatch = combinedDefinition.match(/\bprogressive form of\b\s+(.+?)(?:\s+characterized by|,|\.|$)/i);
+  if (formMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `${title} is a progressive form of {{c1::${trimTerminalPunctuation(formMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
+
+  const prevalenceMatch = combinedDefinition.match(/\baffecting approximately\s+(.+?)\s+live births\b/i);
+  if (prevalenceMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `The estimated birth prevalence of ${title} is about {{c1::${trimTerminalPunctuation(prevalenceMatch[1])} live births}}.`,
+        batchTag,
+      ),
+    );
+  }
+
   const characterizedMatch = definitionSentence.match(/\bcharacterized by\b\s+(.+?)(?:\.|$)/i);
   if (characterizedMatch?.[1]) {
     pushNote(
@@ -95,7 +174,19 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
     );
   }
 
-  if (insights.distribution) {
+  const distributionSentence = insights.rawSentences.distributionSentence || insights.distribution || "";
+  const locationAndLateralityMatch = distributionSentence.match(
+    /\b(?:typically|usually|most often)\s+affects?\s+(.+?)\s+(unilaterally|bilaterally)\b/i,
+  );
+  if (locationAndLateralityMatch?.[1] && locationAndLateralityMatch?.[2]) {
+    const laterality = /bilaterally/i.test(locationAndLateralityMatch[2]) ? "bilateral" : "unilateral";
+    pushNote(
+      buildContentNote(
+        `${title} most often involves {{c1::${trimTerminalPunctuation(locationAndLateralityMatch[1])}}} and is usually {{c2::${laterality}}}.`,
+        batchTag,
+      ),
+    );
+  } else if (insights.distribution) {
     const distributionAnswer = trimTerminalPunctuation(
       insights.distribution
         .replace(new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+`, "i"), "")
@@ -114,7 +205,7 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
   if (insights.radiographFindings) {
     pushNote(
       buildContentNote(
-        `In ${title}, radiographs typically show {{c1::${trimTerminalPunctuation(insights.radiographFindings)}}}.`,
+        `In ${title}, radiographs typically show {{c1::${compactFindingText(insights.radiographFindings)}}}.`,
         batchTag,
       ),
     );
@@ -123,7 +214,7 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
   if (insights.ctFindings) {
     pushNote(
       buildContentNote(
-        `In ${title}, CT typically shows {{c1::${trimTerminalPunctuation(insights.ctFindings)}}}.`,
+        `In ${title}, CT typically shows {{c1::${compactFindingText(insights.ctFindings)}}}.`,
         batchTag,
       ),
     );
@@ -132,7 +223,7 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
   if (insights.mriFindings) {
     pushNote(
       buildContentNote(
-        `In ${title}, MRI typically shows {{c1::${trimTerminalPunctuation(insights.mriFindings)}}}.`,
+        `In ${title}, MRI typically shows {{c1::${compactFindingText(insights.mriFindings)}}}.`,
         batchTag,
       ),
     );
@@ -147,8 +238,7 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
     );
   }
 
-  const diagnosisFigure = pickDiagnosisFigure(article);
-  if (diagnosisFigure) {
+  for (const diagnosisFigure of pickDiagnosisFigures(article)) {
     pushNote(
       buildImageDiagnosisNote(title, diagnosisFigure.localImageName, batchTag),
     );
@@ -160,11 +250,14 @@ function buildTechniqueNotes(article, insights, batchTag, pushNote) {
   const sentences = insights.sentences || [];
 
   const leadSentence = insights.rawSentences.leadSentence || "";
-  const conceptMatch = leadSentence.match(/\bis (?:a|an)\s+(.+?)(?:\.|$)/i);
-  if (conceptMatch?.[1]) {
+  const conceptSentence = findSentence(sentences, /\bliquid embolic agent\b/i) || leadSentence;
+  const conceptAnswer = /\bliquid embolic agent\b/i.test(conceptSentence)
+    ? "liquid embolic agent"
+    : trimTerminalPunctuation(conceptSentence.match(/\bis (?:a|an)\s+(.+?)(?:\.|$)/i)?.[1] || "");
+  if (conceptAnswer) {
     pushNote(
       buildContentNote(
-        `${title} is a {{c1::${trimTerminalPunctuation(conceptMatch[1])}}}.`,
+        `${title} is a {{c1::${conceptAnswer}}}.`,
         batchTag,
       ),
     );
@@ -194,12 +287,40 @@ function buildTechniqueNotes(article, insights, batchTag, pushNote) {
     );
   }
 
+  const flushSentence =
+    findSentence(sentences, /\bflushed with\b.+\b5%\s*dextrose\b/i) ||
+    findSentence(sentences, /\b5%\s*dextrose\b.+\bprevent premature polymerization\b/i);
+  const flushMatch =
+    flushSentence?.match(/\bflushed with\b\s+(.+?)(?:\s+to\b|,|\.|$)/i) ||
+    flushSentence?.match(/\bwith\b\s+(.+?)(?:\s+to prevent premature polymerization|,|\.|$)/i);
+  if (flushMatch?.[1]) {
+    const flushAnswer = /5%\s*dextrose/i.test(flushMatch[1]) ? "5% dextrose" : flushMatch[1];
+    pushNote(
+      buildQuestionAnswerNote(
+        `What solution should be used to flush the microcatheter before ${title}?`,
+        flushAnswer,
+        batchTag,
+      ),
+    );
+  }
+
+  const salineSentence = findSentence(sentences, /\b(normal saline|ionic solutions)\b.+\b(premature|early)\b.+\b(polymerization|solidification)\b/i);
+  if (salineSentence) {
+    pushNote(
+      buildContentNote(
+        `Before ${title}, normal saline should be avoided because it can {{c1::induce premature NBCA polymerization}}.`,
+        batchTag,
+      ),
+    );
+  }
+
   const useSentence = insights.rawSentences.useCaseSentence || findSentence(sentences, /\bespecially effective\b/i) || "";
   const useMatch = useSentence.match(/\bespecially effective\b(?:\s+in|\s+for)?\s+(.+?)(?:\.|$)/i);
   if (useMatch?.[1]) {
+    const useAnswer = compactFindingText(useMatch[1]);
     pushNote(
       buildContentNote(
-        `${title} is especially useful for {{c1::${trimTerminalPunctuation(useMatch[1])}}}.`,
+        `${title} is especially useful for {{c1::${useAnswer}}}.`,
         batchTag,
       ),
     );
@@ -231,12 +352,13 @@ function buildTechniqueNotes(article, insights, batchTag, pushNote) {
     pearlSentence.match(/\bis essential to\b\s+(.+?)(?:\.|$)/i) ||
     pearlSentence.match(/\brely on\b\s+(.+?)(?:\.|$)/i);
   if (pearlMatch?.[1]) {
+    const answer = compactFindingText(pearlMatch[1]);
     const stem = /\bis essential to\b/i.test(pearlSentence)
       ? `During ${title}, understanding vascular anatomy and hemodynamics is essential to`
       : `Successful outcomes with ${title} rely on`;
     pushNote(
       buildContentNote(
-        `${stem} {{c1::${trimTerminalPunctuation(pearlMatch[1])}}}.`,
+        `${stem} {{c1::${answer}}}.`,
         batchTag,
       ),
     );
@@ -252,7 +374,7 @@ function buildArticleNotes(article, dateLike = new Date()) {
   function pushNote(note) {
     const text = normalizeWhitespace(note.content || note.html || "");
     const key = text.toLowerCase();
-    if (!text || seen.has(key)) {
+    if (!text || seen.has(key) || noteWordCount(text) > 42) {
       return;
     }
 
@@ -320,8 +442,14 @@ function validateNotes(notes, batchTag) {
     if (!/\{\{c\d+::/.test(text)) {
       throw new Error(`Note is missing cloze syntax: ${text}`);
     }
+    if (noteWordCount(text) > 42) {
+      throw new Error(`Note is too wordy for review: ${text}`);
+    }
     if (/->|=>|â†|â†’|â†”/.test(text)) {
       throw new Error(`Note contains arrow notation: ${text}`);
+    }
+    if (/Most likely diagnosis\?/i.test(text) && !/<img\b/i.test(text)) {
+      throw new Error(`Diagnosis note is missing an image: ${text}`);
     }
     if (
       /\b(high-yield figure from the article|key teaching point|which .* pattern suggests|not yet been well established)\b/i.test(
