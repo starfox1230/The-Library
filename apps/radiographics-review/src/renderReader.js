@@ -521,6 +521,9 @@ function buildReaderHtml(article) {
         padding: 24px;
         background: rgba(0, 0, 0, 0.94);
       }
+      .lightbox[hidden] {
+        display: none !important;
+      }
       .lightbox-stage {
         max-width: min(100vw - 48px, 1500px);
         max-height: calc(100vh - 48px);
