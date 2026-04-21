@@ -10,10 +10,12 @@ function looksLikeNoise(sentence) {
   return [
     "open in viewer",
     "download as powerpoint",
+    "download original video",
     "supplemental files",
     "conflicts of interest",
     "view options",
     "references figures tables media share",
+    "teaching point",
   ].some((fragment) => lowered.includes(fragment));
 }
 
