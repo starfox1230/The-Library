@@ -22,3 +22,6 @@ if ($Limit -gt 0) {
 }
 
 node @arguments
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
