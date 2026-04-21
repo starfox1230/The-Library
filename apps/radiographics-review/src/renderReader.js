@@ -33,6 +33,25 @@ function buildFigureNav(figures) {
     .join("");
 }
 
+function buildFigureControls(figures) {
+  if (!Array.isArray(figures) || figures.length === 0) {
+    return "";
+  }
+
+  const figureNav = buildFigureNav(figures);
+  return `
+    <div class="jump-row">
+      <a class="jump-chip" href="#figures">Figures</a>
+      <details class="figure-picker" data-figure-picker>
+        <summary>Figure Selection</summary>
+        <div class="figure-picker-panel">
+          ${figureNav}
+        </div>
+      </details>
+    </div>
+  `;
+}
+
 function buildSummaryGrid(summarySections) {
   return summarySections
     .map(
@@ -44,6 +63,26 @@ function buildSummaryGrid(summarySections) {
       `,
     )
     .join("\n");
+}
+
+function buildLightboxCaption(figure) {
+  return [figure.label, figure.teachingPoint].filter(Boolean).join(" | ");
+}
+
+function buildImageButton(figure, className = "") {
+  const classes = ["image-launch", className].filter(Boolean).join(" ");
+  return `
+    <button
+      class="${classes}"
+      type="button"
+      data-lightbox-src="${escapeHtml(figure.relativeImagePath)}"
+      data-lightbox-alt="${escapeHtml(figure.label || "Figure")}"
+      data-lightbox-caption="${escapeHtml(buildLightboxCaption(figure))}"
+      aria-label="Expand ${escapeHtml(figure.label || "figure")}"
+    >
+      <img src="${escapeHtml(figure.relativeImagePath)}" alt="${escapeHtml(figure.label || "Figure")}">
+    </button>
+  `;
 }
 
 function buildFigureSections(figures) {
@@ -62,7 +101,7 @@ function buildFigureSections(figures) {
             </details>
           </div>
           <div class="figure-image-wrap">
-            <img src="${escapeHtml(figure.relativeImagePath)}" alt="${escapeHtml(figure.label)}">
+            ${buildImageButton(figure)}
           </div>
         </section>
       `,
@@ -90,40 +129,96 @@ function buildNarrativeDetails(article) {
   `;
 }
 
-function buildCopyScript() {
+function buildPageScript() {
   return `
     <script>
       (function () {
         const link = document.querySelector("[data-copy-src]");
-        if (!link) {
+        if (link) {
+          const originalText = link.textContent;
+          link.addEventListener("click", async function (event) {
+            const src = link.getAttribute("data-copy-src");
+            if (!src) {
+              return;
+            }
+
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+              return;
+            }
+
+            event.preventDefault();
+            try {
+              const response = await fetch(src, { credentials: "same-origin" });
+              if (!response.ok) {
+                throw new Error("Copy source request failed.");
+              }
+              const text = await response.text();
+              await navigator.clipboard.writeText(text);
+              link.textContent = "Copied for Chat";
+              window.setTimeout(function () {
+                link.textContent = originalText;
+              }, 1800);
+            } catch (error) {
+              window.open(src, "_blank", "noopener");
+            }
+          });
+        }
+
+        const picker = document.querySelector("[data-figure-picker]");
+        if (picker) {
+          picker.querySelectorAll("a[href^='#']").forEach(function (anchor) {
+            anchor.addEventListener("click", function () {
+              picker.removeAttribute("open");
+            });
+          });
+        }
+
+        const lightbox = document.querySelector("[data-lightbox]");
+        if (!lightbox) {
           return;
         }
 
-        const originalText = link.textContent;
-        link.addEventListener("click", async function (event) {
-          const src = link.getAttribute("data-copy-src");
+        const lightboxImage = lightbox.querySelector("[data-lightbox-image]");
+        const lightboxCaption = lightbox.querySelector("[data-lightbox-caption]");
+        const lightboxStage = lightbox.querySelector(".lightbox-stage");
+
+        function closeLightbox() {
+          lightbox.hidden = true;
+          document.body.classList.remove("lightbox-open");
+          lightboxImage.removeAttribute("src");
+          lightboxImage.alt = "";
+          lightboxCaption.textContent = "";
+        }
+
+        function openLightbox(trigger) {
+          const src = trigger.getAttribute("data-lightbox-src");
           if (!src) {
             return;
           }
 
-          if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
-            return;
-          }
+          lightboxImage.src = src;
+          lightboxImage.alt = trigger.getAttribute("data-lightbox-alt") || "";
+          lightboxCaption.textContent = trigger.getAttribute("data-lightbox-caption") || "";
+          lightbox.hidden = false;
+          document.body.classList.add("lightbox-open");
+        }
 
-          event.preventDefault();
-          try {
-            const response = await fetch(src, { credentials: "same-origin" });
-            if (!response.ok) {
-              throw new Error("Copy source request failed.");
-            }
-            const text = await response.text();
-            await navigator.clipboard.writeText(text);
-            link.textContent = "Copied for Chat";
-            window.setTimeout(function () {
-              link.textContent = originalText;
-            }, 1800);
-          } catch (error) {
-            window.open(src, "_blank", "noopener");
+        document.querySelectorAll("[data-lightbox-src]").forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            openLightbox(trigger);
+          });
+        });
+
+        lightbox.addEventListener("click", closeLightbox);
+        if (lightboxStage) {
+          lightboxStage.addEventListener("click", function (event) {
+            event.stopPropagation();
+          });
+        }
+
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && !lightbox.hidden) {
+            closeLightbox();
           }
         });
       })();
@@ -132,7 +227,8 @@ function buildCopyScript() {
 }
 
 function buildReaderHtml(article) {
-  const heroFigure = article.figures.find((figure) => figure.isVisualAbstract) || article.figures[0];
+  const figures = Array.isArray(article.figures) ? article.figures : [];
+  const heroFigure = figures.find((figure) => figure.isVisualAbstract) || figures[0];
   const summarySections = normalizeSummarySections(article);
   const leadSource =
     summarySections[0]?.text ||
@@ -143,7 +239,7 @@ function buildReaderHtml(article) {
   const heroImageBlock = heroFigure
     ? `
       <div class="hero-visual">
-        <img src="${escapeHtml(heroFigure.relativeImagePath)}" alt="${escapeHtml(heroFigure.label)}">
+        ${buildImageButton(heroFigure, "hero-image-button")}
         <div class="hero-caption">${escapeHtml(heroFigure.label)}</div>
       </div>
     `
@@ -167,8 +263,8 @@ function buildReaderHtml(article) {
     quickLinks.push(`<a href="${escapeHtml(article.ankiPackageRelativePath)}">Download Anki Package</a>`);
   }
 
-  const figureSections = buildFigureSections(article.figures);
-  const figureNav = buildFigureNav(article.figures);
+  const figureSections = buildFigureSections(figures);
+  const figureControls = buildFigureControls(figures);
   const summaryGrid = buildSummaryGrid(summarySections);
   const pageTitle = escapeHtml(article.title);
   const metadataLine = buildArticleMetadataLine(article);
@@ -267,9 +363,11 @@ function buildReaderHtml(article) {
         flex-wrap: wrap;
         gap: 10px;
         margin-top: 18px;
+        align-items: flex-start;
       }
       .action-row a,
-      .jump-chip {
+      .jump-chip,
+      .figure-picker summary {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -280,6 +378,36 @@ function buildReaderHtml(article) {
         border: 1px solid rgba(20, 33, 29, 0.14);
         text-decoration: none;
         font-weight: 700;
+        color: var(--accent-2);
+        cursor: pointer;
+      }
+      .figure-picker {
+        max-width: min(100%, 760px);
+      }
+      .figure-picker summary {
+        list-style: none;
+        user-select: none;
+      }
+      .figure-picker summary::-webkit-details-marker {
+        display: none;
+      }
+      .figure-picker summary::after {
+        content: "▾";
+        margin-left: 10px;
+        font-size: 0.82rem;
+      }
+      .figure-picker[open] summary::after {
+        content: "▴";
+      }
+      .figure-picker-panel {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 14px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(20, 33, 29, 0.12);
       }
       .hero-visual { padding: 18px; }
       .hero-visual img {
@@ -287,6 +415,14 @@ function buildReaderHtml(article) {
         display: block;
         border-radius: 18px;
         background: #e8e1d5;
+      }
+      .image-launch {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: zoom-in;
       }
       .hero-caption {
         margin-top: 10px;
@@ -373,6 +509,40 @@ function buildReaderHtml(article) {
         width: 100%;
         height: auto;
       }
+      .lightbox-open {
+        overflow: hidden;
+      }
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.94);
+      }
+      .lightbox-stage {
+        max-width: min(100vw - 48px, 1500px);
+        max-height: calc(100vh - 48px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .lightbox-stage img {
+        display: block;
+        max-width: 100%;
+        max-height: calc(100vh - 120px);
+        width: auto;
+        height: auto;
+        background: black;
+      }
+      .lightbox-caption {
+        max-width: min(100%, 960px);
+        color: rgba(255, 255, 255, 0.86);
+        text-align: center;
+        line-height: 1.6;
+      }
       @media (max-width: 980px) {
         .hero {
           grid-template-columns: 1fr;
@@ -390,7 +560,7 @@ function buildReaderHtml(article) {
           <div class="authors">${escapeHtml(formatAuthors(article.authors))}</div>
           <p class="digest-lead">${escapeHtml(digestLead)}</p>
           <div class="action-row">${quickLinks.join("")}</div>
-          <div class="jump-row">${figureNav}</div>
+          ${figureControls}
         </article>
         ${heroImageBlock}
       </section>
@@ -405,15 +575,21 @@ function buildReaderHtml(article) {
         ${buildNarrativeDetails(article)}
       </section>
 
-      <section class="figure-area">
+      <section class="figure-area" id="figures">
         <h2>Figure Review</h2>
-        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first, with the full caption tucked behind a toggle.</p>
+        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first, with the full caption tucked behind a toggle. Tap any figure to open it fullscreen.</p>
         <div class="figure-stack">
           ${figureSections}
         </div>
       </section>
     </main>
-    ${buildCopyScript()}
+    <div class="lightbox" data-lightbox hidden>
+      <div class="lightbox-stage" role="dialog" aria-modal="true" aria-label="Expanded figure view">
+        <img data-lightbox-image alt="">
+        <div class="lightbox-caption" data-lightbox-caption></div>
+      </div>
+    </div>
+    ${buildPageScript()}
   </body>
 </html>
 `;
