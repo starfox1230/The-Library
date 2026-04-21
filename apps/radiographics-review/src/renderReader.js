@@ -1,6 +1,28 @@
 const { escapeHtml, splitSentences, truncate } = require("./utils");
 const { buildArticleMetadataLine } = require("./studyText");
 
+function buildBaseHrefScript() {
+  return `
+    <script>
+      (function () {
+        var pathname = window.location.pathname || "/";
+        var baseHref = /\\.html$/i.test(pathname)
+          ? pathname.replace(/[^/]+$/, "")
+          : (pathname.endsWith("/") ? pathname : pathname + "/");
+        var existingBase = document.querySelector("base");
+        if (existingBase) {
+          existingBase.setAttribute("href", baseHref);
+          return;
+        }
+
+        var base = document.createElement("base");
+        base.setAttribute("href", baseHref);
+        document.head.prepend(base);
+      })();
+    </script>
+  `;
+}
+
 function formatAuthors(authors) {
   if (!authors?.length) {
     return "Unknown authors";
@@ -270,6 +292,7 @@ function buildReaderHtml(article) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    ${buildBaseHrefScript()}
     <title>${pageTitle}</title>
     <style>
       :root {
@@ -646,6 +669,7 @@ function buildArticlesIndex(articles) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    ${buildBaseHrefScript()}
     <title>RadioGraphics Review Library</title>
     <style>
       body {

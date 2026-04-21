@@ -28,12 +28,15 @@ test("disease article notes avoid generic question stems", () => {
   const { notes } = buildAnkiNotes(mlmArticle, new Date("2026-04-21T12:00:00-05:00"));
   const contents = notes.map((note) => note.content).join("\n");
   const diagnosisCards = notes.filter((note) => /Most likely diagnosis\?/i.test(note.content || ""));
+  const arrowCards = notes.filter((note) => /what do the arrows indicate/i.test(note.content || ""));
 
   assert.match(contents, /progressive form of \{\{c1::localized gigantism\}\}/i);
   assert.match(contents, /Macrodystrophia lipomatosa macrodactyly \(MLM\) is characterized by/i);
   assert.match(contents, /estimated birth prevalence .* \{\{c1::one in 100 000 live births\}\}/i);
+  assert.match(contents, /proposed molecular cause .* \{\{c1::somatic activating PIK3CA mutations\}\}/i);
   assert.match(contents, /Most likely diagnosis\?/i);
   assert.ok(diagnosisCards.length >= 2);
+  assert.ok(arrowCards.length >= 1);
   assert.doesNotMatch(contents, /\bWhich .* pattern suggests\b/i);
   assert.doesNotMatch(contents, /\bkey teaching point\b/i);
 });
@@ -74,6 +77,8 @@ test("reader and library navigation link back into the study library", () => {
     },
   ]);
 
+  assert.match(readerHtml, /document\.createElement\("base"\)/i);
   assert.match(readerHtml, /href="\.\.\/index\.html">RadioGraphics Digest<\/a>/i);
+  assert.match(indexHtml, /document\.createElement\("base"\)/i);
   assert.match(indexHtml, /class="title-link" href="articles\/example\/reader\.html">Macrodystrophia Lipomatosis Macrodactyly<\/a>/i);
 });

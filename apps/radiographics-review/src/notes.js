@@ -60,6 +60,13 @@ function buildImageDiagnosisNote(answer, imageName, batchTag) {
   );
 }
 
+function buildImageQuestionAnswerNote(question, answer, imageName, batchTag) {
+  return buildContentNote(
+    `${normalizeWhitespace(question)}<br><br>{{c1::${trimTerminalPunctuation(answer)}}}<br><br><img src="${imageName}">`,
+    batchTag,
+  );
+}
+
 function compactFindingText(text) {
   return trimTerminalPunctuation(
     String(text || "")
@@ -67,6 +74,10 @@ function compactFindingText(text) {
       .replace(/\bhypointense fibrous bands within adipose tissue\b/i, "hypointense fibrous bands in adipose tissue")
       .replace(/\s+that cannot be accessed\b.+$/i, "")
       .replace(/\s+or in cases requiring urgent hemostasis due to severe hemorrhage\b/i, "")
+      .replace(/,\s*extending\b.+$/i, "")
+      .replace(/,\s*with no gender predilection\b/i, "")
+      .replace(/^also seen is\s+/i, "")
+      .replace(/^note the\s+/i, "")
       .replace(/\s{2,}/g, " "),
   );
 }
@@ -124,6 +135,130 @@ function pickDiagnosisFigures(article, maxFigures = 3) {
     .filter(({ score }) => score > 0)
     .slice(0, maxFigures)
     .map(({ figure }) => figure);
+}
+
+function detectFigureModality(figure) {
+  const lowered = `${figure?.caption || ""} ${figure?.label || ""}`.toLowerCase();
+  if (/\b(mri|mr image|mr imaging|t1-weighted|t2-weighted)\b/.test(lowered)) {
+    return "MRI";
+  }
+  if (/\b(ct|computed tomography|ct scan)\b/.test(lowered)) {
+    return "CT";
+  }
+  if (/\b(radiograph|radiographs|x-ray)\b/.test(lowered)) {
+    return "radiograph";
+  }
+  if (/\b(ultrasound|sonography)\b/.test(lowered)) {
+    return "ultrasound";
+  }
+  if (/\b(angiogram|venogram)\b/.test(lowered)) {
+    return "angiogram";
+  }
+  if (/\bphotograph\b/.test(lowered)) {
+    return "photograph";
+  }
+  return "image";
+}
+
+function extractArrowFindingCandidates(figure) {
+  const caption = String(figure?.caption || "");
+  if (!caption || !/\barrow(?:s|heads)?\b/i.test(caption)) {
+    return [];
+  }
+
+  const keywordPatterns = [
+    "marked enlargement",
+    "fatty infiltration",
+    "ankylosis",
+    "hypertrophic osteoarthritis",
+    "advanced osteoarthritis",
+    "pseudoaneurysm",
+    "extravasation",
+    "bleeding vessel",
+    "stenosis",
+    "occlusion",
+    "calcification",
+    "hemorrhage",
+    "thrombus",
+    "aneurysm",
+    "mass",
+  ];
+
+  const candidates = [];
+  for (const keyword of keywordPatterns) {
+    const pattern = new RegExp(`(${keyword}[^.]{0,160}?)\\s*\\((?:[^)]*\\barrow(?:s|heads)?\\b[^)]*)\\)`, "ig");
+    let match;
+    while ((match = pattern.exec(caption)) !== null) {
+      const answer = compactFindingText(match[1]);
+      if (!answer || countWords(answer) < 3) {
+        continue;
+      }
+
+      let score = 0;
+      if (/\bmedian nerve|fatty infiltration|pseudoaneurysm|extravasation|thrombus\b/i.test(answer)) {
+        score += 6;
+      }
+      if (/\bankylosis|osteoarthritis|stenosis|occlusion|bleeding\b/i.test(answer)) {
+        score += 4;
+      }
+      if (countWords(answer) <= 12) {
+        score += 2;
+      }
+      if (countWords(answer) <= 18) {
+        score += 1;
+      }
+
+      candidates.push({
+        answer,
+        score,
+      });
+    }
+  }
+
+  return candidates
+    .sort((left, right) => right.score - left.score)
+    .filter((candidate, index, list) => list.findIndex((item) => item.answer.toLowerCase() === candidate.answer.toLowerCase()) === index);
+}
+
+function buildFigureEvidenceNotes(article, title, batchTag, pushNote) {
+  for (const figure of article.figures || []) {
+    if (!figure?.localImageName) {
+      continue;
+    }
+
+    const modality = detectFigureModality(figure);
+    const arrowFinding = extractArrowFindingCandidates(figure)[0];
+    if (arrowFinding) {
+      pushNote(
+        buildImageQuestionAnswerNote(
+          `In ${title}, what do the arrows indicate on this ${modality}?`,
+          arrowFinding.answer,
+          figure.localImageName,
+          batchTag,
+        ),
+      );
+    }
+  }
+}
+
+function buildPathogenesisNotes(article, title, batchTag, pushNote) {
+  const captionText = (article.figures || [])
+    .map((figure) => figure.caption || "")
+    .join(" ");
+  const bodyText = Array.isArray(article.cleanedBodyBlocks)
+    ? article.cleanedBodyBlocks.join(" ")
+    : article.cleanedBodyText || "";
+  const sourceText = `${captionText} ${bodyText}`;
+
+  const mutationMatch = sourceText.match(/\b(somatic activating\s+[A-Z0-9-]+\s+mutations?)\b/i);
+  if (mutationMatch?.[1]) {
+    pushNote(
+      buildContentNote(
+        `A proposed molecular cause of ${title} is {{c1::${trimTerminalPunctuation(mutationMatch[1])}}}.`,
+        batchTag,
+      ),
+    );
+  }
 }
 
 function buildDiseaseNotes(article, insights, batchTag, pushNote) {
@@ -237,6 +372,9 @@ function buildDiseaseNotes(article, insights, batchTag, pushNote) {
       ),
     );
   }
+
+  buildPathogenesisNotes(article, title, batchTag, pushNote);
+  buildFigureEvidenceNotes(article, title, batchTag, pushNote);
 
   for (const diagnosisFigure of pickDiagnosisFigures(article)) {
     pushNote(
