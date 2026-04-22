@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Foundations of CT Pattern Recognition Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            overscroll-behavior-y: none;
+        }
+
+        body {
+            background-color: #12121f;
+            background-image:
+                radial-gradient(circle at top, rgba(74, 74, 245, 0.18), transparent 42%),
+                linear-gradient(180deg, #16162a 0%, #12121f 100%);
+            color: #e0e0fc;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            min-height: 100dvh;
+            margin: 0;
+            padding: 28px 18px;
+            box-sizing: border-box;
+        }
+
+        button {
+            touch-action: manipulation;
+        }
+
+        .quiz-container {
+            background-color: #1a1a2e;
+            padding: 30px 34px;
+            border-radius: 18px;
+            box-shadow:
+                0 0 25px rgba(74, 74, 245, 0.35),
+                0 8px 30px rgba(0, 0, 0, 0.28);
+            width: min(920px, 100%);
+            border: 1px solid #3a3a5e;
+            box-sizing: border-box;
+        }
+
+        .eyebrow {
+            color: #8a8aff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        h1, h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #f2f2ff;
+            margin: 0 0 14px;
+            line-height: 1.25;
+        }
+
+        .intro {
+            color: #c0c0fa;
+            line-height: 1.6;
+            margin: 0 0 24px;
+        }
+
+        .progress-shell {
+            width: 100%;
+            height: 12px;
+            background-color: #202035;
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid #34345a;
+            margin-bottom: 18px;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #4a4af5 0%, #8a8aff 100%);
+            box-shadow: 0 0 18px rgba(138, 138, 255, 0.45);
+            transition: width 0.25s ease;
+        }
+
+        #question-counter {
+            color: #aaaafc;
+            font-size: 0.95rem;
+            margin-bottom: 18px;
+        }
+
+        #question-text {
+            font-size: 1.28rem;
+            color: #f5f5ff;
+            line-height: 1.65;
+            margin-bottom: 26px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .option-button {
+            background-color: #2a2a4e;
+            color: #d8d8ff;
+            border: 1px solid #4a4a7e;
+            padding: 14px 16px;
+            font-size: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.25s ease, transform 0.12s ease, box-shadow 0.25s ease;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #343468;
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.28);
+        }
+
+        .option-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.78;
+        }
+
+        .option-button.correct {
+            background-color: #1f7a3f;
+            border-color: #28a745;
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(40, 167, 69, 0.45);
+            opacity: 1;
+        }
+
+        .option-button.incorrect {
+            background-color: #9a2532;
+            border-color: #dc3545;
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(220, 53, 69, 0.45);
+            opacity: 1;
+        }
+
+        .option-button.reveal-correct {
+            background-color: #1c6a39;
+            border-color: #258a3c;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(30, 120, 60, 0.4);
+            opacity: 0.95;
+        }
+
+        .feedback-card {
+            display: none;
+            margin-top: 22px;
+            padding: 20px;
+            border-radius: 12px;
+            background-color: #202035;
+            border: 1px solid #3a3a5e;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .feedback-card.correct-card {
+            border-color: rgba(40, 167, 69, 0.65);
+        }
+
+        .feedback-card.incorrect-card {
+            border-color: rgba(220, 53, 69, 0.65);
+        }
+
+        .feedback-status {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            color: #f2f2ff;
+            margin: 0 0 12px;
+        }
+
+        .feedback-answer,
+        .feedback-explanation {
+            color: #d0d0fc;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .feedback-answer {
+            margin-bottom: 10px;
+        }
+
+        .next-button {
+            margin-top: 26px;
+            background: linear-gradient(45deg, #4a4af5, #8a8aff);
+            color: #ffffff;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+        }
+
+        .next-button:hover:not(:disabled) {
+            transform: scale(1.04);
+            box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
+        }
+
+        .next-button:disabled {
+            background: #5a5a7e;
+            cursor: not-allowed;
+            opacity: 0.65;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .completion-screen {
+            display: none;
+        }
+
+        .completion-copy {
+            color: #c0c0fa;
+            line-height: 1.6;
+            margin: 0 0 24px;
+        }
+
+        .review-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .review-card {
+            background-color: #202035;
+            border: 1px solid #3a3a5e;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .review-card.correct-card {
+            border-left: 4px solid #28a745;
+        }
+
+        .review-card.incorrect-card {
+            border-left: 4px solid #dc3545;
+        }
+
+        .review-question {
+            color: #f3f3ff;
+            font-size: 1rem;
+            line-height: 1.55;
+            margin: 0 0 10px;
+        }
+
+        .review-meta,
+        .review-explanation {
+            color: #d0d0fc;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .review-meta + .review-meta,
+        .review-meta + .review-explanation {
+            margin-top: 8px;
+        }
+
+        .label {
+            color: #8a8aff;
+            font-weight: 500;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 18px 12px;
+            }
+
+            .quiz-container {
+                padding: 22px 18px;
+            }
+
+            #question-text {
+                font-size: 1.12rem;
+            }
+
+            .option-button {
+                padding: 12px 14px;
+                font-size: 0.95rem;
+            }
+
+            .next-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="quiz-container">
+        <section id="quiz-screen">
+            <div class="eyebrow">CT Quiz</div>
+            <h1 id="quiz-title">Foundations of CT Pattern Recognition</h1>
+            <p class="intro">Single-purpose quiz page. It does not save sessions or generate new quizzes.</p>
+
+            <div class="progress-shell" aria-hidden="true">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+
+            <div id="question-counter">Question 1 of 15</div>
+            <div id="question-text">Loading question...</div>
+            <div id="answer-options" class="options-container"></div>
+
+            <div id="feedback-card" class="feedback-card" aria-live="polite">
+                <p id="feedback-status" class="feedback-status"></p>
+                <p id="feedback-answer" class="feedback-answer"></p>
+                <p id="feedback-explanation" class="feedback-explanation"></p>
+            </div>
+
+            <button id="next-button" class="next-button" type="button" disabled>Choose an answer to continue</button>
+        </section>
+
+        <section id="completion-screen" class="completion-screen">
+            <div class="eyebrow">Quiz Complete</div>
+            <h2 id="final-score">Score: 0 / 15</h2>
+            <p id="completion-copy" class="completion-copy"></p>
+            <div id="review-list" class="review-list"></div>
+        </section>
+    </main>
+
+    <script>
+        const QUIZ_SOURCE = {
+            "title": "Foundations of CT Pattern Recognition",
+            "questions": [
+                {
+                    "question": "On abdominal CT, which approach is most useful when deciding whether a suspicious hazy region represents abnormal fat rather than a normal variant?",
+                    "options": [
+                        "Compare the region with fat elsewhere in the same patient",
+                        "Assume all intra-abdominal fat should match subcutaneous muscle",
+                        "Rely primarily on whether the finding is near the bowel",
+                        "Judge the finding only by its size on one axial slice"
+                    ],
+                    "correctAnswer": "Compare the region with fat elsewhere in the same patient",
+                    "explanation": "The source emphasized using the patient's own normal fat as the reference standard, including comparison of intra-abdominal and subcutaneous fat, to recognize abnormal change."
+                },
+                {
+                    "question": "Which CT description best corresponds to fat stranding?",
+                    "options": [
+                        "Dark fat replaced by hazy streaky increased attenuation",
+                        "Bright calcified fat with sharply defined margins",
+                        "Homogeneous fluid with a thin smooth wall",
+                        "Gas lucency surrounded by cortical destruction"
+                    ],
+                    "correctAnswer": "Dark fat replaced by hazy streaky increased attenuation",
+                    "explanation": "The source defined fat stranding as fat that loses its clean normal appearance and becomes hazy, streaky, or dirty, serving as a marker of inflammation."
+                },
+                {
+                    "question": "In the discussed framework, fat stranding is most closely associated with which process?",
+                    "options": [
+                        "Inflammation in or around the involved tissue",
+                        "Chronic fatty replacement of skeletal muscle",
+                        "Normal variation in body habitus",
+                        "Arterial enhancement after contrast injection"
+                    ],
+                    "correctAnswer": "Inflammation in or around the involved tissue",
+                    "explanation": "The source stated that fat stranding is basically synonymous with inflammation in practical CT interpretation."
+                },
+                {
+                    "question": "Which imaging finding most strongly supports soft tissue thickening adjacent to a pressure injury?",
+                    "options": [
+                        "Replacement of expected fat by denser asymmetric soft tissue",
+                        "Symmetric low-density fat on both sides of the pelvis",
+                        "Linear calcification within an otherwise normal fat plane",
+                        "Uniform gas limited to the skin surface only"
+                    ],
+                    "correctAnswer": "Replacement of expected fat by denser asymmetric soft tissue",
+                    "explanation": "The source described soft tissue thickening as areas where normal fat is replaced by more solid-appearing soft tissue, especially when asymmetric relative to the opposite side."
+                },
+                {
+                    "question": "A decubitus ulcer on CT was characterized in the discussion by which combination of findings?",
+                    "options": [
+                        "Deep ulceration with gas, soft tissue thickening, and adjacent inflammatory change",
+                        "Shallow skin defect with isolated calcification and no deep change",
+                        "Symmetric subcutaneous edema without gas or focal abnormality",
+                        "Well-defined fluid only, without overlying ulcer or bone proximity"
+                    ],
+                    "correctAnswer": "Deep ulceration with gas, soft tissue thickening, and adjacent inflammatory change",
+                    "explanation": "The source described a decubitus ulcer case showing visible ulceration, gas extending toward bone, surrounding soft tissue thickening, and adjacent fat stranding."
+                },
+                {
+                    "question": "Why was side-to-side comparison helpful in evaluating the decubitus ulcer case?",
+                    "options": [
+                        "It showed that the opposite side preserved normal fat without comparable thickening",
+                        "It confirmed that both sides contained the same degree of ulceration",
+                        "It demonstrated equal enhancement of both soft tissues after contrast",
+                        "It proved that gas at the ulcer site was physiologic rather than pathologic"
+                    ],
+                    "correctAnswer": "It showed that the opposite side preserved normal fat without comparable thickening",
+                    "explanation": "The source stressed comparing the abnormal side to the contralateral side, where normal fat was preserved and the same soft tissue abnormality was absent."
+                },
+                {
+                    "question": "In bone imaging, the term \"moth-eaten\" is most appropriately applied to which pattern?",
+                    "options": [
+                        "Multiple ill-defined lucencies producing a ragged destructive appearance",
+                        "A solitary sharply circumscribed lucent lesion with a sclerotic rim",
+                        "Diffuse marrow replacement with no focal cortical change",
+                        "Uniform cortical thickening with preserved trabecular pattern"
+                    ],
+                    "correctAnswer": "Multiple ill-defined lucencies producing a ragged destructive appearance",
+                    "explanation": "The source described moth-eaten bone as having focal lucencies more lucent than surrounding bone, with an overall ratty and extensively eroded appearance."
+                },
+                {
+                    "question": "Which feature best separates complicated diverticulitis from uncomplicated diverticulitis in the discussion?",
+                    "options": [
+                        "Presence of perforation or abscess rather than isolated inflammation",
+                        "Presence of any colonic wall thickening rather than normal bowel",
+                        "Presence of diverticula rather than a continuous colonic lumen",
+                        "Presence of intraluminal contrast rather than oral contrast absence"
+                    ],
+                    "correctAnswer": "Presence of perforation or abscess rather than isolated inflammation",
+                    "explanation": "The source contrasted uncomplicated diverticulitis with complicated diverticulitis by focusing on perforation and abscess formation as key complications."
+                },
+                {
+                    "question": "Why was intravenous contrast considered especially helpful when distinguishing abscess from bowel?",
+                    "options": [
+                        "It outlines enhancing bowel wall and helps identify a wall defect or separate collection",
+                        "It makes all fluid collections become identical in attenuation",
+                        "It eliminates motion artifact in the lower abdomen",
+                        "It prevents inflamed fat from appearing more attenuating than normal fat"
+                    ],
+                    "correctAnswer": "It outlines enhancing bowel wall and helps identify a wall defect or separate collection",
+                    "explanation": "The source noted that contrast helps show the bowel wall, a possible break in the wall, and whether a suspected collection lacks a normal bowel wall, favoring abscess."
+                },
+                {
+                    "question": "When scrolling through CT images, which behavior most favors an abscess over a bowel loop?",
+                    "options": [
+                        "The collection appears contained and fails to continue as a smooth tubular structure",
+                        "The finding elongates across multiple slices in a continuous predictable course",
+                        "The structure demonstrates a consistent wall along its entire visible extent",
+                        "The lumen narrows and widens gradually while remaining connected to bowel"
+                    ],
+                    "correctAnswer": "The collection appears contained and fails to continue as a smooth tubular structure",
+                    "explanation": "The source emphasized that bowel should be traceable as a continuous tunnel, whereas an abscess may come into view and disappear without connecting normally to adjacent bowel."
+                },
+                {
+                    "question": "Which teaching point about bowel continuity was used as a practical aid for beginners reviewing CT?",
+                    "options": [
+                        "Bowel should behave like one continuous tunnel rather than a branching pocket",
+                        "Bowel should terminate abruptly whenever diverticula are present",
+                        "Bowel usually forms multiple closed chambers within the same segment",
+                        "Bowel normally contains side branches that mimic fistulas"
+                    ],
+                    "correctAnswer": "Bowel should behave like one continuous tunnel rather than a branching pocket",
+                    "explanation": "The source used the practical idea that bowel is a continuous tunnel without branch points, so a contained branching-appearing pocket should raise concern for abscess."
+                },
+                {
+                    "question": "In the context of CT with contrast, what is enhancement?",
+                    "options": [
+                        "An area becoming brighter because contrast is present in vascularized tissue",
+                        "An area becoming darker because contrast displaces intraluminal gas",
+                        "An area remaining unchanged despite contrast administration",
+                        "An area appearing denser only because slice thickness is reduced"
+                    ],
+                    "correctAnswer": "An area becoming brighter because contrast is present in vascularized tissue",
+                    "explanation": "The source defined enhancement as increased brightness on a contrast-enhanced examination due to blood flow or vascularity in the tissue."
+                },
+                {
+                    "question": "Which enhancement pattern was highlighted as a classic clue to abscess?",
+                    "options": [
+                        "Peripheral rim enhancement around a central fluid collection",
+                        "Diffuse homogeneous enhancement throughout the collection",
+                        "Central nodular enhancement without surrounding change",
+                        "No enhancement in adjacent inflamed soft tissues"
+                    ],
+                    "correctAnswer": "Peripheral rim enhancement around a central fluid collection",
+                    "explanation": "The source specifically pointed to enhancement along the periphery of an abscess as a key clue that a fluid collection represents infection rather than simple sterile fluid."
+                },
+                {
+                    "question": "A postoperative collection adjacent to hardware shows no convincing peripheral enhancement. Based on the discussion, which interpretation is most appropriate?",
+                    "options": [
+                        "The finding is less specific and could represent seroma or hematoma rather than abscess",
+                        "The finding proves the collection is a sterile abscess requiring immediate drainage",
+                        "The finding excludes any relationship to surgery or inflammation",
+                        "The finding confirms a bowel perforation tracking into the hardware bed"
+                    ],
+                    "correctAnswer": "The finding is less specific and could represent seroma or hematoma rather than abscess",
+                    "explanation": "The source added that near hardware, a non-enhancing collection is less clearly an abscess and may instead represent hematoma or seroma, though this is only a rule of thumb."
+                },
+                {
+                    "question": "Which sequence best reflects the practical CT problem-solving strategy emphasized in the discussion?",
+                    "options": [
+                        "Identify density, compare with normal tissue, then assess asymmetry and enhancement",
+                        "Measure lesion size, assign diagnosis, then review the rest of the scan",
+                        "Focus on one abnormal slice, then ignore surrounding fat and soft tissues",
+                        "Label every fluid collection as abscess before evaluating bowel continuity"
+                    ],
+                    "correctAnswer": "Identify density, compare with normal tissue, then assess asymmetry and enhancement",
+                    "explanation": "The source repeatedly emphasized starting with density, using the patient's own normal tissues for comparison, and then using asymmetry, surrounding inflammatory change, and enhancement to refine interpretation."
+                }
+            ]
+        };
+
+        function shuffleArray(items) {
+            const shuffled = [...items];
+            for (let i = shuffled.length - 1; i > 0; i -= 1) {
+                const swapIndex = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function buildQuizData(questions) {
+            return questions.map(question => ({
+                ...question,
+                options: shuffleArray(question.options)
+            }));
+        }
+
+        const quizData = buildQuizData(QUIZ_SOURCE.questions);
+        const userAnswers = new Array(quizData.length).fill(null);
+        let currentQuestionIndex = 0;
+
+        const quizScreenEl = document.getElementById('quiz-screen');
+        const completionScreenEl = document.getElementById('completion-screen');
+        const quizTitleEl = document.getElementById('quiz-title');
+        const questionCounterEl = document.getElementById('question-counter');
+        const questionTextEl = document.getElementById('question-text');
+        const answerOptionsEl = document.getElementById('answer-options');
+        const feedbackCardEl = document.getElementById('feedback-card');
+        const feedbackStatusEl = document.getElementById('feedback-status');
+        const feedbackAnswerEl = document.getElementById('feedback-answer');
+        const feedbackExplanationEl = document.getElementById('feedback-explanation');
+        const nextButtonEl = document.getElementById('next-button');
+        const progressBarEl = document.getElementById('progress-bar');
+        const finalScoreEl = document.getElementById('final-score');
+        const completionCopyEl = document.getElementById('completion-copy');
+        const reviewListEl = document.getElementById('review-list');
+
+        quizTitleEl.textContent = QUIZ_SOURCE.title;
+        document.title = `${QUIZ_SOURCE.title} Quiz`;
+
+        function updateProgress() {
+            const answeredCount = userAnswers.filter(answer => answer !== null).length;
+            progressBarEl.style.width = `${(answeredCount / quizData.length) * 100}%`;
+        }
+
+        function createOptionButton(optionText) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'option-button';
+            button.textContent = optionText;
+            button.addEventListener('click', () => selectAnswer(optionText, button));
+            return button;
+        }
+
+        function showFeedback(isCorrect, currentQuestion) {
+            feedbackCardEl.classList.remove('correct-card', 'incorrect-card');
+            feedbackCardEl.classList.add(isCorrect ? 'correct-card' : 'incorrect-card');
+            feedbackCardEl.style.display = 'block';
+            feedbackStatusEl.textContent = isCorrect ? 'Correct' : 'Incorrect';
+            feedbackAnswerEl.textContent = isCorrect
+                ? 'You selected the correct answer.'
+                : `Correct answer: ${currentQuestion.correctAnswer}`;
+            feedbackExplanationEl.textContent = currentQuestion.explanation || 'No explanation provided.';
+        }
+
+        function renderQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                showCompletion();
+                return;
+            }
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            questionCounterEl.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            questionTextEl.textContent = currentQuestion.question;
+            answerOptionsEl.innerHTML = '';
+
+            currentQuestion.options.forEach(option => {
+                answerOptionsEl.appendChild(createOptionButton(option));
+            });
+
+            feedbackCardEl.style.display = 'none';
+            feedbackCardEl.classList.remove('correct-card', 'incorrect-card');
+            feedbackStatusEl.textContent = '';
+            feedbackAnswerEl.textContent = '';
+            feedbackExplanationEl.textContent = '';
+            nextButtonEl.disabled = true;
+            nextButtonEl.textContent = 'Choose an answer to continue';
+            updateProgress();
+        }
+
+        function selectAnswer(selectedOption) {
+            if (userAnswers[currentQuestionIndex] !== null) {
+                return;
+            }
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            const isCorrect = selectedOption === currentQuestion.correctAnswer;
+            userAnswers[currentQuestionIndex] = {
+                selected: selectedOption,
+                isCorrect
+            };
+
+            answerOptionsEl.querySelectorAll('.option-button').forEach(button => {
+                button.disabled = true;
+
+                if (button.textContent === selectedOption) {
+                    button.classList.add(isCorrect ? 'correct' : 'incorrect');
+                }
+
+                if (!isCorrect && button.textContent === currentQuestion.correctAnswer) {
+                    button.classList.add('reveal-correct');
+                }
+            });
+
+            showFeedback(isCorrect, currentQuestion);
+            nextButtonEl.disabled = false;
+            nextButtonEl.textContent = currentQuestionIndex === quizData.length - 1 ? 'See Results' : 'Next Question';
+            updateProgress();
+        }
+
+        function createReviewCard(question, answer, index) {
+            const card = document.createElement('article');
+            const isCorrect = answer.isCorrect;
+            card.className = `review-card ${isCorrect ? 'correct-card' : 'incorrect-card'}`;
+
+            const questionLine = document.createElement('p');
+            questionLine.className = 'review-question';
+            questionLine.textContent = `${index + 1}. ${question.question}`;
+
+            const yourAnswerLine = document.createElement('p');
+            yourAnswerLine.className = 'review-meta';
+            const yourAnswerLabel = document.createElement('span');
+            yourAnswerLabel.className = 'label';
+            yourAnswerLabel.textContent = 'Your answer:';
+            yourAnswerLine.appendChild(yourAnswerLabel);
+            yourAnswerLine.appendChild(document.createTextNode(` ${answer.selected}`));
+
+            const correctAnswerLine = document.createElement('p');
+            correctAnswerLine.className = 'review-meta';
+            const correctAnswerLabel = document.createElement('span');
+            correctAnswerLabel.className = 'label';
+            correctAnswerLabel.textContent = 'Correct answer:';
+            correctAnswerLine.appendChild(correctAnswerLabel);
+            correctAnswerLine.appendChild(document.createTextNode(` ${question.correctAnswer}`));
+
+            const explanationLine = document.createElement('p');
+            explanationLine.className = 'review-explanation';
+            const explanationLabel = document.createElement('span');
+            explanationLabel.className = 'label';
+            explanationLabel.textContent = 'Explanation:';
+            explanationLine.appendChild(explanationLabel);
+            explanationLine.appendChild(document.createTextNode(` ${question.explanation}`));
+
+            card.appendChild(questionLine);
+            card.appendChild(yourAnswerLine);
+            if (!isCorrect) {
+                card.appendChild(correctAnswerLine);
+            }
+            card.appendChild(explanationLine);
+
+            return card;
+        }
+
+        function showCompletion() {
+            const correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
+            quizScreenEl.style.display = 'none';
+            completionScreenEl.style.display = 'block';
+            finalScoreEl.textContent = `Score: ${correctCount} / ${quizData.length}`;
+            completionCopyEl.textContent = 'Review each question below. Reload the page if you want to run this fixed quiz again from the start.';
+            reviewListEl.innerHTML = '';
+
+            quizData.forEach((question, index) => {
+                reviewListEl.appendChild(createReviewCard(question, userAnswers[index], index));
+            });
+
+            progressBarEl.style.width = '100%';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        nextButtonEl.addEventListener('click', () => {
+            if (userAnswers[currentQuestionIndex] === null) {
+                return;
+            }
+
+            currentQuestionIndex += 1;
+            renderQuestion();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        renderQuestion();
+    </script>
+</body>
+</html>

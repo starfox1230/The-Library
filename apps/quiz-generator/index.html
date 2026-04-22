@@ -1211,6 +1211,29 @@ Example format:
             return null;
         }
 
+        function shuffleArray(items) {
+            const shuffled = [...items];
+            for (let i = shuffled.length - 1; i > 0; i -= 1) {
+                const swapIndex = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function shuffleQuizQuestionOptions(questions) {
+            return questions.map(question => {
+                const normalizedOptions = Array.isArray(question.options) ? [...question.options] : [];
+                const shuffledOptions = normalizedOptions.includes(question.correctAnswer)
+                    ? shuffleArray(normalizedOptions)
+                    : normalizedOptions;
+
+                return {
+                    ...question,
+                    options: shuffledOptions
+                };
+            });
+        }
+
         const pendingQuizTitle = sessionStorage.getItem('loadQuizTitle');
         if (pendingQuizTitle) {
             window.addEventListener('DOMContentLoaded', () => {
@@ -1270,7 +1293,10 @@ Example format:
                 const today = new Date();
                 const formattedTitle = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} ${parsedData.title}`;
 
-                const sessionData = { title: formattedTitle, questions: parsedData.questions };
+                const sessionData = {
+                    title: formattedTitle,
+                    questions: shuffleQuizQuestionOptions(parsedData.questions)
+                };
 
                 try {
                     let pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
