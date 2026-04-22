@@ -1220,11 +1220,35 @@ Example format:
             return shuffled;
         }
 
+        function shuffleOptionsAvoidingOriginalCorrectSlot(options, correctAnswer) {
+            const originalOptions = Array.isArray(options) ? [...options] : [];
+            const originalCorrectIndex = originalOptions.indexOf(correctAnswer);
+
+            if (originalOptions.length < 2 || originalCorrectIndex === -1) {
+                return originalOptions;
+            }
+
+            let shuffledOptions = shuffleArray(originalOptions);
+            let attemptsRemaining = 10;
+
+            while (shuffledOptions.indexOf(correctAnswer) === originalCorrectIndex && attemptsRemaining > 0) {
+                shuffledOptions = shuffleArray(originalOptions);
+                attemptsRemaining -= 1;
+            }
+
+            if (shuffledOptions.indexOf(correctAnswer) === originalCorrectIndex) {
+                const swapIndex = originalCorrectIndex === 0 ? 1 : 0;
+                [shuffledOptions[originalCorrectIndex], shuffledOptions[swapIndex]] = [shuffledOptions[swapIndex], shuffledOptions[originalCorrectIndex]];
+            }
+
+            return shuffledOptions;
+        }
+
         function shuffleQuizQuestionOptions(questions) {
             return questions.map(question => {
                 const normalizedOptions = Array.isArray(question.options) ? [...question.options] : [];
                 const shuffledOptions = normalizedOptions.includes(question.correctAnswer)
-                    ? shuffleArray(normalizedOptions)
+                    ? shuffleOptionsAvoidingOriginalCorrectSlot(normalizedOptions, question.correctAnswer)
                     : normalizedOptions;
 
                 return {
