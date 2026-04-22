@@ -8,17 +8,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --base-blue: #4a4af5;
+            --dim-blue: #3a3a9e;
+            --bright-blue: #8a8aff;
+            --bg-color: #12121f;
+            --font-color: #c0c0fa;
+        }
+
         html, body {
             overscroll-behavior-y: none;
         }
 
         body {
-            background-color: #12121f;
+            background-color: var(--bg-color);
             color: #e0e0fc;
-            font-family: 'Roboto', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            font-family: "Roboto", sans-serif;
             min-height: 100vh;
             min-height: 100dvh;
             margin: 0;
@@ -26,15 +31,26 @@
             box-sizing: border-box;
         }
 
-        /* Prevent double-tap zoom on all buttons */
-        button { touch-action: manipulation; }
+        button {
+            touch-action: manipulation;
+        }
+
+        .app-view {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .hidden {
+            display: none !important;
+        }
 
         .generator-container {
             background-color: #1a1a2e;
             padding: 30px 40px;
             border-radius: 15px;
-            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4),
-                        0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
             width: 90%;
             max-width: 900px;
             text-align: center;
@@ -42,34 +58,41 @@
         }
 
         h1 {
-            font-family: 'Orbitron', sans-serif;
-            color: #8a8aff;
+            font-family: "Orbitron", sans-serif;
+            color: var(--bright-blue);
             margin-bottom: 20px;
             text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
         }
 
         p, label {
-            color: #c0c0fa;
+            color: var(--font-color);
             line-height: 1.6;
             margin-bottom: 15px;
             text-align: left;
         }
 
-        .prompt-section {
+        .prompt-section,
+        .explanation-container {
             background-color: #202035;
             border: 1px solid #3a3a5e;
             border-radius: 8px;
             padding: 20px;
-            margin-top: 20px;
-            margin-bottom: 30px;
             text-align: left;
             font-size: 0.95em;
             line-height: 1.5;
-            color: #c0c0fa;
+            color: var(--font-color);
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
         }
 
-        .prompt-section strong { color: #8a8aff; }
+        .prompt-section {
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        .prompt-section strong,
+        .explanation-container strong {
+            color: var(--bright-blue);
+        }
 
         .prompt-section code {
             background-color: #12121f;
@@ -83,12 +106,23 @@
             margin-bottom: 15px;
         }
 
-        .prompt-controls {
+        .prompt-controls,
+        .review-controls,
+        .button-group {
             display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-top: 15px;
             flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .prompt-controls {
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .button-group {
+            margin-top: 10px;
+            margin-bottom: 20px;
         }
 
         textarea {
@@ -106,13 +140,15 @@
             resize: vertical;
         }
 
-        .action-button, .copy-button, .secondary-button {
+        .action-button,
+        .copy-button,
+        .secondary-button {
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
-            color: white;
+            color: #fff;
             border: none;
             padding: 10px 25px;
             font-size: 1em;
-            font-family: 'Orbitron', sans-serif;
+            font-family: "Orbitron", sans-serif;
             border-radius: 25px;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
@@ -120,27 +156,31 @@
             text-align: center;
             min-width: 100px;
         }
+
         .secondary-button {
             background: none;
             border: 1px solid #4a4af5;
-            color: #8a8aff;
+            color: var(--bright-blue);
             box-shadow: none;
         }
 
         .action-button:hover:not(:disabled),
         .copy-button:hover:not(:disabled),
-        .secondary-button:hover:not(:disabled) {
+        .secondary-button:hover:not(:disabled),
+        .nav-button:hover:not(:disabled) {
             transform: scale(1.05);
             box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5);
         }
+
         .secondary-button:hover:not(:disabled) {
             background: linear-gradient(45deg, #4a4af5, #8a8aff);
-            color: white;
+            color: #fff;
         }
 
-         .action-button:disabled,
-         .copy-button:disabled,
-         .secondary-button:disabled {
+        .action-button:disabled,
+        .copy-button:disabled,
+        .secondary-button:disabled,
+        .nav-button:disabled {
             background: #5a5a7e;
             cursor: not-allowed;
             opacity: 0.6;
@@ -148,72 +188,640 @@
             transform: none;
         }
 
-        .link-style {
-            color: #a0a0ff;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-        .link-style:hover {
-            color: #c0c0ff;
-            text-decoration: underline;
+        .copied-feedback {
+            background-color: #1f7a3f !important;
         }
 
-        .button-group {
-             display: flex;
-             justify-content: center;
-             flex-wrap: wrap;
-             gap: 15px;
-             margin-top: 10px;
-             margin-bottom: 20px;
-        }
-        
-        /* Modal styles */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(18, 18, 31, 0.9); z-index: 1000;
-            display: none; justify-content: center; align-items: center;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(18, 18, 31, 0.9);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
         }
+
         .modal-content {
-            background-color: #1a1a2e; padding: 30px; border-radius: 15px;
-            border: 1px solid #3a3a5e; width: 90%; max-width: 600px;
-            max-height: 80vh; overflow-y: auto; position: relative;
+            background-color: #1a1a2e;
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid #3a3a5e;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
         }
-        .modal-content h2 { color: #8a8aff; margin-top: 0; }
-        .modal-close-btn {
-            position: absolute; top: 15px; right: 20px; font-size: 2rem; color: #c0c0fa;
-            cursor: pointer; background: none; border: none; line-height: 1;
+
+        .modal-content h2,
+        .panel-content h2 {
+            color: var(--bright-blue);
+            margin-top: 0;
         }
-        #sessions-list { list-style: none; padding: 0; margin: 0; }
-        #sessions-list li {
-            padding: 15px; border-bottom: 1px solid #3a3a5e; color: #c0c0fa;
-            cursor: pointer; transition: background-color 0.2s;
+
+        .modal-close-btn,
+        .close-button-x {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2rem;
+            color: var(--font-color);
+            cursor: pointer;
+            background: none;
+            border: none;
+            line-height: 1;
         }
-        #sessions-list li:hover { background-color: #202035; }
-        #sessions-list li:last-child { border-bottom: none; }
+
+        #sessions-list,
+        #past-sessions-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #sessions-list li,
+        #past-sessions-list li {
+            padding: 15px;
+            border-bottom: 1px solid #3a3a5e;
+            color: var(--font-color);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            line-height: 1.5;
+        }
+
+        #sessions-list li:hover,
+        #past-sessions-list li:hover {
+            background-color: #202035;
+        }
+
+        #sessions-list li:last-child,
+        #past-sessions-list li:last-child {
+            border-bottom: none;
+        }
+
+        #quizTopControls {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+        }
+
+        #profile-btn,
+        #reset-quiz-btn {
+            padding: 10px 18px;
+            background: none;
+            border: 1px solid var(--dim-blue);
+            color: var(--dim-blue);
+            border-radius: 25px;
+            font-family: "Orbitron", sans-serif;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #reset-quiz-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 10000;
+        }
+
+        #profile-btn:hover,
+        #reset-quiz-btn:hover {
+            background-color: var(--dim-blue);
+            color: var(--bg-color);
+        }
+
+        .quiz-container {
+            background-color: #1a1a2e;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            border: 1px solid #3a3a5e;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 500px;
+            margin-top: 70px;
+            position: relative;
+        }
+
+        .quiz-content {
+            flex-grow: 1;
+            margin-bottom: 20px;
+        }
+
+        #question-counter {
+            font-size: 0.9em;
+            color: #aaaafc;
+            margin-bottom: 15px;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 4px;
+        }
+
+        #question-counter:hover {
+            color: #fff;
+            border-color: var(--dim-blue);
+            background-color: #2a2a4e;
+        }
+
+        .navigator-overlay {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background-color: #202035;
+            border: 1px solid #4a4af5;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+
+        .navigator-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 10px 0;
+            text-align: center;
+            background-color: #2a2a4e;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            font-size: 0.9em;
+            border: 1px solid #3a3a5e;
+            position: relative;
+        }
+
+        .nav-favorite-star {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 0.6em;
+            color: #ffd25a;
+            text-shadow: 0 0 4px rgba(255, 210, 90, 0.6);
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .nav-item:hover {
+            background-color: #3a3a6e;
+        }
+
+        .nav-item.current {
+            border-color: var(--bright-blue);
+            box-shadow: 0 0 5px var(--bright-blue);
+        }
+
+        .nav-item.correct {
+            background-color: #1f7a3f;
+            border-color: #28a745;
+        }
+
+        .nav-item.incorrect {
+            background-color: #9a2532;
+            border-color: #dc3545;
+        }
+
+        .navigator-close {
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px;
+            background: none;
+            border: 1px solid #4a4a7e;
+            color: #aaaafc;
+            cursor: pointer;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            color: #f0f0ff;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        #reveal-choices-btn {
+            display: none;
+            margin: 0 auto 20px;
+            padding: 10px 22px;
+            border-radius: 25px;
+            border: 1px solid var(--base-blue);
+            background: none;
+            color: var(--bright-blue);
+            font-family: "Orbitron", sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #reveal-choices-btn:hover {
+            background-color: var(--base-blue);
+            color: #fff;
+        }
+
+        .option-button {
+            background-color: #2a2a4e;
+            color: #d0d0fc;
+            border: 1px solid #4a4a7e;
+            padding: 12px 15px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-button:hover:not(:disabled) {
+            background-color: #3a3a6e;
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
+        }
+
+        .option-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-button.correct {
+            background-color: #1f7a3f !important;
+            border-color: #28a745 !important;
+            color: #fff !important;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+
+        .option-button.incorrect {
+            background-color: #9a2532 !important;
+            border-color: #dc3545 !important;
+            color: #fff !important;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important;
+            opacity: 1 !important;
+        }
+
+        .option-button.reveal-correct {
+            background-color: #1c6a39 !important;
+            border-color: #258a3c !important;
+            color: #fff !important;
+            box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important;
+            opacity: 0.9 !important;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .nav-button {
+            background: linear-gradient(45deg, var(--base-blue), var(--bright-blue));
+            color: #fff;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-family: "Orbitron", sans-serif;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .favorite-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--bright-blue);
+            background: rgba(74, 74, 245, 0.1);
+            color: #f5d742;
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .favorite-toggle:hover {
+            background: rgba(74, 74, 245, 0.2);
+            box-shadow: 0 0 10px rgba(245, 215, 66, 0.5);
+        }
+
+        .favorite-toggle.active {
+            background: rgba(245, 215, 66, 0.2);
+            box-shadow: 0 0 12px rgba(245, 215, 66, 0.7);
+        }
+
+        .favorite-mark {
+            color: #f5d742;
+            margin-left: 6px;
+        }
+
+        #completion-message {
+            margin-top: 0;
+            flex-grow: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        #completion-message h2 {
+            font-family: "Orbitron", sans-serif;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        .review-controls {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .filter-btn {
+            background: none;
+            border: 1px solid #4a4af5;
+            color: var(--font-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .filter-btn.active {
+            background-color: #4a4af5;
+            color: #fff;
+        }
+
+        .copy-review-btn {
+            background: linear-gradient(45deg, #4a4af5, #8a8aff);
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .review-list {
+            width: 100%;
+            text-align: left;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .review-card {
+            background-color: #202035;
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .review-card.correct-card {
+            border-left: 4px solid #28a745;
+        }
+
+        .review-card.incorrect-card {
+            border-left: 4px solid #dc3545;
+        }
+
+        .review-q {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #e0e0fc;
+        }
+
+        .review-ans {
+            margin-bottom: 5px;
+        }
+
+        .ans-label {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .user-ans-text.correct {
+            color: #28a745;
+        }
+
+        .user-ans-text.incorrect {
+            color: #dc3545;
+        }
+
+        .review-exp {
+            margin-top: 10px;
+            font-style: italic;
+            color: #aaaafc;
+            font-size: 0.9em;
+            border-top: 1px solid #3a3a5e;
+            padding-top: 5px;
+        }
+
+        .panel-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 20000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .panel-content {
+            background-color: #1a1a2e;
+            border: 1px solid var(--dim-blue);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            cursor: default;
+        }
+
+        .profile-menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .profile-menu-container .menu-btn,
+        .profile-menu-container .file-upload-label {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: none;
+            border: 1px solid var(--base-blue);
+            color: var(--bright-blue);
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .profile-menu-container .menu-btn:hover,
+        .profile-menu-container .file-upload-label:hover {
+            background-color: var(--base-blue);
+            color: #fff;
+        }
+
+        .profile-menu-container input[type="file"] {
+            display: none;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 14px 0;
+            border-top: 1px solid #303050;
+            color: var(--font-color);
+        }
+
+        .settings-row:first-of-type {
+            border-top: none;
+        }
+
+        .settings-row label {
+            margin: 0;
+            text-align: left;
+        }
 
         @media (max-width: 600px) {
-            .generator-container { padding: 20px; width: 95%; }
-            h1 { font-size: 1.5em; }
-            .prompt-controls { gap: 10px; }
-            .action-button, .copy-button { padding: 8px 18px; font-size: 0.9em; }
-            textarea { min-height: 150px; }
-        }
+            body {
+                padding: 20px 10px;
+            }
 
-        .copied-feedback { background-color: #1f7a3f !important; }
+            .generator-container,
+            .quiz-container {
+                padding: 20px;
+                width: 95%;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .prompt-controls {
+                gap: 10px;
+            }
+
+            .action-button,
+            .copy-button {
+                padding: 8px 18px;
+                font-size: 0.9em;
+            }
+
+            textarea {
+                min-height: 150px;
+            }
+
+            #quizTopControls {
+                top: 10px;
+                right: 10px;
+            }
+
+            #profile-btn,
+            #reset-quiz-btn {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+
+            .quiz-container {
+                min-height: auto;
+                margin-top: 60px;
+            }
+
+            #question-text {
+                font-size: 1.1em;
+                min-height: 40px;
+            }
+
+            .option-button {
+                font-size: 0.9em;
+                padding: 10px 12px;
+            }
+
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 1em;
+                min-width: 100px;
+            }
+
+            .review-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .copy-review-btn {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="generator-container">
-        <h1>Quiz HTML Generator</h1>
-        <p>Paste your questions below, formatted as a JavaScript array of objects.</p>
+    <section id="home-view" class="app-view">
+        <div class="generator-container">
+            <h1>Quiz HTML Generator</h1>
+            <p>Paste your questions below, formatted as a JavaScript array of objects.</p>
 
-        <div class="prompt-section">
-            <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
-            <p>Attach your PDF document and use the following prompt to generate questions.</p>
-            <code id="promptText">Based *solely* on the attached source material, first create a concise, descriptive title for the subject matter (5-7 words). Then, generate **30 board-exam–level** multiple-choice questions that probe deep factual and conceptual mastery of the material.
-Questions must test understanding of facts and concepts as they apply in general contexts—not recall of the source’s exact wording or examples. 
-                
-For each question, include exactly these four properties (use straight double-quotes around every key and string value). If any string value itself needs to contain a double-quote character, ensure it is properly escaped with a backslash (e.g., \"example\").               
+            <div class="prompt-section">
+                <strong>Prompt for AI Chat (e.g., Google Gemini):</strong>
+                <p>Attach your PDF document and use the following prompt to generate questions.</p>
+                <code id="promptText">Based *solely* on the attached source material, first create a concise, descriptive title for the subject matter (5-7 words). Then, generate **30 board-exam-level** multiple-choice questions that probe deep factual and conceptual mastery of the material.
+Questions must test understanding of facts and concepts as they apply in general contexts, not recall of the source's exact wording or examples.
+
+For each question, include exactly these four properties (use straight double-quotes around every key and string value). If any string value itself needs to contain a double-quote character, ensure it is properly escaped with a backslash (e.g., \"example\").
 1. "question": the question stem, phrased like a high-level exam item.
 2. "options": an array of four distinct answer strings.
 3. "correctAnswer": the one option that is correct (must match exactly one entry in "options").
@@ -226,6 +834,7 @@ Multiple-choice writing best practices (STRICT):
 - Keep grammar parallel across options so the correct answer does not stand out by wording style.
 - Avoid giving away the answer through overlap with the question stem.
 - Ensure exactly one clearly best answer.
+- Deliberately vary which option is correct across questions. Do not keep placing the correct answer in the first slot or follow a predictable answer-position pattern.
 
 Format the entire output *only* as a single JSON object. This object must have exactly two top-level properties:
 1. "title": The descriptive title you created.
@@ -245,20 +854,104 @@ Example format:
     }
   ]
 }</code>
-            <div class="prompt-controls">
-                <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
-                <button id="copyPromptAndGoBtn" class="copy-button">Copy Prompt and Go to Google AI Studio</button>
+                <div class="prompt-controls">
+                    <button id="copyPromptBtn" class="copy-button">Copy Prompt</button>
+                    <button id="copyPromptAndGoBtn" class="copy-button">Copy Prompt and Go to Google AI Studio</button>
+                </div>
+            </div>
+
+            <label for="questionInput">Paste Formatted Quiz Data Here:</label>
+            <textarea id="questionInput" placeholder="Paste your JavaScript object here, starting with { and ending with }..."></textarea>
+
+            <div class="button-group">
+                <button id="viewPastSessionsBtn" class="secondary-button">View Past Sessions</button>
+                <button id="generateBtn" class="action-button">Generate &amp; View Quiz</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="quiz-view" class="app-view hidden">
+        <div id="quizTopControls">
+            <button id="profile-btn">Profile</button>
+        </div>
+        <button id="reset-quiz-btn" aria-label="Reset quiz progress">Reset</button>
+
+        <div class="quiz-container">
+            <button id="favorite-toggle" class="favorite-toggle" aria-pressed="false" title="Save question to favorites">&#9734;</button>
+
+            <div id="navigator-overlay" class="navigator-overlay">
+                <div class="navigator-grid" id="navigator-grid"></div>
+                <button class="navigator-close" id="view-progress-review-btn">View Answers So Far</button>
+                <button class="navigator-close" id="navigator-close">Close Menu</button>
+            </div>
+
+            <div class="quiz-content">
+                <h1 id="quiz-title">Generated Quiz</h1>
+                <div id="question-counter" title="Tap to jump to question"></div>
+                <div id="question-text">Loading question...</div>
+                <button id="reveal-choices-btn" type="button">Reveal Answer Choices</button>
+                <div id="answer-options" class="options-container"></div>
+                <div id="explanation" class="explanation-container" style="display: none;"></div>
+            </div>
+
+            <div id="completion-message">
+                <h2 id="final-score">Quiz Complete!</h2>
+
+                <div class="review-controls">
+                    <button id="back-to-quiz-btn" class="filter-btn" style="display: none;">Back to Quiz</button>
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="correct">Correct</button>
+                    <button class="filter-btn" data-filter="incorrect">Incorrect</button>
+                    <button class="filter-btn" data-filter="favorites">Favorites</button>
+                    <button id="copy-review-btn" class="copy-review-btn">Copy Listed Items</button>
+                </div>
+
+                <div id="review-list" class="review-list"></div>
+            </div>
+
+            <div class="navigation-buttons">
+                <button id="prev-button" class="nav-button">Previous</button>
+                <button id="next-button" class="nav-button">Next</button>
             </div>
         </div>
 
-        <label for="questionInput">Paste Formatted Quiz Data Here:</label>
-        <textarea id="questionInput" placeholder="Paste your JavaScript object here, starting with { and ending with }..."></textarea>
-
-        <div class="button-group">
-            <button id="viewPastSessionsBtn" class="secondary-button">View Past Sessions</button>
-            <button id="generateBtn" class="action-button">Generate & View Quiz</button>
+        <div id="profile-panel" class="panel-overlay">
+            <div class="panel-content">
+                <button class="close-button-x" data-target="profile-panel">&times;</button>
+                <h2>Profile &amp; Sessions</h2>
+                <div class="profile-menu-container">
+                    <button id="open-settings-btn" class="menu-btn">Settings</button>
+                    <button id="go-home-btn" class="menu-btn">Home</button>
+                    <button id="view-past-sessions-btn" class="menu-btn">View Past Quizzes</button>
+                    <button id="download-current-session-btn" class="menu-btn">Download this Quiz JSON</button>
+                    <button id="download-all-sessions-btn" class="menu-btn">Download All Quizzes JSON</button>
+                    <label for="upload-single-session" class="file-upload-label">Upload New Quiz JSON</label>
+                    <input type="file" id="upload-single-session" accept=".json">
+                    <label for="upload-multiple-sessions" class="file-upload-label">Merge Past Quizzes JSON</label>
+                    <input type="file" id="upload-multiple-sessions" accept=".json">
+                </div>
+            </div>
         </div>
-    </div>
+
+        <div id="settings-panel" class="panel-overlay">
+            <div class="panel-content">
+                <button class="close-button-x" data-target="settings-panel">&times;</button>
+                <h2>Settings</h2>
+                <div class="settings-row">
+                    <label for="reveal-choices-toggle">Hide answer choices until revealed</label>
+                    <input id="reveal-choices-toggle" type="checkbox">
+                </div>
+            </div>
+        </div>
+
+        <div id="past-sessions-panel" class="panel-overlay">
+            <div class="panel-content">
+                <button class="close-button-x" data-target="past-sessions-panel">&times;</button>
+                <h2>Select a Past Quiz</h2>
+                <ul id="past-sessions-list"></ul>
+            </div>
+        </div>
+    </section>
 
     <div id="main-sessions-modal" class="modal-overlay">
         <div class="modal-content">
@@ -268,1114 +961,803 @@ Example format:
         </div>
     </div>
 
+    <script src="./quiz-session-utils.js"></script>
     <script>
-        // --- Global Helper Functions ---
-        function provideCopyFeedback(button) {
-            const originalText = button.textContent;
-            button.textContent = 'Copied!';
-            button.classList.add('copied-feedback');
-            button.disabled = true;
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.classList.remove('copied-feedback');
-                button.disabled = false;
-            }, 1500);
-        }
+        (function () {
+            const HOME_TITLE = 'Quiz HTML Generator';
+            const HOME_URL = `${window.location.pathname}${window.location.search}`;
+            const QUIZ_URL = '#quiz';
+            const FAVORITE_STAR_HTML = '&#9733;';
+            const FAVORITE_EMPTY_HTML = '&#9734;';
+            const FAVORITE_STAR_TEXT = String.fromCharCode(9733);
 
-        function launchQuiz(sessionData) {
-            const currentGeneratorHTML = document.documentElement.outerHTML;
-            sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
-            sessionStorage.setItem('loadQuizTitle', sessionData.title);
+            const quizSessionUtils = window.QuizSessionUtils;
+            if (!quizSessionUtils) throw new Error('quiz-session-utils.js failed to load.');
+            const { parseAndNormalizeQuizSession, normalizeQuizSessionData } = quizSessionUtils;
 
-            const sessionDataJSON = JSON.stringify(sessionData);
-            const htmlTemplate = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Generated Quiz</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-    <style>
-        :root { 
-            --base-blue: #4a4af5; --dim-blue: #3a3a9e; --bright-blue: #8a8aff; 
-            --bg-color: #12121f; --font-color: #c0c0fa;
-        }
-        html, body {
-            overscroll-behavior-y: none;
-        }
+            const homeView = document.getElementById('home-view');
+            const quizView = document.getElementById('quiz-view');
+            const copyPromptBtn = document.getElementById('copyPromptBtn');
+            const copyPromptAndGoBtn = document.getElementById('copyPromptAndGoBtn');
+            const promptTextElement = document.getElementById('promptText');
+            const questionInput = document.getElementById('questionInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const viewPastSessionsBtn = document.getElementById('viewPastSessionsBtn');
+            const mainSessionsModal = document.getElementById('main-sessions-modal');
+            const sessionsList = document.getElementById('sessions-list');
 
-        body {
-            background-color: var(--bg-color); color: var(--font-color); font-family: 'Roboto', sans-serif;
-            display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100vh;
-            min-height: 100dvh;
-            margin: 0; padding: 20px; box-sizing: border-box;
-        }
-        button { touch-action: manipulation; }
-        
-        #quizTopControls {
-            position: fixed; top: 15px; right: 15px; z-index: 10000;
-            display: flex; gap: 10px;
-        }
-        #reset-quiz-btn {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            padding: 10px 18px;
-            background: none;
-            border: 1px solid var(--dim-blue);
-            color: var(--dim-blue);
-            border-radius: 25px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        #reset-quiz-btn:hover { background-color: var(--dim-blue); color: var(--bg-color); }
-        #profile-btn {
-            padding: 10px 18px; background: none; border: 1px solid var(--dim-blue);
-            color: var(--dim-blue); border-radius: 25px;
-            font-family: 'Orbitron', sans-serif; font-size: 0.9em; cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        #profile-btn:hover { background-color: var(--dim-blue); color: var(--bg-color); }
-        
-        .quiz-container {
-            background-color: #1a1a2e; padding: 30px 40px; border-radius: 15px;
-            box-shadow: 0 0 25px rgba(74, 74, 245, 0.4), 0 5px 15px rgba(0, 0, 0, 0.3);
-            width: 90%; max-width: 800px; text-align: center; border: 1px solid #3a3a5e;
-            display: flex; flex-direction: column; justify-content: space-between;
-            min-height: 500px; margin-top: 70px; position: relative;
-        }
-        .quiz-content { flex-grow: 1; margin-bottom: 20px; }
-        h1 {
-            font-family: 'Orbitron', sans-serif; color: var(--bright-blue); margin-bottom: 25px;
-            text-shadow: 0 0 8px rgba(138, 138, 255, 0.5);
-        }
-        
-        /* Navigator Styles */
-        #question-counter { 
-            font-size: 0.9em; color: #aaaafc; margin-bottom: 15px; cursor: pointer; 
-            display: inline-block; padding: 5px 10px; border-radius: 15px;
-            border: 1px solid transparent; transition: all 0.2s;
-            text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px;
-        }
-        #question-counter:hover { color: #fff; border-color: var(--dim-blue); background-color: #2a2a4e; }
-        
-        .navigator-overlay {
-            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 400px; background-color: #202035;
-            border: 1px solid #4a4af5; border-radius: 10px;
-            padding: 20px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            display: none;
-        }
-        .navigator-grid {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
-        }
-        .nav-item {
-            padding: 10px 0; text-align: center; background-color: #2a2a4e;
-            border-radius: 5px; cursor: pointer; color: #fff; font-weight: bold; font-size: 0.9em;
-            border: 1px solid #3a3a5e; position: relative;
-        }
-        .nav-favorite-star {
-            position: absolute;
-            top: 2px;
-            right: 4px;
-            font-size: 0.6em;
-            color: #ffd25a;
-            text-shadow: 0 0 4px rgba(255, 210, 90, 0.6);
-            line-height: 1;
-            pointer-events: none;
-        }
-        .nav-item:hover { background-color: #3a3a6e; }
-        .nav-item.current { border-color: var(--bright-blue); box-shadow: 0 0 5px var(--bright-blue); }
-        .nav-item.correct { background-color: #1f7a3f; border-color: #28a745; }
-        .nav-item.incorrect { background-color: #9a2532; border-color: #dc3545; }
-        .navigator-close { margin-top: 10px; width: 100%; padding: 8px; background: none; border: 1px solid #4a4a7e; color: #aaaafc; cursor: pointer; }
+            const quizTitleEl = document.getElementById('quiz-title');
+            const questionCounterElement = document.getElementById('question-counter');
+            const questionTextElement = document.getElementById('question-text');
+            const revealChoicesButton = document.getElementById('reveal-choices-btn');
+            const answerOptionsElement = document.getElementById('answer-options');
+            const explanationElement = document.getElementById('explanation');
+            const prevButton = document.getElementById('prev-button');
+            const nextButton = document.getElementById('next-button');
+            const completionMessageElement = document.getElementById('completion-message');
+            const quizContentElement = document.querySelector('.quiz-content');
+            const navigationButtonsElement = document.querySelector('.navigation-buttons');
+            const profileBtnEl = document.getElementById('profile-btn');
+            const profilePanelEl = document.getElementById('profile-panel');
+            const settingsPanelEl = document.getElementById('settings-panel');
+            const revealChoicesToggleEl = document.getElementById('reveal-choices-toggle');
+            const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
+            const pastSessionsListEl = document.getElementById('past-sessions-list');
+            const favoriteToggle = document.getElementById('favorite-toggle');
+            const resetQuizBtn = document.getElementById('reset-quiz-btn');
+            const navigatorOverlay = document.getElementById('navigator-overlay');
+            const navigatorGrid = document.getElementById('navigator-grid');
+            const navigatorClose = document.getElementById('navigator-close');
+            const viewProgressReviewBtn = document.getElementById('view-progress-review-btn');
+            const reviewListEl = document.getElementById('review-list');
+            const filterBtns = document.querySelectorAll('.filter-btn[data-filter]');
+            const copyReviewBtn = document.getElementById('copy-review-btn');
+            const backToQuizBtn = document.getElementById('back-to-quiz-btn');
 
-        #question-text {
-            font-size: 1.3em; color: #f0f0ff; margin-bottom: 30px;
-            line-height: 1.6; min-height: 60px;
-        }
-        .options-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
-        #reveal-choices-btn {
-            display: none;
-            margin: 0 auto 20px;
-            padding: 10px 22px;
-            border-radius: 25px;
-            border: 1px solid var(--base-blue);
-            background: none;
-            color: var(--bright-blue);
-            font-family: 'Orbitron', sans-serif;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        #reveal-choices-btn:hover {
-            background-color: var(--base-blue);
-            color: #fff;
-        }
-        .option-button {
-            background-color: #2a2a4e; color: #d0d0fc; border: 1px solid #4a4a7e;
-            padding: 12px 15px; font-size: 1em; border-radius: 8px; cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-            text-align: left; width: 100%; box-sizing: border-box;
-        }
-        .option-button:hover:not(:disabled) {
-            background-color: #3a3a6e; transform: translateY(-2px);
-            box-shadow: 0 0 12px rgba(74, 74, 245, 0.3);
-        }
-        .option-button:active:not(:disabled) { transform: translateY(0px); }
-        .option-button:disabled { cursor: not-allowed; opacity: 0.7; }
-        .option-button.correct { background-color: #1f7a3f !important; border-color: #28a745 !important; color: #ffffff !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.6) !important; opacity: 1 !important; }
-        .option-button.incorrect { background-color: #9a2532 !important; border-color: #dc3545 !important; color: #ffffff !important; box-shadow: 0 0 15px rgba(220, 53, 69, 0.6) !important; opacity: 1 !important; }
-        .option-button.reveal-correct { background-color: #1c6a39 !important; border-color: #258a3c !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(30, 120, 60, 0.5) !important; opacity: 0.9 !important; }
-        
-        .explanation-container {
-            background-color: #202035; border: 1px solid #3a3a5e; border-radius: 8px;
-            padding: 20px; margin-top: 20px; text-align: left; font-size: 0.95em;
-            line-height: 1.5; color: #c0c0fa; box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-        }
-        .explanation-container strong { color: var(--bright-blue); }
-        .navigation-buttons { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; width: 100%; }
-        .nav-button {
-            background: linear-gradient(45deg, var(--base-blue), var(--bright-blue)); color: white; border: none;
-            padding: 12px 30px; font-size: 1.1em; font-family: 'Orbitron', sans-serif;
-            border-radius: 25px; cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
-            box-shadow: 0 4px 10px rgba(74, 74, 245, 0.3);
-            min-width: 120px; text-align: center;
-        }
-        .nav-button:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 74, 245, 0.5); }
-        .nav-button:disabled { background: #5a5a7e; cursor: not-allowed; opacity: 0.6; box-shadow: none; transform: none; }
+            let activeSessionData = null;
+            let quizData = [];
+            let currentQuestionIndex = 0;
+            let userAnswers = [];
+            let currentFilter = 'all';
+            let favoriteQuestions = new Set();
+            let isPreviewMode = false;
+            const quizSettingsKey = 'quizGeneratorSettings';
+            let userSettings = {
+                hideChoicesUntilReveal: true
+            };
 
-        .favorite-toggle {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            border: 1px solid var(--bright-blue);
-            background: rgba(74, 74, 245, 0.1);
-            color: #f5d742;
-            font-size: 1.3rem;
-            cursor: pointer;
-            display: grid;
-            place-items: center;
-            transition: all 0.2s ease;
-        }
-        .favorite-toggle:hover { background: rgba(74, 74, 245, 0.2); box-shadow: 0 0 10px rgba(245, 215, 66, 0.5); }
-        .favorite-toggle.active { background: rgba(245, 215, 66, 0.2); box-shadow: 0 0 12px rgba(245, 215, 66, 0.7); }
-
-        .favorite-mark { color: #f5d742; margin-left: 6px; }
-        
-        /* Review Screen Styles */
-        #completion-message { margin-top: 0px; flex-grow: 1; display: none; flex-direction: column; align-items: center; width: 100%; }
-        #completion-message h2 { font-family: 'Orbitron', sans-serif; color: #28a745; margin-bottom: 20px; }
-        .review-controls {
-            display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; width: 100%;
-        }
-        .filter-btn {
-            background: none; border: 1px solid #4a4af5; color: #c0c0fa; padding: 8px 16px; 
-            border-radius: 20px; cursor: pointer; font-size: 0.9em;
-        }
-        .filter-btn.active { background-color: #4a4af5; color: white; }
-        .copy-review-btn {
-            background: linear-gradient(45deg, #4a4af5, #8a8aff); border: none; color: white;
-            padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9em; font-weight: bold;
-            margin-left: 10px;
-        }
-        .review-list { width: 100%; text-align: left; max-height: 500px; overflow-y: auto; padding-right: 5px; }
-        .review-card {
-            background-color: #202035; border: 1px solid #3a3a5e; border-radius: 8px;
-            padding: 15px; margin-bottom: 15px; font-size: 0.9em;
-        }
-        .review-card.correct-card { border-left: 4px solid #28a745; }
-        .review-card.incorrect-card { border-left: 4px solid #dc3545; }
-        .review-q { font-weight: bold; margin-bottom: 8px; color: #e0e0fc; }
-        .review-ans { margin-bottom: 5px; }
-        .ans-label { font-size: 0.8em; opacity: 0.7; }
-        .user-ans-text.correct { color: #28a745; }
-        .user-ans-text.incorrect { color: #dc3545; }
-        .review-exp { margin-top: 10px; font-style: italic; color: #aaaafc; font-size: 0.9em; border-top: 1px solid #3a3a5e; padding-top: 5px; }
-
-        /* Panel & Modal Styles */
-        .panel-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.9);
-            z-index: 20000; display: none; flex-direction: column; justify-content: center;
-            align-items: center; padding: 40px; box-sizing: border-box; cursor: pointer;
-        }
-        .panel-content {
-            background-color: #1a1a2e; border: 1px solid var(--dim-blue); border-radius: 15px; padding: 30px;
-            width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; position: relative; cursor: default;
-        }
-        .panel-content h2 { margin-top: 0; padding-right: 30px; color: var(--bright-blue); text-align: center; }
-        .close-button-x {
-            position: absolute; top: 10px; right: 15px; font-size: 2rem; font-weight: bold; color: var(--dim-blue);
-            background: none; border: none; cursor: pointer; line-height: 1; padding: 5px;
-        }
-        .close-button-x:hover { color: var(--bright-blue); }
-        #past-sessions-list { list-style: none; padding: 0; margin: 0; }
-        #past-sessions-list li { padding: 15px; border-bottom: 1px solid #444466; color: var(--font-color); line-height: 1.5; cursor: pointer; transition: background-color 0.2s ease; }
-        #past-sessions-list li:hover { background-color: #202035; }
-        #past-sessions-list li:last-child { border-bottom: none; }
-        .profile-menu-container { display: flex; flex-direction: column; gap: 15px; }
-        .profile-menu-container .menu-btn, .profile-menu-container .file-upload-label {
-            display: block; width: 100%; text-align: center; background: none; border: 1px solid var(--base-blue);
-            color: var(--bright-blue); padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 1rem;
-            transition: all 0.2s ease; box-sizing: border-box; 
-        }
-        .profile-menu-container .menu-btn:hover, .profile-menu-container .file-upload-label:hover { background-color: var(--base-blue); color: #fff; }
-        .profile-menu-container input[type="file"] { display: none; }
-        .settings-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            padding: 14px 0;
-            border-top: 1px solid #303050;
-            color: var(--font-color);
-        }
-        .settings-row:first-of-type { border-top: none; }
-        .settings-row label {
-            margin: 0;
-            text-align: left;
-        }
-
-        @media (max-width: 600px) {
-            #quizTopControls { top: 10px; right: 10px; }
-            #profile-btn { padding: 8px 12px; font-size: 0.8em; }
-            .quiz-container { padding: 20px; width: 95%; min-height: auto; margin-top: 60px; }
-            h1 { font-size: 1.5em; } #question-text { font-size: 1.1em; min-height: 40px; }
-            .option-button { font-size: 0.9em; padding: 10px 12px; }
-            .nav-button { padding: 10px 20px; font-size: 1em; min-width: 100px; }
-            .review-controls { flex-direction: column; align-items: stretch; }
-            .copy-review-btn { margin-left: 0; margin-top: 10px; }
-        }
-    </style>
-</head>
-<body>
-    <div id="quizTopControls">
-        <button id="profile-btn">Profile</button>
-    </div>
-    <button id="reset-quiz-btn" aria-label="Reset quiz progress">Reset</button>
-
-    <div class="quiz-container">
-        <button id="favorite-toggle" class="favorite-toggle" aria-pressed="false" title="Save question to favorites">☆</button>
-
-        <div id="navigator-overlay" class="navigator-overlay">
-            <div class="navigator-grid" id="navigator-grid"></div>
-            <button class="navigator-close" id="view-progress-review-btn">View Answers So Far</button>
-            <button class="navigator-close" id="navigator-close">Close Menu</button>
-        </div>
-
-        <div class="quiz-content">
-            <h1 id="quiz-title">Generated Quiz</h1>
-            <div id="question-counter" title="Tap to jump to question"></div>
-            <div id="question-text">Loading question...</div>
-            <button id="reveal-choices-btn" type="button">Reveal Answer Choices</button>
-            <div id="answer-options" class="options-container"></div>
-            <div id="explanation" class="explanation-container" style="display: none;"></div>
-        </div>
-        
-        <div id="completion-message">
-            <h2 id="final-score">Quiz Complete!</h2>
-            
-            <div class="review-controls">
-                <button id="back-to-quiz-btn" class="filter-btn" style="display: none;">Back to Quiz</button>
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="correct">Correct</button>
-                <button class="filter-btn" data-filter="incorrect">Incorrect</button>
-                <button class="filter-btn" data-filter="favorites">Favorites</button>
-                <button id="copy-review-btn" class="copy-review-btn">Copy Listed Items</button>
-            </div>
-
-            <div id="review-list" class="review-list"></div>
-        </div>
-
-        <div class="navigation-buttons">
-            <button id="prev-button" class="nav-button">Previous</button>
-            <button id="next-button" class="nav-button">Next</button>
-        </div>
-    </div>
-    
-    <div id="profile-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="profile-panel">&times;</button><h2>Profile & Sessions</h2><div class="profile-menu-container"><button id="open-settings-btn" class="menu-btn">Settings</button><button id="go-home-btn" class="menu-btn">Home</button><button id="view-past-sessions-btn" class="menu-btn">View Past Quizzes</button><button id="download-current-session-btn" class="menu-btn">Download this Quiz JSON</button><button id="download-all-sessions-btn" class="menu-btn">Download All Quizzes JSON</button><label for="upload-single-session" class="file-upload-label">Upload New Quiz JSON</label><input type="file" id="upload-single-session" accept=".json"><label for="upload-multiple-sessions" class="file-upload-label">Merge Past Quizzes JSON</label><input type="file" id="upload-multiple-sessions" accept=".json"></div></div></div>
-    <div id="settings-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="settings-panel">&times;</button><h2>Settings</h2><div class="settings-row"><label for="reveal-choices-toggle">Hide answer choices until revealed</label><input id="reveal-choices-toggle" type="checkbox"></div></div></div>
-    <div id="past-sessions-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="past-sessions-panel">&times;</button><h2>Select a Past Quiz</h2><ul id="past-sessions-list"></ul></div></div>
-
-<script>
-    // --- Session Loading Logic ---
-    let activeSessionData;
-    const embeddedSessionData = ${sessionDataJSON};
-    const loadTitle = sessionStorage.getItem('loadQuizTitle');
-    if (loadTitle) {
-        const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
-        const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
-        activeSessionData = sessionToLoad ? sessionToLoad : embeddedSessionData;
-    } else {
-        activeSessionData = embeddedSessionData;
-    }
-    const quizData = activeSessionData.questions;
-    document.title = activeSessionData.title;
-
-    // --- DOM Elements ---
-    const quizTitleEl = document.getElementById('quiz-title');
-    const questionCounterElement = document.getElementById('question-counter');
-    const questionTextElement = document.getElementById('question-text');
-    const revealChoicesButton = document.getElementById('reveal-choices-btn');
-    const answerOptionsElement = document.getElementById('answer-options');
-    const explanationElement = document.getElementById('explanation');
-    const prevButton = document.getElementById('prev-button');
-    const nextButton = document.getElementById('next-button');
-    const completionMessageElement = document.getElementById('completion-message');
-    const quizContentElement = document.querySelector('.quiz-content');
-    const navigationButtonsElement = document.querySelector('.navigation-buttons');
-    const profileBtnEl = document.getElementById('profile-btn');
-    const profilePanelEl = document.getElementById('profile-panel');
-    const settingsPanelEl = document.getElementById('settings-panel');
-    const revealChoicesToggleEl = document.getElementById('reveal-choices-toggle');
-    const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
-    const pastSessionsListEl = document.getElementById('past-sessions-list');
-    const favoriteToggle = document.getElementById('favorite-toggle');
-    const resetQuizBtn = document.getElementById('reset-quiz-btn');
-    
-    // Navigator Elements
-    const navigatorOverlay = document.getElementById('navigator-overlay');
-    const navigatorGrid = document.getElementById('navigator-grid');
-    const navigatorClose = document.getElementById('navigator-close');
-    const viewProgressReviewBtn = document.getElementById('view-progress-review-btn');
-
-    // Review Elements
-    const reviewListEl = document.getElementById('review-list');
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const copyReviewBtn = document.getElementById('copy-review-btn');
-    const backToQuizBtn = document.getElementById('back-to-quiz-btn');
-
-    // --- Quiz State ---
-    let currentQuestionIndex = 0;
-    let userAnswers = new Array(quizData.length).fill(null);
-    let currentFilter = 'all';
-    let favoriteQuestions = new Set();
-    let isPreviewMode = false;
-    const quizProgressKey = \`quizProgress:\${activeSessionData.title}\`;
-    const quizSettingsKey = 'quizGeneratorSettings';
-    let userSettings = {
-        hideChoicesUntilReveal: true
-    };
-
-    function loadUserSettings() {
-        const rawSettings = localStorage.getItem(quizSettingsKey);
-        if (!rawSettings) return;
-        try {
-            const parsedSettings = JSON.parse(rawSettings);
-            if (typeof parsedSettings.hideChoicesUntilReveal === 'boolean') {
-                userSettings.hideChoicesUntilReveal = parsedSettings.hideChoicesUntilReveal;
+            function getQuizProgressKey() {
+                return activeSessionData ? `quizProgress:${activeSessionData.title}` : '';
             }
-        } catch (error) {
-            console.warn('Unable to load user settings:', error);
-        }
-    }
 
-    function saveUserSettings() {
-        localStorage.setItem(quizSettingsKey, JSON.stringify(userSettings));
-    }
-
-    function saveQuizProgress() {
-        const payload = {
-            currentQuestionIndex,
-            userAnswers,
-            favoriteQuestions: Array.from(favoriteQuestions)
-        };
-        localStorage.setItem(quizProgressKey, JSON.stringify(payload));
-    }
-
-    function loadQuizProgress() {
-        const savedProgress = localStorage.getItem(quizProgressKey);
-        if (!savedProgress) return;
-        try {
-            const parsed = JSON.parse(savedProgress);
-            if (Array.isArray(parsed.userAnswers) && parsed.userAnswers.length === quizData.length) {
-                userAnswers = parsed.userAnswers;
+            function getPastSessions() {
+                return JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
             }
-            if (Array.isArray(parsed.favoriteQuestions)) {
-                favoriteQuestions = new Set(parsed.favoriteQuestions);
+
+            function saveSessionData(sessionData) {
+                let pastSessions = getPastSessions();
+                pastSessions = pastSessions.filter(session => session.title !== sessionData.title);
+                pastSessions.push(sessionData);
+                localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
             }
-            if (Number.isInteger(parsed.currentQuestionIndex)) {
-                const safeIndex = Math.max(0, Math.min(parsed.currentQuestionIndex, quizData.length));
-                currentQuestionIndex = safeIndex;
+
+            function updateHistoryState(state, replaceHistory = false) {
+                const currentState = history.state || null;
+                if (!replaceHistory && currentState && currentState.view === state.view && currentState.title === state.title) {
+                    return;
+                }
+
+                const method = replaceHistory ? 'replaceState' : 'pushState';
+                const url = state.view === 'quiz' ? QUIZ_URL : HOME_URL;
+                history[method](state, '', url);
             }
-        } catch (error) {
-            console.warn('Unable to load quiz progress:', error);
-        }
-    }
 
-    // --- Core Quiz Functions ---
-    function updateFavoriteButton() {
-        const isFavorite = favoriteQuestions.has(currentQuestionIndex);
-        favoriteToggle.classList.toggle('active', isFavorite);
-        favoriteToggle.textContent = isFavorite ? '★' : '☆';
-        favoriteToggle.setAttribute('aria-pressed', isFavorite);
-        favoriteToggle.title = isFavorite ? 'Remove from favorites' : 'Save question to favorites';
-        favoriteToggle.removeAttribute('aria-hidden');
-        favoriteToggle.style.display = currentQuestionIndex >= quizData.length ? 'none' : 'grid';
-    }
-
-    function toggleFavorite() {
-        if (currentQuestionIndex >= quizData.length) return;
-        if (favoriteQuestions.has(currentQuestionIndex)) favoriteQuestions.delete(currentQuestionIndex);
-        else favoriteQuestions.add(currentQuestionIndex);
-        updateFavoriteButton();
-        if (navigatorOverlay.style.display === 'block') buildNavigatorGrid();
-        saveQuizProgress();
-    }
-
-    function loadQuestion() {
-        // Ensure UI is in Quiz Mode
-        if (currentQuestionIndex >= quizData.length) { showCompletion(); return; }
-        
-        quizContentElement.style.display = 'block';
-        navigationButtonsElement.style.display = 'flex';
-        completionMessageElement.style.display = 'none';
-        navigatorOverlay.style.display = 'none'; // Close nav if open
-        
-        explanationElement.style.display = 'none';
-        explanationElement.innerHTML = '';
-        answerOptionsElement.innerHTML = '';
-        
-        const currentQuestion = quizData[currentQuestionIndex];
-        const questionHasAnswer = userAnswers[currentQuestionIndex] !== null;
-        
-        // Update Counter
-        questionCounterElement.innerHTML = \`Question \${currentQuestionIndex + 1} of \${quizData.length} <small>▼</small>\`;
-        
-        questionTextElement.textContent = currentQuestion.question;
-
-        const shouldHideChoices = userSettings.hideChoicesUntilReveal && !questionHasAnswer;
-        revealChoicesButton.style.display = shouldHideChoices ? 'inline-block' : 'none';
-        revealChoicesButton.disabled = false;
-        answerOptionsElement.style.display = shouldHideChoices ? 'none' : 'flex';
-        
-        currentQuestion.options.forEach(option => {
-            const button = document.createElement('button');
-            button.textContent = option;
-            button.classList.add('option-button');
-            
-            if (questionHasAnswer) {
-                 button.disabled = true;
-                 const savedAnswer = userAnswers[currentQuestionIndex];
-                 if (option === savedAnswer.selected) { button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect'); }
-                 if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) { button.classList.add('reveal-correct'); }
-            } else { button.addEventListener('click', selectAnswer); }
-            
-            answerOptionsElement.appendChild(button);
-        });
-
-        if (questionHasAnswer) {
-            explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
-            explanationElement.style.display = 'block';
-        }
-        updateFavoriteButton();
-        updateNavButtonStates();
-    }
-
-    function updateNavButtonStates() {
-        prevButton.disabled = (currentQuestionIndex === 0);
-        nextButton.textContent = (currentQuestionIndex === quizData.length - 1) ? "Finish" : "Next";
-    }
-
-    function selectAnswer(event) {
-        if(userAnswers[currentQuestionIndex] !== null) return;
-        
-        const selectedButton = event.target; 
-        const selectedAnswer = selectedButton.textContent;
-        const currentQuestion = quizData[currentQuestionIndex];
-        const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-        
-        userAnswers[currentQuestionIndex] = { selected: selectedAnswer, isCorrect: isCorrect };
-        
-        answerOptionsElement.querySelectorAll('.option-button').forEach(button => {
-            button.disabled = true;
-            if (button.textContent === selectedAnswer) { button.classList.add(isCorrect ? 'correct' : 'incorrect'); }
-            if (!isCorrect && button.textContent === currentQuestion.correctAnswer) { button.classList.add('reveal-correct'); }
-        });
-        
-        explanationElement.innerHTML = \`<strong>Explanation:</strong> \${currentQuestion.explanation || 'No explanation provided.'}\`;
-        explanationElement.style.display = 'block';
-        saveQuizProgress();
-    }
-
-    function goToNextQuestion() {
-         if (currentQuestionIndex < quizData.length - 1) { currentQuestionIndex++; loadQuestion(); }
-         else if (currentQuestionIndex === quizData.length - 1) { currentQuestionIndex++; showCompletion(); }
-         saveQuizProgress();
-    }
-    function goToPreviousQuestion() {
-        if (currentQuestionIndex > 0) {
-            currentQuestionIndex--;
-            loadQuestion();
-            saveQuizProgress();
-        }
-    }
-
-    // --- Navigator Logic ---
-    function toggleNavigator() {
-        if (navigatorOverlay.style.display === 'block') {
-            navigatorOverlay.style.display = 'none';
-        } else {
-            buildNavigatorGrid();
-            navigatorOverlay.style.display = 'block';
-        }
-    }
-    
-    function buildNavigatorGrid() {
-        navigatorGrid.innerHTML = '';
-        for(let i = 0; i < quizData.length; i++) {
-            const item = document.createElement('div');
-            item.classList.add('nav-item');
-            item.textContent = i + 1;
-
-            if (favoriteQuestions.has(i)) {
-                const star = document.createElement('span');
-                star.classList.add('nav-favorite-star');
-                star.textContent = '★';
-                star.setAttribute('aria-hidden', 'true');
-                item.appendChild(star);
+            function provideCopyFeedback(button) {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('copied-feedback');
+                button.disabled = true;
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied-feedback');
+                    button.disabled = false;
+                }, 1500);
             }
-            
-            if (i === currentQuestionIndex) item.classList.add('current');
-            
-            if (userAnswers[i] !== null) {
-                item.classList.add(userAnswers[i].isCorrect ? 'correct' : 'incorrect');
+
+            function showPanel(panelEl) {
+                if (panelEl) panelEl.style.display = 'flex';
             }
-            
-            item.addEventListener('click', () => {
-                currentQuestionIndex = i;
+
+            function hidePanel(panelEl) {
+                if (panelEl) panelEl.style.display = 'none';
+            }
+
+            function closeAllOverlays() {
+                navigatorOverlay.style.display = 'none';
+                mainSessionsModal.style.display = 'none';
+                hidePanel(profilePanelEl);
+                hidePanel(settingsPanelEl);
+                hidePanel(pastSessionsPanelEl);
+            }
+
+            function sanitizeDisplayTitle(title) {
+                return typeof title === 'string' ? title.replace(/^\d{4}\.\d{2}\.\d{2}\s+/, '') : '';
+            }
+
+            function showHomeView(options = {}) {
+                closeAllOverlays();
+                quizView.classList.add('hidden');
+                homeView.classList.remove('hidden');
+                sessionStorage.removeItem('loadQuizTitle');
+                document.title = HOME_TITLE;
+
+                if (options.updateHistory !== false) {
+                    updateHistoryState({ view: 'home' }, Boolean(options.replaceHistory));
+                }
+            }
+
+            function showQuizView() {
+                closeAllOverlays();
+                homeView.classList.add('hidden');
+                quizView.classList.remove('hidden');
+            }
+
+            function loadUserSettings() {
+                const rawSettings = localStorage.getItem(quizSettingsKey);
+                if (!rawSettings) return;
+
+                try {
+                    const parsedSettings = JSON.parse(rawSettings);
+                    if (typeof parsedSettings.hideChoicesUntilReveal === 'boolean') {
+                        userSettings.hideChoicesUntilReveal = parsedSettings.hideChoicesUntilReveal;
+                    }
+                } catch (error) {
+                    console.warn('Unable to load user settings:', error);
+                }
+            }
+
+            function saveUserSettings() {
+                localStorage.setItem(quizSettingsKey, JSON.stringify(userSettings));
+            }
+
+            function saveQuizProgress() {
+                if (!activeSessionData) return;
+
+                const payload = {
+                    currentQuestionIndex,
+                    userAnswers,
+                    favoriteQuestions: Array.from(favoriteQuestions)
+                };
+
+                localStorage.setItem(getQuizProgressKey(), JSON.stringify(payload));
+            }
+
+            function loadQuizProgress() {
+                if (!activeSessionData) return;
+
+                const savedProgress = localStorage.getItem(getQuizProgressKey());
+                if (!savedProgress) return;
+
+                try {
+                    const parsed = JSON.parse(savedProgress);
+                    if (Array.isArray(parsed.userAnswers) && parsed.userAnswers.length === quizData.length) {
+                        userAnswers = parsed.userAnswers;
+                    }
+                    if (Array.isArray(parsed.favoriteQuestions)) {
+                        favoriteQuestions = new Set(parsed.favoriteQuestions);
+                    }
+                    if (Number.isInteger(parsed.currentQuestionIndex)) {
+                        currentQuestionIndex = Math.max(0, Math.min(parsed.currentQuestionIndex, quizData.length));
+                    }
+                } catch (error) {
+                    console.warn('Unable to load quiz progress:', error);
+                }
+            }
+
+            function updateFavoriteButton() {
+                if (!activeSessionData) {
+                    favoriteToggle.style.display = 'none';
+                    favoriteToggle.setAttribute('aria-hidden', 'true');
+                    return;
+                }
+
+                const isFavorite = favoriteQuestions.has(currentQuestionIndex);
+                favoriteToggle.classList.toggle('active', isFavorite);
+                favoriteToggle.innerHTML = isFavorite ? FAVORITE_STAR_HTML : FAVORITE_EMPTY_HTML;
+                favoriteToggle.setAttribute('aria-pressed', String(isFavorite));
+                favoriteToggle.title = isFavorite ? 'Remove from favorites' : 'Save question to favorites';
+                favoriteToggle.removeAttribute('aria-hidden');
+                favoriteToggle.style.display = currentQuestionIndex >= quizData.length ? 'none' : 'grid';
+            }
+
+            function toggleFavorite() {
+                if (!activeSessionData || currentQuestionIndex >= quizData.length) return;
+
+                if (favoriteQuestions.has(currentQuestionIndex)) favoriteQuestions.delete(currentQuestionIndex);
+                else favoriteQuestions.add(currentQuestionIndex);
+
+                updateFavoriteButton();
+                if (navigatorOverlay.style.display === 'block') buildNavigatorGrid();
+                saveQuizProgress();
+            }
+
+            function updateNavButtonStates() {
+                prevButton.disabled = currentQuestionIndex === 0;
+                nextButton.textContent = currentQuestionIndex === quizData.length - 1 ? 'Finish' : 'Next';
+            }
+
+            function loadQuestion() {
+                if (!activeSessionData) return;
+                if (currentQuestionIndex >= quizData.length) {
+                    showCompletion();
+                    return;
+                }
+
+                quizContentElement.style.display = 'block';
+                navigationButtonsElement.style.display = 'flex';
+                completionMessageElement.style.display = 'none';
+                navigatorOverlay.style.display = 'none';
+
+                explanationElement.style.display = 'none';
+                explanationElement.innerHTML = '';
+                answerOptionsElement.innerHTML = '';
+
+                const currentQuestion = quizData[currentQuestionIndex];
+                const questionHasAnswer = userAnswers[currentQuestionIndex] !== null;
+
+                questionCounterElement.innerHTML = `Question ${currentQuestionIndex + 1} of ${quizData.length} <small>&#9662;</small>`;
+                questionTextElement.textContent = currentQuestion.question;
+
+                const shouldHideChoices = userSettings.hideChoicesUntilReveal && !questionHasAnswer;
+                revealChoicesButton.style.display = shouldHideChoices ? 'inline-block' : 'none';
+                revealChoicesButton.disabled = false;
+                answerOptionsElement.style.display = shouldHideChoices ? 'none' : 'flex';
+
+                currentQuestion.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-button');
+
+                    if (questionHasAnswer) {
+                        button.disabled = true;
+                        const savedAnswer = userAnswers[currentQuestionIndex];
+                        if (option === savedAnswer.selected) {
+                            button.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect');
+                        }
+                        if (option === currentQuestion.correctAnswer && !savedAnswer.isCorrect) {
+                            button.classList.add('reveal-correct');
+                        }
+                    } else {
+                        button.addEventListener('click', selectAnswer);
+                    }
+
+                    answerOptionsElement.appendChild(button);
+                });
+
+                if (questionHasAnswer) {
+                    explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
+                    explanationElement.style.display = 'block';
+                }
+
+                updateFavoriteButton();
+                updateNavButtonStates();
+            }
+
+            function selectAnswer(event) {
+                if (!activeSessionData || userAnswers[currentQuestionIndex] !== null) return;
+
+                const selectedAnswer = event.target.textContent;
+                const currentQuestion = quizData[currentQuestionIndex];
+                const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+
+                userAnswers[currentQuestionIndex] = {
+                    selected: selectedAnswer,
+                    isCorrect
+                };
+
+                answerOptionsElement.querySelectorAll('.option-button').forEach(button => {
+                    button.disabled = true;
+                    if (button.textContent === selectedAnswer) {
+                        button.classList.add(isCorrect ? 'correct' : 'incorrect');
+                    }
+                    if (!isCorrect && button.textContent === currentQuestion.correctAnswer) {
+                        button.classList.add('reveal-correct');
+                    }
+                });
+
+                explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
+                explanationElement.style.display = 'block';
+                saveQuizProgress();
+            }
+
+            function goToNextQuestion() {
+                if (!activeSessionData) return;
+
+                if (currentQuestionIndex < quizData.length - 1) {
+                    currentQuestionIndex += 1;
+                    loadQuestion();
+                } else if (currentQuestionIndex === quizData.length - 1) {
+                    currentQuestionIndex += 1;
+                    showCompletion();
+                }
+
+                saveQuizProgress();
+            }
+
+            function goToPreviousQuestion() {
+                if (!activeSessionData || currentQuestionIndex <= 0) return;
+
+                currentQuestionIndex -= 1;
                 loadQuestion();
                 saveQuizProgress();
-            });
-            navigatorGrid.appendChild(item);
-        }
-    }
-
-    // --- Completion & Review Logic ---
-    function showCompletion(isPreview = false) {
-        isPreviewMode = isPreview;
-        quizContentElement.style.display = 'none';
-        navigationButtonsElement.style.display = 'none';
-        completionMessageElement.style.display = 'flex';
-        favoriteToggle.style.display = 'none';
-        favoriteToggle.setAttribute('aria-hidden', 'true');
-
-        let correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
-        const answeredCount = userAnswers.filter(answer => answer !== null).length;
-        document.getElementById('final-score').textContent = isPreview
-            ? \`Score So Far: \${correctCount} / \${answeredCount}\`
-            : \`Score: \${correctCount} / \${quizData.length}\`;
-        backToQuizBtn.style.display = isPreview ? 'inline-block' : 'none';
-        
-        renderReviewList('all');
-        saveQuizProgress();
-    }
-
-    function showQuizFromPreview() {
-        isPreviewMode = false;
-        backToQuizBtn.style.display = 'none';
-        completionMessageElement.style.display = 'none';
-        quizContentElement.style.display = 'block';
-        navigationButtonsElement.style.display = 'flex';
-        favoriteToggle.style.display = 'grid';
-        favoriteToggle.setAttribute('aria-hidden', 'false');
-        loadQuestion();
-    }
-
-    function renderReviewList(filter) {
-        currentFilter = filter;
-        reviewListEl.innerHTML = '';
-        
-        // Update button styles
-        filterBtns.forEach(btn => {
-            if(btn.dataset.filter === filter) btn.classList.add('active');
-            else btn.classList.remove('active');
-        });
-
-        quizData.forEach((q, index) => {
-            const ua = userAnswers[index];
-            const isCorrect = ua && ua.isCorrect;
-            const isAnswered = ua !== null;
-            const isFavorite = favoriteQuestions.has(index);
-
-            if (isPreviewMode && !isAnswered) return;
-
-            // Filter Logic
-            if (filter === 'correct' && !isCorrect) return;
-            if (filter === 'incorrect' && (isCorrect || !isAnswered)) return; // Show incorrect and unanswered in "incorrect" or just incorrect? Usually just incorrect.
-            if (filter === 'favorites' && !isFavorite) return;
-
-            const card = document.createElement('div');
-            card.classList.add('review-card');
-            if (isCorrect) card.classList.add('correct-card');
-            else card.classList.add('incorrect-card');
-
-            // Building the HTML string for the card
-            let html = \`<div class="review-q">\${index + 1}. \${q.question}\${isFavorite ? ' <span class="favorite-mark" title="Favorited">★</span>' : ''}</div>\`;
-            
-            // User Answer
-            if (ua) {
-                html += \`<div class="review-ans"><span class="ans-label">Your Answer:</span> <span class="user-ans-text \${isCorrect ? 'correct' : 'incorrect'}">\${ua.selected}</span></div>\`;
-            } else {
-                html += \`<div class="review-ans"><span class="ans-label">Your Answer:</span> <span class="user-ans-text incorrect">Skipped</span></div>\`;
             }
 
-            // Correct Answer (if wrong or skipped)
-            if (!isCorrect) {
-                 html += \`<div class="review-ans"><span class="ans-label">Correct Answer:</span> \${q.correctAnswer}</div>\`;
-            }
+            function toggleNavigator() {
+                if (!activeSessionData) return;
 
-            html += \`<div class="review-exp">\${q.explanation}</div>\`;
-            
-            card.innerHTML = html;
-            reviewListEl.appendChild(card);
-        });
-    }
-    
-    function copyReviewText() {
-        let textToCopy = \`Quiz Review: \${activeSessionData.title}\\nFilter: \${currentFilter.toUpperCase()}\\n\\n\`;
-        
-        // Iterate over visible cards only
-        // Re-run loop logic to ensure we get clean text data, not just DOM text
-        let count = 0;
-        quizData.forEach((q, index) => {
-            const ua = userAnswers[index];
-            const isCorrect = ua && ua.isCorrect;
-            const isAnswered = ua !== null;
-            const isFavorite = favoriteQuestions.has(index);
-
-            if (isPreviewMode && !isAnswered) return;
-
-            if (currentFilter === 'correct' && !isCorrect) return;
-            if (currentFilter === 'incorrect' && (isCorrect || !isAnswered)) return;
-            if (currentFilter === 'favorites' && !isFavorite) return;
-
-            count++;
-            textToCopy += \`Q\${index + 1}: \${q.question}\${isFavorite ? ' ★' : ''}\\n\`;
-            textToCopy += \`Your Answer: \${ua ? ua.selected : "Skipped"} (\${isCorrect ? 'Correct' : 'Incorrect'})\\n\`;
-            if(!isCorrect) textToCopy += \`Correct Answer: \${q.correctAnswer}\\n\`;
-            textToCopy += \`Explanation: \${q.explanation}\\n\`;
-            textToCopy += \`----------------------------------------\\n\\n\`;
-        });
-
-        if(count === 0) textToCopy += "No questions match this filter.";
-
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            const originalText = copyReviewBtn.textContent;
-            copyReviewBtn.textContent = "Copied!";
-            setTimeout(() => { copyReviewBtn.textContent = originalText; }, 1500);
-        });
-    }
-
-    // --- Panel & Session Management Functions ---
-    function showPanel(panelEl) { panelEl.style.display = 'flex'; }
-    function hidePanel(panelEl) { panelEl.style.display = 'none'; }
-    function downloadFile(content, fileName, contentType) {
-        const blob = new Blob([content], { type: contentType });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = fileName;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-    }
-    function populateAndShowPastSessions() {
-        const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
-        pastSessionsListEl.innerHTML = '';
-        if (pastSessions.length === 0) {
-            pastSessionsListEl.innerHTML = '<li>No past quizzes found.</li>';
-        } else {
-            // REVERSE ORDER: Newest first
-            pastSessions.slice().reverse().forEach(session => {
-                const li = document.createElement('li');
-                li.textContent = session.title;
-                if (session.title === activeSessionData.title) li.style.color = 'var(--bright-blue)';
-                li.addEventListener('click', () => {
-                    sessionStorage.setItem('loadQuizTitle', session.title);
-                    window.location.reload();
-                });
-                pastSessionsListEl.appendChild(li);
-            });
-        }
-        showPanel(pastSessionsPanelEl);
-    }
-    function returnToGeneratorHome() {
-        const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
-        sessionStorage.removeItem('loadQuizTitle');
-
-        if (storedOriginalHTML) {
-            document.open();
-            document.write(storedOriginalHTML);
-            document.close();
-            return;
-        }
-
-        window.location.href = window.location.href;
-    }
-     function handleFileUpload(event, isMultiple) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                let pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
-                if (isMultiple) {
-                    if (!Array.isArray(data)) throw new Error("File should contain an array of sessions.");
-                    const sessionMap = new Map(pastSessions.map(s => [s.title, s]));
-                    data.forEach(newSession => {
-                        if (newSession.title && Array.isArray(newSession.questions)) sessionMap.set(newSession.title, newSession);
-                    });
-                    pastSessions = Array.from(sessionMap.values());
-                    alert(\`Merged \${data.length} quizzes. Total quizzes now: \${pastSessions.length}.\`);
+                if (navigatorOverlay.style.display === 'block') {
+                    navigatorOverlay.style.display = 'none';
                 } else {
-                    if (!data.title || !Array.isArray(data.questions)) throw new Error("Invalid session JSON format.");
-                    const existingIndex = pastSessions.findIndex(s => s.title === data.title);
-                    if (existingIndex > -1) pastSessions[existingIndex] = data; else pastSessions.push(data);
-                    alert(\`Quiz "\${data.title}" was successfully uploaded.\`);
+                    buildNavigatorGrid();
+                    navigatorOverlay.style.display = 'block';
                 }
-                localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
-            } catch (err) { alert('Error processing file: ' + err.message); }
-        };
-        reader.readAsText(file);
-        event.target.value = '';
-    }
+            }
 
-    // --- Event Listeners ---
-    prevButton.addEventListener('click', goToPreviousQuestion);
-    nextButton.addEventListener('click', goToNextQuestion);
-    favoriteToggle.addEventListener('click', toggleFavorite);
-    
-    // Navigator Listeners
-    questionCounterElement.addEventListener('click', toggleNavigator);
-    navigatorClose.addEventListener('click', toggleNavigator);
-    viewProgressReviewBtn.addEventListener('click', () => {
-        toggleNavigator();
-        showCompletion(true);
-    });
+            function buildNavigatorGrid() {
+                navigatorGrid.innerHTML = '';
 
-    // Profile & Sessions Listeners
-    profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
-    document.getElementById('open-settings-btn').addEventListener('click', () => {
-        hidePanel(profilePanelEl);
-        showPanel(settingsPanelEl);
-    });
-    revealChoicesToggleEl.addEventListener('change', (event) => {
-        userSettings.hideChoicesUntilReveal = event.target.checked;
-        saveUserSettings();
-        loadQuestion();
-    });
-    revealChoicesButton.addEventListener('click', () => {
-        answerOptionsElement.style.display = 'flex';
-        revealChoicesButton.style.display = 'none';
-    });
-    document.getElementById('go-home-btn').addEventListener('click', returnToGeneratorHome);
-    document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
-    document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), \`\${activeSessionData.title.replace(/[.\\s]/g, '_')}.json\`, 'application/json'));
-    document.getElementById('download-all-sessions-btn').addEventListener('click', () => downloadFile(localStorage.getItem('pastQuizSessions') || '[]', 'all_past_quizzes.json', 'application/json'));
-    document.getElementById('upload-single-session').addEventListener('change', (e) => handleFileUpload(e, false));
-    document.getElementById('upload-multiple-sessions').addEventListener('change', (e) => handleFileUpload(e, true));
+                for (let i = 0; i < quizData.length; i += 1) {
+                    const item = document.createElement('div');
+                    item.classList.add('nav-item');
+                    item.textContent = i + 1;
 
-    // Review Listeners
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => renderReviewList(e.target.dataset.filter));
-    });
-    copyReviewBtn.addEventListener('click', copyReviewText);
-    backToQuizBtn.addEventListener('click', showQuizFromPreview);
-    resetQuizBtn.addEventListener('click', () => {
-        const confirmed = window.confirm('Reset this quiz? This will clear your answers, favorites, and position.');
-        if (!confirmed) return;
-        userAnswers = new Array(quizData.length).fill(null);
-        favoriteQuestions = new Set();
-        currentQuestionIndex = 0;
-        currentFilter = 'all';
-        localStorage.removeItem(quizProgressKey);
-        loadQuestion();
-    });
-
-    // Universal Panel Closing
-    document.querySelectorAll('.panel-overlay').forEach(p => p.addEventListener('click', e => e.target === p && hidePanel(p)));
-    document.querySelectorAll('.close-button-x').forEach(b => b.addEventListener('click', e => hidePanel(document.getElementById(e.currentTarget.dataset.target))));
-    
-    // --- Initial Load ---
-    quizTitleEl.textContent = activeSessionData.title.split(' ').slice(1).join(' '); // Show AI title without date
-    loadUserSettings();
-    revealChoicesToggleEl.checked = userSettings.hideChoicesUntilReveal;
-    loadQuizProgress();
-    loadQuestion();
-<\/script>
-</body>
-</html>
-`; 
-
-            history.pushState({ view: 'quiz' }, '', '#quiz');
-            document.open();
-            document.write(htmlTemplate);
-            document.close();
-        }
-
-        // --- Main Page Script Logic ---
-        const copyPromptBtn = document.getElementById('copyPromptBtn');
-        const copyPromptAndGoBtn = document.getElementById('copyPromptAndGoBtn');
-        const promptTextElement = document.getElementById('promptText');
-        const questionInput = document.getElementById('questionInput');
-        const generateBtn = document.getElementById('generateBtn');
-        const viewPastSessionsBtn = document.getElementById('viewPastSessionsBtn');
-        const mainSessionsModal = document.getElementById('main-sessions-modal');
-
-        function normalizeSmartJsonCharacters(rawText) {
-            return rawText
-                .replace(/[\u201C\u201D]/g, '"')
-                .replace(/[\u2018\u2019]/g, "'")
-                .replace(/\u2013/g, '-')
-                .replace(/\u2014/g, '-');
-        }
-
-        function escapeLikelyInnerQuotes(jsonText) {
-            let output = '';
-            let inString = false;
-            let escaped = false;
-
-            for (let i = 0; i < jsonText.length; i += 1) {
-                const char = jsonText[i];
-
-                if (!inString) {
-                    if (char === '"') inString = true;
-                    output += char;
-                    continue;
-                }
-
-                if (escaped) {
-                    output += char;
-                    escaped = false;
-                    continue;
-                }
-
-                if (char === '\\') {
-                    output += char;
-                    escaped = true;
-                    continue;
-                }
-
-                if (char === '"') {
-                    let j = i + 1;
-                    while (j < jsonText.length && /\s/.test(jsonText[j])) j += 1;
-                    const nextChar = jsonText[j];
-                    const isLikelyClosingQuote = nextChar === ',' || nextChar === '}' || nextChar === ']' || nextChar === ':';
-
-                    if (isLikelyClosingQuote) {
-                        inString = false;
-                        output += char;
-                    } else {
-                        output += '\\"';
+                    if (favoriteQuestions.has(i)) {
+                        const star = document.createElement('span');
+                        star.classList.add('nav-favorite-star');
+                        star.textContent = FAVORITE_STAR_TEXT;
+                        star.setAttribute('aria-hidden', 'true');
+                        item.appendChild(star);
                     }
-                    continue;
-                }
 
-                output += char;
-            }
+                    if (i === currentQuestionIndex) item.classList.add('current');
+                    if (userAnswers[i] !== null) {
+                        item.classList.add(userAnswers[i].isCorrect ? 'correct' : 'incorrect');
+                    }
 
-            return output;
-        }
+                    item.addEventListener('click', () => {
+                        currentQuestionIndex = i;
+                        loadQuestion();
+                        saveQuizProgress();
+                    });
 
-        function parseQuizJsonWithAutoRepair(rawInput) {
-            const attempts = [
-                { text: rawInput, label: 'original input' },
-                { text: normalizeSmartJsonCharacters(rawInput), label: 'smart quote normalization' }
-            ];
-            attempts.push({
-                text: escapeLikelyInnerQuotes(attempts[1].text),
-                label: 'inner quote escaping'
-            });
-
-            for (const attempt of attempts) {
-                try {
-                    return {
-                        parsedData: JSON.parse(attempt.text),
-                        normalizedText: attempt.text,
-                        repaired: attempt.label !== 'original input',
-                        repairStep: attempt.label
-                    };
-                } catch (_) {
-                    // Try next repair attempt.
+                    navigatorGrid.appendChild(item);
                 }
             }
 
-            return null;
-        }
+            function showCompletion(isPreview = false) {
+                if (!activeSessionData) return;
 
-        function shuffleArray(items) {
-            const shuffled = [...items];
-            for (let i = shuffled.length - 1; i > 0; i -= 1) {
-                const swapIndex = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[i]];
-            }
-            return shuffled;
-        }
+                isPreviewMode = isPreview;
+                quizContentElement.style.display = 'none';
+                navigationButtonsElement.style.display = 'none';
+                completionMessageElement.style.display = 'flex';
+                favoriteToggle.style.display = 'none';
+                favoriteToggle.setAttribute('aria-hidden', 'true');
 
-        function shuffleOptionsAvoidingOriginalCorrectSlot(options, correctAnswer) {
-            const originalOptions = Array.isArray(options) ? [...options] : [];
-            const originalCorrectIndex = originalOptions.indexOf(correctAnswer);
+                const correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
+                const answeredCount = userAnswers.filter(answer => answer !== null).length;
+                document.getElementById('final-score').textContent = isPreview
+                    ? `Score So Far: ${correctCount} / ${answeredCount}`
+                    : `Score: ${correctCount} / ${quizData.length}`;
 
-            if (originalOptions.length < 2 || originalCorrectIndex === -1) {
-                return originalOptions;
-            }
-
-            let shuffledOptions = shuffleArray(originalOptions);
-            let attemptsRemaining = 10;
-
-            while (shuffledOptions.indexOf(correctAnswer) === originalCorrectIndex && attemptsRemaining > 0) {
-                shuffledOptions = shuffleArray(originalOptions);
-                attemptsRemaining -= 1;
+                backToQuizBtn.style.display = isPreview ? 'inline-block' : 'none';
+                renderReviewList('all');
+                saveQuizProgress();
             }
 
-            if (shuffledOptions.indexOf(correctAnswer) === originalCorrectIndex) {
-                const swapIndex = originalCorrectIndex === 0 ? 1 : 0;
-                [shuffledOptions[originalCorrectIndex], shuffledOptions[swapIndex]] = [shuffledOptions[swapIndex], shuffledOptions[originalCorrectIndex]];
+            function showQuizFromPreview() {
+                if (!activeSessionData) return;
+
+                isPreviewMode = false;
+                backToQuizBtn.style.display = 'none';
+                completionMessageElement.style.display = 'none';
+                quizContentElement.style.display = 'block';
+                navigationButtonsElement.style.display = 'flex';
+                favoriteToggle.style.display = 'grid';
+                favoriteToggle.setAttribute('aria-hidden', 'false');
+                loadQuestion();
             }
 
-            return shuffledOptions;
-        }
+            function renderReviewList(filter) {
+                currentFilter = filter;
+                reviewListEl.innerHTML = '';
 
-        function shuffleQuizQuestionOptions(questions) {
-            return questions.map(question => {
-                const normalizedOptions = Array.isArray(question.options) ? [...question.options] : [];
-                const shuffledOptions = normalizedOptions.includes(question.correctAnswer)
-                    ? shuffleOptionsAvoidingOriginalCorrectSlot(normalizedOptions, question.correctAnswer)
-                    : normalizedOptions;
+                filterBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === filter);
+                });
 
-                return {
-                    ...question,
-                    options: shuffledOptions
+                quizData.forEach((question, index) => {
+                    const userAnswer = userAnswers[index];
+                    const isCorrect = userAnswer && userAnswer.isCorrect;
+                    const isAnswered = userAnswer !== null;
+                    const isFavorite = favoriteQuestions.has(index);
+
+                    if (isPreviewMode && !isAnswered) return;
+                    if (filter === 'correct' && !isCorrect) return;
+                    if (filter === 'incorrect' && (isCorrect || !isAnswered)) return;
+                    if (filter === 'favorites' && !isFavorite) return;
+
+                    const card = document.createElement('div');
+                    card.classList.add('review-card');
+                    card.classList.add(isCorrect ? 'correct-card' : 'incorrect-card');
+
+                    let html = `<div class="review-q">${index + 1}. ${question.question}${isFavorite ? ' <span class="favorite-mark" title="Favorited">&#9733;</span>' : ''}</div>`;
+                    if (userAnswer) {
+                        html += `<div class="review-ans"><span class="ans-label">Your Answer:</span> <span class="user-ans-text ${isCorrect ? 'correct' : 'incorrect'}">${userAnswer.selected}</span></div>`;
+                    } else {
+                        html += '<div class="review-ans"><span class="ans-label">Your Answer:</span> <span class="user-ans-text incorrect">Skipped</span></div>';
+                    }
+                    if (!isCorrect) {
+                        html += `<div class="review-ans"><span class="ans-label">Correct Answer:</span> ${question.correctAnswer}</div>`;
+                    }
+                    html += `<div class="review-exp">${question.explanation}</div>`;
+
+                    card.innerHTML = html;
+                    reviewListEl.appendChild(card);
+                });
+            }
+
+            function copyReviewText() {
+                if (!activeSessionData) return;
+
+                let textToCopy = `Quiz Review: ${activeSessionData.title}\nFilter: ${currentFilter.toUpperCase()}\n\n`;
+                let count = 0;
+
+                quizData.forEach((question, index) => {
+                    const userAnswer = userAnswers[index];
+                    const isCorrect = userAnswer && userAnswer.isCorrect;
+                    const isAnswered = userAnswer !== null;
+                    const isFavorite = favoriteQuestions.has(index);
+
+                    if (isPreviewMode && !isAnswered) return;
+                    if (currentFilter === 'correct' && !isCorrect) return;
+                    if (currentFilter === 'incorrect' && (isCorrect || !isAnswered)) return;
+                    if (currentFilter === 'favorites' && !isFavorite) return;
+
+                    count += 1;
+                    textToCopy += `Q${index + 1}: ${question.question}${isFavorite ? ` ${FAVORITE_STAR_TEXT}` : ''}\n`;
+                    textToCopy += `Your Answer: ${userAnswer ? userAnswer.selected : 'Skipped'} (${isCorrect ? 'Correct' : 'Incorrect'})\n`;
+                    if (!isCorrect) textToCopy += `Correct Answer: ${question.correctAnswer}\n`;
+                    textToCopy += `Explanation: ${question.explanation}\n`;
+                    textToCopy += '----------------------------------------\n\n';
+                });
+
+                if (count === 0) textToCopy += 'No questions match this filter.';
+
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalText = copyReviewBtn.textContent;
+                    copyReviewBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyReviewBtn.textContent = originalText;
+                    }, 1500);
+                });
+            }
+
+            function downloadFile(content, fileName, contentType) {
+                const blob = new Blob([content], { type: contentType });
+                const anchor = document.createElement('a');
+                anchor.href = URL.createObjectURL(blob);
+                anchor.download = fileName;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+                URL.revokeObjectURL(anchor.href);
+            }
+
+            function populateSessionList(listElement, onSelect, activeTitle = '') {
+                const pastSessions = getPastSessions();
+                listElement.innerHTML = '';
+
+                if (pastSessions.length === 0) {
+                    listElement.innerHTML = '<li>No past quizzes found.</li>';
+                    return;
+                }
+
+                pastSessions.slice().reverse().forEach(session => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = session.title;
+                    if (activeTitle && session.title === activeTitle) {
+                        listItem.style.color = 'var(--bright-blue)';
+                    }
+                    listItem.addEventListener('click', () => onSelect(session));
+                    listElement.appendChild(listItem);
+                });
+            }
+
+            function populateAndShowPastSessions() {
+                populateSessionList(
+                    pastSessionsListEl,
+                    session => {
+                        hidePanel(pastSessionsPanelEl);
+                        openQuiz(session);
+                    },
+                    activeSessionData ? activeSessionData.title : ''
+                );
+                showPanel(pastSessionsPanelEl);
+            }
+
+            function openQuiz(sessionData, options = {}) {
+                if (!sessionData || typeof sessionData.title !== 'string' || !Array.isArray(sessionData.questions)) {
+                    alert('This session cannot be opened because it is missing quiz data.');
+                    showHomeView({ updateHistory: options.updateHistory, replaceHistory: options.replaceHistory });
+                    return;
+                }
+
+                activeSessionData = sessionData;
+                quizData = sessionData.questions;
+                currentQuestionIndex = 0;
+                userAnswers = new Array(quizData.length).fill(null);
+                favoriteQuestions = new Set();
+                currentFilter = 'all';
+                isPreviewMode = false;
+
+                if (quizData.length === 0) {
+                    alert('This session has no quiz questions.');
+                    showHomeView({ updateHistory: options.updateHistory, replaceHistory: options.replaceHistory });
+                    return;
+                }
+
+                sessionStorage.setItem('loadQuizTitle', sessionData.title);
+                document.title = sessionData.title;
+                quizTitleEl.textContent = sanitizeDisplayTitle(sessionData.title) || sessionData.title;
+                loadUserSettings();
+                revealChoicesToggleEl.checked = userSettings.hideChoicesUntilReveal;
+                loadQuizProgress();
+                showQuizView();
+                loadQuestion();
+
+                if (options.updateHistory !== false) {
+                    updateHistoryState({ view: 'quiz', title: sessionData.title }, Boolean(options.replaceHistory));
+                }
+            }
+
+            function handleFileUpload(event, isMultiple) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = loadEvent => {
+                    try {
+                        const data = JSON.parse(loadEvent.target.result);
+                        let pastSessions = getPastSessions();
+
+                        const normalizeImportedSession = (session, label) => {
+                            try {
+                                return normalizeQuizSessionData(session);
+                            } catch (error) {
+                                throw new Error(`${label}: ${error.message}`);
+                            }
+                        };
+
+                        if (isMultiple) {
+                            if (!Array.isArray(data)) throw new Error('File should contain an array of sessions.');
+                            const sessionMap = new Map(pastSessions.map(session => [session.title, session]));
+                            data.forEach((newSession, index) => {
+                                const sessionLabel = newSession && typeof newSession.title === 'string' && newSession.title.trim()
+                                    ? `Quiz "${newSession.title}"`
+                                    : `Quiz ${index + 1}`;
+                                const normalizedSession = normalizeImportedSession(newSession, sessionLabel);
+                                sessionMap.set(normalizedSession.title, normalizedSession);
+                            });
+                            pastSessions = Array.from(sessionMap.values());
+                            alert(`Merged ${data.length} quizzes. Total quizzes now: ${pastSessions.length}.`);
+                        } else {
+                            const normalizedSession = normalizeImportedSession(data, 'Uploaded quiz');
+                            const existingIndex = pastSessions.findIndex(session => session.title === normalizedSession.title);
+                            if (existingIndex > -1) pastSessions[existingIndex] = normalizedSession;
+                            else pastSessions.push(normalizedSession);
+                            alert(`Quiz "${normalizedSession.title}" was successfully uploaded.`);
+                        }
+
+                        localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
+                    } catch (error) {
+                        alert('Error processing file: ' + error.message);
+                    }
                 };
-            });
-        }
 
-        const pendingQuizTitle = sessionStorage.getItem('loadQuizTitle');
-        if (pendingQuizTitle) {
-            window.addEventListener('DOMContentLoaded', () => {
-                const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
-                const sessionToLoad = pastSessions.find(s => s.title === pendingQuizTitle);
-                if (sessionToLoad) {
-                    launchQuiz(sessionToLoad);
-                }
-            });
-        }
+                reader.readAsText(file);
+                event.target.value = '';
+            }
 
-        if (copyPromptBtn && promptTextElement) {
             copyPromptBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(promptTextElement.innerText)
                     .then(() => provideCopyFeedback(copyPromptBtn))
-                    .catch(err => {
-                        console.error('Failed to copy prompt: ', err);
+                    .catch(error => {
+                        console.error('Failed to copy prompt:', error);
                         alert('Failed to copy prompt. Please copy manually.');
                     });
             });
-        }
 
-        if (copyPromptAndGoBtn && promptTextElement) {
             copyPromptAndGoBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(promptTextElement.innerText)
                     .then(() => {
                         provideCopyFeedback(copyPromptAndGoBtn);
                         window.open('https://aistudio.google.com/prompts/new_chat', '_blank', 'noopener,noreferrer');
                     })
-                    .catch(err => {
-                        console.error('Failed to copy prompt: ', err);
+                    .catch(error => {
+                        console.error('Failed to copy prompt:', error);
                         alert('Failed to copy prompt. Please copy manually.');
                     });
             });
-        }
 
-        if (generateBtn && questionInput) {
             generateBtn.addEventListener('click', () => {
                 const quizDataInput = questionInput.value.trim();
-                if (!quizDataInput) { alert('Please paste the quiz data into the input area first.'); return; }
-                if (!quizDataInput.startsWith('{') || !quizDataInput.endsWith('}')) { alert('The input data does not seem to be a correctly formatted JSON object.'); return; }
+                if (!quizDataInput) {
+                    alert('Please paste the quiz data into the input area first.');
+                    return;
+                }
+                if (!quizDataInput.startsWith('{') || !quizDataInput.endsWith('}')) {
+                    alert('The input data does not seem to be a correctly formatted JSON object.');
+                    return;
+                }
 
-                const parseResult = parseQuizJsonWithAutoRepair(quizDataInput);
+                let parseResult;
+                try {
+                    parseResult = parseAndNormalizeQuizSession(quizDataInput);
+                } catch (error) {
+                    alert('Error validating quiz data.\n\n' + error.message);
+                    return;
+                }
+
                 if (!parseResult) {
                     alert('Error parsing quiz data.\n\nAuto-repair could not fix it. Please ensure valid JSON (including escaped quotes inside strings).');
                     return;
                 }
-                const { parsedData, repaired, normalizedText, repairStep } = parseResult;
+
+                const { parsedData, normalizedData, repaired, normalizedText, repairStep } = parseResult;
                 if (repaired) {
                     questionInput.value = JSON.stringify(parsedData, null, 2);
                     console.info(`Quiz JSON was auto-repaired using: ${repairStep}.`, normalizedText);
                 }
 
-                if (typeof parsedData.title !== 'string' || parsedData.title.trim() === '') { alert('The JSON object is missing a valid "title" string property.'); return; }
-                if (!Array.isArray(parsedData.questions) || parsedData.questions.length === 0) { alert('The JSON object must have a "questions" property that is an array with at least one question object.'); return; }
-
                 const today = new Date();
-                const formattedTitle = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} ${parsedData.title}`;
-
+                const formattedTitle = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')} ${normalizedData.title}`;
                 const sessionData = {
                     title: formattedTitle,
-                    questions: shuffleQuizQuestionOptions(parsedData.questions)
+                    questions: normalizedData.questions
                 };
 
                 try {
-                    let pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
-                    pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
-                    pastSessions.push(sessionData); // Save to end (chronological)
-                    localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
-                } catch (e) {
-                    console.error("Could not save to localStorage:", e);
+                    saveSessionData(sessionData);
+                } catch (error) {
+                    console.error('Could not save to localStorage:', error);
                 }
-                
-                launchQuiz(sessionData);
+
+                openQuiz(sessionData);
             });
-        }
-        
-        // --- Main Page Modal Logic ---
-        if (viewPastSessionsBtn && mainSessionsModal) {
-            const sessionsList = document.getElementById('sessions-list');
-            const closeModalBtn = mainSessionsModal.querySelector('.modal-close-btn');
 
             viewPastSessionsBtn.addEventListener('click', () => {
-                const pastSessions = JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
-                sessionsList.innerHTML = '';
-                if (pastSessions.length === 0) {
-                    sessionsList.innerHTML = '<li>No past quizzes found.</li>';
-                } else {
-                    // Reverse the array here for display
-                    pastSessions.slice().reverse().forEach(session => {
-                        const li = document.createElement('li');
-                        li.textContent = session.title;
-                        li.addEventListener('click', () => {
-                            launchQuiz(session);
-                        });
-                        sessionsList.appendChild(li);
-                    });
-                }
+                populateSessionList(sessionsList, session => {
+                    mainSessionsModal.style.display = 'none';
+                    openQuiz(session);
+                });
                 mainSessionsModal.style.display = 'flex';
             });
 
-            const closeModal = () => mainSessionsModal.style.display = 'none';
-            closeModalBtn.addEventListener('click', closeModal);
-            mainSessionsModal.addEventListener('click', (e) => {
-                if (e.target === mainSessionsModal) closeModal();
+            prevButton.addEventListener('click', goToPreviousQuestion);
+            nextButton.addEventListener('click', goToNextQuestion);
+            favoriteToggle.addEventListener('click', toggleFavorite);
+            questionCounterElement.addEventListener('click', toggleNavigator);
+            navigatorClose.addEventListener('click', toggleNavigator);
+            viewProgressReviewBtn.addEventListener('click', () => {
+                toggleNavigator();
+                showCompletion(true);
             });
-        }
+            revealChoicesButton.addEventListener('click', () => {
+                answerOptionsElement.style.display = 'flex';
+                revealChoicesButton.style.display = 'none';
+            });
 
-        // --- Page Restoration Logic ---
-        window.addEventListener('popstate', event => {
-            const storedOriginalHTML = sessionStorage.getItem('originalGeneratorHTML');
-            if (storedOriginalHTML) {
-                sessionStorage.removeItem('loadQuizTitle');
-                document.open();
-                document.write(storedOriginalHTML);
-                document.close();
+            profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
+            document.getElementById('open-settings-btn').addEventListener('click', () => {
+                hidePanel(profilePanelEl);
+                showPanel(settingsPanelEl);
+            });
+            document.getElementById('go-home-btn').addEventListener('click', () => {
+                showHomeView();
+            });
+            document.getElementById('view-past-sessions-btn').addEventListener('click', () => {
+                hidePanel(profilePanelEl);
+                populateAndShowPastSessions();
+            });
+            document.getElementById('download-current-session-btn').addEventListener('click', () => {
+                if (!activeSessionData) return;
+                downloadFile(
+                    JSON.stringify(activeSessionData, null, 2),
+                    `${activeSessionData.title.replace(/[.\s]/g, '_')}.json`,
+                    'application/json'
+                );
+            });
+            document.getElementById('download-all-sessions-btn').addEventListener('click', () => {
+                downloadFile(localStorage.getItem('pastQuizSessions') || '[]', 'all_past_quizzes.json', 'application/json');
+            });
+            document.getElementById('upload-single-session').addEventListener('change', event => handleFileUpload(event, false));
+            document.getElementById('upload-multiple-sessions').addEventListener('change', event => handleFileUpload(event, true));
+
+            revealChoicesToggleEl.addEventListener('change', event => {
+                userSettings.hideChoicesUntilReveal = event.target.checked;
+                saveUserSettings();
+                if (activeSessionData) loadQuestion();
+            });
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', event => renderReviewList(event.currentTarget.dataset.filter));
+            });
+            copyReviewBtn.addEventListener('click', copyReviewText);
+            backToQuizBtn.addEventListener('click', showQuizFromPreview);
+            resetQuizBtn.addEventListener('click', () => {
+                if (!activeSessionData) return;
+
+                const confirmed = window.confirm('Reset this quiz? This will clear your answers, favorites, and position.');
+                if (!confirmed) return;
+
+                userAnswers = new Array(quizData.length).fill(null);
+                favoriteQuestions = new Set();
+                currentQuestionIndex = 0;
+                currentFilter = 'all';
+                localStorage.removeItem(getQuizProgressKey());
+                loadQuestion();
+            });
+
+            mainSessionsModal.querySelector('.modal-close-btn').addEventListener('click', () => {
+                mainSessionsModal.style.display = 'none';
+            });
+            mainSessionsModal.addEventListener('click', event => {
+                if (event.target === mainSessionsModal) mainSessionsModal.style.display = 'none';
+            });
+
+            document.querySelectorAll('.panel-overlay').forEach(panel => {
+                panel.addEventListener('click', event => {
+                    if (event.target === panel) hidePanel(panel);
+                });
+            });
+            document.querySelectorAll('.close-button-x').forEach(button => {
+                button.addEventListener('click', event => {
+                    hidePanel(document.getElementById(event.currentTarget.dataset.target));
+                });
+            });
+
+            window.addEventListener('popstate', event => {
+                const state = event.state || { view: 'home' };
+                if (state.view === 'quiz' && state.title) {
+                    const sessionToLoad = getPastSessions().find(session => session.title === state.title);
+                    if (sessionToLoad) {
+                        openQuiz(sessionToLoad, { updateHistory: false });
+                        return;
+                    }
+                }
+                showHomeView({ updateHistory: false });
+            });
+
+            loadUserSettings();
+            revealChoicesToggleEl.checked = userSettings.hideChoicesUntilReveal;
+
+            const pendingQuizTitle = sessionStorage.getItem('loadQuizTitle');
+            if (pendingQuizTitle) {
+                const sessionToLoad = getPastSessions().find(session => session.title === pendingQuizTitle);
+                if (sessionToLoad) {
+                    openQuiz(sessionToLoad, { updateHistory: false });
+                    updateHistoryState({ view: 'quiz', title: sessionToLoad.title }, true);
+                } else {
+                    sessionStorage.removeItem('loadQuizTitle');
+                    showHomeView({ updateHistory: false });
+                    updateHistoryState({ view: 'home' }, true);
+                }
+            } else {
+                showHomeView({ updateHistory: false });
+                updateHistoryState({ view: 'home' }, true);
             }
-        });
+        }());
     </script>
 </body>
 </html>

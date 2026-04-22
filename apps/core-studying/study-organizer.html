@@ -412,7 +412,7 @@
     <div class="setup-header" id="setup-header">
       <div>
         <div class="setup-title">Plan Builder</div>
-        <div class="setup-sub"></div>
+        <div class="setup-sub" id="setup-sub"></div>
       </div>
       <button id="setup-toggle" class="secondary" aria-expanded="false">Expand</button>
     </div>
@@ -440,7 +440,8 @@
         </div>
       </div>
       <div class="actions">
-        <button id="generate-btn">Generate New Plan</button>
+        <button id="generate-btn">Generate Range Plan</button>
+        <button id="generate-yt-physics-btn" class="secondary hidden">Generate YT Physics Timestamp Plan</button>
       </div>
       <div id="setup-msg" class="msg"></div>
     </div>
@@ -454,6 +455,7 @@
         <div class="pill" id="sum-book"></div>
         <div class="pill" id="sum-range"></div>
         <div class="pill" id="sum-counts"></div>
+        <div class="pill" id="sum-load"></div>
       </div>
       
       <div style="display:flex; justify-content: space-between; align-items: center;">
@@ -504,12 +506,16 @@
 
 <script>
 /**
- * Core Study Organizer V4.1
+ * Core Study Organizer V4.2
  * - Includes Character Count Badge in Day Header
  * - Includes Relative Load "Sliver" in Calendar (Green=Light, Red=Heavy)
+ * - Supports nested manifests with sections/intro files
+ * - Adds a timestamp-based YT Physics preset planner
  */
 
 const STORAGE_KEY = 'core_study_data_v4';
+const YT_PHYSICS_BOOK = 'YT Physics';
+const TRANSCRIPT_FALLBACK_CHARS_PER_MINUTE = 950;
 let appData = {
   savedPlans: {}, 
   lastActiveId: null
@@ -538,6 +544,7 @@ const els = {
   ulInput: document.getElementById('upload-file'),
   setupCard: document.getElementById('setup-card'),
   setupHeader: document.getElementById('setup-header'),
+  setupSub: document.getElementById('setup-sub'),
   setupToggle: document.getElementById('setup-toggle'),
   setupContent: document.getElementById('setup-content'),
   bookSelect: document.getElementById('book-select'),
@@ -546,11 +553,13 @@ const els = {
   startDate: document.getElementById('start-date'),
   endDate: document.getElementById('end-date'),
   genBtn: document.getElementById('generate-btn'),
+  genYtPhysicsBtn: document.getElementById('generate-yt-physics-btn'),
   msg: document.getElementById('setup-msg'),
   planView: document.getElementById('plan-view'),
   sumBook: document.getElementById('sum-book'),
   sumRange: document.getElementById('sum-range'),
   sumCounts: document.getElementById('sum-counts'),
+  sumLoad: document.getElementById('sum-load'),
   
   toggleCalBtn: document.getElementById('toggle-cal-btn'),
   calWrapper: document.getElementById('calendar-wrapper'),
@@ -631,6 +640,119 @@ function parseLocalISO(dateStr) {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+function roundToTenth(value) {
+  return Math.round((value + Number.EPSILON) * 10) / 10;
+}
+
+function extractTranscriptMinutes(text) {
+  const matches = [...text.matchAll(/^(\d{2}):(\d{2}):(\d{2})\.(\d{3})/gm)];
+  if (!matches.length) return null;
+  const [, hours, minutes, seconds, millis] = matches[matches.length - 1];
+  return (
+    Number(hours) * 3600 +
+    Number(minutes) * 60 +
+    Number(seconds) +
+    Number(millis) / 1000
+  ) / 60;
+}
+
+function estimateTranscriptMinutes(text) {
+  const timestampMinutes = extractTranscriptMinutes(text);
+  if (timestampMinutes !== null) {
+    return { minutes: timestampMinutes, source: 'timestamp' };
+  }
+  return {
+    minutes: text.length / TRANSCRIPT_FALLBACK_CHARS_PER_MINUTE,
+    source: 'chars-fallback'
+  };
+}
+
+function getPlanLoadUnit(plan = currentPlan) {
+  return plan?.loadUnit || 'chars';
+}
+
+function getSectionLoadValue(section) {
+  if (typeof section?.load === 'number') return section.load;
+  if (typeof section?.length === 'number') return section.length;
+  return 0;
+}
+
+function getDayLoadValue(day) {
+  return (day?.sections || []).reduce((total, section) => total + getSectionLoadValue(section), 0);
+}
+
+function getDayCharCount(day) {
+  return (day?.sections || []).reduce((total, section) => total + (section.length || 0), 0);
+}
+
+function formatLoadValue(value, unit = 'chars') {
+  if (unit === 'minutes') {
+    return `${roundToTenth(value).toFixed(1)} min`;
+  }
+  return `${Math.round(value).toLocaleString()} chars`;
+}
+
+function formatDayBadge(day, plan = currentPlan) {
+  const unit = getPlanLoadUnit(plan);
+  const loadLabel = formatLoadValue(getDayLoadValue(day), unit);
+  if (unit === 'minutes') {
+    return `${loadLabel} planned | ${getDayCharCount(day).toLocaleString()} chars`;
+  }
+  return loadLabel;
+}
+
+function formatSectionMeta(section, plan = currentPlan) {
+  const unit = getPlanLoadUnit(plan);
+  if (unit === 'minutes' && typeof section.runtimeMinutes === 'number') {
+    const parts = [];
+    if ((section.loadFactor || 1) !== 1) {
+      parts.push(`${roundToTenth(section.runtimeMinutes).toFixed(1)} min video`);
+      parts.push(`${formatLoadValue(getSectionLoadValue(section), 'minutes')} planned`);
+      parts.push((section.studyMode || 'review').toUpperCase());
+    } else {
+      parts.push(`${formatLoadValue(getSectionLoadValue(section), 'minutes')} planned`);
+      parts.push((section.studyMode || 'new').toUpperCase());
+    }
+    if (section.length) {
+      parts.push(`${section.length.toLocaleString()} chars`);
+    }
+    return parts.join(' | ');
+  }
+  return `${(section.length || 0).toLocaleString()} chars`;
+}
+
+function formatPlanDayOption(day, index, plan = currentPlan) {
+  const dateLabel = parseLocalISO(day.date).toLocaleDateString();
+  const unit = getPlanLoadUnit(plan);
+  const loadLabel = formatLoadValue(getDayLoadValue(day), unit);
+  return `Day ${index + 1}: ${dateLabel} (${loadLabel})`;
+}
+
+function buildRangeLabel(selection) {
+  if (!selection.length) return '';
+  return `${selection[0].sectionKey} -> ${selection[selection.length - 1].sectionKey}`;
+}
+
+function addSectionToFlatList(flat, chapterTitle, sectionKey, sectionValue, sectionTitleOverride = null) {
+  if (!sectionValue?.file) return;
+  const title = sectionTitleOverride || sectionValue.title || sectionKey;
+  flat.push({
+    chapter: chapterTitle,
+    sectionKey,
+    title,
+    file: sectionValue.file,
+    fullTitle: `${chapterTitle} - ${sectionKey} - ${title}`
+  });
+}
+
+function updatePlannerModeUI() {
+  const isYtPhysics = els.bookSelect.value === YT_PHYSICS_BOOK;
+  els.genYtPhysicsBtn.classList.toggle('hidden', !isYtPhysics);
+  els.setupSub.textContent = isYtPhysics
+    ? 'Preset uses timestamps with Ultrasound 04.19-04.26, X-ray review 01.01-01.08 at 50%, X-ray 01.09-01.33, CT 02.01-02.17, MRI review 03.01-03.07 at 50%, and MRI 03.08-03.28. Range selectors still work for standard plans.'
+    : '';
+}
+
 // --- Import/Export ---
 function exportData() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
@@ -665,7 +787,8 @@ function updateSavedPlansDropdown() {
   plans.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = `${p.book} (${parseLocalISO(p.startDate).toLocaleDateString()} - ${parseLocalISO(p.endDate).toLocaleDateString()})`;
+    const planLabel = p.title || p.book;
+    opt.textContent = `${planLabel} (${parseLocalISO(p.startDate).toLocaleDateString()} - ${parseLocalISO(p.endDate).toLocaleDateString()})`;
     els.savedSelect.appendChild(opt);
   });
 }
@@ -690,9 +813,12 @@ function populateBooks() {
   Object.keys(booksData).forEach(k => {
     els.bookSelect.appendChild(new Option(k, k));
   });
+  updatePlannerModeUI();
 }
 async function handleBookChange() {
   const name = els.bookSelect.value;
+  currentBookSections = [];
+  updatePlannerModeUI();
   if (!name) return;
   const info = booksData[name];
   currentBookPath = info.basePath;
@@ -703,7 +829,7 @@ async function handleBookChange() {
     populateRangeSelects();
   } catch(e) { showMsg("Error loading manifest", 'error'); }
 }
-function flattenManifest(manifest) {
+function flattenManifestLegacy(manifest) {
   const chapters = Object.keys(manifest).sort(natCompare);
   const flat = [];
   chapters.forEach(chKey => {
@@ -733,6 +859,272 @@ function populateRangeSelects() {
   els.endSec.value = currentBookSections.length - 1;
 }
 
+function flattenManifest(manifest) {
+  const chapters = Object.keys(manifest).sort(natCompare);
+  const flat = [];
+  chapters.forEach(chKey => {
+    const ch = manifest[chKey];
+    if (!ch || typeof ch !== 'object' || !ch.title) return;
+
+    if (ch.sections && typeof ch.sections === 'object') {
+      if (ch.introFile) {
+        addSectionToFlatList(
+          flat,
+          ch.title,
+          `${chKey}.intro`,
+          { file: ch.introFile, title: ch.introTitle || 'Introduction' },
+          ch.introTitle || 'Introduction'
+        );
+      }
+
+      Object.keys(ch.sections)
+        .sort(compareSectionKeys)
+        .forEach(secKey => addSectionToFlatList(flat, ch.title, secKey, ch.sections[secKey]));
+      return;
+    }
+
+    Object.keys(ch)
+      .filter(key => !['title', 'introFile', 'introTitle', 'sections'].includes(key))
+      .sort(compareSectionKeys)
+      .forEach(secKey => addSectionToFlatList(flat, ch.title, secKey, ch[secKey]));
+  });
+  return flat;
+}
+
+async function fetchSectionText(section) {
+  const url = encodePath(`${currentBookPath}/${section.file}`);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Missing: ${section.file}`);
+  }
+  return response.text();
+}
+
+async function hydrateSelection(selection, options = {}) {
+  const {
+    loadUnit = 'chars',
+    studyMode = 'new',
+    loadFactor = 1
+  } = options;
+
+  const hydrated = [];
+  for (const section of selection) {
+    const text = await fetchSectionText(section);
+    const baseSection = {
+      file: section.file,
+      chapter: section.chapter,
+      sectionKey: section.sectionKey,
+      fullTitle: section.fullTitle,
+      length: text.length,
+      listen: false,
+      read: false,
+      anki: false,
+      studyMode,
+      loadFactor
+    };
+
+    if (loadUnit === 'minutes') {
+      const estimate = estimateTranscriptMinutes(text);
+      hydrated.push({
+        ...baseSection,
+        runtimeMinutes: estimate.minutes,
+        runtimeSource: estimate.source,
+        load: estimate.minutes * loadFactor
+      });
+      continue;
+    }
+
+    hydrated.push({
+      ...baseSection,
+      load: text.length
+    });
+  }
+
+  return hydrated;
+}
+
+function buildGreedyDaysFromSections(sections, daysCount, startDate, targetPerDay) {
+  const days = [];
+  let sectionIndex = 0;
+
+  for (let dayOffset = 0; dayOffset < daysCount; dayOffset++) {
+    const dayDate = new Date(startDate);
+    dayDate.setDate(dayDate.getDate() + dayOffset);
+
+    const day = { date: formatLocalISO(dayDate), sections: [] };
+    let dayLoad = 0;
+
+    while (sectionIndex < sections.length) {
+      const section = sections[sectionIndex];
+      const sectionLoad = getSectionLoadValue(section);
+      const remainingSections = sections.length - sectionIndex;
+      const remainingDays = daysCount - dayOffset;
+
+      if (remainingSections <= remainingDays && day.sections.length > 0) break;
+
+      if (!day.sections.length) {
+        day.sections.push(section);
+        dayLoad += sectionLoad;
+        sectionIndex++;
+        continue;
+      }
+
+      const currentDiff = Math.abs(dayLoad - targetPerDay);
+      const nextDiff = Math.abs((dayLoad + sectionLoad) - targetPerDay);
+      if (nextDiff < currentDiff || dayLoad < targetPerDay * 0.7) {
+        day.sections.push(section);
+        dayLoad += sectionLoad;
+        sectionIndex++;
+      } else {
+        break;
+      }
+    }
+
+    days.push(day);
+  }
+
+  while (sectionIndex < sections.length) {
+    days[days.length - 1].sections.push(sections[sectionIndex++]);
+  }
+
+  return days;
+}
+
+function buildTimestampDaysFromUnits(units, daysCount, startDate) {
+  if (!units.length) {
+    return { days: [], totalLoad: 0, targetPerDay: 0 };
+  }
+
+  const totalLoad = units.reduce((sum, unit) => sum + unit.load, 0);
+  const targetPerDay = totalLoad / daysCount;
+  const unitCount = units.length;
+  const workingDays = Math.min(daysCount, unitCount);
+
+  const prefixLoads = [0];
+  units.forEach(unit => prefixLoads.push(prefixLoads[prefixLoads.length - 1] + unit.load));
+
+  const dp = Array.from({ length: workingDays + 1 }, () => Array(unitCount + 1).fill(Number.POSITIVE_INFINITY));
+  const previous = Array.from({ length: workingDays + 1 }, () => Array(unitCount + 1).fill(-1));
+  dp[0][0] = 0;
+
+  for (let dayIndex = 1; dayIndex <= workingDays; dayIndex++) {
+    const maxUnitIndex = unitCount - (workingDays - dayIndex);
+    for (let endIndex = dayIndex; endIndex <= maxUnitIndex; endIndex++) {
+      for (let splitIndex = dayIndex - 1; splitIndex < endIndex; splitIndex++) {
+        const segmentLoad = prefixLoads[endIndex] - prefixLoads[splitIndex];
+        const candidateCost = dp[dayIndex - 1][splitIndex] + (segmentLoad - targetPerDay) ** 2;
+        if (candidateCost < dp[dayIndex][endIndex]) {
+          dp[dayIndex][endIndex] = candidateCost;
+          previous[dayIndex][endIndex] = splitIndex;
+        }
+      }
+    }
+  }
+
+  const partitions = [];
+  let cursor = unitCount;
+  for (let dayIndex = workingDays; dayIndex >= 1; dayIndex--) {
+    const splitIndex = previous[dayIndex][cursor];
+    partitions.push(units.slice(splitIndex, cursor));
+    cursor = splitIndex;
+  }
+  partitions.reverse();
+
+  const days = [];
+  for (let dayOffset = 0; dayOffset < daysCount; dayOffset++) {
+    const dayDate = new Date(startDate);
+    dayDate.setDate(dayDate.getDate() + dayOffset);
+    const assignedUnits = partitions[dayOffset] || [];
+    days.push({
+      date: formatLocalISO(dayDate),
+      sections: assignedUnits.flatMap(unit => unit.sections)
+    });
+  }
+
+  return { days, totalLoad, targetPerDay };
+}
+
+function getSectionRange(startKey, endKey) {
+  return currentBookSections.filter(section =>
+    compareSectionKeys(section.sectionKey, startKey) >= 0 &&
+    compareSectionKeys(section.sectionKey, endKey) <= 0
+  );
+}
+
+async function generateYtPhysicsTimestampPlan() {
+  const bookName = els.bookSelect.value;
+  const startDate = parseLocalISO(els.startDate.value);
+  const endDate = parseLocalISO(els.endDate.value);
+
+  if (bookName !== YT_PHYSICS_BOOK) {
+    showMsg('Select the YT Physics book to use the timestamp preset.', 'error');
+    return;
+  }
+  if (!startDate || !endDate || Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf())) {
+    showMsg('Fill in the start and target dates.', 'error');
+    return;
+  }
+  if (endDate < startDate) {
+    showMsg('Invalid dates', 'error');
+    return;
+  }
+  if (!currentBookSections.length) {
+    await handleBookChange();
+  }
+
+  els.genYtPhysicsBtn.disabled = true;
+  showMsg('Building timestamp-based YT Physics plan...', 'info');
+
+  try {
+    const ultrasoundNew = await hydrateSelection(getSectionRange('04.19', '04.26'), { loadUnit: 'minutes', studyMode: 'new' });
+    const xrayReview = await hydrateSelection(getSectionRange('01.01', '01.08'), { loadUnit: 'minutes', studyMode: 'review', loadFactor: 0.5 });
+    const xrayNew = await hydrateSelection(getSectionRange('01.09', '01.33'), { loadUnit: 'minutes', studyMode: 'new' });
+    const ctNew = await hydrateSelection(getSectionRange('02.01', '02.17'), { loadUnit: 'minutes', studyMode: 'new' });
+    const mriReview = await hydrateSelection(getSectionRange('03.01', '03.07'), { loadUnit: 'minutes', studyMode: 'review', loadFactor: 0.5 });
+    const mriNew = await hydrateSelection(getSectionRange('03.08', '03.28'), { loadUnit: 'minutes', studyMode: 'new' });
+
+    const planUnits = [
+      ...ultrasoundNew.map(section => ({ sections: [section], load: getSectionLoadValue(section) })),
+      { sections: xrayReview, load: xrayReview.reduce((sum, section) => sum + getSectionLoadValue(section), 0) },
+      ...xrayNew.map(section => ({ sections: [section], load: getSectionLoadValue(section) })),
+      ...ctNew.map(section => ({ sections: [section], load: getSectionLoadValue(section) })),
+      { sections: mriReview, load: mriReview.reduce((sum, section) => sum + getSectionLoadValue(section), 0) },
+      ...mriNew.map(section => ({ sections: [section], load: getSectionLoadValue(section) }))
+    ];
+
+    const daysCount = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const partitioned = buildTimestampDaysFromUnits(planUnits, daysCount, startDate);
+    const totalSections = planUnits.flatMap(unit => unit.sections).length;
+
+    const planId = Date.now().toString();
+    const newPlan = {
+      id: planId,
+      created: Date.now(),
+      title: 'YT Physics Timestamp Preset',
+      book: bookName,
+      planLabel: 'YT Physics timestamp preset',
+      range: '04.19 -> 03.28',
+      startDate: els.startDate.value,
+      endDate: els.endDate.value,
+      totalSections,
+      loadUnit: 'minutes',
+      totalLoad: partitioned.totalLoad,
+      targetPerDay: partitioned.targetPerDay,
+      days: partitioned.days
+    };
+
+    appData.savedPlans[planId] = newPlan;
+    appData.lastActiveId = planId;
+    saveData();
+    showMsg('Timestamp-based YT Physics plan created!', 'info');
+    loadPlan(planId);
+  } catch (error) {
+    showMsg(`Error: ${error.message}`, 'error');
+  } finally {
+    els.genYtPhysicsBtn.disabled = false;
+  }
+}
+
 // --- Generation ---
 async function generatePlan() {
   const bookName = els.bookSelect.value;
@@ -752,59 +1144,12 @@ async function generatePlan() {
 
   try {
     const selection = currentBookSections.slice(startIdx, endIdx + 1);
-    const hydratedSections = [];
-    
-    // Fetch text temporarily to measure length
-    for (const sec of selection) {
-      const url = encodePath(`${currentBookPath}/${sec.file}`);
-      const r = await fetch(url);
-      if(!r.ok) throw new Error(`Missing: ${sec.file}`);
-      const text = await r.text();
-      hydratedSections.push({
-        file: sec.file,
-        fullTitle: sec.fullTitle,
-        length: text.length,
-        listen: false,
-        read: false,
-        anki: false
-      });
-    }
+    const hydratedSections = await hydrateSelection(selection, { loadUnit: 'chars', studyMode: 'new' });
 
     const daysCount = Math.floor((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
-    const totalChars = hydratedSections.reduce((acc, s) => acc + s.length, 0);
+    const totalChars = hydratedSections.reduce((acc, section) => acc + getSectionLoadValue(section), 0);
     const targetPerDay = totalChars / daysCount;
-
-    const days = [];
-    let secIndex = 0;
-
-    for (let d = 0; d < daysCount; d++) {
-      const dayDate = new Date(sDate);
-      dayDate.setDate(dayDate.getDate() + d);
-      const dayObj = { date: formatLocalISO(dayDate), sections: [] };
-      let dayLoad = 0;
-
-      while (secIndex < hydratedSections.length) {
-        const sec = hydratedSections[secIndex];
-        const remainingSections = hydratedSections.length - secIndex;
-        const remainingDays = daysCount - d;
-
-        if (remainingSections <= remainingDays && dayObj.sections.length > 0) break; 
-
-        if (dayObj.sections.length === 0) {
-          dayObj.sections.push(sec); dayLoad += sec.length; secIndex++;
-        } else {
-          const currentDiff = Math.abs(dayLoad - targetPerDay);
-          const nextDiff = Math.abs((dayLoad + sec.length) - targetPerDay);
-          if (nextDiff < currentDiff || (dayLoad < targetPerDay * 0.7)) {
-            dayObj.sections.push(sec); dayLoad += sec.length; secIndex++;
-          } else { break; }
-        }
-      }
-      days.push(dayObj);
-    }
-    while(secIndex < hydratedSections.length) {
-      days[days.length-1].sections.push(hydratedSections[secIndex++]);
-    }
+    const days = buildGreedyDaysFromSections(hydratedSections, daysCount, sDate, targetPerDay);
 
     const planId = Date.now().toString();
     const newPlan = {
@@ -820,6 +1165,10 @@ async function generatePlan() {
 
     appData.savedPlans[planId] = newPlan;
     appData.lastActiveId = planId;
+    newPlan.range = buildRangeLabel(selection);
+    newPlan.loadUnit = 'chars';
+    newPlan.totalLoad = totalChars;
+    newPlan.targetPerDay = targetPerDay;
     saveData();
     showMsg("Plan created!", 'info');
     loadPlan(planId);
@@ -843,12 +1192,23 @@ function loadPlan(id) {
   
   els.planView.classList.remove('hidden');
   els.sumBook.innerHTML = `<strong>Book:</strong> ${currentPlan.book}`;
-  els.sumRange.innerHTML = `<strong>Range:</strong> ${currentPlan.range}`;
+  els.sumRange.innerHTML = `<strong>${currentPlan.planLabel ? 'Plan' : 'Range'}:</strong> ${currentPlan.planLabel || currentPlan.range}`;
   els.sumCounts.innerHTML = `<strong>Stats:</strong> ${currentPlan.days.length} Days, ${currentPlan.totalSections} Sections`;
+  if (typeof currentPlan.totalLoad === 'number') {
+    const unit = getPlanLoadUnit(currentPlan);
+    const targetLabel = typeof currentPlan.targetPerDay === 'number'
+      ? `${formatLoadValue(currentPlan.targetPerDay, unit)}/day`
+      : 'n/a';
+    els.sumLoad.innerHTML = `<strong>Load:</strong> ${formatLoadValue(currentPlan.totalLoad, unit)} total, ${targetLabel} target`;
+    els.sumLoad.classList.remove('hidden');
+  } else {
+    els.sumLoad.classList.add('hidden');
+    els.sumLoad.textContent = '';
+  }
   
   els.dayJumper.innerHTML = '';
   currentPlan.days.forEach((d, i) => {
-    els.dayJumper.add(new Option(`Day ${i+1}: ${parseLocalISO(d.date).toLocaleDateString()}`, i));
+    els.dayJumper.add(new Option(formatPlanDayOption(d, i, currentPlan), i));
   });
 
   renderRealCalendar();
@@ -856,6 +1216,7 @@ function loadPlan(id) {
   const todayIdx = getTodayIndex();
   setDay(todayIdx, true);
   els.bookSelect.value = currentPlan.book;
+  updatePlannerModeUI();
 }
 
 // --- Real Calendar Logic ---
@@ -867,7 +1228,7 @@ function renderRealCalendar() {
   let maxLoad = 0;
   let minLoad = Infinity;
   currentPlan.days.forEach(d => {
-    const load = d.sections.reduce((a,b) => a + (b.length || 0), 0);
+    const load = getDayLoadValue(d);
     if(load > maxLoad) maxLoad = load;
     if(load < minLoad) minLoad = load;
   });
@@ -926,7 +1287,7 @@ function renderRealCalendar() {
         updateCalendarCellColor(cell, day);
         
         // --- Add Sliver ---
-        const dayLoad = day.sections.reduce((a,b) => a + (b.length || 0), 0);
+        const dayLoad = getDayLoadValue(day);
         // Ratio 0 to 1
         const ratio = (dayLoad - minLoad) / (maxLoad - minLoad);
         const sliver = document.createElement('div');
@@ -942,6 +1303,7 @@ function renderRealCalendar() {
 
         cell.onclick = () => setDay(idx, true);
         if (idx === currentDayIndex) cell.classList.add('active');
+        cell.title = formatLoadValue(dayLoad, getPlanLoadUnit(currentPlan));
         cell.dataset.planIdx = idx; 
       } else {
         cell.classList.add('empty');
@@ -1062,9 +1424,8 @@ async function setDay(idx, scrollToDay = false) {
   const day = currentPlan.days[idx];
   els.dayContent.innerHTML = '';
 
-  // Update Character Count Badge
-  const totalChars = day.sections.reduce((a,b) => a + (b.length || 0), 0);
-  els.dayCharCount.textContent = `${totalChars.toLocaleString()} chars`;
+  // Update workload badge
+  els.dayCharCount.textContent = formatDayBadge(day, currentPlan);
 
   if (day.sections.length === 0) {
     els.dayContent.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">Rest Day</div>';
@@ -1097,7 +1458,7 @@ async function setDay(idx, scrollToDay = false) {
 
       const headerTop = document.createElement('div');
       headerTop.className = 'section-top';
-      headerTop.innerHTML = `<div class="section-title">${sec.fullTitle}</div><div class="section-meta">${sec.length} chars</div>`;
+      headerTop.innerHTML = `<div class="section-title">${sec.fullTitle}</div><div class="section-meta">${formatSectionMeta(sec, currentPlan)}</div>`;
       
       const grp = document.createElement('div');
       grp.className = 'checklist-group';
@@ -1348,6 +1709,7 @@ function toggleSetupPanel() {
 
 els.bookSelect.addEventListener('change', handleBookChange);
 els.genBtn.addEventListener('click', generatePlan);
+els.genYtPhysicsBtn.addEventListener('click', generateYtPhysicsTimestampPlan);
 els.loadBtn.addEventListener('click', loadPlanFromDropdown);
 els.delBtn.addEventListener('click', deletePlan);
 els.dlBtn.addEventListener('click', exportData);
