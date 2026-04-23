@@ -14,6 +14,7 @@ DEFAULT_SETTINGS = {
     "recent_leech_banner": True,
     "tts_enabled_card_audio": False,
     "disable_default_f3_shortcut": True,
+    "underline_trailing_spaces_fix": True,
     "visual_card_multitude_add_button": True,
     "add_cards_sticky_fields_default_on": True,
     "add_cards_diagnosis_button": True,

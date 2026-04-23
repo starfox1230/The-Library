@@ -68,6 +68,10 @@ from .review_image_overlay import (
 from .return_non_new import open_return_non_new_dialog
 from .suspended_browser import open_suspended_cards_browser
 from .tts_audio import is_tts_audio_enabled, set_tts_audio_enabled
+from .underline_trailing_spaces import (
+    is_underline_trailing_spaces_fix_enabled,
+    set_underline_trailing_spaces_fix_enabled,
+)
 from .visual_card_multitude import (
     is_add_cards_auto_deck_enabled,
     is_add_cards_diagnosis_button_enabled,
@@ -98,6 +102,7 @@ _review_image_overlay_remember_position_action: QAction | None = None
 _recent_leech_banner_action: QAction | None = None
 _tts_audio_action: QAction | None = None
 _disable_f3_action: QAction | None = None
+_underline_trailing_spaces_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
 _add_cards_diagnosis_action: QAction | None = None
 _add_cards_multi_image_counter_action: QAction | None = None
@@ -326,6 +331,23 @@ class PocketKnifeLauncherDialog(QDialog):
         keyboard_layout.addWidget(self.disable_f3_checkbox)
         layout.addWidget(keyboard_box)
 
+        editor_formatting_box = QGroupBox("Editor Formatting")
+        editor_formatting_layout = QVBoxLayout(editor_formatting_box)
+        editor_formatting_copy = QLabel(
+            "Default-on editor helper: keep spaces out of underline while they are currently trailing, "
+            "but allow those spaces to join the underline automatically once you continue the underlined phrase."
+        )
+        editor_formatting_copy.setWordWrap(True)
+        editor_formatting_layout.addWidget(editor_formatting_copy)
+        self.underline_trailing_spaces_checkbox = QCheckBox(
+            "Keep currently trailing spaces out of underline"
+        )
+        self.underline_trailing_spaces_checkbox.setChecked(
+            is_underline_trailing_spaces_fix_enabled()
+        )
+        editor_formatting_layout.addWidget(self.underline_trailing_spaces_checkbox)
+        layout.addWidget(editor_formatting_box)
+
         filtered_cleanup_box = QGroupBox("Filtered Deck Cleanup")
         filtered_cleanup_layout = QVBoxLayout(filtered_cleanup_box)
         filtered_cleanup_copy = QLabel(
@@ -452,6 +474,9 @@ class PocketKnifeLauncherDialog(QDialog):
         self.lightning_answer_seconds_spin.valueChanged.connect(self._set_lightning_answer_seconds)
         self.recent_leech_banner_checkbox.toggled.connect(self._set_recent_leech_banner_enabled)
         self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
+        self.underline_trailing_spaces_checkbox.toggled.connect(
+            self._set_underline_trailing_spaces_enabled
+        )
         self.visual_card_multitude_checkbox.toggled.connect(self._set_visual_card_multitude_enabled)
         self.add_cards_sticky_fields_checkbox.toggled.connect(
             self._set_add_cards_sticky_fields_default_on_enabled
@@ -517,6 +542,12 @@ class PocketKnifeLauncherDialog(QDialog):
             self.disable_f3_checkbox.blockSignals(True)
             self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
             self.disable_f3_checkbox.blockSignals(False)
+        if hasattr(self, "underline_trailing_spaces_checkbox"):
+            self.underline_trailing_spaces_checkbox.blockSignals(True)
+            self.underline_trailing_spaces_checkbox.setChecked(
+                is_underline_trailing_spaces_fix_enabled()
+            )
+            self.underline_trailing_spaces_checkbox.blockSignals(False)
         if hasattr(self, "lightning_card_limit_spin"):
             self.lightning_card_limit_spin.blockSignals(True)
             self.lightning_card_limit_spin.setValue(lightning_card_limit())
@@ -594,6 +625,10 @@ class PocketKnifeLauncherDialog(QDialog):
         set_default_f3_shortcut_disabled(bool(checked))
         sync_settings_ui()
 
+    def _set_underline_trailing_spaces_enabled(self, checked: bool) -> None:
+        set_underline_trailing_spaces_fix_enabled(bool(checked))
+        sync_settings_ui()
+
     def _set_lightning_card_limit(self, value: int) -> None:
         set_lightning_card_limit(int(value))
         sync_settings_ui()
@@ -654,6 +689,7 @@ def sync_settings_ui() -> None:
     global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
+    global _underline_trailing_spaces_action
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
@@ -696,6 +732,11 @@ def sync_settings_ui() -> None:
         _disable_f3_action.blockSignals(True)
         _disable_f3_action.setChecked(disable_f3_enabled)
         _disable_f3_action.blockSignals(False)
+    underline_trailing_spaces_enabled = is_underline_trailing_spaces_fix_enabled()
+    if _underline_trailing_spaces_action is not None:
+        _underline_trailing_spaces_action.blockSignals(True)
+        _underline_trailing_spaces_action.setChecked(underline_trailing_spaces_enabled)
+        _underline_trailing_spaces_action.blockSignals(False)
     add_cards_sticky_fields_enabled = is_add_cards_sticky_fields_default_on_enabled()
     if _add_cards_sticky_fields_action is not None:
         _add_cards_sticky_fields_action.blockSignals(True)
@@ -759,6 +800,10 @@ def sync_settings_ui() -> None:
         _dialog.disable_f3_checkbox.blockSignals(True)
         _dialog.disable_f3_checkbox.setChecked(disable_f3_enabled)
         _dialog.disable_f3_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "underline_trailing_spaces_checkbox"):
+        _dialog.underline_trailing_spaces_checkbox.blockSignals(True)
+        _dialog.underline_trailing_spaces_checkbox.setChecked(underline_trailing_spaces_enabled)
+        _dialog.underline_trailing_spaces_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "add_cards_sticky_fields_checkbox"):
         _dialog.add_cards_sticky_fields_checkbox.blockSignals(True)
         _dialog.add_cards_sticky_fields_checkbox.setChecked(add_cards_sticky_fields_enabled)
@@ -819,6 +864,11 @@ def _toggle_disable_f3(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_underline_trailing_spaces(checked: bool) -> None:
+    set_underline_trailing_spaces_fix_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_visual_card_multitude_button(checked: bool) -> None:
     set_visual_card_multitude_add_button_enabled(bool(checked))
     sync_settings_ui()
@@ -861,6 +911,7 @@ def _register_menu() -> None:
     global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
+    global _underline_trailing_spaces_action
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
@@ -950,6 +1001,12 @@ def _register_menu() -> None:
     _disable_f3_action.setChecked(is_default_f3_shortcut_disabled())
     _disable_f3_action.triggered.connect(_toggle_disable_f3)
     pocket_menu.addAction(_disable_f3_action)
+
+    _underline_trailing_spaces_action = QAction("Keep Trailing Spaces Out Of Underline", mw)
+    _underline_trailing_spaces_action.setCheckable(True)
+    _underline_trailing_spaces_action.setChecked(is_underline_trailing_spaces_fix_enabled())
+    _underline_trailing_spaces_action.triggered.connect(_toggle_underline_trailing_spaces)
+    pocket_menu.addAction(_underline_trailing_spaces_action)
 
     _recent_leech_banner_action = QAction("Recent-Leech Banner On Deck List", mw)
     _recent_leech_banner_action.setCheckable(True)
