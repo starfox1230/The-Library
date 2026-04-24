@@ -461,7 +461,27 @@ def render_html(questions: list[dict]) -> str:
     const QUESTIONS = {data};
     const APP_ID = "pediatric-gi-imaging-quiz-ch1";
     const STORAGE_KEY = "temporary-app-state:" + APP_ID;
-    const DEFAULT_STATE = {{ index: 0, selected: {{}}, submitted: {{}}, mode: "tutor", reviewOpen: false, navOpen: true }};
+    const DEFAULT_SELECTED = {{
+      1: "A",
+      2: "B",
+      3: "B",
+      4: "B",
+      5: "C",
+      6: "A",
+      7: "D",
+      8: "B",
+      9: "C",
+      10: "B",
+      11: "D",
+      12: "A",
+      13: "C",
+      14: "B",
+      15: "C",
+      16: "C",
+      17: "A",
+    }};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = {{ index: 16, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true }};
     const state = loadState();
     const el = (id) => document.getElementById(id);
 
