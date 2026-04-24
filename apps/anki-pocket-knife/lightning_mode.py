@@ -714,6 +714,65 @@ def _buried_card_ids_by_type(card_ids: list[int]) -> tuple[list[int], list[int]]
     return _clean_card_ids(user_buried_ids), _clean_card_ids(sched_buried_ids)
 
 
+def _move_cards_to_filtered_deck_preserving_schedule(
+    *,
+    deck_id: int,
+    card_ids: list[int],
+) -> int:
+    unique_ids = _clean_card_ids(card_ids)
+    if int(deck_id) <= 0 or not unique_ids:
+        return 0
+
+    moved_count = 0
+    mod_value = int(time.time())
+    usn_value = _usn_value()
+    for chunk in _chunked(unique_ids, _MAX_CARDS_PER_TERM):
+        before_rows = _db_rows(
+            f"""
+            SELECT COUNT(*)
+            FROM cards AS c
+            WHERE c.id IN ({_placeholders(len(chunk))})
+              AND c.did != ?
+            """,
+            *chunk,
+            int(deck_id),
+        )
+        before_count = int(before_rows[0][0] or 0) if before_rows else 0
+        if before_count <= 0:
+            continue
+
+        _db_execute(
+            f"""
+            UPDATE cards
+            SET did = ?,
+                odid = CASE
+                    WHEN odid != 0 THEN odid
+                    WHEN did != ? THEN did
+                    ELSE odid
+                END,
+                odue = CASE
+                    WHEN odid != 0 THEN odue
+                    WHEN did != ? THEN due
+                    ELSE odue
+                END,
+                mod = ?,
+                usn = ?
+            WHERE id IN ({_placeholders(len(chunk))})
+              AND did != ?
+            """,
+            int(deck_id),
+            int(deck_id),
+            int(deck_id),
+            int(mod_value),
+            int(usn_value),
+            *chunk,
+            int(deck_id),
+        )
+        moved_count += before_count
+
+    return moved_count
+
+
 def _unbury_card_ids(card_ids: list[int]) -> bool:
     unique_ids = _clean_card_ids(card_ids)
     if not unique_ids:
@@ -777,7 +836,6 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
     leftover_ids = _clean_card_ids(session.get("leftover_source_card_ids"))
     pending_ids = _clean_card_ids(session.get("pending_lightning_card_ids"))
     restore_ids = _clean_card_ids(leftover_ids + pending_ids)
-    original_terms = deepcopy(session.get("source_filtered_deck_original_terms"))
     user_buried_ids, sched_buried_ids = _buried_card_ids_by_type(restore_ids)
     buried_restore_ids = _clean_card_ids(user_buried_ids + sched_buried_ids)
     unburied_for_restore = False
@@ -788,11 +846,11 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
         unburied_for_restore = True
 
     try:
-        restored = _rebuild_filtered_deck_with_exact_card_ids(
-            int(source_deck_id),
+        _move_cards_to_filtered_deck_preserving_schedule(
+            deck_id=int(source_deck_id),
             card_ids=restore_ids,
-            original_terms=original_terms,
         )
+        restored = True
     except Exception:
         if unburied_for_restore:
             _rebury_card_ids(

@@ -28,7 +28,11 @@ TAB_CYCLES_CLOZES_SETTING_NAME = "add_cards_tab_cycles_clozes"
 TARGET_NOTETYPE_NAME = "Visual_Card_Multitude"
 REVERSE_TARGET_NOTETYPE_NAME = "saCloze++"
 BUTTON_COMMAND = "pocket_knife_visual_card_multitude"
-BUTTON_TOOLTIP = "Convert between saCloze++ and Visual_Card_Multitude"
+DIAGNOSIS_SHORTCUT = "Ctrl+Q"
+VISUAL_CARD_MULTITUDE_SHORTCUT = "Ctrl+E"
+BUTTON_TOOLTIP = (
+    f"Convert between saCloze++ and Visual_Card_Multitude ({VISUAL_CARD_MULTITUDE_SHORTCUT})"
+)
 BUTTON_ICON_PATH = addon_root() / "assets" / "pink_picture_frame.svg"
 BUTTON_ID = "pocket-knife-visual-card-multitude"
 DIAGNOSIS_BUTTON_COMMAND = "pocket_knife_diagnosis_template"
@@ -82,6 +86,16 @@ class ConvertedVisualFields:
 
 class _AddCardsTabClozeAppFilter(QObject):
     def eventFilter(self, watched, event) -> bool:
+        shortcut_editor = _editor_for_add_cards_shortcut_event(watched, event)
+        if shortcut_editor is not None:
+            try:
+                event.accept()
+            except Exception:
+                pass
+            if event.type() == QEvent.Type.KeyPress:
+                _handle_add_cards_shortcut(shortcut_editor, event)
+            return True
+
         if not is_add_cards_tab_cycles_clozes_enabled():
             return False
         if not _is_tab_cycle_key_event(event):
@@ -137,6 +151,35 @@ def _is_tab_cycle_key_event(event: QEvent) -> bool:
         | Qt.KeyboardModifier.MetaModifier
     )
     return not bool(modifiers & blocked)
+
+
+def _is_add_cards_shortcut_event(event: QEvent) -> bool:
+    if event.type() not in (
+        QEvent.Type.ShortcutOverride,
+        QEvent.Type.KeyPress,
+        QEvent.Type.KeyRelease,
+    ):
+        return False
+    if not isinstance(event, QKeyEvent):
+        return False
+    try:
+        key = event.key()
+        modifiers = event.modifiers()
+    except Exception:
+        return False
+
+    wanted_modifiers = Qt.KeyboardModifier.ControlModifier
+    blocked_modifiers = (
+        Qt.KeyboardModifier.ShiftModifier
+        |
+        Qt.KeyboardModifier.AltModifier
+        | Qt.KeyboardModifier.MetaModifier
+    )
+    if modifiers & blocked_modifiers:
+        return False
+    if (modifiers & wanted_modifiers) != wanted_modifiers:
+        return False
+    return key in (Qt.Key.Key_Q, Qt.Key.Key_E)
 
 
 def _object_is_within(root: QObject | None, candidate: QObject | None) -> bool:
@@ -199,6 +242,43 @@ def _editor_for_tab_event(watched: QObject | None) -> Editor | None:
             return editor
 
     return None
+
+
+def _editor_for_add_cards_shortcut_event(watched: QObject | None, event: QEvent) -> Editor | None:
+    if not _is_add_cards_shortcut_event(event):
+        return None
+
+    app = QApplication.instance()
+    focus_widget = app.focusWidget() if app is not None else None
+    active_window = app.activeWindow() if app is not None else None
+
+    for editor in list(_OPEN_ADD_CARDS_EDITORS):
+        add_cards = getattr(editor, "parentWindow", None)
+        if not isinstance(add_cards, AddCards):
+            continue
+
+        web = getattr(editor, "web", None)
+        if web is not None:
+            if watched is web or _object_is_within(web, watched):
+                return editor
+            if focus_widget is web or _object_is_within(web, focus_widget):
+                return editor
+        if active_window is add_cards:
+            return editor
+
+    return None
+
+
+def _handle_add_cards_shortcut(editor: Editor, event: QKeyEvent) -> None:
+    try:
+        key = event.key()
+    except Exception:
+        return
+
+    if key == Qt.Key.Key_Q:
+        apply_diagnosis_template(editor)
+    elif key == Qt.Key.Key_E:
+        convert_current_add_note(editor)
 
 
 def _ensure_tab_cloze_event_filter() -> None:
@@ -694,15 +774,24 @@ def _field_ord(note, wanted_name: str) -> int | None:
 
 def _frame_button_tooltip(note) -> str:
     if _note_is_visual_card_multitude(note):
-        return f"Convert the current {TARGET_NOTETYPE_NAME} note into {REVERSE_TARGET_NOTETYPE_NAME}"
+        return (
+            f"Convert the current {TARGET_NOTETYPE_NAME} note into {REVERSE_TARGET_NOTETYPE_NAME} "
+            f"({VISUAL_CARD_MULTITUDE_SHORTCUT})"
+        )
     if _note_is_cloze(note):
-        return f"Convert the current cloze note into {TARGET_NOTETYPE_NAME}"
+        return (
+            f"Convert the current cloze note into {TARGET_NOTETYPE_NAME} "
+            f"({VISUAL_CARD_MULTITUDE_SHORTCUT})"
+        )
     return BUTTON_TOOLTIP
 
 
 def _diagnosis_button_tooltip(note) -> str:
     if _note_is_cloze(note):
-        return "Replace Text-field text with a Diagnosis cloze template and keep any images below it"
+        return (
+            "Replace Text-field text with a Diagnosis cloze template and keep any images below it "
+            f"({DIAGNOSIS_SHORTCUT})"
+        )
     return "Dx template is only available when the current note type is cloze"
 
 
@@ -1365,7 +1454,10 @@ def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
             None,
             DIAGNOSIS_BUTTON_COMMAND,
             apply_diagnosis_template,
-            tip="Replace Text with a Diagnosis cloze template and keep images",
+            tip=(
+                "Replace Text with a Diagnosis cloze template and keep images "
+                f"({DIAGNOSIS_SHORTCUT})"
+            ),
             label="Dx",
             id=DIAGNOSIS_BUTTON_ID,
             disables=False,

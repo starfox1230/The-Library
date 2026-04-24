@@ -150,6 +150,20 @@ def _entry_sources(entry: dict[str, Any] | None) -> set[str]:
     return set(overlay_entry_layers(entry))
 
 
+def _is_image_occlusion_entry(entry: dict[str, Any] | None, *, answer_side: bool | None = None) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    key = str(entry.get("key", "") or "").strip()
+    if answer_side is None:
+        return key.startswith("image-occlusion::")
+    side_name = "answer" if answer_side else "question"
+    return key.startswith(f"image-occlusion::{side_name}::")
+
+
+def _has_answer_image_occlusion_entry(entries: list[dict[str, Any]]) -> bool:
+    return any(_is_image_occlusion_entry(entry, answer_side=True) for entry in entries)
+
+
 def _question_overlay_entries(card: Any) -> list[dict[str, Any]]:
     question_html = str(card.question() or "")
     question_entries = build_overlay_entries_from_sources(extract_image_sources(question_html))
@@ -892,8 +906,18 @@ class _ReviewerImageOverlayController:
         if card_id != self._current_card_id:
             self._current_card_id = card_id
             self._question_entries = _question_overlay_entries(card)
+        overlay = self._overlay()
+        keep_visible_for_occlusion_answer = bool(overlay.isVisible())
         self._active_entries = _answer_overlay_entries(card, self._question_entries)
-        self._sync_overlay(reset=True, close=True, preserve_current=False)
+        keep_visible_for_occlusion_answer = (
+            keep_visible_for_occlusion_answer
+            and _has_answer_image_occlusion_entry(self._active_entries)
+        )
+        self._sync_overlay(
+            reset=True,
+            close=not keep_visible_for_occlusion_answer,
+            preserve_current=False,
+        )
 
     def on_reviewer_did_answer_card(self, reviewer: Any, card: Any, ease: int) -> None:
         del reviewer
