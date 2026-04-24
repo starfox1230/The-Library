@@ -208,6 +208,23 @@ def render_html(questions: list[dict]) -> str:
     }}
     .counter {{ color: var(--muted); font-size: 0.92rem; }}
     .tools {{ display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }}
+    .mode-switch {{
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #eef2f7;
+    }}
+    .mode-switch button {{
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }}
+    .mode-switch button.active {{
+      background: var(--accent);
+      color: #fff;
+    }}
     .stem {{
       font-size: 1.12rem;
       line-height: 1.48;
@@ -255,6 +272,30 @@ def render_html(questions: list[dict]) -> str:
       display: none;
     }}
     .result.show {{ display: block; }}
+    .review-panel {{
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }}
+    .review-panel.show {{ display: block; }}
+    .review-list {{ display: grid; gap: 12px; margin-top: 12px; }}
+    .review-item {{
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f9fafc;
+    }}
+    .review-item h3 {{
+      margin: 0 0 8px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }}
+    .review-meta {{
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }}
     .status {{ font-weight: 800; margin-bottom: 10px; }}
     .status.good {{ color: var(--good); }}
     .status.bad {{ color: var(--bad); }}
@@ -287,7 +328,7 @@ def render_html(questions: list[dict]) -> str:
     <div class="bar">
       <div>
         <h1>Pediatric Gastrointestinal Tract Quiz</h1>
-        <div class="sub">Core Review Pediatric Imaging, chapter 1. Choose an answer, submit, then copy a chatbot-ready explanation prompt.</div>
+        <div class="sub">Core Review Pediatric Imaging, chapter 1. Tutor mode gives immediate feedback; Quiz mode saves review until the end.</div>
       </div>
       <div class="counter" id="score">0 answered</div>
     </div>
@@ -300,6 +341,10 @@ def render_html(questions: list[dict]) -> str:
       <div class="topline">
         <div class="counter" id="questionCounter"></div>
         <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
           <button type="button" id="copyQuestion">Copy Question</button>
           <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
         </div>
@@ -311,17 +356,22 @@ def render_html(questions: list[dict]) -> str:
         <button type="button" class="primary" id="submit">Submit Answer</button>
         <button type="button" id="prev">Previous</button>
         <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
       </div>
       <div class="result" id="result">
         <div class="status" id="status"></div>
         <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-list" id="reviewList"></div>
       </div>
     </section>
   </main>
   <textarea id="clipboardScratch"></textarea>
   <script>
     const QUESTIONS = {data};
-    const state = {{ index: 0, selected: {{}}, submitted: {{}} }};
+    const state = {{ index: 0, selected: {{}}, submitted: {{}}, mode: "tutor", reviewOpen: false }};
     const el = (id) => document.getElementById(id);
 
     function questionText(q) {{
@@ -353,7 +403,9 @@ def render_html(questions: list[dict]) -> str:
         const b = document.createElement("button");
         b.textContent = q.number;
         b.className = i === state.index ? "current" : "";
-        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        if (state.submitted[q.number]) {{
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }}
         b.addEventListener("click", () => {{ state.index = i; render(); }});
         nav.appendChild(b);
       }});
@@ -361,6 +413,7 @@ def render_html(questions: list[dict]) -> str:
 
     function render() {{
       const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
       el("questionCounter").textContent = `Question ${{q.number}} of ${{QUESTIONS.length}}`;
       el("stem").textContent = q.stem;
       el("imageGrid").innerHTML = q.images.map(src => `<img src="${{src}}" alt="Question ${{q.number}} image" />`).join("");
@@ -371,7 +424,7 @@ def render_html(questions: list[dict]) -> str:
         b.type = "button";
         b.className = "choice";
         if (state.selected[q.number] === option.letter) b.classList.add("current");
-        if (state.submitted[q.number]) {{
+        if (state.submitted[q.number] && reveal) {{
           if (option.letter === q.answer) b.classList.add("correct");
           if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
         }}
@@ -388,8 +441,8 @@ def render_html(questions: list[dict]) -> str:
         choices.appendChild(b);
       }});
       const submitted = state.submitted[q.number];
-      el("result").classList.toggle("show", !!submitted);
-      if (submitted) {{
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {{
         const ok = state.selected[q.number] === q.answer;
         el("status").className = `status ${{ok ? "good" : "bad"}}`;
         el("status").textContent = ok ? `Correct: ${{q.answer}}` : `Incorrect. You chose ${{state.selected[q.number] || "nothing"}}; correct answer: ${{q.answer}}`;
@@ -397,18 +450,63 @@ def render_html(questions: list[dict]) -> str:
       }}
       const answered = Object.keys(state.submitted).length;
       const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
-      el("score").textContent = `${{answered}} answered | ${{right}} correct`;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${{answered}} of ${{QUESTIONS.length}} answered` : `${{answered}} answered | ${{right}} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${{QUESTIONS.length}}`;
+      el("copyPrompt").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
       renderNav();
+      renderReview();
+    }}
+
+    function renderReview() {{
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${{right}} / ${{QUESTIONS.length}} correct` : `Reviewing ${{answered}} of ${{QUESTIONS.length}} answered questions: ${{right}} correct so far`;
+      const list = el("reviewList");
+      list.innerHTML = "";
+      QUESTIONS.filter(q => state.submitted[q.number]).forEach(q => {{
+        const chosen = state.selected[q.number] || "not selected";
+        const ok = chosen === q.answer;
+        const item = document.createElement("article");
+        item.className = "review-item";
+        const title = document.createElement("h3");
+        title.textContent = `Question ${{q.number}}`;
+        const meta = document.createElement("div");
+        meta.className = "review-meta";
+        meta.textContent = ok ? `Correct: ${{q.answer}}` : `Incorrect. You chose ${{chosen}}; correct answer: ${{q.answer}}`;
+        const stem = document.createElement("div");
+        stem.textContent = q.stem;
+        const exp = document.createElement("div");
+        exp.className = "explanation";
+        exp.textContent = q.explanation;
+        item.append(title, meta, stem, exp);
+        list.appendChild(item);
+      }});
     }}
 
     el("submit").addEventListener("click", () => {{
       const q = QUESTIONS[state.index];
       if (!state.selected[q.number]) return;
       state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
       render();
     }});
     el("prev").addEventListener("click", () => {{ state.index = Math.max(0, state.index - 1); render(); }});
     el("next").addEventListener("click", () => {{ state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); }});
+    el("tutorMode").addEventListener("click", () => {{ state.mode = "tutor"; state.reviewOpen = false; render(); }});
+    el("quizMode").addEventListener("click", () => {{ state.mode = "quiz"; state.reviewOpen = false; render(); }});
+    el("reviewQuiz").addEventListener("click", () => {{
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    }});
     el("copyQuestion").addEventListener("click", () => copy(questionText(QUESTIONS[state.index])));
     el("copyPrompt").addEventListener("click", () => copy(promptText(QUESTIONS[state.index])));
     render();
