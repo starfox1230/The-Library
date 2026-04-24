@@ -255,6 +255,7 @@ def render_html(questions: list[dict]) -> str:
       border: 1px solid var(--line);
       border-radius: 6px;
       object-fit: contain;
+      cursor: zoom-in;
     }}
     .choices {{ display: grid; gap: 8px; margin: 14px 0; }}
     .choice {{
@@ -338,6 +339,23 @@ def render_html(questions: list[dict]) -> str:
       padding: 0;
     }}
     dialog::backdrop {{ background: rgba(0, 0, 0, 0.68); }}
+    .lightbox {{
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }}
+    .lightbox.show {{ display: grid; }}
+    .lightbox img {{
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }}
     .settings-body {{ padding: 16px; display: grid; gap: 12px; }}
     .settings-head {{
       display: flex;
@@ -436,6 +454,9 @@ def render_html(questions: list[dict]) -> str:
       <div class="notice" id="notice"></div>
     </section>
   </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
   <dialog id="settingsDialog">
     <div class="settings-head">
       <h2>Settings</h2>
@@ -584,6 +605,9 @@ def render_html(questions: list[dict]) -> str:
       el("questionCounter").textContent = `Question ${{q.number}} of ${{QUESTIONS.length}}`;
       el("stem").textContent = q.stem;
       el("imageGrid").innerHTML = q.images.map(src => `<img src="${{src}}" alt="Question ${{q.number}} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {{
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      }});
       const choices = el("choices");
       choices.innerHTML = "";
       q.options.forEach(option => {{
@@ -659,6 +683,17 @@ def render_html(questions: list[dict]) -> str:
       }});
     }}
 
+    function openLightbox(src, alt) {{
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }}
+
+    function closeLightbox() {{
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }}
+
     el("submit").addEventListener("click", () => {{
       const q = QUESTIONS[state.index];
       if (!state.selected[q.number]) return;
@@ -711,6 +746,7 @@ def render_html(questions: list[dict]) -> str:
         flash(error.message || "Could not load saved state JSON.");
       }}
     }});
+    el("lightbox").addEventListener("click", closeLightbox);
     el("copyQuestion").addEventListener("click", () => copy(questionText(QUESTIONS[state.index])));
     el("copyPrompt").addEventListener("click", () => copy(promptText(QUESTIONS[state.index])));
     render();
