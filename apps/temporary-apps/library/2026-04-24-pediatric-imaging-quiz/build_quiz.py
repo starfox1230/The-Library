@@ -124,16 +124,18 @@ def render_html(questions: list[dict]) -> str:
   <title>Pediatric GI Imaging Quiz</title>
   <style>
     :root {{
-      --bg: #f7f8fb;
-      --ink: #17202f;
-      --muted: #5b6472;
-      --panel: #ffffff;
-      --line: #d9dee8;
-      --accent: #146c94;
-      --accent-2: #0f4d68;
-      --good: #197a4d;
-      --bad: #aa2f2f;
-      --warn: #805b10;
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -144,7 +146,7 @@ def render_html(questions: list[dict]) -> str:
     }}
     header {{
       border-bottom: 1px solid var(--line);
-      background: #ffffff;
+      background: #111721;
       position: sticky;
       top: 0;
       z-index: 2;
@@ -183,7 +185,7 @@ def render_html(questions: list[dict]) -> str:
     .nav-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }}
     button {{
       border: 1px solid var(--line);
-      background: #fff;
+      background: #111721;
       color: var(--ink);
       border-radius: 6px;
       min-height: 38px;
@@ -192,12 +194,12 @@ def render_html(questions: list[dict]) -> str:
       cursor: pointer;
     }}
     button:hover {{ border-color: var(--accent); }}
-    button.primary {{ background: var(--accent); color: #fff; border-color: var(--accent); }}
+    button.primary {{ background: var(--accent); color: #06111a; border-color: var(--accent); }}
     button.primary:hover {{ background: var(--accent-2); }}
     button.icon {{ min-width: 42px; }}
     button.current {{ outline: 2px solid var(--accent); }}
-    button.correct {{ background: #e5f5ec; border-color: #97d3b3; color: var(--good); }}
-    button.wrong {{ background: #fae8e8; border-color: #e0a1a1; color: var(--bad); }}
+    button.correct {{ background: #123326; border-color: #2f8e62; color: var(--good); }}
+    button.wrong {{ background: #3a171b; border-color: #9b3f48; color: var(--bad); }}
     .question-panel {{ padding: 18px; }}
     .topline {{
       display: flex;
@@ -213,7 +215,7 @@ def render_html(questions: list[dict]) -> str:
       border: 1px solid var(--line);
       border-radius: 8px;
       overflow: hidden;
-      background: #eef2f7;
+      background: var(--panel-2);
     }}
     .mode-switch button {{
       border: 0;
@@ -223,7 +225,7 @@ def render_html(questions: list[dict]) -> str:
     }}
     .mode-switch button.active {{
       background: var(--accent);
-      color: #fff;
+      color: #06111a;
     }}
     .stem {{
       font-size: 1.12rem;
@@ -261,7 +263,7 @@ def render_html(questions: list[dict]) -> str:
       width: 26px;
       height: 26px;
       border-radius: 50%;
-      background: #eef2f7;
+      background: #243044;
       font-weight: 800;
     }}
     .actions {{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }}
@@ -284,7 +286,7 @@ def render_html(questions: list[dict]) -> str:
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
-      background: #f9fafc;
+      background: var(--panel-2);
     }}
     .review-item h3 {{
       margin: 0 0 8px;
@@ -302,8 +304,8 @@ def render_html(questions: list[dict]) -> str:
     .explanation {{
       white-space: pre-wrap;
       line-height: 1.48;
-      color: #202938;
-      background: #f9fafc;
+      color: var(--ink);
+      background: var(--panel-2);
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
