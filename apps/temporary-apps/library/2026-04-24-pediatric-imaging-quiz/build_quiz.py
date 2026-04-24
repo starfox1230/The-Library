@@ -405,7 +405,6 @@ def render_html(questions: list[dict]) -> str:
     <div class="bar">
       <div>
         <h1>Pediatric Gastrointestinal Tract Quiz</h1>
-        <div class="sub">Core Review Pediatric Imaging, chapter 1. Tutor mode gives immediate feedback; Quiz mode saves review until the end.</div>
       </div>
       <div class="counter" id="score">0 answered</div>
     </div>
