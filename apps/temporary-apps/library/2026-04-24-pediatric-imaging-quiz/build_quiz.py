@@ -169,6 +169,7 @@ def render_html(questions: list[dict]) -> str:
       grid-template-columns: 280px 1fr;
       gap: 18px;
     }}
+    main.nav-closed {{ grid-template-columns: 1fr; }}
     nav, .question-panel {{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -183,6 +184,15 @@ def render_html(questions: list[dict]) -> str:
       overflow: auto;
     }}
     .nav-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }}
+    .nav-head {{
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }}
+    .nav-title {{ font-weight: 800; }}
+    main.nav-closed nav {{ display: none; }}
     button {{
       border: 1px solid var(--line);
       background: #111721;
@@ -197,6 +207,7 @@ def render_html(questions: list[dict]) -> str:
     button.primary {{ background: var(--accent); color: #06111a; border-color: var(--accent); }}
     button.primary:hover {{ background: var(--accent-2); }}
     button.icon {{ min-width: 42px; }}
+    button:disabled {{ opacity: 0.48; cursor: not-allowed; }}
     button.current {{ outline: 2px solid var(--accent); }}
     button.correct {{ background: #123326; border-color: #2f8e62; color: var(--good); }}
     button.wrong {{ background: #3a171b; border-color: #9b3f48; color: var(--bad); }}
@@ -267,6 +278,12 @@ def render_html(questions: list[dict]) -> str:
       font-weight: 800;
     }}
     .actions {{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }}
+    .notice {{
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }}
     .result {{
       border-top: 1px solid var(--line);
       margin-top: 18px;
@@ -312,6 +329,46 @@ def render_html(questions: list[dict]) -> str:
       max-height: 360px;
       overflow: auto;
     }}
+    dialog {{
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }}
+    dialog::backdrop {{ background: rgba(0, 0, 0, 0.68); }}
+    .settings-body {{ padding: 16px; display: grid; gap: 12px; }}
+    .settings-head {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }}
+    .settings-head h2 {{ margin: 0; font-size: 1.1rem; letter-spacing: 0; }}
+    .settings-row {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+    .settings-field label {{
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }}
+    .settings-field textarea {{
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }}
     textarea {{
       position: fixed;
       left: -9999px;
@@ -337,16 +394,24 @@ def render_html(questions: list[dict]) -> str:
   </header>
   <main>
     <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
       <div class="nav-grid" id="navGrid"></div>
     </nav>
     <section class="question-panel" aria-live="polite">
       <div class="topline">
-        <div class="counter" id="questionCounter"></div>
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
         <div class="tools">
           <div class="mode-switch" aria-label="Study mode">
             <button type="button" id="tutorMode" class="active">Tutor</button>
             <button type="button" id="quizMode">Quiz</button>
           </div>
+          <button type="button" id="settingsButton">Settings</button>
           <button type="button" id="copyQuestion">Copy Question</button>
           <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
         </div>
@@ -368,13 +433,90 @@ def render_html(questions: list[dict]) -> str:
         <div class="status" id="reviewStatus"></div>
         <div class="review-list" id="reviewList"></div>
       </div>
+      <div class="notice" id="notice"></div>
     </section>
   </main>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{{"version":1,"appId":"pediatric-gi-imaging-quiz-ch1",...}}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
   <textarea id="clipboardScratch"></textarea>
   <script>
     const QUESTIONS = {data};
-    const state = {{ index: 0, selected: {{}}, submitted: {{}}, mode: "tutor", reviewOpen: false }};
+    const APP_ID = "pediatric-gi-imaging-quiz-ch1";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_STATE = {{ index: 0, selected: {{}}, submitted: {{}}, mode: "tutor", reviewOpen: false, navOpen: true }};
+    const state = loadState();
     const el = (id) => document.getElementById(id);
+
+    function loadState() {{
+      try {{
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return {{ ...DEFAULT_STATE }};
+        return {{
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {{}},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {{}},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        }};
+      }} catch {{
+        return {{ ...DEFAULT_STATE }};
+      }}
+    }}
+
+    function statePayload() {{
+      return {{
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      }};
+    }}
+
+    function saveState() {{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }}
+
+    function applyImportedState(payload) {{
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {{}};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {{}};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }}
+
+    function flash(message) {{
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => {{ el("notice").textContent = ""; }}, 2600);
+    }}
 
     function questionText(q) {{
       const opts = q.options.map(o => `${{o.letter}}. ${{o.text}}`).join("\\n");
@@ -396,6 +538,7 @@ def render_html(questions: list[dict]) -> str:
         scratch.select();
         document.execCommand("copy");
       }}
+      flash("Copied.");
     }}
 
     function renderNav() {{
@@ -416,6 +559,8 @@ def render_html(questions: list[dict]) -> str:
     function render() {{
       const q = QUESTIONS[state.index];
       const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
       el("questionCounter").textContent = `Question ${{q.number}} of ${{QUESTIONS.length}}`;
       el("stem").textContent = q.stem;
       el("imageGrid").innerHTML = q.images.map(src => `<img src="${{src}}" alt="Question ${{q.number}} image" />`).join("");
@@ -462,6 +607,7 @@ def render_html(questions: list[dict]) -> str:
       el("quizMode").classList.toggle("active", state.mode === "quiz");
       renderNav();
       renderReview();
+      saveState();
     }}
 
     function renderReview() {{
@@ -508,6 +654,42 @@ def render_html(questions: list[dict]) -> str:
       if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
       state.reviewOpen = true;
       render();
+    }});
+    el("hideNav").addEventListener("click", () => {{ state.navOpen = false; render(); }});
+    el("showNav").addEventListener("click", () => {{ state.navOpen = true; render(); }});
+    el("settingsButton").addEventListener("click", () => {{
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    }});
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {{
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], {{ type: "application/json" }});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${{APP_ID}}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    }});
+    el("resetState").addEventListener("click", () => {{
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, {{ ...DEFAULT_STATE, selected: {{}}, submitted: {{}} }});
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    }});
+    el("importState").addEventListener("click", () => {{
+      try {{
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      }} catch (error) {{
+        flash(error.message || "Could not load saved state JSON.");
+      }}
     }});
     el("copyQuestion").addEventListener("click", () => copy(questionText(QUESTIONS[state.index])));
     el("copyPrompt").addEventListener("click", () => copy(promptText(QUESTIONS[state.index])));
