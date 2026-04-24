@@ -164,14 +164,8 @@
       uniform vec4 u_color;
       void main() {
         vec2 uv = gl_FragCoord.xy / u_resolution;
-        float radius = 0.5;
-        float left = smoothstep(0.0, radius, uv.x) * smoothstep(0.0, radius, uv.y) * smoothstep(0.0, radius, 1.0 - uv.y);
-        float right = smoothstep(0.0, radius, 1.0 - uv.x) * smoothstep(0.0, radius, uv.y) * smoothstep(0.0, radius, 1.0 - uv.y);
-        float rounded = min(left, right);
         float fill = step(uv.x, clamp(u_progress, 0.0, 1.0));
-        vec4 track = vec4(1.0, 1.0, 1.0, 0.08 * rounded);
-        vec4 active = vec4(u_color.rgb, u_color.a * rounded);
-        gl_FragColor = mix(track, active, fill);
+        gl_FragColor = vec4(u_color.rgb, u_color.a * fill);
       }
     `);
     const program = gl.createProgram();
