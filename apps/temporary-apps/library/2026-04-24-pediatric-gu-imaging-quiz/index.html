@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pediatric GI Imaging Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Pediatric Genitourinary Tract Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestion">Copy Question</button>
+            <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"pediatric-gu-imaging-quiz-ch2",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": 1, "stem": "A 1-month-old male neonate with an abdominal mass presents for an abdominal ultrasound. Images from theexamination are shown below. What is the next appropriate step in management?", "options": [{"letter": "A", "text": "Plain radiographs of the abdomen"}, {"letter": "B", "text": "Voiding cystourethrogram (VCUG)"}, {"letter": "C", "text": "CT scan of the abdomen and pelvis"}, {"letter": "D", "text": "Testicular ultrasound"}], "images": ["assets/q01_p091_1.jpeg", "assets/q01_p092_1.jpeg"], "explanationImages": [], "answer": "B", "explanation": "The images demonstrate dilatation of the left renal pelvis and calyces without ureterectasis. The rightkidney is normal. These findings are often seen in a UPJ obstruction. However, vesicoureteral reflux should beexcluded as the cause of the left-sided pelvicaliectasis, which is why a VCUG would be the next best step inmanagement. Note that in a male, a VCUG would also help exclude a posterior urethral valve, which can causebladder outlet obstruction and pelvicaliectasis. Plain radiographs of the abdomen will not be helpful in determiningthe cause of the pelvicaliectasis, and a CT scan of the abdomen and pelvis will also not be helpful in determiningwhether vesicoureteral reflux is the cause of the pelvicaliectasis. Both of these exams would needlessly expose thechild to ionizing radiation. Although a testicular ultrasound does not utilize ionizing information, it would not give usany information about the cause for the pelvicaliectasis.\n\nReferences: Blickman JG, Parker BR, Barnes PD. Pediatric radiology: the requisites, 3rd ed. Philadelphia, PA: Elsevier/Saunders,2009. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 2, "stem": "A representative image obtained from a VCUG examination subsequently performed on the same patient in Question 1 is shown below. What would be the next appropriate step in management?", "options": [{"letter": "A", "text": "Tc-99m MAG-3 scan"}, {"letter": "B", "text": "Tc-99m DMSA scan"}, {"letter": "C", "text": "CT scan of the abdomen and pelvis"}, {"letter": "D", "text": "Right upper quadrant ultrasound"}], "images": ["assets/q02_p093_1.jpeg"], "explanationImages": [], "answer": "A", "explanation": "The image from the VCUG examination fails to demonstrate vesicoureteral reflux, which can now beexcluded as a cause for the left-sided pelvicaliectasis. So, there is now a suspected left-sided UPJ obstruction and afunctional and dynamic imaging study should be ordered to determine whether surgical intervention will benecessary. A Tc-99m MAG-3 study should provide that information as it is a dynamic test that evaluates uptake andclearance of radiotracer by the kidneys as well as drainage of radiotracer into the ureters and bladder. None of theother tests will yield this information as they are not functional exams. A Tc-99m DMSA scan is a functional but nota dynamic study used to evaluate for cortical scarring and/or pyelonephritis. This exam might be helpful if the patienthad vesicoureteral reflux, especially if it was accompanied by a UTI, but the VCUG was negative for reflux. A CTscan is not a dynamic exam. A right upper quadrant ultrasound also would not be helpful but could evaluate the gray-scale appearance of the right kidney. However, the right kidney was normal on the initial ultrasound exam.\n\nReferences: Blickman JG, Parker BR, Barnes PD. Pediatric radiology: the requisites, 3rd ed. Philadelphia, PA: Elsevier/Saunders,2009. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Fernbach SK, Feinstein KA, Schmidt MB. Pediatric voiding cystourethrography: a pictorial guide. Radiographics2000;20(1):155–168; discussion 168–171."}, {"number": 3, "stem": "A Tc-99m MAG-3 scan was subsequently performed on the same patient in Questions 1 and 2. The pre-Lasixrenogram for the right kidney was normal. The pre-Lasix renogram for the left kidney was abnormal. The post-Lasixrenogram for the left kidney is shown below. Which of the following is TRUE?", "options": [{"letter": "A", "text": "There is a definite obstruction."}, {"letter": "B", "text": "The patient will require surgical intervention."}, {"letter": "C", "text": "The patient will likely not require surgical intervention."}, {"letter": "D", "text": "The time from max to half max is 15 minutes."}], "images": ["assets/q03_p094_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "The image demonstrated is a renogram of the left kidney obtained after Lasix administration. The timeof maximum activity (Tmax) is approximately 2. 5 minutes, and the time of ½ maximum activity (T1/2max) is around10. 5 minutes. Therefore, the time from max to half max is about 8 minutes. In addition, there is significantdownsloping of the curve consistent with a good response to Lasix. Dilated collecting systems secondary to fixed or functional obstruction may produce continuously risingrenogram curves before Lasix administration with little to no evidence of excretion or downsloping. After Lasixadministration, the curve should be inspected for change. In dilated, nonobstructed systems, Lasix causes increasedurine flow through the collecting system, which washes out the initial increase in activity and causes a decline of theexcretion similar to this case. In the case of significant mechanical obstruction, there is very little decrease in therenal collecting system activity after administration of Lasix because of the narrowed and fixed lumen of the ureter. The rising renogram curve is changed little or is unaffected. These patients are often treated with a surgicalpyeloplasty.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine, 6th ed. Philadelphia PA: Saunders Elsevier, 2012."}, {"number": 4, "stem": "Images from a renal ultrasound are demonstrated below with the patient imaged in the left lateral decubitus (LLD)position. Regarding the entity demonstrated in the images of the right kidney, which of the following is TRUE?", "options": [{"letter": "A", "text": "These lesions almost always develop into a Wilms tumor."}, {"letter": "B", "text": "There is an association with contralateral UPJ obstructions."}, {"letter": "C", "text": "The kidney often maintains this appearance for the rest of the patient's life."}, {"letter": "D", "text": "There would be extensive radiotracer uptake by the right kidney on a MAG-3 scan."}], "images": ["assets/q04_p095_1.jpeg", "assets/q04_p095_2.jpeg"], "explanationImages": [], "answer": "B", "explanation": "The images demonstrate multiple noncommunicating cysts throughout the right kidney without a dilatedrenal pelvis. These findings are consistent with a multicystic dysplastic kidney. These lesions are associated with acontralateral UPJ obstruction in 7% to 27% of cases. There is some controversy whether or not these lesions have arisk of malignant transformation and because of this are usually followed by serial ultrasound exams. These lesionsusually slowly decrease in size over time, and often, the remaining residual dysplastic kidney will no longer bevisualized by imaging techniques. There is typically no radiotracer uptake by the affected kidney on a MAG-3 scanas there is no function. Because of this, the contralateral kidney will often be enlarged in size because ofcompensatory hypertrophy.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 5, "stem": "Coronal images from a contrast-enhanced CT scan of the abdomen and pelvis are demonstrated below in a 16-year-old patient who has new-onset hypertension. Concerning the entity demonstrated, which of the following is TRUE?", "options": [{"letter": "A", "text": "The inheritance pattern of the disease is likely autosomal recessive."}, {"letter": "B", "text": "There is often an onset of disease in early childhood."}, {"letter": "C", "text": "There is an association with berry aneurysms."}, {"letter": "D", "text": "There is an association of this entity with hepatic fibrosis."}], "images": ["assets/q05_p096_1.jpeg", "assets/q05_p097_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "The images are coronal images from a contrast-enhanced CT scan of the abdomen and pelvis, whichdemonstrate multiple round foci of low attenuation compatible with renal cysts. The cysts appear to be a fewcentimeters in size. These findings are most compatible with autosomal dominant polycystic kidney disease(ADPKD). This can be distinguished by the age of the patient as well as the size of the cysts. Although autosomalrecessive polycystic kidney disease (ARPKD) can give renal macrocysts, most cysts are usually small and in therange of 1 to 2 mm. There is an association of ARPKD with congenital hepatic fibrosis. In addition, ARPKD usuallyaffects children in the first decade of life, whereas ADPKD usually affects patients during the teenage to adult years. ADPKD is associated with berry aneurysms in approximately 10% of cases.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 6, "stem": "A 3-year-old presents with left upper quadrant pain and vomiting. A supine abdominal radiograph wassubsequently obtained and is shown below. What is the next most appropriate step in management?", "options": [{"letter": "A", "text": "Tc-99m MAG-3 scan"}, {"letter": "B", "text": "I-123 MIBG scan"}, {"letter": "C", "text": "Abdominal ultrasound"}, {"letter": "D", "text": "Tc-99m DMSA scan"}], "images": ["assets/q06_p098_1.jpeg"], "explanationImages": ["assets/a06_p134_1.jpeg"], "answer": "C", "explanation": "The abdominal plain film demonstrates a soft tissue density in the left hemiabdomen, which isconcerning for a mass lesion (arrows). The next best test would be a cross-sectional imaging study to try and identifythe mass and its origin. An abdominal ultrasound would be the best way to accomplish this in an inexpensive waywithout the use of ionizing radiation. A Tc-99m MAG-3 scan may show some renal abnormality, but it would not bethe best way to visualize the suspected tumor. An I-123 MIBG scan would be helpful to see if the tumor is MIBGavid as in cases of tumors of neural crest origin such as neuroblastomas, which often originate in the adrenal region. However, at this point, we do not know the origin of the tumor. A VCUG would not be helpful to visualize the tumoras this test is usually performed to look for vesicoureteral reflux.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 7, "stem": "An abdominal ultrasound of the patient in Question 6 was subsequently performed. Representative images areshown below. What is the next most appropriate step in management?", "options": [{"letter": "A", "text": "I-123 MIBG scan"}, {"letter": "B", "text": "Tc-99m MAG-3 scan"}, {"letter": "C", "text": "VCUG"}, {"letter": "D", "text": "MRI of the abdomen"}], "images": ["assets/q07_p099_1.jpeg", "assets/q07_p100_1.jpeg"], "explanationImages": [], "answer": "D", "explanation": "The ultrasound images demonstrate a heterogeneous mass in the region of the left kidney labeled as\"LK\" on the ultrasound images. It is still difficult to determine the origin of the tumor. Therefore, an alternativecross-sectional imaging modality is needed to define the origin and extent of the mass lesion. An MRI of theabdomen and pelvis with and without intravenous contrast would be a good way to further image the tumor withoutthe use of ionizing radiation although the child would likely need to be sedated for the exam. For similar reasonsexplained in the explanation to Question 6, neither an I-123 MIBG scan, Tc-99m MAG-3 scan, nor a VCUG scanwould be helpful. A CT scan of the abdomen would also be appropriate to further image the tumor but would require the use of ionizing radiation.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Son J, Lee EY, Restrepo R, et al. Focal renal lesions in pediatric patients. Am J Roentgenol 2012;199(6):W668–W682."}, {"number": 8, "stem": "An MRI of the abdomen was subsequently performed on the same patient in Questions 6 and 7. Representativeimages are shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Neuroblastoma"}, {"letter": "B", "text": "Mesoblastic nephroma"}, {"letter": "C", "text": "Wilms tumor"}, {"letter": "D", "text": "Renal cell carcinoma"}], "images": ["assets/q08_p101_1.jpeg", "assets/q08_p102_1.jpeg"], "explanationImages": ["assets/a08_p135_1.jpeg", "assets/a08_p136_1.jpeg"], "answer": "C", "explanation": "Figure A is an axial T2-weighted image with fat saturation from an MR exam, which demonstrates aheterogeneous mass arising from the left kidney. A \"claw sign\" of renal tissue is seen medially (arrows). Figure B is acoronal image from a T1-weighted image with fat saturation and after contrast administration, which againdemonstrates a heterogeneous lesion arising from the left kidney with a medial \"claw sign\" of renal parenchyma(arrows). Given the patient's age group, a Wilms tumor would be the most likely tumor. Renal cell carcinoma occursin older children and the adult population, and mesoblastic nephroma, a generally benign tumor, usually occurs inneonates. Neuroblastomas often arise from the adrenals.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Son J, Lee EY, Restrepo R, et al. Focal renal lesions in pediatric patients. Am J Roentgenol 2012;199(6):W668–W682."}, {"number": 9, "stem": "Which of the following additional tests would be indicated on the patient in questions 6, 7 and 8?", "options": [{"letter": "A", "text": "CT scan of the chest"}, {"letter": "B", "text": "Bone scan"}, {"letter": "C", "text": "I-123 MIBG scan"}, {"letter": "D", "text": "VCUG"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "When evaluating a suspected Wilms tumor, it is important to document the following features: lymphnode involvement, liver and lung metastasis, involvement of the contralateral tumor by a synchronous tumor, theanatomic distribution of the intrarenal tumor, involvement of the renal vein or inferior vena cava, and the path of theureters in relation to the mass. Therefore, a CT scan of the chest would be indicated. A VCUG would not be helpfulto evaluate any of the above features. An I-123 MIBG scan would be helpful to evaluate the extent of aneuroblastoma but is not indicated for a Wilms tumor. Because osseous metastatic disease is rare in Wilms tumor,bone scans are not required as part of the workup.\n\nReferences: Carroll WL, Finlay JL. Cancer in children and adolescents. Boston, MA: Jones and Bartlett Publishers, 2010."}, {"number": 10, "stem": "Regarding Wilms tumor, which of the following is TRUE?", "options": [{"letter": "A", "text": "There is only one histology."}, {"letter": "B", "text": "The overall survival is >90%."}, {"letter": "C", "text": "The tumor does not commonly invade the renal veins."}, {"letter": "D", "text": "There is no known association with nephroblastomatosis."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "The current overall survival for Wilms tumor is slightly >90%, but this does vary with extent ofdisease and histology. There are both favorable and unfavorable histologic subtypes. Invasion of the renal vein andinferior vena cava occurs commonly in Wilms tumor. Nephroblastomatosis is a rare entity that is related to thepersistence of nephrogenic rests within the renal parenchyma. These nephrogenic rests are the precursors of Wilmstumors.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 11, "stem": "Which of the following renal tumors is associated with sickle cell trait?", "options": [{"letter": "A", "text": "Renal cell carcinoma"}, {"letter": "B", "text": "Multilocular cystic renal tumor"}, {"letter": "C", "text": "Mesoblastic nephroma"}, {"letter": "D", "text": "Medullary carcinoma"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Renal medullary carcinoma is a rare aggressive renal malignancy that is strongly associated withsickle cell (SC) trait or hemoglobin SC disease. With a peak age of presentation at 20 years, this neoplasm arisespredominantly from the renal medulla. None of the other tumors listed are associated with sickle cell trait.\n\nReferences: Son J, Lee EY, Restrepo R, et al. Focal renal lesions in pediatric patients. Am J Roentgenol 2012;199(6):W668–W682."}, {"number": 12, "stem": "A 10-year-old male presents with right testicular pain. A testicular ultrasound was performed, and representativeimages are shown below. Regarding the images, which of the following is TRUE?", "options": [{"letter": "A", "text": "These findings constitute a urologic emergency and require emergent surgical exploration."}, {"letter": "B", "text": "These findings demonstrate a testicular mass, and the patient should be referred to oncology."}, {"letter": "C", "text": "These findings are likely secondary to infection, and the patient will need to be started on antibiotics."}, {"letter": "D", "text": "Only supportive care is indicated."}], "images": ["assets/q12_p103_1.jpeg", "assets/q12_p104_1.jpeg", "assets/q12_p104_2.jpeg"], "explanationImages": ["assets/a12_p137_1.jpeg", "assets/a12_p138_1.jpeg"], "answer": "D", "explanation": "The ultrasound images demonstrate a hypoechoic oval avascular mass located between the righttesticle and epididymis (arrows). This is consistent with a torsed appendix testis. Note that torsed testicularappendages can be of varying echogenicity. Testicular appendageal torsion is a common cause of an acute scrotum inprepubertal boys. The appendages are normal remnants of embryonic tissue and are usually located adjacent to thesuperior testicle or epididymal head. Testicular appendages are more prevalent than epididymal appendages;however, the distinction is often difficult to make and is not important clinically. Additional findings may includescrotal edema and reactive hydroceles. Color Doppler may show hyperemia surrounding the torsed appendage. Treatment involves conservative management.\n\nReferences: Sung EK, Setty BN, Castro-Aragon I. Sonography of the pediatric scrotum: emphasis on the Ts–torsion, trauma, andtumors. Am J Roentgenol 2012;198(5):996–1003."}, {"number": 13, "stem": "A teenage female presents to the emergency department with intermittent pelvic pain. Representative images ofthe pelvic ultrasound that was performed are shown below. Which of the following would be the next mostappropriate step in management?", "options": [{"letter": "A", "text": "MRI of the pelvis"}, {"letter": "B", "text": "Repeat ultrasound in 6 to 8 weeks."}, {"letter": "C", "text": "I-123 MIBG scan"}, {"letter": "D", "text": "No further imaging is needed."}], "images": ["assets/q13_p105_1.jpeg", "assets/q13_p105_2.jpeg", "assets/q13_p106_1.jpeg"], "explanationImages": [], "answer": "A", "explanation": "The ultrasound images demonstrate a lesion within the left ovary that contains hyperechoic foci, someof which appear to shadow. Thus, this lesion may contain fat and/or calcium. The lesion itself appears avascular, butthere does appear to be flow in the surrounding left ovarian parenchyma. A cross-sectional imaging modality isnecessary to better define and characterize the lesion. An MRI would be preferred over CT because of the lack ofionizing radiation and its ability to characterize sonographically indeterminate adnexal masses of uncertain origin andsolid or complex cystic content. Although this lesion may contain calcium, it appears to arise from the left ovary andtherefore is extremely unlikely to be a neuroblastoma, so an MIBG scan would not be indicated.\n\nReferences: Adusumilli S, Hussain HK, Caoili EM, et al. MRI of sonographically indeterminate adnexal masses. Am J Roentgenol2006;187(3):732–740."}, {"number": 14, "stem": "Because of the inability of the patient in Question 13 to tolerate an MR examination and problems with sedatingthe patient, a CT scan of the pelvis was performed instead of an MR study. A representative image of the study isshown below. Regarding the abnormality, which of the following is TRUE?", "options": [{"letter": "A", "text": "Approximately 90% of these lesions rupture."}, {"letter": "B", "text": "Torsion of the affected ovary occurs in approximately 95% of cases."}, {"letter": "C", "text": "A Rokitansky nodule is commonly seen in mature cystic teratomas."}, {"letter": "D", "text": "There is no risk of malignant transformation."}], "images": ["assets/q14_p107_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "The CT scan demonstrates a lesion arising from the left ovary, which contains fat and calcium as wellas solid components. These findings are consistent with an ovarian teratoma. These lesions lead to torsion of theinvolved ovary in approximately 16% of cases. Approximately 1% to 4% of ovarian teratomas rupture, andapproximately 1% to 2% undergo malignant transformation. It is common to see a soft tissue protuberance in amature cystic teratoma; this is known as a Rokitansky nodule or dermoid plug. Although this protuberance may bepartly solid and consist of diverse tissues, benign teratomas never show transmural growth of the protuberance. Contrast enhancement of a Rokitansky nodule raises the possibility of malignant transformation, although this findingdoes not always necessarily indicate malignancy.\n\nReferences: Park SB, Kim JK, Kim KR, et al. Imaging findings of complications and unusual manifestations of ovarian teratomas. Radiographics 2008;28(4):969–983."}, {"number": 15, "stem": "A 1-day-old male with a history of prenatal hydronephrosis presents for a renal ultrasound. Images from theexamination are shown below. Which of the following would be the next most appropriate step in management?", "options": [{"letter": "A", "text": "Emergent surgical intervention"}, {"letter": "B", "text": "VCUG"}, {"letter": "C", "text": "Tc-99m MAG-3 scan"}, {"letter": "D", "text": "Tc-99m DMSA scan"}], "images": ["assets/q15_p108_1.jpeg", "assets/q15_p108_2.jpeg", "assets/q15_p109_1.jpeg"], "explanationImages": [], "answer": "B", "explanation": "The images demonstrate bilateral pelvicaliectasis. In addition, the bladder wall appears irregularlythickened and trabeculated even for a partially contracted bladder. In a male, these findings raise the possibility ofbladder outlet obstruction from a posterior urethral valve. A VCUG exam will evaluate the urethra as well as test forvesicoureteral reflux. None of the other tests will be able to determine if there is a posterior urethral valve. Althoughthe patient will require surgery if there is a posterior urethral valve, it is necessary to determine if the patient has aposterior urethral valve prior to surgical intervention.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 16, "stem": "A VCUG study was subsequently performed on the patient described in Question 15. An image from the study isshown below. Regarding the entity shown, which of the following is TRUE?", "options": [{"letter": "A", "text": "There is marked dilatation of the anterior urethra."}, {"letter": "B", "text": "Urinary ascites is a good prognostic indicator."}, {"letter": "C", "text": "They are not commonly found in males."}, {"letter": "D", "text": "The definitive treatment is medical."}], "images": ["assets/q16_p110_1.jpeg"], "explanationImages": ["assets/a16_p140_1.jpeg"], "answer": "B", "explanation": "The images demonstrate marked dilatation of the posterior urethra (long arrows) with a normalappearance of the anterior urethra (short arrows). These findings are consistent with a posterior urethral valve, whichis found exclusively in males. These lesions are treated surgically. In patients with posterior urethral valves (PUV),severe unilateral vesicoureteral reflux (VUR) is one of the three conditions associated with preservation of renalfunction. Others are urinary ascites or urinoma in newborns and large congenital bladder diverticula. Theseconditions most likely provide a pop-off mechanism preventing the development of high intravesical pressure. Only5% of patients with PUV and an associated pop-off mechanism will develop renal failure as opposed to 40% ofpatients with PUV without a protective factor.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Goodwin OI, Ayotunde OO. Posterior urethral valves with severe unilateral vesicoureteral reflux in a 3-year-old boy. Ann Ib Postgrad Med 2007;5(2):73–76."}, {"number": 17, "stem": "An image from a testicular ultrasound is shown below. Which of the following would be the next mostappropriate step in management?", "options": [{"letter": "A", "text": "Stat urology consult"}, {"letter": "B", "text": "CT scan of the chest, abdomen, and pelvis to look for metastatic disease"}, {"letter": "C", "text": "MRI of the pelvis to look for a source of infection"}, {"letter": "D", "text": "Routine urology follow-up along with surveillance ultrasounds in younger patients and testicular self-examination in older patients"}], "images": ["assets/q17_p111_1.jpeg"], "explanationImages": [], "answer": "D", "explanation": "The ultrasound image demonstrates multiple bright echogenic nonshadowing foci throughout thetestes. These findings are consistent with testicular microlithiasis. There is often no posterior acoustic shadowingbecause of the small size of the calcifications. It was initially reported that the risk of development of testicularneoplasms of those with this condition is between 18% and 75%. This led to recommendations for serial screeningultrasounds in patients with testicular microlithiasis to exclude development of neoplasm. However, more recentreports have shown that testicular microlithiasis is much more common than suspected, occurring in about 6% ofmales between 17 and 35 years of age and that the overwhelming majority of these patients will not developmalignancies. Some now advocate following these patients with physical examination rather than ultrasound. Onerecent paper stated that recommended follow-up depends on the ability of the child to cooperate and may include periodic US, periodic physical examination by the physician, and/or education of the patients to perform self-examination of the scrotum. Because this condition is not a urologic emergency, a stat urology consult would not be indicated. This conditionis not associated with active infection, and therefore an MRI of the pelvis to look for a site of infection is notindicated. As stated earlier, this condition is more common than anticipated in the young male population and ametastatic workup is not indicated in the absence of other findings of neoplasm.\n\nReferences: Cooper ML, Kaefer M, Fan R, et al. Testicular microlithiasis in children and associated testicular cancer. Radiology2014;270(3):857–863. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 18, "stem": "A patient presents for a VCUG examination for a history of urinary tract infections. A representative image fromthe study is shown below. Regarding the findings, which of the following is TRUE?", "options": [{"letter": "A", "text": "There is a single collecting system on the right."}, {"letter": "B", "text": "There is a duplex collecting system on the right."}, {"letter": "C", "text": "There is a duplex collecting system on the left."}, {"letter": "D", "text": "There is no vesicoureteral reflux."}], "images": ["assets/q18_p112_1.jpeg"], "explanationImages": ["assets/a18_p142_1.jpeg"], "answer": "B", "explanation": "The image is taken from a voiding cystourethrogram, which demonstrates bilateral vesicoureteralreflux. A \"drooping lily\" sign is seen on the right (arrows). This sign is identified in patients with a duplex collectingsystem. The drooping lily sign is due to inferior and lateral displacement of the lower pole moiety of a duplex kidney,rather than displacement of an entire kidney. An obstructed, poorly functioning upper pole moiety exerts a masseffect on the lower pole collecting system, which is responsible for the abnormal axis of the lower pole calices andwhich causes the droop of the lily. Because only the lower pole collecting system is opacified with contrast material,a decreased number of calices are depicted, as no calices extend cephalad from the renal pelvis. No drooping lily signis seen in the left kidney, which has a single collecting system.\n\nReferences: Callahan MJ. The drooping lily sign. Radiology 2001;219(1):226–228."}, {"number": 19, "stem": "According to the Weigert-Meyer rule, which of the following is TRUE?", "options": [{"letter": "A", "text": "The upper pole moiety is more prone to reflux."}, {"letter": "B", "text": "The upper pole moiety is more prone to a UPJ obstruction."}, {"letter": "C", "text": "The ureter for the lower pole moiety frequently ends in a ureterocele."}, {"letter": "D", "text": "The ureter for the upper pole moiety has an ectopic insertion, which inserts inferomedially to the insertionof the upper pole moiety."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "In patients with complete ureteropelvic duplication, the ureteral orifice of the upper pole moietyinserts more medially and inferiorly than does the orifice of the lower pole ureter. The lower pole system is moreprone to vesicoureteral reflux and UPJ obstruction. The upper pole moiety is more prone to obstruction secondary toa ureterocele. This is known as the Weigert-Meyer rule.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 20, "stem": "A 5-year-old male presents for a CT scan and MR exam to better evaluate abnormal findings on an abdominalultrasound. Images from the CT scan (Figure A) and MRI exam (Figure B) are shown below. Which of the followingwould be the next most appropriate step?", "options": [{"letter": "A", "text": "I-123 MIBG scan"}, {"letter": "B", "text": "Gallium 67 scan"}, {"letter": "C", "text": "Tc-99m MAG-3 scan"}, {"letter": "D", "text": "Tc-99m DMSA scan"}], "images": ["assets/q20_p113_1.jpeg", "assets/q20_p114_1.jpeg"], "explanationImages": ["assets/a20_p143_1.jpeg", "assets/a20_p144_1.jpeg"], "answer": "A", "explanation": "The images demonstrate a large paravertebral mass, which is seen in the right lower portions of thethorax and upper retroperitoneum. There are internal calcifications seen on the CT scan (arrows in Figure A). On the MR image, there is extension of the tumor into the right spinal canal (arrow in Figure B). In a child of this age group,the most likely etiology of the lesion is a neurogenic tumor such as neuroblastoma (NB) or a ganglioneuroblastoma(GNB). In an older child, a ganglioneuroma (GN) could also be considered. I-123 MIBG is taken up bycatecholamine-producing tumors such as NB, GNB, and GN. Although 90% to 95% of NB and GNB secretecatecholamines, only about 70% of NB and GNB are MIBG positive; one of the drawbacks of I-123 MIBG imagingis that a considerable minority of tumors (30%) are not MIBG avid. Tc-99m MAG-3 scans are used to determine renal function and evaluate for possible obstruction. Tc-99m DMSAscans are used to evaluate for pyelonephritis or renal cortical scarring. There is no evidence of the tumor involvingthe kidneys. Gallium 67 scans are used to evaluate for sources of chronic infection. In addition, this radiotracer is alsotaken up by certain neoplasms such as non-Hodgkin lymphoma, Hodgkin disease, hepatoma, and melanoma. Gallium67 scans are not useful to evaluate neuroblastoma.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Lonergan GJ, Schwab CM, Suarez ES, et al. Neuroblastoma, ganglioneuroblastoma, and ganglioneuroma: radiologic-pathologiccorrelation. Radiographics 2002;22(4):911–934."}, {"number": 21, "stem": "An I-123 MIBG scan was performed on the patient described in Question 20 and images from the examinationare shown below. Which of the following features of this tumor are associated with a better prognosis?", "options": [{"letter": "A", "text": "Elevated N-Myc amplification"}, {"letter": "B", "text": "Age of diagnosis of <1 year"}, {"letter": "C", "text": "Decreased levels of CD44"}, {"letter": "D", "text": "Elevated levels of ferritin"}], "images": ["assets/q21_p115_1.jpeg"], "explanationImages": [], "answer": "B", "explanation": "The tumor seen on the CT and MR images is MIBG avid and therefore likely represents aneuroblastoma. Children who are diagnosed with these tumors at <1 year of age usually have a good prognosis. Inthese patients, the disease tends to spread to the liver and skin. Children who are diagnosed with neuroblastoma olderthan 1 year of age usually have a poor prognosis. In these patients, the disease tends to spread to the bone. Note thatthere is a special stage in the staging of neuroblastoma known as IV-S, which is given to patients who are diagnosedat less than a year of age with metastatic disease that is confined to the skin, liver, and bone marrow. Cortical boneinvolvement is not considered to be part of IV-S. Expression of the N-Myc protein has been found to correlate with poor prognosis and aggressive tumor behavior in children older than 1 year. Other tumor features that influence prognosis include CD44, a glycoprotein on thesurface of NB cells. Increased levels of CD44 correlate with a better prognosis. Elevated serum levels of ferritinindicate a worse prognosis.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Lonergan GJ, Schwab CM, Suarez ES, et al. Neuroblastoma, ganglioneuroblastoma, and ganglioneuroma: radiologic-pathologiccorrelation. Radiographics 2002;22(4):911–934."}, {"number": 22, "stem": "When performing an I-123 MIBG nuclear medicine examination for evaluation of this tumor, which of thefollowing drugs should be discontinued if possible prior to the examination?", "options": [{"letter": "A", "text": "Imipramine"}, {"letter": "B", "text": "Potassium chloride"}, {"letter": "C", "text": "Omeprazole"}, {"letter": "D", "text": "Furosemide"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Imipramine is a tricyclic antidepressant that may inhibit localization of radioiodinated MIBG. Therefore, this drug should be discontinued before imaging when practical. Other drugs that may similarly inhibitlocalization of radioiodinated MIBG and that should be withheld if possible prior to imaging include insulin,reserpine, other tricyclic antidepressants, and amphetamine-like drugs. None of the other drugs listed need to bewithheld prior to imaging.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine, 6th ed. Philadelphia, PA: Elsevier/Saunders, 2012."}, {"number": 23, "stem": "Regarding neuroblastoma stage IV-S, which of the following is TRUE?", "options": [{"letter": "A", "text": "It is associated with a poor prognosis."}, {"letter": "B", "text": "It affects the skin, liver, and bone marrow."}, {"letter": "C", "text": "It is seen in children older than 2 years of age."}, {"letter": "D", "text": "There is no metastatic disease."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "There is a special stage in the staging of neuroblastoma known as IV-S, which is given to patients whoare diagnosed at less than a year of age with metastatic disease that is confined to the skin, liver, and bone marrow. Cortical bone involvement is not considered to be part of IV-S. Children diagnosed with IV-S tumors have a goodprognosis and a 3-year event-free survival rate of 75% to 90%.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Lonergan GJ, Schwab CM, Suarez ES, et al. Neuroblastoma, ganglioneuroblastoma, and ganglioneuroma: radiologic-pathologiccorrelation. Radiographic 2002;22(4):911–934."}, {"number": 24, "stem": "A CT scan performed on a 2-month-old patient is shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Congenital neuroblastoma"}, {"letter": "B", "text": "Wilms tumor"}, {"letter": "C", "text": "Renal cell carcinoma"}, {"letter": "D", "text": "Congenital mesoblastic nephroma"}], "images": ["assets/q24_p116_1.jpeg"], "explanationImages": ["assets/a24_p146_1.jpeg"], "answer": "D", "explanation": "The CT image demonstrates a heterogeneous solid mass arising from the left kidney as evidenced by arim of renal tissue medially (arrows) consistent with a \"claw sign.\" In a 2-month-old patient, this lesion most likelyrepresents a congenital mesoblastic nephroma (CMN). Congenital mesoblastic nephroma is the most common solidrenal tumor in the neonate. It is usually identified within the first 3 months of life, with 90% of cases discoveredwithin the first year of life. Imaging studies demonstrate a large solid intrarenal mass that typically involves the renalsinus. The mass replaces a large portion of renal parenchyma and may contain cystic, hemorrhagic, and necroticregions. CMN was first described in 1967 as a benign leiomyoma-like tumor. Current research now suggests that aspectrum of disease exists, ranging from the classic benign CMN to a more aggressive cellular CMN variant, whichaccounts for 42% to 63% of cases. The peak age of Wilms tumor is at 3 to 4 years of age. It is rare in neonates, with <0. 16% of cases manifesting inthis age group. Renal cell carcinoma has been reported in patients <6 months of age. However, the tumor is rare inchildren, accounting for <7% of all primary renal tumors presenting in the first two decades of life. Less than 2% ofall cases of renal cell carcinoma occur in pediatric patients, with a peak incidence in the sixth decade of life. Renalmedullary carcinoma is a highly aggressive malignant tumor that occurs almost exclusively in adolescent and youngadult blacks with sickle cell trait or hemoglobin SC disease. The age range is 10 to 39 years with a mean age of 20years.\n\nReferences: Lowe LH, Isuani BH, Heller RM, et al. Pediatric renal masses: Wilms tumor and beyond. Radiographics2000;20(6):1585–1603. Sheth MM, Cai G, Goodman TR. AIRP best cases in radiologic-pathologic correlation: congenital mesoblastic nephroma. Radiographics 2012;32(1):99–103."}, {"number": 25, "stem": "Regarding congenital mesoblastic nephroma, which of the following is TRUE?", "options": [{"letter": "A", "text": "There is more than one subtype."}, {"letter": "B", "text": "The tumor is never aggressive."}, {"letter": "C", "text": "It is easy to differentiate this tumor from other lesions based on imaging."}, {"letter": "D", "text": "It is a rare tumor in neonates."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Congenital mesoblastic nephroma (CMN) is the most common renal tumor in neonates and in infantsunder 1 year of age. CMN was first described in 1967 as a benign leiomyoma-like tumor. Current research nowsuggests that a spectrum of disease exists, ranging from the classic benign CMN to a more aggressive cellular CMNvariant, which accounts for 42% to 63% of cases. The imaging appearances of CMN vary depending on tumorcomposition, because classic variants are predominantly solid, whereas cellular variants are largely cystic. Unfortunately, many diverse disease processes may present as a solid, cystic, or mixed renal mass within the firstyear of life. The differential diagnosis is broad and includes renal and nonrenal tumors such as Wilms tumor, clearcell sarcoma, rhabdoid tumors, neuroblastoma, and multilocular cystic renal tumor. Although patient history,presentation, and associated findings can suggest a particular diagnosis, in many cases, a definitive diagnosis can bemade only on the basis of histopathologic findings.\n\nReferences: Sheth MM, Cai G, Goodman TR. AIRP best cases in radiologic-pathologic correlation: congenital mesoblasticnephroma. Radiographics 2012;32(1):99–103."}, {"number": 26, "stem": "An ultrasound exam was performed on a 4-year-old patient, and an image is shown below. What is the mostlikely diagnosis?", "options": [{"letter": "A", "text": "Rhabdomyosarcoma of the bladder"}, {"letter": "B", "text": "Distal ureteral calculi"}, {"letter": "C", "text": "Treatment of vesicoureteral reflux"}, {"letter": "D", "text": "Neurogenic bladder"}], "images": ["assets/q26_p117_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "Minimally invasive endoscopic treatment or periureteral injection is considered for the treatment ofvesicoureteral reflux (VUR) when the degree of VUR is severe, if there is evidence of renal scarring, if the reflux hasnot resolved over a reasonable time, or if breakthrough infections occur frequently. After periureteral injection, ultrasound will show iso-or hyperechoic mounds in the bladder wall in the region of the ureteral orifices withoutposterior acoustic shadowing. A dextranomer–hyaluronic acid copolymer (Deflux) has been used as an injectablematerial in pediatric urology for 15 years. Dextranomer–hyaluronic acid copolymer is currently the most commonlyused agent and will consequently be most frequently encountered on imaging studies. Deflux mounds should not bemistaken for distal ureteral calculi. They should not be mistaken for rhabdomyosarcomas or other bladder massesbased on their characteristic location and imaging features. They should also not be mistaken for bladder walltrabeculations which are often seen in neurogenic bladders.\n\nReferences: Cerwinka WH, Kaye JD, Scherz HC, et al. Radiologic features of implants after endoscopic treatment ofvesicoureteral reflux in children. Am J Roentgenol 2010;195(1):234–240. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 27, "stem": "An ultrasound examination was performed on a 1-month-old patient. Images are shown below. No kidney on theright side was able to be demonstrated after further imaging. Regarding the entity demonstrated, which of thefollowing is TRUE?", "options": [{"letter": "A", "text": "Seminal vesicle cysts are associated with this condition in males."}, {"letter": "B", "text": "The solitary kidney is usually smaller in size for age in a majority of cases."}, {"letter": "C", "text": "Only a small percentage of women with this condition have uterine anomalies."}, {"letter": "D", "text": "This condition is more common in females."}], "images": ["assets/q27_p118_1.jpeg", "assets/q27_p118_2.jpeg"], "explanationImages": [], "answer": "A", "explanation": "The ultrasound images fail to demonstrate a kidney on the right. The findings are consistent with right-sided renal agenesis. This condition is more common in males than females. Associated genitourinary anomalies inmales include hypoplasia or agenesis of the testes and vas deferens as well as seminal vesicle cysts. Ninety percent offemales with renal agenesis have uterine anomalies. There is compensatory hypertrophy of the contralateral kidney in50% of cases.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007."}, {"number": 28, "stem": "A CT scan from a patient is shown below. Which is the most likely diagnosis?", "options": [{"letter": "A", "text": "Tuberous sclerosis"}, {"letter": "B", "text": "Sturge-Weber syndrome"}, {"letter": "C", "text": "Prune belly syndrome"}, {"letter": "D", "text": "Multifocal pyelonephritis"}], "images": ["assets/q28_p119_1.jpeg"], "explanationImages": [], "answer": "A", "explanation": "The image demonstrates multiple small foci of low attenuation fat-containing lesions in both kidneysthat likely represent angiomyolipomas. Angiomyolipomas are an uncommon tumor that consists of a disorderedarrangement of vascular, smooth muscle, and fatty elements. Its histologic composition suggests a hamartoma, but itis currently believed to represent a benign neoplasm. These tumors most often occur sporadically. However, theymay occur in 40% to 80% of patients with tuberous sclerosis. Angiomyolipomas are also associated withneurofibromatosis and von Hippel-Lindau syndrome. In children, angiomyolipomas are rare in the absence oftuberous sclerosis. Eighty percent of children with tuberous sclerosis may be expected to develop lesions by the ageof 10 years. Multifocal pyelonephritis typically demonstrates multiple peripheral and triangular regions of decreasedcontrast enhancement as well as a striated nephrogram on contrast-enhanced CT scans. Angiomyolipomas are notfound in patients with Prune belly or Sturge-Weber syndrome.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Lowe LH, Isuani BH, Heller RM, et al. Pediatric renal masses: Wilms tumor and beyond. Radiographics 2000;20(6):1585–1603."}, {"number": 29, "stem": "Regarding angiomyolipomas (AMLs), which of the following is TRUE?", "options": [{"letter": "A", "text": "They are pathognomonic of tuberous sclerosis."}, {"letter": "B", "text": "There is an increased risk of hemorrhage with lesions greater in size than 4 cm."}, {"letter": "C", "text": "They are malignant lesions."}, {"letter": "D", "text": "They occur more commonly in males."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Angiomyolipomas most often occur sporadically. However, they may occur in 40% to 80% of patientswith tuberous sclerosis. Angiomyolipomas are also associated with neurofibromatosis and von Hippel-Lindausyndrome. In children, angiomyolipomas are rare in the absence of tuberous sclerosis. Angiomyolipomas larger than4 cm in diameter are more likely to spontaneously hemorrhage, leading to flank or abdominal pain, hematuria, oreven severe life-threatening hemorrhage. There is a 4:1 female predominance of angiomyolipomas. Angiomyolipomas are believed to represent a benign neoplasm.\n\nReferences: Lowe LH, Isuani BH, Heller RM, et al. Pediatric renal masses: Wilms tumor and beyond. Radiographics2000;20(6):1585–1603."}, {"number": 30, "stem": "Concerning crossed fused renal ectopia, which of the following is TRUE?", "options": [{"letter": "A", "text": "It occurs more commonly in females."}, {"letter": "B", "text": "The risk of complications such as nephrolithiasis, infection, and hydronephrosis is low and approaches 5%."}, {"letter": "C", "text": "Although the kidneys are fused to each other on the same side, the ureters insert in their normal location atboth the right and left ureterovesical junctions."}, {"letter": "D", "text": "Right-to-left ectopy is more common than left-to-right ectopy."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "In cross-fused renal ectopia, both kidneys lie on the same side of the abdomen and are fused. Theureter from the ectopic kidney crosses the midline and enters the bladder in the expected location of the contralateralureterovesical junction. There is a 3:2 male predominance. Approximately half of the patients manifest withcomplications such as hydronephrosis, infections, and nephrolithiasis. Left-to-right crossover occurs more frequently,and the upper pole of the crossed ectopic kidney is fused to the lower pole of the normally located kidney in mostinstances.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Solanki S, Bhatnagar V, Gupta AK, et al. Crossed fused renal ectopia: challenges in diagnosis and management. J Indian Assoc Pediatr Surg 2013;18(1):7–10."}, {"number": 31, "stem": "A pelvic ultrasound exam is performed on a 15-year-old female patient who has yet to have her first menstrualcycle. An image from the exam is shown below. Which of the following is TRUE?", "options": [{"letter": "A", "text": "The findings may be secondary to an imperforate hymen."}, {"letter": "B", "text": "There are no known presenting symptoms."}, {"letter": "C", "text": "There is no known cure for this condition."}, {"letter": "D", "text": "The uterus usually expands to a greater degree than does the vagina."}], "images": ["assets/q31_p120_1.jpeg"], "explanationImages": ["assets/a31_p148_1.jpeg"], "answer": "A", "explanation": "The long-axis ultrasound image demonstrates distention of the vagina and uterine cavity with fluidcontaining echoes that are likely secondary to blood products. Note that the vagina (long arrow) is distended to agreater degree than the uterine cavity (short arrow). In a 15-year-old patient who has not begun her menstrual cycle,these findings are most likely secondary to hematometrocolpos. This entity is often caused by an imperforate hymenthat obstructs flow from the vagina. This entity is cured by relieving the obstruction. Patients with this condition oftenpresent with cyclic abdominal pain as well as a midline abdominal mass. Because the vagina is more elastic, itbecomes markedly dilated and composes the bulk of the mass.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Garel L, Dubois J, Grignon A, et al. US of the pediatric female pelvis: a clinical perspective. Radiographics2001;21(6):1393–1407."}, {"number": 32, "stem": "Regarding multilocular cystic renal tumors, which of the following is TRUE?", "options": [{"letter": "A", "text": "They usually occur in young girls and older males."}, {"letter": "B", "text": "Surgery is required for diagnostic and therapeutic purposes."}, {"letter": "C", "text": "These tumors are usually bilateral."}, {"letter": "D", "text": "There are three subtypes of this tumor."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Multilocular cystic renal cell tumor is a term that encompasses two types of tumors that are onopposite sides of a spectrum. On one end of the spectrum is cystic nephroma (CN), which is a rare, nonhereditarybenign renal neoplasm that is purely cystic and is lined by epithelium and fibrous septa that contain mature tubules. At the other end of the spectrum is cystic partially differentiated nephroblastoma (CPDN), which can showaggressive behavior and in which the septa contain foci of blastemal cells. Cystic nephroma and CPDN areindistinguishable from one another based on their gross and radiographic appearances and are therefore lumped underthe term multilocular cystic renal tumor (MCRT). MCRT has a bimodal age and sex distribution and tends to occur inchildren (mostly boys with CPDN) between 3 months and 4 years of age and in adults (mostly women with cystic nephroma) between 40 and 60 years of age. MCRT is usually solitary, but bilateral tumors have been described. At CT, cystic nephroma typically appears asa well-circumscribed, encapsulated multicystic mass with variably enhancing septa and no excretion of contrast agentinto the loculi. Extension into the renal pelvis and ureter may also be easily seen at CT. On MR, the lesion is amulticystic mass with a capsule and septa that are hypointense regardless of pulse sequence presumably because ofthe fibrous tissue present in these structures. Contents of the cyst are hyperintense on T2-weighted images, but theirsignal intensity varies on T1-weighted images, possibly because of the different concentrations of old hemorrhage orprotein. The septa have also been shown to enhance on MR images following administration of gadolinium. Becauseneither the clinical nor the imaging features of MCRT can predict its histologic characteristics, surgery is required forboth diagnosis and treatment.\n\nReferences: Silver IM, Boag AH, Soboleski DA. Best cases from the AFIP: multilocular cystic renal tumor: cystic nephroma. Radiographics 2008;28(4):1221–1225."}, {"number": 33, "stem": "An image from a VCUG examination performed on a 4-year-old female is shown below. Which of the followingis TRUE?", "options": [{"letter": "A", "text": "There are posterior urethral valves."}, {"letter": "B", "text": "There is vesicoureteral reflux."}, {"letter": "C", "text": "This condition is associated with dysfunctional voiding."}, {"letter": "D", "text": "There is a ureterocele."}], "images": ["assets/q33_p121_1.jpeg"], "explanationImages": ["assets/a33_p150_1.jpeg"], "answer": "C", "explanation": "The image provided from a VCUG examination performed on a young female demonstrates dilatationof the posterior urethra (arrow) in the shape of a \"spinning top.\" This configuration of the urethra is known as a\"spinning top urethra.\" The most common mechanism for this entity is unstable bladder contractions that are resistedby a voluntary increase in distal sphincter tension so as to prevent leakage of urine. This entity is associated withdysfunctional voiding. Posterior urethral valves are only found in males and not in females. There is no evidence ofvesicoureteral reflux or a ureterocele on the image provided.\n\nReferences: Dähnert W. Radiology review manual sixth edition. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Ichim G, Fufezan O, Farcău M, et al. Clinical, imaging and cystometric findings of voiding dysfunction in children. Med Ultrason2011;13(4):277–282. Saxton HM, Borzyskowski M, Mundy AR, et al. Spinning top urethra: not a normal variant. Radiology 1988;168(1):147–150."}, {"number": 34, "stem": "A 1-year-old female presents with vaginal discharge. An ultrasound exam is performed, and representativeimages are shown below. Which of the following is the next best step in management?", "options": [{"letter": "A", "text": "VCUG"}, {"letter": "B", "text": "Renal ultrasound"}, {"letter": "C", "text": "MRI of the pelvis"}, {"letter": "D", "text": "Tc-99m MAG-3 scan"}], "images": ["assets/q34_p122_1.jpeg", "assets/q34_p123_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "The ultrasound images demonstrate a mass that is incompletely evaluated and that appears to involveor displace the uterus and is located posterior to the urinary bladder. Magnetic resonance imaging provides precisedemonstration of anatomic features in multiple planes in cases of complex anomalies when US findings areincomplete or inconclusive. A voiding cystourethrogram is used to evaluate for vesicoureteral reflux and is notindicated in this particular case. A Tc-99m MAG-3 scan is used to evaluate renal function and potential obstructionand would not be indicated in this instance. Finally, a renal ultrasound would also not help localize or determine theetiology of the tumor.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009. Garel L, Dubois J, Grignon A, et al. US of the pediatric female pelvis: a clinical perspective. Radiographics2001;21(6):1393–1407."}, {"number": 35, "stem": "An MRI of the pelvis was subsequently performed on the patient described in Question 34, and representativeimages are shown below. Concerning the most likely diagnosis, which of the following is TRUE?", "options": [{"letter": "A", "text": "This tumor is a subtype of adenocarcinoma."}, {"letter": "B", "text": "This tumor has a \"grape-like\" appearance."}, {"letter": "C", "text": "The survival rate for nonmetastatic disease is approximately 5% to 10%."}, {"letter": "D", "text": "Recurrence is uncommon after surgery."}], "images": ["assets/q35_p124_1.jpeg", "assets/q35_p125_1.jpeg"], "explanationImages": ["assets/a35_p151_1.jpeg", "assets/a35_p152_1.jpeg"], "answer": "B", "explanation": "The sagittal T2 fat-saturated images demonstrate a large heterogeneous lesion, which arises from andmarkedly distends the vagina. The uterus is displaced superiorly toward the superior extent of the image as can bediscerned from the linear appearing and T2 hyperintense endometrial canal (arrows). The tumor appears as a septatedhigh T2 signal cystic mass. Given the clinical history and imaging findings, this lesion likely represents a sarcomabotryoides, a variant of embryonal rhabdomyosarcoma. This tumor is the most common malignancy arising in thegenitourinary (GU) tract of the pediatric population prior to 15 years of age. In children, rhabdomyosarcoma has abimodal distribution pattern, the first peak occurring between 2 and 6 years and the second peak between 14 and 18years of age. Gross pathology examination of sarcoma botryoides typically reveals an exophytic multinodularpolyploid mass caused by cellular tumor growth pushing outward upon the overlying mucosal surface; hence the term\"botryoid,\" meaning \"grape-like.\" In general, local recurrence of rhabdomyosarcoma is common with or withoutmetastatic disease. Children presenting with nonmetastatic rhabdomyosarcoma have been shown to have an excellentsurvival rate. If the primary tumor completely arises from a favorable site such as the vagina and is completelyexcised, the overall 3-year survival rate is >90%.\n\nReferences: Agrons GA, Wagner BJ, Lonergan GJ, et al. From the archives of the AFIP. Genitourinary rhabdomyosarcoma inchildren: radiologic-pathologic correlation. Radiographics 1997;17(4):919–937. Kobi M, Khatri G, Edelman M, et al. Sarcoma botryoides: MRI findings in two patients. J Magn Reson Imaging2009;29(3):708–712."}, {"number": 36, "stem": "Which of the following renal tumors is most likely to demonstrate osseous metastasis?", "options": [{"letter": "A", "text": "Mesoblastic nephroma"}, {"letter": "B", "text": "Wilms tumor"}, {"letter": "C", "text": "Clear cell sarcoma"}, {"letter": "D", "text": "Atypical rhabdoid tumor"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Clear cell renal sarcoma is a rare tumor and constitutes 4% of primary pediatric malignant renaltumors. It is known as an aggressive tumor with a poor prognosis. Clinically and radiographically, it resembles Wilms tumor. Clear cell sarcoma is seen mainly in young children with a peak incidence between 2 and 3 years ofage with a male predominance. The most common site of metastasis at the time of presentation in patients with thistumor is the ipsilateral renal hilar lymph nodes. Treatment consists of nephrectomy and chemotherapy with currentlong-term survival rate of 60% to 70%. One important distinguishing feature of this tumor is its 40% to 60%incidence of bone metastasis, which is much higher than the 2% incidence of bone metastasis found in Wilmspatients. The bone metastasis can be both lytic and sclerotic. Bone is the most common site of distant metastases followed by the lung, retroperitoneum, brain, and liver. Mesoblastic nephroma is usually a benign tumor with some exceptions as detailed in the explanations for Questions 24 and 25. Rarely, this lesion may recur locally if incompletely resected or metastasize to the lungs, brainor bones. Rhabdoid tumor is a rare highly aggressive renal neoplasm seen exclusively in the pediatric calcification. Peakincidence of rhabdoid tumor occurs at 11 months of age with a slight male predominance. On imaging, a rhabdoidtumor may present as an enhancing soft tissue renal mass with a similar imaging appearance to a Wilms tumor. As aresult, a rhabdoid tumor often cannot be differentiated from a Wilms tumor. More specific imaging characteristicsinclude subcapsular fluid collections with a mildly enhancing intrarenal tumor. Because brain malignancy, oftenmidline and in the posterior fossa, may present concurrently, an MRI examination of the head is recommended at thetime of diagnosis to assess for concomitant malignancy in this region. Rhabdoid tumor is the renal neoplasm with theworst prognosis, with metastatic disease most commonly involving the lungs. Surgical resection followed bychemotherapy is the current standard of care in pediatric patients with rhabdoid tumor. The survival rate is <15%.\n\nReferences: Franco A, Dao TV, Lewis KN, et al. A case of clear cell sarcoma of the kidney. J Radiol Case Rep 2011;5(2):8–12. Lowe LH, Isuani BH, Heller RM, et al. Pediatric renal masses: Wilms tumor and beyond. Radiographics 2000;20(6):1585–1603. Son J, Lee EY, Restrepo R, et al. Focal renal lesions in pediatric patients. AJR Am J Roentgenol 2012;199(6):W668–W682."}, {"number": 37, "stem": "Regarding nephroblastomatosis, which of the following is TRUE?", "options": [{"letter": "A", "text": "There is an association with the development of Wilms tumor."}, {"letter": "B", "text": "There are only two histologic subtypes."}, {"letter": "C", "text": "There are no known associations with other diseases."}, {"letter": "D", "text": "Once detected, there is no need for follow-up imaging."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Nephroblastomatosis refers to diffuse or multifocal areas of nephrogenic rests. Although nephrogenicrests can be classified histologically as dormant, sclerosing, hyperplastic, or neoplastic, these types cannot bedifferentiated by imaging. Anatomically, nephroblastomatosis can be separated into perilobar and intralobar types. Perilobar nephroblastomatosis presents as soft tissue nodules with mild contrast enhancement located at theperipheral portion of the kidney. Most cases of nephroblastomatosis occur sporadically. However, perilobarnephroblastomatosis is associated with Beckwith-Wiedemann syndrome, hemihypertrophy, and Perlman syndrome. Intralobar nephroblastomatosis usually occurs as a single poorly marginated mass that can be found anywhere in thekidney. It is associated with Drash syndrome, sporadic aniridia, and WAGR (Wilms tumor, aniridia, genitourinaryanomalies, and mental retardation) syndrome. Most children with nephroblastomatosis do not develop Wilms tumor. However, 30% to 40% of Wilms tumorsare thought to arise from nephrogenic rests. With bilateral Wilms tumors, nephrogenic rests are thought to beinvolved in as many as 99% of patients. Treatment of nephroblastomatosis is currently controversial, with someadvocating chemotherapy, whereas others recommend close surveillance, preferably with MRI, which is moresensitive than ultrasound for detecting residual or recurrent nephroblastomatosis.\n\nReferences: Son J, Lee EY, Restrepo R, et al. Focal renal lesions in pediatric patients. AJR Am J Roentgenol2012;199(6):W668–W682."}, {"number": 38, "stem": "A young child presents with bacteriuria and vague abdominal pain prompting concern for pyelonephritis. Whichof the following studies would be the most sensitive test for the detection of acute pyelonephritis?", "options": [{"letter": "A", "text": "CT scan of the abdomen and pelvis without contrast"}, {"letter": "B", "text": "Renal ultrasound"}, {"letter": "C", "text": "Tc-99m DMSA scan"}, {"letter": "D", "text": "Abdominal plain film"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "The definition of a urinary tract infection (UTI) is the presence of bacteria in the urine, but the termtypically refers to infections of the lower urinary tract. Acute pyelonephritis is defined as urinary tract infection thatinvolves the kidney. Young children with pyelonephritis often present with nonspecific symptoms such as fever,irritability, and vague abdominal pain. In older children, the findings may be more specific and include fever andassociated flank pain. In patients in whom the diagnosis is straightforward, no imaging is needed in the acute phase,but patients are imaged later as part of the standard workup for a UTI to look for renal scarring. In patients in whomthere is clinical difficulty in distinguishing an upper from a lower UTI, cortical scintigraphy with Tc-99mdimercaptosuccinic acid (DMSA) has been advocated as the most sensitive test. In cases of pyelonephritis, this studydemonstrates single or multiple areas of lack of renal uptake of the radiotracer. These areas tend to be triangular andperipheral. As an initial screening study, abdominal radiography is a rapid, inexpensive examination. Abdominal radiographswere routinely obtained as the first component of an excretory urographic study; however, use of CT has overtakenthat of radiography in nearly all institutions. The scout radiographs were used to detect urinary tract gas andcalcifications, but pitfalls included unreliable differentiation of abdominal bowel gas from urinary tract gas andnonvisualization of small urinary tract calcifications overlying normally ossified structures such as a transverseprocess. Ultrasonography (US) is occasionally used as a first-line diagnostic tool to evaluate the urinary tract in patients with symptoms of pyelonephritis. Unfortunately, pyelonephritis is often not well characterized on routine gray-scaleimages. Therefore, most patients with clinically suspected acute pyelonephritis have negative ultrasound exams. When positive findings of pyelonephritis are found at US, they can include congenital anomalies and a variety ofchanges in the renal parenchyma such as hydronephrosis, renal enlargement, loss of renal sinus fat because of edema,changes in echogenicity due to both edema (hypoechoic) and hemorrhage (hyperechoic), loss of corticomedullarydifferentiation, abscess formation, and areas of hypoperfusion (visible with power Doppler interrogation). Occasionally, areas of abnormal echogenicity can have a mass-like appearance. Unenhanced CT is excellent foridentifying urinary tract gas, calculi, hemorrhage, renal enlargement, inflammatory masses, and obstruction. Involvedregions occasionally appear with lower attenuation related to edema; less frequently, they have pockets of higherattenuation that are thought to represent hemorrhage. The above findings are frequently absent, however, andunenhanced CT images may appear normal. It is only after contrast material is administered that the diagnostic features of acute bacterial nephritis arerevealed. These features are better described in the explanation for Question 28.\n\nReferences: Craig WD, Wagner BJ, Travis MD. Pyelonephritis: radiologic-pathologic review. Radiographics2008;28(1):255–277. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 39, "stem": "Images from a Tc-99m DMSA scan obtained on the patient described in Question 38 are shown below. Given thefindings on the images, what is the likely diagnosis?", "options": [{"letter": "A", "text": "Left-sided pyelonephritis in the mid-upper pole"}, {"letter": "B", "text": "Right-sided pyelonephritis in the upper pole"}, {"letter": "C", "text": "Normal study"}, {"letter": "D", "text": "Right-sided pyelonephritis in the lower pole"}], "images": ["assets/q39_p126_1.jpeg"], "explanationImages": ["assets/a39_p155_1.jpeg"], "answer": "A", "explanation": "The images shown were obtained using a pinhole collimator during a Tc-99m DMSA scan. There is aphotopenic defect in the cortex of the mid to upper pole of the left kidney (long arrows). Given the clinical history ofthe patient, these findings are consistent with acute pyelonephritis although similar findings could be seen withchronic renal scarring. There is also some irregularity of the cortex of the lower pole of the left kidney (short arrow). The right kidney is normal.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 40, "stem": "A 16-year-old stable female presents with a 2-hour history of acute sharp right lower quadrant pain. The patienthad a negative pregnancy test. A pelvic ultrasound was performed, which was equivocal for the diagnosis of rightovarian torsion. The appendix was normal. What other examination would be the next most appropriate step inimaging?", "options": [{"letter": "A", "text": "Abdominal plain film"}, {"letter": "B", "text": "Emergent MRI of the pelvis with and without IV contrast"}, {"letter": "C", "text": "Repeat ultrasound in 4 hours."}, {"letter": "D", "text": "No other imaging studies would be helpful."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Ultrasound sensitivities for the diagnosis of adnexal torsion range from 46% to 74%. Investigatorshave evaluated the value of CT in the diagnosis of ovarian torsion because of its accessibility in emergent situations. However, exposure to pelvic irradiation makes this a less favorable imaging method in young women. MR has beenfound to be accurate in the diagnosis of adnexal torsion in the context of acute pelvic pain that presents rapidly over<4 hours with accuracies higher than 80%. A repeat ultrasound in 4 hours would not be indicated because this wouldcause a potential delay in the diagnosis of ovarian torsion, which is a surgical emergency. An abdominal radiographwould not be helpful in the diagnosis of ovarian torsion and would expose the patient to needless radiation.\n\nReferences: Béranger-Gibert S, Sakly H, Ballester M, et al. Diagnostic value of MR imaging in the diagnosis of adnexal torsion. Radiology 2016;279(2):461–470."}, {"number": 41, "stem": "An MRI of the pelvis was performed on the patient described in Question 40. Representative images are shownbelow. Which of the following is TRUE?", "options": [{"letter": "A", "text": "The right ovary is torsed and likely viable."}, {"letter": "B", "text": "The left ovary is torsed and likely nonviable."}, {"letter": "C", "text": "The right ovary is torsed and likely nonviable."}, {"letter": "D", "text": "The left ovary is torsed and likely viable."}], "images": ["assets/q41_p127_1.jpeg", "assets/q41_p128_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "Figure A is an axial T2-weighted image and Figure B is an axial T1 fat-saturated image obtained afterthe administration of intravenous contrast. The right ovary is asymmetrically enlarged when compared to the leftovary on both images. There is a lack of internal T2-weighted signal within the right ovary on the T2-weighted imageand lack of internal contrast enhancement on the second image. The follicles within the right ovary are in a peripheraldistribution. These features can be compared with the normal size, internal T2 signal, uniform follicle distribution,and internal contrast enhancement of the normal left ovary. The most common but fairly nonspecific finding of atorsed ovary is an enlarged ovary (>4. 0 cm in maximal dimension), which is reliably seen both on CT and MRI. Anenlarged ovary with a central afollicular stroma (resulting from hemorrhage and edema) and peripherally displacedfollicles is a more specific feature of ovarian torsion and can sometimes be identified on contrast-enhanced CT or onfast spin-echo T2-weighted MRI. The torsed ovary is characterized by disrupted blood flow, which is seen asabnormal enhancement after IV contrast agent administration. Heterogeneous minimal or absent enhancementindicates the evolution of ovarian torsion from ischemia to infarction. However, the presence of enhancement doesnot exclude torsion because a twisted ovary, with its redundant blood supply, can appear to enhance normally,presumably because the torsion is intermittent or of recent onset.\n\nReferences: Duigenan S, Oliva E, Lee SI. Ovarian torsion: diagnostic features on CT and MRI with pathologic correlation. Am JRoentgenol 2012;198(2):W122–W131."}, {"number": 42, "stem": "In ovarian torsion, what is the proper order of vascular compromise from the first affected vascular supply to thelast?", "options": [{"letter": "A", "text": "Venous, lymphatic, arterial"}, {"letter": "B", "text": "Lymphatic, venous, arterial"}, {"letter": "C", "text": "Arterial, venous, lymphatic"}, {"letter": "D", "text": "Venous, arterial, lymphatic"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Twisting of the adnexal pedicle as occurs in ovarian torsion obstructs the lymphatic drainage causingenlargement of the ovary. This is followed by obstruction of the venous drainage resulting in hemorrhagic infarction. Finally, the arterial supply is obstructed resulting in necrosis. This order of vascular compromise explains whyvascular flow, especially arterial flow, may be present and detected by pelvic Doppler ultrasound examinations intorsed ovaries if the torsion is intermittent or early or partial torsion.\n\nReferences: Reid JR, Paladin A, Davros W, et al. Rotations in radiology pediatric radiology. New York, NY: Oxford University Press, 2013."}, {"number": 43, "stem": "A renal ultrasound examination was performed on a 10-year-old patient, and representative images are shownbelow. Concerning the study, which of the following is TRUE?", "options": [{"letter": "A", "text": "This condition is usually associated with proximal renal tubular acidosis."}, {"letter": "B", "text": "This entity is uncommon among immobilized patients."}, {"letter": "C", "text": "Most causes of this condition are associated with hypercalciuria."}, {"letter": "D", "text": "The renal pyramids are normal appearing for the patient's age group."}], "images": ["assets/q43_p129_1.jpeg", "assets/q43_p129_2.jpeg"], "explanationImages": [], "answer": "C", "explanation": "The ultrasound images of the kidneys demonstrate diffusely increased echogenicity of the medullarypyramids bilaterally consistent with medullary nephrocalcinosis. The most common metabolic abnormalityresponsible for histologic changes in the pyramids that may be depicted as increased echogenicity at sonography isnephrocalcinosis. Nephrocalcinosis primarily affects the renal pyramids, but it can occasionally be appreciated in thecortex as well. Although nephrocalcinosis may eventually progress to involve most of the pyramid, acousticshadowing is rarely seen. The lack of shadowing may reflect the way in which the calcium is laid down within thepyramid. Acoustic shadowing may be appreciated only in rare cases of extreme involvement of the pyramids or ifthere is development of associated calculi in the adjacent calices. There are numerous causes for medullary nephrocalcinosis in children. The majority of these conditions areassociated with hypercalciuria and include distal renal tubular acidosis and prolonged immobilization.\n\nReferences: Dähnert W. Radiology review manual, 6th ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams &Wilkins, 2007. Daneman A, Navarro OM, Somers GR, et al. Renal pyramids: focused sonography of normal and pathologic processes. Radiographics 2010;30(5):1287–1307."}, {"number": 44, "stem": "Concerning the differences in size between the kidneys in the exam performed on the patient in Question 43,which of the following is TRUE?", "options": [{"letter": "A", "text": "The difference in sizes of the kidneys is too large."}, {"letter": "B", "text": "The difference in sizes of the kidneys is too small."}, {"letter": "C", "text": "The difference in size of the kidneys is within normal limits."}, {"letter": "D", "text": "There is compensatory hypertrophy of the left kidney."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "In children, the left and right kidney should generally measure within 1 cm of each other. If there is adiscrepancy of more than 1 cm, an underlying abnormality should be suspected. Such discrepancies may result from adisorder that causes one of the kidneys to be too small, such as global scarring, or from a process that causes one ofthe kidneys to be too large, such as renal duplication or acute pyelonephritis. In every case, it is important to comparethe patient's renal length with tables that plot normal renal length against age.\n\nReferences: Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 45, "stem": "A teenage male presents with acute right-side testicular pain. A scrotal ultrasound was performed, and arepresentative image is shown below. What is the next appropriate step in management?", "options": [{"letter": "A", "text": "Antibiotics"}, {"letter": "B", "text": "Conservative treatment"}, {"letter": "C", "text": "Stat urologic consult"}, {"letter": "D", "text": "No further treatment is indicated."}], "images": ["assets/q45_p130_1.jpeg"], "explanationImages": [], "answer": "C", "explanation": "The transverse ultrasound image shown demonstrates a normal echotexture of both testes, but there isa lack of color Doppler flow in the right testis. These findings are consistent with acute right-sided testicular torsion, and the patient will require prompt diagnosis and treatment. In the early phases of torsion (1 to 3 hours), testicularechogenicity appears normal. With progression, enlargement of the affected testis and increased or heterogeneousechogenicity are common findings. Testicular viability can be suggested from gray-scale and color Doppler findings. Normal echogenicity with mild testicular enlargement is a good sign of viability, whereas marked enlargement,heterogeneous echotexture, and scrotal wall hypervascularity are signs of testicular infarction and necrosis. Note that demonstration of flow within a normal testis is more difficult in children <2 years of age. Gray-scaleultrasound may demonstrate asymmetric enlargement and slightly decreased echogenicity of the affected testis. Advanced findings in young children that occur with progressive ischemia and infarction are similar to those forolder patients. These include hemorrhage and necrosis, which may cause increasing asymmetric heterogeneity\n\nReferences: Aso C, Enríquez G, Fité M, et al. Gray-scale and color Doppler sonography of scrotal disorders in children: an update. Radiographics 2005;25(5):1197–1214. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}, {"number": 46, "stem": "A 1-month-old male with fluid draining from his umbilicus presents for a renal and bladder ultrasound, and arepresentative image is shown below. Concerning the entity demonstrated, which of the following is TRUE?", "options": [{"letter": "A", "text": "This entity is more common in women."}, {"letter": "B", "text": "The majority of patients with this entity are symptomatic."}, {"letter": "C", "text": "Later on in life, these lesions can give rise to adenocarcinoma."}, {"letter": "D", "text": "There are only two types of this entity. 1 Answer B. The images demonstrate dilatation of the left renal pelvis and calyces without ureterectasis. The rightkidney is normal. These findings are often seen in a UPJ obstruction. However, vesicoureteral reflux should beexcluded as the cause of the left-sided pelvicaliectasis, which is why a VCUG would be the next best step inmanagement. Note that in a male, a VCUG would also help exclude a posterior urethral valve, which can causebladder outlet obstruction and pelvicaliectasis. Plain radiographs of the abdomen will not be helpful in determiningthe cause of the pelvicaliectasis, and a CT scan of the abdomen and pelvis will also not be helpful in determiningwhether vesicoureteral reflux is the cause of the pelvicaliectasis. Both of these exams would needlessly expose thechild to ionizing radiation. Although a testicular ultrasound does not utilize ionizing information, it would not give usany information about the cause for the pelvicaliectasis. References: Blickman JG, Parker BR, Barnes P D. Pediatric radiology: the requisites, 3rd ed. Philadelphia, PA: Elsevier/Saunders,2009. Donnelly LF. Pediatric imaging the fundamentals. Philadelphia, PA: Elsevier/Saunders, 2009."}], "images": ["assets/q46_p131_1.jpeg"], "explanationImages": ["assets/a46_p158_1.jpeg"], "answer": "C", "explanation": "The ultrasound image demonstrates an anechoic fluid tract extending from the anterosuperior aspect ofthe urinary bladder (arrow). This is consistent with a urachal remnant. The urachus, or median umbilical ligament, isa midline tubular structure that extends upward from the anterior dome of the bladder toward the umbilicus. It is avestigial remnant of at least two embryonic structures: the cloaca, which is the cephalic extension of the urogenitalsinus (a precursor of the fetal bladder), and the allantois, which is a derivative of the yolk sac. The tubular urachusnormally involutes before birth, remaining as a fibrous band with no known function. However, persistence of anembryonic urachal remnant can give rise to various clinical problems, not only in infants and children but also inadults. Congenital urachal anomalies are twice as common in men as in women. There are four types of congenitalurachal anomalies: patent urachus, umbilical–urachal sinus, vesicourachal diverticulum, and urachal cyst. A patenturachus is purely congenital and accounts for about 50% of all cases of congenital anomalies. An umbilical–urachalsinus (15% of cases), vesicourachal diverticulum (3% to 5% of cases), or urachal cyst (about 30% of cases) mayclose normally after birth but then reopen in association with pathologic conditions that are often categorized asacquired diseases. The majority of patients with urachal abnormalities (except those with a patent urachus) are asymptomatic. However, they may become symptomatic if these abnormalities are associated with infection. If a persistentcommunication exists between the bladder lumen and the umbilicus, urine leakage is usually noted during theneonatal period. Although the normal urachus is most commonly lined by the transitional epithelium, urachalcarcinoma predominantly manifests as adenocarcinoma (90% of cases), probably because of the metaplasia of theurachal mucosa into columnar epithelium followed by malignant transformation; conversely, 34% of bladderadenocarcinomas are of urachal origin. These tumors are most commonly seen in patients 40 to 70 years of age, two-thirds of whom are men.\n\nReferences: Yu JS, Kim KW, Lee HJ, et al. Urachal remnant diseases: spectrum of CT and US findings. Radiographics2001;21(2):451–461."}];
+    const APP_ID = "pediatric-gu-imaging-quiz-ch2";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function promptText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      return `You are tutoring pediatric radiology. Explain this multiple-choice question in detail. The user chose ${chosen} and the correct answer is ${q.answer}; the attempt was ${result}. Explain why the correct answer is right, why each wrong answer is wrong, and emphasize the selected wrong answer if one was missed.\n\n${questionText(q)}\n\nPDF explanation:\n${q.explanation}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyPrompt").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestion").addEventListener("click", () => copy(questionText(QUESTIONS[state.index])));
+    el("copyPrompt").addEventListener("click", () => copy(promptText(QUESTIONS[state.index])));
+    render();
+  </script>
+</body>
+</html>
