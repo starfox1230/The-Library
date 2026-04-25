@@ -228,7 +228,7 @@
       canvas.height = nextHeight;
     }
     renderer.gl.viewport(0, 0, nextWidth, nextHeight);
-    return { width, height };
+    return { width, height, bufferWidth: nextWidth, bufferHeight: nextHeight };
   }
 
   function drawTimerBarFrame(renderer) {
@@ -236,7 +236,7 @@
     if (!timer) {
       return;
     }
-    const { width, height } = resizeTimerBarCanvas(renderer);
+    const { bufferWidth, bufferHeight } = resizeTimerBarCanvas(renderer);
     let progress = clamp(Number(timer.progress || 0), 0, 1);
     if (timer.active && timer.total > 0) {
       progress = clamp((timer.remaining - Math.max(0, Date.now() - timer.startedAt)) / timer.total, 0, 1);
@@ -249,7 +249,7 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, renderer.buffer);
     gl.enableVertexAttribArray(renderer.positionLocation);
     gl.vertexAttribPointer(renderer.positionLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform2f(renderer.resolutionLocation, width, height);
+    gl.uniform2f(renderer.resolutionLocation, bufferWidth, bufferHeight);
     gl.uniform1f(renderer.progressLocation, progress);
     gl.uniform4f(renderer.colorLocation, color[0], color[1], color[2], color[3]);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

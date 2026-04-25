@@ -10,7 +10,8 @@ from anki.cards import Card
 from aqt import gui_hooks, mw
 from aqt.reviewer import Reviewer
 from aqt.webview import AnkiWebView
-from aqt.qt import QAction, QApplication, QByteArray, QEvent, QHBoxLayout, QMenu, QMessageBox, QObject, QSizePolicy, Qt, QTimer, QVBoxLayout, QWidget
+from aqt.utils import tooltip
+from aqt.qt import QAction, QApplication, QByteArray, QEvent, QHBoxLayout, QInputDialog, QMenu, QMessageBox, QObject, QSizePolicy, Qt, QTimer, QVBoxLayout, QWidget
 
 from .addon_meta import ensure_meta_json
 from .anki_flag_colors import get_anki_flag_palette
@@ -263,6 +264,7 @@ class ReviewerOverlayController:
         self._floating_window: Optional[FloatingSidebarWindow] = None
         self._floating_geometry = ""
         self._compatibility_main_geometry = ""
+        self._window_position_presets: list[dict[str, str]] = []
         self._pre_compatibility_main_geometry = ""
         self._compatibility_review_layout_active = False
         self._geometry_persistence_suspended = False
@@ -795,6 +797,22 @@ class ReviewerOverlayController:
             self.set_display_mode(next_mode, persist=True, reconfigure=True)
             self._push_state(only_if_changed=False)
             return (True, None)
+        if message == "speed-streak:window-preset-save":
+            self._save_current_window_position_preset()
+            return (True, None)
+        if message.startswith("speed-streak:window-preset:"):
+            try:
+                action, preset_id = message.removeprefix("speed-streak:window-preset:").split(":", 1)
+                preset_id = unquote(preset_id)
+            except Exception:
+                return (True, None)
+            if action == "apply":
+                self._apply_window_position_preset(preset_id)
+            elif action == "rename":
+                self._rename_window_position_preset(preset_id)
+            elif action == "delete":
+                self._delete_window_position_preset(preset_id)
+            return (True, None)
         if message == "speed-streak:default-settings":
             self.engine.reset_settings_to_defaults()
             self._restore_deferred_time_drain_cards()
@@ -1305,6 +1323,7 @@ class ReviewerOverlayController:
                 "hapticPatternSequences": BROWSER_HAPTIC_PATTERN_SEQUENCES,
                 "sidebarBackground": self._sidebar_background or self._default_sidebar_background(),
                 "displayMode": self.display_mode,
+                "windowPositionPresets": self._window_position_presets_payload(),
                 "visualMode": self.visual_mode,
                 "sphereMode": self.sphere_mode,
                 "renderMode": self.render_mode,
@@ -1644,6 +1663,9 @@ class ReviewerOverlayController:
                 if compatibility_layout_version >= COMPATIBILITY_LAYOUT_VERSION
                 else ""
             )
+            self._window_position_presets = self._normalize_window_position_presets(
+                config.get("window_position_presets")
+            )
             raw_shortcut_bindings = config.get("shortcut_bindings")
             if raw_shortcut_bindings is None and config.get("pause_shortcut") is not None:
                 raw_shortcut_bindings = {"pause": config.get("pause_shortcut")}
@@ -1695,6 +1717,7 @@ class ReviewerOverlayController:
             self._display_mode_prompt_pending = True
             self._floating_geometry = ""
             self._compatibility_main_geometry = ""
+            self._window_position_presets = []
             self.shortcut_bindings = default_shortcut_bindings()
             self.review_later_today_deck_button_enabled = False
             self.engine.update_time_limits(
@@ -1744,6 +1767,7 @@ class ReviewerOverlayController:
             "floating_geometry": self._floating_geometry,
             "compatibility_layout_version": COMPATIBILITY_LAYOUT_VERSION,
             "compatibility_main_geometry": self._compatibility_main_geometry,
+            "window_position_presets": self._window_position_presets,
             "shortcut_bindings": self.current_shortcut_bindings(),
             "audio_enabled": bool(state.audio_enabled),
             "selected_audio_file": str(state.selected_audio_file),
@@ -1766,6 +1790,146 @@ class ReviewerOverlayController:
             "review_later_flag": state.review_later_flag,
             "review_later_today_deck_button_enabled": bool(self.review_later_today_deck_button_enabled),
         }
+
+    def _normalize_window_position_presets(self, raw: object) -> list[dict[str, str]]:
+        presets: list[dict[str, str]] = []
+        if not isinstance(raw, list):
+            return presets
+        seen: set[str] = set()
+        for index, item in enumerate(raw):
+            if not isinstance(item, dict):
+                continue
+            preset_id = str(item.get("id", "") or "").strip() or f"preset-{index + 1}"
+            if preset_id in seen:
+                preset_id = f"{preset_id}-{index + 1}"
+            name = str(item.get("name", "") or "").strip() or "Saved setup"
+            main_geometry = str(item.get("main_geometry", "") or "")
+            floating_geometry = str(item.get("floating_geometry", "") or "")
+            if not main_geometry or not floating_geometry:
+                continue
+            seen.add(preset_id)
+            presets.append(
+                {
+                    "id": preset_id[:64],
+                    "name": name[:80],
+                    "main_geometry": main_geometry,
+                    "floating_geometry": floating_geometry,
+                }
+            )
+        return presets
+
+    def _window_position_presets_payload(self) -> list[dict[str, str]]:
+        return [
+            {"id": str(preset.get("id", "")), "name": str(preset.get("name", ""))}
+            for preset in self._window_position_presets
+        ]
+
+    def _capture_current_window_position_preset(self, name: str) -> dict[str, str] | None:
+        if self._floating_window is None:
+            return None
+        main_geometry = _export_widget_geometry(mw)
+        floating_geometry = self._floating_window.export_geometry()
+        if not main_geometry or not floating_geometry:
+            return None
+        preset_id = f"preset-{int(time.time() * 1000)}"
+        return {
+            "id": preset_id,
+            "name": name.strip()[:80] or "Saved setup",
+            "main_geometry": main_geometry,
+            "floating_geometry": floating_geometry,
+        }
+
+    def _find_window_position_preset(self, preset_id: str) -> dict[str, str] | None:
+        for preset in self._window_position_presets:
+            if str(preset.get("id", "")) == preset_id:
+                return preset
+        return None
+
+    def _save_current_window_position_preset(self) -> None:
+        if self.display_mode != DISPLAY_MODE_COMPATIBILITY or self._floating_window is None:
+            tooltip("Switch to external window mode before saving a window preset.")
+            return
+        name, ok = QInputDialog.getText(mw, "Save Window Preset", "Preset name:")
+        if not ok:
+            return
+        preset = self._capture_current_window_position_preset(str(name))
+        if preset is None:
+            tooltip("Could not save the current window positions.")
+            return
+        self._window_position_presets.append(preset)
+        self._save_persisted_settings()
+        self._push_state(only_if_changed=False)
+
+    def _apply_window_position_preset(self, preset_id: str) -> None:
+        if preset_id == "default":
+            if self.display_mode != DISPLAY_MODE_COMPATIBILITY:
+                self.set_display_mode(DISPLAY_MODE_COMPATIBILITY, persist=True, reconfigure=True)
+            self._geometry_persistence_suspended = True
+            try:
+                self._apply_default_compatibility_layout()
+            finally:
+                self._geometry_persistence_suspended = False
+            if self._floating_window is not None:
+                self._floating_geometry = self._floating_window.export_geometry() or self._floating_geometry
+            self._compatibility_main_geometry = _export_widget_geometry(mw) or self._compatibility_main_geometry
+            self._save_persisted_settings()
+            self._push_state(only_if_changed=False)
+            return
+        preset = self._find_window_position_preset(preset_id)
+        if preset is None:
+            return
+        if self.display_mode != DISPLAY_MODE_COMPATIBILITY:
+            self.set_display_mode(DISPLAY_MODE_COMPATIBILITY, persist=True, reconfigure=True)
+        if self._floating_window is None:
+            return
+        self._geometry_persistence_suspended = True
+        try:
+            _restore_widget_geometry(mw, str(preset.get("main_geometry", "") or ""))
+            self._floating_window.restore_exported_geometry(str(preset.get("floating_geometry", "") or ""))
+        finally:
+            self._geometry_persistence_suspended = False
+        self._compatibility_main_geometry = _export_widget_geometry(mw) or self._compatibility_main_geometry
+        self._floating_geometry = self._floating_window.export_geometry() or self._floating_geometry
+        self._save_persisted_settings()
+        self._push_state(only_if_changed=False)
+
+    def _rename_window_position_preset(self, preset_id: str) -> None:
+        preset = self._find_window_position_preset(preset_id)
+        if preset is None:
+            return
+        name, ok = QInputDialog.getText(
+            mw,
+            "Rename Window Preset",
+            "Preset name:",
+            text=str(preset.get("name", "") or "Saved setup"),
+        )
+        if not ok:
+            return
+        next_name = str(name).strip()
+        if not next_name:
+            return
+        preset["name"] = next_name[:80]
+        self._save_persisted_settings()
+        self._push_state(only_if_changed=False)
+
+    def _delete_window_position_preset(self, preset_id: str) -> None:
+        preset = self._find_window_position_preset(preset_id)
+        if preset is None:
+            return
+        confirm = QMessageBox.question(
+            mw,
+            "Delete Window Preset",
+            f"Delete preset \"{preset.get('name', 'Saved setup')}\"?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        self._window_position_presets = [
+            item for item in self._window_position_presets if str(item.get("id", "")) != preset_id
+        ]
+        self._save_persisted_settings()
+        self._push_state(only_if_changed=False)
 
     def _flush_scheduled_persisted_settings_save(self) -> None:
         self._save_persisted_settings()

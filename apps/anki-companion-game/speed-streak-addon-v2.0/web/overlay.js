@@ -19,6 +19,8 @@
     colorDrafts: {},
     useCustomTimerColorsDraft: false,
     timerColorLevelDraft: 0,
+    presetsOpen: false,
+    presetMenuOpenId: "",
     lastSettingsSignature: "",
     lastThemeSignature: "",
     lastSidebarBackground: "",
@@ -107,6 +109,16 @@
           </span>
         </button>
         <button id="acgDisplayModeToggle" class="acg-action acg-foreground-action acg-icon-toggle acg-display-mode-toggle" type="button" title="Switch to external window" aria-label="Switch to external window">↗</button>
+        <div id="acgWindowPresets" class="acg-window-presets">
+          <button id="acgWindowPresetsToggle" class="acg-action acg-foreground-action acg-icon-toggle acg-window-presets-toggle" type="button" title="Window presets" aria-label="Window presets">▤</button>
+          <div id="acgWindowPresetsPanel" class="acg-window-presets-panel" aria-label="Window position presets">
+            <div class="acg-window-presets-head">
+              <span>Window presets</span>
+              <button id="acgWindowPresetSave" class="acg-action acg-icon-toggle acg-window-preset-add" type="button" title="Save current window positions" aria-label="Save current window positions">+</button>
+            </div>
+            <div id="acgWindowPresetList" class="acg-window-preset-list"></div>
+          </div>
+        </div>
       </div>
       <div class="acg-foreground-settings">
         <button id="acgSettingsButton" class="acg-action acg-foreground-action acg-icon-toggle acg-settings-toggle" type="button" title="Settings" aria-label="Settings">⚙</button>
@@ -449,6 +461,48 @@
         if (typeof pycmd === "function") {
           pycmd("speed-streak:toggle-display-mode");
         }
+      });
+    }
+
+    const windowPresetsToggle = document.getElementById("acgWindowPresetsToggle");
+    if (windowPresetsToggle) {
+      windowPresetsToggle.addEventListener("click", () => {
+        state.presetsOpen = !state.presetsOpen;
+        state.presetMenuOpenId = "";
+        renderWindowPositionPresets(state.data || {});
+      });
+    }
+
+    const windowPresetSave = document.getElementById("acgWindowPresetSave");
+    if (windowPresetSave) {
+      windowPresetSave.addEventListener("click", () => {
+        sendWindowPresetCommand("save");
+      });
+    }
+
+    const windowPresetList = document.getElementById("acgWindowPresetList");
+    if (windowPresetList) {
+      windowPresetList.addEventListener("click", (event) => {
+        const button = event.target?.closest?.("[data-preset-action]");
+        if (!button) {
+          return;
+        }
+        const action = button.getAttribute("data-preset-action") || "";
+        const presetId = button.getAttribute("data-preset-id") || "";
+        if (action === "menu") {
+          state.presetMenuOpenId = state.presetMenuOpenId === presetId ? "" : presetId;
+          renderWindowPositionPresets(state.data || {});
+          return;
+        }
+        if (action === "apply") {
+          state.presetsOpen = false;
+          state.presetMenuOpenId = "";
+        }
+        if (action === "rename" || action === "delete") {
+          state.presetMenuOpenId = "";
+        }
+        sendWindowPresetCommand(action, presetId);
+        renderWindowPositionPresets(state.data || {});
       });
     }
 
@@ -1156,6 +1210,7 @@
         compatibility ? "Switch to inline side pane" : "Switch to external window"
       );
     }
+    renderWindowPositionPresets(data);
   }
 
   function renderFlagSelects(timeDrainFlag, reviewLaterFlag) {
@@ -1578,6 +1633,74 @@
     }
   }
 
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    }[char]));
+  }
+
+  function sendWindowPresetCommand(action, id = "") {
+    if (typeof pycmd !== "function") {
+      return;
+    }
+    if (action === "save") {
+      pycmd("speed-streak:window-preset-save");
+      return;
+    }
+    pycmd(`speed-streak:window-preset:${action}:${encodeURIComponent(String(id || ""))}`);
+  }
+
+  function renderWindowPositionPresets(data) {
+    const root = $("acgWindowPresets");
+    const panel = $("acgWindowPresetsPanel");
+    const list = $("acgWindowPresetList");
+    const toggle = $("acgWindowPresetsToggle");
+    if (!root || !panel || !list || !toggle) {
+      return;
+    }
+    const compatibility = String(data?.displayMode || "inline") === "compatibility";
+    const presets = Array.isArray(data?.windowPositionPresets) ? data.windowPositionPresets : [];
+    if (!compatibility) {
+      state.presetsOpen = false;
+      state.presetMenuOpenId = "";
+    }
+    root.classList.toggle("open", compatibility && state.presetsOpen);
+    root.classList.toggle("disabled", !compatibility);
+    toggle.disabled = !compatibility;
+    syncQuickControl(
+      toggle,
+      compatibility && state.presetsOpen,
+      compatibility ? "Window position presets" : "Window presets available in external window mode"
+    );
+    const rows = [
+      `
+        <div class="acg-window-preset-row">
+          <button class="acg-window-preset-apply" type="button" data-preset-action="apply" data-preset-id="default">Default setup</button>
+        </div>
+      `,
+      ...presets.map((preset) => {
+        const id = escapeHtml(preset.id || "");
+        const name = escapeHtml(preset.name || "Saved setup");
+        const menuOpen = state.presetMenuOpenId === String(preset.id || "");
+        return `
+          <div class="acg-window-preset-row${menuOpen ? " menu-open" : ""}">
+            <button class="acg-window-preset-apply" type="button" data-preset-action="apply" data-preset-id="${id}">${name}</button>
+            <button class="acg-window-preset-menu-button" type="button" data-preset-action="menu" data-preset-id="${id}" aria-label="Edit ${name}">⋯</button>
+            <div class="acg-window-preset-menu">
+              <button type="button" data-preset-action="rename" data-preset-id="${id}">Rename</button>
+              <button type="button" data-preset-action="delete" data-preset-id="${id}">Delete</button>
+            </div>
+          </div>
+        `;
+      }),
+    ];
+    list.innerHTML = rows.join("");
+  }
+
   function resizeWebglCanvas(renderer) {
     const canvas = renderer.canvas;
     const width = Math.max(1, canvas.offsetWidth || 1);
@@ -1590,7 +1713,7 @@
       canvas.height = nextHeight;
     }
     renderer.gl.viewport(0, 0, nextWidth, nextHeight);
-    return { width, height, dpr };
+    return { width, height, dpr, bufferWidth: nextWidth, bufferHeight: nextHeight };
   }
 
   function parseTimerColor(color) {
@@ -1689,7 +1812,7 @@
     if (!timer) {
       return;
     }
-    const { width, height } = resizeWebglCanvas(renderer);
+    const { bufferWidth, bufferHeight } = resizeWebglCanvas(renderer);
     const gl = renderer.gl;
     let progress = clamp(Number(timer.progress || 0), 0, 1);
     if (timer.active && timer.total > 0) {
@@ -1703,7 +1826,7 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, renderer.buffer);
     gl.enableVertexAttribArray(renderer.positionLocation);
     gl.vertexAttribPointer(renderer.positionLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform2f(renderer.resolutionLocation, width, height);
+    gl.uniform2f(renderer.resolutionLocation, bufferWidth, bufferHeight);
     gl.uniform1f(renderer.progressLocation, progress);
     gl.uniform4f(renderer.colorLocation, color[0], color[1], color[2], color[3]);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
