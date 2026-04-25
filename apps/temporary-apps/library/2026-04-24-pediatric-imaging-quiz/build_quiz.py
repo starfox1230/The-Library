@@ -299,18 +299,7 @@ def render_html(questions: list[dict]) -> str:
       display: none;
     }}
     .review-panel.show {{ display: block; }}
-    .review-list {{ display: grid; gap: 12px; margin-top: 12px; }}
-    .review-item {{
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
-      background: var(--panel-2);
-    }}
-    .review-item h3 {{
-      margin: 0 0 8px;
-      font-size: 1rem;
-      letter-spacing: 0;
-    }}
+    .review-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }}
     .review-meta {{
       color: var(--muted);
       font-size: 0.92rem;
@@ -319,6 +308,16 @@ def render_html(questions: list[dict]) -> str:
     .status {{ font-weight: 800; margin-bottom: 10px; }}
     .status.good {{ color: var(--good); }}
     .status.bad {{ color: var(--bad); }}
+    .feedback-head {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }}
+    .feedback-head .status {{ margin-bottom: 0; }}
+    .feedback-tools {{ display: flex; gap: 8px; flex-wrap: wrap; }}
     .explanation {{
       white-space: pre-wrap;
       line-height: 1.48;
@@ -429,8 +428,6 @@ def render_html(questions: list[dict]) -> str:
             <button type="button" id="quizMode">Quiz</button>
           </div>
           <button type="button" id="settingsButton">Settings</button>
-          <button type="button" id="copyQuestion">Copy Question</button>
-          <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
         </div>
       </div>
       <div id="imageGrid" class="images"></div>
@@ -443,12 +440,19 @@ def render_html(questions: list[dict]) -> str:
         <button type="button" id="reviewQuiz">Review Quiz</button>
       </div>
       <div class="result" id="result">
-        <div class="status" id="status"></div>
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestion">Copy Question</button>
+            <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
+          </div>
+        </div>
         <div class="explanation" id="explanation"></div>
       </div>
       <div class="review-panel" id="reviewPanel">
         <div class="status" id="reviewStatus"></div>
-        <div class="review-list" id="reviewList"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
       </div>
       <div class="notice" id="notice"></div>
     </section>
@@ -660,25 +664,20 @@ def render_html(questions: list[dict]) -> str:
       if (!(state.mode === "quiz" && state.reviewOpen)) return;
       const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
       el("reviewStatus").textContent = complete ? `Quiz complete: ${{right}} / ${{QUESTIONS.length}} correct` : `Reviewing ${{answered}} of ${{QUESTIONS.length}} answered questions: ${{right}} correct so far`;
-      const list = el("reviewList");
-      list.innerHTML = "";
-      QUESTIONS.filter(q => state.submitted[q.number]).forEach(q => {{
-        const chosen = state.selected[q.number] || "not selected";
-        const ok = chosen === q.answer;
-        const item = document.createElement("article");
-        item.className = "review-item";
-        const title = document.createElement("h3");
-        title.textContent = `Question ${{q.number}}`;
-        const meta = document.createElement("div");
-        meta.className = "review-meta";
-        meta.textContent = ok ? `Correct: ${{q.answer}}` : `Incorrect. You chose ${{chosen}}; correct answer: ${{q.answer}}`;
-        const stem = document.createElement("div");
-        stem.textContent = q.stem;
-        const exp = document.createElement("div");
-        exp.className = "explanation";
-        exp.textContent = q.explanation;
-        item.append(title, meta, stem, exp);
-        list.appendChild(item);
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {{
+          state.index = i;
+          render();
+          window.scrollTo({{ top: 0, behavior: "smooth" }});
+        }});
+        grid.appendChild(b);
       }});
     }}
 
