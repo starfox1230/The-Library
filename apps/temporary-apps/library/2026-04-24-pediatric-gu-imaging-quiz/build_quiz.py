@@ -494,8 +494,8 @@ def render_html(questions: list[dict]) -> str:
         <div class="feedback-head">
           <div class="status" id="status"></div>
           <div class="feedback-tools">
-            <button type="button" id="copyQuestion">Copy Question</button>
-            <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
           </div>
         </div>
         <div id="explanationImageGrid" class="explanation-images"></div>
@@ -601,10 +601,12 @@ def render_html(questions: list[dict]) -> str:
       return `Question ${{q.number}}\\n${{q.stem}}\\n\\n${{opts}}`;
     }}
 
-    function promptText(q) {{
+    function fullQuestionText(q) {{
       const chosen = state.selected[q.number] || "not selected";
       const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
-      return `You are tutoring pediatric radiology. Explain this multiple-choice question in detail. The user chose ${{chosen}} and the correct answer is ${{q.answer}}; the attempt was ${{result}}. Explain why the correct answer is right, why each wrong answer is wrong, and emphasize the selected wrong answer if one was missed.\\n\\n${{questionText(q)}}\\n\\nPDF explanation:\\n${{q.explanation}}`;
+      const questionImages = q.images.length ? `\\n\\nQuestion image files:\\n${{q.images.join("\\n")}}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\\n\\nExplanation image files:\\n${{q.explanationImages.join("\\n")}}` : "";
+      return `${{questionText(q)}}${{questionImages}}\\n\\nSelected answer: ${{chosen}}\\nCorrect answer: ${{q.answer}}\\nAttempt: ${{result}}\\n\\nPDF explanation:\\n${{q.explanation}}${{explanationImages}}`;
     }}
 
     async function copy(text) {{
@@ -617,6 +619,110 @@ def render_html(questions: list[dict]) -> str:
         document.execCommand("copy");
       }}
       flash("Copied.");
+    }}
+
+    function escapeHtml(value) {{
+      return String(value).replace(/[&<>"']/g, char => ({{ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }}[char]));
+    }}
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {{
+      const paragraphs = String(text).split("\\n");
+      paragraphs.forEach(paragraph => {{
+        const words = paragraph.split(/\\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {{
+          y += lineHeight;
+          return;
+        }}
+        words.forEach(word => {{
+          const test = line ? `${{line}} ${{word}}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {{
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          }} else {{
+            line = test;
+          }}
+        }});
+        if (line) {{
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }}
+        y += Math.round(lineHeight * 0.45);
+      }});
+      return y;
+    }}
+
+    function textCardDataUrl(title, body) {{
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }}
+
+    async function imageToDataUrl(src) {{
+      return new Promise((resolve) => {{
+        const img = new Image();
+        img.onload = () => {{
+          try {{
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          }} catch {{
+            resolve(src);
+          }}
+        }};
+        img.onerror = () => resolve(src);
+        img.src = src;
+      }});
+    }}
+
+    async function copyScreenshotPack(q) {{
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${{o.letter}}. ${{o.text}}`).join("\\n");
+      const questionCard = textCardDataUrl(`Question ${{q.number}}`, `${{q.stem}}\\n\\n${{options}}`);
+      const explanationCard = textCardDataUrl(`Answer ${{q.answer}}`, `Selected: ${{chosen}}\\nCorrect: ${{q.answer}}\\n\\n${{q.explanation}}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${{src}}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${{imageTags}}</div>`;
+      try {{
+        await navigator.clipboard.write([
+          new ClipboardItem({{
+            "text/html": new Blob([html], {{ type: "text/html" }}),
+            "text/plain": new Blob([fullQuestionText(q)], {{ type: "text/plain" }}),
+          }})
+        ]);
+        flash("Copied screenshot pack.");
+      }} catch {{
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }}
     }}
 
     function renderNav() {{
@@ -687,7 +793,7 @@ def render_html(questions: list[dict]) -> str:
       el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
       el("reviewQuiz").disabled = answered !== QUESTIONS.length;
       el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${{QUESTIONS.length}}`;
-      el("copyPrompt").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
       el("tutorMode").classList.toggle("active", state.mode === "tutor");
       el("quizMode").classList.toggle("active", state.mode === "quiz");
       renderNav();
@@ -783,8 +889,8 @@ def render_html(questions: list[dict]) -> str:
       }}
     }});
     el("lightbox").addEventListener("click", closeLightbox);
-    el("copyQuestion").addEventListener("click", () => copy(questionText(QUESTIONS[state.index])));
-    el("copyPrompt").addEventListener("click", () => copy(promptText(QUESTIONS[state.index])));
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
     render();
   </script>
 </body>

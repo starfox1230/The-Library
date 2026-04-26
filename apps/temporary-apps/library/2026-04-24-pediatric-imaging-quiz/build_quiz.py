@@ -114,6 +114,36 @@ def extract_images(questions: list[dict]) -> None:
         doc.close()
 
 
+def extract_explanation_images(questions: list[dict]) -> None:
+    by_number = {q["number"]: q for q in questions}
+    for q in questions:
+        q["explanationImages"] = []
+    current_answer: int | None = None
+    answer_re = re.compile(r"^\s*(\d{1,2})\s+Answer\s+[A-D]\.")
+    doc = fitz.open(str(PDF_PATH))
+    try:
+        for page_index in range(ANSWER_START_PAGE, ANSWER_END_PAGE):
+            blocks = sorted(doc[page_index].get_text("dict")["blocks"], key=lambda b: (b["bbox"][1], b["bbox"][0]))
+            in_answer_section = page_index > ANSWER_START_PAGE
+            image_index = 0
+            for block in blocks:
+                if block["type"] == 0:
+                    text = " ".join("".join(span["text"] for span in line["spans"]) for line in block["lines"])
+                    if "Answers and Explanations" in text:
+                        in_answer_section = True
+                    match = answer_re.search(text)
+                    if match and in_answer_section:
+                        current_answer = int(match.group(1))
+                elif block["type"] == 1 and in_answer_section and current_answer in by_number:
+                    image_index += 1
+                    ext = block.get("ext", "jpg")
+                    filename = f"a{current_answer:02d}_p{page_index + 1:03d}_{image_index}.{ext}"
+                    (ASSET_DIR / filename).write_bytes(block["image"])
+                    by_number[current_answer]["explanationImages"].append(f"assets/{filename}")
+    finally:
+        doc.close()
+
+
 def render_html(questions: list[dict]) -> str:
     data = json.dumps(questions, ensure_ascii=False)
     return f"""<!DOCTYPE html>
@@ -250,6 +280,20 @@ def render_html(questions: list[dict]) -> str:
       margin: 8px 0 18px;
     }}
     .images img {{
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }}
+    .explanation-images {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }}
+    .explanation-images img {{
       width: 100%;
       background: #111;
       border: 1px solid var(--line);
@@ -443,10 +487,11 @@ def render_html(questions: list[dict]) -> str:
         <div class="feedback-head">
           <div class="status" id="status"></div>
           <div class="feedback-tools">
-            <button type="button" id="copyQuestion">Copy Question</button>
-            <button type="button" id="copyPrompt">Copy Chatbot Prompt</button>
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
           </div>
         </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
         <div class="explanation" id="explanation"></div>
       </div>
       <div class="review-panel" id="reviewPanel">
@@ -567,10 +612,12 @@ def render_html(questions: list[dict]) -> str:
       return `Question ${{q.number}}\\n${{q.stem}}\\n\\n${{opts}}`;
     }}
 
-    function promptText(q) {{
+    function fullQuestionText(q) {{
       const chosen = state.selected[q.number] || "not selected";
       const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
-      return `You are tutoring pediatric radiology. Explain this multiple-choice question in detail. The user chose ${{chosen}} and the correct answer is ${{q.answer}}; the attempt was ${{result}}. Explain why the correct answer is right, why each wrong answer is wrong, and emphasize the selected wrong answer if one was missed.\\n\\n${{questionText(q)}}\\n\\nPDF explanation:\\n${{q.explanation}}`;
+      const questionImages = q.images.length ? `\\n\\nQuestion image files:\\n${{q.images.join("\\n")}}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\\n\\nExplanation image files:\\n${{q.explanationImages.join("\\n")}}` : "";
+      return `${{questionText(q)}}${{questionImages}}\\n\\nSelected answer: ${{chosen}}\\nCorrect answer: ${{q.answer}}\\nAttempt: ${{result}}\\n\\nPDF explanation:\\n${{q.explanation}}${{explanationImages}}`;
     }}
 
     async function copy(text) {{
@@ -583,6 +630,110 @@ def render_html(questions: list[dict]) -> str:
         document.execCommand("copy");
       }}
       flash("Copied.");
+    }}
+
+    function escapeHtml(value) {{
+      return String(value).replace(/[&<>"']/g, char => ({{ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }}[char]));
+    }}
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {{
+      const paragraphs = String(text).split("\\n");
+      paragraphs.forEach(paragraph => {{
+        const words = paragraph.split(/\\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {{
+          y += lineHeight;
+          return;
+        }}
+        words.forEach(word => {{
+          const test = line ? `${{line}} ${{word}}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {{
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          }} else {{
+            line = test;
+          }}
+        }});
+        if (line) {{
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }}
+        y += Math.round(lineHeight * 0.45);
+      }});
+      return y;
+    }}
+
+    function textCardDataUrl(title, body) {{
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }}
+
+    async function imageToDataUrl(src) {{
+      return new Promise((resolve) => {{
+        const img = new Image();
+        img.onload = () => {{
+          try {{
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          }} catch {{
+            resolve(src);
+          }}
+        }};
+        img.onerror = () => resolve(src);
+        img.src = src;
+      }});
+    }}
+
+    async function copyScreenshotPack(q) {{
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${{o.letter}}. ${{o.text}}`).join("\\n");
+      const questionCard = textCardDataUrl(`Question ${{q.number}}`, `${{q.stem}}\\n\\n${{options}}`);
+      const explanationCard = textCardDataUrl(`Answer ${{q.answer}}`, `Selected: ${{chosen}}\\nCorrect: ${{q.answer}}\\n\\n${{q.explanation}}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${{src}}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${{imageTags}}</div>`;
+      try {{
+        await navigator.clipboard.write([
+          new ClipboardItem({{
+            "text/html": new Blob([html], {{ type: "text/html" }}),
+            "text/plain": new Blob([fullQuestionText(q)], {{ type: "text/plain" }}),
+          }})
+        ]);
+        flash("Copied screenshot pack.");
+      }} catch {{
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }}
     }}
 
     function renderNav() {{
@@ -640,6 +791,10 @@ def render_html(questions: list[dict]) -> str:
         const ok = state.selected[q.number] === q.answer;
         el("status").className = `status ${{ok ? "good" : "bad"}}`;
         el("status").textContent = ok ? `Correct: ${{q.answer}}` : `Incorrect. You chose ${{state.selected[q.number] || "nothing"}}; correct answer: ${{q.answer}}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${{src}}" alt="Question ${{q.number}} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {{
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        }});
         el("explanation").textContent = q.explanation;
       }}
       const answered = Object.keys(state.submitted).length;
@@ -649,7 +804,7 @@ def render_html(questions: list[dict]) -> str:
       el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
       el("reviewQuiz").disabled = answered !== QUESTIONS.length;
       el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${{QUESTIONS.length}}`;
-      el("copyPrompt").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
       el("tutorMode").classList.toggle("active", state.mode === "tutor");
       el("quizMode").classList.toggle("active", state.mode === "quiz");
       renderNav();
@@ -745,8 +900,8 @@ def render_html(questions: list[dict]) -> str:
       }}
     }});
     el("lightbox").addEventListener("click", closeLightbox);
-    el("copyQuestion").addEventListener("click", () => copy(questionText(QUESTIONS[state.index])));
-    el("copyPrompt").addEventListener("click", () => copy(promptText(QUESTIONS[state.index])));
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
     render();
   </script>
 </body>
@@ -762,6 +917,7 @@ def main() -> None:
     questions = split_questions(page_text(reader, QUESTION_START_PAGE, QUESTION_END_PAGE))
     answers = split_answers(page_text(reader, ANSWER_START_PAGE, ANSWER_END_PAGE))
     extract_images(questions)
+    extract_explanation_images(questions)
     for q in questions:
         answer = answers.get(q["number"], {})
         q["answer"] = answer.get("answer", "")

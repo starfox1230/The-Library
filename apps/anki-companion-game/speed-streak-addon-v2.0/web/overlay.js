@@ -1750,7 +1750,7 @@
         float radius = length(uv);
         float ring = smoothstep(0.492, 0.472, radius) * smoothstep(0.365, 0.385, radius);
         float track = ring * 0.18;
-        float angle = atan(uv.y, uv.x) + 1.57079632679;
+        float angle = atan(uv.x, uv.y);
         if (angle < 0.0) angle += 6.28318530718;
         float active = step(angle, clamp(u_progress, 0.0, 1.0) * 6.28318530718);
         vec4 activeColor = vec4(u_color.rgb, ring * u_color.a);

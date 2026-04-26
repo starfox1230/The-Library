@@ -232,3 +232,20 @@ For quiz review mode, do not render one huge list of every answer explanation. R
 - selecting a grid number switches the main view to that question's individual explanation
 
 Place `Copy Question` and `Copy Chatbot Prompt` next to the feedback/status row, where the app says `Correct` or `Incorrect. You chose...`. Do not put these copy buttons in the top question toolbar, because they take space away from the question controls and are most useful while reviewing the answer.
+
+## Required Copy Controls For Future Builds
+
+Every future quiz chapter should use two answer-feedback copy controls, placed on the same row as the `Correct` / `Incorrect` status:
+
+- `Copy Question Text`: copies the question stem, answer choices, selected answer, correct answer, PDF explanation, and referenced question/explanation image file paths as plain text.
+- `Copy Screenshot`: copies an Anki-oriented rich HTML clipboard pack. The pack should contain separate pasteable elements in this order:
+  1. original question image or images, when present
+  2. a portrait-phone-style PNG card containing the question stem and answer choices
+  3. explanation image or images, when present
+  4. a portrait-phone-style PNG card containing the selected answer, correct answer, and explanation text
+
+Do not implement `Copy Screenshot` as one very tall combined screenshot. Keep the pieces separate in the clipboard HTML so Anki can paste them as distinct image/card elements. Browser clipboard APIs usually cannot write several independent image clipboard items in one operation, so the practical implementation is a single rich HTML clipboard item containing multiple `<img>` elements, with a plain-text fallback.
+
+The screenshot text cards should be narrow enough for portrait smartphone readability. The current implementation uses a 900 px wide canvas, dark background, readable 24 px body text, and wrapped lines. Keep that general shape for later chapters.
+
+Question images and answer-explanation images must be converted to data URLs when possible before writing the rich HTML clipboard, so pasted content does not depend on local `file://` paths. If rich clipboard writing is blocked by the browser, fall back to copying the full text export.
