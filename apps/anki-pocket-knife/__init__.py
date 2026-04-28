@@ -1,4 +1,5 @@
 from .auto_scroll import install as install_auto_scroll
+from .ai_tools import install as install_ai_tools
 from .clipboard_json_cards import install as install_clipboard_json_cards
 from .f3_blocker import install as install_f3_blocker
 from .hard_cards import install as install_hard_cards
@@ -19,6 +20,7 @@ from .visual_card_multitude import install as install_visual_card_multitude
 
 
 install_auto_scroll()
+install_ai_tools()
 install_clipboard_json_cards()
 install_f3_blocker()
 install_hard_cards()

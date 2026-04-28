@@ -11,6 +11,7 @@ from aqt.qt import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMenu,
     QPushButton,
     QScrollArea,
@@ -20,6 +21,7 @@ from aqt.qt import (
     QWidget,
 )
 
+from .ai_tools import is_ai_tools_enabled, open_ai_settings_dialog, show_ai_key_source
 from .auto_scroll import is_auto_scroll_enabled, set_auto_scroll_enabled
 from .clipboard_json_cards import (
     ACTION_LABEL as CLIPBOARD_JSON_ACTION_LABEL,
@@ -88,6 +90,7 @@ from .visual_card_multitude import (
     set_visual_card_multitude_add_button_enabled,
     set_visual_card_multitude_auto_visual_deck_enabled,
 )
+from .settings import get_setting, set_setting
 
 
 ADDON_NAME = "Anki Pocket Knife"
@@ -110,6 +113,7 @@ _add_cards_sticky_fields_action: QAction | None = None
 _add_cards_tab_cycles_clozes_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
+_ai_tools_action: QAction | None = None
 
 
 def _shortcut_taken(shortcut_text: str) -> bool:
@@ -414,6 +418,26 @@ class PocketKnifeLauncherDialog(QDialog):
         add_cards_layout.addWidget(self.visual_card_multitude_auto_visual_deck_checkbox)
         layout.addWidget(add_cards_box)
 
+        ai_box = QGroupBox("AI Card Tools")
+        ai_layout = QVBoxLayout(ai_box)
+        ai_copy = QLabel(
+            "Default-on sparkle button for Add Cards, plus Browser actions for selected notes."
+        )
+        ai_copy.setWordWrap(True)
+        ai_layout.addWidget(ai_copy)
+        self.ai_tools_checkbox = QCheckBox("Show Pocket Knife AI tools")
+        self.ai_tools_checkbox.setChecked(is_ai_tools_enabled())
+        ai_layout.addWidget(self.ai_tools_checkbox)
+        ai_model_row = QHBoxLayout()
+        ai_model_row.addWidget(QLabel("Model:"))
+        self.ai_model_input = QLineEdit()
+        self.ai_model_input.setText(str(get_setting("ai_tools_model") or "gpt-4.1"))
+        ai_model_row.addWidget(self.ai_model_input)
+        self.ai_key_button = QPushButton("Set OpenAI API Key")
+        ai_model_row.addWidget(self.ai_key_button)
+        ai_layout.addLayout(ai_model_row)
+        layout.addWidget(ai_box)
+
         review_box = QGroupBox("Review Behavior")
         review_layout = QVBoxLayout(review_box)
         review_copy = QLabel(
@@ -492,6 +516,9 @@ class PocketKnifeLauncherDialog(QDialog):
         self.visual_card_multitude_auto_visual_deck_checkbox.toggled.connect(
             self._set_visual_card_multitude_auto_visual_deck_enabled
         )
+        self.ai_tools_checkbox.toggled.connect(self._set_ai_tools_enabled)
+        self.ai_model_input.editingFinished.connect(self._set_ai_model)
+        self.ai_key_button.clicked.connect(lambda *_args: open_ai_settings_dialog())
         self.auto_scroll_checkbox.toggled.connect(self._set_auto_scroll_enabled)
         self.review_image_overlay_checkbox.toggled.connect(self._set_review_image_overlay_enabled)
         self.review_image_overlay_remember_position_checkbox.toggled.connect(
@@ -669,6 +696,14 @@ class PocketKnifeLauncherDialog(QDialog):
         set_visual_card_multitude_auto_visual_deck_enabled(bool(checked))
         sync_settings_ui()
 
+    def _set_ai_tools_enabled(self, checked: bool) -> None:
+        set_setting("ai_tools_enabled", bool(checked))
+        sync_settings_ui()
+
+    def _set_ai_model(self) -> None:
+        set_setting("ai_tools_model", str(self.ai_model_input.text() or "").strip() or "gpt-4.1")
+        sync_settings_ui()
+
 
 def open_launcher() -> None:
     global _dialog
@@ -697,6 +732,7 @@ def sync_settings_ui() -> None:
     global _add_cards_tab_cycles_clozes_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
+    global _ai_tools_action
 
     auto_scroll_enabled = is_auto_scroll_enabled()
     if _auto_scroll_action is not None:
@@ -772,6 +808,11 @@ def sync_settings_ui() -> None:
         _visual_card_multitude_auto_visual_deck_action.blockSignals(True)
         _visual_card_multitude_auto_visual_deck_action.setChecked(visual_card_auto_visual_enabled)
         _visual_card_multitude_auto_visual_deck_action.blockSignals(False)
+    ai_tools_enabled = is_ai_tools_enabled()
+    if _ai_tools_action is not None:
+        _ai_tools_action.blockSignals(True)
+        _ai_tools_action.setChecked(ai_tools_enabled)
+        _ai_tools_action.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "auto_scroll_checkbox"):
         _dialog.auto_scroll_checkbox.blockSignals(True)
         _dialog.auto_scroll_checkbox.setChecked(auto_scroll_enabled)
@@ -832,6 +873,14 @@ def sync_settings_ui() -> None:
         _dialog.visual_card_multitude_auto_visual_deck_checkbox.blockSignals(True)
         _dialog.visual_card_multitude_auto_visual_deck_checkbox.setChecked(visual_card_auto_visual_enabled)
         _dialog.visual_card_multitude_auto_visual_deck_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "ai_tools_checkbox"):
+        _dialog.ai_tools_checkbox.blockSignals(True)
+        _dialog.ai_tools_checkbox.setChecked(ai_tools_enabled)
+        _dialog.ai_tools_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "ai_model_input"):
+        _dialog.ai_model_input.blockSignals(True)
+        _dialog.ai_model_input.setText(str(get_setting("ai_tools_model") or "gpt-4.1"))
+        _dialog.ai_model_input.blockSignals(False)
 
 
 def _toggle_auto_scroll(checked: bool) -> None:
@@ -901,6 +950,11 @@ def _toggle_add_cards_tab_cycles_clozes(checked: bool) -> None:
 
 def _toggle_visual_card_multitude_auto_visual_deck(checked: bool) -> None:
     set_visual_card_multitude_auto_visual_deck_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_ai_tools(checked: bool) -> None:
+    set_setting("ai_tools_enabled", bool(checked))
     sync_settings_ui()
 
 
@@ -1062,6 +1116,20 @@ def _register_menu() -> None:
         _toggle_visual_card_multitude_auto_visual_deck
     )
     pocket_menu.addAction(_visual_card_multitude_auto_visual_deck_action)
+
+    _ai_tools_action = QAction("AI Card Tools In Add Cards And Browser", mw)
+    _ai_tools_action.setCheckable(True)
+    _ai_tools_action.setChecked(is_ai_tools_enabled())
+    _ai_tools_action.triggered.connect(_toggle_ai_tools)
+    pocket_menu.addAction(_ai_tools_action)
+
+    ai_key_action = QAction("Set OpenAI API Key For AI Card Tools", mw)
+    ai_key_action.triggered.connect(lambda *_args: open_ai_settings_dialog())
+    pocket_menu.addAction(ai_key_action)
+
+    ai_key_source_action = QAction("Show AI Key Source", mw)
+    ai_key_source_action.triggered.connect(lambda *_args: show_ai_key_source())
+    pocket_menu.addAction(ai_key_source_action)
 
     _auto_scroll_action = QAction("Auto-Scroll To Top On Answer Reveal", mw)
     _auto_scroll_action.setCheckable(True)
