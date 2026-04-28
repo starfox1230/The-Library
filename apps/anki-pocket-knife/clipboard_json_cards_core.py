@@ -72,9 +72,11 @@ def _parse_json_cards(text: str) -> list[ClipboardJsonCard]:
         html = item.get("html")
         if not isinstance(html, str):
             html = item.get("originalHtml")
+        if not isinstance(html, str):
+            html = item.get("content")
         if not isinstance(html, str) or not html.strip():
             raise ValueError(
-                f"Card {index}: 'html' must be a non-empty string."
+                f"Card {index}: 'html' or 'content' must be a non-empty string."
             )
 
         cards.append(

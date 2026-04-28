@@ -213,7 +213,7 @@ def import_cards_from_clipboard_json() -> None:
     except Exception as exc:
         showWarning(
             "Could not import cards from the clipboard.\n\n"
-            "Expected either a JSON array of objects with an 'html' string and optional 'tags', "
+            "Expected either a JSON array of objects with an 'html' or 'content' string and optional 'tags', "
             "or one cloze card per non-empty clipboard line.\n\n"
             f"{exc}"
         )

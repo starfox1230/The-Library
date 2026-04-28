@@ -59,6 +59,34 @@ def test_parse_clipboard_json_cards_accepts_json_code_fences_and_original_html_f
     assert cards[0].tags == ("tag-one", "tag-two")
 
 
+def test_parse_clipboard_json_cards_accepts_content_field_and_ignores_id():
+    module = _load_module()
+
+    cards = module.parse_clipboard_json_cards(
+        """
+        [
+          {
+            "content": "For pulmonary interstitial emphysema, place the {{c1::bad side down}}.",
+            "tags": ["#AnkiChat::2026.04.27_Sledgehammer"],
+            "id": "note-001"
+          },
+          {
+            "content": "For suspected bronchial foreign body on decubitus imaging, place the {{c1::lucent side down}}.",
+            "tags": ["#AnkiChat::2026.04.27_Sledgehammer"],
+            "id": "note-002"
+          }
+        ]
+        """
+    )
+
+    assert [card.html for card in cards] == [
+        "For pulmonary interstitial emphysema, place the {{c1::bad side down}}.",
+        "For suspected bronchial foreign body on decubitus imaging, place the {{c1::lucent side down}}.",
+    ]
+    assert cards[0].tags == ("#AnkiChat::2026.04.27_Sledgehammer",)
+    assert cards[1].tags == ("#AnkiChat::2026.04.27_Sledgehammer",)
+
+
 def test_parse_clipboard_json_cards_accepts_one_cloze_card_per_line():
     module = _load_module()
 
@@ -105,7 +133,7 @@ def test_parse_clipboard_json_cards_rejects_missing_html():
         module.parse_clipboard_json_cards('[{"tags": ["x"]}]')
         raise AssertionError("Expected parse_clipboard_json_cards() to raise ValueError.")
     except ValueError as exc:
-        assert "'html'" in str(exc)
+        assert "'html' or 'content'" in str(exc)
 
 
 def test_parse_clipboard_json_cards_rejects_non_array_payload():
