@@ -153,6 +153,41 @@ def apply_epub_fixes(questions: list[dict]) -> None:
             ]
 
 
+def split_matching_questions(questions: list[dict]) -> list[dict]:
+    split_questions: list[dict] = []
+    for q in questions:
+        if str(q["number"]) != "2":
+            split_questions.append(q)
+            continue
+
+        explanation = q.get("explanation", "")
+        reference_parts = re.split(r"\n\nReferences?:", explanation, maxsplit=1)
+        answer_block = reference_parts[0]
+        references = f"\n\nReferences:{reference_parts[1]}" if len(reference_parts) > 1 else ""
+        matches = list(re.finditer(r"(?m)^([A-Z])\.\s+Answer\s+([A-Z])\.\s+(.+?)(?=\n\n[A-Z]\.\s+Answer\s+[A-Z]\.|$)", answer_block, re.S))
+        if not matches:
+            split_questions.append(q)
+            continue
+
+        for match in matches:
+            part_id = match.group(1)
+            answer = match.group(2)
+            reason = clean_text(match.group(3))
+            split_questions.append({
+                "number": f"2{part_id}",
+                "stem": f"{q['stem']}\n\nPart {part_id}: assign the BI-RADS assessment for image/panel {part_id}.",
+                "options": [
+                    {"letter": "A", "text": "BI-RADS 2"},
+                    {"letter": "B", "text": "BI-RADS 4"},
+                ],
+                "images": q["images"],
+                "answer": answer,
+                "explanation": f"Part {part_id}: Answer {answer}. {reason}{references}",
+                "explanationImages": q.get("explanationImages", []),
+            })
+    return split_questions
+
+
 def parse_answers(root, questions: list[dict]) -> None:
     by_id = {str(q["number"]): q for q in questions}
     body_nodes = root.xpath("//body//*[not(self::span)]")
@@ -957,6 +992,7 @@ def main() -> None:
     questions = parse_questions(root)
     apply_epub_fixes(questions)
     parse_answers(root, questions)
+    questions = split_matching_questions(questions)
     for q in questions:
         q.setdefault("answer", "")
         q.setdefault("explanation", "No extracted explanation found.")

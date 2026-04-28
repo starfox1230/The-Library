@@ -31,6 +31,9 @@ The current generator uses `lxml.html` rather than PDF libraries. It walks XHTML
 - Question 2 is a matching-style item with no answer-choice `<ol>` in the XHTML. The generator adds fallback choices:
   - `A. BI-RADS 2`
   - `B. BI-RADS 4`
+- Matching-style questions should not be left as a single multiple-choice item. Split them into separately scored entries such as `2A`, `2B`, `2C`, etc., using the answer explanation lines as the source of truth for each part's correct answer.
+- Preserve every part found in the source, even if a quick visual read or user note only mentions a subset. In this chapter, question 2 contains parts `A` through `H`, so the quiz creates `2A` through `2H`.
+- Reuse shared stem images for each split matching subquestion unless the source clearly maps specific images to specific subparts.
 - Many questions have five choices. This is source-faithful for this EPUB and should not be treated as a parser failure.
 - Some subquestions are separate quiz entries because the source labels them separately, for example `7a` and `7b`.
 
@@ -49,6 +52,7 @@ The current generator uses `lxml.html` rather than PDF libraries. It walks XHTML
    - questions with fewer than two choices
    - questions whose source text says image/table but no image/table was captured
    - subquestions and matching questions with unusual answer format
+   - matching-style items where each lettered image/case needs its own answer selection and scoring
 10. Register the app in `apps/temporary-apps/index.html`.
 11. Run:
 
