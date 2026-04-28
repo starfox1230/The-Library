@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Breast Imaging Regulatory Quiz (New)</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Breast Imaging Regulatory Quiz (New)</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"breast-imaging-regulatory-quiz-new-ch1",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "Which of the following is a Mammography Quality Standards Act (MQSA) requirement for interpreting physicians?", "options": [{"letter": "A", "text": "Earned at least 15 category 1 continuing medical education (CME) credits per year"}, {"letter": "B", "text": "Completed 10 CME credits specific to a new imaging modality training (e.g., digital breast tomosynthesis) before starting that modality"}, {"letter": "C", "text": "Have interpreted 240 mammogram exams under direct supervision within any 6-month period during the last 2 years of the residency program"}, {"letter": "D", "text": "Continuing experience of interpretation of 960 exams/12 months"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C.\n\nModified from the Federal Register. Available on the FDA website.\n\nCredentials | 1. State medical license. 2. Certified by a body approved by the Food and Drug Administration to certify interpreting physicians or have 3 months full-time training in mammography interpretation, radiation physics, radiation effects, and radiation protection.\nMedical Education | 60 hours of category 1 documented medical education in mammography (including interpretation of mammograms, basic breast anatomy, pathology, physiology, technical aspects of mammography, quality assurance and quality control in mammography), with at least 15 of the category 1 hours obtained within 3 years immediately prior to the date that the physician qualified as an interpreting physician.\nInitial Experience _______________ Reestablish Qualifications | 240 mammographic exams under direct with any 6-month period during the last 2 years of the medical residency. ________________________________________ To reestablish qualifications, either interpret or double read 240 mammograms under direct supervision or bring the total to 960 mammograms over a period of 24 months and accomplish these tasks within 6 months immediately before resuming independent interpretation. Regarding CME, if the requirement of 15 hours per 36 months is not met, the total number of CME hours must be brought up to 15 per 36 months before resuming independent interpretation.\nNew Modality Training (e.g., digital) | To perform a new imaging modality, the interpreting physician must have 8 CME credits specific to that modality before starting the modality.\nContinuing Experience | Read 960 mammogram examinations over a 24-month period (Physicians failing to maintain continuing experience must requalify prior to performing independent mammographic interpretation.)\nGeneral | Have earned at least 15 category I CME credits in mammography over a 36-month period, with 6 credits in each modality used (Physicians failing to maintain continuing education must requalify prior to performing independent mammographic interpretation.)\n\nCredentials\n\n1. State medical license.\n\n2. Certified by a body approved by the Food and Drug Administration to certify interpreting physicians or have 3 months full-time training in mammography interpretation, radiation physics, radiation effects, and radiation protection.\n\nMedical Education\n\n60 hours of category 1 documented medical education in mammography (including interpretation of mammograms, basic breast anatomy, pathology, physiology, technical aspects of mammography, quality assurance and quality control in mammography), with at least 15 of the category 1 hours obtained within 3 years immediately prior to the date that the physician qualified as an interpreting physician.\n\nInitial Experience\n\n_______________\n\nReestablish Qualifications\n\n240 mammographic exams under direct with any 6-month period during the last 2 years of the medical residency.\n\n________________________________________\n\nTo reestablish qualifications, either interpret or double read 240 mammograms under direct supervision or bring the total to 960 mammograms over a period of 24 months and accomplish these tasks within 6 months immediately before resuming independent interpretation. Regarding CME, if the requirement of 15 hours per 36 months is not met, the total number of CME hours must be brought up to 15 per 36 months before resuming independent interpretation.\n\nNew Modality Training (e.g., digital)\n\nTo perform a new imaging modality, the interpreting physician must have 8 CME credits specific to that modality before starting the modality.\n\nContinuing Experience\n\nRead 960 mammogram examinations over a 24-month period (Physicians failing to maintain continuing experience must requalify prior to performing independent mammographic interpretation.)\n\nGeneral\n\nHave earned at least 15 category I CME credits in mammography over a 36-month period, with 6 credits in each modality used (Physicians failing to maintain continuing education must requalify prior to performing independent mammographic interpretation.)\n\nReferences: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:22.\n\nMargolis NE, Gao Y. What you need to know—a primer for radiologists entering breast imaging. J Am Coll Radiol 2017;14(3):393–396."}, {"number": "2A", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart A: assign the BI-RADS assessment for image/panel A.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "A", "explanation": "Part A: Answer A. BI-RADS 2—Skin calcifications\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2B", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart B: assign the BI-RADS assessment for image/panel B.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "A", "explanation": "Part B: Answer A. BI-RADS 2—Coarse or “popcorn-like” calcification\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2C", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart C: assign the BI-RADS assessment for image/panel C.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "A", "explanation": "Part C: Answer A. BI-RADS 2—Large rod-like calcifications\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2D", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart D: assign the BI-RADS assessment for image/panel D.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "A", "explanation": "Part D: Answer A. BI-RADS 2—Round calcification\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2E", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart E: assign the BI-RADS assessment for image/panel E.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "A", "explanation": "Part E: Answer A. BI-RADS 2—Rim calcification (oil cyst)\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2F", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart F: assign the BI-RADS assessment for image/panel F.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "B", "explanation": "Part F: Answer B. BI-RADS 4—Fine linear or fine linear branching calcifications\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2G", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart G: assign the BI-RADS assessment for image/panel G.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "B", "explanation": "Part G: Answer B. BI-RADS 4—Fine pleomorphic calcifications\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "2H", "stem": "For each diagnostic image below, assign the likely BI-RADS assessment of either BI-RADS 2 (answer choice “A”) or BI-RADS 4 (answer choice “B”). Each option may be used once, more than once, or not at all:\n\nPart H: assign the BI-RADS assessment for image/panel H.", "options": [{"letter": "A", "text": "BI-RADS 2"}, {"letter": "B", "text": "BI-RADS 4"}], "images": ["assets/q2_1-1.jpg", "assets/q2_2-1.jpg", "assets/q2_3-1.jpg"], "answer": "B", "explanation": "Part H: Answer B. BI-RADS 2—Milk of calcium calcifications\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–69.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639.", "explanationImages": []}, {"number": "3", "stem": "According to the fifth edition of BI-RADS, what is the benchmark for the cancer detection rate (CDR)?", "options": [{"letter": "A", "text": "≥1.0"}, {"letter": "B", "text": "≥1.5"}, {"letter": "C", "text": "≥2.0"}, {"letter": "D", "text": "≥2.5"}, {"letter": "E", "text": "≥3.0"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. The cancer detection rate (CDR) is the number of cancers with a positive initial interpretation (BI-RADS category 0, 4, or 5) per 1,000 screening mammograms. The benchmark for the CDR according to the fifth edition of BI-RADS is >2.5/1,000.\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:24–25.\n\nD’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:29."}, {"number": "4", "stem": "In one year, 100 cancers are identified; 94 of the cancers were identified based on biopsy recommendations from a screening mammogram and an additional 6 cancers developed after a negative mammogram. What is the sensitivity in this population?", "options": [{"letter": "A", "text": "6%"}, {"letter": "B", "text": "88%"}, {"letter": "C", "text": "90%"}, {"letter": "D", "text": "94%"}, {"letter": "E", "text": "96%"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Sensitivity is the probability of detecting a cancer when a cancer exists or the number of cancers diagnosed after being identified at mammography in a population within 1 year of the imaging examination, divided by all cancers present in that population in the same time period.\n\nSensitivity = TP/(TP + FN); TP = true positive; FN = false negative\n\nSensitivity = 94/(94 + 6) = 94/100 = 94%\n\nSpecificity is the probability of interpreting an examination as negative when cancer does not exist or the number of examinations for which there is no tissue diagnosis of cancer within 1 year of examination, divided by the all examinations for which there is no tissue diagnosis of cancer with the same time period.\n\nSpecificity = TN/(TN + FP); TN = true negative; FP = false positive\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:19.\n\nLinver MN, Osuch JR, Brenner RJ, et al. The mammography audit: a primer for the Mammography Quality Standards Act (MQSA). AJR Am J Roentgenol 1995;165:19–25."}, {"number": "5", "stem": "When assessing for accurate positioning on the mediolateral oblique (MLO) view, which of the following is correct?", "options": [{"letter": "A", "text": "A large amount of the upper abdomen should be visible."}, {"letter": "B", "text": "The breast should be pulled out and down."}, {"letter": "C", "text": "The pectoral muscle should widen at the axilla and extend to the nipple, and the anterior margin should be convex."}, {"letter": "D", "text": "The inframammary fold should be neutral in position."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The appearance of the pectoral muscle is useful in assessing position on MLO views. The breast should be pulled up and out, the inframammary fold should be open on MLO views and neutral on craniocaudal views, and a small amount of the upper abdomen should be visible on MLO views.\n\nReference: Cardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2017:10–17."}, {"number": "6", "stem": "A screening mammogram is read as negative. The patient returns with a palpable abnormality 9 months later. A mass is identified, and biopsy shows invasive ductal carcinoma. This case is classified as which of the following in your audit?", "options": [{"letter": "A", "text": "True positive"}, {"letter": "B", "text": "True negative"}, {"letter": "C", "text": "False positive"}, {"letter": "D", "text": "False negative"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. This case would be classified as a false negative. A false negative is a patient with a tissue diagnosis of cancer within 1 year of a negative examination (BI-RADS 1 or 2 for screening, BI-RADS category 1, 2, or 3 for diagnostic).\n\nA false positive 1 (FP1) is no known tissue diagnosis of cancer within 1 year of a positive screening examination.\n\nA false positive 2 (FP2) is no known tissue diagnosis of cancer within 1 year after recommendation for tissue diagnosis or surgical consultation on the basis of a positive examination (BI-RADS category 4 or 5).\n\nA false positive 3 (FP3) is concordant benign tissue diagnosis (or discordant benign tissue diagnosis and no known tissue diagnosis) within 1 year after recommendation for tissue diagnosis on the basis of a positive examination (BI-RADS category 4 or 5).\n\nA true positive is a tissue diagnosis of cancer within 1 year after a positive examination.\n\nA true negative is no known tissue diagnosis of cancer within 1 year of a negative examination.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:17–18."}, {"number": "7a", "stem": "An 85-year-old female with a history of a left mastectomy presented for a screening mammogram of the right breast. A radiopaque marker was placed on the nipple. Images are provided below.\n\nBased on the screening mammogram images, what is the most appropriate BI-RADS assessment?", "options": [{"letter": "A", "text": "BI-RADS 0"}, {"letter": "B", "text": "BI-RADS 1"}, {"letter": "C", "text": "BI-RADS 2"}, {"letter": "D", "text": "BI-RADS 3"}, {"letter": "E", "text": "BI-RADS 4"}], "images": ["assets/q7a_4-1.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Repeat imaging is required because of chin artifact on MLO view. BI-RADS category is 0."}, {"number": "7b", "stem": "The patient is called back for a repeat mediolateral oblique (MLO) image of the right breast (see below).\n\nThe reason the mediolateral oblique view was repeated was because of:", "options": [{"letter": "A", "text": "Hair artifact"}, {"letter": "B", "text": "Motion artifact"}, {"letter": "C", "text": "Chin artifact"}, {"letter": "D", "text": "Deodorant artifact"}, {"letter": "E", "text": "Skin artifact"}], "images": ["assets/q7b_4-2.jpg"], "explanationImages": ["assets/a7b_25-1.jpg"], "answer": "C", "explanation": "Answer C. Repeat imaging is required because of chin artifact on MLO view (see red arrow below).\n\nReference: Shah BA, Fundaro GM, Mandava S. Breast imaging review: a quick guide to essential diagnoses, 2nd ed. New York, NY: Springer, 2015:2–5."}, {"number": "8", "stem": "The posterior nipple line measures 13 cm on the mediolateral oblique (MLO) view. What is an acceptable posterior nipple line measurement on the craniocaudal (CC) view?", "options": [{"letter": "A", "text": "8 cm"}, {"letter": "B", "text": "9 cm"}, {"letter": "C", "text": "10 cm"}, {"letter": "D", "text": "11 cm"}, {"letter": "E", "text": "12 cm"}], "images": [], "explanationImages": [], "answer": "E", "explanation": "Answer E. The posterior nipple line measurement difference between MLO and CC view should not exceed more than 1 cm if there is adequate tissue exposure. Of the answer choices listed, 12 cm is the correct answer.\n\nReference: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier Mosby, 2017:11–14."}, {"number": "9", "stem": "In order to meet MQSA requirements, all mammography facilities must perform medical outcomes analysis for the aggregate of interpreting physicians as well as data for each individual interpreting physician at that facility. How often must the medical outcomes analysis be performed?", "options": [{"letter": "A", "text": "3 months"}, {"letter": "B", "text": "6 months"}, {"letter": "C", "text": "12 months"}, {"letter": "D", "text": "24 months"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. A mammography facility is inspected by state or federal inspectors each year to evaluate for compliance with MQSA regulations.\n\nReferences: Cardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2008. Chapter E-2, E-5.\n\nDee KE, Sickles EA. Medical audit of diagnostic mammography examinations comparison with screening outcomes obtained concurrently. AJR Am J Roentgenol 2001;176:729–733.\n\nD’Orsi C, Sickles EA, Mendelson EB, et al. Breast imaging reporting and data system: ACR BI-RADS® breast imaging atlas, 5th ed. Reston, VA: American College of Radiology, 2013.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:24.\n\nMonsees BS. The Mammography Quality Standards Act: an overview of the regulations and guidance. Radiol Clin North Am 2000;38:759–772."}, {"number": "10", "stem": "Prior to independently interpreting any new mammographic modality, the interpreting physician must first obtain and document additional training in this modality. How many hours of training are required?", "options": [{"letter": "A", "text": "4 hours"}, {"letter": "B", "text": "6 hours"}, {"letter": "C", "text": "8 hours"}, {"letter": "D", "text": "12 hours"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. 8 hours. With respect to digital breast tomosynthesis (DBT), due to technological differences between each of the FDA-approved systems, each manufacturer’s DBT system is currently treated as a separate mammographic modality under the MQSA definition. Therefore, training must include both the common features of DBT and the vendor-specific features of the DBT system utilized at the facility in question.\n\nReferences: Cardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2008. E-2.\n\nMonsees BS. The Mammography Quality Standards Act: an overview of the regulations and guidance. Radiol Clin North Am 2000;38:759–772."}, {"number": "11", "stem": "What statement is correct regarding the above artifact?", "options": [{"letter": "A", "text": "Seen with both digital and analog studies"}, {"letter": "B", "text": "Resolved by wiping the detector clean to eliminate skin lotion or antiperspirant"}, {"letter": "C", "text": "Corrected by recalibrating the detector"}, {"letter": "D", "text": "Seen when the technologist does not wipe the detector dry"}], "images": ["assets/q11_5-1.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C.\n\nReference: Jayadevan R, Armada MJ, Shaheen R, et al. Optimizing digital mammographic image quality for full-field digital detectors: artifacts encountered during the QC process. RadioGraphics 2015;35(2):2080–2089."}, {"number": "12a", "stem": "A 41-year-old female with a history of a palpable lump in the right breast. The image is provided below.\n\nBased on the diagnostic mammogram images provided, what is the most appropriate next step?", "options": [{"letter": "A", "text": "Repeat MLO view due to possible artifact."}, {"letter": "B", "text": "Proceed to a targeted right breast ultrasound of area that is palpable."}, {"letter": "C", "text": "Request rolled craniocaudal views of the right breast."}, {"letter": "D", "text": "Recommend return to annual screening mammography."}, {"letter": "E", "text": "Refer the patient to see a breast surgeon."}], "images": ["assets/q12a_6-1.jpg"], "explanationImages": ["assets/a12a_26-1.jpg"], "answer": "A", "explanation": "Answer A. Repeat MLO view is needed due to high-density particles seen in the axillary region that may represent deodorant artifact."}, {"number": "12b", "stem": "The patient is called back for a repeat mediolateral oblique (MLO) image of the right breast (see below).\n\nThe reason the mediolateral oblique view was repeated was because of:", "options": [{"letter": "A", "text": "Hair artifact"}, {"letter": "B", "text": "Chin artifact"}, {"letter": "C", "text": "Deodorant artifact"}, {"letter": "D", "text": "Suboptimal patient positioning"}, {"letter": "E", "text": "Motion artifact"}], "images": ["assets/q12b_7-1.jpg"], "explanationImages": ["assets/a12b_27-1.jpg"], "answer": "C", "explanation": "Answer C. Images show no high-density particles in the axillary region, which proves the findings seen previously were deodorant artifact.\n\nReference: Shah BA, Fundaro GM, Mandava S. Breast imaging review: a quick guide to essential diagnoses, 2nd ed. New York, NY: Springer, 2015:2–5."}, {"number": "13", "stem": "Which of the following is correct regarding screening mammography guidelines as recommended by American College of Radiology?", "options": [{"letter": "A", "text": "Annual mammograms starting at age 50 and ending at age 74"}, {"letter": "B", "text": "Biannual mammograms starting at age 35 and annual mammogram after age 40"}, {"letter": "C", "text": "Annual mammograms starting at age 50 and ending at age 74"}, {"letter": "D", "text": "Biannual mammograms starting at ages 45–54, then annually age 55 and older"}, {"letter": "E", "text": "Annual mammograms starting at age 40 and continuing until a women’s life expectancy is less than 5–7 years"}], "images": [], "explanationImages": [], "answer": "E", "explanation": "Answer E. The American College of Radiology (ACR) recommends that screening mammography in women start at the age of 40 and continues until a woman’s life expectancy is < 5 to 7 years.\n\nThe U.S. Preventive Services Task Force (USPSTF) recommends biennial screening mammography for women aged 50 to 74 years. As per USPSTF, the decision to start screening mammography in women prior to age 50 years should be an individual one. Women who place a higher value on the potential benefit than the potential harms may choose to begin biennial screening between the ages of 40 and 49 years.\n\nThe American Cancer Society (ACS) recommends annual screening ages 45 to 54 years, then biennial screening until a woman’s life expectancy is < 10 years, with option to begin annual screening at age 40 and continue annual screening beyond 54.\n\nReferences: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:1.\n\nOeffinger KC, Fontham ET, Etzioni R, et al. Breast cancer screening for women at average risk; 2015 guideline update from the American Cancer Society. JAMA 2015;314(15):1599–1614."}, {"number": "14", "stem": "Which of the following is correct regarding proper positioning of the breast in mammography?", "options": [{"letter": "A", "text": "The craniocaudal (CC) view is a projection parallel to the pectoralis major muscle."}, {"letter": "B", "text": "On the CC view, the pectoralis major muscle is seen approximately 75% of the time."}, {"letter": "C", "text": "On the mediolateral oblique (MLO) view, the pectoralis major should be concave anteriorly."}, {"letter": "D", "text": "On the MLO view, the pectoralis major muscle should be seen above the level of the axis of the nipple."}, {"letter": "E", "text": "The nipple should be in profile on at least one view."}], "images": [], "explanationImages": [], "answer": "E", "explanation": "Answer E. The nipple should be in profile on at least one view. This may require an extra view in addition to the typical CC and MLO views.\n\nReferences: Brant WE, Helms CA. Fundamentals of diagnostic radiology. Philadelphia, PA: Lippincott Williams & Wilkins, 2007:569–570.\n\nCardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Willkins, 2017:10–26."}, {"number": "15", "stem": "Federal regulations require that follow-up on surgical and/or pathology results be performed for patients with positive mammograms. How frequently are facilities required to conduct this follow-up?", "options": [{"letter": "A", "text": "Daily"}, {"letter": "B", "text": "Weekly"}, {"letter": "C", "text": "Monthly"}, {"letter": "D", "text": "Yearly"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Yearly. Although the requirement is every 12 months, facilities should conduct follow-up on a routine basis in order to ensure that cases are not lost to follow-up.\n\nReferences: Cardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2008. E-2.\n\nMonsees BS. The Mammography Quality Standards Act: an overview of the regulations and guidance. Radiol Clin North Am 2000;38:759–772."}, {"number": "16", "stem": "Failure to inform patients of their results in a timely manner is considered a significant violation. What is the time limit set by the FDA to provide lay summaries to all patients?", "options": [{"letter": "A", "text": "7 days"}, {"letter": "B", "text": "14 days"}, {"letter": "C", "text": "30 days"}, {"letter": "D", "text": "60 days"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The FDA mandates that facilities must send a report in lay language that summarizes the exam results to all patients within 30 days of the mammogram (patients who do not have a health care provider must also receive the mammographic report within 30 days). When the mammography report assessment is “suspicious” or “highly suggestive of malignancy,” the lay summary results and recommended course of action must be communicated as soon as possible. This notification requirement went into effect on April 28, 1999.\n\nReferences: Refer to FDA website for more information (www.fda.gov).\n\nCardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2017. E-2.\n\nMonsees BS. The Mammography Quality Standards Act: an overview of the regulations and guidance. Radiol Clin North Am 2000;38:759–772."}, {"number": "17", "stem": "Which organization oversees regulation mammography quality standards in the United States?", "options": [{"letter": "A", "text": "Food and Drug Administration"}, {"letter": "B", "text": "American College of Radiology"}, {"letter": "C", "text": "Department of Health and Human Services"}, {"letter": "D", "text": "Regulated by each state independently without federal involvement"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Because of concerns regarding patient safety and mammography screening quality, The American College of Radiology and the U.S. Congress sought to implement regulations that would result in federal standards for mammography screening. The Department of Health and Human Services developed these standards and The U.S. Congress appointed the Food and Drug Administration (FDA) to implement and oversee the quality of mammography equipment and facilities after the enactment of the Mammography Quality Standards Act (MQSA) in 1992. Various states have also been certified to accredit mammography facilities; these are approved by the FDA.\n\nReferences: Berns E, Baker J, Barke L, et al. 2016 American College of Radiology (ACR) digital mammography quality control manual. Reston, VA: American College of Radiology, 2016.\n\nKopans DB. Breast imaging, 3rd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2007:267–268.\n\nSickles EA, D’Orsi CJ, Bassett LW, et al. ACR BI-RADS® mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013."}, {"number": "18", "stem": "The definition of positive predictive value 1 (PPV1) is:", "options": [{"letter": "A", "text": "Percentage of examinations with an abnormal final interpretation that result in a tissue diagnosis of cancer within 1 year."}, {"letter": "B", "text": "Percentage of examinations with a normal initial interpretation that result in a tissue diagnosis of cancer within 1 year."}, {"letter": "C", "text": "Percentage of examinations with an abnormal initial interpretation that result in a tissue diagnosis of cancer within 1 year."}, {"letter": "D", "text": "Percentage of examinations with an abnormal final interpretation where it is known that a biopsy was performed as a result of the abnormal diagnostic examination that result in tissue diagnosis of cancer within 1 year."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. PPV1 (abnormal findings at screening) is the percentage of all positive screening examinations (BI-RADS categories 0, 3, 4, and 5) that result in tissue diagnosis of cancer in 1 year.\n\nPPV1 = TP/number of positive screening examinations.\n\nor\n\nPPV1 = TP/(TP + FP1); TP = true positive; FP1 = false positive 1 (no known tissue diagnosis of cancer within 1 year of a positive screening examination).\n\nPPV2 (biopsy recommended) is the percentage of all diagnostic (or rarely) screening examinations recommended for tissue diagnosis or surgical consultation (BI-RADS category 4 or 5) that result in tissue diagnosis in 1 year. PPV2 = TP/(number of screening or diagnostic examinations recommended for tissue diagnosis).\n\nor\n\nPPV2 = TP/(TP + FP2); TP = true positive; FP2 = false positive 2 (no known tissue diagnosis of cancer within 1 year after recommendation for tissue diagnosis or surgical consultation on a basis of a positive examination) (BI-RADS category 4 or 5).\n\nPPV3 (biopsy performed) is the percentage of all known biopsies done as a result of positive diagnostic examinations (BI-RADS categories 4 and 5) that resulted in a tissue diagnosis of cancer within 1 year. PPV3 is also known as the biopsy yield of malignancy or positive biopsy rate (PBR).\n\nPPV3 = TP/(number of biopsies).\n\nor\n\nPPV3 = TP/(TP + FP); TP = true positive; FP3 = false positive 3 (concordant benign tissue diagnosis or discordant benign tissue diagnosis and no known cancer within 1 year after recommendation for tissue diagnosis on the basis of a positive examination) (BI-RADS category 4 or 5).\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:18–19."}, {"number": "19", "stem": "Which of the following statements concerning a BRCA1 mutation carrier is correct?", "options": [{"letter": "A", "text": "It is autosomal recessive."}, {"letter": "B", "text": "It is a tumor suppressor gene on chromosome 17."}, {"letter": "C", "text": "Lifetime risk of breast cancer is 25% to 35% with the carrier."}, {"letter": "D", "text": "It is also associated with an increased risk of lung cancer."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. BRCA1 is autosomal dominant and is a tumor suppressor gene on chromosome 17. BRCA2 is on chromosome 13. The lifetime risk of breast cancer is 50% to 85%. It is associated with an increased risk of ovarian cancer and other cancers including prostate cancer. There is no known increased risk of lung cancer.\n\nReference: Berg WA, Birdwell RL, Gombos EC, et al. Diagnostic imaging breast. Salt Lake City, UT: Amirsys, 2006:25–26, Chapter 2."}, {"number": "20", "stem": "Regarding the compression plate and imaging receptor, which of the following is necessary?", "options": [{"letter": "A", "text": "Both 18 × 24 cm and 12 × 18 cm sizes are required."}, {"letter": "B", "text": "Collimation to the breast contour."}, {"letter": "C", "text": "Compression force of 45 to 60 pounds."}, {"letter": "D", "text": "A fixed grid is required for each receptor size."}, {"letter": "E", "text": "Paddle advanced by a foot motor with hand compression adjustment."}], "images": [], "explanationImages": [], "answer": "E", "explanation": "Answer E. The mammography compression plate and imaging receptor need both 18 × 24 cm and 24 × 30 cm size, with compression force of 25 to 45 pounds, with a moving grid for each image receptor size, and the collimation to the receptor while not the breast contour.\n\nReference: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier Mosby, 2017:2–5."}, {"number": "21", "stem": "The following study was performed to evaluate for silicone breast implant rupture.\n\nThis image depicts which artifact?", "options": [{"letter": "A", "text": "Susceptibility artifact"}, {"letter": "B", "text": "Wrap/aliasing artifact"}, {"letter": "C", "text": "Radiofrequency (RF) interference artifact"}, {"letter": "D", "text": "Silicone saturation artifact"}], "images": ["assets/q21_9-1.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. This artifact is caused by saturation of silicone signal, which can occur when silicone is selected for saturation rather than fat. Fat and silicone resonate closely at 1.5 T. Note that silicone was saturated in this image, but fat was not correctly saturated. As a result of silicone saturation, a silicone breast implant will have dark signal and the examination will be rendered nondiagnostic for evaluation of implant rupture. The inversion recovery (IR) sequence with water saturation is a silicone-specific sequence (water and fat will be saturated) that is the most important sequence of the examination. Silicone should appear white on this sequence, enabling the detection of intracapsular and/or extracapsular rupture. Answer A is incorrect because susceptibility artifact is a signal void or field inhomogeneity caused by metal in or on the patient’s body. Answer B is incorrect because wrap or aliasing artifact occurs when tissue extends beyond the field of view (FOV), causing signal from tissues outside the FOV to be superimposed on structures within the FOV. It occurs in the phase-encoding direction. This artifact can be seen with patients’ arms in MRI gantry. Answer C is incorrect because RF interference is an artifact that occurs because of incomplete shielding of the MRI suite (e.g., door ajar) or radiofrequency disturbance within the MR suite (e.g., patient monitoring equipment). This artifact manifests as repetitive lines extending across the image at a fixed interval.\n\nReference: Hendrick RE. Breast MRI: fundamentals and technical aspects. New York, NY: Springer, 2008:187–207."}, {"number": "22a", "stem": "This table demonstrates data obtained from a community hospital breast care center in a 12-month period.\n\nScreening Mammograms | BI-RADS Category 0 | Final Assessment of BI-RADS Categories 4 and 5 Based on Diagnostic Workup | Positive Breast Cancer Diagnosis Within 1 Year of Screening Exams with a BI-RADS 0 Assessment in the 12-Month Period\n5,000 | 400 | 200 | 30\n\nWhat is the screening abnormal interpretation rate at this center?", "options": [{"letter": "A", "text": "4%"}, {"letter": "B", "text": "5%"}, {"letter": "C", "text": "6%"}, {"letter": "D", "text": "8%"}, {"letter": "E", "text": "12%"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Abnormal interpretation rate, also known as recall rate, in screening mammography is the percentage of examinations interpreted as positive. For screening mammography, positive exams include BI-RADS categories 0, 4, and 5 assessments given based on screening mammograms.\n\nScreening abnormal interpretation rate = (category 0, 4, and 5 cases based on screening mammograms)/(total number of screening mammograms) = 400 + 0 + 0/5,000 = 400/5,000 = 0.08 = 8%.\n\nFor diagnostic mammography, abnormal interpretation rate or biopsy recommended rate is the percentage of examinations interpreted as positive. For diagnostic mammography, positive exams include BI-RADS categories 4 and 5 assessments based on diagnostic workup.\n\nDiagnostic abnormal interpretation rate = (categories 4 and 5 cases based on diagnostic workup)/(total number of diagnostic mammograms)."}, {"number": "22b", "stem": "What is the cancer detection rate?", "options": [{"letter": "A", "text": "4/1,000"}, {"letter": "B", "text": "5/1,000"}, {"letter": "C", "text": "6/1,000"}, {"letter": "D", "text": "8/1,000"}, {"letter": "E", "text": "12/1,000"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Cancer detection rate is the number of cancers correctly detected at mammography per 1,000 patients examined at mammography.\n\nCancer detection rate = positive biopsies/total number of screening mammograms = 30/5,000 = 0.006 = 6/1,000.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:19–20."}, {"number": "23", "stem": "The following image from a contrast-enhanced breast MR examination demonstrates which artifact?", "options": [{"letter": "A", "text": "Chemical shift artifact"}, {"letter": "B", "text": "Wrap/aliasing artifact"}, {"letter": "C", "text": "Susceptibility artifact"}, {"letter": "D", "text": "Motion artifact"}], "images": ["assets/q23_10-1.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. This image demonstrates susceptibility artifact on the right breast because of metal on the patient’s skin. A mammographic BB marker left on the patient’s skin prior to the MRI caused the artifact. The BB has a metallic component, which can cause image artifacts manifesting as warped images, signal voids, and signal flare. The artifact can vary based on which type of sequence is performed. Metallic artifacts manifest as signal voids on gradient-echo sequences. On spin-echo sequences, a signal flare component may be seen in addition to the signal void. Susceptibility artifact is most commonly seen in breast MRI interpretation as a result of breast biopsy markers or surgical clips. Answer A is incorrect because chemical shift artifact is an artifact that results from the different resonances of the hydrogen in fat and water. It is most commonly seen in non–fat-suppressed sequences (e.g., non–fat-suppressed T1 weighted) and results in signal void or bright signal at a fat–water interface. Answer B is incorrect because wrap or aliasing artifact occurs when tissue extends beyond the field of view (FOV), causing signal from tissues outside the FOV to be superimposed on structures within the FOV. It occurs in the phase-encoding direction. This artifact can be seen with patients’ arms in MRI gantry. Answer D is incorrect as there is no significant motion on this image. Motion artifact is one of the most commonly encountered artifacts affecting breast MRI. Motion can arise from patient motion or cardiac, respiratory, or great vessel motion. All motions propagate in the phase-encoding direction despite the direction of the motion. Phase-encoding direction should be left to right for axial sequences and superior to inferior for sagittal sequences to reduce the effect of cardiac and respiratory motion on the breasts.\n\nReferences: Genson CC, Blane CE, Helvie MA, et al. Effects on breast MRI of artifacts caused by metallic tissue marker clips. AJR Am J Roentgenol 2007;188(2):372–376.\n\nHarvey JA, Hendrick E, Coll JM, et al. Breast MR imaging artifacts: how to recognize and fix them. RadioGraphics 2007;27:S131–S145.\n\nHendrick RE. Breast MRI: fundamentals and technical aspects. New York, NY: Springer, 2008:187–207."}, {"number": "24", "stem": "Regarding standardized film labeling for mammogram images, which of the following is correct?", "options": [{"letter": "A", "text": "Either the patient’s full name or a unique patient identification number needs to be on the film."}, {"letter": "B", "text": "The name and address of the facility is needed when a patient requests films for other facilities."}, {"letter": "C", "text": "Arabic number indicating the cassette should be on every image."}, {"letter": "D", "text": "View and laterality placed near the nipple."}, {"letter": "E", "text": "The technologist’s employee number should be included."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Correct film labeling should include all of the following: the patient’s first and last name as well as a unique patient identification number, name and address of the facility, mammography unit, date of the exam, view and laterality placed near the axilla, Arabic number indicating the cassette, and technologist’s initials.\n\nReference: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:12."}, {"number": "25", "stem": "A 55-year-old female is placed into a BI-RADS 3 category after a diagnostic workup. According to the BI-RADS lexicon, a BI-RADS 3 finding has less than what percent chance of malignancy?", "options": [{"letter": "A", "text": "1%"}, {"letter": "B", "text": "2%"}, {"letter": "C", "text": "3%"}, {"letter": "D", "text": "4%"}, {"letter": "E", "text": "5%"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. A BI-RADS 3 category finding should have a <2% chance of malignancy. The finding is not expected to change over the time interval of the BI-RADS 3 follow-up. BI-RADS 3 findings include a noncalcified circumscribed solid mass, the focal asymmetry, and solitary group of round calcifications.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:150–153."}, {"number": "26", "stem": "A 60-year-old female presents with a finding which is placed into a BI-RADS 5 category. According to the BI-RADS lexicon, a BI-RADS 5 lesion has greater than or equal to what percent chance of malignancy?", "options": [{"letter": "A", "text": "90%"}, {"letter": "B", "text": "93%"}, {"letter": "C", "text": "95%"}, {"letter": "D", "text": "97%"}, {"letter": "E", "text": "99%"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. BI-RADS 5 lesions have a >95% chance of malignancy. The level of suspicion is high enough in these lesions that they could be taken to surgery without preoperative biopsy; however, current oncologic evaluation may require a tissue biopsy to adequately plan the patient’s treatment course before surgery.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:154–155."}, {"number": "27", "stem": "What artifact is noted on this study?", "options": [{"letter": "A", "text": "Hair artifact"}, {"letter": "B", "text": "Deodorant"}, {"letter": "C", "text": "VP shunt catheter"}, {"letter": "D", "text": "Jewelry"}], "images": ["assets/q27_11-1.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Hair artifact is noted on the CC view but is not seen on the MLO view. Hair artifact often creates a swirl pattern on the image. By simply repeating the image, with attention to clearing the hair from the field of view, the artifact will be eliminated.\n\nReferences: Cardenosa G. Breast imaging. Philadelphia, PA: Lippincott Williams & Wilkins, 2004:45–48.\n\nShah BA, Fundaro GM, Mandava S. Breast imaging review: a quick guide to essential diagnoses, 2nd ed. New York, NY: Springer, 2015:2–5."}, {"number": "28", "stem": "What artifact is noted on this study?", "options": [{"letter": "A", "text": "Hair artifact"}, {"letter": "B", "text": "Deodorant"}, {"letter": "C", "text": "VP shunt catheter"}, {"letter": "D", "text": "Jewelry"}], "images": ["assets/q28_11-2.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. A VP shunt catheter is noted on this study. Note that the catheter is seen extending into the abdominal wall on the ML view.\n\nReferences: Chatell T, Shah B. Review of common mammographic artifacts on both digital and analog mammograms. AJR Am J Roentgenol 2010;194(5 Suppl):A100–A115.\n\nShah BA, Fundaro GM, Mandava S. Breast imaging review: a quick guide to essential diagnoses, 2nd ed. New York, NY: Springer, 2015:2–5."}, {"number": "29", "stem": "According to the American College of Radiology and the American Cancer Society, contrast-enhanced screening breast MRI is recommended for women at what percentage lifetime risk of developing breast cancer?", "options": [{"letter": "A", "text": ">10%"}, {"letter": "B", "text": ">20%"}, {"letter": "C", "text": ">50%"}, {"letter": "D", "text": ">75%"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The current recommendations of the American Cancer Society (ACS) and American College of Radiology (ACR) for screening breast MRI are for women with a high risk of breast cancer, estimated at a >20% lifetime risk of having the disease, based on multiple different mathematical models outlined in the papers cited below. Other groups for which screening breast MRI is recommended include patients with known genetic mutations, including BRCA1 and BRCA2, and a family history that suggests a genetic predisposition (≥2 first-degree relatives with breast cancer or a single first-degree relative with premenopausal breast cancer or a family history of breast and ovarian cancer). There are other cases in which the ACR and ACS do not recommend for or against screening because of limited information including those patients with a 15% to 20% lifetime risk including those with prior personal history of breast cancer, history of ADH or lobular neoplasia, or more limited family histories.\n\nReferences: Lee CH, Dershaw DD, Kopans D, et al. Breast cancer screening with imaging: recommendations from the Society of Breast Imaging and the ACR on the use of mammography, breast MRI, breast ultrasound, and other technologies for the detection of clinically occult breast cancer. J Am Coll Radiol 2010;7(1):18–27.\n\nSaslow D, Boetes C, Burke W, et al. American Cancer Society guidelines for breast screening with MRI as an adjunct to mammography. CA Cancer J Clin 2007;57(2):75–89."}, {"number": "30", "stem": "A premenopausal woman requires a breast MRI with contrast. Which week of the menstrual cycle is best to perform the MRI?", "options": [{"letter": "A", "text": "Days 1 to 6"}, {"letter": "B", "text": "Days 7 to 14"}, {"letter": "C", "text": "Days 15 to 21"}, {"letter": "D", "text": "Days 22 to 28"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Estrogen can cause contrast enhancement of benign breast parenchyma in premenopausal females. This enhancement is greatest in weeks 1 and 4 of the cycle, assuming a 4-week cycle. This enhancement can make interpretation of normal background enhancement from pathological enhancement difficult. Physiologic enhancement is the least during the 2nd week; therefore, this is the preferred week to perform breast MRI.\n\nReference: Morris EA, Liberman L (eds). Breast MRI: diagnosis and intervention. New York, NY: Springer, 2005:36–38."}, {"number": "31", "stem": "Which of the following is a clinical indicator of breast cancer risk according to the 2015 American Cancer Society (ACS) recommendations for performing a screening breast MRI as an adjunct to mammography?", "options": [{"letter": "A", "text": "A history of radiation to the chest at a young age"}, {"letter": "B", "text": "History of neurofibromatosis type 1"}, {"letter": "C", "text": "Lifetime risk of breast cancer of 10% or more using standard risk assessment models"}, {"letter": "D", "text": "Breast density >50%"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. History of radiation to the chest at a young age. The 2015 American Cancer Society Guidelines recommended the use of screening MRI in patients with a history of previous radiotherapy to the chest, for example, patients with a history of Hodgkin lymphoma and mantle field radiation. Neurofibromatosis is an incorrect answer. Although there has been a recognized link between neurofibromatosis type 1 and breast carcinoma, current guidelines do not recommend the use of screening MRI in this patient population. The ACS guidelines also recommended the use of screening breast MRI in patients with a 20% to 25% or greater lifetime risk of breast cancer. As such, Answer C would also be an incorrect choice. Heterogeneously, dense breasts (>50% breast density) has not shown to be a clinical indicator of breast cancer risk. Multiple studies have shown however that women with >75% breast density have a fivefold increased risk of breast cancer.\n\nReferences: Oeffinger KC, Fontham ET, Etzioni R, et al. Breast cancer screening for women at average risk; 2015 guideline update from the American Cancer Society. JAMA 2015;314(15):1599–1614.\n\nSharif S, Moran A, Huson SM, et al. Women with neurofibromatosis type 1 are at moderately increased risk of developing breast cancer and should be considered for early screening. J Med Genet 2007;44(8):481–484."}, {"number": "32", "stem": "Which of the following quality control tests are performed weekly for film–screen mammography?", "options": [{"letter": "A", "text": "Darkroom cleanliness"}, {"letter": "B", "text": "Processor quality control"}, {"letter": "C", "text": "Screen cleanliness"}, {"letter": "D", "text": "Viewbox cleanliness"}, {"letter": "E", "text": "Fixer retention"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C.\n\nDarkroom cleanliness\n\nDaily\n\nProcessor QC\n\nDaily\n\nScreen cleanliness\n\nWeekly\n\nPhantom image evaluation\n\nWeekly\n\nViewbox cleanliness\n\nWeekly\n\nVisual checklist\n\nMonthly\n\nRepeat analysis\n\nQuarterly\n\nAnalysis of fixer retention\n\nQuarterly\n\nDarkroom fog\n\nSemiannually\n\nScreen–film contact\n\nSemiannually\n\nCompression\n\nSemiannually\n\nReference: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:23."}, {"number": "33", "stem": "The view shown in the image below is suboptimal for evaluating which portion of the breast?", "options": [{"letter": "A", "text": "Inferior"}, {"letter": "B", "text": "Lateral"}, {"letter": "C", "text": "Medial"}, {"letter": "D", "text": "Superior"}], "images": ["assets/q33_12-1.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The MLO view provides the greatest amount of coverage for a single projection. In positioning the patient, care must be taken to make sure the medial breast tissue is not pulled out of the field of view. The medial breast tissue is tethered along the sternum, which can easily slide out of view if proper care is not taken with positioning.\n\nReference: Kopans DB. Breast imaging, 3rd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2007: 286–288."}, {"number": "34", "stem": "The ACR digital mammography (DM) phantom image obtained during a weekly quality control check should show which of the following to meet minimum passing criteria?", "options": [{"letter": "A", "text": "Fiber score of 2, speck group score of 2, mass group score of 2"}, {"letter": "B", "text": "Fiber score of 3, speck group score of 2, mass group score of 3"}, {"letter": "C", "text": "Fiber score of 2, speck group score of 3, mass group score of 2"}, {"letter": "D", "text": "Fiber score of 4, speck group score of 3, mass group score of 3"}], "images": [], "explanationImages": ["assets/a34_33-1.jpg"], "answer": "C", "explanation": "Answer C. The ACR digital mammography (DM) phantom should be imaged weekly, upon installation of new equipment (before clinical use), and after relevant service, and whenever image quality problems are suspected. The phantom is evaluated for background density, contrast, uniformity, and number of objects seen. The ACR DM phantom simulates a 4.2-cm thick compressed breast consisting of 50% adipose tissue. It contains six different fibers, six groups of microcalcifications, and six masses. The ACR DM phantom image scoring requires the fiber score to be at least 2, the speck group score be at least 3, and the mass group score be at least 2.\n\nReference: Berns E, Baker J, Barke L, et al. Radiological technologist’s section. In: ACR 2016 digital mammography quality control manual. Reston, VA: American College of Radiology, 2016:33–40."}, {"number": "35a", "stem": "The following image from a contrast-enhanced breast MR examination demonstrates which artifact?", "options": [{"letter": "A", "text": "Chemical shift artifact"}, {"letter": "B", "text": "Wrap/aliasing artifact"}, {"letter": "C", "text": "Susceptibility artifact"}, {"letter": "D", "text": "Patient motion/ghosting artifact"}, {"letter": "E", "text": "Inhomogeneous fat saturation artifact"}], "images": ["assets/q35a_13-1.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. Fat saturation is important for breast cancer detection on MRI. High signal of fat interferes with the detection of enhancing lesions. MR imaging unit software automatically identifies the water peak as the highest signal peak, and fat is suppressed by applying saturation pulses at a frequency of 3.5 ppm (224 Hz at 1.5 T) below the water peak. To effectively suppress the protons in the fat molecules, the correct range of frequencies must be selected. Sometimes in the presence of an unexpected variation in the magnetic field, there will be protons in fat that are precessing out of the range of frequencies included in the suppression pulse. These protons will not be suppressed, and the fat containing these protons will maintain its brighter signal. This phenomenon results in inhomogeneous suppression of the fat signal within the breast. Inhomogeneous fat saturation is a common problem and cannot be corrected for. However, shimming the magnet (optimizing field homogeneity) of an MR imaging unit can correct some of the artifact.\n\nAnswer choice A is incorrect because chemical shift artifact is an artifact that results from the different resonances of the hydrogen in fat and water. It is most commonly seen in non–fat-suppressed sequences (e.g., non–fat-suppressed T1 weighted) and results in signal void or bright signal at a fat–water interface. Answer choice B is incorrect because wrap or aliasing artifact occurs when tissue extends beyond the field of view (FOV), causing signal from tissues outside the FOV to be superimposed on structures within the FOV. It occurs in the phase-encoding direction. This artifact is commonly seen with patients’ arms in breast MRI practice. Susceptibility artifact is usually because of metallic artifact(s) that appears as signal voids on gradient-echo sequences. On spin-echo sequences, a signal flare component may be seen in addition to the signal void. Answer choice D is incorrect. There is no significant motion on this image. Motion artifact is one of the most commonly encountered artifacts affecting breast MRI. Motion can arise from patient motion or cardiac, respiratory, or great vessel motion. All motions propagate in the phase-encoding direction despite the direction of the motion. Phase-encoding direction should be left to right for axial sequences and superior to inferior for sagittal sequences to reduce the effect of cardiac and respiratory motion on the breasts."}, {"number": "35b", "stem": "What can reduce inhomogeneous fat saturation artifact on breast MRI?", "options": [{"letter": "A", "text": "Enlarging the field of view"}, {"letter": "B", "text": "Reducing patient motion"}, {"letter": "C", "text": "Shimming the magnet frequently"}, {"letter": "D", "text": "Increasing the bandwidth"}, {"letter": "E", "text": "Check for a leak in the radiofrequency (RF) shield"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Shimming the magnet (optimizing field homogeneity) of an MR imaging unit can sometimes correct inhomogeneous fat saturation artifact.\n\nAnswer choice A is incorrect because enlarging the field of view can correct wrap or aliasing artifact. Answer choice B is incorrect because reducing patient motion can prevent phase-encoding or ghosting artifact. Answer choice D is incorrect because increasing bandwidth per pixel of the imaging sequence can reduce chemical shift artifact. Answer choice E is incorrect because checking the radiofrequency (RF) shield for a leak might be the cause for RF interference.\n\nReferences: Harvey JA, Hendrick E, Coll JM, et al. Breast MR imaging artifacts: how to recognize and fix them. RadioGraphics 2007;27:S131–S145.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:266–267.\n\nOjeda-Fournier H, Choe KA, Mahoney MC. Recognizing and interpreting artifacts and pitfalls in MR imaging of the breast. RadioGraphics 2007;27:S147–S164."}, {"number": "36", "stem": "According to the fifth edition of BI-RADS, which of the following is a proper use of the BI-RADS 0 category?", "options": [{"letter": "A", "text": "Using BI-RADS category 0 for a diagnostic mammography exam with findings that warrant further evaluation with MRI"}, {"letter": "B", "text": "Using BI-RADS category 0 for a screening mammography exam with a stable benign-appearing finding"}, {"letter": "C", "text": "Using BI-RADS category 0 for a screening mammography exam with a finding that requires comparison to previous mammograms at an outside institution"}, {"letter": "D", "text": "Using BI-RADS category 0 for a diagnostic mammography exam"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Using BI-RADS category 0 for a screening mammography exam with a finding that requires comparison to previous mammograms at an outside institution. For a diagnostic mammogram, the radiologist should issue a BI-RADS assessment code based on the workup with diagnostic mammogram and ultrasound, especially before MRI is performed. Thus, if MRI is not performed, then a reinterpret of the mammogram/ultrasound will not be needed. When a screening mammogram is interpreted with the presence of comparison exams that demonstrate stable benign-appearing findings, the correct assessment would be BI-RADS 2.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:162."}, {"number": "37", "stem": "The following image from a contrast-enhanced breast MR examination demonstrates which artifact?", "options": [{"letter": "A", "text": "Chemical shift artifact"}, {"letter": "B", "text": "Wrap/aliasing artifact"}, {"letter": "C", "text": "Susceptibility artifact"}, {"letter": "D", "text": "Patient motion/ghosting artifact"}, {"letter": "E", "text": "Inhomogeneous fat saturation artifact"}], "images": ["assets/q37_14-1.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The patient was coughing during the exam, and therefore, the ghosting artifact seen on the image is because of patient motion. Artifact from patient motion propagates in the phase-encoding direction, regardless of the direction of the motion. Motion can result in blurring of moving tissues but can also cause a structured noise pattern, resulting in “ghosting” of brighter moving tissues in the phase-encoding direction.\n\nAnswer choice A is incorrect because chemical shift artifact is an artifact that results from the different resonances of the hydrogen in fat and water. It is most commonly seen in non–fat-suppressed sequences (e.g., non–fat-suppressed T1 weighted) and results in signal void or bright signal at a fat–water interface. Answer choice B is incorrect because wrap or aliasing artifact occurs when tissue extends beyond the field of view (FOV), causing signal from tissues outside the FOV to be superimposed on structures within the FOV. It occurs in the phase-encoding direction. This artifact is commonly seen with patients’ arms in MRI gantry. Answer choice C is incorrect. Susceptibility artifact is usually because of metallic artifact(s) that appear as signal voids on gradient-echo sequences. On spin-echo sequences, a signal flare component may be seen in addition to the signal void. Answer choice E is incorrect. The fat saturation is homogeneous on this T2 STIR image.\n\nReferences: Harvey JA, Hendrick E, Coll JM, et al. Breast MR imaging artifacts: how to recognize and fix them. RadioGraphics 2007;27:S131–S145.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:266–267.\n\nOjeda-Fournier H, Choe KA, Mahoney MC. Recognizing and interpreting artifacts and pitfalls in MR imaging of the breast. RadioGraphics 2007;27:S147–S164."}, {"number": "38", "stem": "Which one of the following artifacts is present on the axial postcontrast T1-weighted fat-saturated MR image seen below?", "options": [{"letter": "A", "text": "Chemical shift artifact"}, {"letter": "B", "text": "Wrap/aliasing artifact"}, {"letter": "C", "text": "Susceptibility artifact"}, {"letter": "D", "text": "Patient motion/ghosting artifact"}, {"letter": "E", "text": "Inhomogeneous fat saturation artifact"}], "images": ["assets/q38_14-2.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. There is a focal signal intensity void with a partially surrounding area of high signal intensity and image distortion in the sternum. This represents metallic susceptibility artifact from sternotomy wires.\n\nReferences: Harvey JA, Hendrick E, Coll JM, et al. Breast MR imaging artifacts: how to recognize and fix them. RadioGraphics 2007;27:S131–S145.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:266–267.\n\nOjeda-Fournier H, Choe KA, Mahoney MC. Recognizing and interpreting artifacts and pitfalls in MR imaging of the breast. RadioGraphics 2007;27:S147–S164."}, {"number": "39", "stem": "Based on the images, which one of the following breast imaging ultrasound lexicon terminologies best describes the finding?", "options": [{"letter": "A", "text": "Oval isoechoic mass with a circumscribed margin"}, {"letter": "B", "text": "Lobular hypoechoic mass with associated skin thickening"}, {"letter": "C", "text": "Round, anechoic mass with posterior acoustic enhancement"}, {"letter": "D", "text": "Irregular hypoechoic mass with angular margins"}], "images": ["assets/q39_15-1.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The lesion shown is an irregular hypoechoic mass with angular margins. This mass is suspicious (BI-RADS 4), and tissue sampling was recommended. The mass was invasive ductal carcinoma.\n\nShape\n\nOval\n\nRound\n\nIrregular\n\nOrientation\n\nParallel\n\nNot parallel\n\nMargins\n\nCircumscribed\n\nNo circumscribed\n\n• Indistinct\n\n• Angular\n\n• Microlobulated\n\n• Spiculated\n\nEcho Pattern\n\nAnechoic\n\nHyperechoic\n\nComplex cystic and solid\n\nHypoechoic\n\nIsoechoic\n\nHeterogeneous\n\nPosterior Acoustic Features\n\nNo posterior features\n\nEnhancement\n\nShadowing\n\nCombined pattern\n\nAssociated Features\n\nArchitectural distortion\n\nDuct changes\n\nSkin changes\n\n• Skin thickening\n\n• Skin retraction\n\nEdema\n\nVascularity\n\n• Absent\n\n• Internal vascularity\n\n• Vessels in rim\n\nElasticity assessment\n\n• Soft\n\n• Intermediate\n\n• Hard\n\nCalcifications\n\nCalcifications in a mass\n\nCalcifications outside a mass\n\nIntraductal calcifications\n\nSpecial Cases\n\nSimple cyst\n\nClustered microcysts\n\nComplicated cyst\n\nMass in or on skin\n\nForeign body including implants\n\nLymph nodes—intramammary\n\nLymph nodes—axillary\n\nVascular abnormalities\n\n• AVMs (arteriovenous malformations/pseudoaneurysms)\n\n• Mondor disease\n\nPostsurgical fluid collection\n\nFat necrosis\n\nTissue Composition (Screening Only)\n\na. Homogeneous background echotexture—fat\n\nb. Homogeneous background echotexture—fibroglandular\n\nc. Heterogeneous background echotexture\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas ultrasound. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:37–119.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:174–192.\n\nRao AA, Feneis J, Lalonde C, et al. A pictorial review of changes in the BI-RADS fifth edition. RadioGraphics 2016;36(3):623–639."}, {"number": "40", "stem": "You are shown a left mediolateral oblique (MLO) and craniocaudal (CC) (zoomed) mammogram images (Figures A and B). What is the BEST description of these calcifications?", "options": [{"letter": "A", "text": "Amorphous"}, {"letter": "B", "text": "Pleomorphic"}, {"letter": "C", "text": "Punctate"}, {"letter": "D", "text": "Lucent centered"}, {"letter": "E", "text": "Dystrophic"}], "images": ["assets/q40_16-1.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The calcifications shown are lucent centered and pathognomonic for skin calcifications. Skin calcifications are most commonly seen along the inframammary fold parasternally, axilla, and areola. Unusual forms can be confirmed as skin calcifications by performing a skin calcification study. Skin calcifications will be in the skin directly under the skin marker on the tangential mammogram view.\n\nReferences: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:38–39.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:81–85."}, {"number": "41", "stem": "The mediolateral oblique (MLO) image taken during a screening mammogram examination demonstrates which type of digital mammogram artifact?", "options": [{"letter": "A", "text": "Motion artifact"}, {"letter": "B", "text": "Ghost image"}, {"letter": "C", "text": "Grid lines"}, {"letter": "D", "text": "Deodorant artifact"}], "images": ["assets/q41_16-2.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. There is blurring of the image because of patient motion during the mammogram exam.\n\nAnswer choice B is incorrect because ghost image is when the image receptor retains a ghost image of a previous image and becomes visible on the next image taken. This finding is caused by low detector temperature. Allowing the detector to warm up properly usually clears the problem. With improvement of detector technology and systems that better regular detector temperature, this problem is less common.\n\nAnswer choice C is incorrect because gridlines are subtle crosshatch pattern lines on an image. Gridlines are caused by the grid speed parameter set incorrectly. Grid speed parameter is set by a service engineer and cannot be changed by the technologist.\n\nAnswer choice D is incorrect because no radiopaque particles are seen in the axillary region.\n\nReferences: Geiser WR, Haygood TM, Santiago L, et al. Challenges in mammography: part 1, artifacts in digital mammography. AJR Am J Roentgenol 2011;197(6):W1023–W1030.\n\nShah BA, Fundaro GM, Mandava S. Breast imaging review: a quick guide to essential diagnoses, 2nd ed. New York, NY: Springer, 2015:2–5."}, {"number": "42", "stem": "The below mediolateral oblique (MLO) image from a screening mammogram examination demonstrates which type of digital mammogram artifact (shown by the arrows)?", "options": [{"letter": "A", "text": "Dirt or dust on compression paddle"}, {"letter": "B", "text": "Ghost image"}, {"letter": "C", "text": "Readout failure"}, {"letter": "D", "text": "Dead pixels"}, {"letter": "E", "text": "Gridlines"}], "images": ["assets/q42_17-1.jpg"], "explanationImages": ["assets/a42_37-1.jpg"], "answer": "C", "explanation": "Answer C.\n\nThis case demonstrates a readout failure artifact. There is a line artifact that was caused by software processing failure (see red arrows). This error can correct itself, or a new detector readout sequence file can be installed.\n\nReference: Geiser WR, Haygood TM, Santiago L, et al. Challenges in mammography: part 1, artifacts in digital mammography. AJR Am J Roentgenol 2011;197(6):W1023–W1030."}, {"number": "43", "stem": "The universal amount of intravenous gadolinium used for contrast enhancement in breast MR imaging is:", "options": [{"letter": "A", "text": "0.1 mmol/kg"}, {"letter": "B", "text": "0.2 mmol/kg"}, {"letter": "C", "text": "0.3 mmol/kg"}, {"letter": "D", "text": "0.4 mmol/kg"}, {"letter": "E", "text": "0.5 mmol/kg"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Breast MRI that is performed to evaluate a patient for breast cancer requires the use of a contrast agent. Gadolinium contrast is generally not necessary in the evaluation of implant integrity and rupture. Breast MRI is most commonly performed using one of the gadolinium-based low molecular weight MRI contrast agents. Gadolinium contrast should be given as a bolus with a standard dose of 0.1 mmol/kg followed by a saline flush of at least 10 mL.\n\nReference: Ikeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:265."}, {"number": "44", "stem": "Which feature of digital breast tomosynthesis allows it to decrease the effect of overlapping breast tissue?", "options": [{"letter": "A", "text": "Higher radiation dose than in mammography"}, {"letter": "B", "text": "Reconstruction of the projections into the mediolateral oblique (MLO) and craniocaudal (CC) views"}, {"letter": "C", "text": "Digital acquisition technique"}, {"letter": "D", "text": "Multiple exposures of the breast at different angles"}, {"letter": "E", "text": "Increased breast compression"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. The advantage of breast tomosynthesis is a reduction in overlapping tissue, which often obscures lesions on 2D mammography, especially in patients with dense breast parenchyma. In digital breast tomosynthesis, images are acquired at different angles and are then reconstructed. This technique allows overlapping structures from different planes to be separated out. In digital breast tomosynthesis, compression is required to immobilize the breast. However, because digital breast tomosynthesis already reduces tissue overlap, the degree of compression potentially can be decreased; this is a topic of ongoing investigation.\n\nReferences: Baker JA, Lo JY. Breast tomosynthesis: state-of-the-art and review of the literature. Acad Radiol 2011;18(10):1298–1310.\n\nPark JM, Franklin EA Jr, Garg M, et al. Breast tomosynthesis: present considerations and future applications. RadioGraphics 2007;27:S231–S240."}, {"number": "45", "stem": "A screening mammogram contains significant motion artifact on one view. Which member of the team is responsible for assuring appropriate corrective action is taken?", "options": [{"letter": "A", "text": "Interpreting physician"}, {"letter": "B", "text": "Radiologic technologist"}, {"letter": "C", "text": "Medical physicist"}, {"letter": "D", "text": "Equipment vendor"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Interpreting physician. This should include providing direct and immediate feedback to technologists regarding items such as artifacts, technical requirements, and proper patient positioning.\n\nReference: Cardenosa G. Breast imaging companion, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2008. E-2."}, {"number": "46", "stem": "What is the artifact present on the following mediolateral oblique (MLO) image? The second image denotes a part of the MLO view magnified.", "options": [{"letter": "A", "text": "Motion"}, {"letter": "B", "text": "Gridlines"}, {"letter": "C", "text": "Deodorant"}, {"letter": "D", "text": "Filtration artifact"}], "images": ["assets/q46_18-1.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Gridlines resemble grid artifacts in screen film. There is miscalibration in the gain calibration file resulting in gridlines on all subsequent images.\n\nReference: Geiser WR, Haygood TM, Santiago L, et al. Challenges in mammography: part 1, artifacts in digital mammography. AJR Am J Roentgenol 2011;197(6):W1023–W1030."}, {"number": "47a", "stem": "Which one of the following artifacts is present on the T1-weighted non–fat-saturated localizer image?", "options": [{"letter": "A", "text": "Chemical shift"}, {"letter": "B", "text": "Phase wrap/aliasing"}, {"letter": "C", "text": "Metallic susceptibility"}, {"letter": "D", "text": "Patient motion"}], "images": ["assets/q47a_18-2.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Phase wrap, also known as aliasing artifact or wraparound artifact, occurs when not all of the signal-producing tissue is within the field of view (FOV). This artifact occurs in the phase-encoding direction. The signal from the excited tissue outside the FOV becomes superimposed on structures within the FOV through misregistration during Fourier transform reconstruction.\n\nFat saturation is important for breast cancer detection on MRI. High signal of fat interferes with the detection of enhancing lesions. MR imaging unit software automatically identifies the water peak as the highest signal peak, and fat is suppressed by applying saturation pulses at a frequency of 3.5 ppm (224 Hz at 1.5 T) below the water peak. To effectively suppress the protons in the fat molecules, the correct range of frequencies must be selected. Sometimes in the presence of an unexpected variation in the magnetic field, there will be protons in fat that are precessing out of the range of frequencies included in the suppression pulse. These protons will not be suppressed, and the fat containing these protons will maintain its brighter signal. This phenomenon results in inhomogeneous suppression of the fat signal within the breast. Inhomogeneous fat saturation is a common problem and cannot be corrected for. However, shimming the magnet (optimizing field homogeneity) of an MR imaging unit can correct some of the artifact.\n\nAnswer choice A is incorrect because chemical shift artifact is an artifact that results from the different resonances of the hydrogen in fat and water. It is most commonly seen in non–fat-suppressed sequences (e.g., non–fat-suppressed T1 weighted) and results in signal void or bright signal at a fat–water interface. Answer choice C is incorrect because susceptibility artifact is usually because of metallic artifact(s) that appears as signal voids on gradient-echo sequences. On spin-echo sequences, a signal flare component may be seen in addition to the signal void. Answer choice D is incorrect. There is no significant motion on this image. Motion artifact is one of the most commonly encountered artifacts affecting breast MRI. Motion can arise from patient motion or cardiac, respiratory, or great vessel motion. All motions propagate in the phase-encoding direction despite the direction of the motion. Phase-encoding direction should be left to right for axial sequences and superior to inferior for sagittal sequences to reduce the effect of cardiac and respiratory motion on the breasts."}, {"number": "47b", "stem": "What can reduce phase wrap/aliasing artifact on breast MRI?", "options": [{"letter": "A", "text": "Enlarging the field of view"}, {"letter": "B", "text": "Reducing patient motion"}, {"letter": "C", "text": "Shimming the magnet frequently"}, {"letter": "D", "text": "Increasing the bandwidth"}, {"letter": "E", "text": "Check for a leak in the radiofrequency (RF) shield"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Increasing the number of sampling points in the phase-encoding direction or enlarging the FOV can correct phase wrap artifact.\n\nAnswer choice B is incorrect because reducing patient motion can prevent phase-encoding or ghosting artifact. Answer choice C is incorrect because shimming the magnet (optimizing field homogeneity) of an MR imaging unit is performed to try to correct inhomogeneous fat saturation artifact. Answer choice D is incorrect because increasing bandwidth per pixel of the imaging sequence can reduce chemical shift artifact. Answer choice E is incorrect because checking the radiofrequency (RF) shield for a leak might be the cause for RF interference.\n\nReferences: Harvey JA, Hendrick E, Coll JM, et al. Breast MR imaging artifacts: how to recognize and fix them. RadioGraphics 2007;27:S131–S145.\n\nIkeda DM, Miyake KK. Breast imaging: the requisites, 3rd ed. St. Louis, MO: Elsevier, 2017:267–268.\n\nOjeda-Fournier H, Choe KA, Mahoney MC. Recognizing and interpreting artifacts and pitfalls in MR imaging of the breast. RadioGraphics 2007;27:S147–S164."}, {"number": "48", "stem": "The above mediolateral oblique (MLO) image taken during a screening mammogram examination demonstrates which type of digital mammogram artifact?", "options": [{"letter": "A", "text": "Detector interface line"}, {"letter": "B", "text": "Ghost image"}, {"letter": "C", "text": "Readout failure"}, {"letter": "D", "text": "Dead pixels"}, {"letter": "E", "text": "Gridlines"}], "images": ["assets/q48_19-1.jpg"], "explanationImages": ["assets/a48_39-1.jpg"], "answer": "A", "explanation": "Answer A. The mediolateral oblique view shows a detector interface line (see red arrows in image below) from a selenium-based detector. This artifact is because of a slight difference in calibration of two halves of the detector and relatively high exposure for imaging a very dense breast tissue.\n\nReference: Geiser WR, Haygood TM, Santiago L, et al. Challenges in mammography: part 1, artifacts in digital mammography. AJR Am J Roentgenol 2011;197(6):W1023–W1030."}, {"number": "49", "stem": "Which of the following is an acceptable range of screening mammography performance in review of medical audit data for recall rate?", "options": [{"letter": "A", "text": "<5%"}, {"letter": "B", "text": "5% to 12%"}, {"letter": "C", "text": "12% to 20%"}, {"letter": "D", "text": "20% to 31%"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Analysis of Medical Audit Data: Acceptable Ranges of Screening Mammography Performance\n\nCancer detection rate (per 1,000 examinations)\n\n≥2.5\n\nAbnormal interpretation (recall) rate\n\n5%–12%\n\nPPV1 (abnormal interpretation)\n\n3%–8%\n\nPPV2 (recommendation for tissue diagnosis)\n\n20%–40%\n\nSensitivity\n\n≥75%\n\nSpecificity\n\n88%–95%\n\nReferences: Carney PA, Sickles EA, Monsess B, et al. Identifying minimally acceptable performance criteria for screening mammography. Radiology 2010;255(2):354–361.\n\nD’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas follow-up and outcome monitoring. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:29."}, {"number": "50", "stem": "Which of the following would fix this MRI artifact?", "options": [{"letter": "A", "text": "Call maintenance to change the fluorescent light bulbs."}, {"letter": "B", "text": "This cannot be fixed because this is related to metal within the patient."}, {"letter": "C", "text": "Repeat the affected sequences after enlarging the FOV and reshimming."}, {"letter": "D", "text": "Close the door to the MR suite."}], "images": ["assets/q50_20-1.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C.\n\nZebra artifact is a type of artifact that occurs when signal-producing tissue outside of a selected field of view (FOV) wraps into the selected FOV and when poor magnet shimming leads to a phase shift between the tissue within the selected FOV and tissue outside the FOV. This is a type of phase interference and causes a black and white banding. The black banding occurs when the signals from the two regions are out of phase and, therefore, canceling each other out. The white band occurs when the signals are inphase and therefore combing to form a white band. If zebra artifact is observed, then the sequence should be repeated after enlarging the FOV and applying phase oversampling. Reshimming of the magnet can also reduce phase shift.\n\nRF interference occurs when there is a source of RF signal in the imaging room or leak in the RF shield surrounding the MR imaging unit allowing RF signal to penetrate the shield. The sources can include radio, television, faulty fluorescent light bulbs, and electronic monitoring equipment. Anything that can disrupt the RF field can permit signal to penetrate the imaging room such as incompletely closing the imaging door. This can lead to RF bands appearing as bright-dark bands at fixed locations along the frequency-encoding direction but propagating across the image in the phase-encoding direction.\n\nReference: Harvey JA, Hendrick RE, Coll JM, et al. Breast MR imaging artifacts: how to recognize and fix them. RadioGraphics 2007;27(Suppl 1):S131–S145."}, {"number": "51", "stem": "What is the most appropriate distribution descriptor for these calcifications?", "options": [{"letter": "A", "text": "Grouped"}, {"letter": "B", "text": "Segmental"}, {"letter": "C", "text": "Regional"}, {"letter": "D", "text": "Diffuse"}], "images": ["assets/q51_20-2.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Segmental distribution is a wedge-shaped distribution with the wedge point converging toward the nipple. Calcifications in a segmental distribution are suspicious suggesting a process that occurs within ducts and associated branches.\n\nRegional distribution of calcifications by definition is calcifications occupying >2 cm but often involves most of a quadrant or more than one quadrant. Regionally distributed calcifications are unlikely to be malignant.\n\nDiffuse calcifications are seen randomly throughout the entire breast and are almost always benign, especially if bilateral.\n\nGrouped calcifications by definition are at least five calcifications within 1 cm of each other but can be thought of as calcifications occupying a small area.\n\nMeta-analysis of studies of biopsy proven calcifications categorized by distribution estimates the overall likelihood of malignancy based on distribution as below:\n\n• Diffuse distribution 0%\n\n• Regional 26%\n\n• Grouped 31%\n\n• Linear 60%\n\n• Segmental 62%\n\nAlthough distribution is important in the assessment of calcifications, calcification morphology is the most important driving factor to determine if biopsy, follow-up, or screening is warranted for calcifications.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® atlas mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:71–73, 75, 77."}, {"number": "52a", "stem": "What is the most appropriate morphologic descriptor for these calcifications?", "options": [{"letter": "A", "text": "Milk of calcium"}, {"letter": "B", "text": "Amorphous"}, {"letter": "C", "text": "Dystrophic"}, {"letter": "D", "text": "Fine pleomorphic"}], "images": ["assets/q52a_21-1.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The calcifications are fine pleomorphic calcifications, which are often <0.5 mm in diameter and are comprised of varying size and shapes within the single group. This morphology is suspicious for cancer and should undergo stereotactic-guided biopsy.\n\nMilk of calcium is a benign calcification from sediment within cysts (micro- or macrocysts). On diagnostic workup these calcifications layer or “teacup” on the true lateral view and appear as smudges on the CC view. The change in shape between the two views is an important factor for identifying milk of calcium.\n\nAmorphous calcifications are too small to specify a particular shape appearing hazy and can be likened to fine dust.\n\nDystrophic calcifications are benign calcifications commonly as a result of trauma, surgery, or radiation. The calcifications are often irregular in shape, are >1 mm in size, have lucent areas within it and have been likened to coral or crushed paper.\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:53, 55, 62, 66."}, {"number": "52b", "stem": "What is the risk of malignancy for fine pleomorphic calcifications?", "options": [{"letter": "A", "text": "<20%"}, {"letter": "B", "text": "20% to 30%"}, {"letter": "C", "text": "30% to 40%"}, {"letter": "D", "text": ">40%"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Overall suspicious calcifications have >2% chance of being malignant, and recommendation for core biopsy is appropriate. Meta-analysis of several studies regarding biopsied calcifications with suspicious morphologies estimates the overall likelihood of malignancy based on morphology as below:\n\n• Coarse heterogeneous 13%\n\n• Amorphous 21%\n\n• Fine pleomorphic 29%\n\n• Fine linear/fine linear branching 70%\n\nReference: D’Orsi C, Sickles EA, Mendelson EB, et al. ACR BI-RADS® mammography. In: ACR BI-RADS® atlas, breast imaging reporting and data system. Reston, VA: American College of Radiology, 2013:61."}, {"number": "53", "stem": "Which of the following is the radiation dose safety limit set by the U.S. Food and Drug Administration?", "options": [{"letter": "A", "text": "3 mGy/view"}, {"letter": "B", "text": "3 mGy/breast"}, {"letter": "C", "text": "1.5 mGy/view"}, {"letter": "D", "text": "6 mGy/breast"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. 3 mGy/view is the radiation dose safety limit set by the US FDA. The radiation dose for an exam, which combines 2D mammography and tomosynthesis, still falls within this dose safety limit. Answer choice B is incorrect as the limit is defined by dose per view, not dose per breast. Answer choices C and D offer incorrect radiation dosages.\n\nReference: The Mammography Quality Standards Act Final Regulations: Preparing for MQSA Inspections; Final Guidance for Industry and FDA. November 5, 2001. Attachment #3."}];
+    const APP_ID = "breast-imaging-regulatory-quiz-new-ch1";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nSource explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
