@@ -323,7 +323,12 @@ Example format:
             position: fixed; top: 20px; right: 20px; display: flex;
             gap: 20px; align-items: center; z-index: 100;
         }
-        #counter { font-size: 1.2rem; color: var(--dim-red); font-variant-numeric: tabular-nums; }
+        #counter {
+            font-size: 1.2rem; color: var(--dim-red); font-variant-numeric: tabular-nums;
+            cursor: pointer; border: 1px solid transparent; border-radius: 20px; padding: 8px 12px;
+            transition: all 0.2s ease;
+        }
+        #counter:hover { border-color: var(--dim-red); color: var(--bright-red); }
         .ui-button {
             background: none; border: 1px solid var(--dim-red); color: var(--dim-red);
             padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s ease;
@@ -368,6 +373,38 @@ Example format:
             border-radius: 25px; cursor: pointer; font-size: 1rem; transition: all 0.2s ease;
         }
         .panel-btn:hover { background-color: var(--base-red); color: var(--bg-color); }
+        .start-controls { display: flex; flex-direction: column; gap: 18px; }
+        .random-toggle-row {
+            display: flex; justify-content: space-between; align-items: center; gap: 18px;
+            color: var(--font-color); border-bottom: 1px solid #441111; padding-bottom: 16px;
+        }
+        .random-copy { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+        .random-copy strong { color: var(--bright-red); font-size: 1.05rem; }
+        .random-copy span { color: var(--dim-red); font-size: 0.95rem; line-height: 1.4; }
+        .switch { position: relative; display: inline-block; width: 58px; height: 32px; flex: 0 0 auto; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; inset: 0; background-color: #220808;
+            border: 1px solid var(--dim-red); border-radius: 999px; transition: 0.2s ease;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px;
+            background-color: var(--dim-red); border-radius: 50%; transition: 0.2s ease;
+        }
+        .switch input:checked + .slider { background-color: var(--dim-red); }
+        .switch input:checked + .slider:before { transform: translateX(26px); background-color: var(--bg-color); }
+        #start-list {
+            list-style: none; padding: 0; margin: 0; max-height: min(54vh, 460px); overflow-y: auto;
+            border: 1px solid #441111; border-radius: 12px;
+        }
+        #start-list li {
+            display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: start;
+            padding: 13px 15px; border-bottom: 1px solid #331111; color: var(--font-color);
+            line-height: 1.35; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        #start-list li:hover, #start-list li.is-current { background-color: #331111; color: var(--bright-red); }
+        #start-list li:last-child { border-bottom: none; }
+        .start-number { color: var(--dim-red); font-variant-numeric: tabular-nums; }
         .profile-menu-container { display: flex; flex-direction: column; gap: 15px; }
         .profile-menu-container .menu-btn, .profile-menu-container .file-upload-label {
             display: block; width: 100%; text-align: center; background: none; border: 1px solid var(--base-red);
@@ -398,6 +435,7 @@ Example format:
     <div id="favorites-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="favorites-panel">&times;</button><h2>This Session's Favorites</h2><ul id="favorites-list"></ul><div class="panel-controls"><button id="download-favorites-btn" class="panel-btn">Download .txt</button></div></div></div>
     <div id="profile-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="profile-panel">&times;</button><h2>Profile & Sessions</h2><div class="profile-menu-container"><button id="view-session-favorites-btn" class="menu-btn">View This Session Favorites</button><button id="view-past-sessions-btn" class="menu-btn">View Past Sessions</button><button id="download-current-session-btn" class="menu-btn">Download this Session JSON</button><button id="download-all-sessions-btn" class="menu-btn">Download All Past Sessions JSON</button><label for="upload-single-session" class="file-upload-label">Upload New Session JSON</label><input type="file" id="upload-single-session" accept=".json"><label for="upload-multiple-sessions" class="file-upload-label">Merge Past Sessions JSON</label><input type="file" id="upload-multiple-sessions" accept=".json"></div></div></div>
     <div id="past-sessions-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="past-sessions-panel">&times;</button><h2>Select a Past Session</h2><ul id="past-sessions-list"></ul></div></div>
+    <div id="start-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="start-panel">&times;</button><h2>Start From</h2><div class="start-controls"><label class="random-toggle-row"><span class="random-copy"><strong>Random order</strong><span>Shuffle the facts and move through that order.</span></span><span class="switch"><input type="checkbox" id="randomize-toggle"><span class="slider"></span></span></label><ul id="start-list"></ul></div></div></div>
 
 <script>
     let activeSessionData;
@@ -430,10 +468,13 @@ Example format:
           contextTextPanelEl = document.getElementById('context-text-panel'), favoritesPanelEl = document.getElementById('favorites-panel'),
           favoritesListEl = document.getElementById('favorites-list'), profileBtnEl = document.getElementById('profile-btn'),
           profilePanelEl = document.getElementById('profile-panel'), pastSessionsPanelEl = document.getElementById('past-sessions-panel'),
-          pastSessionsListEl = document.getElementById('past-sessions-list');
+          pastSessionsListEl = document.getElementById('past-sessions-list'), startPanelEl = document.getElementById('start-panel'),
+          startListEl = document.getElementById('start-list'), randomizeToggleEl = document.getElementById('randomize-toggle');
     
-    let currentFactIndex = 0, autoAdvanceTimer;
+    let currentFactIndex = 0, currentOrderPosition = 0, autoAdvanceTimer;
     const AUTO_ADVANCE_DELAY = 25000;
+    let isRandomized = false;
+    let factOrder = factsData.map((_, index) => index);
     
     let allFavorites = JSON.parse(localStorage.getItem('factFavorites')) || {};
     let sessionFavorites = allFavorites[activeSessionData.title] || [];
@@ -457,19 +498,41 @@ Example format:
         const factRect = factWrapperEl.getBoundingClientRect();
         favoriteZoneEl.style.top = \`\${factRect.bottom + ((window.innerHeight - factRect.bottom) / 2) - (favoriteZoneEl.offsetHeight / 2)}px\`;
     }
+    function shuffleArray(items) {
+        const shuffled = [...items];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+    function setOrderPosition(position) {
+        currentOrderPosition = (position + factOrder.length) % factOrder.length;
+        currentFactIndex = factOrder[currentOrderPosition];
+    }
+    function setCurrentFactByIndex(index) {
+        const orderPosition = factOrder.indexOf(index);
+        setOrderPosition(orderPosition === -1 ? 0 : orderPosition);
+    }
+    function updateRandomizedOrder(shouldRandomize) {
+        isRandomized = shouldRandomize;
+        factOrder = shouldRandomize ? shuffleArray(factsData.map((_, index) => index)) : factsData.map((_, index) => index);
+        setCurrentFactByIndex(currentFactIndex);
+    }
     function renderFact(index) {
+        setCurrentFactByIndex(index);
         factTextEl.style.opacity = 0;
         setTimeout(() => {
-            factTextEl.textContent = factsData[index].fact;
-            counterEl.textContent = \`\${index + 1} / \${factsData.length}\`;
-            favoriteIndicatorEl.classList.toggle('is-favorite', sessionFavorites.includes(index));
+            factTextEl.textContent = factsData[currentFactIndex].fact;
+            counterEl.textContent = \`\${currentOrderPosition + 1} / \${factsData.length}\`;
+            favoriteIndicatorEl.classList.toggle('is-favorite', sessionFavorites.includes(currentFactIndex));
             factTextEl.style.opacity = 1;
             positionFavoriteIndicator();
         }, 400);
         resetAutoAdvanceTimer();
     }
-    function nextFact() { renderFact(currentFactIndex = (currentFactIndex + 1) % factsData.length); }
-    function prevFact() { renderFact(currentFactIndex = (currentFactIndex - 1 + factsData.length) % factsData.length); }
+    function nextFact() { setOrderPosition(currentOrderPosition + 1); renderFact(currentFactIndex); }
+    function prevFact() { setOrderPosition(currentOrderPosition - 1); renderFact(currentFactIndex); }
     function resetAutoAdvanceTimer() { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = setTimeout(nextFact, AUTO_ADVANCE_DELAY); }
     function showPanel(panelEl) { clearTimeout(autoAdvanceTimer); panelEl.style.display = 'flex'; }
     function hidePanel(panelEl) { panelEl.style.display = 'none'; resetAutoAdvanceTimer(); }
@@ -488,6 +551,29 @@ Example format:
         favoritesListEl.innerHTML = sessionFavorites.length === 0 ? '<li>You haven\\'t favorited any facts yet.</li>' :
             sessionFavorites.sort((a,b) => a-b).map(index => \`<li>\${factsData[index].fact}</li>\`).join('');
         showPanel(favoritesPanelEl);
+    }
+    function populateAndShowStartPanel() {
+        randomizeToggleEl.checked = isRandomized;
+        startListEl.innerHTML = '';
+        factOrder.forEach((factIndex, orderIndex) => {
+            const li = document.createElement('li');
+            const numberSpan = document.createElement('span');
+            const factSpan = document.createElement('span');
+            li.classList.toggle('is-current', factIndex === currentFactIndex);
+            numberSpan.className = 'start-number';
+            numberSpan.textContent = orderIndex + 1;
+            factSpan.textContent = factsData[factIndex].fact;
+            li.append(numberSpan, factSpan);
+            li.addEventListener('click', () => {
+                setOrderPosition(orderIndex);
+                hidePanel(startPanelEl);
+                renderFact(currentFactIndex);
+            });
+            startListEl.appendChild(li);
+        });
+        showPanel(startPanelEl);
+        const currentItem = startListEl.querySelector('.is-current');
+        if (currentItem) currentItem.scrollIntoView({ block: 'center' });
     }
     function downloadSessionFavorites() {
         if (sessionFavorites.length === 0) { alert('No favorites to download.'); return; }
@@ -548,6 +634,13 @@ Example format:
     document.getElementById('nav-left').addEventListener('click', prevFact);
     document.getElementById('nav-right').addEventListener('click', nextFact);
     favoriteZoneEl.addEventListener('click', toggleFavorite);
+    counterEl.addEventListener('click', populateAndShowStartPanel);
+    randomizeToggleEl.addEventListener('change', () => {
+        updateRandomizedOrder(randomizeToggleEl.checked);
+        renderFact(currentFactIndex);
+        populateAndShowStartPanel();
+        clearTimeout(autoAdvanceTimer);
+    });
     infoBtnEl.addEventListener('click', showContextPanel);
     profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
     document.getElementById('download-favorites-btn').addEventListener('click', downloadSessionFavorites);
