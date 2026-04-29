@@ -272,17 +272,12 @@ Example format:
             }, 1500);
         }
         
-        function launchScreensaver(sessionData) {
+        function launchScreensaver(sessionData, options = {}) {
             const currentGeneratorHTML = document.documentElement.outerHTML;
             sessionStorage.setItem('originalGeneratorHTML', currentGeneratorHTML);
-            
-            // Critical: Set the title for the next page load BEFORE generating the template
-            sessionStorage.setItem('loadSessionTitle', sessionData.title);
+            sessionStorage.removeItem('loadSessionTitle');
 
             // Directly embed the first session data to avoid race conditions.
-            // The logic on the destination page will use 'loadSessionTitle' to
-            // load the correct one from localStorage, but this ensures it has
-            // valid data to start with.
             const sessionDataJSON = JSON.stringify(sessionData);
             const htmlTemplate = `
 <!DOCTYPE html>
@@ -438,25 +433,84 @@ Example format:
     <div id="start-panel" class="panel-overlay"><div class="panel-content"><button class="close-button-x" data-target="start-panel">&times;</button><h2>Start From</h2><div class="start-controls"><label class="random-toggle-row"><span class="random-copy"><strong>Random order</strong><span>Shuffle the facts and move through that order.</span></span><span class="switch"><input type="checkbox" id="randomize-toggle"><span class="slider"></span></span></label><ul id="start-list"></ul></div></div></div>
 
 <script>
+    const SCREENSAVER_DB_NAME = 'nightFactsDB';
+    const SCREENSAVER_DB_VERSION = 1;
+    const SCREENSAVER_SESSION_STORE = 'pastSessions';
+
+    function openSessionDb() {
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) {
+                reject(new Error('IndexedDB is not available in this browser.'));
+                return;
+            }
+            const request = indexedDB.open(SCREENSAVER_DB_NAME, SCREENSAVER_DB_VERSION);
+            request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(SCREENSAVER_SESSION_STORE)) {
+                    db.createObjectStore(SCREENSAVER_SESSION_STORE, { keyPath: 'title' });
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function withSessionStore(mode, callback) {
+        const db = await openSessionDb();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(SCREENSAVER_SESSION_STORE, mode);
+            const store = transaction.objectStore(SCREENSAVER_SESSION_STORE);
+            const result = callback(store);
+            transaction.oncomplete = () => {
+                db.close();
+                resolve(result);
+            };
+            transaction.onerror = () => {
+                db.close();
+                reject(transaction.error);
+            };
+        });
+    }
+
+    function requestToPromise(request) {
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function getPastSessions() {
+        await migrateLocalPastSessions();
+        return withSessionStore('readonly', store => requestToPromise(store.getAll()));
+    }
+
+    async function savePastSession(sessionData) {
+        await withSessionStore('readwrite', store => store.put(sessionData));
+        const saved = await withSessionStore('readonly', store => requestToPromise(store.get(sessionData.title)));
+        return !!saved;
+    }
+
+    async function savePastSessions(sessions) {
+        await withSessionStore('readwrite', store => {
+            sessions.forEach(session => store.put(session));
+        });
+    }
+
+    let screensaverLocalMigrationPromise;
+    async function migrateLocalPastSessions() {
+        if (screensaverLocalMigrationPromise) return screensaverLocalMigrationPromise;
+        screensaverLocalMigrationPromise = (async () => {
+            const localSessions = JSON.parse(localStorage.getItem('pastSessions') || '[]');
+            if (Array.isArray(localSessions) && localSessions.length) {
+                await savePastSessions(localSessions.filter(session => session && session.title && Array.isArray(session.facts)));
+            }
+        })().catch(error => console.warn('Unable to migrate old localStorage sessions.', error));
+        return screensaverLocalMigrationPromise;
+    }
+
     let activeSessionData;
     const embeddedSessionData = ${sessionDataJSON};
-    const loadTitle = sessionStorage.getItem('loadSessionTitle');
-
-    if (loadTitle) {
-        // We are loading a specific session
-        const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
-        const sessionToLoad = pastSessions.find(s => s.title === loadTitle);
-        if (sessionToLoad) {
-            activeSessionData = sessionToLoad;
-        } else {
-            // Fallback if the title isn't found
-            alert('Could not find the selected session. Loading the original session for this file.');
-            activeSessionData = embeddedSessionData;
-        }
-    } else {
-        // This is the first load
-        activeSessionData = embeddedSessionData;
-    }
+    activeSessionData = embeddedSessionData;
     
     const factsData = activeSessionData.facts;
     document.title = activeSessionData.title;
@@ -583,8 +637,8 @@ Example format:
         });
         downloadFile(textContent, 'my_favorite_facts.txt', 'text/plain');
     }
-    function populateAndShowPastSessions() {
-        const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+    async function populateAndShowPastSessions() {
+        const pastSessions = await getPastSessions();
         pastSessionsListEl.innerHTML = '';
         if (pastSessions.length === 0) {
             pastSessionsListEl.innerHTML = '<li>No past sessions found.</li>';
@@ -594,7 +648,7 @@ Example format:
                 li.textContent = session.title;
                 if (session.title === activeSessionData.title) li.style.color = 'var(--bright-red)';
                 li.addEventListener('click', () => {
-                    sessionStorage.setItem('loadSessionTitle', session.title);
+                    activeSessionData = session;
                     window.location.reload();
                 });
                 pastSessionsListEl.appendChild(li);
@@ -606,10 +660,10 @@ Example format:
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
+                let pastSessions = await getPastSessions();
                 if (isMultiple) {
                     if (!Array.isArray(data)) throw new Error("File should contain an array of sessions.");
                     const sessionMap = new Map(pastSessions.map(s => [s.title, s]));
@@ -624,7 +678,7 @@ Example format:
                     if (existingIndex > -1) pastSessions[existingIndex] = data; else pastSessions.push(data);
                     alert(\`Session "\${data.title}" was successfully uploaded.\`);
                 }
-                localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
+                await savePastSessions(pastSessions);
             } catch (err) { alert('Error processing file: ' + err.message); }
         };
         reader.readAsText(file);
@@ -645,9 +699,9 @@ Example format:
     profileBtnEl.addEventListener('click', () => showPanel(profilePanelEl));
     document.getElementById('download-favorites-btn').addEventListener('click', downloadSessionFavorites);
     document.getElementById('view-session-favorites-btn').addEventListener('click', () => { hidePanel(profilePanelEl); showFavoritesPanel(); });
-    document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions(); });
+    document.getElementById('view-past-sessions-btn').addEventListener('click', () => { hidePanel(profilePanelEl); populateAndShowPastSessions().catch(err => alert('Could not load past sessions: ' + err.message)); });
     document.getElementById('download-current-session-btn').addEventListener('click', () => downloadFile(JSON.stringify(activeSessionData, null, 2), \`\${activeSessionData.title.replace(/[.\\s]/g, '_')}.json\`, 'application/json'));
-    document.getElementById('download-all-sessions-btn').addEventListener('click', () => downloadFile(localStorage.getItem('pastSessions') || '[]', 'all_past_sessions.json', 'application/json'));
+    document.getElementById('download-all-sessions-btn').addEventListener('click', async () => downloadFile(JSON.stringify(await getPastSessions(), null, 2), 'all_past_sessions.json', 'application/json'));
     document.getElementById('upload-single-session').addEventListener('change', (e) => handleFileUpload(e, false));
     document.getElementById('upload-multiple-sessions').addEventListener('change', (e) => handleFileUpload(e, true));
     
@@ -700,8 +754,87 @@ Example format:
             });
         }
 
+        const DB_NAME = 'nightFactsDB';
+        const DB_VERSION = 1;
+        const SESSION_STORE = 'pastSessions';
+
+        function openSessionDb() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) {
+                    reject(new Error('IndexedDB is not available in this browser.'));
+                    return;
+                }
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = () => {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains(SESSION_STORE)) {
+                        db.createObjectStore(SESSION_STORE, { keyPath: 'title' });
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function withSessionStore(mode, callback) {
+            const db = await openSessionDb();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(SESSION_STORE, mode);
+                const store = transaction.objectStore(SESSION_STORE);
+                const result = callback(store);
+                transaction.oncomplete = () => {
+                    db.close();
+                    resolve(result);
+                };
+                transaction.onerror = () => {
+                    db.close();
+                    reject(transaction.error);
+                };
+            });
+        }
+
+        function requestToPromise(request) {
+            return new Promise((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getPastSessions() {
+            await migrateLocalPastSessions();
+            return withSessionStore('readonly', store => requestToPromise(store.getAll()));
+        }
+
+        async function savePastSession(sessionData) {
+            await withSessionStore('readwrite', store => store.put(sessionData));
+            const saved = await withSessionStore('readonly', store => requestToPromise(store.get(sessionData.title)));
+            return !!saved;
+        }
+
+        async function savePastSessions(sessions) {
+            await withSessionStore('readwrite', store => {
+                sessions.forEach(session => store.put(session));
+            });
+        }
+
+        let localMigrationPromise;
+        async function migrateLocalPastSessions() {
+            if (localMigrationPromise) return localMigrationPromise;
+            localMigrationPromise = (async () => {
+                const localSessions = JSON.parse(localStorage.getItem('pastSessions') || '[]');
+                if (Array.isArray(localSessions) && localSessions.length) {
+                    await savePastSessions(localSessions.filter(session => session && session.title && Array.isArray(session.facts)));
+                }
+            })().catch(error => console.warn('Unable to migrate old localStorage sessions.', error));
+            return localMigrationPromise;
+        }
+
+        async function saveSessionToPastSessions(sessionData) {
+            return savePastSession(sessionData);
+        }
+
         if (generateBtn && factInput) {
-            generateBtn.addEventListener('click', () => {
+            generateBtn.addEventListener('click', async () => {
                 const factDataInput = factInput.value.trim();
                 if (!factDataInput) { alert('Please paste the fact data into the input area first.'); return; }
                 if (!factDataInput.startsWith('{') || !factDataInput.endsWith('}')) { alert('The input data does not seem to be a correctly formatted JSON object.'); return; }
@@ -721,16 +854,18 @@ Example format:
 
                 const sessionData = { title: formattedTitle, facts: parsedData.facts };
 
+                let savedSuccessfully = false;
                 try {
-                    let pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
-                    pastSessions = pastSessions.filter(s => s.title !== sessionData.title);
-                    pastSessions.push(sessionData);
-                    localStorage.setItem('pastSessions', JSON.stringify(pastSessions));
+                    savedSuccessfully = await saveSessionToPastSessions(sessionData);
                 } catch (e) {
-                    console.error("Could not save to localStorage:", e);
+                    console.error("Could not save to IndexedDB:", e);
+                }
+
+                if (!savedSuccessfully) {
+                    alert('This session can be viewed now, but it could not be saved to Past Sessions. Your browser storage may be full or private browsing may be blocking storage. Download this session JSON so it is not lost.');
                 }
                 
-                launchScreensaver(sessionData);
+                launchScreensaver(sessionData, { loadFromSavedSession: savedSuccessfully });
             });
         }
 
@@ -739,22 +874,26 @@ Example format:
             const sessionsList = document.getElementById('sessions-list');
             const closeModalBtn = mainSessionsModal.querySelector('.modal-close-btn');
 
-            viewPastSessionsBtn.addEventListener('click', () => {
-                const pastSessions = JSON.parse(localStorage.getItem('pastSessions')) || [];
-                sessionsList.innerHTML = ''; // Clear previous list
-                if (pastSessions.length === 0) {
-                    sessionsList.innerHTML = '<li>No past sessions found.</li>';
-                } else {
-                    pastSessions.forEach(session => {
-                        const li = document.createElement('li');
-                        li.textContent = session.title;
-                        li.addEventListener('click', () => {
-                            launchScreensaver(session);
+            viewPastSessionsBtn.addEventListener('click', async () => {
+                try {
+                    const pastSessions = await getPastSessions();
+                    sessionsList.innerHTML = ''; // Clear previous list
+                    if (pastSessions.length === 0) {
+                        sessionsList.innerHTML = '<li>No past sessions found.</li>';
+                    } else {
+                        pastSessions.forEach(session => {
+                            const li = document.createElement('li');
+                            li.textContent = session.title;
+                            li.addEventListener('click', () => {
+                                launchScreensaver(session, { loadFromSavedSession: true });
+                            });
+                            sessionsList.appendChild(li);
                         });
-                        sessionsList.appendChild(li);
-                    });
+                    }
+                    mainSessionsModal.style.display = 'flex';
+                } catch (error) {
+                    alert('Could not load past sessions: ' + error.message);
                 }
-                mainSessionsModal.style.display = 'flex';
             });
 
             const closeModal = () => mainSessionsModal.style.display = 'none';
