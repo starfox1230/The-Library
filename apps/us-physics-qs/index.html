@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Prometheus Ultrasound Fill-in Quiz</title>
+<style>
+:root {
+  --bg: #080914;
+  --panel: #121426;
+  --panel2: #191b33;
+  --text: #eef0ff;
+  --muted: #a7add8;
+  --accent: #7c7cff;
+  --accent2: #34d6ff;
+  --good: #31d07b;
+  --bad: #ff5d73;
+  --warn: #ffd166;
+  --line: #2d3158;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(124,124,255,0.18), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(52,214,255,0.10), transparent 38%),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  padding: 18px;
+}
+
+button, input {
+  font: inherit;
+}
+
+.app {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.titleBlock h1 {
+  margin: 0 0 4px;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: linear-gradient(180deg, #202344, #15172b);
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, var(--accent), #4b7dff);
+  border-color: transparent;
+  color: white;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.good {
+  border-color: rgba(49,208,123,0.55);
+}
+
+.btn.bad {
+  border-color: rgba(255,93,115,0.55);
+}
+
+.card {
+  background: rgba(18,20,38,0.92);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.45), 0 0 30px rgba(124,124,255,0.08);
+  padding: clamp(18px, 4vw, 34px);
+}
+
+.progressRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.progressText {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.progressBar {
+  grid-column: 1 / -1;
+  height: 10px;
+  background: #080914;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.25s ease;
+}
+
+.question {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  line-height: 1.45;
+  margin: 12px 0 22px;
+}
+
+.blank {
+  display: inline-block;
+  min-width: 120px;
+  border-bottom: 3px solid var(--accent2);
+  color: var(--accent2);
+  text-align: center;
+  padding: 0 8px;
+}
+
+.answerBox {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+#answerInput {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #090b18;
+  color: var(--text);
+  outline: none;
+}
+
+#answerInput:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(52,214,255,0.12);
+}
+
+.feedback {
+  min-height: 86px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(25,27,51,0.7);
+  padding: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.feedback.correct {
+  border-color: rgba(49,208,123,0.65);
+  color: #dfffee;
+}
+
+.feedback.incorrect {
+  border-color: rgba(255,93,115,0.65);
+  color: #ffe4e8;
+}
+
+.answerReveal {
+  margin-top: 8px;
+  color: var(--text);
+}
+
+.answerReveal strong {
+  color: var(--accent2);
+}
+
+.navRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+details.progressMenu {
+  margin-top: 16px;
+  background: rgba(18,20,38,0.7);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+details.progressMenu summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  color: var(--text);
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+details.progressMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.menuContent {
+  border-top: 1px solid var(--line);
+  padding: 12px;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.menuTools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 8px;
+}
+
+.jump {
+  padding: 9px 0;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #14172d;
+  color: var(--muted);
+  cursor: pointer;
+  position: relative;
+}
+
+.jump.current {
+  outline: 2px solid var(--accent2);
+  color: var(--text);
+}
+
+.jump.answered {
+  background: #202344;
+  color: var(--text);
+}
+
+.jump.correct {
+  border-color: rgba(49,208,123,0.75);
+}
+
+.jump.incorrect {
+  border-color: rgba(255,93,115,0.75);
+}
+
+.jump.revealed::after {
+  content: "👁";
+  position: absolute;
+  top: -7px;
+  right: -4px;
+  font-size: 0.7rem;
+}
+
+.reviewPanel {
+  margin-top: 18px;
+  display: none;
+}
+
+.reviewPanel.show {
+  display: block;
+}
+
+.reviewItem {
+  border: 1px solid var(--line);
+  background: rgba(25,27,51,0.75);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.reviewItem.correct {
+  border-left: 4px solid var(--good);
+}
+
+.reviewItem.incorrect {
+  border-left: 4px solid var(--bad);
+}
+
+.reviewItem.unanswered {
+  border-left: 4px solid var(--warn);
+}
+
+.reviewQ {
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.reviewA {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+kbd {
+  border: 1px solid var(--line);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: #090b18;
+  color: var(--muted);
+}
+
+@media (max-width: 650px) {
+  body { padding: 12px; }
+  .answerBox { flex-direction: column; }
+  .answerBox .btn { width: 100%; }
+  .progressRow { grid-template-columns: 1fr; }
+  .controls { width: 100%; }
+  .controls .btn { flex: 1; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="titleBlock">
+      <h1>Prometheus Ultrasound Fill-in Quiz</h1>
+      <div class="subtitle">573 fill-in-the-blank questions. Progress saves automatically in this browser.</div>
+    </div>
+    <div class="controls">
+      <button class="btn ghost" id="reviewBtn">Review</button>
+      <button class="btn ghost" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <main class="card">
+    <div class="progressRow">
+      <div class="progressText" id="progressText">Loading...</div>
+      <div class="small" id="scoreText"></div>
+      <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+    </div>
+
+    <section id="quizArea">
+      <div class="small" id="sectionText"></div>
+      <div class="question" id="questionText"></div>
+
+      <div class="answerBox">
+        <input id="answerInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the missing word or phrase..." />
+        <button class="btn primary" id="checkBtn">Check</button>
+      </div>
+
+      <div class="controls" style="margin-bottom:12px;">
+        <button class="btn" id="showBtn">Show Answer</button>
+        <button class="btn good" id="markCorrectBtn">Mark Correct</button>
+        <button class="btn bad" id="markWrongBtn">Mark Wrong</button>
+      </div>
+
+      <div class="feedback" id="feedback">Tip: press <kbd>Enter</kbd> to check. The answer matching is forgiving about capitalization, punctuation, and extra spaces.</div>
+
+      <div class="navRow">
+        <button class="btn" id="prevBtn">Previous</button>
+        <button class="btn primary" id="nextBtn">Next</button>
+      </div>
+    </section>
+
+    <details class="progressMenu" id="progressMenu">
+      <summary>
+        <span>Progress dropdown</span>
+        <span id="dropdownStats">0 / 573 answered</span>
+      </summary>
+      <div class="menuContent">
+        <div class="menuTools">
+          <button class="btn" id="firstUnansweredBtn">First unanswered</button>
+          <button class="btn" id="missedBtn">First missed</button>
+          <button class="btn" id="copyMissedBtn">Copy missed</button>
+        </div>
+        <div class="grid" id="jumpGrid"></div>
+      </div>
+    </details>
+
+    <section class="reviewPanel" id="reviewPanel">
+      <h2>Answer Progression</h2>
+      <div class="menuTools">
+        <button class="btn" data-filter="all">All</button>
+        <button class="btn" data-filter="incorrect">Missed</button>
+        <button class="btn" data-filter="correct">Correct</button>
+        <button class="btn" data-filter="unanswered">Unanswered</button>
+        <button class="btn" data-filter="revealed">Revealed</button>
+      </div>
+      <div id="reviewList"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const FACTS_TEXT = `
+1. Sound is not light.
+2. Sound requires a medium to travel.
+3. Sound is mechanical energy.
+4. Sound propagates by producing vibrations in material.
+5. Sound waves create alternating areas of high pressure and low pressure.
+6. High-pressure areas are compressions.
+7. Low-pressure areas are rarefactions.
+8. Frequency is the rate of change between compression and rarefaction.
+9. Frequency is measured in Hertz.
+10. Frequency equals the number of wave cycles per second.
+11. Wavelength is the distance between areas of compression.
+12. Speed equals wavelength times frequency.
+13. In a given medium, sound speed is treated as constant.
+14. If speed is constant, increasing frequency decreases wavelength.
+15. If speed is constant, decreasing frequency increases wavelength.
+16. Sound speed differs between materials.
+17. Sound speed depends on compressibility.
+18. Highly compressible materials have low sound speed.
+19. Air has very low sound speed.
+20. Less compressible materials have high sound speed.
+21. Bone has high sound speed.
+22. The ultrasound machine assumes tissue sound speed is 1540 m/s.
+23. The machine's assumption of constant 1540 m/s sound speed is a source of artifacts.
+24. Sound speed does not change the frequency of the sound wave.
+25. When sound enters a different medium, the frequency stays the same.
+26. When sound speed changes across media, wavelength changes.
+27. Modern ultrasound machines create multiple sound beams.
+28. Sound beams can interact constructively.
+29. Constructive interference increases amplitude.
+30. Sound beams can interact destructively.
+31. Destructive interference decreases amplitude.
+32. Complex interference patterns help shape the ultrasound beam.
+33. Complex interference patterns help steer the ultrasound beam.
+34. Beam steering depends on manipulation of constructive and destructive interference.
+35. Relative intensity is expressed in decibels.
+36. The decibel scale is logarithmic.
+37. Reducing sound intensity to 10% is a -10 dB change.
+38. Reducing sound intensity to 1% is a -20 dB change.
+39. Reducing sound intensity to 0.1% is a -30 dB change.
+40. A -3 dB change represents a 50% loss of signal intensity/power.
+41. The tissue thickness that reduces ultrasound intensity by 3 dB is the half-value thickness.
+42. Ultrasound interacts with matter by reflection.
+43. Ultrasound interacts with matter by refraction.
+44. Ultrasound interacts with matter by scattering.
+45. Ultrasound interacts with matter by absorption.
+46. Reflection occurs at a boundary between two tissues.
+47. Reflection occurs because the tissues have different acoustic impedances.
+48. A large impedance difference causes a large reflection.
+49. Acoustic impedance equals density times sound speed.
+50. Impedance is commonly compared to tissue stiffness.
+51. The unit of impedance is the Rayl.
+52. A muscle-air interface reflects nearly 100% of incident intensity.
+53. Air causes marked acoustic shadowing.
+54. Ultrasound gel eliminates air pockets between the transducer and skin.
+55. Gel improves sound transmission into the patient.
+56. Similar tissues produce small reflections.
+57. Very different tissues produce large reflections.
+58. Echo strength depends on angle and impedance difference.
+59. Refraction is bending of the sound wave.
+60. Refraction is caused by a change in sound speed.
+61. Refraction occurs at a tissue boundary.
+62. Refraction occurs when the beam is not perpendicular to the boundary.
+63. Frequency does not change during refraction.
+64. Speed may change during refraction.
+65. Refraction depends on speed difference between media.
+66. Refraction depends on angle of incidence.
+67. Snell's law describes refraction.
+68. No refraction occurs if sound speed is the same in both media.
+69. No refraction occurs with perpendicular incidence.
+70. If a beam hits straight on, part reflects straight back and part transmits straight through.
+71. If a beam strikes at an angle, part reflects and part refracts.
+72. The severity of refraction depends on the speed difference between the two media.
+73. Total reflection can occur if the speed difference and angle of incidence are great enough.
+74. Total reflection occurs when the critical angle is exceeded.
+75. Refraction is commonly seen at the edges of fluid-filled structures.
+76. The gallbladder is a classic site where edge refraction is seen.
+77. Reflectors can be specular or non-specular.
+78. Specular reflectors are smooth.
+79. Specular reflector dimensions are much larger than the wavelength.
+80. Specular reflection strength is highly angle dependent.
+81. Non-specular reflectors are diffuse.
+82. Non-specular scattering surfaces are about the size of a wavelength or smaller.
+83. For non-specular scattering, angle has little/no effect on echo strength.
+84. Smooth reflectors reflect based on the angle of incidence.
+85. Non-specular reflectors scatter in many directions.
+86. Higher-frequency ultrasound has a smaller wavelength.
+87. Smaller wavelength makes surfaces appear rougher.
+88. Rougher-appearing surfaces cause more diffuse scatter.
+89. Higher frequency causes more scatter.
+90. Brightness differences on ultrasound reflect differences in scatter amplitude.
+91. Scatter amplitude depends on the number of scatterers per unit volume.
+92. Hyperechoic means high scatter amplitude relative to background.
+93. Hypoechoic means low scatter amplitude relative to background.
+94. Absorption converts sound energy into heat.
+95. Absorption increases with frequency.
+96. Attenuation is loss of ultrasound beam intensity.
+97. Attenuation results from absorption and scattering.
+98. Attenuation varies by tissue type.
+99. Attenuation is expressed in dB and is proportional to frequency.
+100. The soft-tissue attenuation rule of thumb is 0.5 dB/cm/MHz.
+101. A 2 MHz beam has about twice the attenuation of a 1 MHz beam.
+102. A 10 MHz beam has about ten times the attenuation per unit distance of a 1 MHz beam.
+103. Beam intensity is exponentially attenuated with distance.
+104. Half-value thickness is the tissue thickness required to reduce incident intensity by 50%.
+105. A 50% intensity loss equals a 3 dB reduction.
+106. As frequency increases, half-value thickness decreases.
+107. High-frequency probes are best for superficial structures.
+108. High-frequency probes have poor depth penetration.
+109. Lower-frequency probes are needed for deeper structures.
+110. Ultrasound is produced with a transducer.
+111. Ultrasound is received with a transducer.
+112. A transducer converts electrical energy into mechanical energy.
+113. The transducer crystal vibrates to create ultrasound waves.
+114. Returning ultrasound waves vibrate the crystal.
+115. Returning waves are converted back into electrical signals.
+116. Older transducers had single-element resonance crystals.
+117. Modern transducers use broadband transducer arrays.
+118. Modern arrays contain hundreds of individual elements.
+119. Piezoelectric material is the functional component of the transducer.
+120. Piezoelectric material may be crystal or ceramic.
+121. Quartz can be piezoelectric.
+122. Most transducers use lead-zirconate-titanate, abbreviated PZT.
+123. Piezoelectric materials have organized electrical dipoles.
+124. Mechanical compression disturbs the dipole alignment.
+125. This disturbed alignment can be measured electrically.
+126. Resonance transducers operate in resonance mode.
+127. Short voltage pulses cause PZT to vibrate at its natural resonance frequency.
+128. The operating frequency depends on sound speed within the piezoelectric material.
+129. The operating frequency depends on thickness of the piezoelectric material.
+130. To change frequency in a resonance transducer, you change the probe.
+131. Transducer crystal thickness equals one-half wavelength.
+132. Thicker crystals produce lower frequencies.
+133. Thinner crystals produce higher frequencies.
+134. The damping block sits behind the crystal.
+135. The damping block absorbs backward-directed ultrasound energy.
+136. The damping block dampens transducer vibration.
+137. Damping creates a shorter spatial pulse length.
+138. Short spatial pulse length improves axial resolution.
+139. Damping introduces a broadband frequency spectrum.
+140. Light damping is associated with a thin damping block.
+141. Light damping is high Q.
+142. Light damping produces long spatial pulse length.
+143. Light damping produces narrow bandwidth.
+144. Heavy damping is associated with a thick damping block.
+145. Heavy damping is low Q.
+146. Heavy damping produces short spatial pulse length.
+147. Heavy damping produces broad bandwidth.
+148. Low damping/high Q/narrow bandwidth is useful for Doppler.
+149. Narrow bandwidth helps preserve velocity information.
+150. Heavy damping/low Q/broad bandwidth gives high axial spatial resolution.
+151. Heavy damping produces fewer interference effects.
+152. Heavy damping gives more uniformity.
+153. The matching layer is the interface between the transducer element and patient tissue.
+154. The matching layer minimizes acoustic impedance differences between transducer and patient.
+155. The matching layer has impedance intermediate between soft tissue and transducer material.
+156. Optimal matching layer thickness is one-fourth wavelength.
+157. Arrays are broadly linear or phased.
+158. Curved arrays are a type of linear array.
+159. Linear arrays are sequenced.
+160. Phased arrays use activation/reactivation timing patterns.
+161. In a linear array, individual elements fire and receive independently.
+162. Linear arrays do not rely on beam steering by interference patterns in the same way phased arrays do.
+163. The width of a linear transducer equals the sum width of the individual elements.
+164. Linear arrays are useful for pediatrics.
+165. Linear arrays are useful for superficial imaging.
+166. Linear arrays are useful for carotids.
+167. Linear arrays are useful for leg veins.
+168. Linear arrays are useful for testicles.
+169. Linear arrays are useful for thyroid imaging.
+170. Linear probes produce a rectangular field of view.
+171. Curvilinear probes are still linear probes.
+172. Curvilinear probes use individual elements firing independently.
+173. Curvilinear probe scan lines diverge with depth.
+174. Curvilinear probes provide a wider field of view for deeper structures.
+175. Curvilinear probes are used for abdominal imaging.
+176. Phased arrays use groups of elements firing together.
+177. Phased arrays use interference patterns to steer the beam.
+178. Phased-array probes can be smaller because steering is electronic.
+179. Phased arrays are useful for limited acoustic windows.
+180. Phased arrays are useful between ribs.
+181. Phased arrays are useful transvaginally.
+182. Linear arrays commonly have 256-512 elements.
+183. Phased arrays commonly have 64-128 elements.
+184. Linear probes are relatively large.
+185. Phased probes are relatively small.
+186. Linear arrays fire small adjacent groups of elements sequentially.
+187. Phased arrays activate and reactivate elements in a phased pattern.
+188. Linear arrays produce rectangular fields of view.
+189. Curved linear arrays produce trapezoidal fields of view.
+190. Time delays in electrical activation allow phased arrays to steer without moving the probe.
+191. Time delays in electrical activation allow phased arrays to focus without moving the probe.
+192. The ultrasound beam has a near-field component.
+193. The ultrasound beam has a far-field component.
+194. The near field is also called the Fresnel zone.
+195. The far field is also called the Fraunhofer zone.
+196. The near field is converging.
+197. The far field is diverging.
+198. The near-field length depends on transducer frequency.
+199. The near-field length depends on transducer diameter.
+200. Higher transducer frequency produces a longer near field.
+201. Larger transducer diameter produces a longer near field.
+202. Beam convergence in the near field results from constructive and destructive interference.
+203. Beam intensity varies between maxima and minima in the converging beam.
+204. In the far field, the beam diverges.
+205. Far-field divergence reduces the ability to distinguish nearby objects.
+206. Far-field divergence is less with high-frequency large probes.
+207. Far-field divergence is greater with low-frequency small probes.
+208. Ultrasound intensity gradually decreases with distance in the far field.
+209. Beam intensity equals power per unit area.
+210. Beam power is measured in watts.
+211. Beam power is not uniform along its length.
+212. Beam power is not uniform along its width.
+213. The beam lacks sharply defined edges.
+214. Intensity decreases from the center outward.
+215. Center-to-edge intensity decrease is beam spread.
+216. Maximum sound pressure is along the acoustic axis.
+217. The acoustic axis is the centerline of the beam.
+218. Far-field divergence spreads power over a larger area.
+219. Near-field interference occurs from numerous point sources.
+220. Broadband transducers reduce near-field interference effects.
+221. Focal depth is where the beam is narrowest.
+222. The focal zone is the area of maximum intensity.
+223. The focal zone lies between the converging and diverging beam portions.
+224. Echoes are best at the focal zone.
+225. Lateral resolution is best at the focal zone.
+226. Imaging a lesion in the far field gives poor lateral resolution.
+227. Placing the target in the focal zone improves lateral resolution.
+228. Focusing narrows the ultrasound beam.
+229. Focusing improves lateral resolution.
+230. Mechanical focusing uses a concave transducer face or acoustic lens.
+231. Mechanical focusing creates a fixed focal depth.
+232. Electronic focusing uses timed activation of transducer elements.
+233. Shallow electronic focus can be achieved by firing inner transducers symmetrically.
+234. Longer electronic focus can be achieved by reducing delay-time differences among elements.
+235. Multiple focal zones are an electronic/phased-array strategy.
+236. A stand-off pad helps image very superficial structures.
+237. A stand-off pad is essentially a block of ultrasound gel or low-impedance material.
+238. Water can function as a stand-off pad.
+239. Water stand-off can be useful for painful skin or wounds.
+240. Water stand-off can be useful in pediatrics.
+241. A stand-off pad moves superficial structures from the near zone into the focal zone.
+242. Lateral resolution is poor in the near zone.
+243. Lateral resolution is poor in the far zone.
+244. Lateral resolution is maximized at the focal zone.
+245. Ultrasound spatial resolution has axial, lateral, and elevation dimensions.
+246. Axial resolution is resolution along the beam direction.
+247. Axial resolution is the ability to distinguish two closely spaced objects in the beam direction.
+248. Good axial resolution requires returning echoes to be separate.
+249. If returning echoes overlap, two reflectors cannot be resolved axially.
+250. Minimum axial separation is one-half the spatial pulse length.
+251. Spatial pulse length equals number of cycles per pulse times wavelength.
+252. Objects closer than one-half SPL will not be resolved axially.
+253. Shorter spatial pulse length improves axial resolution.
+254. Greater damping improves axial resolution.
+255. Low Q improves axial resolution.
+256. Higher frequency improves axial resolution by shortening wavelength.
+257. Axial resolution depends on spatial pulse length.
+258. Axial resolution is not depth dependent.
+259. Lateral resolution is resolution perpendicular to the beam.
+260. Lateral resolution requires objects to fall into separate beams.
+261. Thinner beams improve lateral resolution.
+262. Beam narrowing improves lateral resolution.
+263. Lateral resolution is best at the focal zone.
+264. Lateral resolution is worst near the transducer surface and in the far field.
+265. Lateral resolution is depth dependent.
+266. Lateral resolution worsens deeper in the field.
+267. Lateral resolution depends on transducer element width.
+268. Gain can widen the beam.
+269. Excessive gain can worsen lateral resolution.
+270. Minimal necessary gain helps preserve lateral resolution.
+271. Elevation resolution is slice-thickness resolution.
+272. Elevation resolution is measured orthogonal to the image plane.
+273. Elevation resolution is usually the worst resolution dimension.
+274. Elevation resolution depends on transducer element height.
+275. Poor elevation resolution causes volume averaging.
+276. Elevation-related volume averaging occurs near the transducer and in the far field.
+277. Elevation resolution is similar to lateral resolution but in the orthogonal plane.
+278. Elevation resolution can be improved by minimizing slice thickness.
+279. Slice thickness can be minimized by phase excitation of outer-to-inner arrays.
+280. Improving lateral resolution can involve adding an acoustic lens.
+281. Improving lateral resolution can involve placing the target in the focal zone.
+282. Improving lateral resolution can involve phased arrays with multiple focal zones.
+283. Improving lateral resolution can involve increasing line density.
+284. Line density means scan lines per centimeter.
+285. Improving elevation resolution can use fixed focal length across the array surface.
+286. A downside of fixed focal length is partial volume effects.
+287. Ultrasound image formation relies on assumptions.
+288. Artifacts occur when these assumptions are violated.
+289. The machine assumes all echoes originate from the main beam.
+290. The machine assumes all echoes return after a single reflection.
+291. The machine assumes echo return time directly reflects object depth.
+292. The machine assumes tissue sound speed is 1540 m/s.
+293. The machine assumes the beam and echo travel in a straight path.
+294. The machine assumes acoustic energy is uniformly attenuated.
+295. Side-lobe artifact occurs when off-axis beam energy creates echoes.
+296. The normal ultrasound beam has a central main beam and low-energy side lobes.
+297. Side lobes arise from radial expansion of piezoelectric crystals.
+298. Side lobes occur more in linear arrays.
+299. A strong reflector can reflect side-lobe energy back to the transducer.
+300. Side-lobe echoes are incorrectly displayed as though they came from the main beam.
+301. Side-lobe artifact is often seen when misplaced echoes overlap an anechoic structure.
+302. The bladder and gallbladder are classic sites for side-lobe artifact.
+303. Side-lobe artifact in the gallbladder may mimic sludge.
+304. Beam-width artifact occurs because the beam has finite width and diverges.
+305. The beam exits the transducer with the width of the transducer.
+306. The beam narrows to the focal zone.
+307. The beam diverges in the far field.
+308. A diverged beam can extend beyond the original transducer margins.
+309. A strong reflector outside the intended beam width can send echoes back.
+310. Beam-width artifact echoes are displayed incorrectly within the main beam.
+311. The bladder is a classic site for beam-width artifact.
+312. Beam-width artifact may cause peripheral echoes in the bladder.
+313. Beam-width artifact can be improved by adjusting the focal zone to the level of interest.
+314. Beam-width artifact can be improved by centering the transducer over the image.
+315. Multiple-echo artifacts violate the single-reflection assumption.
+316. Multiple-echo artifacts violate the assumption that return time directly equals depth.
+317. Reverberation occurs between two parallel highly reflective surfaces.
+318. Reverberation produces repeated back-and-forth reflections.
+319. Later reverberation echoes take longer to return.
+320. Later reverberation echoes are displayed deeper than the true reflector.
+321. Reverberation appears as multiple equally spaced linear reflections.
+322. Comet-tail artifact is a form of reverberation.
+323. Comet tail occurs when two parallel highly reflective surfaces are very close together.
+324. Comet-tail echoes are closely spaced.
+325. Comet-tail echo spacing may be less than one-half SPL.
+326. Comet tail appears triangular rather than as separate lines.
+327. Later comet-tail echoes are attenuated.
+328. Later comet-tail echoes have decreased amplitude.
+329. Decreased amplitude produces tapering width on the image.
+330. Ring-down artifact has a different mechanism from classic reverberation.
+331. Ring-down occurs when sound encounters fluid trapped among air bubbles.
+332. Bubble vibration creates a nearly continuous sound wave back to the probe.
+333. Ring-down appears as a line or parallel bands posterior to gas.
+334. Mirror-image artifact occurs when the single-reflection assumption is violated.
+335. Mirror-image artifact involves a highly reflective surface.
+336. The beam reflects between the back side of the reflector and an adjacent structure.
+337. Mirror-image artifact duplicates a structure deep to the reflective interface.
+338. The duplicate is equidistant from the reflector compared with the real structure.
+339. The classic mirror-image location is the liver-lung interface.
+340. Mirror-image artifact can show liver parenchyma where lung should be.
+341. Reverberation: two parallel highly reflective surfaces → equally spaced lines.
+342. Comet tail: close parallel reflectors → triangular comet-shaped artifact.
+343. Ring down: air bubbles/fluid → posterior parallel bands.
+344. Mirror image: strong reflector → duplicated structure deep to interface.
+345. Velocity artifacts occur when sound speed differs from 1540 m/s.
+346. Air, fluid, fat, and bone can violate the 1540 m/s assumption.
+347. If sound travels slower than expected, it takes longer to return.
+348. Slower sound speed makes the machine place the reflector too deep.
+349. If sound travels faster than expected, it returns sooner.
+350. Faster sound speed makes the machine place the reflector too shallow.
+351. Speed-displacement artifact can occur because sound travels slower in fat than liver.
+352. Slower sound in fat can make the liver border appear displaced.
+353. Speed-displacement artifact can make the liver border look discontinuous.
+354. Refraction artifact occurs from speed differences between tissues.
+355. Refraction artifact violates the straight-line travel assumption.
+356. Refraction can make an object appear wider than it is.
+357. Refraction can misplace an object laterally.
+358. Refraction can duplicate an object.
+359. Duplicated SMA is a classic refraction artifact.
+360. Duplicated SMA occurs deep to rectus muscles and midline fat.
+361. Duplicated SMA occurs due to symmetric refraction geometry.
+362. Moving the transducer to the side can make a duplicated SMA become a single vessel.
+363. Ultrasound beams attenuate as they travel through the body.
+364. Longer travel distance causes more attenuation.
+365. Compensation amplification increases amplification of later-returning echoes.
+366. Compensation amplification makes the deep image look more uniform.
+367. Shadowing occurs when a structure attenuates more than surrounding tissue.
+368. Shadowing makes tissue deep to the structure appear darker.
+369. Increased through transmission occurs when a structure attenuates less than surrounding tissue.
+370. Increased through transmission makes tissue deep to the structure appear brighter.
+371. A-mode stands for amplitude mode.
+372. A-mode is mostly historical.
+373. A-mode is still used in ophthalmology for eye measurements.
+374. A-mode displays receiver information versus time.
+375. Echoes from tissue boundaries create signals proportional to echo amplitude.
+376. B-mode stands for brightness mode.
+377. B-mode converts A-line information into brightness-modulated dots.
+378. B-mode brightness is proportional to echo amplitude.
+379. M-mode stands for motion mode.
+380. M-mode displays motion of structures along a fixed beam line.
+381. M-mode uses B-mode information over time.
+382. M-mode is used for moving structures such as heart valves.
+383. M-mode output/exposure is taught as about 4 times B-mode.
+384. Pulsed Doppler output/exposure is taught as about 20 times B-mode.
+385. Doppler relies on frequency change from moving objects.
+386. Moving sound sources produce perceived frequency shifts.
+387. Doppler frequency shifts can determine flow direction.
+388. Doppler frequency shifts can determine flow velocity.
+389. Ideal Doppler sample volume is placed in the middle of the vessel lumen.
+390. Ideal Doppler angle is parallel to the vessel.
+391. Incorrect Doppler angle produces incorrect velocity calculation.
+392. Doppler angle errors are especially problematic above 60 degrees.
+393. Doppler angle should generally be between 30 and 60 degrees.
+394. Doppler shift depends on the cosine of the angle.
+395. At 90 degrees, cosine is zero.
+396. At 90 degrees, Doppler shift can be zero.
+397. A zero Doppler shift can falsely suggest no flow.
+398. Theoretically, 0 degrees gives the strongest Doppler shift.
+399. Angles below about 20 degrees can cause refraction and signal loss.
+400. Perpendicular Doppler insonation can falsely suggest no flow or occlusion.
+401. Perpendicular insonation can create mirror-image artifact.
+402. Pulsed-wave spectral Doppler uses a single transducer for transmission and reception.
+403. Blood flow velocity variation produces a spectrum of Doppler shifts.
+404. Spectral Doppler displays flow direction above or below the baseline.
+405. Spectral Doppler provides velocity information.
+406. Color Doppler overlays color flow information on grayscale imaging.
+407. Color Doppler gives direction of flow using red and blue colors.
+408. Color intensity varies with flow intensity.
+409. Stationary tissue remains gray on color Doppler.
+410. Color Doppler samples each pixel multiple times.
+411. Color Doppler displays the average Doppler shift.
+412. Color Doppler has lower spatial resolution than grayscale imaging.
+413. Color Doppler can make smaller vessels easier to see.
+414. Doppler angle is less important for color Doppler because it is semi-quantitative.
+415. Power Doppler detects presence of flow without direction.
+416. Power Doppler displays total number/power of frequency shifts in each pixel.
+417. Power Doppler does not exhibit aliasing.
+418. Color Doppler can alias.
+419. Spectral Doppler can alias.
+420. Power Doppler has no Doppler-angle dependence in the handout's teaching.
+421. Power Doppler can detect flow perpendicular to the vessel.
+422. Power Doppler is very sensitive to flow.
+423. Power Doppler is sensitive to very slow flow.
+424. Aliasing occurs when very high velocities are displayed as low or negative.
+425. On spectral Doppler, aliasing looks like the spectrum is cut off.
+426. Aliased spectral Doppler wraps around the baseline.
+427. Aliased signal reappears on the opposite side of the baseline.
+428. Aliasing occurs when Doppler shift exceeds the Nyquist frequency.
+429. Nyquist limit equals one-half the pulse repetition frequency.
+430. A 3.5 kHz frequency shift requires a 7 kHz PRF to avoid aliasing.
+431. Aliasing can be reduced by decreasing Doppler shift.
+432. Doppler shift can be decreased by using a lower-frequency transducer.
+433. Doppler shift can be decreased by increasing the Doppler angle closer to 90 degrees.
+434. Aliasing can be reduced by increasing PRF.
+435. Increasing PRF increases the Nyquist limit.
+436. Aliasing can be reduced by selecting a shallower sample volume.
+437. Aliasing can be reduced by increasing the Doppler scale.
+438. Tissue vibration artifact occurs secondary to turbulent blood flow.
+439. Tissue vibration can show a mixture of red and blue colors.
+440. A renal AV fistula after biopsy is a classic tissue vibration example.
+441. Doppler mirror-image artifact occurs near a highly reflective surface.
+442. Doppler mirror-image artifact duplicates the evaluated vessel/structure.
+443. Classic Doppler mirror-image locations include subdiaphragmatic liver and supraclavicular region.
+444. Twinkle artifact occurs behind strongly reflecting surfaces.
+445. Calcifications are classic causes of twinkle artifact.
+446. Twinkle artifact appears as a noisy spectrum with rapid red-blue fluctuation.
+447. Twinkle artifact is more sensitive for small stones than acoustic shadowing.
+448. Twinkle artifact depends strongly on machine settings.
+449. Twinkle artifact depends on surface roughness.
+450. Rougher reflecting surfaces produce more twinkle.
+451. Pseudoflow artifact is motion that mimics blood flow.
+452. Ureteral jets are a classic pseudoflow example.
+453. Flash artifact is a burst of color filling the screen.
+454. Flash artifact is caused by transducer motion or patient motion.
+455. Fetal kick is a classic flash artifact example.
+456. Color bleed is color extending beyond the vessel wall.
+457. Color bleed can reduce sensitivity for thrombus.
+458. Color bleed can reduce sensitivity for stenosis.
+459. Color bleed can be improved by decreasing color gain.
+460. Output power is also called transmit gain.
+461. Increasing output power increases image brightness by increasing the strength of the transmitted pulse.
+462. High output power can degrade lateral resolution.
+463. High output power may widen the beam.
+464. Receiver gain increases brightness after echoes return to the transducer.
+465. Receiver gain is a post-processing-type adjustment.
+466. Output power can brighten or darken the whole image.
+467. Receiver gain can brighten or darken the whole image.
+468. ALARA favors adjusting receiver gain before increasing output power.
+469. TGC means time gain compensation.
+470. TGC progressively increases amplification with depth.
+471. TGC compensates for depth-related loss of echo strength.
+472. TGC aims to make image brightness uniform from top to bottom.
+473. TGC treats echoes differently depending on return depth.
+474. TGC used to require manual slider adjustment.
+475. TGC is now often automated.
+476. For a top-to-bottom brightness problem, TGC is often the answer.
+477. As ultrasound travels through tissue, the transmitted pulse becomes distorted.
+478. Pulse distortion occurs mainly in the central high-intensity portion of the beam.
+479. Distorted pulses create distorted echoes.
+480. Distorted echoes contain harmonic frequencies.
+481. Tissue harmonics use the second harmonic component of the echo signal.
+482. Tissue harmonics exclude the fundamental frequency.
+483. Undistorted low-intensity echoes from beam fringes are suppressed.
+484. Undistorted side-lobe echoes are suppressed.
+485. Undistorted superficial tissue echoes are suppressed.
+486. Harmonic imaging transmits at one frequency and receives at another frequency.
+487. Harmonic imaging receives the second harmonic.
+488. Tissue harmonic generation requires body-tissue wave distortion.
+489. The wave must travel some distance before enough distortion occurs.
+490. Harmonics are not produced in the near field.
+491. Harmonic imaging improves lateral resolution.
+492. Harmonic imaging reduces artifacts.
+493. Harmonic imaging especially reduces reverberation.
+494. Harmonic imaging uses higher received frequency.
+495. Higher harmonic frequency reduces depth penetration.
+496. Higher frequency attenuates faster.
+497. Compound imaging uses electronic beam steering.
+498. Compound imaging images an object from multiple directions.
+499. Compound imaging sharpens edges.
+500. Compound imaging can reduce posterior shadowing.
+501. Loss of posterior shadowing can make a cyst look solid.
+502. Compound imaging can look around object edges.
+503. Compound imaging improves margin sharpness.
+504. Compound imaging reduces reverberation but may not eliminate it.
+505. Compound imaging can remove posterior features that help identify cysts.
+506. The focal zone should be placed over the object of interest.
+507. The focal zone should be narrow/tight over the object.
+508. Focal zone centered too low is suboptimal.
+509. Focal zone too wide is suboptimal.
+510. Correct focal-zone placement maximizes resolution.
+511. Normal imaging of a breast nodule may show a hypoechoic but not completely anechoic lesion.
+512. Normal imaging may show some shadowing.
+513. Normal imaging may show blurry margins.
+514. Normal imaging may show reverberation artifact.
+515. Harmonics can make a lesion look more anechoic.
+516. Harmonics can worsen shadowing.
+517. Harmonics may leave margins blurry.
+518. Harmonics can eliminate reverberation artifact.
+519. Compound imaging may keep a lesion hypoechoic but not fully anechoic.
+520. Compound imaging can remove shadowing.
+521. Compound imaging can sharpen margins.
+522. Compound imaging improves reverberation artifact but may not eliminate it.
+523. Harmonics can make a solid lesion look cystic.
+524. Compound imaging can make a cystic lesion look solid by removing posterior features.
+525. Thermal index and mechanical index are acoustic output parameters.
+526. Thermal index estimates potential temperature rise from energy absorption.
+527. Thermal index is based on a homogeneous tissue model and instrument parameters.
+528. Mechanical index estimates the likelihood of cavitation.
+529. Mechanical index depends on peak rarefaction pressure and frequency.
+530. Mechanical index indicates mechanical bioeffects.
+531. Mechanical bioeffects include streaming.
+532. Mechanical bioeffects include cavitation.
+533. Mechanical index is especially important with contrast-enhanced ultrasound.
+534. Cavitation is sonically generated activity in gas/vapor compressible bodies.
+535. Cavitation can be stable or transient.
+536. Stable cavitation occurs when microbubbles are already present.
+537. Stable cavitation bubbles expand and contract during wave cycles.
+538. Stable cavitation occurs at low and intermediate clinical ultrasound intensities.
+539. Mechanical index estimates likelihood of cavitation.
+540. Transient cavitation is more violent.
+541. Transient cavitation involves very large bubble oscillations.
+542. Transient cavitation can cause bubble collapse.
+543. Bubble collapse can create shock waves through tissue planes.
+544. Transient cavitation can cause tissue damage.
+545. Rate of energy absorption increases with frequency.
+546. Temperature rise eventually slows because of conduction and perfusion.
+547. Temperature rise eventually reaches a steady state.
+548. Thermal injury is a threshold phenomenon.
+549. Thermal injury does not occur until a threshold temperature is reached.
+550. Cavitation is most likely with low frequency and high pressure.
+551. Spectral Doppler deposits more heat than grayscale ultrasound.
+552. NCRP risk-benefit decision is taught when TI exceeds 1.0.
+553. NCRP risk-benefit decision is taught when MI exceeds 0.5.
+554. No human fetal injury from diagnostic ultrasound is stated in the handout.
+555. Caution is still advised in fetal ultrasound.
+556. Temperature rise is most likely at bone surfaces and adjacent soft tissues.
+557. Increasing fetal mineralization in the second and third trimester raises theoretical heating concern.
+558. Theoretical heating concern involves sensitive tissues such as brain and spinal cord.
+559. Different thermal indexes exist for soft tissue, bone, and cranium.
+560. Soft-tissue thermal index is used in early gestation.
+561. Bone thermal index is used after about 10 weeks when ossification is evident.
+562. Pulsed Doppler should not be routinely used in the first trimester.
+563. Spectral Doppler should not be routinely used in the first trimester.
+564. Power Doppler should not be routinely used in the first trimester.
+565. Color Doppler should not be routinely used in the first trimester.
+566. M-mode is recommended instead of spectral Doppler to document fetal heart rate.
+567. First-trimester TI should be kept under 1.0.
+568. Some sources recommend first-trimester TI under 0.7.
+569. Maternal uterine artery Doppler is probably acceptable if the fetus is outside the beam.
+570. TI below 0.7 is recommended for OB imaging in the handout.
+571. TI 1.0-1.5 should not exceed 30 minutes.
+572. TI 2.5-3.0 should not exceed 1 minute.
+573. TI greater than 3.0 should not be used.
+`;
+
+const SECTIONS = [
+  [1, "Sound basics"],
+  [27, "Wave interference and intensity"],
+  [42, "Interactions with matter"],
+  [46, "Reflection and impedance"],
+  [59, "Refraction"],
+  [77, "Scattering"],
+  [94, "Absorption and attenuation"],
+  [110, "Transducers"],
+  [134, "Damping"],
+  [153, "Matching layer"],
+  [157, "Transducer arrays"],
+  [192, "Beam properties"],
+  [221, "Focal zone and focusing"],
+  [236, "Stand-off pad"],
+  [245, "Spatial resolution"],
+  [287, "Artifact assumptions"],
+  [295, "Beam-related artifacts"],
+  [315, "Multiple-echo artifacts"],
+  [345, "Velocity-error artifacts"],
+  [363, "Attenuation-error artifacts"],
+  [371, "A/B/M modes"],
+  [385, "Doppler basics"],
+  [402, "Doppler types"],
+  [424, "Doppler artifacts"],
+  [460, "Image optimization"],
+  [477, "Harmonic imaging"],
+  [497, "Compound imaging"],
+  [506, "Focal-zone optimization"],
+  [511, "Harmonics vs compound"],
+  [525, "Safety"],
+  [554, "Obstetric safety"]
+];
+
+function parseFacts(text) {
+  return text.trim().split("\n").map(line => {
+    const m = line.match(/^(\d+)\.\s+(.*)$/);
+    return m ? { number: Number(m[1]), fact: m[2].trim() } : null;
+  }).filter(Boolean);
+}
+
+const facts = parseFacts(FACTS_TEXT);
+
+function sectionForNumber(n) {
+  let current = SECTIONS[0][1];
+  for (const [start, name] of SECTIONS) {
+    if (n >= start) current = name;
+    else break;
+  }
+  return current;
+}
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function chooseBlank(fact) {
+  const rules = [
+    /\bcalled\s+(.+?)\.$/i,
+    /\babbreviated\s+(.+?)\.$/i,
+    /\bmeasured in\s+(.+?)\.$/i,
+    /\bexpressed in\s+(.+?)\.$/i,
+    /\bmeans\s+(.+?)\.$/i,
+    /\bequals\s+(.+?)\.$/i,
+    /\bdepends on\s+(.+?)\.$/i,
+    /\bdepends strongly on\s+(.+?)\.$/i,
+    /\bproduces?\s+(.+?)\.$/i,
+    /\bcauses?\s+(.+?)\.$/i,
+    /\bimproves?\s+(.+?)\.$/i,
+    /\breduces?\s+(.+?)\.$/i,
+    /\bviolates?\s+(.+?)\.$/i,
+    /\boccurs when\s+(.+?)\.$/i,
+    /\boccurs at\s+(.+?)\.$/i,
+    /\boccurs because\s+(.+?)\.$/i,
+    /\bresults from\s+(.+?)\.$/i,
+    /\bused for\s+(.+?)\.$/i,
+    /\buseful for\s+(.+?)\.$/i,
+    /\bcan be improved by\s+(.+?)\.$/i,
+    /\bcan be reduced by\s+(.+?)\.$/i,
+    /\bcan determine\s+(.+?)\.$/i,
+    /\bcan make\s+(.+?)\.$/i,
+    /\bcan cause\s+(.+?)\.$/i,
+    /\bis based on\s+(.+?)\.$/i,
+    /\bis proportional to\s+(.+?)\.$/i,
+    /\bis the\s+(.+?)\.$/i,
+    /\bis a\s+(.+?)\.$/i,
+    /\bis an\s+(.+?)\.$/i,
+    /\bis\s+(.+?)\.$/i,
+    /\bare\s+(.+?)\.$/i,
+    /\bhas\s+(.+?)\.$/i,
+    /\bhave\s+(.+?)\.$/i
+  ];
+
+  for (const rule of rules) {
+    const match = fact.match(rule);
+    if (match && match[1] && match[1].length <= 90) {
+      return match[1].trim();
+    }
+  }
+
+  const words = fact.replace(/\.$/, "").split(/\s+/);
+  const take = Math.min(4, Math.max(1, Math.ceil(words.length / 4)));
+  return words.slice(-take).join(" ");
+}
+
+function makeQuestion(f) {
+  const answer = chooseBlank(f.fact);
+  const re = new RegExp(escapeRegex(answer), "i");
+  const prompt = f.fact.replace(re, "____");
+  return {
+    number: f.number,
+    section: sectionForNumber(f.number),
+    prompt,
+    answer,
+    fact: f.fact
+  };
+}
+
+const questions = facts.map(makeQuestion);
+const STORAGE_KEY = "prometheus_ultrasound_fill_blank_573_v1";
+
+let state = {
+  index: 0,
+  answers: Array(questions.length).fill(null)
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved && Array.isArray(saved.answers) && saved.answers.length === questions.length) {
+      state = saved;
+      state.index = Math.min(Math.max(0, state.index || 0), questions.length - 1);
+    }
+  } catch {}
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+const el = {
+  progressText: document.getElementById("progressText"),
+  scoreText: document.getElementById("scoreText"),
+  progressFill: document.getElementById("progressFill"),
+  sectionText: document.getElementById("sectionText"),
+  questionText: document.getElementById("questionText"),
+  answerInput: document.getElementById("answerInput"),
+  checkBtn: document.getElementById("checkBtn"),
+  showBtn: document.getElementById("showBtn"),
+  markCorrectBtn: document.getElementById("markCorrectBtn"),
+  markWrongBtn: document.getElementById("markWrongBtn"),
+  feedback: document.getElementById("feedback"),
+  prevBtn: document.getElementById("prevBtn"),
+  nextBtn: document.getElementById("nextBtn"),
+  resetBtn: document.getElementById("resetBtn"),
+  jumpGrid: document.getElementById("jumpGrid"),
+  dropdownStats: document.getElementById("dropdownStats"),
+  firstUnansweredBtn: document.getElementById("firstUnansweredBtn"),
+  missedBtn: document.getElementById("missedBtn"),
+  copyMissedBtn: document.getElementById("copyMissedBtn"),
+  reviewBtn: document.getElementById("reviewBtn"),
+  reviewPanel: document.getElementById("reviewPanel"),
+  reviewList: document.getElementById("reviewList")
+};
+
+function normalize(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/→/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[-–—/]/g, " ")
+    .replace(/[^a-z0-9.%μµ+\s]/g, "")
+    .replace(/\bm\s*\/\s*s\b/g, "m s")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isAnswerCorrect(user, answer) {
+  const u = normalize(user);
+  const a = normalize(answer);
+  if (!u || !a) return false;
+  if (u === a) return true;
+
+  const answerParts = a.split(/\s+or\s+|\s+and\s+|,/).map(x => x.trim()).filter(Boolean);
+  if (answerParts.some(p => p.length > 2 && u === p)) return true;
+
+  if (a.length >= 12 && (u.includes(a) || a.includes(u))) return true;
+
+  return false;
+}
+
+function getCounts() {
+  const answered = state.answers.filter(Boolean).length;
+  const correct = state.answers.filter(a => a && a.status === "correct").length;
+  const incorrect = state.answers.filter(a => a && a.status === "incorrect").length;
+  const revealed = state.answers.filter(a => a && a.revealed).length;
+  return { answered, correct, incorrect, revealed };
+}
+
+function render() {
+  const q = questions[state.index];
+  const a = state.answers[state.index];
+  const counts = getCounts();
+
+  el.progressText.textContent = `Question ${state.index + 1} of ${questions.length}`;
+  el.scoreText.textContent = `${counts.correct} correct · ${counts.incorrect} missed · ${counts.revealed} revealed`;
+  el.dropdownStats.textContent = `${counts.answered} / ${questions.length} answered`;
+  el.progressFill.style.width = `${Math.round((counts.answered / questions.length) * 100)}%`;
+
+  el.sectionText.textContent = `Section: ${q.section}`;
+  el.questionText.innerHTML = q.prompt.replace("____", '<span class="blank">____</span>');
+  el.answerInput.value = a ? a.userAnswer || "" : "";
+  el.answerInput.disabled = !!a;
+  el.checkBtn.disabled = !!a;
+
+  if (a) {
+    el.feedback.className = "feedback " + (a.status === "correct" ? "correct" : "incorrect");
+    const label = a.status === "correct" ? "Correct." : (a.revealed ? "Answer revealed." : "Missed.");
+    el.feedback.innerHTML = `
+      <div>${label}</div>
+      <div class="answerReveal"><strong>Answer:</strong> ${q.answer}</div>
+      <div class="answerReveal"><strong>Full fact:</strong> ${q.fact}</div>
+    `;
+  } else {
+    el.feedback.className = "feedback";
+    el.feedback.innerHTML = 'Tip: press <kbd>Enter</kbd> to check. The answer matching is forgiving about capitalization, punctuation, and extra spaces.';
+  }
+
+  el.prevBtn.disabled = state.index === 0;
+  el.nextBtn.textContent = state.index === questions.length - 1 ? "Finish" : "Next";
+
+  renderGrid();
+  if (el.reviewPanel.classList.contains("show")) renderReview();
+  saveState();
+
+  setTimeout(() => {
+    if (!state.answers[state.index]) el.answerInput.focus();
+  }, 0);
+}
+
+function checkAnswer() {
+  const q = questions[state.index];
+  const userAnswer = el.answerInput.value.trim();
+  if (!userAnswer) return;
+
+  const correct = isAnswerCorrect(userAnswer, q.answer);
+  state.answers[state.index] = {
+    userAnswer,
+    status: correct ? "correct" : "incorrect",
+    revealed: false,
+    timestamp: Date.now()
+  };
+  render();
+}
+
+function showAnswer() {
+  const q = questions[state.index];
+  state.answers[state.index] = {
+    userAnswer: el.answerInput.value.trim(),
+    status: "incorrect",
+    revealed: true,
+    timestamp: Date.now()
+  };
+  render();
+}
+
+function manualMark(status) {
+  state.answers[state.index] = {
+    userAnswer: el.answerInput.value.trim(),
+    status,
+    revealed: false,
+    timestamp: Date.now()
+  };
+  render();
+}
+
+function go(delta) {
+  state.index = Math.min(Math.max(0, state.index + delta), questions.length - 1);
+  render();
+}
+
+function renderGrid() {
+  el.jumpGrid.innerHTML = "";
+  questions.forEach((q, i) => {
+    const b = document.createElement("button");
+    b.className = "jump";
+    b.textContent = q.number;
+    if (i === state.index) b.classList.add("current");
+    const ans = state.answers[i];
+    if (ans) {
+      b.classList.add("answered", ans.status);
+      if (ans.revealed) b.classList.add("revealed");
+      b.title = `${q.number}. ${ans.status}${ans.revealed ? " · revealed" : ""}`;
+    } else {
+      b.title = `${q.number}. unanswered`;
+    }
+    b.addEventListener("click", () => {
+      state.index = i;
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    el.jumpGrid.appendChild(b);
+  });
+}
+
+function renderReview(filter = "all") {
+  el.reviewList.innerHTML = "";
+  questions.forEach((q, i) => {
+    const ans = state.answers[i];
+    const status = ans ? ans.status : "unanswered";
+    const revealed = !!(ans && ans.revealed);
+
+    if (filter === "correct" && status !== "correct") return;
+    if (filter === "incorrect" && status !== "incorrect") return;
+    if (filter === "unanswered" && status !== "unanswered") return;
+    if (filter === "revealed" && !revealed) return;
+
+    const item = document.createElement("div");
+    item.className = `reviewItem ${status}`;
+    item.innerHTML = `
+      <div class="reviewQ"><strong>${q.number}.</strong> ${q.prompt}</div>
+      <div class="reviewA"><strong>Status:</strong> ${status}${revealed ? " · revealed" : ""}</div>
+      <div class="reviewA"><strong>Your answer:</strong> ${ans && ans.userAnswer ? ans.userAnswer : "—"}</div>
+      <div class="reviewA"><strong>Correct answer:</strong> ${q.answer}</div>
+      <div class="reviewA"><strong>Full fact:</strong> ${q.fact}</div>
+    `;
+    item.addEventListener("click", () => {
+      state.index = i;
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    el.reviewList.appendChild(item);
+  });
+
+  if (!el.reviewList.children.length) {
+    el.reviewList.innerHTML = `<div class="small">No items match this filter.</div>`;
+  }
+}
+
+function jumpToFirstUnanswered() {
+  const idx = state.answers.findIndex(a => !a);
+  if (idx >= 0) {
+    state.index = idx;
+    render();
+  }
+}
+
+function jumpToFirstMissed() {
+  const idx = state.answers.findIndex(a => a && a.status === "incorrect");
+  if (idx >= 0) {
+    state.index = idx;
+    render();
+  }
+}
+
+function copyMissed() {
+  const missed = questions
+    .map((q, i) => ({ q, a: state.answers[i] }))
+    .filter(x => x.a && x.a.status === "incorrect")
+    .map(x => `${x.q.number}. ${x.q.prompt}\nCorrect answer: ${x.q.answer}\nFull fact: ${x.q.fact}\nYour answer: ${x.a.userAnswer || "—"}\n`)
+    .join("\n");
+
+  navigator.clipboard.writeText(missed || "No missed questions yet.");
+  el.copyMissedBtn.textContent = "Copied";
+  setTimeout(() => el.copyMissedBtn.textContent = "Copy missed", 1000);
+}
+
+function resetQuiz() {
+  const ok = confirm("Reset all saved progress for this quiz?");
+  if (!ok) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = { index: 0, answers: Array(questions.length).fill(null) };
+  render();
+}
+
+el.checkBtn.addEventListener("click", checkAnswer);
+el.answerInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") checkAnswer();
+});
+el.showBtn.addEventListener("click", showAnswer);
+el.markCorrectBtn.addEventListener("click", () => manualMark("correct"));
+el.markWrongBtn.addEventListener("click", () => manualMark("incorrect"));
+el.prevBtn.addEventListener("click", () => go(-1));
+el.nextBtn.addEventListener("click", () => go(1));
+el.resetBtn.addEventListener("click", resetQuiz);
+el.firstUnansweredBtn.addEventListener("click", jumpToFirstUnanswered);
+el.missedBtn.addEventListener("click", jumpToFirstMissed);
+el.copyMissedBtn.addEventListener("click", copyMissed);
+
+el.reviewBtn.addEventListener("click", () => {
+  el.reviewPanel.classList.toggle("show");
+  renderReview("all");
+});
+
+document.querySelectorAll("[data-filter]").forEach(btn => {
+  btn.addEventListener("click", () => renderReview(btn.dataset.filter));
+});
+
+document.addEventListener("keydown", e => {
+  if (e.altKey && e.key === "ArrowRight") go(1);
+  if (e.altKey && e.key === "ArrowLeft") go(-1);
+});
+
+loadState();
+render();
+</script>
+</body>
+</html>
