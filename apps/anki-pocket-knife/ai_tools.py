@@ -423,9 +423,8 @@ def _install_cloze_number_shortcuts(editor: Editor) -> None:
 
 
 def _install_text_field_cloze_toolbar(editor: Editor) -> None:
-    parent = getattr(editor, "parentWindow", None)
     note = getattr(editor, "note", None)
-    if not isinstance(parent, AddCards) or note is None:
+    if note is None:
         return
     field_ord = _text_field_ord(note)
     web = getattr(editor, "web", None)
@@ -724,16 +723,18 @@ def _show_editor_menu(editor: Editor) -> None:
     menu.exec(QCursor.pos())
 
 
-def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
-    if not is_ai_tools_enabled():
-        return buttons
+def _install_shared_editor_tools(editor: Editor) -> None:
     parent = getattr(editor, "parentWindow", None)
-    if not isinstance(parent, (AddCards, Browser)):
-        return buttons
     _ensure_spellcheck_shortcut(editor)
     if isinstance(parent, AddCards):
         QTimer.singleShot(0, lambda p=parent, ed=editor: _ensure_add_cards_bottom_buttons(p, ed))
-        QTimer.singleShot(0, lambda ed=editor: _install_text_field_cloze_toolbar(ed))
+    QTimer.singleShot(0, lambda ed=editor: _install_text_field_cloze_toolbar(ed))
+
+
+def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
+    if not is_ai_tools_enabled():
+        return buttons
+    _install_shared_editor_tools(editor)
     button = editor.addButton(
         None,
         BUTTON_COMMAND,
@@ -948,9 +949,9 @@ def _on_browser_menus_did_init(browser: Browser) -> None:
 
 
 def _on_editor_did_load_note(editor: Editor) -> None:
-    parent = getattr(editor, "parentWindow", None)
-    if isinstance(parent, AddCards):
-        QTimer.singleShot(0, lambda ed=editor: _install_text_field_cloze_toolbar(ed))
+    if not is_ai_tools_enabled():
+        return
+    _install_shared_editor_tools(editor)
 
 
 def _on_browser_will_show_context_menu(*args: Any) -> None:
