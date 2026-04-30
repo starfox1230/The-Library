@@ -524,14 +524,25 @@ function countsByHalf(){
 
 
 function requirementCounts(){
-  let neuroFriday=0, usPmWeekend=0;
+  const counts={
+    neuroFriday:{active:0, scheduled:0, plannedOnly:0},
+    usPmWeekend:{active:0, scheduled:0, plannedOnly:0}
+  };
   Object.entries(data.shifts).forEach(([date,shifts])=>{
     if(halfOf(date)!=="first") return;
     const dow=parse(date).getDay();
-    if(dow===5 && shifts.NeuroEvening==="scheduled") neuroFriday += 1;
-    if((dow===0 || dow===6) && shifts.USPM==="scheduled") usPmWeekend += 1;
+    if(dow===5 && (shifts.NeuroEvening==="planned" || shifts.NeuroEvening==="scheduled")){
+      counts.neuroFriday.active += 1;
+      if(shifts.NeuroEvening==="planned") counts.neuroFriday.plannedOnly += 1;
+      if(shifts.NeuroEvening==="scheduled") counts.neuroFriday.scheduled += 1;
+    }
+    if((dow===0 || dow===6) && (shifts.USPM==="planned" || shifts.USPM==="scheduled")){
+      counts.usPmWeekend.active += 1;
+      if(shifts.USPM==="planned") counts.usPmWeekend.plannedOnly += 1;
+      if(shifts.USPM==="scheduled") counts.usPmWeekend.scheduled += 1;
+    }
   });
-  return {neuroFriday, usPmWeekend};
+  return counts;
 }
 
 function renderRequirements(){
@@ -542,24 +553,31 @@ function renderRequirements(){
   const rows=[
     {
       label:"Required Friday Neuro Evenings",
-      used:c.neuroFriday,
+      counts:c.neuroFriday,
       target:r.neuroEveningFridays,
       detail:"Rule: at least 2 Friday Neuro Evening shifts in the first half. These also count toward the 12 Neuro Evening total."
     },
     {
       label:"Required weekend US PM days",
-      used:c.usPmWeekend,
+      counts:c.usPmWeekend,
       target:r.usPmWeekendDays,
       detail:"Rule: at least 5 weekend Ultrasound PM shifts in the first half. These also count toward the 19 US PM total."
     }
   ];
   box.innerHTML="";
   rows.forEach(row=>{
-    const left=Math.max(0,row.target-row.used);
-    const done=row.used>=row.target;
+    const left=Math.max(0,row.target-row.counts.scheduled);
+    const done=row.counts.scheduled>=row.target;
+    const scheduledPct=row.target?Math.min(100,row.counts.scheduled/row.target*100):(row.counts.scheduled?100:0);
+    const plannedPct=row.target?Math.min(100,row.counts.plannedOnly/row.target*100):(row.counts.plannedOnly?100:0);
     const div=document.createElement("div");
     div.className="req-row "+(done?"done":"need");
-    div.innerHTML=`<div class="req-title"><b>${row.label}</b><span>${row.used}/${row.target} · ${left} left</span></div><div class="bar" style="margin-top:7px"><div class="fill" style="width:${row.target?Math.min(100,row.used/row.target*100):100}%;background:${done?'var(--good)':'var(--warn)'}"></div></div><div class="req-detail">${row.detail}</div>`;
+    div.innerHTML=`<div class="req-title"><b>${row.label}</b><span>${row.counts.active}/${row.counts.scheduled}/${row.target} · ${left} left</span></div>
+      <div class="bar" style="margin-top:7px">
+        <div class="fill scheduled" style="width:${scheduledPct}%;background:${done?'var(--good)':'var(--warn)'}"></div>
+        <div class="fill planned" style="width:${plannedPct}%;background:var(--warn)"></div>
+      </div>
+      <div class="req-detail">${row.detail}</div>`;
     box.appendChild(div);
   });
 }
