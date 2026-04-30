@@ -333,6 +333,7 @@ function jeopLabel(dateStr){
   return "Jeopardy";
 }
 function holidayMultiplier(dateStr){return data.uabHolidays[dateStr] ? 1.5 : 1}
+function isWeekendOrHoliday(dateStr){return isWeekend(dateStr) || Boolean(data.uabHolidays[dateStr])}
 function isLastTuesdayRule(dateStr){
   const d=parse(dateStr);
   if(d.getDay()!==2) return false;
@@ -386,6 +387,8 @@ function migrateData(){
       Object.entries(value).forEach(([type,status])=>{
         if(!shiftTypes[type] || !["planned","scheduled","taken"].includes(status)) delete value[type];
       });
+      if(value.Lead && !isWeekend(date)) delete value.Lead;
+      if(value.USDay && !isWeekendOrHoliday(date)) delete value.USDay;
       if(!Object.keys(value).length) delete data.shifts[date];
     }
   });
@@ -672,7 +675,7 @@ function openModal(dateStr){
 
   const actions=document.getElementById("modalActions"); actions.innerHTML="";
   Object.keys(shiftTypes).forEach(k=>{
-    const disabled = k==="NeuroEvening" && data.uabHolidays[dateStr];
+    const disabled = (k==="NeuroEvening" && data.uabHolidays[dateStr]) || (k==="Lead" && !isWeekend(dateStr)) || (k==="USDay" && !isWeekendOrHoliday(dateStr));
     const btn=document.createElement("button"); if(disabled) btn.className="disabled";
     const mult=holidayMultiplier(dateStr);
     const ruleTags=[];
@@ -683,7 +686,9 @@ function openModal(dateStr){
     const label={off:"Off", planned:`? ${shortShiftLabel(k)}`, scheduled:shortShiftLabel(k), taken:`${shortShiftLabel(k)} taken`}[status];
     btn.innerHTML=`<span>${shortShiftLabel(k)}${ruleTags.length?` <span class="mini-tag">${ruleTags.join(", ")}</span>`:""}</span><b>${label}</b>`;
     btn.onclick=()=>toggleShift(dateStr,k);
-    if(disabled){btn.title="Neuro Evening does not run on UAB holidays."}
+    if(k==="NeuroEvening" && data.uabHolidays[dateStr]) btn.title="Neuro Evening does not run on UAB holidays.";
+    if(k==="Lead" && !isWeekend(dateStr)) btn.title="Lead is only available on weekends.";
+    if(k==="USDay" && !isWeekendOrHoliday(dateStr)) btn.title="US Day is only available on weekends and UAB holidays.";
     actions.appendChild(btn);
   });
   const clearMoonBtn=document.createElement("button");
@@ -724,6 +729,8 @@ function openModal(dateStr){
 function closeModal(){document.getElementById("modal").style.display="none";selectedDate=null}
 function toggleShift(dateStr,k){
   if(k==="NeuroEvening" && data.uabHolidays[dateStr]) return alert("Neuro Evening does not run on UAB holidays.");
+  if(k==="Lead" && !isWeekend(dateStr)) return alert("Lead is only available on weekends.");
+  if(k==="USDay" && !isWeekendOrHoliday(dateStr)) return alert("US Day is only available on weekends and UAB holidays.");
   data.shifts[dateStr]=data.shifts[dateStr]||{};
   const current=data.shifts[dateStr][k] || "off";
   const next={off:"planned", planned:"scheduled", scheduled:"taken", taken:"off"}[current];
