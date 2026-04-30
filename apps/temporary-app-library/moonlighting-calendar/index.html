@@ -13,6 +13,7 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(180deg,#0d1020,#10131d 30%,#0f1117);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+html,body,button,.chip,.day,.month,.modal-card,input,select,textarea{touch-action:manipulation}
 header{background:rgba(15,17,23,.92);border-bottom:1px solid #2a3144;padding:12px 14px}
 h1{font-size:22px;margin:0 0 8px}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -294,6 +295,17 @@ const defaultData = {
 
 let data = JSON.parse(localStorage.getItem("moonPlannerData") || "null") || structuredClone(defaultData);
 let selectedDate = null;
+let lastTouchEndAt = 0;
+
+document.addEventListener("touchend", (event) => {
+  if(event.touches && event.touches.length > 0) return;
+  const now = Date.now();
+  if(now - lastTouchEndAt < 350){
+    event.preventDefault();
+    return;
+  }
+  lastTouchEndAt = now;
+}, { capture:true, passive:false });
 
 function fmt(d){return d.toISOString().slice(0,10)}
 function parse(s){const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)}
@@ -310,22 +322,30 @@ function jeopLabel(dateStr){
   return "Jeopardy";
 }
 function holidayMultiplier(dateStr){return data.uabHolidays[dateStr] ? 1.5 : 1}
-function isLastTuesday(dateStr){
+function isLastTuesdayRule(dateStr){
   const d=parse(dateStr);
   if(d.getDay()!==2) return false;
   const nextTuesday=new Date(d);
   nextTuesday.setDate(d.getDate()+7);
   if(d.getMonth()===10) return nextTuesday.getMonth()===d.getMonth() && new Date(d.getFullYear(), d.getMonth(), d.getDate()+14).getMonth()!==d.getMonth();
-  if(d.getMonth()===11) return nextTuesday.getMonth()===d.getMonth() && new Date(d.getFullYear(), d.getMonth(), d.getDate()+21).getMonth()!==d.getMonth();
   return nextTuesday.getMonth()!==d.getMonth();
 }
+function defaultAvoidDates(){
+  const dates={};
+  for(let i=0;i<12;i++){
+    const d=new Date(2026,6+i,1);
+    const year=d.getFullYear();
+    const month=d.getMonth();
+    const last=new Date(year,month+1,0).getDate();
+    for(let day=1;day<=last;day++){
+      const iso=fmt(new Date(year,month,day));
+      if(isLastTuesdayRule(iso)) dates[iso]=true;
+    }
+  }
+  return dates;
+}
 function isAvoidDate(dateStr){
-  const d=parse(dateStr);
-  if(isLastTuesday(dateStr)) return true;
-  if(d.getMonth()!==11 || d.getDay()!==4) return false;
-  const sameWeekTuesday=new Date(d);
-  sameWeekTuesday.setDate(d.getDate()-2);
-  return isLastTuesday(fmt(sameWeekTuesday));
+  return Boolean(data.avoidDates?.[dateStr]);
 }
 function isGeneralConference(dateStr){
   const d=parse(dateStr);
@@ -340,6 +360,7 @@ function migrateData(){
   if(data.requirements.first.neuroEveningFridays==null) data.requirements.first.neuroEveningFridays=2;
   if(data.requirements.first.usPmWeekendDays==null) data.requirements.first.usPmWeekendDays=5;
   if(!data.vacationTypes) data.vacationTypes={};
+  if(!data.avoidDates) data.avoidDates=defaultAvoidDates();
   if(Array.isArray(data.vacation)){
     data.vacation.forEach(d=>{ if(!data.vacationTypes[d]) data.vacationTypes[d]="vacation"; });
     delete data.vacation;
@@ -628,6 +649,13 @@ function openModal(dateStr){
   clearMoonBtn.innerHTML=`<span>Clear moonlighting for this day</span><b>Keep vacation/note</b>`;
   clearMoonBtn.onclick=()=>clearDayShifts(dateStr);
   actions.appendChild(clearMoonBtn);
+
+  const avoidBtn=document.createElement("button");
+  const avoidOn=isAvoidDate(dateStr);
+  avoidBtn.innerHTML=`<span>${avoidOn?"✓ ":""}Avoid this day</span><b>${avoidOn?"On → Off":"Off → On"}</b>`;
+  avoidBtn.onclick=()=>toggleAvoid(dateStr);
+  actions.appendChild(avoidBtn);
+
   const vacHeader=document.createElement("div");
   vacHeader.className="small";
   vacHeader.style.marginTop="6px";
@@ -671,6 +699,12 @@ function clearShift(dateStr,k){
 }
 function clearDayShifts(dateStr){
   delete data.shifts[dateStr];
+  saveData(); render(); openModal(dateStr);
+}
+function toggleAvoid(dateStr){
+  data.avoidDates=data.avoidDates||{};
+  if(data.avoidDates[dateStr]) delete data.avoidDates[dateStr];
+  else data.avoidDates[dateStr]=true;
   saveData(); render(); openModal(dateStr);
 }
 function setVacationType(dateStr,type){
