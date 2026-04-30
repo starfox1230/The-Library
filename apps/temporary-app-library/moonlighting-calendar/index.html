@@ -66,6 +66,9 @@ h2{font-size:16px;margin:0 0 10px}
 .shift.USDay{background:rgba(52,211,153,.18);border:1px solid rgba(52,211,153,.4)}
 .shift.Lead{background:rgba(244,114,182,.18);border:1px solid rgba(244,114,182,.4)}
 .shift.USPM{background:rgba(251,146,60,.18);border:1px solid rgba(251,146,60,.4)}
+.shift.planned{opacity:.62}
+.shift.scheduled{font-weight:800}
+.shift.taken{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.70);color:#fecaca}
 .shift button{font-size:10px;padding:0 4px;border-radius:6px;background:#2b1320}
 .note{font-size:10px;color:#cbd5e1;margin-top:3px}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -101,7 +104,8 @@ textarea{width:100%;min-height:70px;border-radius:12px;background:#111622;color:
   .month{border-radius:12px}
   .month-head{padding:8px}
   .month-title{font-size:15px}
-  .month-summary,.month-note{display:none}
+  .month-summary{grid-template-columns:repeat(2,1fr);gap:4px;margin-top:6px}
+  .month-note{display:none}
   .weekdays div{font-size:10px;padding:6px 0}
   .day{min-height:76px;padding:4px}
   .date{font-size:11px;margin-bottom:3px}
@@ -311,8 +315,17 @@ function isLastTuesday(dateStr){
   if(d.getDay()!==2) return false;
   const nextTuesday=new Date(d);
   nextTuesday.setDate(d.getDate()+7);
-  if(d.getMonth()===10 || d.getMonth()===11) return nextTuesday.getMonth()===d.getMonth() && new Date(d.getFullYear(), d.getMonth(), d.getDate()+14).getMonth()!==d.getMonth();
+  if(d.getMonth()===10) return nextTuesday.getMonth()===d.getMonth() && new Date(d.getFullYear(), d.getMonth(), d.getDate()+14).getMonth()!==d.getMonth();
+  if(d.getMonth()===11) return nextTuesday.getMonth()===d.getMonth() && new Date(d.getFullYear(), d.getMonth(), d.getDate()+21).getMonth()!==d.getMonth();
   return nextTuesday.getMonth()!==d.getMonth();
+}
+function isAvoidDate(dateStr){
+  const d=parse(dateStr);
+  if(isLastTuesday(dateStr)) return true;
+  if(d.getMonth()!==11 || d.getDay()!==4) return false;
+  const sameWeekTuesday=new Date(d);
+  sameWeekTuesday.setDate(d.getDate()-2);
+  return isLastTuesday(fmt(sameWeekTuesday));
 }
 function isGeneralConference(dateStr){
   const d=parse(dateStr);
@@ -331,6 +344,19 @@ function migrateData(){
     data.vacation.forEach(d=>{ if(!data.vacationTypes[d]) data.vacationTypes[d]="vacation"; });
     delete data.vacation;
   }
+  Object.entries(data.shifts||{}).forEach(([date,value])=>{
+    if(Array.isArray(value)){
+      const next={};
+      value.forEach(type=>{ if(shiftTypes[type]) next[type]="scheduled"; });
+      if(Object.keys(next).length) data.shifts[date]=next;
+      else delete data.shifts[date];
+    }else if(value && typeof value==="object"){
+      Object.entries(value).forEach(([type,status])=>{
+        if(!shiftTypes[type] || !["planned","scheduled","taken"].includes(status)) delete value[type];
+      });
+      if(!Object.keys(value).length) delete data.shifts[date];
+    }
+  });
 }
 function vacationInfo(dateStr){
   const type=data.vacationTypes?.[dateStr];
@@ -340,6 +366,7 @@ function vacationInfo(dateStr){
   return null;
 }
 migrateData();
+localStorage.setItem("moonPlannerData", JSON.stringify(data));
 
 function saveData(){
   localStorage.setItem("moonPlannerData", JSON.stringify(data));
@@ -401,9 +428,10 @@ function renderTargets(){
 function countsByHalf(){
   const counts={first:{},second:{}}, pay={first:0,second:0};
   ["first","second"].forEach(h=>Object.keys(shiftTypes).forEach(k=>counts[h][k]=0));
-  Object.entries(data.shifts).forEach(([date,arr])=>{
+  Object.entries(data.shifts).forEach(([date,shifts])=>{
     const h=halfOf(date);
-    arr.forEach(s=>{
+    Object.entries(shifts).forEach(([s,status])=>{
+      if(status!=="scheduled") return;
       counts[h][s]=(counts[h][s]||0)+1;
       pay[h]+=shiftTypes[s].pay*holidayMultiplier(date);
     });
@@ -414,11 +442,11 @@ function countsByHalf(){
 
 function requirementCounts(){
   let neuroFriday=0, usPmWeekend=0;
-  Object.entries(data.shifts).forEach(([date,arr])=>{
+  Object.entries(data.shifts).forEach(([date,shifts])=>{
     if(halfOf(date)!=="first") return;
     const dow=parse(date).getDay();
-    if(dow===5) neuroFriday += arr.filter(s=>s==="NeuroEvening").length;
-    if(dow===0 || dow===6) usPmWeekend += arr.filter(s=>s==="USPM").length;
+    if(dow===5 && shifts.NeuroEvening==="scheduled") neuroFriday += 1;
+    if((dow===0 || dow===6) && shifts.USPM==="scheduled") usPmWeekend += 1;
   });
   return {neuroFriday, usPmWeekend};
 }
@@ -484,6 +512,10 @@ function monthTarget(year,month,k){
   return base + (index < rem ? 1:0);
 }
 
+function monthScheduledCount(year,month,k){
+  return Object.entries(data.shifts).filter(([d])=>parse(d).getFullYear()==year && parse(d).getMonth()==month).reduce((total,[,shifts])=>total+(shifts[k]==="scheduled" ? 1 : 0),0);
+}
+
 function renderMonths(){
   const wrap=document.getElementById("months");
   wrap.innerHTML="";
@@ -500,7 +532,7 @@ function renderMonth(year,month){
   head.innerHTML=`<div class="month-title"><span>${name}</span><span class="small">${halfOf(fmt(new Date(year,month,1)))==="first"?"First half":"Second half"}</span></div>`;
   const summary=document.createElement("div"); summary.className="month-summary";
   Object.keys(shiftTypes).forEach(k=>{
-    const used=Object.entries(data.shifts).filter(([d,arr])=>parse(d).getFullYear()==year && parse(d).getMonth()==month).reduce((a,[d,arr])=>a+arr.filter(x=>x===k).length,0);
+    const used=monthScheduledCount(year,month,k);
     const target=monthTarget(year,month,k);
     const pill=document.createElement("div");
     pill.className="pill "+(target && used>target?"over":(target && used===target?"ok":""));
@@ -533,7 +565,7 @@ function renderMonth(year,month){
     }
     const inMonth=d && dayNum>=1 && dayNum<=last.getDate();
     const dateStr=inMonth ? fmt(d) : "";
-    const cell=document.createElement("div"); cell.className="day"+(inMonth?"":" out")+(inMonth&&isLastTuesday(dateStr)?" avoid":"");
+    const cell=document.createElement("div"); cell.className="day"+(inMonth?"":" out")+(inMonth&&isAvoidDate(dateStr)?" avoid":"");
     if(inMonth){
       cell.onclick=()=>openModal(dateStr);
       cell.innerHTML=`<div class="date">${dayNum}</div>`;
@@ -542,13 +574,15 @@ function renderMonth(year,month){
       if(data.uabHolidays[dateStr]) badges.appendChild(badge("UAB", "uab", data.uabHolidays[dateStr]));
       if(isJeop(dateStr)) badges.appendChild(badge("Jeopardy", "jeop", "Jeopardy week"));
       const vi=vacationInfo(dateStr); if(vi) badges.appendChild(badge(vi.label, vi.cls, vi.title));
-      if(isLastTuesday(dateStr)) badges.appendChild(badge("Avoid", "avoid-badge", "Last Tuesday of the month"));
+      if(isAvoidDate(dateStr)) badges.appendChild(badge("Avoid", "avoid-badge", "Avoid if possible"));
       if(isGeneralConference(dateStr)) badges.appendChild(badge("General Conference", "conference", "First weekend of April/October"));
       cell.appendChild(badges);
-      (data.shifts[dateStr]||[]).forEach((s,idx)=>{
-        const sh=document.createElement("div"); sh.className="shift "+s;
+      Object.entries(data.shifts[dateStr]||{}).forEach(([s,status])=>{
+        const sh=document.createElement("div"); sh.className=`shift ${s} ${status}`;
         const pay=shiftTypes[s].pay*holidayMultiplier(dateStr);
-        sh.innerHTML=`<span>${shiftTypes[s].label}${holidayMultiplier(dateStr)>1?" · 1.5×":""}</span><button onclick="event.stopPropagation();removeShift('${dateStr}',${idx})">×</button>`;
+        const prefix=status==="planned" ? "? " : "";
+        const suffix=status==="taken" ? " taken" : (holidayMultiplier(dateStr)>1 ? " · 1.5×" : "");
+        sh.innerHTML=`<span>${prefix}${shiftTypes[s].label}${suffix}</span><button onclick="event.stopPropagation();clearShift('${dateStr}','${s}')">×</button>`;
         cell.appendChild(sh);
       });
       if(data.notes[dateStr]){const n=document.createElement("div"); n.className="note"; n.textContent=data.notes[dateStr]; cell.appendChild(n);}
@@ -571,7 +605,7 @@ function openModal(dateStr){
   if(data.uabHolidays[dateStr]) mb.appendChild(badge("UAB: "+data.uabHolidays[dateStr],"uab",data.uabHolidays[dateStr]));
   if(isJeop(dateStr)) mb.appendChild(badge("Jeopardy week","jeop","Jeopardy coverage"));
   const vi=vacationInfo(dateStr); if(vi) mb.appendChild(badge(vi.label,vi.cls,vi.title));
-  if(isLastTuesday(dateStr)) mb.appendChild(badge("Last Tuesday - avoid if possible","avoid-badge","Last Tuesday of the month"));
+  if(isAvoidDate(dateStr)) mb.appendChild(badge("Avoid if possible","avoid-badge","Avoidance marker"));
   if(isGeneralConference(dateStr)) mb.appendChild(badge("General Conference","conference","First weekend of April/October"));
 
   const actions=document.getElementById("modalActions"); actions.innerHTML="";
@@ -582,11 +616,18 @@ function openModal(dateStr){
     const ruleTags=[];
     if(k==="NeuroEvening" && parse(dateStr).getDay()===5 && halfOf(dateStr)==="first") ruleTags.push("counts for Friday requirement");
     if(k==="USPM" && isWeekend(dateStr) && halfOf(dateStr)==="first") ruleTags.push("counts for weekend requirement");
-    btn.innerHTML=`<span>Add ${shiftTypes[k].label}${ruleTags.length?` <span class="mini-tag">${ruleTags.join(", ")}</span>`:""}</span><b>$${(shiftTypes[k].pay*mult).toLocaleString()}${mult>1?" · holiday":""}</b>`;
-    btn.onclick=()=>addShift(dateStr,k);
+    const status=data.shifts[dateStr]?.[k] || "off";
+    const next={off:"?", planned:"Schedule", scheduled:"Taken", taken:"Clear"}[status];
+    const label={off:"Off", planned:"? planned", scheduled:"Scheduled", taken:"Taken"}[status];
+    btn.innerHTML=`<span>${shiftTypes[k].label}${ruleTags.length?` <span class="mini-tag">${ruleTags.join(", ")}</span>`:""}</span><b>${label} → ${next}</b>`;
+    btn.onclick=()=>toggleShift(dateStr,k);
     if(disabled){btn.title="Neuro Evening does not run on UAB holidays."}
     actions.appendChild(btn);
   });
+  const clearMoonBtn=document.createElement("button");
+  clearMoonBtn.innerHTML=`<span>Clear moonlighting for this day</span><b>Keep vacation/note</b>`;
+  clearMoonBtn.onclick=()=>clearDayShifts(dateStr);
+  actions.appendChild(clearMoonBtn);
   const vacHeader=document.createElement("div");
   vacHeader.className="small";
   vacHeader.style.marginTop="6px";
@@ -612,16 +653,25 @@ function openModal(dateStr){
   document.getElementById("modal").style.display="flex";
 }
 function closeModal(){document.getElementById("modal").style.display="none";selectedDate=null}
-function addShift(dateStr,k){
+function toggleShift(dateStr,k){
   if(k==="NeuroEvening" && data.uabHolidays[dateStr]) return alert("Neuro Evening does not run on UAB holidays.");
-  data.shifts[dateStr]=data.shifts[dateStr]||[];
-  data.shifts[dateStr].push(k);
+  data.shifts[dateStr]=data.shifts[dateStr]||{};
+  const current=data.shifts[dateStr][k] || "off";
+  const next={off:"planned", planned:"scheduled", scheduled:"taken", taken:"off"}[current];
+  if(next==="off") delete data.shifts[dateStr][k];
+  else data.shifts[dateStr][k]=next;
+  if(!Object.keys(data.shifts[dateStr]).length) delete data.shifts[dateStr];
   saveData(); render(); openModal(dateStr);
 }
-function removeShift(dateStr,idx){
-  data.shifts[dateStr].splice(idx,1);
-  if(!data.shifts[dateStr].length) delete data.shifts[dateStr];
+function clearShift(dateStr,k){
+  if(!data.shifts[dateStr]) return;
+  delete data.shifts[dateStr][k];
+  if(!Object.keys(data.shifts[dateStr]).length) delete data.shifts[dateStr];
   saveData(); render();
+}
+function clearDayShifts(dateStr){
+  delete data.shifts[dateStr];
+  saveData(); render(); openModal(dateStr);
 }
 function setVacationType(dateStr,type){
   data.vacationTypes=data.vacationTypes||{};
