@@ -41,9 +41,11 @@ h2{font-size:16px;margin:0 0 10px}
 .month-head{padding:12px 14px;background:#1b2131;border-bottom:1px solid #2a3144}
 .month-title{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:18px}
 .month-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
-.pill{border-radius:999px;padding:5px 7px;font-size:11px;text-align:center;background:#111622;border:1px solid #30384d;color:#cbd5e1}
+.pill{border-radius:10px;padding:5px 6px;font-size:10px;text-align:center;background:#111622;border:1px solid #30384d;color:#cbd5e1;line-height:1.2}
 .pill.over{border-color:var(--over);color:#fecaca;background:#3b1114}
 .pill.ok{border-color:#256d45;color:#bbf7d0;background:#092615}
+.more-row{display:flex;justify-content:center;margin:2px 0 14px;grid-column:1/-1}
+.more-row button{min-width:180px}
 .weekdays,.days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
 .weekdays div{text-align:center;font-size:11px;color:var(--muted);padding:8px 0;background:#121724}
 .day{min-height:92px;border-top:1px solid #252d40;border-right:1px solid #252d40;padding:6px;position:relative;cursor:pointer;background:#111622;min-width:0;overflow:hidden}
@@ -77,6 +79,14 @@ h2{font-size:16px;margin:0 0 10px}
 .modal-card h2{font-size:20px}
 .modal-actions{display:grid;gap:8px}
 .modal-actions button{display:flex;justify-content:space-between;align-items:center}
+.modal-actions button.shiftChoice.planned{opacity:.62}
+.modal-actions button.shiftChoice.scheduled{font-weight:800}
+.modal-actions button.shiftChoice.taken{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.70);color:#fecaca}
+.modal-actions button.shiftChoice.NeuroEvening{background:rgba(96,165,250,.18);border-color:rgba(96,165,250,.4)}
+.modal-actions button.shiftChoice.USDay{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.4)}
+.modal-actions button.shiftChoice.Lead{background:rgba(244,114,182,.18);border-color:rgba(244,114,182,.4)}
+.modal-actions button.shiftChoice.USPM{background:rgba(251,146,60,.18);border-color:rgba(251,146,60,.4)}
+.modal-actions button.shiftChoice.taken{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.70);color:#fecaca}
 .disabled{opacity:.45;pointer-events:none}
 .footer-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .month-note{font-size:12px;color:var(--muted);margin-top:8px}
@@ -296,6 +306,7 @@ const defaultData = {
 let data = JSON.parse(localStorage.getItem("moonPlannerData") || "null") || structuredClone(defaultData);
 let selectedDate = null;
 let lastTouchEndAt = 0;
+let showMoreMonths = false;
 
 document.addEventListener("touchend", (event) => {
   if(event.touches && event.touches.length > 0) return;
@@ -526,24 +537,54 @@ function monthTarget(year,month,k){
   const half=halfOf(firstDay);
   const total=data.targets[half][k]||0;
   if(!total) return 0;
-  const monthsInHalf = half==="first" ? 6 : 6;
-  const base=Math.floor(total/monthsInHalf);
-  const rem=total%monthsInHalf;
-  const index = half==="first" ? Math.max(0, Math.min(5, month-6)) : Math.max(0, Math.min(5, month)); // Jul=6 ->0, Jan=0->0
-  return base + (index < rem ? 1:0);
+  return total / 6;
 }
 
-function monthScheduledCount(year,month,k){
-  return Object.entries(data.shifts).filter(([d])=>parse(d).getFullYear()==year && parse(d).getMonth()==month).reduce((total,[,shifts])=>total+(shifts[k]==="scheduled" ? 1 : 0),0);
+function fmtNum(n){
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+function countShiftRange(k, predicate){
+  return Object.entries(data.shifts).reduce((acc,[date,shifts])=>{
+    if(!predicate(date)) return acc;
+    const status=shifts[k];
+    if(status==="planned" || status==="scheduled") acc.active += 1;
+    if(status==="scheduled") acc.scheduled += 1;
+    return acc;
+  }, {active:0, scheduled:0});
+}
+function monthShiftCounts(year,month,k){
+  return countShiftRange(k, d=>parse(d).getFullYear()===year && parse(d).getMonth()===month);
+}
+function yearlyShiftCounts(k){
+  return countShiftRange(k, d=>parse(d)>=new Date(2026,6,1) && parse(d)<=new Date(2027,5,30));
+}
+function yearlyTarget(k){
+  return (data.targets.first[k]||0) + (data.targets.second[k]||0);
+}
+function shortShiftLabel(k){
+  if(k==="NeuroEvening") return "Neuro PM";
+  if(k==="USDay") return "US Day";
+  if(k==="Lead") return "Lead";
+  if(k==="USPM") return "US PM";
+  return shiftTypes[k].label;
 }
 
 function renderMonths(){
   const wrap=document.getElementById("months");
   wrap.innerHTML="";
-  for(let i=0;i<12;i++){
+  const count=showMoreMonths ? 12 : 6;
+  for(let i=0;i<count;i++){
     const date=new Date(2026,6+i,1);
     wrap.appendChild(renderMonth(date.getFullYear(), date.getMonth()));
   }
+  const more=document.createElement("div");
+  more.className="more-row";
+  more.innerHTML=`<button type="button">${showMoreMonths ? "Show less" : "More"}</button>`;
+  more.querySelector("button").onclick=()=>{
+    showMoreMonths=!showMoreMonths;
+    renderMonths();
+  };
+  wrap.appendChild(more);
 }
 
 function renderMonth(year,month){
@@ -553,11 +594,13 @@ function renderMonth(year,month){
   head.innerHTML=`<div class="month-title"><span>${name}</span><span class="small">${halfOf(fmt(new Date(year,month,1)))==="first"?"First half":"Second half"}</span></div>`;
   const summary=document.createElement("div"); summary.className="month-summary";
   Object.keys(shiftTypes).forEach(k=>{
-    const used=monthScheduledCount(year,month,k);
+    const monthCounts=monthShiftCounts(year,month,k);
+    const yearCounts=yearlyShiftCounts(k);
     const target=monthTarget(year,month,k);
+    const yearTarget=yearlyTarget(k);
     const pill=document.createElement("div");
-    pill.className="pill "+(target && used>target?"over":(target && used===target?"ok":""));
-    pill.textContent=`${shiftTypes[k].label.replace("Ultrasound ","US ")} ${used}/${target}`;
+    pill.className="pill "+(target && monthCounts.scheduled>target?"over":(target && monthCounts.scheduled>=target?"ok":""));
+    pill.textContent=`${shortShiftLabel(k)} ${monthCounts.active}/${monthCounts.scheduled}/${fmtNum(target)} (${yearCounts.active}/${yearCounts.scheduled}/${yearTarget})`;
     summary.appendChild(pill);
   });
   const note=document.createElement("div"); note.className="month-note";
@@ -638,9 +681,9 @@ function openModal(dateStr){
     if(k==="NeuroEvening" && parse(dateStr).getDay()===5 && halfOf(dateStr)==="first") ruleTags.push("counts for Friday requirement");
     if(k==="USPM" && isWeekend(dateStr) && halfOf(dateStr)==="first") ruleTags.push("counts for weekend requirement");
     const status=data.shifts[dateStr]?.[k] || "off";
-    const next={off:"?", planned:"Schedule", scheduled:"Taken", taken:"Clear"}[status];
-    const label={off:"Off", planned:"? planned", scheduled:"Scheduled", taken:"Taken"}[status];
-    btn.innerHTML=`<span>${shiftTypes[k].label}${ruleTags.length?` <span class="mini-tag">${ruleTags.join(", ")}</span>`:""}</span><b>${label} → ${next}</b>`;
+    btn.className=`${btn.className} shiftChoice ${status} ${status==="off" ? "" : k}`.trim();
+    const label={off:"Off", planned:`? ${shortShiftLabel(k)}`, scheduled:shortShiftLabel(k), taken:`${shortShiftLabel(k)} taken`}[status];
+    btn.innerHTML=`<span>${shortShiftLabel(k)}${ruleTags.length?` <span class="mini-tag">${ruleTags.join(", ")}</span>`:""}</span><b>${label}</b>`;
     btn.onclick=()=>toggleShift(dateStr,k);
     if(disabled){btn.title="Neuro Evening does not run on UAB holidays."}
     actions.appendChild(btn);
