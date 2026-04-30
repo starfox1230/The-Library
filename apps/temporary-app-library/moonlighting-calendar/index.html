@@ -9,7 +9,7 @@
   --bg:#0f1117; --panel:#171b25; --panel2:#202637; --text:#f4f6fb; --muted:#9ba7bd;
   --grid:#30384d; --accent:#8b5cf6; --kids:#22c55e; --uab:#f59e0b; --jeop:#a855f7;
   --vac:#38bdf8; --vac-question:#94a3b8; --vac-pending:#facc15; --over:#ef4444; --good:#22c55e; --warn:#f59e0b;
-  --neuro:#60a5fa; --usday:#34d399; --lead:#f472b6; --uspm:#fb923c; --avoid:#fb923c; --conference:#fbbf24;
+  --neuro:#60a5fa; --usday:#34d399; --lead:#f472b6; --uspm:#fb923c; --avoid:#fb923c; --prioritize:#22c55e; --conference:#fbbf24;
 }
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(180deg,#0d1020,#10131d 30%,#0f1117);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
@@ -52,6 +52,8 @@ h2{font-size:16px;margin:0 0 10px}
 .day:nth-child(6n){border-right:0}
 .day.out{opacity:.28;background:#0d111b}
 .day.avoid{background:linear-gradient(180deg,rgba(251,146,60,.28),#111622 58%);box-shadow:inset 0 0 0 2px rgba(251,146,60,.32)}
+.day.prioritize{background:linear-gradient(180deg,rgba(34,197,94,.26),#111622 58%);box-shadow:inset 0 0 0 2px rgba(34,197,94,.32)}
+.day.avoid.prioritize{background:linear-gradient(180deg,rgba(34,197,94,.24),rgba(251,146,60,.22) 52%,#111622 78%);box-shadow:inset 0 0 0 2px rgba(34,197,94,.32), inset 0 0 0 4px rgba(251,146,60,.22)}
 .day:hover{outline:2px solid var(--accent);z-index:3}
 .date{font-weight:700;font-size:13px;margin-bottom:4px}
 .badges{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px}
@@ -63,6 +65,7 @@ h2{font-size:16px;margin:0 0 10px}
 .vac-question{background:rgba(148,163,184,.20);color:#e2e8f0;border:1px solid rgba(148,163,184,.50)}
 .vac-pending{background:rgba(250,204,21,.18);color:#fef3c7;border:1px solid rgba(250,204,21,.50)}
 .avoid-badge{background:rgba(251,146,60,.20);color:#fed7aa;border:1px solid rgba(251,146,60,.58)}
+.prioritize-badge{background:rgba(34,197,94,.18);color:#bbf7d0;border:1px solid rgba(34,197,94,.50)}
 .conference{background:rgba(251,191,36,.20);color:#fef3c7;border:1px solid rgba(251,191,36,.58)}
 .shift{font-size:10px;margin-top:3px;border-radius:7px;padding:3px 5px;display:flex;justify-content:space-between;gap:4px;align-items:center}
 .shift.NeuroEvening{background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.4)}
@@ -88,6 +91,7 @@ h2{font-size:16px;margin:0 0 10px}
 .modal-actions button.shiftChoice.USPM{background:rgba(251,146,60,.18);border-color:rgba(251,146,60,.4)}
 .modal-actions button.shiftChoice.taken{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.70);color:#fecaca}
 .modal-actions button.avoidChoice.on{background:rgba(251,146,60,.20);border-color:rgba(251,146,60,.58);color:#fed7aa}
+.modal-actions button.prioritizeChoice.on{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.50);color:#bbf7d0}
 .modal-actions button.vacChoice.question{background:rgba(148,163,184,.20);border-color:rgba(148,163,184,.50);color:#e2e8f0}
 .modal-actions button.vacChoice.pending{background:rgba(250,204,21,.18);border-color:rgba(250,204,21,.50);color:#fef3c7}
 .modal-actions button.vacChoice.vacation{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.45);color:#bae6fd}
@@ -187,6 +191,7 @@ textarea{width:100%;min-height:70px;border-radius:12px;background:#111622;color:
       <span><i class="dot" style="background:var(--vac-pending)"></i>Pending vacation</span>
       <span><i class="dot" style="background:var(--vac)"></i>Approved vacation</span>
       <span><i class="dot" style="background:var(--avoid)"></i>Last Tuesday</span>
+      <span><i class="dot" style="background:var(--prioritize)"></i>Prioritize</span>
       <span><i class="dot" style="background:var(--conference)"></i>General Conference</span>
       <span><i class="dot" style="background:var(--neuro)"></i>Neuro Evening</span>
       <span><i class="dot" style="background:var(--usday)"></i>US Day</span>
@@ -373,6 +378,9 @@ function defaultAvoidDates(){
 function isAvoidDate(dateStr){
   return Boolean(data.avoidDates?.[dateStr]);
 }
+function isPrioritizeDate(dateStr){
+  return Boolean(data.prioritizeDates?.[dateStr]);
+}
 function isGeneralConference(dateStr){
   const d=parse(dateStr);
   const month=d.getMonth();
@@ -387,6 +395,7 @@ function migrateData(){
   if(data.requirements.first.usPmWeekendDays==null) data.requirements.first.usPmWeekendDays=5;
   if(!data.vacationTypes) data.vacationTypes={};
   if(!data.avoidDates) data.avoidDates=defaultAvoidDates();
+  if(!data.prioritizeDates) data.prioritizeDates={};
   if(Array.isArray(data.vacation)){
     data.vacation.forEach(d=>{ if(!data.vacationTypes[d]) data.vacationTypes[d]="vacation"; });
     delete data.vacation;
@@ -664,7 +673,7 @@ function renderMonth(year,month){
     }
     const inMonth=d && dayNum>=1 && dayNum<=last.getDate();
     const dateStr=inMonth ? fmt(d) : "";
-    const cell=document.createElement("div"); cell.className="day"+(inMonth?"":" out")+(inMonth&&isAvoidDate(dateStr)?" avoid":"");
+    const cell=document.createElement("div"); cell.className="day"+(inMonth?"":" out")+(inMonth&&isAvoidDate(dateStr)?" avoid":"")+(inMonth&&isPrioritizeDate(dateStr)?" prioritize":"");
     if(inMonth){
       cell.onclick=()=>openModal(dateStr);
       cell.innerHTML=`<div class="date">${dayNum}</div>`;
@@ -674,6 +683,7 @@ function renderMonth(year,month){
       if(isJeop(dateStr)) badges.appendChild(badge("Jeopardy", "jeop", "Jeopardy week"));
       const vi=vacationInfo(dateStr); if(vi) badges.appendChild(badge(vi.label, vi.cls, vi.title));
       if(isAvoidDate(dateStr)) badges.appendChild(badge("Avoid", "avoid-badge", "Avoid if possible"));
+      if(isPrioritizeDate(dateStr)) badges.appendChild(badge("Prioritize", "prioritize-badge", "Prioritize this day"));
       if(isGeneralConference(dateStr)) badges.appendChild(badge("General Conference", "conference", "First weekend of April/October"));
       cell.appendChild(badges);
       Object.entries(data.shifts[dateStr]||{}).forEach(([s,status])=>{
@@ -705,6 +715,7 @@ function openModal(dateStr){
   if(isJeop(dateStr)) mb.appendChild(badge("Jeopardy week","jeop","Jeopardy coverage"));
   const vi=vacationInfo(dateStr); if(vi) mb.appendChild(badge(vi.label,vi.cls,vi.title));
   if(isAvoidDate(dateStr)) mb.appendChild(badge("Avoid if possible","avoid-badge","Avoidance marker"));
+  if(isPrioritizeDate(dateStr)) mb.appendChild(badge("Prioritize","prioritize-badge","Prioritize marker"));
   if(isGeneralConference(dateStr)) mb.appendChild(badge("General Conference","conference","First weekend of April/October"));
 
   const actions=document.getElementById("modalActions"); actions.innerHTML="";
@@ -732,6 +743,13 @@ function openModal(dateStr){
   avoidBtn.innerHTML=`<span>Avoid this day</span><b>${avoidOn?"Avoid":"Off"}</b>`;
   avoidBtn.onclick=()=>toggleAvoid(dateStr);
   actions.appendChild(avoidBtn);
+
+  const prioritizeBtn=document.createElement("button");
+  const prioritizeOn=isPrioritizeDate(dateStr);
+  prioritizeBtn.className=`prioritizeChoice ${prioritizeOn ? "on" : "off"}`;
+  prioritizeBtn.innerHTML=`<span>Prioritize this day</span><b>${prioritizeOn?"Prioritize":"Off"}</b>`;
+  prioritizeBtn.onclick=()=>togglePrioritize(dateStr);
+  actions.appendChild(prioritizeBtn);
 
   const vacBtn=document.createElement("button");
   const vacState=data.vacationTypes?.[dateStr] || "off";
@@ -772,6 +790,12 @@ function toggleAvoid(dateStr){
   data.avoidDates=data.avoidDates||{};
   if(data.avoidDates[dateStr]) delete data.avoidDates[dateStr];
   else data.avoidDates[dateStr]=true;
+  saveData(); render(); openModal(dateStr);
+}
+function togglePrioritize(dateStr){
+  data.prioritizeDates=data.prioritizeDates||{};
+  if(data.prioritizeDates[dateStr]) delete data.prioritizeDates[dateStr];
+  else data.prioritizeDates[dateStr]=true;
   saveData(); render(); openModal(dateStr);
 }
 function toggleVacationType(dateStr){
