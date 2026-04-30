@@ -33,8 +33,10 @@ h2{font-size:16px;margin:0 0 10px}
 .totals{display:grid;gap:10px}
 .total-row{background:#111622;border:1px solid #2b3449;border-radius:12px;padding:9px}
 .total-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}
-.bar{height:8px;background:#2a3144;border-radius:999px;overflow:hidden}
-.fill{height:100%;border-radius:999px;transition:.2s}
+.bar{height:14px;background:#2a3144;border-radius:8px;overflow:hidden;display:grid;grid-template-rows:1fr 1fr;gap:1px}
+.fill{height:100%;transition:.2s}
+.fill.scheduled{border-radius:8px 8px 2px 2px}
+.fill.planned{border-radius:2px 2px 8px 8px;opacity:.55}
 .small{font-size:12px;color:var(--muted)}
 .months{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .month{background:rgba(23,27,37,.95);border:1px solid #2a3144;border-radius:18px;overflow:hidden}
@@ -505,13 +507,16 @@ function renderTargets(){
 
 function countsByHalf(){
   const counts={first:{},second:{}}, pay={first:0,second:0};
-  ["first","second"].forEach(h=>Object.keys(shiftTypes).forEach(k=>counts[h][k]=0));
+  ["first","second"].forEach(h=>Object.keys(shiftTypes).forEach(k=>counts[h][k]={active:0, scheduled:0, plannedOnly:0}));
   Object.entries(data.shifts).forEach(([date,shifts])=>{
     const h=halfOf(date);
     Object.entries(shifts).forEach(([s,status])=>{
-      if(status!=="scheduled") return;
-      counts[h][s]=(counts[h][s]||0)+1;
-      pay[h]+=shiftTypes[s].pay*holidayMultiplier(date);
+      if(status==="planned" || status==="scheduled") counts[h][s].active += 1;
+      if(status==="planned") counts[h][s].plannedOnly += 1;
+      if(status==="scheduled"){
+        counts[h][s].scheduled += 1;
+        pay[h]+=shiftTypes[s].pay*holidayMultiplier(date);
+      }
     });
   });
   return {counts,pay};
@@ -568,11 +573,15 @@ function renderTotals(){
     htitle.innerHTML=`<b>${half==="first"?"First half":"Second half"}</b> <span class="small">Projected pay: $${pay[half].toLocaleString()}</span>`;
     box.appendChild(htitle);
     Object.keys(shiftTypes).forEach(k=>{
-      const used=counts[half][k]||0, target=data.targets[half][k]||0;
-      const pct=target?Math.min(100,used/target*100):(used?100:0);
+      const c=counts[half][k]||{active:0,scheduled:0,plannedOnly:0}, target=data.targets[half][k]||0;
+      const scheduledPct=target?Math.min(100,c.scheduled/target*100):(c.scheduled?100:0);
+      const plannedPct=target?Math.min(100,c.plannedOnly/target*100):(c.plannedOnly?100:0);
       const row=document.createElement("div"); row.className="total-row";
-      row.innerHTML=`<div class="total-top"><b>${shiftTypes[k].label}</b><span>${used}/${target} · ${Math.max(0,target-used)} left</span></div>
-      <div class="bar"><div class="fill" style="width:${pct}%;background:${used>target?'var(--over)':shiftTypes[k].color}"></div></div>`;
+      row.innerHTML=`<div class="total-top"><b>${shortShiftLabel(k)}</b><span>${c.active}/${c.scheduled}/${target} · ${Math.max(0,target-c.scheduled)} left</span></div>
+      <div class="bar">
+        <div class="fill scheduled" style="width:${scheduledPct}%;background:${c.scheduled>target?'var(--over)':shiftTypes[k].color}"></div>
+        <div class="fill planned" style="width:${plannedPct}%;background:${shiftTypes[k].color}"></div>
+      </div>`;
       box.appendChild(row);
     });
   });
