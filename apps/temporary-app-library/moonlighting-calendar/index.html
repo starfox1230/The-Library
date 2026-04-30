@@ -87,6 +87,10 @@ h2{font-size:16px;margin:0 0 10px}
 .modal-actions button.shiftChoice.Lead{background:rgba(244,114,182,.18);border-color:rgba(244,114,182,.4)}
 .modal-actions button.shiftChoice.USPM{background:rgba(251,146,60,.18);border-color:rgba(251,146,60,.4)}
 .modal-actions button.shiftChoice.taken{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.70);color:#fecaca}
+.modal-actions button.avoidChoice.on{background:rgba(251,146,60,.20);border-color:rgba(251,146,60,.58);color:#fed7aa}
+.modal-actions button.vacChoice.question{background:rgba(148,163,184,.20);border-color:rgba(148,163,184,.50);color:#e2e8f0}
+.modal-actions button.vacChoice.pending{background:rgba(250,204,21,.18);border-color:rgba(250,204,21,.50);color:#fef3c7}
+.modal-actions button.vacChoice.vacation{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.45);color:#bae6fd}
 .disabled{opacity:.45;pointer-events:none}
 .footer-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .month-note{font-size:12px;color:var(--muted);margin-top:8px}
@@ -136,7 +140,7 @@ textarea{width:100%;min-height:70px;border-radius:12px;background:#111622;color:
     <button onclick="exportData()">Export JSON</button>
     <button onclick="document.getElementById('importBox').style.display='block'">Import JSON</button>
     <span class="chip">Holiday shifts pay 1.5×</span>
-    <span class="chip">Neuro Evening blocked on UAB holidays</span>
+    <span class="chip">Neuro PM weekdays only</span>
   </div>
 </header>
 
@@ -151,6 +155,14 @@ textarea{width:100%;min-height:70px;border-radius:12px;background:#111622;color:
       <li>Block the first week of August as question-mark vacation unless finalized later.</li>
       <li>Avoid stacking shifts around <b>Aug 12</b> first day of school.</li>
     </ol>
+  </section>
+
+  <section class="card">
+    <h2>Data</h2>
+    <div class="footer-actions" style="justify-content:flex-start;margin-top:0">
+      <button onclick="exportData()">Export JSON</button>
+      <button onclick="document.getElementById('importBox').style.display='block'">Import JSON</button>
+    </div>
   </section>
 
   <section class="card">
@@ -387,6 +399,7 @@ function migrateData(){
       Object.entries(value).forEach(([type,status])=>{
         if(!shiftTypes[type] || !["planned","scheduled","taken"].includes(status)) delete value[type];
       });
+      if(value.NeuroEvening && (data.uabHolidays[date] || isWeekend(date))) delete value.NeuroEvening;
       if(value.Lead && !isWeekend(date)) delete value.Lead;
       if(value.USDay && !isWeekendOrHoliday(date)) delete value.USDay;
       if(!Object.keys(value).length) delete data.shifts[date];
@@ -567,7 +580,7 @@ function yearlyTarget(k){
 function shortShiftLabel(k){
   if(k==="NeuroEvening") return "Neuro PM";
   if(k==="USDay") return "US Day";
-  if(k==="Lead") return "Lead";
+  if(k==="Lead") return "Leeds";
   if(k==="USPM") return "US PM";
   return shiftTypes[k].label;
 }
@@ -675,7 +688,7 @@ function openModal(dateStr){
 
   const actions=document.getElementById("modalActions"); actions.innerHTML="";
   Object.keys(shiftTypes).forEach(k=>{
-    const disabled = (k==="NeuroEvening" && data.uabHolidays[dateStr]) || (k==="Lead" && !isWeekend(dateStr)) || (k==="USDay" && !isWeekendOrHoliday(dateStr));
+    const disabled = (k==="NeuroEvening" && (data.uabHolidays[dateStr] || isWeekend(dateStr))) || (k==="Lead" && !isWeekend(dateStr)) || (k==="USDay" && !isWeekendOrHoliday(dateStr));
     const btn=document.createElement("button"); if(disabled) btn.className="disabled";
     const mult=holidayMultiplier(dateStr);
     const ruleTags=[];
@@ -686,50 +699,35 @@ function openModal(dateStr){
     const label={off:"Off", planned:`? ${shortShiftLabel(k)}`, scheduled:shortShiftLabel(k), taken:`${shortShiftLabel(k)} taken`}[status];
     btn.innerHTML=`<span>${shortShiftLabel(k)}${ruleTags.length?` <span class="mini-tag">${ruleTags.join(", ")}</span>`:""}</span><b>${label}</b>`;
     btn.onclick=()=>toggleShift(dateStr,k);
-    if(k==="NeuroEvening" && data.uabHolidays[dateStr]) btn.title="Neuro Evening does not run on UAB holidays.";
-    if(k==="Lead" && !isWeekend(dateStr)) btn.title="Lead is only available on weekends.";
+    if(k==="NeuroEvening" && data.uabHolidays[dateStr]) btn.title="Neuro PM does not run on UAB holidays.";
+    if(k==="NeuroEvening" && isWeekend(dateStr)) btn.title="Neuro PM is not available on weekends.";
+    if(k==="Lead" && !isWeekend(dateStr)) btn.title="Leeds is only available on weekends.";
     if(k==="USDay" && !isWeekendOrHoliday(dateStr)) btn.title="US Day is only available on weekends and UAB holidays.";
     actions.appendChild(btn);
   });
-  const clearMoonBtn=document.createElement("button");
-  clearMoonBtn.innerHTML=`<span>Clear moonlighting for this day</span><b>Keep vacation/note</b>`;
-  clearMoonBtn.onclick=()=>clearDayShifts(dateStr);
-  actions.appendChild(clearMoonBtn);
-
   const avoidBtn=document.createElement("button");
   const avoidOn=isAvoidDate(dateStr);
-  avoidBtn.innerHTML=`<span>${avoidOn?"✓ ":""}Avoid this day</span><b>${avoidOn?"On → Off":"Off → On"}</b>`;
+  avoidBtn.className=`avoidChoice ${avoidOn ? "on" : "off"}`;
+  avoidBtn.innerHTML=`<span>Avoid this day</span><b>${avoidOn?"Avoid":"Off"}</b>`;
   avoidBtn.onclick=()=>toggleAvoid(dateStr);
   actions.appendChild(avoidBtn);
 
-  const vacHeader=document.createElement("div");
-  vacHeader.className="small";
-  vacHeader.style.marginTop="6px";
-  vacHeader.textContent="Vacation marker";
-  actions.appendChild(vacHeader);
-  [
-    ["question", "? Vacation", "Possible vacation / do not plan moonlighting"],
-    ["pending", "Pending vacation", "Requested but not approved in QGenda"],
-    ["vacation", "Vacation", "Approved vacation"]
-  ].forEach(([type,label,desc])=>{
-    const btn=document.createElement("button");
-    const active=data.vacationTypes?.[dateStr]===type;
-    btn.innerHTML=`<span>${active?"✓ ":""}${label}</span><b>${desc}</b>`;
-    btn.onclick=()=>setVacationType(dateStr,type);
-    actions.appendChild(btn);
-  });
-  const clearBtn=document.createElement("button");
-  clearBtn.innerHTML=`<span>Clear vacation marker</span><b>Remove</b>`;
-  clearBtn.onclick=()=>setVacationType(dateStr,null);
-  actions.appendChild(clearBtn);
+  const vacBtn=document.createElement("button");
+  const vacState=data.vacationTypes?.[dateStr] || "off";
+  const vacLabel={off:"Off", question:"? Vacation", pending:"Pending vacation", vacation:"Vacation"}[vacState];
+  vacBtn.className=`vacChoice ${vacState}`;
+  vacBtn.innerHTML=`<span>Vacation marker</span><b>${vacLabel}</b>`;
+  vacBtn.onclick=()=>toggleVacationType(dateStr);
+  actions.appendChild(vacBtn);
 
   document.getElementById("dayNote").value=data.notes[dateStr]||"";
   document.getElementById("modal").style.display="flex";
 }
 function closeModal(){document.getElementById("modal").style.display="none";selectedDate=null}
 function toggleShift(dateStr,k){
-  if(k==="NeuroEvening" && data.uabHolidays[dateStr]) return alert("Neuro Evening does not run on UAB holidays.");
-  if(k==="Lead" && !isWeekend(dateStr)) return alert("Lead is only available on weekends.");
+  if(k==="NeuroEvening" && data.uabHolidays[dateStr]) return alert("Neuro PM does not run on UAB holidays.");
+  if(k==="NeuroEvening" && isWeekend(dateStr)) return alert("Neuro PM is not available on weekends.");
+  if(k==="Lead" && !isWeekend(dateStr)) return alert("Leeds is only available on weekends.");
   if(k==="USDay" && !isWeekendOrHoliday(dateStr)) return alert("US Day is only available on weekends and UAB holidays.");
   data.shifts[dateStr]=data.shifts[dateStr]||{};
   const current=data.shifts[dateStr][k] || "off";
@@ -753,6 +751,14 @@ function toggleAvoid(dateStr){
   data.avoidDates=data.avoidDates||{};
   if(data.avoidDates[dateStr]) delete data.avoidDates[dateStr];
   else data.avoidDates[dateStr]=true;
+  saveData(); render(); openModal(dateStr);
+}
+function toggleVacationType(dateStr){
+  data.vacationTypes=data.vacationTypes||{};
+  const current=data.vacationTypes[dateStr] || "off";
+  const next={off:"question", question:"pending", pending:"vacation", vacation:"off"}[current];
+  if(next==="off") delete data.vacationTypes[dateStr];
+  else data.vacationTypes[dateStr]=next;
   saveData(); render(); openModal(dateStr);
 }
 function setVacationType(dateStr,type){
