@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Schedule Calendar (Jan–Mar 2026)</title>
+  <title>Schedule Calendar (2026)</title>
   <style>
     :root{
       --bg:#0b0f17;
@@ -16,11 +16,13 @@
       --c-night:#ef4444;
       --c-peds:#06b6d4;
       --c-neuro:#f472b6;
+      --c-avoid:#fb923c;
+      --c-conference:#fbbf24;
 
       --card: rgba(255,255,255,.05);
       --border: rgba(255,255,255,.10);
       --border2: rgba(255,255,255,.07);
-      --calendar-min-width: 760px;
+      --calendar-min-width: 980px;
     }
 
     *{box-sizing:border-box}
@@ -70,26 +72,27 @@
       background:rgba(0,0,0,.06);
     }
 
-    .dow{
-      display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));
-      padding:8px 0;
-      background:rgba(0,0,0,.10);
-      border-bottom:1px solid var(--border2);
-      font-size:12px;color:var(--muted);
-      min-width: var(--calendar-min-width); /* ensures full 7 columns even on phones (scrollable) */
-    }
-    .dow div{padding:4px 6px;text-transform:uppercase;letter-spacing:.9px;font-size:11px}
-
     .gridScroller{
       overflow-x:auto;
       -webkit-overflow-scrolling: touch;
-      display:grid;
     }
     .grid{
       display:grid;
       grid-template-columns:repeat(7, minmax(0, 1fr));
       min-width: var(--calendar-min-width);  /* key: prevents Saturday cutoff; horizontal scroll on phones */
     }
+    .dow{
+      padding:12px 10px;
+      background:rgba(0,0,0,.10);
+      border-right:1px solid var(--border2);
+      border-bottom:1px solid var(--border2);
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.9px;
+      font-size:11px;
+      font-weight:900;
+    }
+    .dow:nth-child(7){border-right:none}
 
     .day{
       min-height:118px;
@@ -98,8 +101,12 @@
       border-bottom:1px solid var(--border2);
       background:rgba(8,12,20,.35);
     }
-    .day:nth-child(7n){border-right:none}
+    .day:nth-child(7n + 14){border-right:none}
     .day.out{background:rgba(8,12,20,.18);color:rgba(229,231,235,.55)}
+    .day.avoid{
+      background:linear-gradient(180deg, rgba(251,146,60,.28), rgba(8,12,20,.36));
+      box-shadow: inset 0 0 0 2px rgba(251,146,60,.35);
+    }
     .dateRow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
     .dateNum{font-size:12px;font-weight:900;opacity:.95}
     .weekLabel{font-size:11px;color:var(--muted);opacity:.85}
@@ -123,6 +130,8 @@
     .evt.night{border-left:4px solid var(--c-night)}
     .evt.peds{border-left:4px solid var(--c-peds)}
     .evt.neuro{border-left:4px solid var(--c-neuro)}
+    .evt.avoid{border-left:4px solid var(--c-avoid); background:rgba(251,146,60,.13)}
+    .evt.conference{border-left:4px solid var(--c-conference); background:rgba(251,191,36,.13)}
 
     .pill{
       display:inline-flex;
@@ -266,6 +275,8 @@
         <span class="tag"><span class="dot" style="background:var(--c-night)"></span>Nights</span>
         <span class="tag"><span class="dot" style="background:var(--c-peds)"></span>Peds Moonlighting</span>
         <span class="tag"><span class="dot" style="background:var(--c-neuro)"></span>Neuro Moonlighting</span>
+        <span class="tag"><span class="dot" style="background:var(--c-avoid)"></span>Last Tuesday</span>
+        <span class="tag"><span class="dot" style="background:var(--c-conference)"></span>General Conference</span>
       </div>
     </header>
 
@@ -320,12 +331,19 @@
       { date: "2026-03-04", type: "night", title: "Night shift", time: "9:30p–7:30a (+1d)", note: "Night 6 of 7" },
       { date: "2026-03-05", type: "night", title: "Night shift (final)", time: "9:30p–7:30a (+1d)", note: "Night 7 of 7 (ends Fri AM)" },
 
+      { date: "2026-04-04", type: "conference", title: "General Conference", time: "All day", note: "Avoid moonlighting if possible" },
+      { date: "2026-04-05", type: "conference", title: "General Conference", time: "All day", note: "Avoid moonlighting if possible" },
+      { date: "2026-10-03", type: "conference", title: "General Conference", time: "All day", note: "Avoid moonlighting if possible" },
+      { date: "2026-10-04", type: "conference", title: "General Conference", time: "All day", note: "Avoid moonlighting if possible" },
+
     ];
 
     const monthsToRender = [
       { year: 2026, monthIndex: 0, label: "January 2026" },
       { year: 2026, monthIndex: 1, label: "February 2026" },
       { year: 2026, monthIndex: 2, label: "March 2026" },
+      { year: 2026, monthIndex: 3, label: "April 2026" },
+      { year: 2026, monthIndex: 9, label: "October 2026" },
     ];
 
     const dowLabels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -342,8 +360,17 @@
         case "night": return "var(--c-night)";
         case "peds": return "var(--c-peds)";
         case "neuro": return "var(--c-neuro)";
+        case "avoid": return "var(--c-avoid)";
+        case "conference": return "var(--c-conference)";
         default: return "rgba(255,255,255,.5)";
       }
+    }
+
+    function isLastTuesday(d){
+      if(d.getDay() !== 2) return false;
+      const nextTuesday = new Date(d);
+      nextTuesday.setDate(d.getDate() + 7);
+      return nextTuesday.getMonth() !== d.getMonth();
     }
 
     function friendlyDate(d){
@@ -384,16 +411,14 @@
       const scroller = document.createElement("div");
       scroller.className = "gridScroller";
 
-      const dow = document.createElement("div");
-      dow.className = "dow";
-      dowLabels.forEach(d => {
-        const el = document.createElement("div");
-        el.textContent = d;
-        dow.appendChild(el);
-      });
-
       const grid = document.createElement("div");
       grid.className = "grid";
+      dowLabels.forEach(d => {
+        const el = document.createElement("div");
+        el.className = "dow";
+        el.textContent = d;
+        grid.appendChild(el);
+      });
 
       for(let i=0;i<totalCells;i++){
         const d = new Date(gridStart);
@@ -402,7 +427,8 @@
         const iso = toISO(d);
         const inMonth = (d.getMonth() === monthIndex);
         const cell = document.createElement("div");
-        cell.className = "day" + (inMonth ? "" : " out");
+        const lastTuesday = inMonth && isLastTuesday(d);
+        cell.className = "day" + (inMonth ? "" : " out") + (lastTuesday ? " avoid" : "");
 
         const weekOfMonth = Math.floor(i/7)+1;
 
@@ -416,7 +442,12 @@
         const evtsWrap = document.createElement("div");
         evtsWrap.className = "events";
 
-        getEventsForDate(iso).forEach(e => {
+        const dateEvents = getEventsForDate(iso);
+        if(lastTuesday){
+          dateEvents.push({ type: "avoid", title: "Last Tuesday", time: "", note: "Avoid if possible" });
+        }
+
+        dateEvents.forEach(e => {
           const evt = document.createElement("div");
           evt.className = `evt ${e.type}`;
           evt.innerHTML = `
@@ -434,7 +465,6 @@
         grid.appendChild(cell);
       }
 
-      scroller.appendChild(dow);
       scroller.appendChild(grid);
       calWrap.appendChild(hint);
       calWrap.appendChild(scroller);
