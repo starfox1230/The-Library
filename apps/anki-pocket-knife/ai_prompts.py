@@ -265,7 +265,8 @@ Correct spelling, grammar, capitalization, and punctuation in this Anki card tex
 Rules:
 - Preserve the meaning.
 - Preserve Anki cloze syntax exactly, including cloze numbers and double braces.
-- Preserve HTML tags, media references, and <br> separators.
+- Preserve HTML tags and media references.
+- Preserve intentional <br> separators, but remove or replace likely unwanted page breaks with a space when a <br>, line break, or paragraph break interrupts the middle of a sentence.
 - Do not make the card briefer, more detailed, more unambiguous, or stylistically different unless needed for correctness.
 - Output ONLY the corrected card text. No quotes, markdown, or JSON.
 

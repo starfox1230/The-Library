@@ -12,7 +12,7 @@ SOURCE_PDF = Path(r"G:/My Drive/0. Radiology/Core Review Nuclear Medicine.pdf")
 ASSET_DIR = APP_DIR / "assets"
 
 TITLE = "Nuclear Medicine Endocrine System Quiz"
-APP_ID = "nuclear-medicine-endocrine-quiz-ch2"
+APP_ID = "nuclear-medicine-endocrine-quiz-ch2-v2"
 
 # Zero-based PDF page indexes. Chapter 2's questions and answers are split by
 # an inserted answer section, then continue with questions 37-50.

@@ -12,7 +12,7 @@ SOURCE_PDF = Path(r"G:/My Drive/0. Radiology/Core Review Nuclear Medicine.pdf")
 ASSET_DIR = APP_DIR / "assets"
 
 TITLE = "Nuclear Medicine Musculoskeletal System Quiz"
-APP_ID = "nuclear-medicine-msk-quiz-ch3"
+APP_ID = "nuclear-medicine-msk-quiz-ch3-v2"
 
 # Zero-based PDF page indexes. Chapter 3's questions and answers are split by
 # an inserted answer section, then continue with questions 28 onward.

@@ -197,10 +197,28 @@ function Bring-ToFront($window, [string]$label) {
 
 function Get-LayoutTargets {
   $windows = @(Get-DesktopWindows)
+  $chromeWindows = @($windows | Where-Object { $_.Process -eq "chrome" } | Sort-Object ZOrder)
   $chatGptChrome = $windows |
-    Where-Object { $_.Process -eq "chrome" -and $_.Title -like "*ChatGPT*" } |
+    Where-Object { $_.Process -eq "chrome" -and ($_.Title -like "*ChatGPT*" -or $_.Title -like "*OpenAI*" -or $_.Title -like "*Codex*") } |
     Sort-Object ZOrder |
     Select-Object -First 1
+
+  if (-not $chatGptChrome) {
+    $chatGptChrome = $chromeWindows |
+      Where-Object {
+        -not $_.Minimized -and
+        ($_.X + ($_.Width / 2)) -ge $display3.Bounds.X -and
+        ($_.X + ($_.Width / 2)) -lt ($display3.Bounds.X + $display3.Bounds.Width) -and
+        ($_.Y + ($_.Height / 2)) -ge $display3.Bounds.Y -and
+        ($_.Y + ($_.Height / 2)) -lt ($display3.Bounds.Y + $display3.Bounds.Height)
+      } |
+      Sort-Object ZOrder |
+      Select-Object -First 1
+  }
+
+  if (-not $chatGptChrome -and $chromeWindows.Count -eq 1) {
+    $chatGptChrome = $chromeWindows[0]
+  }
 
   return [pscustomobject]@{
     Notion = $windows | Where-Object { $_.Process -eq "Notion" } | Sort-Object ZOrder | Select-Object -First 1
@@ -208,7 +226,7 @@ function Get-LayoutTargets {
     AnkiAdd = $windows | Where-Object { $_.Process -eq "pythonw" -and $_.Title -eq "Add" } | Sort-Object ZOrder | Select-Object -First 1
     AnkiMain = $windows | Where-Object { $_.Process -eq "pythonw" -and $_.Title -like "*Anki*" -and $_.Title -notlike "Browse*" } | Sort-Object ZOrder | Select-Object -First 1
     Acrobat = $windows | Where-Object { $_.Process -eq "Acrobat" } | Sort-Object ZOrder | Select-Object -First 1
-    ChromeWindows = @($windows | Where-Object { $_.Process -eq "chrome" } | Sort-Object ZOrder)
+    ChromeWindows = $chromeWindows
     ChatGptChrome = $chatGptChrome
   }
 }
@@ -233,7 +251,7 @@ function Get-MissingRequiredTargetNames($targets) {
   if (-not $targets.AnkiBrowse) { $missing.Add("Anki Browse window") }
   if (-not $targets.AnkiMain) { $missing.Add("Anki main window") }
   if (-not $targets.Notion) { $missing.Add("Notion window") }
-  if (-not $targets.ChatGptChrome) { $missing.Add("Chrome window with ChatGPT in the title") }
+  if (-not $targets.ChatGptChrome) { $missing.Add("Chrome window for ChatGPT") }
 
   return @($missing)
 }
@@ -253,8 +271,8 @@ function Apply-LayoutPass([int]$passNumber) {
 
   Move-DesktopWindow $targets.AnkiBrowse ($d1.X - 6) $d1.Y 811 ($d1.Height + 6) "Anki Browse, DISPLAY1 left"
   Move-DesktopWindow $targets.Notion ($d1.X + [int]($d1.Width / 2)) $d1.Y ([int]($d1.Width / 2)) $d1.Height "Notion tracker, DISPLAY1 right"
-  Move-DesktopWindow $targets.AnkiAdd ($d2.X + [int]($d2.Width / 2)) $d2.Y ([int]($d2.Width / 2)) $d2.Height "Anki Add, primary display right"
-  Move-DesktopWindow $targets.Acrobat $d2.X $d2.Y ([int]($d2.Width / 2)) $d2.Height "Adobe Acrobat, primary display left"
+  Move-DesktopWindow $targets.AnkiAdd ($d2.X + $primaryAddX) $d2.Y $primaryAddWidth $d2.Height "Anki Add, primary display right"
+  Move-DesktopWindow $targets.Acrobat $d2.X $d2.Y $primaryAcrobatWidth $d2.Height "Adobe Acrobat, primary display left"
 
   if ($targets.ChatGptChrome) {
     Move-DesktopWindow $targets.ChatGptChrome $d3.X $d3.Y $d3.Width $d3.Height "ChatGPT Chrome, portrait display"
@@ -274,8 +292,8 @@ function Repair-LayoutBounds {
       [pscustomobject]@{ Window = $targets.AnkiMain; X = $display2.Bounds.X; Y = $display2.Bounds.Y; Width = $display2.Bounds.Width; Height = ($display2.Bounds.Height - 32); Label = "Anki main, primary display background" },
       [pscustomobject]@{ Window = $targets.AnkiBrowse; X = ($d1.X - 6); Y = $d1.Y; Width = 811; Height = ($d1.Height + 6); Label = "Anki Browse, DISPLAY1 left" },
       [pscustomobject]@{ Window = $targets.Notion; X = ($d1.X + [int]($d1.Width / 2)); Y = $d1.Y; Width = ([int]($d1.Width / 2)); Height = $d1.Height; Label = "Notion, DISPLAY1 right" },
-      [pscustomobject]@{ Window = $targets.AnkiAdd; X = ($d2.X + [int]($d2.Width / 2)); Y = $d2.Y; Width = ([int]($d2.Width / 2)); Height = $d2.Height; Label = "Anki Add, primary display right" },
-      [pscustomobject]@{ Window = $targets.Acrobat; X = $d2.X; Y = $d2.Y; Width = ([int]($d2.Width / 2)); Height = $d2.Height; Label = "Adobe Acrobat, primary display left" },
+      [pscustomobject]@{ Window = $targets.AnkiAdd; X = ($d2.X + $primaryAddX); Y = $d2.Y; Width = $primaryAddWidth; Height = $d2.Height; Label = "Anki Add, primary display right" },
+      [pscustomobject]@{ Window = $targets.Acrobat; X = $d2.X; Y = $d2.Y; Width = $primaryAcrobatWidth; Height = $d2.Height; Label = "Adobe Acrobat, primary display left" },
       [pscustomobject]@{ Window = $targets.ChatGptChrome; X = $d3.X; Y = $d3.Y; Width = $d3.Width; Height = $d3.Height; Label = "ChatGPT Chrome, portrait display" }
     )
 
@@ -330,6 +348,9 @@ $display3 = Get-ScreenByName "\\.\DISPLAY3"
 $d1 = $display1.WorkingArea
 $d2 = $display2.WorkingArea
 $d3 = $display3.WorkingArea
+$primaryAcrobatWidth = 1022
+$primaryAddX = 1013
+$primaryAddWidth = $d2.Width - $primaryAddX
 
 Apply-LayoutPass 1
 Start-Sleep -Milliseconds 250
