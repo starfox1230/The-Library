@@ -31,6 +31,8 @@ public class StudyLayoutWin32 {
   public const uint GW_OWNER = 4;
   public const int SW_RESTORE = 9;
   public static readonly IntPtr HWND_TOP = new IntPtr(0);
+  public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+  public static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
   public const uint SWP_NOACTIVATE = 0x0010;
   public const uint SWP_NOMOVE = 0x0002;
   public const uint SWP_NOSIZE = 0x0001;
@@ -117,10 +119,8 @@ function Move-DesktopWindow($window, [int]$x, [int]$y, [int]$width, [int]$height
     return
   }
 
-  if ($window.Minimized) {
-    [void][StudyLayoutWin32]::ShowWindow($window.Handle, [StudyLayoutWin32]::SW_RESTORE)
-    Start-Sleep -Milliseconds 100
-  }
+  [void][StudyLayoutWin32]::ShowWindow($window.Handle, [StudyLayoutWin32]::SW_RESTORE)
+  Start-Sleep -Milliseconds 100
 
   [void][StudyLayoutWin32]::SetWindowPos(
     $window.Handle,
@@ -184,7 +184,17 @@ function Bring-ToFront($window, [string]$label) {
 
   [void][StudyLayoutWin32]::SetWindowPos(
     $window.Handle,
-    [StudyLayoutWin32]::HWND_TOP,
+    [StudyLayoutWin32]::HWND_TOPMOST,
+    0,
+    0,
+    0,
+    0,
+    [StudyLayoutWin32]::SWP_SHOWWINDOW -bor [StudyLayoutWin32]::SWP_NOMOVE -bor [StudyLayoutWin32]::SWP_NOSIZE
+  )
+  Start-Sleep -Milliseconds 75
+  [void][StudyLayoutWin32]::SetWindowPos(
+    $window.Handle,
+    [StudyLayoutWin32]::HWND_NOTOPMOST,
     0,
     0,
     0,
@@ -200,6 +210,10 @@ function Get-LayoutTargets {
   $chromeWindows = @($windows | Where-Object { $_.Process -eq "chrome" } | Sort-Object ZOrder)
   $chatGptChrome = $windows |
     Where-Object { $_.Process -eq "chrome" -and ($_.Title -like "*ChatGPT*" -or $_.Title -like "*OpenAI*" -or $_.Title -like "*Codex*") } |
+    Sort-Object ZOrder |
+    Select-Object -First 1
+  $quizChrome = $windows |
+    Where-Object { $_.Process -eq "chrome" -and $_.Title -like "*Quiz*" } |
     Sort-Object ZOrder |
     Select-Object -First 1
 
@@ -226,6 +240,7 @@ function Get-LayoutTargets {
     AnkiAdd = $windows | Where-Object { $_.Process -eq "pythonw" -and $_.Title -eq "Add" } | Sort-Object ZOrder | Select-Object -First 1
     AnkiMain = $windows | Where-Object { $_.Process -eq "pythonw" -and $_.Title -like "*Anki*" -and $_.Title -notlike "Browse*" } | Sort-Object ZOrder | Select-Object -First 1
     Acrobat = $windows | Where-Object { $_.Process -eq "Acrobat" } | Sort-Object ZOrder | Select-Object -First 1
+    QuizChrome = $quizChrome
     ChromeWindows = $chromeWindows
     ChatGptChrome = $chatGptChrome
   }
@@ -246,7 +261,7 @@ function Show-LayoutAlert([string]$message, [string]$title = "Study Window Layou
 function Get-MissingRequiredTargetNames($targets) {
   $missing = New-Object System.Collections.Generic.List[string]
 
-  if (-not $targets.Acrobat) { $missing.Add("Adobe Acrobat window") }
+  if (-not $targets.Acrobat -and -not $targets.QuizChrome) { $missing.Add("Adobe Acrobat window or Chrome Quiz window") }
   if (-not $targets.AnkiAdd) { $missing.Add("Anki Add window") }
   if (-not $targets.AnkiBrowse) { $missing.Add("Anki Browse window") }
   if (-not $targets.AnkiMain) { $missing.Add("Anki main window") }
@@ -265,7 +280,7 @@ function Apply-LayoutPass([int]$passNumber) {
 
   Move-DesktopWindow $targets.AnkiMain $display2.Bounds.X $display2.Bounds.Y $display2.Bounds.Width ($display2.Bounds.Height - 32) "Anki main, primary display background"
 
-  foreach ($chrome in $targets.ChromeWindows | Where-Object { $_.Handle -ne $(if ($targets.ChatGptChrome) { $targets.ChatGptChrome.Handle } else { [IntPtr]::Zero }) }) {
+  foreach ($chrome in $targets.ChromeWindows | Where-Object { $_.Handle -ne $(if ($targets.ChatGptChrome) { $targets.ChatGptChrome.Handle } else { [IntPtr]::Zero }) -and $_.Handle -ne $(if ($targets.QuizChrome) { $targets.QuizChrome.Handle } else { [IntPtr]::Zero }) }) {
     Move-DesktopWindow $chrome $d3.X $d3.Y $d3.Width $d3.Height "Chrome on portrait display"
   }
 
@@ -273,6 +288,7 @@ function Apply-LayoutPass([int]$passNumber) {
   Move-DesktopWindow $targets.Notion ($d1.X + [int]($d1.Width / 2)) $d1.Y ([int]($d1.Width / 2)) $d1.Height "Notion tracker, DISPLAY1 right"
   Move-DesktopWindow $targets.AnkiAdd ($d2.X + $primaryAddX) $d2.Y $primaryAddWidth $d2.Height "Anki Add, primary display right"
   Move-DesktopWindow $targets.Acrobat $d2.X $d2.Y $primaryAcrobatWidth $d2.Height "Adobe Acrobat, primary display left"
+  Move-DesktopWindow $targets.QuizChrome $d2.X $d2.Y $primaryAcrobatWidth $d2.Height "Quiz Chrome, primary display left"
 
   if ($targets.ChatGptChrome) {
     Move-DesktopWindow $targets.ChatGptChrome $d3.X $d3.Y $d3.Width $d3.Height "ChatGPT Chrome, portrait display"
@@ -294,6 +310,7 @@ function Repair-LayoutBounds {
       [pscustomobject]@{ Window = $targets.Notion; X = ($d1.X + [int]($d1.Width / 2)); Y = $d1.Y; Width = ([int]($d1.Width / 2)); Height = $d1.Height; Label = "Notion, DISPLAY1 right" },
       [pscustomobject]@{ Window = $targets.AnkiAdd; X = ($d2.X + $primaryAddX); Y = $d2.Y; Width = $primaryAddWidth; Height = $d2.Height; Label = "Anki Add, primary display right" },
       [pscustomobject]@{ Window = $targets.Acrobat; X = $d2.X; Y = $d2.Y; Width = $primaryAcrobatWidth; Height = $d2.Height; Label = "Adobe Acrobat, primary display left" },
+      [pscustomobject]@{ Window = $targets.QuizChrome; X = $d2.X; Y = $d2.Y; Width = $primaryAcrobatWidth; Height = $d2.Height; Label = "Quiz Chrome, primary display left" },
       [pscustomobject]@{ Window = $targets.ChatGptChrome; X = $d3.X; Y = $d3.Y; Width = $d3.Width; Height = $d3.Height; Label = "ChatGPT Chrome, portrait display" }
     )
 
@@ -308,7 +325,7 @@ function Repair-LayoutBounds {
       }
     }
 
-    foreach ($chrome in $targets.ChromeWindows | Where-Object { $_.Handle -ne $(if ($targets.ChatGptChrome) { $targets.ChatGptChrome.Handle } else { [IntPtr]::Zero }) }) {
+    foreach ($chrome in $targets.ChromeWindows | Where-Object { $_.Handle -ne $(if ($targets.ChatGptChrome) { $targets.ChatGptChrome.Handle } else { [IntPtr]::Zero }) -and $_.Handle -ne $(if ($targets.QuizChrome) { $targets.QuizChrome.Handle } else { [IntPtr]::Zero }) }) {
       if (-not (Test-WindowBounds $chrome $d3.X $d3.Y $d3.Width $d3.Height)) {
         $repairs++
         Move-DesktopWindow $chrome $d3.X $d3.Y $d3.Width $d3.Height "Chrome on portrait display"
@@ -333,12 +350,39 @@ function Apply-FrontOrder {
   Bring-ToFront $targets.Notion "Notion tracker"
   Bring-ToFront $targets.AnkiAdd "Anki Add"
   Bring-ToFront $targets.Acrobat "Adobe Acrobat"
+  Bring-ToFront $targets.QuizChrome "Quiz Chrome"
 
-  foreach ($chrome in $targets.ChromeWindows | Where-Object { $_.Handle -ne $(if ($targets.ChatGptChrome) { $targets.ChatGptChrome.Handle } else { [IntPtr]::Zero }) }) {
+  foreach ($chrome in $targets.ChromeWindows | Where-Object { $_.Handle -ne $(if ($targets.ChatGptChrome) { $targets.ChatGptChrome.Handle } else { [IntPtr]::Zero }) -and $_.Handle -ne $(if ($targets.QuizChrome) { $targets.QuizChrome.Handle } else { [IntPtr]::Zero }) }) {
     Bring-ToFront $chrome "Chrome"
   }
 
   Bring-ToFront $targets.ChatGptChrome "ChatGPT Chrome"
+}
+
+function Ensure-QuizAboveAcrobat {
+  if ($WhatIf) {
+    return
+  }
+
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    $targets = Get-LayoutTargets
+    if (-not $targets.QuizChrome -or -not $targets.Acrobat) {
+      return
+    }
+
+    if ($targets.QuizChrome.ZOrder -lt $targets.Acrobat.ZOrder) {
+      Write-Host "Quiz Chrome is above Adobe Acrobat."
+      return
+    }
+
+    Bring-ToFront $targets.QuizChrome "Quiz Chrome"
+    Start-Sleep -Milliseconds 150
+  }
+
+  $finalTargets = Get-LayoutTargets
+  if ($finalTargets.QuizChrome -and $finalTargets.Acrobat -and $finalTargets.QuizChrome.ZOrder -gt $finalTargets.Acrobat.ZOrder) {
+    Show-LayoutAlert "The layout ran, but Windows did not keep the Quiz Chrome window in front of Adobe Acrobat. Click the Quiz window or run the shortcut again."
+  }
 }
 
 $display1 = Get-ScreenByName "\\.\DISPLAY1"
@@ -359,6 +403,7 @@ Start-Sleep -Milliseconds 150
 Repair-LayoutBounds
 Start-Sleep -Milliseconds 150
 Apply-FrontOrder
+Ensure-QuizAboveAcrobat
 
 $finalTargets = Get-LayoutTargets
 $missingTargets = @(Get-MissingRequiredTargetNames $finalTargets)
