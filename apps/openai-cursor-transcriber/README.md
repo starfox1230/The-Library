@@ -11,7 +11,7 @@ A small Windows desktop app that stays local on your computer, listens for a glo
 - The app sends the recording to OpenAI using `gpt-4o-transcribe`.
 - The full transcript is copied to your clipboard.
 - A preview bubble stays next to your cursor until you paste with `Ctrl+V`, `Ctrl+Shift+V`, or `Shift+Insert`.
-- Press `Shift+F3` to quit the app.
+- Press `Ctrl+Shift+F3` to quit the app.
 - The app also shows a tray icon in the Windows notification area, so you can confirm it is running and quit it from the caret menu.
 
 ## Desktop stack
@@ -45,7 +45,7 @@ You can also change the hotkeys in the same file:
 
 ```dotenv
 TOGGLE_HOTKEY=<f3>
-EXIT_HOTKEY=<shift>+<f3>
+EXIT_HOTKEY=<ctrl>+<shift>+<f3>
 PASTE_HOTKEYS=<ctrl>+v,<ctrl>+<shift>+v,<shift>+<insert>,<ctrl>+c
 RECORDING_READY_DELAY_MS=0
 ```

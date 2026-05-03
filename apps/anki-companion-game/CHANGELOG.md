@@ -100,3 +100,19 @@ Review Later deck-page button release.
 - Added a new Review Later Manager toggle that enables or disables a Speed Streak deck-page button showing how many cards were added to Review Later today.
 - Made that deck-page button stay hidden when today's count is zero and open the Review Later Manager when clicked.
 - Scoped the new deck-page button wiring to Speed Streak-specific config keys and JS messages so it does not clash with Pocket Knife.
+
+## `speed-streak-addon-v1.20`
+
+WebGL sphere renderer release.
+
+- Added an experimental WebGL satellite renderer for the sphere view.
+- Kept the native add-on packaging, Review Later deck-page button, and external-window positioning behavior from earlier versions.
+
+## `speed-streak-addon-v1.21`
+
+Steam Controller 2026 PC haptics compatibility pass.
+
+- Created from `speed-streak-addon-v1.20`.
+- Improved Windows rumble dispatch by detecting connected XInput controller slots instead of assuming slot 0.
+- Sends haptic patterns to every connected XInput slot so Steam Input virtual Xbox controllers continue to receive rumble when Steam assigns them to a nonzero slot.
+- Added an optional, UI-free Steamworks flat-API bridge that can use `steam_api64.dll` if supplied later for native Steam Input haptics.

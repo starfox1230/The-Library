@@ -13,6 +13,12 @@ from pynput.keyboard import GlobalHotKeys
 
 from .audio import MicrophoneRecorder
 from .config import AppConfig
+from .hotkey_polling import (
+    PollableHotkey,
+    is_pollable_hotkey_down,
+    is_windows_hotkey_polling_available,
+    parse_pollable_hotkey,
+)
 from .openai_client import TranscriptionClient, friendly_openai_error
 from .overlay import CursorOverlay
 from .tray import CursorTray
@@ -44,6 +50,12 @@ class CursorTranscriberApp(QObject):
         )
         self._tray: CursorTray | None = None
         self._hotkeys: GlobalHotKeys | None = None
+        self._pollable_hotkeys: list[tuple[PollableHotkey, Signal]] = []
+        self._polling_hotkeys_down: set[str] = set()
+        self._last_hotkey_emit_at: dict[str, float] = {}
+        self._hotkey_poll_timer = QTimer(self)
+        self._hotkey_poll_timer.setInterval(20)
+        self._hotkey_poll_timer.timeout.connect(self._poll_windows_hotkeys)
         self._capture_started_at: float | None = None
         self._recording_started_at: float | None = None
         self._is_arming = False
@@ -80,14 +92,24 @@ class CursorTranscriberApp(QObject):
             logging.warning("System tray is not available on this system")
 
         hotkey_map: dict[str, object] = {
-            self._config.toggle_hotkey: lambda: self.toggle_requested.emit(),
-            self._config.exit_hotkey: lambda: self.exit_requested.emit(),
+            self._config.toggle_hotkey: lambda: self._emit_hotkey_signal(
+                self._config.toggle_hotkey,
+                self.toggle_requested,
+            ),
+            self._config.exit_hotkey: lambda: self._emit_hotkey_signal(
+                self._config.exit_hotkey,
+                self.exit_requested,
+            ),
         }
         for paste_hotkey in self._config.paste_hotkeys:
-            hotkey_map[paste_hotkey] = lambda: self.paste_requested.emit()
+            hotkey_map[paste_hotkey] = lambda paste_hotkey=paste_hotkey: self._emit_hotkey_signal(
+                paste_hotkey,
+                self.paste_requested,
+            )
 
         self._hotkeys = GlobalHotKeys(hotkey_map)
         self._hotkeys.start()
+        self._start_windows_hotkey_polling()
         logging.info("Cursor transcriber started with hotkey %s", self._config.toggle_hotkey)
         self._set_tray_ready()
         self._overlay.show_ready()
@@ -101,6 +123,9 @@ class CursorTranscriberApp(QObject):
         self._is_arming = False
         self._capture_started_at = None
         self._recording_timer.stop()
+        self._hotkey_poll_timer.stop()
+        self._polling_hotkeys_down.clear()
+        self._last_hotkey_emit_at.clear()
         self._last_transcript_text = ""
         try:
             self._recorder.discard()
@@ -117,6 +142,47 @@ class CursorTranscriberApp(QObject):
             self._tray.deleteLater()
             self._tray = None
         self._overlay.hide()
+
+    def _start_windows_hotkey_polling(self) -> None:
+        if not is_windows_hotkey_polling_available():
+            return
+
+        pollable_hotkeys = [
+            (self._config.exit_hotkey, self.exit_requested),
+            (self._config.toggle_hotkey, self.toggle_requested),
+            *[(paste_hotkey, self.paste_requested) for paste_hotkey in self._config.paste_hotkeys],
+        ]
+        self._pollable_hotkeys = [
+            (parsed_hotkey, signal)
+            for hotkey, signal in pollable_hotkeys
+            if (parsed_hotkey := parse_pollable_hotkey(hotkey)) is not None
+        ]
+        if not self._pollable_hotkeys:
+            logging.warning("No configured hotkeys can be polled with the Windows fallback")
+            return
+
+        self._hotkey_poll_timer.start()
+        logging.info("Windows hotkey polling fallback enabled for JoyToKey-style injected keys")
+
+    def _poll_windows_hotkeys(self) -> None:
+        if self._shutting_down:
+            return
+
+        for hotkey, signal in self._pollable_hotkeys:
+            is_down = is_pollable_hotkey_down(hotkey)
+            was_down = hotkey.source in self._polling_hotkeys_down
+            if is_down and not was_down:
+                self._polling_hotkeys_down.add(hotkey.source)
+                self._emit_hotkey_signal(hotkey.source, signal)
+            elif not is_down and was_down:
+                self._polling_hotkeys_down.remove(hotkey.source)
+
+    def _emit_hotkey_signal(self, hotkey: str, signal: Signal) -> None:
+        now = perf_counter()
+        if now - self._last_hotkey_emit_at.get(hotkey, 0.0) < 0.15:
+            return
+        self._last_hotkey_emit_at[hotkey] = now
+        signal.emit()
 
     def shutdown_and_exit(self) -> None:
         logging.info("Exit hotkey pressed")
