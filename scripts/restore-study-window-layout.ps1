@@ -6,6 +6,8 @@ $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
 
 Add-Type @'
 using System;
@@ -108,6 +110,59 @@ function Get-ScreenByName([string]$deviceName) {
   return $screen
 }
 
+function Get-ChromeWindowByTabTitle($windows, [string]$titleRegex, [string]$label) {
+  $chromeWindows = @($windows | Where-Object { $_.Process -eq "chrome" })
+  if ($chromeWindows.Count -eq 0) {
+    return $null
+  }
+
+  $root = [System.Windows.Automation.AutomationElement]::RootElement
+  $chromeCondition = New-Object System.Windows.Automation.PropertyCondition(
+    [System.Windows.Automation.AutomationElement]::ClassNameProperty,
+    "Chrome_WidgetWin_1"
+  )
+  $uiWindows = $root.FindAll([System.Windows.Automation.TreeScope]::Children, $chromeCondition)
+
+  for ($i = 0; $i -lt $uiWindows.Count; $i++) {
+    $uiWindow = $uiWindows.Item($i)
+    $nativeHandle = [IntPtr]::new($uiWindow.Current.NativeWindowHandle)
+    $desktopWindow = $chromeWindows | Where-Object { $_.Handle -eq $nativeHandle } | Select-Object -First 1
+    if (-not $desktopWindow) {
+      continue
+    }
+
+    $tabCondition = New-Object System.Windows.Automation.PropertyCondition(
+      [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+      [System.Windows.Automation.ControlType]::TabItem
+    )
+    $tabs = $uiWindow.FindAll([System.Windows.Automation.TreeScope]::Descendants, $tabCondition)
+
+    for ($j = 0; $j -lt $tabs.Count; $j++) {
+      $tab = $tabs.Item($j)
+      if ($tab.Current.Name -notmatch $titleRegex) {
+        continue
+      }
+
+      if ($WhatIf) {
+        Write-Host "Would activate Chrome tab for ${label}: $($tab.Current.Name)"
+      } else {
+        try {
+          $selectionPattern = $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
+          $selectionPattern.Select()
+          Start-Sleep -Milliseconds 150
+          Write-Host "Activated Chrome tab for ${label}: $($tab.Current.Name)"
+        } catch {
+          Write-Warning "Found Chrome tab for ${label}, but could not activate it: $($tab.Current.Name)"
+        }
+      }
+
+      return $desktopWindow
+    }
+  }
+
+  return $null
+}
+
 function Move-DesktopWindow($window, [int]$x, [int]$y, [int]$width, [int]$height, [string]$label) {
   if (-not $window) {
     Write-Host "Skip: $label was not found."
@@ -208,14 +263,22 @@ function Bring-ToFront($window, [string]$label) {
 function Get-LayoutTargets {
   $windows = @(Get-DesktopWindows)
   $chromeWindows = @($windows | Where-Object { $_.Process -eq "chrome" } | Sort-Object ZOrder)
-  $chatGptChrome = $windows |
-    Where-Object { $_.Process -eq "chrome" -and ($_.Title -like "*ChatGPT*" -or $_.Title -like "*OpenAI*" -or $_.Title -like "*Codex*") } |
-    Sort-Object ZOrder |
-    Select-Object -First 1
-  $quizChrome = $windows |
-    Where-Object { $_.Process -eq "chrome" -and $_.Title -like "*Quiz*" } |
-    Sort-Object ZOrder |
-    Select-Object -First 1
+  $chatGptChrome = Get-ChromeWindowByTabTitle $windows "(?i)(ChatGPT|OpenAI|Codex)" "ChatGPT"
+  $quizChrome = Get-ChromeWindowByTabTitle $windows "(?i)Quiz" "Quiz"
+
+  if (-not $chatGptChrome) {
+    $chatGptChrome = $windows |
+      Where-Object { $_.Process -eq "chrome" -and ($_.Title -like "*ChatGPT*" -or $_.Title -like "*OpenAI*" -or $_.Title -like "*Codex*") } |
+      Sort-Object ZOrder |
+      Select-Object -First 1
+  }
+
+  if (-not $quizChrome) {
+    $quizChrome = $windows |
+      Where-Object { $_.Process -eq "chrome" -and $_.Title -like "*Quiz*" } |
+      Sort-Object ZOrder |
+      Select-Object -First 1
+  }
 
   if (-not $chatGptChrome) {
     $chatGptChrome = $chromeWindows |
@@ -267,6 +330,9 @@ function Get-MissingRequiredTargetNames($targets) {
   if (-not $targets.AnkiMain) { $missing.Add("Anki main window") }
   if (-not $targets.Notion) { $missing.Add("Notion window") }
   if (-not $targets.ChatGptChrome) { $missing.Add("Chrome window for ChatGPT") }
+  if ($targets.ChatGptChrome -and $targets.QuizChrome -and $targets.ChatGptChrome.Handle -eq $targets.QuizChrome.Handle) {
+    $missing.Add("separate Chrome windows for ChatGPT and Quiz; they are tabs in the same Chrome window")
+  }
 
   return @($missing)
 }
