@@ -1,7 +1,6 @@
 from .auto_scroll import install as install_auto_scroll
 from .ai_tools import install as install_ai_tools
 from .clipboard_json_cards import install as install_clipboard_json_cards
-from .editor_color_undo import install as install_editor_color_undo
 from .f3_blocker import install as install_f3_blocker
 from .hard_cards import install as install_hard_cards
 from .lightning_mode import install as install_lightning_mode
@@ -23,7 +22,6 @@ from .visual_card_multitude import install as install_visual_card_multitude
 install_auto_scroll()
 install_ai_tools()
 install_clipboard_json_cards()
-install_editor_color_undo()
 install_f3_blocker()
 install_hard_cards()
 install_lightning_mode()
