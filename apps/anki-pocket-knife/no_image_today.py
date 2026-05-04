@@ -23,7 +23,7 @@ from aqt.qt import (
 )
 from aqt.utils import showInfo, showWarning
 
-from .common import create_or_update_filtered_deck, get_card
+from .common import card_id_search, create_or_update_filtered_deck, get_card
 from .restore_tracker import register_restore_batch
 
 
@@ -519,7 +519,7 @@ def build_no_image_today_deck_for_choices(selected_choices: list[DeckChoice], *,
             return False
 
     deck_name = datetime.now().strftime(f"{NO_IMAGE_DECK_NAME_PREFIX}%Y-%m-%d %H-%M-%S")
-    search = " or ".join(f"cid:{card_id}" for card_id in no_image_ids)
+    search = card_id_search(no_image_ids)
 
     try:
         target_deck_id = create_or_update_filtered_deck(

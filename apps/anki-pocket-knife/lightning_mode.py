@@ -11,7 +11,7 @@ from aqt import gui_hooks, mw
 from aqt.qt import QAction, QMenu, QTimer
 from aqt.utils import showInfo, showWarning
 
-from .common import create_or_update_filtered_deck, get_card, rebuild_filtered_deck
+from .common import card_id_search, create_or_update_filtered_deck, get_card, rebuild_filtered_deck
 from .settings import get_setting, set_setting
 
 
@@ -457,10 +457,7 @@ def _lightning_deck_name() -> str:
 
 
 def _search_for_card_ids(card_ids: list[int]) -> str:
-    cleaned_card_ids = _clean_card_ids(card_ids)
-    if not cleaned_card_ids:
-        return "cid:0"
-    return " or ".join(f"cid:{card_id}" for card_id in cleaned_card_ids)
+    return card_id_search(_clean_card_ids(card_ids))
 
 
 def _collection_get_config(key: str, default: Any) -> Any:

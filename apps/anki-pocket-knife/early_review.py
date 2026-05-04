@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from aqt import mw
 from aqt.utils import getText, showInfo, showWarning
 
-from .common import create_or_update_filtered_deck
+from .common import card_id_search, create_or_update_filtered_deck
 
 
 EARLY_REVIEW_SHORTCUT = "Ctrl+Alt+F"
@@ -86,7 +86,7 @@ def build_early_review_filtered_deck(
         return False
 
     deck_name = f"{EARLY_REVIEW_DECK_NAME_PREFIX}{_tomorrow_iso_date()}"
-    search = " or ".join(f"cid:{card_id}" for card_id in card_ids)
+    search = card_id_search(card_ids)
 
     try:
         create_or_update_filtered_deck(

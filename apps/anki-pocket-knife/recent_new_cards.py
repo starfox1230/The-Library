@@ -24,7 +24,7 @@ from aqt.qt import (
 )
 from aqt.utils import showInfo, showWarning
 
-from .common import create_or_update_filtered_deck
+from .common import card_id_search, create_or_update_filtered_deck
 
 
 FILTERED_DECK_NAME_PREFIX = "Recent new cards "
@@ -195,7 +195,7 @@ def build_recent_new_filtered_deck_for_choice(choice: DeckChoice, *, days: int, 
         return False
 
     deck_name = datetime.now().strftime(f"{FILTERED_DECK_NAME_PREFIX}%Y-%m-%d %H-%M-%S")
-    search = " or ".join(f"cid:{card_id}" for card_id in card_ids)
+    search = card_id_search(card_ids)
 
     try:
         create_or_update_filtered_deck(

@@ -8,7 +8,7 @@ from aqt import gui_hooks, mw
 from aqt.qt import QAction, QMenu, QMessageBox
 from aqt.utils import showInfo, showWarning
 
-from .common import create_or_update_filtered_deck
+from .common import card_id_search, create_or_update_filtered_deck
 
 
 SOURCE_DECK_NAME = "Saved Cards"
@@ -131,17 +131,17 @@ def _has_child_decks(deck_name: str, *, excluding_deck_id: int) -> bool:
     return False
 
 
-def _cards_in_exact_deck(deck_id: int) -> list[tuple[int, int]]:
+def _cards_in_exact_deck(deck_id: int) -> list[tuple[int, int, int]]:
     rows = mw.col.db.all(
         """
-        SELECT c.id, c.type
+        SELECT c.id, c.type, c.queue
         FROM cards AS c
         WHERE c.did = ?
         ORDER BY c.id ASC
         """,
         int(deck_id),
     )
-    return [(int(card_id), int(card_type)) for card_id, card_type in rows]
+    return [(int(card_id), int(card_type), int(card_queue)) for card_id, card_type, card_queue in rows]
 
 
 def _deck_card_count(deck_id: int) -> int:
@@ -295,8 +295,12 @@ def send_saved_cards_to_audio(deck_id: int, *, parent=None) -> bool:
         )
         return False
 
-    all_card_ids = [int(card_id) for card_id, _card_type in card_rows]
-    new_card_ids = [int(card_id) for card_id, card_type in card_rows if int(card_type) == 0]
+    all_card_ids = [int(card_id) for card_id, _card_type, _card_queue in card_rows]
+    new_card_ids = [
+        int(card_id)
+        for card_id, card_type, card_queue in card_rows
+        if int(card_type) == 0 and int(card_queue) == 0
+    ]
 
     decision = QMessageBox.question(
         parent or mw,
@@ -327,7 +331,7 @@ def send_saved_cards_to_audio(deck_id: int, *, parent=None) -> bool:
     filtered_error: Exception | None = None
     if new_card_ids:
         filtered_deck_name = datetime.now().strftime(FILTERED_DECK_NAME_TEMPLATE)
-        search = " or ".join(f"cid:{card_id}" for card_id in new_card_ids)
+        search = card_id_search(new_card_ids)
         try:
             create_or_update_filtered_deck(
                 filtered_deck_name,

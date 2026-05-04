@@ -13,6 +13,7 @@ from aqt.qt import QApplication, QDesktopServices, QUrl
 from aqt.utils import showInfo, showWarning
 
 from .common import (
+    card_id_search,
     collection_media_dir,
     create_or_update_filtered_deck,
     deck_name,
@@ -588,7 +589,7 @@ def make_missed_today_filtered_deck() -> bool:
         return False
 
     deck_name_value = datetime.now().strftime(f"{MISSED_TODAY_DECK_NAME_PREFIX}%Y-%m-%d %H-%M-%S")
-    search = " or ".join(f"cid:{entry.card_id}" for entry in entries)
+    search = card_id_search([entry.card_id for entry in entries])
 
     try:
         create_or_update_filtered_deck(

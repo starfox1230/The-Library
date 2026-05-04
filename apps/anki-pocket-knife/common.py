@@ -197,6 +197,29 @@ def set_filtered_terms(deck: dict[str, Any], search: str, limit: int) -> None:
     deck["terms"] = [[search, int(limit), 0]]
 
 
+def card_id_search(card_ids: list[int], *, exclude_suspended: bool = True) -> str:
+    cleaned_ids: list[int] = []
+    seen: set[int] = set()
+    for raw_card_id in card_ids:
+        try:
+            card_id = int(raw_card_id)
+        except Exception:
+            continue
+        if card_id <= 0 or card_id in seen:
+            continue
+        seen.add(card_id)
+        cleaned_ids.append(card_id)
+
+    if not cleaned_ids:
+        search = "cid:0"
+    else:
+        search = " or ".join(f"cid:{card_id}" for card_id in cleaned_ids)
+
+    if exclude_suspended:
+        return f"({search}) -is:suspended"
+    return search
+
+
 def rebuild_filtered_deck(deck_id: int) -> None:
     scheduler = mw.col.sched
 
