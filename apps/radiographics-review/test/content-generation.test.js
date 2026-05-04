@@ -85,6 +85,7 @@ test("reader and library navigation link back into the study library", () => {
   assert.match(readerHtml, /document\.createElement\("base"\)/i);
   assert.match(readerHtml, /href="\.\.\/\.\.\/index\.html">RadioGraphics Digest<\/a>/i);
   assert.match(indexHtml, /document\.createElement\("base"\)/i);
+  assert.match(indexHtml, /articles\\\/index\\\.html\$\//i);
   assert.match(indexHtml, /class="title-link" href="articles\/example\/reader\.html">Macrodystrophia Lipomatosis Macrodactyly<\/a>/i);
 });
 

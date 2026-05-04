@@ -6,7 +6,9 @@ function buildBaseHrefScript() {
     <script>
       (function () {
         var pathname = window.location.pathname || "/";
-        var baseHref = /\\.html$/i.test(pathname)
+        var baseHref = /\\/articles\\/index\\.html$/i.test(pathname)
+          ? pathname.replace(/articles\\/index\\.html$/i, "")
+          : /\\.html$/i.test(pathname)
           ? pathname.replace(/[^/]+$/, "")
           : (pathname.endsWith("/") ? pathname : pathname + "/");
         var existingBase = document.querySelector("base");
