@@ -665,13 +665,22 @@ function buildCardSummary(article) {
   return truncate((article.keyFacts || []).slice(0, 2).join(" "), 280);
 }
 
+function dateValue(dateLike) {
+  const time = Date.parse(dateLike || "");
+  return Number.isFinite(time) ? String(time) : "0";
+}
+
 function buildArticlesIndex(articles) {
   const cards = articles
     .map((article) => {
       const metadataLine = buildArticleMetadataLine(article);
 
       return `
-        <article class="card">
+        <article
+          class="card"
+          data-date-added="${escapeHtml(dateValue(article.generatedAt))}"
+          data-date-published="${escapeHtml(dateValue(article.publishedAt))}"
+        >
           ${
             article.thumbnailIndexPath
               ? `<a class="thumb" href="${escapeHtml(article.readerIndexPath)}"><img src="${escapeHtml(article.thumbnailIndexPath)}" alt="${escapeHtml(article.title)}"></a>`
@@ -692,6 +701,54 @@ function buildArticlesIndex(articles) {
       `;
     })
     .join("\n");
+
+  const indexScript = `
+    <script>
+      (function () {
+        const storageKey = "radiographics-review-sort";
+        const grid = document.querySelector("[data-article-grid]");
+        const controls = Array.from(document.querySelectorAll("[data-sort-value]"));
+        if (!grid || controls.length === 0) {
+          return;
+        }
+
+        function sortBy(value) {
+          const sortValue = value === "published" ? "published" : "added";
+          const dateKey = sortValue === "published" ? "datePublished" : "dateAdded";
+          const cards = Array.from(grid.querySelectorAll(".card"));
+          cards
+            .sort(function (left, right) {
+              return Number(right.dataset[dateKey] || 0) - Number(left.dataset[dateKey] || 0);
+            })
+            .forEach(function (card) {
+              grid.appendChild(card);
+            });
+
+          controls.forEach(function (control) {
+            const selected = control.getAttribute("data-sort-value") === sortValue;
+            control.setAttribute("aria-pressed", selected ? "true" : "false");
+          });
+
+          try {
+            window.localStorage.setItem(storageKey, sortValue);
+          } catch (error) {}
+        }
+
+        let stored = "";
+        try {
+          stored = window.localStorage.getItem(storageKey) || "";
+        } catch (error) {}
+
+        sortBy(stored === "published" ? "published" : "added");
+
+        controls.forEach(function (control) {
+          control.addEventListener("click", function () {
+            sortBy(control.getAttribute("data-sort-value"));
+          });
+        });
+      })();
+    </script>
+  `;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -715,8 +772,15 @@ function buildArticlesIndex(articles) {
       .hero {
         margin-bottom: 24px;
       }
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
       .hero h1 {
-        margin: 0 0 10px;
+        margin: 0;
         font-family: "Georgia", serif;
         font-size: clamp(2rem, 4vw, 3.4rem);
       }
@@ -725,6 +789,31 @@ function buildArticlesIndex(articles) {
         max-width: 760px;
         line-height: 1.7;
         color: #30453f;
+      }
+      .sort-control {
+        display: inline-flex;
+        flex: 0 0 auto;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid rgba(20, 33, 29, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 251, 245, 0.82);
+      }
+      .sort-control button {
+        min-height: 38px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #184a45;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .sort-control button[aria-pressed="true"] {
+        background: #184a45;
+        color: white;
       }
       .grid {
         display: grid;
@@ -797,18 +886,36 @@ function buildArticlesIndex(articles) {
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
+      @media (max-width: 680px) {
+        .hero-top {
+          display: grid;
+        }
+        .sort-control {
+          width: 100%;
+        }
+        .sort-control button {
+          flex: 1;
+        }
+      }
     </style>
   </head>
   <body>
     <main>
       <section class="hero">
-        <h1>RadioGraphics Review Library</h1>
+        <div class="hero-top">
+          <h1>RadioGraphics Review Library</h1>
+          <div class="sort-control" aria-label="Sort articles">
+            <button type="button" data-sort-value="added" aria-pressed="true">Date Added</button>
+            <button type="button" data-sort-value="published" aria-pressed="false">Date Published</button>
+          </div>
+        </div>
         <p>Each article gets a phone-friendly study page, a direct link back to RadioGraphics, a copy-ready study packet, and a downloadable Anki package. New runs add one article at a time to this library.</p>
       </section>
-      <section class="grid">
+      <section class="grid" data-article-grid>
         ${cards}
       </section>
     </main>
+    ${indexScript}
   </body>
 </html>`;
 }

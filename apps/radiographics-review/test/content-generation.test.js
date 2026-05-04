@@ -88,6 +88,24 @@ test("reader and library navigation link back into the study library", () => {
   assert.match(indexHtml, /class="title-link" href="articles\/example\/reader\.html">Macrodystrophia Lipomatosis Macrodactyly<\/a>/i);
 });
 
+test("library index can sort by date added or published", () => {
+  const indexHtml = buildArticlesIndex([
+    {
+      ...mlmArticle,
+      generatedAt: "2026-04-21T14:08:52.848Z",
+      readerIndexPath: "articles/example/reader.html",
+      thumbnailIndexPath: "articles/example/assets/figure-01.jpg",
+      ankiIndexPath: "articles/example/anki/article.apkg",
+    },
+  ]);
+
+  assert.match(indexHtml, /data-sort-value="added" aria-pressed="true">Date Added<\/button>/i);
+  assert.match(indexHtml, /data-sort-value="published" aria-pressed="false">Date Published<\/button>/i);
+  assert.match(indexHtml, /localStorage\.getItem\(storageKey\)/i);
+  assert.match(indexHtml, /data-date-added="\d+"/i);
+  assert.match(indexHtml, /data-date-published="\d+"/i);
+});
+
 test("figure teaching point ignores not-shown and movie-only sentences", () => {
   const teachingPoint = buildTeachingPoint(
     "Figure 23. Septic arthritis of the right hip in a 62-year-old woman. CT (not shown) showed a pseudoaneurysm within the iliacus muscle. Right internal iliac angiogram shows a large pseudoaneurysm (arrow) supplied by a bleeding branch (arrowhead). Movie 18 illustrates intermittent visualization of the culprit vessel of a large pseudoaneurysm at angiography.",
