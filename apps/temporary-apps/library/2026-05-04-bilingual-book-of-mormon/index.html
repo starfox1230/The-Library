@@ -623,10 +623,37 @@
     }
 
     .vocab-item {
+      position: relative;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 8px 9px;
+      padding: 8px 34px 8px 9px;
       background: var(--field-bg);
+    }
+
+    .vocab-delete {
+      position: absolute;
+      right: 7px;
+      top: 7px;
+      width: 22px;
+      height: 22px;
+      border: 1px solid rgba(220, 38, 38, 0.35);
+      border-radius: 50%;
+      background: rgba(220, 38, 38, 0.1);
+      color: #ef4444;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 900;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .vocab-delete:hover {
+      background: rgba(220, 38, 38, 0.18);
+      border-color: rgba(220, 38, 38, 0.65);
     }
 
     .vocab-word {
@@ -805,6 +832,10 @@
               <button id="viewMoreVocabBtn" class="copy-button" type="button">View more</button>
               <div id="vocabMore" class="vocab-more">
                 <div class="vocab-view-row">
+                  <button class="copy-button" type="button" data-vocab-view="chapter">View this chapter</button>
+                  <button class="copy-button" type="button" data-vocab-copy="chapter">Copy</button>
+                </div>
+                <div class="vocab-view-row">
                   <button class="copy-button" type="button" data-vocab-view="all">View all</button>
                   <button class="copy-button" type="button" data-vocab-copy="all">Copy</button>
                 </div>
@@ -862,6 +893,7 @@
       chapter: 1,
       focusedVerse: 1,
       pickerBook: "1 Nephi",
+      pickerChapter: 1,
       verseLanguages: {},
       vocab: [],
       selectedText: "",
@@ -982,7 +1014,7 @@
       const book = state.data.books.find(item => item.name === state.pickerBook);
       els.chapterList.innerHTML = Array.from({ length: book.chapters }, (_, index) => {
         const chapter = index + 1;
-        const active = book.name === state.book && chapter === state.chapter;
+        const active = chapter === state.pickerChapter;
         return `<button class="chapter-option ${active ? "active" : ""}" type="button" data-book="${escapeHtml(book.name)}" data-chapter="${chapter}">${chapter}</button>`;
       }).join("");
     }
@@ -1032,12 +1064,16 @@
       const items = vocabItemsForScope(state.vocabView);
       els.vocabViewTitle.textContent = `${labels[state.vocabView]} (${items.length})`;
       els.vocabList.innerHTML = items.length
-        ? items.slice().reverse().map(item => `
-            <div class="vocab-item">
+        ? items.slice().reverse().map(item => {
+          const originalIndex = state.vocab.indexOf(item);
+          return `
+            <div class="vocab-item" data-vocab-index="${originalIndex}">
+              <button class="vocab-delete" type="button" data-vocab-delete="${originalIndex}" aria-label="Delete vocab item">×</button>
               <div class="vocab-word">${escapeHtml(item.text)}</div>
               <div class="vocab-ref">${escapeHtml(item.reference)} · ${escapeHtml(item.language.toUpperCase())} · ${escapeHtml(item.addedAt.slice(0, 10))}</div>
             </div>
-          `).join("")
+          `;
+        }).join("")
         : `<div class="vocab-empty">No saved vocabulary in this view.</div>`;
     }
 
@@ -1086,6 +1122,7 @@
       state.chapter = Number(chapter);
       state.focusedVerse = Number(verse);
       state.pickerBook = book;
+      state.pickerChapter = Number(chapter);
       state.verseLanguages = {};
       state.vocabView = "chapter";
       savePosition();
@@ -1122,6 +1159,7 @@
         state.book = saved.book;
         state.chapter = Math.min(Math.max(Number(saved.chapter) || 1, 1), book.chapters);
         state.pickerBook = state.book;
+        state.pickerChapter = state.chapter;
         if (saved.language === "en" || saved.language === "es") state.language = saved.language;
       } catch {}
     }
@@ -1307,8 +1345,8 @@
         const button = event.target.closest("[data-book]");
         if (!button) return;
         state.pickerBook = button.dataset.book;
-        chooseChapter(button.dataset.book, 1, 1, "top");
-        setPickerOpen(true);
+        state.pickerChapter = 1;
+        renderPicker();
       });
       els.chapterList.addEventListener("click", event => {
         const button = event.target.closest("[data-chapter]");
@@ -1439,6 +1477,16 @@
         if (copyButton) {
           copyVocab(copyButton.dataset.vocabCopy);
         }
+      });
+      els.vocabList.addEventListener("click", event => {
+        const deleteButton = event.target.closest("[data-vocab-delete]");
+        if (!deleteButton) return;
+        const index = Number(deleteButton.dataset.vocabDelete);
+        if (!Number.isInteger(index) || !state.vocab[index]) return;
+        state.vocab.splice(index, 1);
+        saveVocab();
+        clearCustomSelection();
+        renderVerses();
       });
       els.recentDaysInput.addEventListener("change", renderVocabList);
     }
