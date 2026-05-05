@@ -11,62 +11,14 @@ APP_DIR = Path(__file__).resolve().parent
 SOURCE_PDF = Path(r"G:/My Drive/0. Radiology/Core Review MSK.pdf")
 ASSET_DIR = APP_DIR / "assets"
 
-TITLE = "MSK Imaging Techniques/Physics/Quality and Safety Quiz"
-APP_ID = "msk-imaging-techniques-quiz-ch1"
+TITLE = "MSK Congenital and Developmental Anomalies and Dysplasias Quiz"
+APP_ID = "msk-congenital-developmental-quiz-ch3"
 
-# Zero-based PDF page indexes. Chapter 1's question and answer sections are
-# split into two blocks before chapter 2 starts.
-QUESTION_RANGES = [range(13, 42), range(50, 55)]
-ANSWER_RANGES = [range(41, 50), range(54, 56)]
+# Zero-based PDF page indexes. Chapter 3's questions 1-22 are followed by an
+# answer section, then questions 23-26 and their answers appear as a short continuation.
+QUESTION_RANGES = [range(78, 104), range(109, 110)]
+ANSWER_RANGES = [range(104, 109), range(110, 111)]
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-HIGHLIGHTED_SELECTED = {
-    "1": "A",
-    "2a": "C",
-    "2b": "A",
-    "2c": "D",
-    "3a": "C",
-    "3b": "C",
-    "3c": "B",
-    "4": "B",
-    "5": "A",
-    "6": "D",
-    "7": "B",
-    "8": "B",
-    "9": "D",
-    "10": "B",
-    "11": "C",
-    "12": "C",
-    "13": "C",
-    "14": "B",
-    "15": "B",
-    "16": "C",
-    "17": "C",
-    "18": "A",
-    "19": "B",
-    "20": "A",
-    "21": "B",
-    "22": "C",
-    "23": "D",
-    "24": "C",
-    "25": "B",
-    "26": "C",
-    "27": "B",
-    "28a": "C",
-    "28b": "B",
-    "29": "A",
-    "30": "C",
-    "31": "C",
-    "32": "D",
-    "33": "C",
-    "34": "B",
-    "35": "A",
-    "36": "A",
-    "37": "A",
-    "38": "A",
-    "39": "A",
-    "40": "B",
-    "41": "A",
-}
 
 
 def clean_text(value: str) -> str:
@@ -92,7 +44,7 @@ def is_noise_line(line: str) -> bool:
         return True
     if line in {"QUESTIONS", "ANSWERS AND EXPLANATIONS"}:
         return True
-    if line in {"1", "Safety", "1 Imaging Techniques/Physics/Qualityand Safety"}:
+    if line in {"3", "Congenital and Developmental", "Spine/Extremity Anomalies and Dysplasias"}:
         return True
     return False
 
@@ -130,7 +82,7 @@ def parse_questions(reader: PdfReader) -> list[dict]:
     for page_range in QUESTION_RANGES:
         for page_index in page_range:
             for line in page_lines(reader, page_index):
-                if "ANSWERS AND EXPLANATIONS" in line:
+                if "ANSWERS AND EXPLANATIONS" in line.upper():
                     flush_question()
                     current = None
                     break
@@ -139,11 +91,11 @@ def parse_questions(reader: PdfReader) -> list[dict]:
                 qmatch = re.match(r"^(\d{1,2}[A-Za-z]?)\s+(.+)$", line)
                 if qmatch and not re.fullmatch(r"\d{1,2}", qmatch.group(2)):
                     qid, stem = qmatch.groups()
-                    if int(re.match(r"\d+", qid).group(0)) > 49:
+                    if int(re.match(r"\d+", qid).group(0)) > 26:
                         if current:
                             current["stem"] += " " + line
                         continue
-                    if qid == "1" and "Imaging Techniques" in stem:
+                    if qid == "3" and "Congenital" in stem:
                         continue
                     flush_question()
                     current = {"number": qid, "stem": stem, "options": [], "images": [], "explanationImages": []}
@@ -216,8 +168,7 @@ def parse_answers(reader: PdfReader, questions: list[dict]) -> None:
 def apply_manual_fixes(questions: list[dict]) -> None:
     for q in questions:
         q["number"] = q["number"].replace("A", "a").replace("B", "b")
-        if q["number"] in {"2a", "3a", "24", "33", "39"} and not q["options"]:
-            q["options"] = [{"letter": letter, "text": f"Image {letter}"} for letter in "ABCD"]
+        pass
 
 
 def write_image(image, filename: str) -> str:
@@ -233,37 +184,31 @@ def extract_images(reader: PdfReader, questions: list[dict]) -> None:
     # Manually checked chapter page ranges. Continuation pages inherit the
     # current or visually associated question when the text layer is sparse.
     question_page_targets = {
-        14: ["2a"],
-        15: ["2c"],
-        16: ["2c"],
-        17: ["3a"],
-        18: ["3a"],
-        20: ["3c"],
-        21: ["4"],
-        22: ["5"],
-        24: ["15"],
-        25: ["17"],
-        26: ["18"],
-        28: ["24"],
-        29: ["28a"],
-        31: ["33"],
-        32: ["35"],
-        33: ["36"],
-        34: ["37"],
-        36: ["38"],
-        37: ["39"],
-        38: ["39"],
-        39: ["39"],
-        40: ["39"],
-        51: ["46"],
-        53: ["49"],
-        54: ["49"],
+        79: ["1"],
+        80: ["1"],
+        81: ["3"],
+        82: ["4"],
+        83: ["5a", "5b"],
+        84: ["5a", "5b", "6"],
+        85: ["6"],
+        87: ["11"],
+        88: ["12"],
+        89: ["13"],
+        90: ["14"],
+        91: ["14"],
+        92: ["15"],
+        93: ["15"],
+        94: ["17"],
+        96: ["18"],
+        97: ["19"],
+        98: ["19"],
+        99: ["19", "20"],
+        100: ["20"],
+        101: ["20"],
+        102: ["22"],
+        103: ["22"],
     }
-    answer_page_targets = {
-        42: ["2c"],
-        46: ["24"],
-        55: ["46"],
-    }
+    answer_page_targets = {}
     by_number = {q["number"]: q for q in questions}
     for page_index, targets in question_page_targets.items():
         for image_index, image in enumerate(reader.pages[page_index].images, start=1):
@@ -287,11 +232,14 @@ def render_html(questions: list[dict]) -> str:
     template = template.replace("Pediatric GI Imaging Quiz", TITLE)
     template = template.replace("Pediatric Gastrointestinal Tract Quiz", TITLE)
     template = template.replace("Nuclear Medicine Musculoskeletal System Quiz", TITLE)
+    template = template.replace("MSK Imaging Techniques/Physics/Quality and Safety Quiz", TITLE)
+    template = template.replace("MSK Normal/Normal Variants Quiz", TITLE)
     template = template.replace("pediatric-imaging-quiz-ch1", APP_ID)
     template = template.replace("pediatric-gi-imaging-quiz-ch1", APP_ID)
     template = template.replace("nuclear-medicine-msk-quiz-ch3-v2", APP_ID)
-    default_data = json.dumps(HIGHLIGHTED_SELECTED, ensure_ascii=False)
-    template = re.sub(r"const DEFAULT_SELECTED = \{.*?\};", f"const DEFAULT_SELECTED = {default_data};", template)
+    template = template.replace("msk-imaging-techniques-quiz-ch1", APP_ID)
+    template = template.replace("msk-normal-variants-quiz-ch2", APP_ID)
+    template = re.sub(r"const DEFAULT_SELECTED = \{.*?\};", "const DEFAULT_SELECTED = {};", template)
     return template
 
 

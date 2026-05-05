@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MSK Congenital and Developmental Anomalies and Dysplasias Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>MSK Congenital and Developmental Anomalies and Dysplasias Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"msk-congenital-developmental-quiz-ch3",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "A 4-year-old male presented to the emergency room with pain. These radiographs were obtained and preliminarily reported as fracture. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Freiberg infraction"}, {"letter": "B", "text": "Insufficiency fracture"}, {"letter": "C", "text": "Kohler disease"}, {"letter": "D", "text": "Lisfranc injury"}], "images": ["assets/q1_p080_01.jpg", "assets/q1_p081_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Kohler disease is an osteochondrosis of the navicular of the foot. Similarly, Freiberg infraction is an osteochondrosis of the second metatarsal head. Patients with Kohler disease usually present at a young age with pain and swelling. Males are more commonly affected than females. Radiographs demonstrate a sclerotic, flattened, and fragmented navicular. No evidence of an insufficiency fracture or Lisfranc injury is noted.\n\nReferences: Berquist T. Musculoskeletal Imaging Companion. 2nd ed. Philadelphia, PA: Lippincott Williams & Wilkins; 2007:435. Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:1067."}, {"number": "2", "stem": "What is the most common carpal coalition?", "options": [{"letter": "A", "text": "Scapholunate"}, {"letter": "B", "text": "Scapho-trapezio-trapezoidal"}, {"letter": "C", "text": "Lunotriquetral"}, {"letter": "D", "text": "Capitate-hamate"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Lunotriquetral carpal coalition is a common anatomic variant, present in roughly 0.1% of the population.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:553. Timins ME. Osseous anatomic variants of the wrist: findings on MR imaging. AJR Am J Roentgenol. 1999;173(2):339-344."}, {"number": "3", "stem": "Which one of the following clinical manifestations is associated with the syndrome depicted by the CT and radiograph below?", "options": [{"letter": "A", "text": "Ataxia"}, {"letter": "B", "text": "Nail changes"}, {"letter": "C", "text": "Hypertension"}, {"letter": "D", "text": "Arrhythmias"}], "images": ["assets/q3_p082_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The classic syndrome depicted by the CT and radiograph is nail-patella syndrome. This autosomal dominant disorder has a clinical tetrad that includes the development of iliac horns, in conjunction with involvement of the nails, patella, and elbows. The iliac horns are pathognomonic for this condition; however, the nail changes are the most frequently encountered finding. The nail changes can be variable, and nails may be absent, hypoplastic, or dystrophic. The patella may be hypoplastic, misshapen, or absent. The typical elbow findings include a dysplastic radial head, hypoplastic capitellum and lateral epicondyle, and a prominent medial epicondyle.\n\nReferences: Guidera KJ, Satterwhite Y, Ogden JA, et al. Nail patella syndrome: a review of 44 orthopaedic patients. J Pediatr Orthop. 1991;11:737-742. Sweeney E, Fryer A, Mountford R, et al. Nail patella syndrome: a review of the phenotype aided by developmental biology. J Med Genet. 2003;40:153-162. Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:788-789."}, {"number": "4", "stem": "The radiograph demonstrates what wrist abnormality?", "options": [{"letter": "A", "text": "Scapholunate advanced collapse (SLAC wrist)"}, {"letter": "B", "text": "Kienbock disease"}, {"letter": "C", "text": "Perilunate dislocation"}, {"letter": "D", "text": "Madelung deformity"}], "images": ["assets/q4_p083_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Images depict a shortened distal radius that demonstrates abnormal ulnar tilt of its distal articular surface. Findings are characteristic of the Madelung deformity. Madelung deformity is often idiopathic, but can also be seen in the setting of prior trauma, Turner disease, or skeletal dysplasias such as hereditary multiple exostoses. Scapholunate advanced collapse (SLAC wrist) is a pattern of wrist malalignment characterized by widening of the scapholunate interval, mid carpal collapse, proximal migration of the capitate, and radioscaphoid degenerative changes. Common causes of SLAC wrist include prior trauma or CPPD arthropathy. Kienbock disease describes a condition characterized by osteonecrosis of the lunate.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:710-713."}, {"number": "5a", "stem": "A 30-year-old male presents with the following radiograph. The abnormality most commonly results in which one of the following clinical symptoms?", "options": [{"letter": "A", "text": "Anterior knee pain"}, {"letter": "B", "text": "Lateral knee pain"}, {"letter": "C", "text": "Inability to fully extend the knee"}, {"letter": "D", "text": "Inability to fully flex the knee"}], "images": ["assets/q5a_5b_p084_01.jpg", "assets/q5a_5b_6_p085_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The radiograph demonstrates bilateral, bipartite patellae. Bipartite patella is a congenital/developmental variant, which can be painful, depending on the degree of abnormal motion at the synchondrosis. As seen in this radiograph, the accessory ossicle is usually located in the superolateral patella. Frequently, this abnormality is bilateral, as seen in this patient. Patients most commonly present with anterior knee pain.\n\nReferences: Kavanagh EC, Zoga A, Omar I, et al. MRI findings in bipartite patella. Skeletal Radiol. 2007;36(3):209-214. Keats TE, Anderson MW. Atlas of Normal Roentgen Variants That May Simulate Disease. 8th ed. Philadelphia, PA: Mosby; 2006:756."}, {"number": "5b", "stem": "What is the most common MRI finding in this anomaly?", "options": [{"letter": "A", "text": "Quadriceps tendinosis"}, {"letter": "B", "text": "Patellar tendinosis"}, {"letter": "C", "text": "Hyperintense T2 signal within the bipartite fragment"}, {"letter": "D", "text": "Nonenhancement of the bipartite fragment suggesting devitalized bone"}], "images": ["assets/q5a_5b_p084_01.jpg", "assets/q5a_5b_6_p085_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. In a study of patients with anterior knee pain, the most common MRI finding was that of bone edema, hyperintense signal on T2-weighted fat-saturated images, in the bipartite fragment. Sixty-six percent of patients had bone edema, and in 49% of patients, bone edema in the bipartite fragment was the only abnormal MRI finding.\n\nReferences: Kavanagh EC, Zoga A, Omar I, et al. MRI findings in bipartite patella. Skeletal Radiol. 2007;36(3):209-214."}, {"number": "6", "stem": "A 21-year-old male presents with back pain. Which of the following is correctly associated with the diagnosis depicted by the image below?", "options": [{"letter": "A", "text": "Disk space widening"}, {"letter": "B", "text": "Anterior wedging of at least four consecutive vertebral bodies"}, {"letter": "C", "text": "Decreased AP diameter of the vertebral bodies"}, {"letter": "D", "text": "Schmorl nodes"}], "images": ["assets/q5a_5b_6_p085_01.jpg", "assets/q6_p086_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The image demonstrates the classic findings of Scheuermann disease. These findings include decreased disk space heights, increased AP diameter of the involved vertebral bodies, anterior wedging of at least 5 degrees involving three or more consecutive vertebral bodies, and Schmorl nodes. A Schmorl node most commonly results from intraosseous disk herniation through a weakened vertebral endplate.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:504-506."}, {"number": "7", "stem": "Plexiform neurofibromas are most commonly seen in which of the following syndromes?", "options": [{"letter": "A", "text": "Neurofibromatosis type 1"}, {"letter": "B", "text": "Neurofibromatosis type 2"}, {"letter": "C", "text": "Sturge-Weber"}, {"letter": "D", "text": "Tuberous sclerosis"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Plexiform neurofibromas would be most typical of neurofibromatosis type 1. Neurofibromatosis type 2 is characterized by multiple meningiomas, schwannomas, and ependymomas, but rarely true neurofibromas. Sturge-Weber and tuberous sclerosis are both neurocutaneous syndromes, but are not associated with neurofibromas.\n\nReferences: Korf BR. Plexiform neurofibromas. Am J Med Genet. 1999;89(1):31-37. Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:696-701."}, {"number": "8", "stem": "Which of the following patella findings are frequently encountered in patients with cerebral palsy?", "options": [{"letter": "A", "text": "Patella alta"}, {"letter": "B", "text": "Medial subluxation"}, {"letter": "C", "text": "Fragmentation of the superior pole"}, {"letter": "D", "text": "Widened patella"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Patella alta is frequently encountered in cerebral palsy patients. These patients may have flexion deformities due to hamstring contractures, resulting in patella alta. Additionally, they may have an elongated patella, fragmentation of the inferior pole, and a C-shaped patella on the lateral view, which may result in chondromalacia patellae.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:692."}, {"number": "9", "stem": "Glenoid hypoplasia most commonly is seen in which quadrant of the glenoid?", "options": [{"letter": "A", "text": "Anterior superior"}, {"letter": "B", "text": "Posterior superior"}, {"letter": "C", "text": "Anterior inferior"}, {"letter": "D", "text": "Posterior inferior"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Glenoid hypoplasia is a congenital abnormality resulting in dysplasia of the posterior inferior glenoid, seen as an irregular, shallow, or smooth glenoid surface. It may be bilateral. It can lead to posterior subluxation of the humeral head. Labral abnormalities are commonly associated with glenoid hypoplasia. Approximately one-third of patients will have multidirectional shoulder instability.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:709."}, {"number": "10", "stem": "Ulnar negative variance is associated with which of the following?", "options": [{"letter": "A", "text": "Ulnocarpal abutment"}, {"letter": "B", "text": "Lunate malacia"}, {"letter": "C", "text": "SLAC wrist"}, {"letter": "D", "text": "TFCC tear"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Negative ulnar variance is associated with lunate malacia, also described as lunate avascular necrosis (AVN) or Kienbock disease. Positive ulnar variance is associated with ulnocarpal abutment and TFCC (triangular fibrocartilage complex) tears. Ulnar variance is not directly related to SLAC (scapholunate advanced collapse) wrist.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:714-717."}, {"number": "11", "stem": "Which of the following would be included in the differential diagnosis for the findings noted in the image below?", "options": [{"letter": "A", "text": "Congenital insensitivity to pain"}, {"letter": "B", "text": "Hypoparathyroidism"}, {"letter": "C", "text": "Hyperthyroidism"}, {"letter": "D", "text": "Osteoarthrosis"}], "images": ["assets/q11_p088_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The image demonstrates acroosteolysis of multiple distal phalanges bilaterally. The differential for acroosteolysis includes resorptive, vascular, traumatic, inflammatory, infectious, and congenital etiologies. The resorptive causes include hyperparathyroidism and progressive systemic sclerosis. The vascular causes include frostbite, vasculitis, diabetes, meningococcemia, and amniotic band syndrome. The traumatic etiologies include burns, congenital insensitivity to pain, and occupational issues such as those seen in polyvinylchloride (PVC) workers and guitar players. The inflammatory causes include psoriatic arthritis and multicentric reticulohistiocytosis. Infectious causes include leprosy. Congenital etiologies include pycnodysostosis, Hajdu-Cheney syndrome, and Lesch-Nyhan syndrome.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:820-823."}, {"number": "12", "stem": "A 69-year-old female presents with neck pain and limited mobility. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Juvenile idiopathic arthritis"}, {"letter": "B", "text": "Sprengel deformity"}, {"letter": "C", "text": "Klippel-Feil syndrome"}, {"letter": "D", "text": "Prior surgical fusion"}], "images": ["assets/q12_p089_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The image depicts Klippel-Feil syndrome, which is failure of cervical segmentation at multiple levels. This is often associated with a short neck and a low hairline. These patients have limited cervical motion as well as an increased risk for renal, spinal cord, and inner, middle, and outer-ear abnormalities. This syndrome can be differentiated from surgical fusion by the narrow AP dimension of the vertebral bodies, as is seen in the lower cervical spine in this case. Juvenile idiopathic arthritis, which has a similar appearance, typically involves more levels. Sprengel deformity is seen in one-third of patients with Klippel-Feil syndrome and is tethering of the scapula to the cervical spine by a fibrous band, resulting in a high position of the scapula.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:509-510."}, {"number": "13", "stem": "A patient presents with chronic elbow pain. How is congenital dislocation of the radial head distinguished from a prior traumatic radial head dislocation?", "options": [{"letter": "A", "text": "The trochlea is dysplastic with congenital dislocation of the radial head."}, {"letter": "B", "text": "There is a fracture line in the radial head with congenital dislocation of the radial head."}, {"letter": "C", "text": "There is a persistent effusion associated with congenital dislocation of the radial head."}, {"letter": "D", "text": "The radial head is overgrown and dysplastic in congenital dislocation of the radial head."}], "images": ["assets/q13_p090_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The images demonstrate a case of congenital dislocation of the radial head. This entity can be distinguished from a postnatal dislocation of the radial head by overgrowth and dysplasia of the radial head. There may also be a dysplastic configuration of the capitellum.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:99-104."}, {"number": "14", "stem": "A 10-year-old female presents with the image below. This patient most likely has which type of this disease?", "options": [{"letter": "A", "text": "Type I"}, {"letter": "B", "text": "Type II"}, {"letter": "C", "text": "Type III"}, {"letter": "D", "text": "Type IV"}], "images": ["assets/q14_p091_01.jpg", "assets/q14_p092_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The radiograph is of a 10-year-old female with osteogenesis imperfecta. There are four types. Type I is the least severe and has gracile, thin tubular bones and osteopenia. Type II is the most severe and is typically lethal at the time of or shortly after birth. Type III is the most severe form that survives into childhood and adulthood. It is the most likely form to be radiographed for fractures. In this form the bones are short and thick and often have multiple fractures with hypertrophic callus, the fractures are subject to nonunion or malunion, and the bones may suffer bowing deformities. Type IV is similar to Type I, except Type IV is more likely to have basilar skull impression. Type I is the most common, Type II is the second most common, Type III is the third most common, and finally Type IV is the least common. Osteogenesis imperfecta is the result of a genetic defect in collagen.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:702-707."}, {"number": "15", "stem": "A 78-year-old female presents with wrist pain. What is the most common location for the finding in the ulna?", "options": [{"letter": "A", "text": "Upper extremity"}, {"letter": "B", "text": "Lower extremity"}, {"letter": "C", "text": "Spine"}, {"letter": "D", "text": "Skull"}], "images": ["assets/q15_p093_01.jpg", "assets/q15_p094_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The images of the wrist depict melorheostosis, which has the appearance of dripping candle wax. This is often the result of hyperostosis that is mostly periosteal but may also be endosteal with intramedullary extension. It may also appear as linear intraosseous sclerosis, rounded osteoma-like foci or sclerosis, or less commonly as soft tissue masses. This may occur in a single bone or in multiple bones in an extremity in a sclerotomal distribution. The most common location is the lower extremity. It may rarely occur in the spine, but it typically spares the skull and facial bones.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:790-793."}, {"number": "16", "stem": "A teenage male patient presents with ossification in the proximal patellar tendon adjacent to the inferior pole of the patella on radiographs. This is associated with which of the following diagnoses?", "options": [{"letter": "A", "text": "Osgood-Schlatter disease"}, {"letter": "B", "text": "Patellar sleeve avulsion"}, {"letter": "C", "text": "Sinding-Larsen-Johansson disease"}, {"letter": "D", "text": "Blount disease"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Sinding-Larsen-Johansson disease is a traction tendinitis of the patella tendon located at the inferior pole of the patella. This is seen on radiographs as ossification within the proximal patellar tendon near the inferior pole of the patella. Osgood-Schlatter disease is seen as ossification of the inferior patellar tendon adjacent to the tibial tubercle. Patellar sleeve avulsion is an avulsion injury to the hyaline cartilage of the inferior patella. Blount disease is a disorder of endochondral ossification involving the medial tibial physis of the proximal tibia.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:735."}, {"number": "17", "stem": "What is the primary etiology leading to the entity depicted in this pelvis radiograph?", "options": [{"letter": "A", "text": "Abnormal osteoclast function"}, {"letter": "B", "text": "Abnormal osteoblast function"}, {"letter": "C", "text": "Abnormal calcium distribution"}, {"letter": "D", "text": "Abnormal phosphate distribution"}], "images": ["assets/q17_p095_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The pelvis radiograph depicts osteopetrosis, as noted by the diffusely dense bones. This results from abnormal osteoclast function. The abnormal osteoclasts lead to an imbalance between bone formation and bone resorption. The bone is unable to be remodeled appropriately, and a normal intramedullary space is not created. Bone production is however not impaired. Collectively, this results in a predisposition to fractures at sites of stress and subsequent poor fracture healing. Radiographically, the bones are diffusely and uniformly dense with loss of the normal corticomedullary differentiation. It involves the epiphysis, metaphysis, and diaphysis. There is undertubulation of the metaphysis, often seen in the distal femur. The cranial vault may be diffusely thickened and sclerotic with loss of the diploic space. There may be sclerosis of the skull base. The spine may have a bone within a bone appearance.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:798-803."}, {"number": "18", "stem": "A 38-year-old female presents with back pain. The finding at L4 most likely represents which of the below options?", "options": [{"letter": "A", "text": "Syndesmophyte"}, {"letter": "B", "text": "Compression fracture"}, {"letter": "C", "text": "Gibbus deformity"}, {"letter": "D", "text": "Limbus vertebra"}], "images": ["assets/q18_p097_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The finding at L4 is a limbus vertebra. This typically results from an intraosseous herniation in the growing spine that may separate the ring apophysis from the vertebral body. It is seen on a lateral radiograph as a triangular ossicle, most commonly located at the anterosuperior border of the vertebral body. Limbus vertebra can be confused with vertebral body fractures; however, their characteristic appearance should allow for differentiation from a fracture. A gibbus deformity is an acute kyphosis seen in association with Pott disease, which is related to tuberculosis infection of the spine. Syndesmophytes are thin vertical ossifications in the annulus fibrosis at the discovertebral junction. These are commonly seen in association with ankylosing spondylitis.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:152."}, {"number": "19", "stem": "An 18-month-old presents with scoliosis. Based on the three consecutive sagittal T2-weighted fat- saturation images, what is the most likely cause of scoliosis in this patient?", "options": [{"letter": "A", "text": "Trapezoidal vertebra"}, {"letter": "B", "text": "Neurofibromatosis type 1"}, {"letter": "C", "text": "Idiopathic"}, {"letter": "D", "text": "Hemivertebra"}], "images": ["assets/q19_p098_01.jpg", "assets/q19_p099_01.jpg", "assets/q19_20_p100_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Between L1 and L2 a hemivertebra is noted. Two pedicles are noted on the first two images; however, on the third image there is the appearance of one enlarged vertebral body. This represents the native L2 vertebral body and the hemivertebra adjacent to it without an intervening disk. Only one pedicle was noted on the contralateral side, which is not shown on the provided images.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:500-502."}, {"number": "20", "stem": "A 20-year-old male presents with scoliosis, as noted in the image below. What is the most common cause of scoliosis?", "options": [{"letter": "A", "text": "Idiopathic"}, {"letter": "B", "text": "Trauma"}, {"letter": "C", "text": "Leg length discrepancy"}, {"letter": "D", "text": "Congenital"}], "images": ["assets/q19_20_p100_01.jpg", "assets/q20_p101_01.jpg", "assets/q20_p102_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The most common cause of scoliosis is idiopathic, accounting for approximately 85% of cases. Other causes of scoliosis include leg length discrepancy, congenital, neuromuscular, neurofibromatosis, connective tissue disorders, trauma, tumors, and radiation therapy.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:500-504."}, {"number": "21", "stem": "A 17-year-old female presents with left hip pain resulting from developmental dysplasia of the hip. Which of the following radiographic findings is consistent with developmental dysplasia of the hip?", "options": [{"letter": "A", "text": "Downturning of the lateral acetabular roof"}, {"letter": "B", "text": "Coxa magna"}, {"letter": "C", "text": "Distal displacement of the trochanters"}, {"letter": "D", "text": "Anteversion of the acetabulum"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Coxa magna represents a broadened femoral head with a short and wide femoral neck. This is seen in developmental dysplasia of the hip (DDH). Coxa magna results in femoral shortening, which leads to proximal displacement of both the lesser and greater trochanters. The least severe acetabular change is upturning of the lateral acetabular roof. The most severe acetabular change is lack of formation of the acetabulum with the femoral head forming a pseudoarticulation with the iliac bone. The acetabulum is retroverted in 37% of cases. DDH is bilateral in 20% of cases; therefore, the contralateral hip should be imaged. In infants, imaging of DDH is performed with ultrasound to avoid radiation.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:718-723."}, {"number": "22", "stem": "A 54-year-old male presents with knee pain. How many consecutive sagittal MR images, assuming a 5-mm-thick sagittal section, are required to make the diagnosis noted on the sagittal proton density images below?", "options": [{"letter": "A", "text": "2 or more"}, {"letter": "B", "text": "3 or more"}, {"letter": "C", "text": "4 or more"}, {"letter": "D", "text": "5 or more"}], "images": ["assets/q22_p103_01.jpg", "assets/q22_p103_02.jpg", "assets/q22_p104_01.jpg", "assets/q22_p104_02.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The images of the lateral meniscus demonstrate the bow tie appearance of the lateral meniscus on four consecutive sagittal images. To make the diagnosis of a discoid meniscus, the bow tie appearance should be present on at least three consecutive sagittal images, assuming 5-mm-thick sagittal sections. On coronal images, the diagnosis may be made if the meniscus, from the free edge margin to the periphery of the body of the meniscus, measures >1.4 cm. The presence of a discoid meniscus is important because it may be the source of pain or locking even in the absence of a tear. It also is more likely to tear due to its altered biomechanical properties. It has been estimated that 2.7% of the population may have a discoid meniscus. They are more common in the lateral meniscus but may occur in the medial meniscus, may occur in both the medial and lateral menisci in the same knee, or may be bilateral. They are more frequently found in males.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:199-200. Resnick D, Kang HS, Pretterklieber ML. Internal Derangements of Joints. 2nd ed. Philadelphia, PA: Saunders; 2007:1689-1697."}, {"number": "23", "stem": "Bridging ossification between osseous structures in fibrodysplasia ossificans progressiva typically occurs where initially?", "options": [{"letter": "A", "text": "Pelvis"}, {"letter": "B", "text": "Sternocleidomastoid"}, {"letter": "C", "text": "Shoulder girdle"}, {"letter": "D", "text": "Upper arms"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Fibrodysplasia ossificans progressiva, also known as myositis ossificans progressiva, is a hereditary disorder leading to mature ossification within soft tissues. This causes osseous bridging between osseous structures. The initial site of osseous bridging is typically the sternocleidomastoid followed by the shoulder girdle, upper arms, spine, and pelvis. The pattern of ossification follows that of myositis ossificans in that initially there is a mass with edema distorting the fat planes, followed by ossification over the ensuing weeks and months. The disease is autosomal dominant, and the age of onset is approximately 5 years.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:694."}, {"number": "24", "stem": "A patient presents with enlargement of the second and third digits of the right hand. On radiographs of the right hand, there is osseous overgrowth of the second and third digit, long and broad phalanges, splayed distal tufts, bowing deformity, and enlargement of the soft tissues. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Dermatomyositis"}, {"letter": "B", "text": "Scleroderma"}, {"letter": "C", "text": "Macrodystrophia lipomatosa"}, {"letter": "D", "text": "Leprosy"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Macrodystrophia lipomatosa has been formerly called focal gigantism, nerve territory- oriented macrodactyly, and neural fibrolipoma with macrodactyly. This is most commonly associated with lipomatosis of a nerve, typically the median nerve in the hand or the plantar nerve in the foot. By imaging, the disease presents as enlargement of a single digit or multiple digits, enlargement of the soft tissues, long and broad phalanges, splayed distal tufts, early osteoarthritis, and bowing deformities. In the hand, the second and third digits are most commonly affected. Scleroderma and leprosy would present with acroosteolysis. Scleroderma and dermatomyositis are often associated with soft tissue calcifications.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:438-441."}, {"number": "25", "stem": "Which of the findings below is more commonly seen in primary hypertrophic osteoarthropathy as compared to secondary hypertrophic osteoarthropathy?", "options": [{"letter": "A", "text": "Phalangeal tuft hypertrophy"}, {"letter": "B", "text": "Phalangeal tuft acroosteolysis"}, {"letter": "C", "text": "Phalangeal tuft sparing"}, {"letter": "D", "text": "Phalangeal tuft sclerosis"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Primary hypertrophic osteoarthropathy is also known as pachydermoperiostosis. Primary hypertrophic osteoarthropathy represents approximately 3% of cases of hypertrophic osteoarthropathy while secondary forms make up the remaining 97%. The most common cause of secondary hypertrophic osteoarthropathy is malignancy, accounting for approximately 90% of cases. Involvement of the tufts is not common in either primary or secondary cases; however, when it does occur, acroosteolysis is more commonly associated with primary hypertrophic osteoarthropathy while tuft hypertrophy is more commonly associated with secondary hypertrophic osteoarthropathy.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:164-169."}, {"number": "26", "stem": "Which of the following statements about the movement of an os odontoideum on flexion and extension views is correct?", "options": [{"letter": "A", "text": "It moves with the atlas on flexion but not extension."}, {"letter": "B", "text": "It moves with the axis on flexion but not extension."}, {"letter": "C", "text": "It moves with the atlas on flexion and extension."}, {"letter": "D", "text": "It moves with the axis on flexion and extension."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The os odontoideum is a large ossicle that lies in the space normally occupied by the odontoid process. It is separated from the hypoplastic odontoid by a gap. Its appearance may simulate a fracture. The os odontoideum is fixed to the arch of the atlas and moves with it on flexion and extension views.\n\nReferences: Manaster BJ, May DA, Disler DG. The Requisites: Musculoskeletal Imaging. 4th ed. Philadelphia, PA: Elsevier; 2013:144-145."}];
+    const APP_ID = "msk-congenital-developmental-quiz-ch3";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
