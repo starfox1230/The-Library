@@ -54,6 +54,11 @@
     }
 
     * { box-sizing: border-box; }
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
 
     html, body {
       width: 100%;
@@ -454,9 +459,8 @@
       padding: 18px 20px;
       box-shadow: var(--verse-shadow);
       cursor: pointer;
-      user-select: text;
       transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
-      touch-action: manipulation;
+      touch-action: pan-y;
     }
 
     .verse:hover, .verse.focused {
@@ -517,7 +521,17 @@
     .text {
       font-size: 1.18rem;
       line-height: 1.72;
-      -webkit-touch-callout: none;
+    }
+
+    .word {
+      border-radius: 5px;
+      padding: 0 1px;
+    }
+
+    .word.custom-selected {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 0 0 2px var(--accent-soft);
     }
 
     .translation {
@@ -838,6 +852,7 @@
       selectedReference: "",
       selectedLanguage: "es",
       vocabView: "chapter",
+      customSelection: null,
     };
 
     const els = {
@@ -1018,6 +1033,19 @@
       return escapeHtml(text).replace(new RegExp(`(${pattern})`, "gi"), `<span class="vocab-mark">$1</span>`);
     }
 
+    function renderSelectableText(text, verse, language) {
+      const savedTerms = state.vocab
+        .filter(item => item.book === verse.book && Number(item.chapter) === verse.chapter && item.reference === verse.reference && item.language === language)
+        .map(item => item.text.trim().toLowerCase())
+        .filter(Boolean);
+      return text.split(/(\s+)/).map((part, index) => {
+        if (!part.trim()) return escapeHtml(part);
+        const normalized = part.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").toLowerCase();
+        const isSaved = savedTerms.some(term => normalized && term.includes(normalized));
+        return `<span class="word ${isSaved ? "vocab-mark" : ""}" data-word-index="${index}">${escapeHtml(part)}</span>`;
+      }).join("");
+    }
+
     function renderVerses() {
       const verses = currentVerses();
       els.placeBtn.textContent = `${state.book} ${state.chapter}`;
@@ -1035,7 +1063,7 @@
             aria-label="${escapeHtml(verse.reference)}">
             <button class="verse-toggle" type="button" data-verse-language="${language}" data-language="${language}" aria-label="Toggle verse language"></button>
             <div class="ref">${verse.verse}</div>
-            <div class="text">${highlightVocab(verse[language], verse, language)}</div>
+            <div class="text">${renderSelectableText(verse[language], verse, language)}</div>
           </article>
         `;
       }).join("");
@@ -1111,8 +1139,7 @@
         addedAt: new Date().toISOString(),
       });
       saveVocab();
-      hideSelectionPopover();
-      window.getSelection()?.removeAllRanges();
+      clearCustomSelection();
       renderVerses();
     }
 
@@ -1129,30 +1156,57 @@
       els.selectionPopover.classList.remove("open");
     }
 
-    function showSelectionPopover() {
-      const selection = window.getSelection();
-      const text = selection ? selection.toString().trim() : "";
-      if (!text || !selection.rangeCount) {
-        hideSelectionPopover();
-        return;
-      }
-      const anchorElement = selection.anchorNode?.nodeType === Node.TEXT_NODE
-        ? selection.anchorNode.parentElement
-        : selection.anchorNode;
-      const verse = anchorElement?.closest?.(".verse");
-      if (!verse) {
-        hideSelectionPopover();
-        return;
-      }
-      const verseData = currentVerses().find(item => item.id === verse.dataset.id);
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      state.selectedText = text;
-      state.selectedReference = `${state.book} ${state.chapter}:${verse.dataset.verse}`;
+    function clearCustomSelection() {
+      document.querySelectorAll(".word.custom-selected").forEach(word => word.classList.remove("custom-selected"));
+      state.customSelection = null;
+      state.selectedText = "";
+      hideSelectionPopover();
+    }
+
+    function selectedWordsInRange(verseEl, start, end) {
+      const min = Math.min(start, end);
+      const max = Math.max(start, end);
+      return Array.from(verseEl.querySelectorAll(".word")).filter(word => {
+        const index = Number(word.dataset.wordIndex);
+        return index >= min && index <= max;
+      });
+    }
+
+    function updateCustomSelection(wordEl) {
+      if (!state.customSelection) return;
+      const verseEl = wordEl.closest(".verse");
+      if (!verseEl || verseEl.dataset.id !== state.customSelection.verseId) return;
+      state.customSelection.end = Number(wordEl.dataset.wordIndex);
+      verseEl.querySelectorAll(".word.custom-selected").forEach(word => word.classList.remove("custom-selected"));
+      const selected = selectedWordsInRange(verseEl, state.customSelection.start, state.customSelection.end);
+      selected.forEach(word => word.classList.add("custom-selected"));
+      state.selectedText = selected.map(word => word.textContent).join(" ").replace(/\s+([,.;:!?])/g, "$1").trim();
+    }
+
+    function showCustomSelectionPopover(verseEl) {
+      if (!state.selectedText) return;
+      const verseData = currentVerses().find(item => item.id === verseEl.dataset.id);
+      const selected = Array.from(verseEl.querySelectorAll(".word.custom-selected"));
+      const rect = (selected[0] || verseEl).getBoundingClientRect();
+      state.selectedReference = `${state.book} ${state.chapter}:${verseEl.dataset.verse}`;
       state.selectedLanguage = verseData ? verseLanguage(verseData) : state.language;
-      els.selectionPopover.style.left = `${Math.min(rect.left, window.innerWidth - 150)}px`;
+      els.selectionPopover.style.left = `${Math.min(Math.max(8, rect.left), window.innerWidth - 150)}px`;
       els.selectionPopover.style.top = `${Math.max(8, rect.top - 50)}px`;
       els.selectionPopover.classList.add("open");
+    }
+
+    function beginCustomSelection(wordEl, pointerId) {
+      const verseEl = wordEl.closest(".verse");
+      if (!verseEl) return;
+      clearCustomSelection();
+      state.customSelection = {
+        verseId: verseEl.dataset.id,
+        pointerId,
+        start: Number(wordEl.dataset.wordIndex),
+        end: Number(wordEl.dataset.wordIndex),
+      };
+      wordEl.setPointerCapture?.(pointerId);
+      updateCustomSelection(wordEl);
     }
 
     // Preserved for later: chapter-scoped search/filtering can be reintroduced without rebuilding the data model.
@@ -1231,9 +1285,34 @@
         localStorage.setItem("bofmReaderLastVerse", String(state.focusedVerse));
         renderVerses();
       });
-      document.addEventListener("selectionchange", () => {
-        clearTimeout(window.__bofmSelectionTimer);
-        window.__bofmSelectionTimer = setTimeout(showSelectionPopover, 180);
+
+      document.addEventListener("selectstart", event => event.preventDefault());
+      document.addEventListener("contextmenu", event => {
+        if (event.target.closest(".text")) event.preventDefault();
+      });
+      els.verseList.addEventListener("pointerdown", event => {
+        const word = event.target.closest(".word");
+        if (!word) {
+          if (!event.target.closest(".selection-popover")) clearCustomSelection();
+          return;
+        }
+        event.preventDefault();
+        clearTimeout(window.__bofmLongPressTimer);
+        window.__bofmLongPressTimer = setTimeout(() => beginCustomSelection(word, event.pointerId), 320);
+      });
+      els.verseList.addEventListener("pointermove", event => {
+        if (!state.customSelection) return;
+        const target = document.elementFromPoint(event.clientX, event.clientY);
+        const word = target?.closest?.(".word");
+        if (word) updateCustomSelection(word);
+      });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(type => {
+        els.verseList.addEventListener(type, event => {
+          clearTimeout(window.__bofmLongPressTimer);
+          if (!state.customSelection) return;
+          const verseEl = document.querySelector(`.verse[data-id="${state.customSelection.verseId}"]`);
+          if (verseEl) showCustomSelectionPopover(verseEl);
+        });
       });
       els.addVocabBtn.addEventListener("click", addSelectedVocab);
       els.copyCurrentVocabBtn.addEventListener("click", () => copyVocab(state.vocabView));
