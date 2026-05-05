@@ -529,21 +529,21 @@
     }
 
     .word {
-      border-radius: 5px;
-      padding: 0 2px;
+      border-radius: 0;
+      padding: 0 1px;
     }
 
     .word.custom-selected,
     .word-space.custom-selected {
       background: var(--accent);
       color: white;
-      box-shadow: 0 0 0 2px var(--accent-soft);
+      box-shadow: none;
     }
 
     .word-space {
       white-space: pre-wrap;
-      border-radius: 3px;
-      padding: 0 1px;
+      border-radius: 0;
+      padding: 0;
     }
 
     .translation {
@@ -688,8 +688,12 @@
       background: var(--vocab-bg);
       color: var(--vocab-ink);
       box-shadow: inset 0 -2px 0 var(--vocab-line);
-      border-radius: 5px;
-      padding: 0 2px;
+      border-radius: 0;
+      padding: 0 1px;
+    }
+
+    .word-space.vocab-mark {
+      padding: 0;
     }
 
     @media (max-width: 840px) {
@@ -867,6 +871,7 @@
       customSelection: null,
       selectionScrollY: 0,
       selectionMode: "add",
+      selectedRange: null,
     };
 
     const els = {
@@ -1036,26 +1041,18 @@
         : `<div class="vocab-empty">No saved vocabulary in this view.</div>`;
     }
 
-    function highlightVocab(text, verse, language) {
-      const terms = state.vocab
-        .filter(item => item.book === verse.book && Number(item.chapter) === verse.chapter && item.reference === verse.reference && item.language === language)
-        .map(item => item.text.trim())
-        .filter(Boolean)
-        .sort((a, b) => b.length - a.length);
-      if (!terms.length) return escapeHtml(text);
-      const pattern = terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-      return escapeHtml(text).replace(new RegExp(`(${pattern})`, "gi"), `<span class="vocab-mark">$1</span>`);
-    }
-
     function renderSelectableText(text, verse, language) {
-      const savedTerms = state.vocab
-        .filter(item => item.book === verse.book && Number(item.chapter) === verse.chapter && item.reference === verse.reference && item.language === language)
-        .map(item => item.text.trim().toLowerCase())
-        .filter(Boolean);
+      const savedRanges = state.vocab.filter(item =>
+        item.book === verse.book &&
+        Number(item.chapter) === verse.chapter &&
+        item.reference === verse.reference &&
+        item.language === language &&
+        item.startIndex !== undefined &&
+        item.endIndex !== undefined
+      );
       return text.split(/(\s+)/).map((part, index) => {
-        if (!part.trim()) return `<span class="word-space" data-word-index="${index}">${escapeHtml(part)}</span>`;
-        const normalized = part.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").toLowerCase();
-        const isSaved = savedTerms.some(term => normalized && term.includes(normalized));
+        const isSaved = savedRanges.some(item => index >= Number(item.startIndex) && index <= Number(item.endIndex));
+        if (!part.trim()) return `<span class="word-space ${isSaved ? "vocab-mark" : ""}" data-word-index="${index}">${escapeHtml(part)}</span>`;
         return `<span class="word ${isSaved ? "vocab-mark" : ""}" data-word-index="${index}">${escapeHtml(part)}</span>`;
       }).join("");
     }
@@ -1146,7 +1143,10 @@
       return state.vocab.findIndex(item =>
         item.text.trim().toLowerCase() === text &&
         item.reference === state.selectedReference &&
-        item.language === state.selectedLanguage
+        item.language === state.selectedLanguage &&
+        (state.selectedRange
+          ? Number(item.startIndex) === state.selectedRange.start && Number(item.endIndex) === state.selectedRange.end
+          : true)
       );
     }
 
@@ -1167,6 +1167,8 @@
         book: state.book,
         chapter: state.chapter,
         language: state.selectedLanguage,
+        startIndex: state.selectedRange?.start,
+        endIndex: state.selectedRange?.end,
         addedAt: new Date().toISOString(),
       });
       saveVocab();
@@ -1191,6 +1193,7 @@
       document.querySelectorAll(".custom-selected").forEach(word => word.classList.remove("custom-selected"));
       state.customSelection = null;
       state.selectedText = "";
+      state.selectedRange = null;
       state.selectionMode = "add";
       document.body.classList.remove("selection-active");
       hideSelectionPopover();
@@ -1214,12 +1217,19 @@
       const selected = selectedWordsInRange(verseEl, state.customSelection.start, state.customSelection.end);
       selected.forEach(word => word.classList.add("custom-selected"));
       state.selectedText = selected.map(word => word.textContent).join("").replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();
+      state.selectedRange = {
+        start: Math.min(state.customSelection.start, state.customSelection.end),
+        end: Math.max(state.customSelection.start, state.customSelection.end),
+      };
     }
 
     function showCustomSelectionPopover(verseEl) {
-      if (!state.selectedText) return;
-      const verseData = currentVerses().find(item => item.id === verseEl.dataset.id);
       const selected = Array.from(verseEl.querySelectorAll(".custom-selected"));
+      if (!state.selectedText || !selected.length) {
+        clearCustomSelection();
+        return;
+      }
+      const verseData = currentVerses().find(item => item.id === verseEl.dataset.id);
       const firstRect = (selected[0] || verseEl).getBoundingClientRect();
       state.selectedReference = `${state.book} ${state.chapter}:${verseEl.dataset.verse}`;
       state.selectedLanguage = verseData ? verseLanguage(verseData) : state.language;
@@ -1232,6 +1242,23 @@
       els.selectionPopover.style.left = `${left}px`;
       els.selectionPopover.style.top = `${top}px`;
       els.selectionPopover.classList.add("open");
+    }
+
+    function showSavedVocabPopover(targetEl, verseEl, item) {
+      clearCustomSelection();
+      state.selectedText = item.text;
+      state.selectedReference = item.reference;
+      state.selectedLanguage = item.language;
+      state.selectedRange = { start: Number(item.startIndex), end: Number(item.endIndex) };
+      state.selectionMode = "remove";
+      const selected = selectedWordsInRange(verseEl, state.selectedRange.start, state.selectedRange.end);
+      selected.forEach(word => word.classList.add("custom-selected"));
+      els.addVocabBtn.textContent = "Remove from vocab";
+      els.selectionPopover.classList.add("open");
+      const rect = targetEl.getBoundingClientRect();
+      const popoverRect = els.selectionPopover.getBoundingClientRect();
+      els.selectionPopover.style.left = `${Math.min(Math.max(8, rect.left), window.innerWidth - popoverRect.width - 8)}px`;
+      els.selectionPopover.style.top = `${Math.max(8, rect.top - popoverRect.height - 12)}px`;
     }
 
     function beginCustomSelection(wordEl, pointerId) {
@@ -1320,6 +1347,24 @@
           renderVerses();
           return;
         }
+        const savedWord = event.target.closest(".vocab-mark");
+        if (savedWord) {
+          const verse = savedWord.closest(".verse");
+          const verseData = currentVerses().find(item => item.id === verse.dataset.id);
+          const language = verseData ? verseLanguage(verseData) : state.language;
+          const index = Number(savedWord.dataset.wordIndex);
+          const item = state.vocab.find(vocab =>
+            vocab.reference === `${state.book} ${state.chapter}:${verse.dataset.verse}` &&
+            vocab.language === language &&
+            vocab.startIndex !== undefined &&
+            index >= Number(vocab.startIndex) &&
+            index <= Number(vocab.endIndex)
+          );
+          if (item) {
+            showSavedVocabPopover(savedWord, verse, item);
+            return;
+          }
+        }
         const verse = event.target.closest(".verse");
         if (!verse) return;
         state.focusedVerse = Number(verse.dataset.verse);
@@ -1335,6 +1380,7 @@
         if (state.customSelection) event.preventDefault();
       }, { passive: false });
       els.verseList.addEventListener("pointerdown", event => {
+        if (event.target.closest(".vocab-mark")) return;
         const word = event.target.closest(".word");
         if (!word) {
           if (!event.target.closest(".selection-popover")) clearCustomSelection();
