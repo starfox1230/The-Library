@@ -175,12 +175,23 @@ class DrawOnImageDialog(QDialog):
     def __init__(self, image_path: Path, parent=None) -> None:
         super().__init__(parent or mw)
         self.setWindowTitle("Draw on Image")
+        self.setWindowState(self.windowState() | Qt.WindowState.WindowFullScreen)
         image = QImage(str(image_path))
         if image.isNull():
             raise RuntimeError("Anki Pocket Knife could not open that image.")
         self.canvas = DrawingCanvas(image, self)
         self._build_ui()
-        self.showMaximized()
+        self._fill_available_screen()
+
+    def _fill_available_screen(self) -> None:
+        screen = None
+        window_handle = self.windowHandle()
+        if window_handle is not None:
+            screen = window_handle.screen()
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
+        if screen is not None:
+            self.setGeometry(screen.availableGeometry())
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -316,8 +327,10 @@ document.addEventListener("contextmenu", (event) => {
   menu.id = "pocket-knife-draw-image-menu";
   menu.textContent = "Draw on Image";
   menu.style.position = "fixed";
-  menu.style.left = `${Math.min(event.clientX + 8, window.innerWidth - 180)}px`;
-  menu.style.top = `${Math.min(event.clientY + 8, window.innerHeight - 44)}px`;
+  const menuWidth = 160;
+  const menuHeight = 38;
+  menu.style.left = `${Math.max(0, Math.min(event.clientX, window.innerWidth - menuWidth))}px`;
+  menu.style.top = `${Math.max(0, event.clientY - menuHeight - 8)}px`;
   menu.style.zIndex = "2147483647";
   menu.style.padding = "8px 12px";
   menu.style.border = "1px solid rgba(0,0,0,.22)";
