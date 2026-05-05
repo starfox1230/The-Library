@@ -16,6 +16,7 @@ from aqt.qt import (
     QImage,
     QLabel,
     QPainter,
+    QPainterPath,
     QPen,
     QPixmap,
     QPushButton,
@@ -107,7 +108,10 @@ class DrawingCanvas(QWidget):
         self.image = image.convertToFormat(QImage.Format.Format_ARGB32)
         self.pen_color = QColor(DEFAULT_COLOR)
         self.pen_size = 8
-        self._last_point = None
+        self._current_path: QPainterPath | None = None
+        self._current_points: list[tuple[int, int]] = []
+        self._undo_stack: list[QImage] = []
+        self._redo_stack: list[QImage] = []
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(320, 240)
 
@@ -140,35 +144,106 @@ class DrawingCanvas(QWidget):
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.fillRect(self.rect(), QColor("#111111"))
         pixmap = QPixmap.fromImage(self.image)
         left, top, width, height = self._image_rect()
         painter.drawPixmap(left, top, width, height, pixmap)
+        if self._current_path is not None:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.translate(left, top)
+            scale_x = width / max(1, self.image.width())
+            scale_y = height / max(1, self.image.height())
+            painter.scale(scale_x, scale_y)
+            painter.setPen(self._pen())
+            painter.drawPath(self._current_path)
+
+    def _pen(self) -> QPen:
+        return QPen(
+            self.pen_color,
+            self.pen_size,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap,
+            Qt.PenJoinStyle.RoundJoin,
+        )
+
+    def _push_undo_snapshot(self) -> None:
+        self._undo_stack.append(self.image.copy())
+        if len(self._undo_stack) > 80:
+            self._undo_stack.pop(0)
+        self._redo_stack.clear()
+
+    def undo(self) -> None:
+        if not self._undo_stack:
+            return
+        self._redo_stack.append(self.image.copy())
+        self.image = self._undo_stack.pop()
+        self._current_path = None
+        self._current_points = []
+        self.update()
+
+    def redo(self) -> None:
+        if not self._redo_stack:
+            return
+        self._undo_stack.append(self.image.copy())
+        self.image = self._redo_stack.pop()
+        self._current_path = None
+        self._current_points = []
+        self.update()
+
+    def _smooth_path(self, points: list[tuple[int, int]]) -> QPainterPath:
+        path = QPainterPath()
+        if not points:
+            return path
+        path.moveTo(points[0][0], points[0][1])
+        if len(points) == 1:
+            path.lineTo(points[0][0] + 0.1, points[0][1] + 0.1)
+            return path
+        for index in range(1, len(points)):
+            previous = points[index - 1]
+            current = points[index]
+            mid_x = (previous[0] + current[0]) / 2
+            mid_y = (previous[1] + current[1]) / 2
+            path.quadTo(previous[0], previous[1], mid_x, mid_y)
+        path.lineTo(points[-1][0], points[-1][1])
+        return path
+
+    def _commit_current_path(self) -> None:
+        if self._current_path is None:
+            return
+        painter = QPainter(self.image)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.setPen(self._pen())
+        painter.drawPath(self._current_path)
+        painter.end()
+        self._current_path = None
+        self._current_points = []
+        self.update()
 
     def mousePressEvent(self, event) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        self._last_point = self._image_point(event.position().toPoint())
+        point = self._image_point(event.position().toPoint())
+        if point is None:
+            return
+        self._push_undo_snapshot()
+        self._current_points = [point]
+        self._current_path = self._smooth_path(self._current_points)
+        self.update()
 
     def mouseMoveEvent(self, event) -> None:
         if not (event.buttons() & Qt.MouseButton.LeftButton):
             return
         current = self._image_point(event.position().toPoint())
-        if current is None or self._last_point is None:
-            self._last_point = current
+        if current is None or self._current_path is None:
             return
-
-        painter = QPainter(self.image)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        pen = QPen(self.pen_color, self.pen_size, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-        painter.setPen(pen)
-        painter.drawLine(self._last_point[0], self._last_point[1], current[0], current[1])
-        painter.end()
-        self._last_point = current
+        self._current_points.append(current)
+        self._current_path = self._smooth_path(self._current_points)
         self.update()
 
     def mouseReleaseEvent(self, _event) -> None:
-        self._last_point = None
+        self._commit_current_path()
 
 
 class DrawOnImageDialog(QDialog):
@@ -245,6 +320,32 @@ class DrawOnImageDialog(QDialog):
             raise RuntimeError("The system clipboard is not available.")
         clipboard.setImage(self.canvas.image)
 
+    def copy_to_clipboard_and_close(self) -> None:
+        self.copy_to_clipboard()
+        self.accept()
+
+    def keyPressEvent(self, event) -> None:
+        key = event.key()
+        modifiers = event.modifiers()
+        ctrl = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        shift = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+        if ctrl and key == Qt.Key.Key_Z:
+            if shift:
+                self.canvas.redo()
+            else:
+                self.canvas.undo()
+            event.accept()
+            return
+        if ctrl and key == Qt.Key.Key_Y:
+            self.canvas.redo()
+            event.accept()
+            return
+        if ctrl and key == Qt.Key.Key_C:
+            self.copy_to_clipboard_and_close()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
 
 def _eval_editor_js(editor: Editor, body: str) -> None:
     web = getattr(editor, "web", None)
@@ -276,7 +377,7 @@ def _sync_editor_js(editor: Editor) -> None:
 def _build_editor_script() -> str:
     return r"""
 const globalKey = "__ankiPocketKnifeDrawOnImage";
-const state = window[globalKey] || (window[globalKey] = { targets: new Map(), nextId: 1 });
+const state = window[globalKey] || (window[globalKey] = { targets: new Map(), nextId: 1, lastImage: null });
 
 function removeMenu() {
   const existing = document.getElementById("pocket-knife-draw-image-menu");
@@ -302,11 +403,34 @@ function imageFromEvent(event) {
       }
     }
   }
+  if (state.lastImage && state.lastImage.isConnected) {
+    return state.lastImage;
+  }
   return null;
+}
+
+function rememberImage(event) {
+  const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+  for (const node of path) {
+    if (node instanceof HTMLImageElement) {
+      state.lastImage = node;
+      return;
+    }
+    if (node instanceof Element) {
+      const image = node.closest("img");
+      if (image) {
+        state.lastImage = image;
+        return;
+      }
+    }
+  }
 }
 
 document.addEventListener("click", removeMenu, true);
 document.addEventListener("scroll", removeMenu, true);
+document.addEventListener("pointerdown", rememberImage, true);
+document.addEventListener("mousedown", rememberImage, true);
+document.addEventListener("mouseover", rememberImage, true);
 
 document.addEventListener("contextmenu", (event) => {
   const image = imageFromEvent(event);
