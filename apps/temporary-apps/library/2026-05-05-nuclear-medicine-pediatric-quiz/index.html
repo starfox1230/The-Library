@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuclear Medicine Pediatric Nuclear Medicine Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Nuclear Medicine Pediatric Nuclear Medicine Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"nuclear-medicine-pediatric-quiz-ch10",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1a", "stem": "The following renal scintigraphy was performed on a 7-year-old patient with fever. What radiopharmaceutical was used for this examination?", "options": [{"letter": "A", "text": "Tc-99m DMSA"}, {"letter": "B", "text": "Tc-99m DTPA"}, {"letter": "C", "text": "Tc-99m MAG3"}, {"letter": "D", "text": "I-123 hippuran"}], "images": ["assets/q1a_p362_01.jpg"], "explanationImages": ["assets/a1a_p371_01.jpg"], "answer": "A", "explanation": "Answer A. Tc-99m DMSA (dimercaptosuccinic acid) is commonly used to detect acute pyelonephritis and renal scarring due to vesicoureteral reflux or pyelonephritis in the pediatric population. Approximately 40% of the injected radiopharmaceutical binds to the sulfhydryl groups of the proximal renal tubules and remains there, thus allowing for high-count renal cortical imaging. MAG3 (mercaptoacetyltriglycine) is a tubular-secreting agent; it is the most commonly used radiopharmaceutical for the evaluation of renal flow and function. DTPA (diethylenetriaminepentaacetic acid) is a glomerular filtration agent, which can be used to calculate the glomerular filtration rate (GFR); while DTPA can also be used to examine the renal flow and function, it has poor image quality compared to MAG3 due to significantly higher background activity and slower renal clearance. I-123 hippuran undergoes tubular secretion and glomerular filtration allowing for assessment of renal function. It has been replaced by MAG3.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:306. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:278, 279, 282, 283."}, {"number": "1b", "stem": "What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Severe renal dysfunction"}, {"letter": "B", "text": "Bilateral hydronephrosis"}, {"letter": "C", "text": "Pyelonephritis"}, {"letter": "D", "text": "Wilms tumor"}, {"letter": "E", "text": "Lymphoma"}], "images": ["assets/q1a_p362_01.jpg"], "explanationImages": ["assets/a1b_p372_01.jpg"], "answer": "C", "explanation": "Answer C. Anterior and posterior Tc-99m DMSA planar images demonstrate abnormal renal axis with tissue joining the lower poles of each kidney (arrow) consistent with a horseshoe kidney. Additionally, multiple areas of decreased radiotracer uptake (arrowheads) are identified within the upper and lower pole of the right kidney. In the setting of acute febrile illness, the findings are most compatible with pyelonephritis. In the absence of an acute illness, the cortical findings would be consistent with renal parenchymal scarring. While other lesions would present similarly, they are less likely.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:306. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:278, 279, 282, 283."}, {"number": "2", "stem": "What is an advantage of the contrast voiding cystourethrogram (VCUG) compared to the direct radionuclide cystogram (RNC)?", "options": [{"letter": "A", "text": "Lower radiation"}, {"letter": "B", "text": "Better anatomic detail"}, {"letter": "C", "text": "Greater sensitivity"}, {"letter": "D", "text": "Bladder volume calculation"}], "images": [], "explanationImages": ["assets/a2_p373_01.jpg"], "answer": "B", "explanation": "Answer B. The main advantages of contrast voiding cystourethrogram (VCUG) are superior anatomic detail and more accurate grading of the vesicoureteral reflux (VUR). VCUG is recommended for the initial workup of boys with vesicoureteral reflux to exclude an anatomic cause of the reflux (i.e., posterior urethral valve). The advantages of direct radionuclide cystography (RNC) include greater sensitivity for the detection of reflux, lower radiation, and the ability to calculate the residual bladder volume. RNC allows for continuous imaging of the urinary tract throughout the examination and thus may be more sensitive in the diagnosis of significant VUR. However, due to low anatomic resolution, it is more likely to miss low-grade reflux. While the use of modern grid-controlled variable-rate pulsed fluoroscopy reduces the effective radiation dose by about eightfold compared to the older continuous fluoroscopy units, an effective dose of VCUG performed with this technique is still about ninefold higher than that received during RNC.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:306, 308. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:282, 284-285. Ward VL, Strauss K, Barnewolt C, et al. Pediatric radiation exposure and effective dose reduction during voiding cystourethrography. Radiology 2008;249(3):1002-1009."}, {"number": "3", "stem": "Grade the vesicoureteral reflux based on the following images.", "options": [{"letter": "A", "text": "Mild left, moderate right"}, {"letter": "B", "text": "Moderate left, mild right"}, {"letter": "C", "text": "Severe left, moderate right"}, {"letter": "D", "text": "Moderate left, severe right"}, {"letter": "E", "text": "Mild bilateral"}, {"letter": "F", "text": "Moderate bilateral"}, {"letter": "G", "text": "Severe bilateral"}], "images": ["assets/q3_p363_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Posterior images acquired during the direct radionuclide cystography (RNC) demonstrate reflux of radiopharmaceutical into bilateral renal pelvicalyceal systems. There is dilatation of the right collecting system. Findings represent moderate left-sided and severe right- sided vesicoureteral reflux (VUR). Direct RNC with bladder catheterization is the most commonly used technique for diagnosing reflux. Dynamic posterior imaging is acquired during the bladder filling, during voiding, and after voiding. Grading of VUR is as follows: mild-visualization of the ureters (* in the image below); moderate-visualization of the pelvicalyceal system (# in the image below); and severe-visualization of the pelvicalyceal system with dilated collecting system (## in the image below). Grading is important as renal damage is more likely in severe VUR compared to mild or moderate grades. RNC is the technique of choice for the evaluation and follow-up of the children with UTIs and suspected vesicoureteral reflux. It is also used in screening the siblings of the patients with VUR. Tc-99m sulfur colloid and Tc-99m DTPA are the radiopharmaceuticals most commonly used as they do not get absorbed by the epithelial lining of the bladder or ureters.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:306, 308. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:282, 284-285. Sandler M. Diagnostic nuclear medicine, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2003:1100-1102."}, {"number": "4", "stem": "A 7-year-old male presents with left knee pain and fever for 2 days with negative radiographs. The patient was unable to undergo MR due to cochlear implants. Instead, three-phase bone scintigraphy was performed. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Septic arthritis"}, {"letter": "B", "text": "Osteosarcoma"}, {"letter": "C", "text": "Fracture"}, {"letter": "D", "text": "Osteomyelitis"}], "images": ["assets/q4_p364_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The supplied three-phase images acquired after the IV injection of diphosphonate demonstrate a regional area of increased blood flow to the distal left femur, which further localizes to the distal femoral metaphysis on the blood pool and the delayed images. Findings represent osteomyelitis. While this is the most common appearance of osteomyelitis on bone scintigraphy, it is important to remember that early osteomyelitis in children may present as a cold or photopenic defect of the metaphysis with increased activity in the adjacent diaphysis; this is thought to result from increased intramedullary pressure or thrombosed vessels. Osteomyelitis is a common pediatric problem and frequently involves the highly vascularized metaphysis of fast-growing bones. The distal femur and proximal tibia are the most common locations. Initial radiographs for osteomyelitis are often negative, especially in the first few weeks. MRI is regarded as the optimum imaging modality in the evaluation of infection. However, if there is a concern for multifocal infection, bone scintigraphy can offer an advantage over MRI because whole-body images are routinely included with scintigraphy. If there are contraindications to MR imaging or if sedation may be required for the MRI, then bone scintigraphy should be considered since it offers greater sensitivity than radiograph and can detect changes as early as 24 hours.\n\nReferences: Coley B. Caffey's pediatric diagnostic imaging, 12th ed. Philadelphia, PA: Elsevier Saunders, 2013:1471-1474. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:111-113. Sandler M. Diagnostic nuclear medicine, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2003:1108."}, {"number": "5", "stem": "A 2-year-old girl has a known renal anomaly on ultrasound. Renal scintigraphy was performed to evaluate the renal function. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Calculus"}, {"letter": "B", "text": "Diverticulum"}, {"letter": "C", "text": "Ureterocele"}, {"letter": "D", "text": "Rhabdomyosarcoma"}], "images": ["assets/q5_p365_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The early images demonstrate a rounded area of photopenia within the left side of the bladder (long arrow), which is most compatible with a ureterocele. On more delayed images, a left upper pole moiety (short arrows) with a central area of photopenia (arrowhead) is identified. This is most compatible with a hydronephrotic left upper pole moiety with a moderately impaired renal function. Normal functioning left lower pole moiety is seen without hydronephrosis. Duplex collecting system is also identified on the right side with normal functioning, nondilated upper and lower pole moieties. An ectopic ureterocele is commonly found in the setting of a duplicated system and is almost always associated with the upper pole moiety. Lower pole moiety is typically associated with reflux. As the Weigert-Meyer rule states, the ureter from the upper pole moiety of a completely duplicated collecting system inserts inferior and medial to the normal insertion site of the lower pole moiety in the trigone. In patients with duplication, the MAG3 renogram is typically done to assess the function of the obstructed upper pole moiety. Bladder calculus and rhabdomyosarcoma may also cause a photopenic defect in the bladder but are not associated with renal duplication. A diverticulum would appear as an intense outpouching from the bladder.\n\nReferences: Coley B. Caffey's pediatric diagnostic imaging, 12th ed. Philadelphia, PA: Elsevier Saunders, 2013:1091. Sandler M. Diagnostic nuclear medicine, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2003:1200-1202."}, {"number": "6", "stem": "An 18-month-old patient presents with a high clinical suspicion for child abuse and equivocal findings on the skeletal survey. What site of fracture has the highest specificity for the nonaccidental trauma on bone scintigraphy?", "options": [{"letter": "A", "text": "Skull"}, {"letter": "B", "text": "Scapula"}, {"letter": "C", "text": "Clavicle"}, {"letter": "D", "text": "Long bone diaphysis"}], "images": [], "explanationImages": ["assets/a6_p375_01.jpg"], "answer": "B", "explanation": "Answer B. Shaking injury may result in scapular fractures, which have high specificity for child abuse. Skull, diaphyseal long bone, and clavicle fractures have lower specificity. While skull fractures are seen on the radiographs, they may be difficult to see on the bone scan. Also, subtle fractures along the growth plates are best seen on radiographs owing to the intense physiologic physeal uptake on the bone scan. As such, the skeletal survey using radiographs is more sensitive than bone scintigraphy. Bone scintigraphy is best utilized when the clinical suspicion for nonaccidental trauma is high, but the skeletal survey is inconclusive.\n\nReferences: Coley B. Caffey's pediatric diagnostic imaging, 12th ed. Philadelphia, PA: Elsevier Saunders, 2013:1588. Habibian MR. Nuclear medicine imaging: a teaching file, 2nd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2009:377-378."}, {"number": "7", "stem": "The following anterior and posterior bone scintigraphy images were acquired on a 19-year-old with low back pain. The nuclear medicine technologist asks you to review the images prior to the patient leaving the department. What is the most appropriate next step?", "options": [{"letter": "A", "text": "MRI of the lumbar spine"}, {"letter": "B", "text": "CT of the lumbar spine"}, {"letter": "C", "text": "Radiographs of the lumbar spine"}, {"letter": "D", "text": "SPECT images of the lumbar spine"}, {"letter": "E", "text": "No further imaging necessary"}], "images": ["assets/q7_p366_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Spondylolysis is a common cause of lower back pain in young adults, especially athletes. Repetitive trauma is thought to be the precipitating factor leading to a stress reaction and eventual disruption of the par interarticularis. This may occur unilaterally or bilaterally, and occurs most commonly at the L5 level. Bone scintigraphy is more sensitive than radiographs for localizing the site of bone stress, and in this patient, the initial radiographs were negative. At the initial workup, both plain films of the lumbar spine and planar bone scintigraphy may be unrevealing. In these instances, SPECT or SPECT/CT imaging may show increased uptake at the par interarticularis. Additionally, SPECT can provide further anatomic localization allowing for the distinction of uptake at the pars abnormality or that at the facet joints. Furthermore, SPECT/CT will demonstrate the presence or absence of a pars defect and its associated changes, such as sclerosis. As seen with this case, a subtle abnormality on planar bone imaging is readily visible on the SPECT images (arrows in image below), which revealed a focus of intense uptake at the left L5 level consistent with spondylolysis.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:107, 111. Sandler M. Diagnostic nuclear medicine, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2003:1112. Zukotynski K, Curtis C, Grant FD, et al. The value of SPECT in the detection of stress injury to the pars interarticularis in patients with low back pain. J Orthop Surg Res 2010;5:13."}, {"number": "8", "stem": "The shown examination was performed on a child with neurologic impairment. Which of the following is the most likely indication?", "options": [{"letter": "A", "text": "Gastroesophageal reflux"}, {"letter": "B", "text": "Esophageal dysmotility"}, {"letter": "C", "text": "Gastric emptying"}, {"letter": "D", "text": "Aspiration"}], "images": ["assets/q8_p367_01.jpg"], "explanationImages": ["assets/a8_p376_01.jpg"], "answer": "D", "explanation": "Answer D. The salivagram is a simple yet sensitive nuclear medicine study to evaluate for aspiration. At our institution, Tc-99m sulfur colloid (0.3 to 0.4 mCi) is mixed in water and placed on the back of the tongue with the patient in the supine position. Dynamic acquisition for 1 hour is performed, followed by static images at 1 and 3 hours. This case is grossly positive with an abrupt aspiration of the radiotracer into the tracheobronchial tree (arrows below). Gastroesophageal reflux, gastric emptying, and esophageal motility are not evaluated on the salivagram scintigraphy. This examination is more sensitive than reflux scintigraphy in detecting aspiration.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:235-237."}, {"number": "9a", "stem": "Which of the following statements is most accurate regarding the findings in this 6-month-old infant?", "options": [{"letter": "A", "text": "This is the gold standard test."}, {"letter": "B", "text": "Provocative maneuvers were performed."}, {"letter": "C", "text": "Barium esophagogram is more sensitive."}, {"letter": "D", "text": "Findings may be physiologic in young infants."}], "images": ["assets/q9a_p368_01.jpg"], "explanationImages": ["assets/a9a_p377_01.jpg"], "answer": "D", "explanation": "Answer D. This study represents a typical \"milk\" scan where the infant is administered Tc-99m sulfur colloid mixed in formula or milk and imaged in the supine position for up to 60 minutes using dynamic acquisition. Gastroesophageal reflux (GER) is a normal physiologic finding in neonates, which resolves by late infancy. Reflux scintigraphy does not evaluate complications of gastroesophageal reflux disease (GERD), and the presence of GER on scintigraphy does not correlate with the symptoms of GERD. However, given that persistent GER can lead to serious complications such as strictures, recurrent pneumonia, and failure to thrive, it is important to diagnose this condition. Reflux scintigraphy represents a physiologic, sensitive, and noninvasive modality to detect GER. While intraesophageal pH monitoring is considered the gold standard in the evaluation of GERD, it is an invasive and technically demanding procedure. Barium esophagogram has a low sensitivity for detecting reflux and is mainly used to evaluate an anatomic cause of obstruction (i.e., stricture, malignancy, vascular anomalies). Furthermore, gastric emptying scintigraphy can be performed simultaneously with reflux scintigraphy providing additional information. Provocative maneuvers, such as the utilization of an abdominal binder to increase intra-abdominal pressure during imaging, are no longer recommended.\n\nReferences: Coley B. Caffey's pediatric diagnostic imaging, 12th ed. Philadelphia, PA: Elsevier Saunders, 2013:1019-1020. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:232-236."}, {"number": "9b", "stem": "Semiquantitative parameters can be used to assess gastroesophageal reflux in a milk scan. The above patient should be categorized as:", "options": [{"letter": "A", "text": "Low level, <10 seconds"}, {"letter": "B", "text": "Low level, 10 seconds or longer"}, {"letter": "C", "text": "High level, <10 seconds"}, {"letter": "D", "text": "High level, 10 seconds or longer"}], "images": ["assets/q9a_p368_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. This patient had multiple episodes of high reflux (> mid esophagus), which lasted longer than 10 seconds. The frames on this study are 1 minute each, illustrating just how long each episode of reflux persisted. Semiquantitative parameters used to evaluate reflux on a milk scan include duration, height, and temporal relationship to the meal. Episodes with higher transit (> mid esophagus), longer duration (>10 seconds), and at lower stomach volumes are thought to reflect a higher severity of the GER. While pulmonary aspiration may be detected on delayed reflux scintigraphy images, a salivagram is more sensitive for its evaluation.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:232-236."}, {"number": "10", "stem": "The following nuclear scintigraphy was performed on a 2-year-old with painless rectal bleeding. What is the most common cause of a false-positive examination?", "options": [{"letter": "A", "text": "Appendicitis"}, {"letter": "B", "text": "Duplication cyst"}, {"letter": "C", "text": "Genitourinary uptake"}, {"letter": "D", "text": "Inflammatory bowel disease"}], "images": ["assets/q10_p369_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Anterior and lateral images acquired after the IV administration of Tc-99m pertechnetate demonstrate a moderate-sized focus of moderate-to-intense activity in the right lower quadrant, which appears at the same time as the gastric mucosa. Also, it is anteriorly located on the lateral image, excluding activity in the distal ureter (arrows in the image below). This finding represents heterotopic gastric mucosa in the Meckel diverticulum, the most common congenital anomaly of the GI tract. While heterotopic gastric mucosa has been reported to be present in only 10% to 30% of the Meckel diverticula, it is present in 95% to 98% of the bleeding Meckel diverticula. Genitourinary uptake is the most common cause of a false-positive result on the Meckel scan. Duplication cyst, inflammatory bowel disease, and appendicitis also represent potential causes of a false-positive examination but are less common. Several strategies can be implemented to increase the sensitivity of the Meckel's scan. H-2 receptor antagonists (cimetidine, famotidine, or ranitidine) block the release of Tc-99m pertechnetate from the mucin-producing cells of the ectopic gastric mucosa in the Meckel diverticulum, increasing the sensitivity of the study. Other medications used for this purpose include pentagastrin and glucagon. Pentagastrin increases the mucosal uptake of pertechnetate while glucagon decreases the bowel motility (preventing radiotracer migration).\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:223-224. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:250-252."}, {"number": "11", "stem": "What is the most appropriate conclusion for this child with cholestatic jaundice and the following 60-minute Tc-99m IDA analog scan?", "options": [{"letter": "A", "text": "Biliary atresia"}, {"letter": "B", "text": "Neonatal hepatitis"}, {"letter": "C", "text": "Nondiagnostic examination"}, {"letter": "D", "text": "Alpha-1 antitrypsin deficiency"}], "images": ["assets/q11_p370_01.jpg"], "explanationImages": ["assets/a11_p379_01.jpg"], "answer": "C", "explanation": "Answer C. On the anterior images acquired for 60 minutes after IV administration of Tc-99m mebrofenin, there is no evidence of radiopharmaceutical in the biliary tree or bowel. However, this 1-hour study cannot distinguish between biliary atresia and other etiologies causing poor hepatocellular function. As such, these patients should undergo additional imaging for up to 24 hours after the radiopharmaceutical injection. Patients with biliary atresia will have good blood pool clearance with retention of activity in the liver without biliary excretion. On the other hand, patients with neonatal hepatitis will typically have delayed blood pool clearance (decreased hepatic uptake) with visualization of bowel on 24-hour images. Once extrahepatic biliary or bowel activity is visualized, the diagnosis of biliary atresia is excluded. The sensitivity of this examination for detecting biliary atresia is approximately 100%, with a specificity of 75% to 80%. This infant with midline liver and visceral heterotaxy was found to have biliary atresia on 24-hour images, which was confirmed intraoperatively. Phenobarbital-enhanced hepatobiliary scintigraphy is highly accurate in differentiating biliary atresia from other causes of neonatal jaundice. Prior to the radiopharmaceutical injection, the infant typically receives 5 mg/kg/day of phenobarbital for 5 days to achieve a serum level of ≥15 μg/mL. Phenobarbital is believed to stimulate the hepatic secretion of the IDA analog by activating liver enzymes and increasing the bile flow. This increases the likelihood of hepatobiliary excretion of the radiopharmaceutical and visualization of the biliary tree, thus reducing false negatives and improving the specificity. The sensitivity of hepatobiliary scintigraphy in detecting biliary atresia is 100%, with specificity approaching 93% when phenobarbital is utilized.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:235-236. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:198-200, 202- 203."}, {"number": "12", "stem": "Anterior and lateral images from Tc-99m scintigraphy are shown below. Which of the following is associated with this entity?", "options": [{"letter": "A", "text": "Normal eutopic tissue"}, {"letter": "B", "text": "Permanent hypothyroidism"}, {"letter": "C", "text": "Elevated T4 levels"}, {"letter": "D", "text": "Peroxidase deficiency"}, {"letter": "E", "text": "Abnormal perchlorate washout test"}], "images": ["assets/q12_p371_01.jpg"], "explanationImages": ["assets/a12_p380_01.jpg"], "answer": "B", "explanation": "Answer B. Anterior and lateral images acquired after IV administration of Tc-99m pertechnetate demonstrate a focus of intense activity in the floor of the mouth (large arrow), which is most compatible with a lingual thyroid. Another focus of intense activity more inferiorly and anteriorly (small arrow) likely represents ectopic thyroid tissue at the level of the hyoid bone. Physiologic uptake is present within the oral cavity as well as lingual and submandibular salivary glands (arrowheads). Ectopic thyroid is nearly always associated with lifelong hypothyroidism and typically requires higher doses of L-thyroxine. T4 levels are low in congenital hypothyroidism. Eutopic thyroid is almost never seen in addition to a lingual thyroid. Thyroid peroxidase deficiency represents thyroid dyshormonogenesis and is associated with normally positioned glands.\n\nReferences: Coley B. Caffey's pediatric diagnostic imaging, 12th ed. Philadelphia, PA: Elsevier Saunders, 2013:151-155. Habibian MR. Nuclear medicine imaging: a teaching file, 2nd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2009:24-25. D. 24 hours 20 A 16-year-old female with MEN I syndrome undergoes In-111 pentetreotide scintigraphy to evaluate a pancreatic lesion. By what mechanism does the radiopharmaceutical localize at the site of the disease? A. Phagocytosis B. Receptor binding C. Active transport D. Sequestration"}, {"number": "13", "stem": "A 4-month-old child has a left kidney containing multiple noncommunicating cysts with abnormal echogenic renal parenchyma on ultrasound. When read in conjunction with this renal scintigraphy, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Autosomal recessive polycystic kidney disease"}, {"letter": "B", "text": "Congenital mesoblastic nephroma"}, {"letter": "C", "text": "Ureteropelvic junction obstruction"}, {"letter": "D", "text": "Multicystic dysplastic kidney"}], "images": ["assets/q13_p381_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The classic appearance of the multicystic dysplastic kidney (MCDK) on ultrasound is that of a kidney containing multiple noncommunicating cysts of various sizes without normal parenchyma (see right kidney sonogram from different patient below). When evaluated by renal scintigraphy, an MCDK will lack normal functioning renal parenchyma, which can confirm the diagnosis. The remaining entities will have some functioning renal tissue. Polycystic kidney disease is a bilateral process, and the right kidney is normal in this case.\n\nReferences: Coley B. Caffey's pediatric diagnostic imaging, 12th ed. Philadelphia, PA: Elsevier Saunders, 2013:1195. Sandler M. Diagnostic nuclear medicine, 4th ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2003:1091."}, {"number": "14", "stem": "A 15-year-old runner has three-phase bone scintigraphy performed for lower leg pain. What characteristic finding would establish the diagnosis of shin splints?", "options": [{"letter": "A", "text": "Three-phase positive"}, {"letter": "B", "text": "Fusiform shape"}, {"letter": "C", "text": "Posteromedial cortex"}, {"letter": "D", "text": "Focal cortical uptake"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Characteristics of shin splints on the bone scan include superficial linear cortical uptake along the posteromedial cortex of at least one-third of the tibial diaphysis on delayed imaging that is negative on the flow and blood pool phases. Fusiform shape, focal cortical uptake, and three-phase positive uptake are typical findings associated with a stress fracture. The focal component is not present with shin splints.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:265, 267, 268. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:107, 109."}, {"number": "15", "stem": "What is the mechanism by which cimetidine increases the sensitivity of the Tc-99m pertechnetate in detecting Meckel diverticulum?", "options": [{"letter": "A", "text": "Increasing the uptake"}, {"letter": "B", "text": "Blocking the release"}, {"letter": "C", "text": "Decreasing the motility"}, {"letter": "D", "text": "Increasing the blood flow"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. H-2 receptor antagonists (cimetidine, famotidine, or ranitidine) block the release of Tc-99m pertechnetate from the mucin-producing cells of the ectopic gastric mucosa in the Meckel diverticulum, increasing the sensitivity of the study. Other medications used for this purpose include pentagastrin and glucagon. Pentagastrin increases the mucosal uptake of pertechnetate while glucagon decreases the bowel motility (preventing radiotracer migration).\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:223-232. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:250-252."}, {"number": "16", "stem": "A neonate is being evaluated for jaundice with hepatobiliary scintigraphy using a Tc-99m IDA analog. What is the reason for giving phenobarbital to this infant for 5 to 7 days prior to the examination?", "options": [{"letter": "A", "text": "To increase the sensitivity"}, {"letter": "B", "text": "To increase the specificity"}, {"letter": "C", "text": "To decrease the study time"}, {"letter": "D", "text": "To reduce the radiation dose"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Phenobarbital-enhanced hepatobiliary scintigraphy is highly accurate in differentiating biliary atresia from other causes of neonatal jaundice. Prior to the radiopharmaceutical injection, the infant typically receives 5 mg/kg/day of phenobarbital for 5 days to achieve a serum level of ≥15 μg/mL. Phenobarbital is believed to stimulate the hepatic secretion of the IDA analog by activating liver enzymes and increasing the bile flow. This increases the likelihood of hepatobiliary excretion of the radiopharmaceutical and visualization of the biliary tree, thus reducing false negative and improving the specificity. The sensitivity of hepatobiliary scintigraphy in detecting biliary atresia is 100%, with specificity approaching 93% when phenobarbital is utilized.\n\nReferences: Kwatra N, Shalaby-Rana E, Narayanan S, et al. Phenobarbital-enhanced hepatobiliary scintigraphy in the diagnosis of biliary atresia: two decades of experience at a tertiary center. Pediatr Radiol 2013;43(10):1365-1375. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:235-236. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:198-200, 202- 203."}, {"number": "17", "stem": "A neonate with left pulmonary artery stenosis on echocardiogram presents for pulmonary perfusion imaging prior to intervention. For this study, what would be the most appropriate MAA particle dose?", "options": [{"letter": "A", "text": "5,000"}, {"letter": "B", "text": "10,000"}, {"letter": "C", "text": "50,000"}, {"letter": "D", "text": "100,000"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. MAA particle dose should be reduced to 10,000 in neonates and 50,000 to 150,000 for children <5 years of age.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:128-129."}, {"number": "18", "stem": "A 3-year-old patient undergoes the following nuclear medicine examination for staging. What is the most likely primary malignancy?", "options": [{"letter": "A", "text": "Neuroblastoma"}, {"letter": "B", "text": "Lymphoma"}, {"letter": "C", "text": "Hepatoblastoma"}, {"letter": "D", "text": "Wilms tumor"}], "images": ["assets/q18_p383_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. This is an I-123 MIBG (meta-iodo-benzyl-guanidine) whole-body scintigraphy with physiologic uptake in the salivary glands, heart, liver, and genitourinary system. There is intense uptake within a large retroperitoneal mass in keeping with neuroblastoma. I-123 MIBG is both sensitive and highly specific in the detection of neuroblastoma and its metastasis. The remaining choices are not routinely MIBG avid, and I-123 MIBG is not utilized in their evaluation.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:310-312. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:346-351."}, {"number": "19", "stem": "When using Tc-99m HMPAO leukocytes to evaluate for fever of unknown origin in a child, imaging for intra-abdominal infection is best performed at what time point?", "options": [{"letter": "A", "text": "2 hours"}, {"letter": "B", "text": "4 hours"}, {"letter": "C", "text": "12 hours"}, {"letter": "D", "text": "24 hours"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Gastrointestinal activity occurs as a part of normal hepatobiliary clearance of Tc-99m HMPAO leukocytes, which can be seen as early as 1 to 2 hours. Therefore, images of the abdomen and pelvis should be performed no later than 2 hours after the radiopharmaceutical administration. Imaging at 4, 12, and 24 hours may lead to interfering physiologic bowel activity.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:368-370. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:413-415, 418, 419."}, {"number": "20", "stem": "A 16-year-old female with MEN I syndrome undergoes In-111 pentetreotide scintigraphy to evaluate a pancreatic lesion. By what mechanism does the radiopharmaceutical localize at the site of the disease?", "options": [{"letter": "A", "text": "Phagocytosis"}, {"letter": "B", "text": "Receptor binding"}, {"letter": "C", "text": "Active transport"}, {"letter": "D", "text": "Sequestration"}], "images": ["assets/q20_p384_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. In-111 pentetreotide localizes to tumors or other pathology by receptor binding. More specifically, it localizes to cells that express somatostatin receptors (SSTR) on their surface. More specifically, it binds to SSTR 2 and SSTR 5 with high affinity. Newer PET agents such as Ga-68 DOTATATE, Ga-68 DOTATOC, etc., bind with high affinity to SSTR 2 and are now preferred for the evaluation of neuroendocrine tumors as they have better resolution and anatomic localization associated with PET. Phagocytosis, active transport, and sequestration represent other mechanisms by which radiopharmaceuticals can localize to pathology.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:339-346."}];
+    const APP_ID = "nuclear-medicine-pediatric-quiz-ch10";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

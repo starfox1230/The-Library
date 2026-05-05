@@ -30,6 +30,9 @@ The common failure pattern is an off-by-one image shift. Examples already encoun
 - Chapter 5 Nuclear Medicine Cardiology: multiple pages interleave one question's answer choices with the next question's image. Use per-image maps for mixed pages, especially ECG-strip pages and cardiac perfusion pages with subquestions.
 - Chapter 6 Nuclear Medicine Vascular/Lymphatics: radiotracer text like `99m` can be misread as a question number, and diagram-labeled site questions may need generic `Site A-D` choices.
 - Chapter 7 Nuclear Medicine Pulmonary: mixed pages can put prior answer choices above the next stem; PDF page 247's image belongs to q4 even though q5 starts on that page, and q12 needs adjacent-page V/Q plus chest radiograph images.
+- Chapter 8 Nuclear Medicine GI: one page can contain two unrelated images, such as q4 curve choices and q5 gastric-emptying images on PDF page 282; answer labels may include OCR/source typos like `27s Answer`.
+- Chapter 9 Nuclear Medicine GU: diagram and curve-choice questions may have all choices embedded in figures; use generic `Structure A-D` or `Curve set A-E` labels and verify mixed renal scintigraphy pages with a contact sheet.
+- Chapter 10 Nuclear Medicine Pediatric: answer sections may begin on a page that still contains question text; include that mixed page in answer ranges and make lettered follow-up subparts inherit parent images.
 
 ## Text Cleanup
 
