@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
 import json
 from pathlib import Path
-import re
 from urllib.parse import unquote, urlparse
 from urllib.request import url2pathname
 
@@ -13,6 +11,7 @@ from aqt.qt import (
     QColor,
     QColorDialog,
     QDialog,
+    QGuiApplication,
     QHBoxLayout,
     QImage,
     QLabel,
@@ -36,15 +35,6 @@ DEFAULT_COLOR = "#FFAA00"
 _HOOK_REGISTERED = False
 _BRIDGE_PATCHED = False
 _dialog: "DrawOnImageDialog | None" = None
-
-
-def _safe_media_name(source: str) -> str:
-    parsed = urlparse(str(source or ""))
-    raw_name = unquote(Path(parsed.path or source or "image").name)
-    stem = Path(raw_name).stem or "image"
-    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._") or "image"
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"{stem}_drawn_{timestamp}.png"
 
 
 def _file_uri_path(source: str) -> Path | None:
@@ -238,17 +228,11 @@ class DrawOnImageDialog(QDialog):
         self.canvas.set_pen_size(int(value))
         self.size_label.setText(f"Pen: {int(value)}")
 
-    def save_copy(self, original_source: str) -> str:
-        media_dir = collection_media_dir()
-        file_name = _safe_media_name(original_source)
-        output = media_dir / file_name
-        counter = 2
-        while output.exists():
-            output = media_dir / f"{Path(file_name).stem}_{counter}.png"
-            counter += 1
-        if not self.canvas.image.save(str(output), "PNG"):
-            raise RuntimeError("Anki Pocket Knife could not save the annotated image.")
-        return output.name
+    def copy_to_clipboard(self) -> None:
+        clipboard = QGuiApplication.clipboard()
+        if clipboard is None:
+            raise RuntimeError("The system clipboard is not available.")
+        clipboard.setImage(self.canvas.image)
 
 
 def _eval_editor_js(editor: Editor, body: str) -> None:
@@ -290,6 +274,10 @@ function removeMenu() {
   }
 }
 
+function scheduleRemoveMenu() {
+  window.setTimeout(removeMenu, 5000);
+}
+
 function imageFromEvent(event) {
   const path = typeof event.composedPath === "function" ? event.composedPath() : [];
   for (const node of path) {
@@ -306,47 +294,6 @@ function imageFromEvent(event) {
   return null;
 }
 
-function editableFor(node) {
-  const path = [];
-  let current = node;
-  while (current) {
-    path.push(current);
-    current = current.parentNode || current.host;
-  }
-  for (const item of path) {
-    if (item instanceof HTMLElement && item.isContentEditable) {
-      return item;
-    }
-  }
-  return null;
-}
-
-function markChanged(image) {
-  const editable = editableFor(image);
-  if (editable) {
-    editable.dispatchEvent(new InputEvent("input", {
-      bubbles: true,
-      inputType: "insertHTML",
-      data: ""
-    }));
-    editable.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-}
-
-window.__ankiPocketKnifeInsertDrawnImage = function(targetId, fileName) {
-  const image = state.targets.get(String(targetId));
-  if (!image || !image.isConnected) {
-    return false;
-  }
-  const newImage = document.createElement("img");
-  newImage.setAttribute("src", fileName);
-  newImage.setAttribute("data-pocket-knife-drawn-image", "true");
-  image.insertAdjacentElement("afterend", newImage);
-  image.insertAdjacentHTML("afterend", "<br>");
-  markChanged(image);
-  return true;
-};
-
 document.addEventListener("click", removeMenu, true);
 document.addEventListener("scroll", removeMenu, true);
 
@@ -356,8 +303,6 @@ document.addEventListener("contextmenu", (event) => {
     return;
   }
 
-  event.preventDefault();
-  event.stopPropagation();
   removeMenu();
 
   let targetId = image.getAttribute("data-pocket-knife-draw-target");
@@ -371,8 +316,8 @@ document.addEventListener("contextmenu", (event) => {
   menu.id = "pocket-knife-draw-image-menu";
   menu.textContent = "Draw on Image";
   menu.style.position = "fixed";
-  menu.style.left = `${event.clientX}px`;
-  menu.style.top = `${event.clientY}px`;
+  menu.style.left = `${Math.min(event.clientX + 8, window.innerWidth - 180)}px`;
+  menu.style.top = `${Math.min(event.clientY + 8, window.innerHeight - 44)}px`;
   menu.style.zIndex = "2147483647";
   menu.style.padding = "8px 12px";
   menu.style.border = "1px solid rgba(0,0,0,.22)";
@@ -394,21 +339,9 @@ document.addEventListener("contextmenu", (event) => {
     pycmd("pocket_knife_draw_on_image:" + encodeURIComponent(JSON.stringify(payload)));
   });
   document.body.appendChild(menu);
+  scheduleRemoveMenu();
 }, true);
 """
-
-
-def _insert_drawn_image(editor: Editor, target_id: str, file_name: str) -> None:
-    target_js = json.dumps(str(target_id))
-    file_js = json.dumps(str(file_name))
-    _eval_editor_js(
-        editor,
-        f"""
-if (typeof window.__ankiPocketKnifeInsertDrawnImage === "function") {{
-  window.__ankiPocketKnifeInsertDrawnImage({target_js}, {file_js});
-}}
-""",
-    )
 
 
 def _handle_draw_command(editor: Editor, cmd: str) -> bool:
@@ -433,8 +366,7 @@ def _handle_draw_command(editor: Editor, cmd: str) -> bool:
         accepted = _dialog.exec()
         if not accepted:
             return True
-        file_name = _dialog.save_copy(str(payload.get("src_attr") or payload.get("src") or image_path.name))
-        _insert_drawn_image(editor, str(payload.get("target_id") or ""), file_name)
+        _dialog.copy_to_clipboard()
     except Exception as exc:
         showWarning(f"Could not draw on that image.\n\n{exc}")
     finally:

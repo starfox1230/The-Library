@@ -187,7 +187,7 @@ def extract_images(reader: PdfReader, questions: list[dict]) -> None:
     question_page_targets = {
         57: ["1"],
         58: ["1"],
-        59: ["2"],
+        59: ["3"],
         60: ["3"],
         61: ["4"],
         62: ["5"],

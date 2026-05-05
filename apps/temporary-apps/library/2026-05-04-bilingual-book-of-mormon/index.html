@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilingual Book of Mormon Reader</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --ink: #182230;
+      --muted: #667085;
+      --panel: #ffffff;
+      --panel-2: #eef2f7;
+      --line: #d7dde8;
+      --accent: #2563eb;
+      --accent-2: #7c3aed;
+      --accent-soft: rgba(37, 99, 235, 0.1);
+      --shadow: 0 18px 48px rgba(31, 41, 55, 0.1);
+      --header-bg: rgba(247, 248, 251, 0.92);
+      --field-bg: #ffffff;
+      --verse-hover: #f8fbff;
+      --mark-bg: rgba(124, 58, 237, 0.14);
+      --verse-shadow: 0 10px 30px rgba(31, 41, 55, 0.07);
+      --button-bg: #ffffff;
+      --button-hover: #eef4ff;
+    }
+
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --ink: #eef4ff;
+      --muted: #9da8c5;
+      --panel: #121a2e;
+      --panel-2: #1a2540;
+      --line: #2a3758;
+      --accent: #8b5cf6;
+      --accent-2: #38bdf8;
+      --accent-soft: rgba(139, 92, 246, 0.16);
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+      --header-bg: rgba(11, 16, 32, 0.9);
+      --field-bg: #0f172a;
+      --verse-hover: #16213a;
+      --mark-bg: rgba(56, 189, 248, 0.18);
+      --verse-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+      --button-bg: #18223a;
+      --button-hover: #22304f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at top left, var(--accent-soft), transparent 34rem),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      align-items: center;
+      position: relative;
+    }
+
+    .segmented {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 3px;
+      min-width: 170px;
+    }
+
+    .segmented button {
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-weight: 750;
+    }
+
+    .segmented button.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .theme-toggle, .icon-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--button-bg);
+      color: var(--ink);
+      padding: 8px 10px;
+      cursor: pointer;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-weight: 750;
+      white-space: nowrap;
+      margin: 0;
+    }
+
+    .theme-toggle:hover, .icon-button:hover, .nav-button:hover {
+      background: var(--button-hover);
+    }
+
+    .icon-button {
+      width: 42px;
+      justify-content: center;
+      padding: 8px;
+    }
+
+    .theme-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .switch-track {
+      width: 40px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 2px;
+      display: inline-flex;
+      align-items: center;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .switch-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--muted);
+      transform: translateX(0);
+      transition: transform 150ms ease, background 150ms ease;
+    }
+
+    .theme-toggle input:checked + .switch-track {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .theme-toggle input:checked + .switch-track .switch-thumb {
+      background: white;
+      transform: translateX(18px);
+    }
+
+    .settings-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(330px, 90vw);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: none;
+      z-index: 20;
+    }
+
+    .settings-panel.open {
+      display: block;
+    }
+
+    .settings-title {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 850;
+      margin-bottom: 10px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .setting-row:first-of-type {
+      border-top: 0;
+    }
+
+    .setting-copy {
+      min-width: 0;
+    }
+
+    .setting-label {
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 760;
+      margin: 0;
+    }
+
+    .setting-help {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    main {
+      width: min(1180px, 94vw);
+      margin: 18px auto 42px;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 18px;
+    }
+
+    aside {
+      align-self: start;
+      position: sticky;
+      top: 86px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .control-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.78rem;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    select, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--field-bg);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 10px 11px;
+      min-height: 42px;
+    }
+
+    .meta {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .reader {
+      min-width: 0;
+    }
+
+    .chapter-head {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chapter-nav {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      margin: 0 0 14px;
+    }
+
+    .chapter-nav.bottom {
+      margin: 16px 0 0;
+    }
+
+    .nav-button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--button-bg);
+      color: var(--ink);
+      min-height: 44px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-weight: 800;
+    }
+
+    .nav-button.prev {
+      justify-self: start;
+    }
+
+    .nav-button.next {
+      justify-self: end;
+    }
+
+    .nav-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+    }
+
+    .nav-current {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.84rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .chapter-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+
+    .chapter-count {
+      color: var(--muted);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.86rem;
+      white-space: nowrap;
+    }
+
+    .verse-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .verse {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px 20px;
+      box-shadow: var(--verse-shadow);
+      cursor: pointer;
+      user-select: text;
+      transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
+      touch-action: manipulation;
+    }
+
+    .verse:hover, .verse.focused {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      background: var(--verse-hover);
+    }
+
+    .ref {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.15rem;
+      height: 2.15rem;
+      margin: 0 0 10px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-weight: 850;
+      font-size: 0.86rem;
+    }
+
+    .text {
+      font-size: 1.18rem;
+      line-height: 1.72;
+    }
+
+    .translation {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .translation.hidden {
+      display: none;
+    }
+
+    .verse.holding .translation {
+      color: var(--accent-2);
+    }
+
+    mark {
+      background: var(--mark-bg);
+      color: inherit;
+      border-radius: 4px;
+      padding: 0 2px;
+    }
+
+    @media (max-width: 840px) {
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: static;
+      }
+
+      .chapter-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .chapter-nav {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .nav-current {
+        grid-column: 1 / -1;
+        grid-row: 1;
+      }
+
+      .nav-button.prev {
+        grid-column: 1;
+      }
+
+      .nav-button.next {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="topbar">
+        <div class="top-actions">
+          <div class="segmented" aria-label="Reading language">
+            <button id="spanishBtn" type="button" class="active">Spanish</button>
+            <button id="englishBtn" type="button">English</button>
+          </div>
+          <label class="theme-toggle" for="themeToggle">
+            <input id="themeToggle" type="checkbox" />
+            <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+            <span>Night</span>
+          </label>
+          <button id="settingsBtn" class="icon-button" type="button" aria-label="Settings" aria-expanded="false">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"></path>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.37a1.7 1.7 0 0 0-1 .6V20a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-.6-1H4a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-.6V4a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9c.2.34.4.67.6 1H20a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-.51 1Z"></path>
+            </svg>
+          </button>
+          <div id="settingsPanel" class="settings-panel" role="dialog" aria-label="Reader settings">
+            <div class="settings-title">Settings</div>
+            <div class="setting-row">
+              <div class="setting-copy">
+                <div class="setting-label">Show other language</div>
+                <div class="setting-help">Turn this off to reveal translation only while pressing a verse.</div>
+              </div>
+              <label class="theme-toggle" for="showSecondaryToggle">
+                <input id="showSecondaryToggle" type="checkbox" checked />
+                <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <aside>
+        <div class="control-grid">
+          <div>
+            <label for="bookSelect">Book</label>
+            <select id="bookSelect"></select>
+          </div>
+          <div>
+            <label for="chapterSelect">Chapter</label>
+            <select id="chapterSelect"></select>
+          </div>
+          <div>
+            <label for="verseSelect">Jump to verse</label>
+            <select id="verseSelect"></select>
+          </div>
+          <div>
+            <label for="searchInput">Search this chapter</label>
+            <input id="searchInput" type="search" placeholder="Word or phrase" />
+          </div>
+        </div>
+        <div class="meta" id="meta">Loading scripture text...</div>
+      </aside>
+
+      <section class="reader" aria-live="polite">
+        <div class="chapter-nav top" id="chapterNavTop"></div>
+        <div class="chapter-head">
+          <div class="chapter-title" id="chapterTitle">Loading</div>
+          <div class="chapter-count" id="chapterCount"></div>
+        </div>
+        <div class="verse-list" id="verseList"></div>
+        <div class="chapter-nav bottom" id="chapterNavBottom"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      data: null,
+      language: "es",
+      book: "1 Nephi",
+      chapter: 1,
+      focusedVerse: 1,
+      search: "",
+      holdingId: null,
+      showSecondary: true,
+    };
+
+    const els = {
+      spanishBtn: document.getElementById("spanishBtn"),
+      englishBtn: document.getElementById("englishBtn"),
+      themeToggle: document.getElementById("themeToggle"),
+      settingsBtn: document.getElementById("settingsBtn"),
+      settingsPanel: document.getElementById("settingsPanel"),
+      showSecondaryToggle: document.getElementById("showSecondaryToggle"),
+      bookSelect: document.getElementById("bookSelect"),
+      chapterSelect: document.getElementById("chapterSelect"),
+      verseSelect: document.getElementById("verseSelect"),
+      searchInput: document.getElementById("searchInput"),
+      meta: document.getElementById("meta"),
+      chapterTitle: document.getElementById("chapterTitle"),
+      chapterCount: document.getElementById("chapterCount"),
+      chapterNavTop: document.getElementById("chapterNavTop"),
+      chapterNavBottom: document.getElementById("chapterNavBottom"),
+      verseList: document.getElementById("verseList"),
+    };
+
+    const languageLabel = { es: "Spanish", en: "English" };
+    const savedTheme = localStorage.getItem("bofmReaderTheme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+    document.body.dataset.theme = initialTheme;
+    els.themeToggle.checked = initialTheme === "dark";
+    const savedSecondary = localStorage.getItem("bofmReaderShowSecondary");
+    state.showSecondary = savedSecondary === null ? true : savedSecondary === "true";
+    els.showSecondaryToggle.checked = state.showSecondary;
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[char]));
+    }
+
+    function highlight(text) {
+      const escaped = escapeHtml(text);
+      const query = state.search.trim();
+      if (!query) return escaped;
+      const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return escaped.replace(new RegExp(`(${safeQuery})`, "gi"), "<mark>$1</mark>");
+    }
+
+    function currentVerses() {
+      return state.data.verses.filter(v => v.book === state.book && v.chapter === state.chapter);
+    }
+
+    function setLanguage(language) {
+      state.language = language;
+      els.spanishBtn.classList.toggle("active", language === "es");
+      els.englishBtn.classList.toggle("active", language === "en");
+      renderVerses();
+    }
+
+    function setTheme(theme) {
+      document.body.dataset.theme = theme;
+      els.themeToggle.checked = theme === "dark";
+      localStorage.setItem("bofmReaderTheme", theme);
+    }
+
+    function setShowSecondary(showSecondary) {
+      state.showSecondary = showSecondary;
+      els.showSecondaryToggle.checked = showSecondary;
+      localStorage.setItem("bofmReaderShowSecondary", String(showSecondary));
+      renderVerses();
+    }
+
+    function chapterLocation(bookName = state.book, chapterNumber = state.chapter) {
+      const bookIndex = state.data.books.findIndex(book => book.name === bookName);
+      return { bookIndex, book: state.data.books[bookIndex], chapter: Number(chapterNumber) };
+    }
+
+    function adjacentChapter(direction) {
+      const current = chapterLocation();
+      if (direction < 0) {
+        if (current.chapter > 1) {
+          return { book: current.book.name, chapter: current.chapter - 1 };
+        }
+        const previousBook = state.data.books[current.bookIndex - 1];
+        if (!previousBook) return null;
+        return { book: previousBook.name, chapter: previousBook.chapters };
+      }
+
+      if (current.chapter < current.book.chapters) {
+        return { book: current.book.name, chapter: current.chapter + 1 };
+      }
+      const nextBook = state.data.books[current.bookIndex + 1];
+      if (!nextBook) return null;
+      return { book: nextBook.name, chapter: 1 };
+    }
+
+    function navLabel(target) {
+      return target ? `${target.book} ${target.chapter}` : "";
+    }
+
+    function renderChapterNav() {
+      const previous = adjacentChapter(-1);
+      const next = adjacentChapter(1);
+      const html = `
+        <button class="nav-button prev" type="button" data-nav="prev" ${previous ? "" : "disabled"}>${previous ? `Previous: ${escapeHtml(navLabel(previous))}` : "Previous"}</button>
+        <div class="nav-current">${escapeHtml(state.book)} ${state.chapter}</div>
+        <button class="nav-button next" type="button" data-nav="next" ${next ? "" : "disabled"}>${next ? `Next: ${escapeHtml(navLabel(next))}` : "Next"}</button>
+      `;
+      els.chapterNavTop.innerHTML = html;
+      els.chapterNavBottom.innerHTML = html;
+    }
+
+    function renderBookOptions() {
+      els.bookSelect.innerHTML = state.data.books.map(book =>
+        `<option value="${escapeHtml(book.name)}">${escapeHtml(book.name)}</option>`
+      ).join("");
+      els.bookSelect.value = state.book;
+    }
+
+    function renderChapterOptions() {
+      const book = state.data.books.find(item => item.name === state.book);
+      els.chapterSelect.innerHTML = Array.from({ length: book.chapters }, (_, index) => {
+        const chapter = index + 1;
+        return `<option value="${chapter}">${chapter}</option>`;
+      }).join("");
+      els.chapterSelect.value = String(state.chapter);
+    }
+
+    function renderVerseOptions(verses) {
+      els.verseSelect.innerHTML = verses.map(verse =>
+        `<option value="${verse.verse}">${verse.verse}</option>`
+      ).join("");
+      els.verseSelect.value = String(state.focusedVerse);
+    }
+
+    function renderVerses() {
+      const verses = currentVerses();
+      const alternate = state.language === "es" ? "en" : "es";
+      const filtered = state.search.trim()
+        ? verses.filter(verse =>
+            verse.es.toLowerCase().includes(state.search.toLowerCase()) ||
+            verse.en.toLowerCase().includes(state.search.toLowerCase()) ||
+            verse.reference.toLowerCase().includes(state.search.toLowerCase())
+          )
+        : verses;
+
+      els.chapterTitle.textContent = `${state.book} ${state.chapter}`;
+      els.chapterCount.textContent = `${filtered.length} of ${verses.length} verses`;
+      els.meta.textContent = `${state.data.counts.books} books, ${state.data.counts.chapters} chapters, ${state.data.counts.verses.toLocaleString()} aligned verses. Current mode: ${languageLabel[state.language]}.`;
+      renderVerseOptions(verses);
+      renderChapterNav();
+
+      els.verseList.innerHTML = filtered.map(verse => {
+        const isHolding = state.holdingId === verse.id;
+        const primary = isHolding ? alternate : state.language;
+        const secondary = isHolding ? state.language : alternate;
+        const showTranslation = state.showSecondary;
+        return `
+          <article class="verse ${verse.verse === state.focusedVerse ? "focused" : ""} ${isHolding ? "holding" : ""}"
+            data-id="${verse.id}"
+            data-verse="${verse.verse}"
+            tabindex="0"
+            aria-label="${escapeHtml(verse.reference)}">
+            <div class="ref">${verse.verse}</div>
+            <div class="text">${highlight(verse[primary])}</div>
+            <div class="translation ${showTranslation ? "" : "hidden"}">${highlight(verse[secondary])}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function chooseChapter(book, chapter, verse = 1, scrollMode = "verse") {
+      state.book = book;
+      state.chapter = Number(chapter);
+      state.focusedVerse = Number(verse);
+      state.holdingId = null;
+      els.bookSelect.value = state.book;
+      renderChapterOptions();
+      renderVerses();
+      requestAnimationFrame(() => {
+        const target = scrollMode === "top"
+          ? document.querySelector(".reader")
+          : document.querySelector(`.verse[data-verse="${state.focusedVerse}"]`);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: scrollMode === "top" ? "start" : "center" });
+      });
+    }
+
+    function goToAdjacentChapter(direction) {
+      const target = adjacentChapter(direction);
+      if (!target) return;
+      chooseChapter(target.book, target.chapter, 1, "top");
+    }
+
+    function bindEvents() {
+      els.spanishBtn.addEventListener("click", () => setLanguage("es"));
+      els.englishBtn.addEventListener("click", () => setLanguage("en"));
+      els.themeToggle.addEventListener("change", event => {
+        setTheme(event.target.checked ? "dark" : "light");
+      });
+      els.settingsBtn.addEventListener("click", event => {
+        event.stopPropagation();
+        const isOpen = !els.settingsPanel.classList.contains("open");
+        els.settingsPanel.classList.toggle("open", isOpen);
+        els.settingsBtn.setAttribute("aria-expanded", String(isOpen));
+      });
+      els.showSecondaryToggle.addEventListener("change", event => {
+        setShowSecondary(event.target.checked);
+      });
+      document.addEventListener("click", event => {
+        if (!els.settingsPanel.classList.contains("open")) return;
+        if (els.settingsPanel.contains(event.target) || els.settingsBtn.contains(event.target)) return;
+        els.settingsPanel.classList.remove("open");
+        els.settingsBtn.setAttribute("aria-expanded", "false");
+      });
+      [els.chapterNavTop, els.chapterNavBottom].forEach(nav => {
+        nav.addEventListener("click", event => {
+          const button = event.target.closest("[data-nav]");
+          if (!button || button.disabled) return;
+          goToAdjacentChapter(button.dataset.nav === "next" ? 1 : -1);
+        });
+      });
+      els.bookSelect.addEventListener("change", event => chooseChapter(event.target.value, 1, 1));
+      els.chapterSelect.addEventListener("change", event => chooseChapter(state.book, event.target.value, 1));
+      els.verseSelect.addEventListener("change", event => chooseChapter(state.book, state.chapter, event.target.value));
+      els.searchInput.addEventListener("input", event => {
+        state.search = event.target.value;
+        renderVerses();
+      });
+
+      els.verseList.addEventListener("click", event => {
+        const verse = event.target.closest(".verse");
+        if (!verse) return;
+        state.focusedVerse = Number(verse.dataset.verse);
+        renderVerses();
+      });
+
+      ["pointerdown", "pointerenter"].forEach(type => {
+        els.verseList.addEventListener(type, event => {
+          if (type === "pointerenter" && event.pointerType !== "mouse") return;
+          const verse = event.target.closest(".verse");
+          if (!verse) return;
+          state.holdingId = verse.dataset.id;
+          renderVerses();
+        });
+      });
+
+      ["pointerup", "pointercancel", "pointerleave"].forEach(type => {
+        els.verseList.addEventListener(type, () => {
+          if (!state.holdingId) return;
+          state.holdingId = null;
+          renderVerses();
+        });
+      });
+    }
+
+    fetch("scriptures.json")
+      .then(response => response.json())
+      .then(data => {
+        state.data = data;
+        renderBookOptions();
+        renderChapterOptions();
+        bindEvents();
+        renderVerses();
+      })
+      .catch(error => {
+        els.chapterTitle.textContent = "Unable to load scripture text";
+        els.meta.textContent = error.message;
+      });
+  </script>
+</body>
+</html>
