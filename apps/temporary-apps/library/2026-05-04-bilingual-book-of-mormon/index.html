@@ -24,6 +24,9 @@
       --verse-shadow: 0 10px 30px rgba(31, 41, 55, 0.07);
       --button-bg: #ffffff;
       --button-hover: #eef4ff;
+      --vocab-bg: rgba(250, 204, 21, 0.34);
+      --vocab-line: rgba(234, 179, 8, 0.62);
+      --vocab-ink: #5f3d00;
     }
 
     body[data-theme="dark"] {
@@ -45,6 +48,9 @@
       --verse-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
       --button-bg: #18223a;
       --button-hover: #22304f;
+      --vocab-bg: rgba(56, 189, 248, 0.24);
+      --vocab-line: rgba(125, 211, 252, 0.8);
+      --vocab-ink: #e0f7ff;
     }
 
     * { box-sizing: border-box; }
@@ -206,6 +212,8 @@
       right: 0;
       top: calc(100% + 10px);
       width: min(330px, 90vw);
+      max-height: min(660px, calc(100vh - 96px));
+      overflow: auto;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -509,6 +517,7 @@
     .text {
       font-size: 1.18rem;
       line-height: 1.72;
+      -webkit-touch-callout: none;
     }
 
     .translation {
@@ -551,10 +560,82 @@
     }
 
     .vocab-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 10px;
+    }
+
+    .vocab-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+
+    .vocab-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .vocab-title, .vocab-word, .vocab-ref, .vocab-empty {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+
+    .vocab-title {
+      font-size: 0.84rem;
+      font-weight: 820;
+    }
+
+    .vocab-list {
+      display: grid;
+      gap: 6px;
+      max-height: 190px;
+      overflow: auto;
+    }
+
+    .vocab-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 9px;
+      background: var(--field-bg);
+    }
+
+    .vocab-word {
+      font-weight: 800;
+      font-size: 0.88rem;
+    }
+
+    .vocab-ref, .vocab-empty {
+      color: var(--muted);
+      font-size: 0.74rem;
+      margin-top: 2px;
+    }
+
+    .vocab-empty {
+      font-size: 0.82rem;
+      padding: 8px 0;
+    }
+
+    .vocab-more {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .vocab-more.open {
+      display: block;
+    }
+
+    .vocab-view-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
     }
 
     .days-control {
@@ -574,6 +655,14 @@
       background: var(--mark-bg);
       color: inherit;
       border-radius: 4px;
+      padding: 0 2px;
+    }
+
+    .vocab-mark {
+      background: var(--vocab-bg);
+      color: var(--vocab-ink);
+      box-shadow: inset 0 -2px 0 var(--vocab-line);
+      border-radius: 5px;
       padding: 0 2px;
     }
 
@@ -674,15 +763,34 @@
             <div class="setting-row">
               <div class="setting-copy">
                 <div class="setting-label">Vocabulary list</div>
-                <div class="setting-help">Copy selected words from this chapter, all saved words, or recent words.</div>
+                <div class="setting-help">Saved words are highlighted in the text.</div>
               </div>
             </div>
-            <div class="vocab-actions">
-              <button id="copyChapterVocabBtn" class="copy-button" type="button">Copy chapter</button>
-              <button id="copyAllVocabBtn" class="copy-button" type="button">Copy all</button>
-              <button id="copyTodayVocabBtn" class="copy-button" type="button">Copy today</button>
-              <button id="copyYesterdayVocabBtn" class="copy-button" type="button">Copy yesterday</button>
-              <button id="copyRecentVocabBtn" class="copy-button" type="button">Copy recent</button>
+            <div class="vocab-panel">
+              <div class="vocab-head">
+                <div class="vocab-title" id="vocabViewTitle">This chapter</div>
+                <button id="copyCurrentVocabBtn" class="copy-button" type="button">Copy</button>
+              </div>
+              <div id="vocabList" class="vocab-list"></div>
+              <button id="viewMoreVocabBtn" class="copy-button" type="button">View more</button>
+              <div id="vocabMore" class="vocab-more">
+                <div class="vocab-view-row">
+                  <button class="copy-button" type="button" data-vocab-view="all">View all</button>
+                  <button class="copy-button" type="button" data-vocab-copy="all">Copy</button>
+                </div>
+                <div class="vocab-view-row">
+                  <button class="copy-button" type="button" data-vocab-view="today">View today</button>
+                  <button class="copy-button" type="button" data-vocab-copy="today">Copy</button>
+                </div>
+                <div class="vocab-view-row">
+                  <button class="copy-button" type="button" data-vocab-view="yesterday">View yesterday</button>
+                  <button class="copy-button" type="button" data-vocab-copy="yesterday">Copy</button>
+                </div>
+                <div class="vocab-view-row">
+                  <button class="copy-button" type="button" data-vocab-view="recent">View recent</button>
+                  <button class="copy-button" type="button" data-vocab-copy="recent">Copy</button>
+                </div>
+              </div>
             </div>
             <div class="days-control">
               <label for="recentDaysInput">Days</label>
@@ -729,6 +837,7 @@
       selectedText: "",
       selectedReference: "",
       selectedLanguage: "es",
+      vocabView: "chapter",
     };
 
     const els = {
@@ -741,11 +850,11 @@
       pickerPanel: document.getElementById("pickerPanel"),
       bookList: document.getElementById("bookList"),
       chapterList: document.getElementById("chapterList"),
-      copyChapterVocabBtn: document.getElementById("copyChapterVocabBtn"),
-      copyAllVocabBtn: document.getElementById("copyAllVocabBtn"),
-      copyTodayVocabBtn: document.getElementById("copyTodayVocabBtn"),
-      copyYesterdayVocabBtn: document.getElementById("copyYesterdayVocabBtn"),
-      copyRecentVocabBtn: document.getElementById("copyRecentVocabBtn"),
+      copyCurrentVocabBtn: document.getElementById("copyCurrentVocabBtn"),
+      viewMoreVocabBtn: document.getElementById("viewMoreVocabBtn"),
+      vocabMore: document.getElementById("vocabMore"),
+      vocabViewTitle: document.getElementById("vocabViewTitle"),
+      vocabList: document.getElementById("vocabList"),
       recentDaysInput: document.getElementById("recentDaysInput"),
       chapterTitle: document.getElementById("chapterTitle"),
       chapterCount: document.getElementById("chapterCount"),
@@ -854,6 +963,61 @@
       return state.verseLanguages[verse.id] || state.language;
     }
 
+    function vocabItemsForScope(scope) {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+      const days = Math.max(1, Number(els.recentDaysInput.value) || 7);
+      const cutoff = now.getTime() - days * 24 * 60 * 60 * 1000;
+      if (scope === "chapter") {
+        return state.vocab.filter(item => item.book === state.book && Number(item.chapter) === state.chapter);
+      }
+      if (scope === "today") {
+        return state.vocab.filter(item => new Date(item.addedAt).getTime() >= startOfToday);
+      }
+      if (scope === "yesterday") {
+        return state.vocab.filter(item => {
+          const time = new Date(item.addedAt).getTime();
+          return time >= startOfYesterday && time < startOfToday;
+        });
+      }
+      if (scope === "recent") {
+        return state.vocab.filter(item => new Date(item.addedAt).getTime() >= cutoff);
+      }
+      return state.vocab;
+    }
+
+    function renderVocabList() {
+      const labels = {
+        chapter: "This chapter",
+        all: "All vocabulary",
+        today: "Today",
+        yesterday: "Yesterday",
+        recent: `Past ${Math.max(1, Number(els.recentDaysInput.value) || 7)} days`,
+      };
+      const items = vocabItemsForScope(state.vocabView);
+      els.vocabViewTitle.textContent = `${labels[state.vocabView]} (${items.length})`;
+      els.vocabList.innerHTML = items.length
+        ? items.slice().reverse().map(item => `
+            <div class="vocab-item">
+              <div class="vocab-word">${escapeHtml(item.text)}</div>
+              <div class="vocab-ref">${escapeHtml(item.reference)} · ${escapeHtml(item.language.toUpperCase())} · ${escapeHtml(item.addedAt.slice(0, 10))}</div>
+            </div>
+          `).join("")
+        : `<div class="vocab-empty">No saved vocabulary in this view.</div>`;
+    }
+
+    function highlightVocab(text, verse, language) {
+      const terms = state.vocab
+        .filter(item => item.book === verse.book && Number(item.chapter) === verse.chapter && item.reference === verse.reference && item.language === language)
+        .map(item => item.text.trim())
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+      if (!terms.length) return escapeHtml(text);
+      const pattern = terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+      return escapeHtml(text).replace(new RegExp(`(${pattern})`, "gi"), `<span class="vocab-mark">$1</span>`);
+    }
+
     function renderVerses() {
       const verses = currentVerses();
       els.placeBtn.textContent = `${state.book} ${state.chapter}`;
@@ -871,10 +1035,11 @@
             aria-label="${escapeHtml(verse.reference)}">
             <button class="verse-toggle" type="button" data-verse-language="${language}" data-language="${language}" aria-label="Toggle verse language"></button>
             <div class="ref">${verse.verse}</div>
-            <div class="text">${escapeHtml(verse[language])}</div>
+            <div class="text">${highlightVocab(verse[language], verse, language)}</div>
           </article>
         `;
       }).join("");
+      renderVocabList();
     }
 
     function chooseChapter(book, chapter, verse = 1, scrollMode = "verse") {
@@ -883,6 +1048,7 @@
       state.focusedVerse = Number(verse);
       state.pickerBook = book;
       state.verseLanguages = {};
+      state.vocabView = "chapter";
       savePosition();
       renderPicker();
       renderVerses();
@@ -947,6 +1113,7 @@
       saveVocab();
       hideSelectionPopover();
       window.getSelection()?.removeAllRanges();
+      renderVerses();
     }
 
     function vocabLines(items) {
@@ -954,24 +1121,7 @@
     }
 
     function copyVocab(scope) {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
-      const days = Math.max(1, Number(els.recentDaysInput.value) || 7);
-      const cutoff = now.getTime() - days * 24 * 60 * 60 * 1000;
-      let items = state.vocab;
-      if (scope === "chapter") {
-        items = items.filter(item => item.book === state.book && Number(item.chapter) === state.chapter);
-      } else if (scope === "today") {
-        items = items.filter(item => new Date(item.addedAt).getTime() >= startOfToday);
-      } else if (scope === "yesterday") {
-        items = items.filter(item => {
-          const time = new Date(item.addedAt).getTime();
-          return time >= startOfYesterday && time < startOfToday;
-        });
-      } else if (scope === "recent") {
-        items = items.filter(item => new Date(item.addedAt).getTime() >= cutoff);
-      }
+      const items = vocabItemsForScope(scope);
       navigator.clipboard?.writeText(vocabLines(items));
     }
 
@@ -1030,7 +1180,8 @@
         const button = event.target.closest("[data-book]");
         if (!button) return;
         state.pickerBook = button.dataset.book;
-        renderPicker();
+        chooseChapter(button.dataset.book, 1, 1, "top");
+        setPickerOpen(true);
       });
       els.chapterList.addEventListener("click", event => {
         const button = event.target.closest("[data-chapter]");
@@ -1043,6 +1194,7 @@
         const isOpen = !els.settingsPanel.classList.contains("open");
         els.settingsPanel.classList.toggle("open", isOpen);
         els.settingsBtn.setAttribute("aria-expanded", String(isOpen));
+        if (isOpen) renderVocabList();
       });
       document.addEventListener("click", event => {
         if (!els.settingsPanel.classList.contains("open")) return;
@@ -1084,11 +1236,22 @@
         window.__bofmSelectionTimer = setTimeout(showSelectionPopover, 180);
       });
       els.addVocabBtn.addEventListener("click", addSelectedVocab);
-      els.copyChapterVocabBtn.addEventListener("click", () => copyVocab("chapter"));
-      els.copyAllVocabBtn.addEventListener("click", () => copyVocab("all"));
-      els.copyTodayVocabBtn.addEventListener("click", () => copyVocab("today"));
-      els.copyYesterdayVocabBtn.addEventListener("click", () => copyVocab("yesterday"));
-      els.copyRecentVocabBtn.addEventListener("click", () => copyVocab("recent"));
+      els.copyCurrentVocabBtn.addEventListener("click", () => copyVocab(state.vocabView));
+      els.viewMoreVocabBtn.addEventListener("click", () => {
+        els.vocabMore.classList.toggle("open");
+      });
+      els.vocabMore.addEventListener("click", event => {
+        const viewButton = event.target.closest("[data-vocab-view]");
+        const copyButton = event.target.closest("[data-vocab-copy]");
+        if (viewButton) {
+          state.vocabView = viewButton.dataset.vocabView;
+          renderVocabList();
+        }
+        if (copyButton) {
+          copyVocab(copyButton.dataset.vocabCopy);
+        }
+      });
+      els.recentDaysInput.addEventListener("change", renderVocabList);
     }
 
     fetch("scriptures.json")
