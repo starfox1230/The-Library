@@ -66,6 +66,11 @@
       overflow-x: hidden;
     }
 
+    body.selection-active {
+      overflow: hidden;
+      touch-action: none;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -525,13 +530,20 @@
 
     .word {
       border-radius: 5px;
-      padding: 0 1px;
+      padding: 0 2px;
     }
 
-    .word.custom-selected {
+    .word.custom-selected,
+    .word-space.custom-selected {
       background: var(--accent);
       color: white;
       box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+
+    .word-space {
+      white-space: pre-wrap;
+      border-radius: 3px;
+      padding: 0 1px;
     }
 
     .translation {
@@ -552,7 +564,7 @@
       display: none;
       z-index: 30;
       background: var(--panel);
-      border: 1px solid var(--line);
+      border: 2px solid var(--accent-2);
       border-radius: 8px;
       box-shadow: var(--shadow);
       padding: 6px;
@@ -853,6 +865,8 @@
       selectedLanguage: "es",
       vocabView: "chapter",
       customSelection: null,
+      selectionScrollY: 0,
+      selectionMode: "add",
     };
 
     const els = {
@@ -1039,7 +1053,7 @@
         .map(item => item.text.trim().toLowerCase())
         .filter(Boolean);
       return text.split(/(\s+)/).map((part, index) => {
-        if (!part.trim()) return escapeHtml(part);
+        if (!part.trim()) return `<span class="word-space" data-word-index="${index}">${escapeHtml(part)}</span>`;
         const normalized = part.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").toLowerCase();
         const isSaved = savedTerms.some(term => normalized && term.includes(normalized));
         return `<span class="word ${isSaved ? "vocab-mark" : ""}" data-word-index="${index}">${escapeHtml(part)}</span>`;
@@ -1127,9 +1141,26 @@
       localStorage.setItem("bofmReaderVocab", JSON.stringify(state.vocab));
     }
 
+    function selectedVocabIndex() {
+      const text = state.selectedText.trim().toLowerCase();
+      return state.vocab.findIndex(item =>
+        item.text.trim().toLowerCase() === text &&
+        item.reference === state.selectedReference &&
+        item.language === state.selectedLanguage
+      );
+    }
+
     function addSelectedVocab() {
       const text = state.selectedText.trim();
       if (!text) return;
+      const existingIndex = selectedVocabIndex();
+      if (existingIndex >= 0 || state.selectionMode === "remove") {
+        if (existingIndex >= 0) state.vocab.splice(existingIndex, 1);
+        saveVocab();
+        clearCustomSelection();
+        renderVerses();
+        return;
+      }
       state.vocab.push({
         text,
         reference: state.selectedReference,
@@ -1157,16 +1188,18 @@
     }
 
     function clearCustomSelection() {
-      document.querySelectorAll(".word.custom-selected").forEach(word => word.classList.remove("custom-selected"));
+      document.querySelectorAll(".custom-selected").forEach(word => word.classList.remove("custom-selected"));
       state.customSelection = null;
       state.selectedText = "";
+      state.selectionMode = "add";
+      document.body.classList.remove("selection-active");
       hideSelectionPopover();
     }
 
     function selectedWordsInRange(verseEl, start, end) {
       const min = Math.min(start, end);
       const max = Math.max(start, end);
-      return Array.from(verseEl.querySelectorAll(".word")).filter(word => {
+      return Array.from(verseEl.querySelectorAll(".word, .word-space")).filter(word => {
         const index = Number(word.dataset.wordIndex);
         return index >= min && index <= max;
       });
@@ -1177,21 +1210,27 @@
       const verseEl = wordEl.closest(".verse");
       if (!verseEl || verseEl.dataset.id !== state.customSelection.verseId) return;
       state.customSelection.end = Number(wordEl.dataset.wordIndex);
-      verseEl.querySelectorAll(".word.custom-selected").forEach(word => word.classList.remove("custom-selected"));
+      verseEl.querySelectorAll(".custom-selected").forEach(word => word.classList.remove("custom-selected"));
       const selected = selectedWordsInRange(verseEl, state.customSelection.start, state.customSelection.end);
       selected.forEach(word => word.classList.add("custom-selected"));
-      state.selectedText = selected.map(word => word.textContent).join(" ").replace(/\s+([,.;:!?])/g, "$1").trim();
+      state.selectedText = selected.map(word => word.textContent).join("").replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();
     }
 
     function showCustomSelectionPopover(verseEl) {
       if (!state.selectedText) return;
       const verseData = currentVerses().find(item => item.id === verseEl.dataset.id);
-      const selected = Array.from(verseEl.querySelectorAll(".word.custom-selected"));
-      const rect = (selected[0] || verseEl).getBoundingClientRect();
+      const selected = Array.from(verseEl.querySelectorAll(".custom-selected"));
+      const firstRect = (selected[0] || verseEl).getBoundingClientRect();
       state.selectedReference = `${state.book} ${state.chapter}:${verseEl.dataset.verse}`;
       state.selectedLanguage = verseData ? verseLanguage(verseData) : state.language;
-      els.selectionPopover.style.left = `${Math.min(Math.max(8, rect.left), window.innerWidth - 150)}px`;
-      els.selectionPopover.style.top = `${Math.max(8, rect.top - 50)}px`;
+      state.selectionMode = selectedVocabIndex() >= 0 ? "remove" : "add";
+      els.addVocabBtn.textContent = state.selectionMode === "remove" ? "Remove from vocab" : "Add to vocab";
+      els.selectionPopover.classList.add("open");
+      const popoverRect = els.selectionPopover.getBoundingClientRect();
+      const left = Math.min(Math.max(8, firstRect.left), window.innerWidth - popoverRect.width - 8);
+      const top = Math.max(8, firstRect.top - popoverRect.height - 12);
+      els.selectionPopover.style.left = `${left}px`;
+      els.selectionPopover.style.top = `${top}px`;
       els.selectionPopover.classList.add("open");
     }
 
@@ -1205,6 +1244,8 @@
         start: Number(wordEl.dataset.wordIndex),
         end: Number(wordEl.dataset.wordIndex),
       };
+      state.selectionScrollY = window.scrollY;
+      document.body.classList.add("selection-active");
       wordEl.setPointerCapture?.(pointerId);
       updateCustomSelection(wordEl);
     }
@@ -1290,6 +1331,9 @@
       document.addEventListener("contextmenu", event => {
         if (event.target.closest(".text")) event.preventDefault();
       });
+      document.addEventListener("touchmove", event => {
+        if (state.customSelection) event.preventDefault();
+      }, { passive: false });
       els.verseList.addEventListener("pointerdown", event => {
         const word = event.target.closest(".word");
         if (!word) {
@@ -1302,14 +1346,19 @@
       });
       els.verseList.addEventListener("pointermove", event => {
         if (!state.customSelection) return;
+        event.preventDefault();
+        window.scrollTo(window.scrollX, state.selectionScrollY);
         const target = document.elementFromPoint(event.clientX, event.clientY);
-        const word = target?.closest?.(".word");
+        const word = target?.closest?.(".word, .word-space");
         if (word) updateCustomSelection(word);
       });
       ["pointerup", "pointercancel", "pointerleave"].forEach(type => {
         els.verseList.addEventListener(type, event => {
           clearTimeout(window.__bofmLongPressTimer);
           if (!state.customSelection) return;
+          event.preventDefault();
+          window.scrollTo(window.scrollX, state.selectionScrollY);
+          document.body.classList.remove("selection-active");
           const verseEl = document.querySelector(`.verse[data-id="${state.customSelection.verseId}"]`);
           if (verseEl) showCustomSelectionPopover(verseEl);
         });
