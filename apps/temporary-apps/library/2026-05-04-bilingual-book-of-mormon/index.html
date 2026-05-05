@@ -381,22 +381,9 @@
       min-width: 0;
     }
 
-    .chapter-head {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      padding: 18px 20px;
-      margin-bottom: 14px;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-    }
-
     .chapter-nav {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 12px;
       align-items: center;
       margin: 0 0 14px;
@@ -429,26 +416,6 @@
     .nav-button:disabled {
       cursor: not-allowed;
       opacity: 0.42;
-    }
-
-    .nav-current {
-      color: var(--muted);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-      font-size: 0.84rem;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .chapter-title {
-      font-size: 1.45rem;
-      font-weight: 800;
-    }
-
-    .chapter-count {
-      color: var(--muted);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-      font-size: 0.86rem;
-      white-space: nowrap;
     }
 
     .verse-list {
@@ -729,18 +696,8 @@
         margin-top: 12px;
       }
 
-      .chapter-head {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
       .chapter-nav {
         grid-template-columns: 1fr 1fr;
-      }
-
-      .nav-current {
-        grid-column: 1 / -1;
-        grid-row: 1;
       }
 
       .nav-button.prev {
@@ -872,10 +829,6 @@
     <main>
       <section class="reader" aria-live="polite">
         <div class="chapter-nav top" id="chapterNavTop"></div>
-        <div class="chapter-head">
-          <div class="chapter-title" id="chapterTitle">Loading</div>
-          <div class="chapter-count" id="chapterCount"></div>
-        </div>
         <div class="verse-list" id="verseList"></div>
         <div class="chapter-nav bottom" id="chapterNavBottom"></div>
       </section>
@@ -922,8 +875,6 @@
       vocabViewTitle: document.getElementById("vocabViewTitle"),
       vocabList: document.getElementById("vocabList"),
       recentDaysInput: document.getElementById("recentDaysInput"),
-      chapterTitle: document.getElementById("chapterTitle"),
-      chapterCount: document.getElementById("chapterCount"),
       chapterNavTop: document.getElementById("chapterNavTop"),
       chapterNavBottom: document.getElementById("chapterNavBottom"),
       verseList: document.getElementById("verseList"),
@@ -1000,7 +951,6 @@
       const next = adjacentChapter(1);
       const html = `
         <button class="nav-button prev" type="button" data-nav="prev" ${previous ? "" : "disabled"}>${previous ? `Previous: ${escapeHtml(navLabel(previous))}` : "Previous"}</button>
-        <div class="nav-current">${escapeHtml(state.book)} ${state.chapter}</div>
         <button class="nav-button next" type="button" data-nav="next" ${next ? "" : "disabled"}>${next ? `Next: ${escapeHtml(navLabel(next))}` : "Next"}</button>
       `;
       els.chapterNavTop.innerHTML = html;
@@ -1096,8 +1046,6 @@
     function renderVerses() {
       const verses = currentVerses();
       els.placeBtn.textContent = `${state.book} ${state.chapter}`;
-      els.chapterTitle.textContent = `${state.book} ${state.chapter}`;
-      els.chapterCount.textContent = `${verses.length} verses`;
       renderChapterNav();
 
       els.verseList.innerHTML = verses.map(verse => {
@@ -1504,8 +1452,7 @@
         renderVerses();
       })
       .catch(error => {
-        els.chapterTitle.textContent = "Unable to load scripture text";
-        els.chapterCount.textContent = error.message;
+        els.verseList.innerHTML = `<article class="verse"><div class="text">Unable to load scripture text: ${escapeHtml(error.message)}</div></article>`;
       });
   </script>
 </body>
