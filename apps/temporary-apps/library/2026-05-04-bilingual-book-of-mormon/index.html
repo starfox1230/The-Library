@@ -49,6 +49,12 @@
 
     * { box-sizing: border-box; }
 
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -89,6 +95,7 @@
     }
 
     .top-actions {
+      width: 100%;
       display: flex;
       flex-wrap: wrap;
       justify-content: flex-end;
@@ -105,6 +112,13 @@
       border-radius: 8px;
       padding: 3px;
       min-width: 170px;
+    }
+
+    .place-button {
+      margin-right: auto;
+      max-width: min(48vw, 320px);
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .segmented button {
@@ -201,6 +215,71 @@
       z-index: 20;
     }
 
+    .picker-panel {
+      position: fixed;
+      inset: 72px 16px auto 16px;
+      max-width: 760px;
+      max-height: calc(100vh - 96px);
+      margin: 0 auto;
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: none;
+      z-index: 18;
+    }
+
+    .picker-panel.open {
+      display: block;
+    }
+
+    .picker-title {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 850;
+      margin-bottom: 12px;
+    }
+
+    .picker-grid {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.8fr) minmax(0, 1.2fr);
+      gap: 12px;
+    }
+
+    .book-list, .chapter-list {
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .book-option, .chapter-option {
+      border: 1px solid var(--line);
+      background: var(--button-bg);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 10px 11px;
+      cursor: pointer;
+      text-align: left;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-weight: 740;
+    }
+
+    .book-option.active, .chapter-option.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .chapter-list {
+      grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    }
+
+    .chapter-option {
+      text-align: center;
+    }
+
     .settings-panel.open {
       display: block;
     }
@@ -248,25 +327,7 @@
     main {
       width: min(1180px, 94vw);
       margin: 18px auto 42px;
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 18px;
-    }
-
-    aside {
-      align-self: start;
-      position: sticky;
-      top: 86px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      padding: 14px;
-    }
-
-    .control-grid {
-      display: grid;
-      gap: 10px;
+      display: block;
     }
 
     label {
@@ -378,6 +439,7 @@
     }
 
     .verse {
+      position: relative;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -410,6 +472,40 @@
       font-size: 0.86rem;
     }
 
+    .verse-toggle {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      width: 42px;
+      height: 24px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel-2);
+      padding: 2px;
+      cursor: pointer;
+    }
+
+    .verse-toggle::after {
+      content: "";
+      display: block;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--muted);
+      transform: translateX(0);
+      transition: transform 150ms ease, background 150ms ease;
+    }
+
+    .verse-toggle[data-language="en"] {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .verse-toggle[data-language="en"]::after {
+      background: white;
+      transform: translateX(18px);
+    }
+
     .text {
       font-size: 1.18rem;
       line-height: 1.72;
@@ -428,8 +524,50 @@
       display: none;
     }
 
-    .verse.holding .translation {
-      color: var(--accent-2);
+    .selection-popover {
+      position: fixed;
+      display: none;
+      z-index: 30;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 6px;
+    }
+
+    .selection-popover.open {
+      display: block;
+    }
+
+    .selection-popover button, .copy-button {
+      border: 1px solid var(--line);
+      background: var(--button-bg);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 9px 10px;
+      cursor: pointer;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-weight: 760;
+    }
+
+    .vocab-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .days-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .days-control input {
+      width: 72px;
+      min-height: 36px;
+      padding: 6px 8px;
     }
 
     mark {
@@ -440,16 +578,9 @@
     }
 
     @media (max-width: 840px) {
-      .topbar {
-        grid-template-columns: 1fr;
-      }
-
       main {
-        grid-template-columns: 1fr;
-      }
-
-      aside {
-        position: static;
+        width: min(100% - 20px, 1180px);
+        margin-top: 12px;
       }
 
       .chapter-head {
@@ -473,6 +604,47 @@
       .nav-button.next {
         grid-column: 2;
       }
+
+      .topbar {
+        width: min(100% - 20px, 1180px);
+        padding: 10px 0;
+      }
+
+      .top-actions {
+        gap: 7px;
+      }
+
+      .segmented {
+        min-width: 132px;
+      }
+
+      .segmented button {
+        padding: 8px 9px;
+      }
+
+      .place-button {
+        max-width: 100%;
+        order: 2;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .picker-panel {
+        inset: 112px 10px auto 10px;
+      }
+
+      .picker-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .book-list {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+
+      .settings-panel {
+        right: -4px;
+        width: min(330px, calc(100vw - 20px));
+      }
     }
   </style>
 </head>
@@ -481,6 +653,7 @@
     <header>
       <div class="topbar">
         <div class="top-actions">
+          <button id="placeBtn" class="theme-toggle place-button" type="button" aria-expanded="false">Choose chapter</button>
           <div class="segmented" aria-label="Reading language">
             <button id="spanishBtn" type="button" class="active">Spanish</button>
             <button id="englishBtn" type="button">English</button>
@@ -500,42 +673,34 @@
             <div class="settings-title">Settings</div>
             <div class="setting-row">
               <div class="setting-copy">
-                <div class="setting-label">Show other language</div>
-                <div class="setting-help">Turn this off to reveal translation only while pressing a verse.</div>
+                <div class="setting-label">Vocabulary list</div>
+                <div class="setting-help">Copy selected words from this chapter, all saved words, or recent words.</div>
               </div>
-              <label class="theme-toggle" for="showSecondaryToggle">
-                <input id="showSecondaryToggle" type="checkbox" checked />
-                <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
-              </label>
+            </div>
+            <div class="vocab-actions">
+              <button id="copyChapterVocabBtn" class="copy-button" type="button">Copy chapter</button>
+              <button id="copyAllVocabBtn" class="copy-button" type="button">Copy all</button>
+              <button id="copyTodayVocabBtn" class="copy-button" type="button">Copy today</button>
+              <button id="copyYesterdayVocabBtn" class="copy-button" type="button">Copy yesterday</button>
+              <button id="copyRecentVocabBtn" class="copy-button" type="button">Copy recent</button>
+            </div>
+            <div class="days-control">
+              <label for="recentDaysInput">Days</label>
+              <input id="recentDaysInput" type="number" min="1" max="365" value="7" />
             </div>
           </div>
         </div>
       </div>
     </header>
+    <div id="pickerPanel" class="picker-panel" role="dialog" aria-label="Choose chapter">
+      <div class="picker-title">Choose a chapter</div>
+      <div class="picker-grid">
+        <div id="bookList" class="book-list"></div>
+        <div id="chapterList" class="chapter-list"></div>
+      </div>
+    </div>
 
     <main>
-      <aside>
-        <div class="control-grid">
-          <div>
-            <label for="bookSelect">Book</label>
-            <select id="bookSelect"></select>
-          </div>
-          <div>
-            <label for="chapterSelect">Chapter</label>
-            <select id="chapterSelect"></select>
-          </div>
-          <div>
-            <label for="verseSelect">Jump to verse</label>
-            <select id="verseSelect"></select>
-          </div>
-          <div>
-            <label for="searchInput">Search this chapter</label>
-            <input id="searchInput" type="search" placeholder="Word or phrase" />
-          </div>
-        </div>
-        <div class="meta" id="meta">Loading scripture text...</div>
-      </aside>
-
       <section class="reader" aria-live="polite">
         <div class="chapter-nav top" id="chapterNavTop"></div>
         <div class="chapter-head">
@@ -546,6 +711,9 @@
         <div class="chapter-nav bottom" id="chapterNavBottom"></div>
       </section>
     </main>
+    <div id="selectionPopover" class="selection-popover">
+      <button id="addVocabBtn" type="button">Add to vocab</button>
+    </div>
   </div>
 
   <script>
@@ -555,28 +723,37 @@
       book: "1 Nephi",
       chapter: 1,
       focusedVerse: 1,
-      search: "",
-      holdingId: null,
-      showSecondary: true,
+      pickerBook: "1 Nephi",
+      verseLanguages: {},
+      vocab: [],
+      selectedText: "",
+      selectedReference: "",
+      selectedLanguage: "es",
     };
 
     const els = {
+      placeBtn: document.getElementById("placeBtn"),
       spanishBtn: document.getElementById("spanishBtn"),
       englishBtn: document.getElementById("englishBtn"),
       themeToggle: document.getElementById("themeToggle"),
       settingsBtn: document.getElementById("settingsBtn"),
       settingsPanel: document.getElementById("settingsPanel"),
-      showSecondaryToggle: document.getElementById("showSecondaryToggle"),
-      bookSelect: document.getElementById("bookSelect"),
-      chapterSelect: document.getElementById("chapterSelect"),
-      verseSelect: document.getElementById("verseSelect"),
-      searchInput: document.getElementById("searchInput"),
-      meta: document.getElementById("meta"),
+      pickerPanel: document.getElementById("pickerPanel"),
+      bookList: document.getElementById("bookList"),
+      chapterList: document.getElementById("chapterList"),
+      copyChapterVocabBtn: document.getElementById("copyChapterVocabBtn"),
+      copyAllVocabBtn: document.getElementById("copyAllVocabBtn"),
+      copyTodayVocabBtn: document.getElementById("copyTodayVocabBtn"),
+      copyYesterdayVocabBtn: document.getElementById("copyYesterdayVocabBtn"),
+      copyRecentVocabBtn: document.getElementById("copyRecentVocabBtn"),
+      recentDaysInput: document.getElementById("recentDaysInput"),
       chapterTitle: document.getElementById("chapterTitle"),
       chapterCount: document.getElementById("chapterCount"),
       chapterNavTop: document.getElementById("chapterNavTop"),
       chapterNavBottom: document.getElementById("chapterNavBottom"),
       verseList: document.getElementById("verseList"),
+      selectionPopover: document.getElementById("selectionPopover"),
+      addVocabBtn: document.getElementById("addVocabBtn"),
     };
 
     const languageLabel = { es: "Spanish", en: "English" };
@@ -585,9 +762,6 @@
     const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
     document.body.dataset.theme = initialTheme;
     els.themeToggle.checked = initialTheme === "dark";
-    const savedSecondary = localStorage.getItem("bofmReaderShowSecondary");
-    state.showSecondary = savedSecondary === null ? true : savedSecondary === "true";
-    els.showSecondaryToggle.checked = state.showSecondary;
 
     function escapeHtml(value) {
       return value.replace(/[&<>"']/g, char => ({
@@ -599,22 +773,16 @@
       }[char]));
     }
 
-    function highlight(text) {
-      const escaped = escapeHtml(text);
-      const query = state.search.trim();
-      if (!query) return escaped;
-      const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return escaped.replace(new RegExp(`(${safeQuery})`, "gi"), "<mark>$1</mark>");
-    }
-
     function currentVerses() {
       return state.data.verses.filter(v => v.book === state.book && v.chapter === state.chapter);
     }
 
     function setLanguage(language) {
       state.language = language;
+      state.verseLanguages = {};
       els.spanishBtn.classList.toggle("active", language === "es");
       els.englishBtn.classList.toggle("active", language === "en");
+      savePosition();
       renderVerses();
     }
 
@@ -622,13 +790,6 @@
       document.body.dataset.theme = theme;
       els.themeToggle.checked = theme === "dark";
       localStorage.setItem("bofmReaderTheme", theme);
-    }
-
-    function setShowSecondary(showSecondary) {
-      state.showSecondary = showSecondary;
-      els.showSecondaryToggle.checked = showSecondary;
-      localStorage.setItem("bofmReaderShowSecondary", String(showSecondary));
-      renderVerses();
     }
 
     function chapterLocation(bookName = state.book, chapterNumber = state.chapter) {
@@ -671,60 +832,46 @@
       els.chapterNavBottom.innerHTML = html;
     }
 
-    function renderBookOptions() {
-      els.bookSelect.innerHTML = state.data.books.map(book =>
-        `<option value="${escapeHtml(book.name)}">${escapeHtml(book.name)}</option>`
-      ).join("");
-      els.bookSelect.value = state.book;
-    }
-
-    function renderChapterOptions() {
-      const book = state.data.books.find(item => item.name === state.book);
-      els.chapterSelect.innerHTML = Array.from({ length: book.chapters }, (_, index) => {
+    function renderPicker() {
+      els.bookList.innerHTML = state.data.books.map(book => `
+        <button class="book-option ${book.name === state.pickerBook ? "active" : ""}" type="button" data-book="${escapeHtml(book.name)}">${escapeHtml(book.name)}</button>
+      `).join("");
+      const book = state.data.books.find(item => item.name === state.pickerBook);
+      els.chapterList.innerHTML = Array.from({ length: book.chapters }, (_, index) => {
         const chapter = index + 1;
-        return `<option value="${chapter}">${chapter}</option>`;
+        const active = book.name === state.book && chapter === state.chapter;
+        return `<button class="chapter-option ${active ? "active" : ""}" type="button" data-book="${escapeHtml(book.name)}" data-chapter="${chapter}">${chapter}</button>`;
       }).join("");
-      els.chapterSelect.value = String(state.chapter);
     }
 
-    function renderVerseOptions(verses) {
-      els.verseSelect.innerHTML = verses.map(verse =>
-        `<option value="${verse.verse}">${verse.verse}</option>`
-      ).join("");
-      els.verseSelect.value = String(state.focusedVerse);
+    function setPickerOpen(open) {
+      els.pickerPanel.classList.toggle("open", open);
+      els.placeBtn.setAttribute("aria-expanded", String(open));
+      if (open) renderPicker();
+    }
+
+    function verseLanguage(verse) {
+      return state.verseLanguages[verse.id] || state.language;
     }
 
     function renderVerses() {
       const verses = currentVerses();
-      const alternate = state.language === "es" ? "en" : "es";
-      const filtered = state.search.trim()
-        ? verses.filter(verse =>
-            verse.es.toLowerCase().includes(state.search.toLowerCase()) ||
-            verse.en.toLowerCase().includes(state.search.toLowerCase()) ||
-            verse.reference.toLowerCase().includes(state.search.toLowerCase())
-          )
-        : verses;
-
+      els.placeBtn.textContent = `${state.book} ${state.chapter}`;
       els.chapterTitle.textContent = `${state.book} ${state.chapter}`;
-      els.chapterCount.textContent = `${filtered.length} of ${verses.length} verses`;
-      els.meta.textContent = `${state.data.counts.books} books, ${state.data.counts.chapters} chapters, ${state.data.counts.verses.toLocaleString()} aligned verses. Current mode: ${languageLabel[state.language]}.`;
-      renderVerseOptions(verses);
+      els.chapterCount.textContent = `${verses.length} verses`;
       renderChapterNav();
 
-      els.verseList.innerHTML = filtered.map(verse => {
-        const isHolding = state.holdingId === verse.id;
-        const primary = isHolding ? alternate : state.language;
-        const secondary = isHolding ? state.language : alternate;
-        const showTranslation = state.showSecondary;
+      els.verseList.innerHTML = verses.map(verse => {
+        const language = verseLanguage(verse);
         return `
-          <article class="verse ${verse.verse === state.focusedVerse ? "focused" : ""} ${isHolding ? "holding" : ""}"
+          <article class="verse ${verse.verse === state.focusedVerse ? "focused" : ""}"
             data-id="${verse.id}"
             data-verse="${verse.verse}"
             tabindex="0"
             aria-label="${escapeHtml(verse.reference)}">
+            <button class="verse-toggle" type="button" data-verse-language="${language}" data-language="${language}" aria-label="Toggle verse language"></button>
             <div class="ref">${verse.verse}</div>
-            <div class="text">${highlight(verse[primary])}</div>
-            <div class="translation ${showTranslation ? "" : "hidden"}">${highlight(verse[secondary])}</div>
+            <div class="text">${escapeHtml(verse[language])}</div>
           </article>
         `;
       }).join("");
@@ -734,9 +881,10 @@
       state.book = book;
       state.chapter = Number(chapter);
       state.focusedVerse = Number(verse);
-      state.holdingId = null;
-      els.bookSelect.value = state.book;
-      renderChapterOptions();
+      state.pickerBook = book;
+      state.verseLanguages = {};
+      savePosition();
+      renderPicker();
       renderVerses();
       requestAnimationFrame(() => {
         const target = scrollMode === "top"
@@ -752,11 +900,143 @@
       chooseChapter(target.book, target.chapter, 1, "top");
     }
 
+    function savePosition() {
+      localStorage.setItem("bofmReaderPosition", JSON.stringify({
+        book: state.book,
+        chapter: state.chapter,
+        language: state.language,
+      }));
+    }
+
+    function restorePosition() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("bofmReaderPosition") || "null");
+        if (!saved) return;
+        const book = state.data.books.find(item => item.name === saved.book);
+        if (!book) return;
+        state.book = saved.book;
+        state.chapter = Math.min(Math.max(Number(saved.chapter) || 1, 1), book.chapters);
+        state.pickerBook = state.book;
+        if (saved.language === "en" || saved.language === "es") state.language = saved.language;
+      } catch {}
+    }
+
+    function loadVocab() {
+      try {
+        state.vocab = JSON.parse(localStorage.getItem("bofmReaderVocab") || "[]");
+      } catch {
+        state.vocab = [];
+      }
+    }
+
+    function saveVocab() {
+      localStorage.setItem("bofmReaderVocab", JSON.stringify(state.vocab));
+    }
+
+    function addSelectedVocab() {
+      const text = state.selectedText.trim();
+      if (!text) return;
+      state.vocab.push({
+        text,
+        reference: state.selectedReference,
+        book: state.book,
+        chapter: state.chapter,
+        language: state.selectedLanguage,
+        addedAt: new Date().toISOString(),
+      });
+      saveVocab();
+      hideSelectionPopover();
+      window.getSelection()?.removeAllRanges();
+    }
+
+    function vocabLines(items) {
+      return items.map(item => `${item.text}\t${item.reference}\t${item.language}\t${item.addedAt.slice(0, 10)}`).join("\n");
+    }
+
+    function copyVocab(scope) {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+      const days = Math.max(1, Number(els.recentDaysInput.value) || 7);
+      const cutoff = now.getTime() - days * 24 * 60 * 60 * 1000;
+      let items = state.vocab;
+      if (scope === "chapter") {
+        items = items.filter(item => item.book === state.book && Number(item.chapter) === state.chapter);
+      } else if (scope === "today") {
+        items = items.filter(item => new Date(item.addedAt).getTime() >= startOfToday);
+      } else if (scope === "yesterday") {
+        items = items.filter(item => {
+          const time = new Date(item.addedAt).getTime();
+          return time >= startOfYesterday && time < startOfToday;
+        });
+      } else if (scope === "recent") {
+        items = items.filter(item => new Date(item.addedAt).getTime() >= cutoff);
+      }
+      navigator.clipboard?.writeText(vocabLines(items));
+    }
+
+    function hideSelectionPopover() {
+      els.selectionPopover.classList.remove("open");
+    }
+
+    function showSelectionPopover() {
+      const selection = window.getSelection();
+      const text = selection ? selection.toString().trim() : "";
+      if (!text || !selection.rangeCount) {
+        hideSelectionPopover();
+        return;
+      }
+      const anchorElement = selection.anchorNode?.nodeType === Node.TEXT_NODE
+        ? selection.anchorNode.parentElement
+        : selection.anchorNode;
+      const verse = anchorElement?.closest?.(".verse");
+      if (!verse) {
+        hideSelectionPopover();
+        return;
+      }
+      const verseData = currentVerses().find(item => item.id === verse.dataset.id);
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      state.selectedText = text;
+      state.selectedReference = `${state.book} ${state.chapter}:${verse.dataset.verse}`;
+      state.selectedLanguage = verseData ? verseLanguage(verseData) : state.language;
+      els.selectionPopover.style.left = `${Math.min(rect.left, window.innerWidth - 150)}px`;
+      els.selectionPopover.style.top = `${Math.max(8, rect.top - 50)}px`;
+      els.selectionPopover.classList.add("open");
+    }
+
+    // Preserved for later: chapter-scoped search/filtering can be reintroduced without rebuilding the data model.
+    function searchCurrentChapter(query) {
+      const needle = query.trim().toLowerCase();
+      if (!needle) return currentVerses();
+      return currentVerses().filter(verse =>
+        verse.es.toLowerCase().includes(needle) ||
+        verse.en.toLowerCase().includes(needle) ||
+        verse.reference.toLowerCase().includes(needle)
+      );
+    }
+
     function bindEvents() {
       els.spanishBtn.addEventListener("click", () => setLanguage("es"));
       els.englishBtn.addEventListener("click", () => setLanguage("en"));
       els.themeToggle.addEventListener("change", event => {
         setTheme(event.target.checked ? "dark" : "light");
+      });
+      els.placeBtn.addEventListener("click", event => {
+        event.stopPropagation();
+        setPickerOpen(!els.pickerPanel.classList.contains("open"));
+      });
+      els.bookList.addEventListener("click", event => {
+        const button = event.target.closest("[data-book]");
+        if (!button) return;
+        state.pickerBook = button.dataset.book;
+        renderPicker();
+      });
+      els.chapterList.addEventListener("click", event => {
+        const button = event.target.closest("[data-chapter]");
+        if (!button) return;
+        setPickerOpen(false);
+        chooseChapter(button.dataset.book, button.dataset.chapter, 1, "top");
       });
       els.settingsBtn.addEventListener("click", event => {
         event.stopPropagation();
@@ -764,14 +1044,16 @@
         els.settingsPanel.classList.toggle("open", isOpen);
         els.settingsBtn.setAttribute("aria-expanded", String(isOpen));
       });
-      els.showSecondaryToggle.addEventListener("change", event => {
-        setShowSecondary(event.target.checked);
-      });
       document.addEventListener("click", event => {
         if (!els.settingsPanel.classList.contains("open")) return;
         if (els.settingsPanel.contains(event.target) || els.settingsBtn.contains(event.target)) return;
         els.settingsPanel.classList.remove("open");
         els.settingsBtn.setAttribute("aria-expanded", "false");
+      });
+      document.addEventListener("click", event => {
+        if (!els.pickerPanel.classList.contains("open")) return;
+        if (els.pickerPanel.contains(event.target) || els.placeBtn.contains(event.target)) return;
+        setPickerOpen(false);
       });
       [els.chapterNavTop, els.chapterNavBottom].forEach(nav => {
         nav.addEventListener("click", event => {
@@ -780,52 +1062,50 @@
           goToAdjacentChapter(button.dataset.nav === "next" ? 1 : -1);
         });
       });
-      els.bookSelect.addEventListener("change", event => chooseChapter(event.target.value, 1, 1));
-      els.chapterSelect.addEventListener("change", event => chooseChapter(state.book, event.target.value, 1));
-      els.verseSelect.addEventListener("change", event => chooseChapter(state.book, state.chapter, event.target.value));
-      els.searchInput.addEventListener("input", event => {
-        state.search = event.target.value;
-        renderVerses();
-      });
 
       els.verseList.addEventListener("click", event => {
+        const toggle = event.target.closest(".verse-toggle");
+        if (toggle) {
+          const verse = toggle.closest(".verse");
+          const verseData = currentVerses().find(item => item.id === verse.dataset.id);
+          const current = verseLanguage(verseData);
+          state.verseLanguages[verseData.id] = current === "es" ? "en" : "es";
+          renderVerses();
+          return;
+        }
         const verse = event.target.closest(".verse");
         if (!verse) return;
         state.focusedVerse = Number(verse.dataset.verse);
+        localStorage.setItem("bofmReaderLastVerse", String(state.focusedVerse));
         renderVerses();
       });
-
-      ["pointerdown", "pointerenter"].forEach(type => {
-        els.verseList.addEventListener(type, event => {
-          if (type === "pointerenter" && event.pointerType !== "mouse") return;
-          const verse = event.target.closest(".verse");
-          if (!verse) return;
-          state.holdingId = verse.dataset.id;
-          renderVerses();
-        });
+      document.addEventListener("selectionchange", () => {
+        clearTimeout(window.__bofmSelectionTimer);
+        window.__bofmSelectionTimer = setTimeout(showSelectionPopover, 180);
       });
-
-      ["pointerup", "pointercancel", "pointerleave"].forEach(type => {
-        els.verseList.addEventListener(type, () => {
-          if (!state.holdingId) return;
-          state.holdingId = null;
-          renderVerses();
-        });
-      });
+      els.addVocabBtn.addEventListener("click", addSelectedVocab);
+      els.copyChapterVocabBtn.addEventListener("click", () => copyVocab("chapter"));
+      els.copyAllVocabBtn.addEventListener("click", () => copyVocab("all"));
+      els.copyTodayVocabBtn.addEventListener("click", () => copyVocab("today"));
+      els.copyYesterdayVocabBtn.addEventListener("click", () => copyVocab("yesterday"));
+      els.copyRecentVocabBtn.addEventListener("click", () => copyVocab("recent"));
     }
 
     fetch("scriptures.json")
       .then(response => response.json())
       .then(data => {
         state.data = data;
-        renderBookOptions();
-        renderChapterOptions();
+        loadVocab();
+        restorePosition();
+        els.spanishBtn.classList.toggle("active", state.language === "es");
+        els.englishBtn.classList.toggle("active", state.language === "en");
+        renderPicker();
         bindEvents();
         renderVerses();
       })
       .catch(error => {
         els.chapterTitle.textContent = "Unable to load scripture text";
-        els.meta.textContent = error.message;
+        els.chapterCount.textContent = error.message;
       });
   </script>
 </body>
