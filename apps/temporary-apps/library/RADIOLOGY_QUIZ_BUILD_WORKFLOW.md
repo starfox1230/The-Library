@@ -25,6 +25,7 @@ The common failure pattern is an off-by-one image shift. Examples already encoun
 - Chapter 2 MSK Normal/Normal Variants: q2 incorrectly received q3's first radial-head image; q3 needed both page 60 and page 61 images.
 - Chapter 3 MSK Congenital/Developmental: q3/q4, q13/q14, and q19/q20 had continuation-page shifts before manual correction.
 - Chapter 4 MSK Infection: the text `6 months prior` had to be excluded as a false question number, and q12's CT image appeared on the answer-section boundary page.
+- Chapter 4 Nuclear Medicine Head and Neck: PDF page 158 had two unrelated question images on the same page. The first belonged to q8 and the second belonged to q9a, so the generator needed a per-image split map instead of a page-level map.
 
 ## Text Cleanup
 
