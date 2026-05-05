@@ -28,6 +28,8 @@ The common failure pattern is an off-by-one image shift. Examples already encoun
 - Chapter 5 MSK Tumors: long chapters can have dozens of mixed pages. Use active-question mapping plus explicit page overrides, and make `b`/`c` subparts inherit `a` images when the subpart asks management or histology for the same lesion.
 - Chapter 4 Nuclear Medicine Head and Neck: PDF page 158 had two unrelated question images on the same page. The first belonged to q8 and the second belonged to q9a, so the generator needed a per-image split map instead of a page-level map.
 - Chapter 5 Nuclear Medicine Cardiology: multiple pages interleave one question's answer choices with the next question's image. Use per-image maps for mixed pages, especially ECG-strip pages and cardiac perfusion pages with subquestions.
+- Chapter 6 Nuclear Medicine Vascular/Lymphatics: radiotracer text like `99m` can be misread as a question number, and diagram-labeled site questions may need generic `Site A-D` choices.
+- Chapter 7 Nuclear Medicine Pulmonary: mixed pages can put prior answer choices above the next stem; PDF page 247's image belongs to q4 even though q5 starts on that page, and q12 needs adjacent-page V/Q plus chest radiograph images.
 
 ## Text Cleanup
 

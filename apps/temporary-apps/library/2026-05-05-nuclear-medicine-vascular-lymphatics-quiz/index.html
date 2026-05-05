@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuclear Medicine Vascular and Lymphatics Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Nuclear Medicine Vascular and Lymphatics Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"nuclear-medicine-vascular-lymphatics-quiz-ch6",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "What radiopharmaceutical was most commonly used for this procedure?", "options": [{"letter": "A", "text": "Tc-99m sulfur colloid"}, {"letter": "B", "text": "Tc-99m DTPA"}, {"letter": "C", "text": "Tc-99m MAA"}, {"letter": "D", "text": "Tc-99m DMSA"}], "images": ["assets/q1_p227_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. In the United States, filtered Tc-99m sulfur colloid (particle size 100 to 200 nm) is most commonly used for sentinel lymph node (SLN) localization by lymphoscintigraphy. Tc-99m nanocolloidal albumin (particle size 5 to 100 nm) is preferred in most of Europe, while Tc-99m antimony trisulfide (particle size 3 to 30 nm) is preferred in Australia and Canada. Tc-99m tilmanocept (Lymphoseek) is an alternative to radiocolloid, which was approved by the FDA in 2014. It targets dextran-mannose receptors on the surface of macrophages. Its use is gaining traction. This case illustrates why imaging is important (particularly for trunk melanoma lesions) because cancers may drain to a nodal pattern that is different from what would be clinically expected. If the SLN is positive for the disease, this triggers a full nodal dissection of that basin. If the SLN is negative for the disease, this prevents additional nodal dissection and reduces the associated morbidity such as extremity swelling from poor lymphatic drainage.\n\nReferences: Giammarile F, Alazraki N, Aarsvold JN, et al. The EANM and SNMMI practice guideline for lymphoscintigraphy and sentinel node localization in breast cancer. Eur J Nucl Med Mol Imaging 2013;40(12):1932-1947. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-324."}, {"number": "2", "stem": "In order to expedite the migration as well as to optimize the retention within the lymph nodes, Tc- 99m sulfur colloid utilized for lymphoscintigraphy is filtered. What is the typical size of these filtered particles?", "options": [{"letter": "A", "text": "100 to 220 nm"}, {"letter": "B", "text": "10 to 22 nm"}, {"letter": "C", "text": "100 to 220 μm"}, {"letter": "D", "text": "10 to 22 μm"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The sulfur colloid (SC) particles in standard preparations are too large for the purposes of sentinel lymph node (SLN) lymphoscintigraphy. Particles >400 nm in size may not migrate to the regional lymph nodes at all. Particles that are too small may migrate too quickly through the entire nodal basin, making the identification of a single sentinel lymph node difficult. Unfiltered Tc-99m SC is composed of particles ranging from 15 to 5,000 nm, with an average size of 305 to 340 nm. For SLN scintigraphy, the SC is usually filtered using a 0.22-μm filter, which results in the suspension of colloid particles ranging in size between 100 and 220 nm. This results in a more uniform mixture of smaller particles, which makes it more conducive to lymphatic drainage.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-324. Newman EA, Newman LA. Lymphatic mapping techniques and sentinel lymph node biopsy in breast cancer. Surg Clin North Am 2007;87(2):353-364, viii."}, {"number": "3", "stem": "Which of the following mechanisms is responsible for the localization of filtered Tc-99m sulfur colloid in the sentinel lymph node?", "options": [{"letter": "A", "text": "Receptor binding of the radiolabeled colloid particles to the metastatic cells"}, {"letter": "B", "text": "Receptor binding of the radiolabeled colloid particles to the macrophages"}, {"letter": "C", "text": "Phagocytosis of the radiolabeled colloid particles by the macrophages"}, {"letter": "D", "text": "Phagocytosis of the radiolabeled colloid particles by the metastatic cells"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Tc-99m sulfur colloid (SC) gets phagocytized by the macrophages. The reticuloendothelial system is responsible for removing large particles such as colloid and immune complexes from healthy persons' circulation. It is composed of monocytes in the blood, Kupffer cells in the liver, and macrophages in connective tissue, lymphoid organs, bone marrow, and lungs. As such, when injected intravenously, Tc-99m SC localizes in the Kupffer cells in the liver and macrophages in the spleen and bone marrow. When injected intradermally, filtered sulfur colloid travels through the lymphatic channel and gets phagocytized by the macrophages residing in the draining lymph node.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-324."}, {"number": "4", "stem": "Which of the following characteristics constitutes a lymph node as the sentinel lymph node on the lymphoscintigraphy?", "options": [{"letter": "A", "text": "Lymph node visualized closest to the tumor"}, {"letter": "B", "text": "Largest visualized lymph node"}, {"letter": "C", "text": "Most intense visualized lymph node"}, {"letter": "D", "text": "First visualized lymph node"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. According to Morton's original definition, the sentinel lymph node is \"the first lymph node that receives afferent lymphatic drainage from a primary tumor.\" Sentinel lymph nodes (SLN) are regional nodes that are directly connected to the primary tumor by lymphatic channels. Early dynamic images frequently demonstrate a channel leading to the SLN, which is the first lymph node to be visualized in a nodal drainage basin. The major criteria for identifying SLNs are the time of appearance and occasionally visualization of the connecting lymphatic channels. SLN need not be the hottest, the closest, or the largest lymph nodes visualized. As one or more lymph nodes may be connected to the tumor by the lymphatic channels, multiple SLNs may be seen. In such a case, all should be surgically removed and tested for metastatic disease. SLN biopsy is now the gold standard for lymph node staging in breast cancer and melanoma. SLN resection reduces morbidity and has similar mortality rates compared to more invasive lymph node dissections.\n\nReferences: Chakera AH, Hesse B, Burak Z, et al. EANM-EORTC general recommendations for sentinel node diagnostics in melanoma. Eur J Nucl Med Mol Imaging 2009;36(10):1713-1742. Nieweg OE, Tanis PJ, Kroon BB. The definition of a sentinel node. Ann Surg Oncol 2001;8:538-541."}, {"number": "5", "stem": "Which of the following injection sites would be expected to have the most likelihood of internal mammary lymph node visualization?", "options": [{"letter": "A", "text": "Site A"}, {"letter": "B", "text": "Site B"}, {"letter": "C", "text": "Site C"}, {"letter": "D", "text": "Site D"}], "images": ["assets/q5_p228_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. While one would surmise that the ideal injection site to visualize internal mammary nodes would be superficial skin injection medial to the midclavicular line (A), it has been shown that internal mammary node identification is better with deep peritumoral injections. A recent anatomical study on breast lymphatics found that separate lymphatic networks exist in the ventral and dorsal parts of the breast with the former draining to the axilla and latter to the internal mammary chain. Important advantages of the deep injections include improved detection of the extra-axillary sentinel lymph nodes and the possibility of using larger injection volumes. A major advantage of superficial injections (subdermal, periareolar, intradermal, or subareolar) is that they are easy to perform; however, they are often more painful than peritumoral injections. A combination of both techniques may improve sentinel lymph node detection and decrease false- negative findings.\n\nReferences: Hindie E, Groheux D, Espie M, et al. [Sentinel node biopsy in breast cancer]. Bull Cancer 2009;96(6):713-725. Shimazu K, Tamaki Y, Taguchi T, et al. Lymphoscintigraphic visualization of internal mammary nodes with subtumoral injection of radiocolloid in patients with breast cancer. Ann Surg 2003;237(3):390-398. Suami H, Pan WR, Mann GB, et al. The lymphatic anatomy of the breast and its implications for sentinel lymph node biopsy: a human cadaver study. Ann Surg Oncol 2008;15(3):863-871."}, {"number": "6", "stem": "The following images are from a bilateral upper extremity lymphangiogram. What is the most likely side and level of the lymphatic obstruction?", "options": [{"letter": "A", "text": "Right forearm"}, {"letter": "B", "text": "Left forearm"}, {"letter": "C", "text": "Right upper arm"}, {"letter": "D", "text": "Left upper arm"}, {"letter": "E", "text": "No evidence of obstruction"}], "images": ["assets/q6_p229_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The patient was injected between the webs of the fingers in order to visualize the lymphatic drainage. The supplied images demonstrate subcutaneous activity tracking along the left upper extremity, which stops at the mid-upper arm. In contrast, normal lymphatic drainage via lymphatic channels is visualized on the right. Lymph node visualization is present but decreased within the left axilla when compared to the right. The combination of these findings suggests partial left-sided lymphatic obstruction. With complete obstruction, the left axillary lymph nodes would not be visualized at all, and superficial activity would be seen throughout the left arm. Typical indications for lymphatic drainage evaluation by lymphoscintigraphy include lymphedema, chyluria, chylothorax, and chyloperitoneum. The most common secondary causes of abnormal lymphatic drainage are prior surgery, cancer, infection, and radiation.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:324. Moshiri M, Katz DS, Boris M, et al. Using lymphoscintigraphy to evaluate suspected lymphedema of the extremities. Am J Roentgenol 2002;178(2):405-412. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:353-358. Yuan Z, Chen L, Luo Q, et al. The role of radionuclide lymphoscintigraphy in extremity lymphedema. Ann Nucl Med 2006;20(5):341-344."}, {"number": "7", "stem": "Which of the following is correct regarding the lymphoscintigraphy of the breast?", "options": [{"letter": "A", "text": "The injection should take place 24 to 48 hours prior to the planned lymph node dissection."}, {"letter": "B", "text": "Ultrasound guidance is recommended for superficial breast lesions."}, {"letter": "C", "text": "Lymph nodes visualized in the first 60 minutes of imaging are considered sentinel lymph nodes."}, {"letter": "D", "text": "A periareolar injection is recommended for lesions in the upper outer quadrant."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. In some centers, all patients get periareolar injections; however, periareolar injections are specifically recommended for lesions located within the upper outer quadrant near the area of the axilla. Injection in the periareolar area in these patients helps differentiate the sentinel lymph node (SLN) from activity in the primary lesion if the injection was around the primary lesion close to the axilla. Injections should take place no more than 18 hours prior to planned SLN resection as intraoperative gamma detection is used to confirm the presence of radioactivity within the lymph nodes. While ultrasound guidance is recommended for deep lesions of the breast, subdermal and intradermal injections without guidance are usually sufficient for more superficial lesions. The first lymph nodes detected within a nodal drainage basin on imaging are considered to be the sentinel lymph node(s). While other lymph nodes may also be marked for potential resection, care should be taken to clearly document the SLN. Lymphoscintigraphy detects the SLN in 90% to 98% of cases.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-324. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:353-358."}, {"number": "8", "stem": "How was the following image obtained?", "options": [{"letter": "A", "text": "Cobalt-57 sheet source"}, {"letter": "B", "text": "Cadmium-zinc telluride detector"}, {"letter": "C", "text": "Flat-panel x-ray detector"}, {"letter": "D", "text": "Tungsten x-ray tube"}], "images": ["assets/q8_p230_01.jpg"], "explanationImages": ["assets/a8_p239_01.jpg"], "answer": "A", "explanation": "Answer A. This is a transmission image acquired using a cobalt-57 sheet source to help provide better anatomical localization. The sheet source is placed behind the patient. The radiation from the sheet gets attenuated by the soft tissues and does not reach the detector. The remaining radiation reaches the detector creating an outline of the patient's body. Sheet sources are a simple and cheap method to enhance the localization of lesions without contributing significant radiation dose to the patient. An x-ray tube can be used when acquiring SPECT/CT images but not in the transmission image that is shown.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-324. Moshiri M, Katz DS, Boris M, et al. Using lymphoscintigraphy to evaluate suspected lymphedema of the extremities. Am J Roentgenol 2002;178(2):405-412. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229. Yuan Z, Chen L, Luo Q, et al. The role of radionuclide lymphoscintigraphy in extremity lymphedema. Ann Nucl Med 2006;20(5):341-344."}, {"number": "9", "stem": "The following images were acquired after the intrahepatic injection of Tc-99m MAA. Which of the following would be the best recommendation regarding the planned Yttrium-90 SIR-Spheres treatment?", "options": [{"letter": "A", "text": "No reduction of Y-90 SIR-Spheres dosage necessary"}, {"letter": "B", "text": "Reduction of Y-90 SIR-Spheres dosage by 20%"}, {"letter": "C", "text": "Reduction of Y-90 SIR-Spheres dosage by 40%"}, {"letter": "D", "text": "Reduction of Y-90 SIR-Spheres dosage by 100%"}], "images": ["assets/q9_p231_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The anterior and posterior images acquired after the intra-arterial injection of Tc-99m MAA demonstrate no significant activity within the lungs to indicate arteriovenous shunting. Calculated activity from regions of interest drawn around the lungs and liver demonstrate approximately 4% pulmonary shunting. This is well below the 10% threshold at which dose reduction would be considered with SIR-Spheres. As such, no reduction of Y-90 SIR-Spheres dose is necessary. Y-90-labeled TheraSpheres and SIR-Spheres are used in the palliative treatment of liver tumors and metastases to selectively deliver a high dose of internal radiation using an intra-arterial infusion. Y-90 is a pure β-emitter with a half-life of 64 hours. Intra-arterial Tc-99m MAA is used to document the vascular distribution and assess for arteriovenous shunting to nontarget organs as well as lungs prior to the administration of Y-90 microsphere therapy. If significant gastrointestinal activity is seen, embolization of the supplying vessels is indicated prior to Y-90 therapy. If pulmonary shunting is present, the therapeutic dose may be decreased to prevent radiation pneumonitis. With SIR-Spheres, the activity should be adjusted according to the percentage of lung shunting as shown in the table below.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:325-327. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:212-213. Uliel L, Royal HD, Darcy MD, et al. From the angio suite to the gamma-camera: vascular mapping and 99mTc-MAA hepatic perfusion imaging before liver radioembolization-a comprehensive pictorial review. J Nucl Med 2012;53(11):1736-1747."}, {"number": "10", "stem": "Quantitative analysis of anterior and posterior Tc MAA images after the right hepatic intra-arterial injection is provided. What is the MOST correct statement regarding the Y-90 TheraSpheres treatment in this patient?", "options": [{"letter": "A", "text": "No dose adjustment is necessary."}, {"letter": "B", "text": "Increase the dose."}, {"letter": "C", "text": "Reduce the dose."}, {"letter": "D", "text": "Do not treat the patient."}], "images": ["assets/q10_p232_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Intra-arterial Tc-99m MAA is used to document the vascular distribution and assess arteriovenous shunting to nontarget organs and lungs prior to the administration of Y-90 microsphere therapy. If significant gastrointestinal activity is seen, the embolization of the supplying vessels is indicated prior to Y-90 therapy. If pulmonary shunting is present, the therapeutic dose may be decreased to prevent radiation pneumonitis. With TheraSpheres, the upper limit of injected activity shunted to the lung (percentage of shunting to the lungs times the planned therapy activity) is 16.5 mCi (610.5 mBq). As such, in a patient with 35.8% pulmonary shunting, the therapy is contraindicated as it would result in radiation-induced pneumonitis.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:325-327. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:212-213.Uliel L, Royal HD, Darcy MD, et al. From the angio suite to the gamma-camera: vascular mapping and 99mTc-MAA hepatic perfusion imaging before liver radioembolization-a comprehensive pictorial review. J Nucl Med 2012;53(11):1736-1747."}, {"number": "11", "stem": "What is the most appropriate conclusion based on the supplied planar and SPECT/CT Ga-67 images in this patient with fever of unknown origin?", "options": [{"letter": "A", "text": "No source for the patient's fever is identified."}, {"letter": "B", "text": "Infected left ventricular assist device pump."}, {"letter": "C", "text": "Infectious colitis."}, {"letter": "D", "text": "Attenuation artifact."}], "images": ["assets/q11_p233_01.jpg"], "explanationImages": ["assets/a11_p241_01.jpg"], "answer": "B", "explanation": "Answer B. The 48-hour delayed anterior and posterior images as well as axial and coronal SPECT/CT images acquired after the intravenous administration of gallium-67 demonstrate the presence of a focal area of intense activity surrounding the patient's left ventricular assist device (LVAD) pump. The findings are abnormal and likely represent hardware infection in this patient with a history of fever of unknown origin. In general, there should not be any abnormal accumulation of Ga-67 around the hardware on 48-hour delayed images. Because of increased attenuation from metallic portions of the LVAD, falsely increased activity can be seen on SPECT/CT images from the overcorrection of attenuation. As such, the correlation should be made with non-attenuation corrected and/or planar images. In this patient, the planar images demonstrate abnormal activity in the left upper quadrant anteriorly (arrows). Without the SPECT/CT images, it would be easy to confuse this activity as physiologic bowel uptake. However, SPECT/CT images accurately localize this activity surrounding the hardware, confirming hardware infection and excluding infectious colitis.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:268-272. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:111-114."}, {"number": "12", "stem": "Which of the following radiotracers would be ideal for the evaluation of abdominal infection?", "options": [{"letter": "A", "text": "Gallium-67"}, {"letter": "B", "text": "Tc-99m HMPAO-labeled WBC scan"}, {"letter": "C", "text": "In-111 oxine-labeled leukocyte scan"}, {"letter": "D", "text": "Thallium-201"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. In-111-labeled leukocytes are preferred for the evaluation of abdominal infection because they lack normal physiologic bowel activity associated with Ga-67 and Tc-99m HMPAO- labeled leukocyte scan. Also, the presence of significant hepatic and splenic activity with Ga-67 may hamper the detection of infections in the upper abdomen. When present, In-111-labeled leukocyte activity in the gastrointestinal tract is nonspecific and may indicate etiologies including Crohn disease, ulcerative colitis, pseudomembranous colitis, diverticulitis, or ischemia. Also, false-positive results may occur due to swallowing of leukocytes in patients with respiratory tract infections, sinusitis, endotracheal or nasopharyngeal tubes, or gastrointestinal bleeding. Tl-201 has no role in infection imaging. In current clinical practice, a CT of the abdomen and pelvis is usually the initial ordered and preferred imaging modality for suspected intra-abdominal infections/inflammation.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:409-440."}, {"number": "13", "stem": "In which of the following instances is Ga-67 scintigraphy preferred over In-111 oxine-labeled leukocytes scan?", "options": [{"letter": "A", "text": "Suspected hip prosthesis infection"}, {"letter": "B", "text": "Suspected intra-abdominal abscess"}, {"letter": "C", "text": "Suspected Crohn disease"}, {"letter": "D", "text": "Suspected vertebral osteomyelitis"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. In-111 oxine-labeled leukocyte scan is less sensitive than Ga-67 in the evaluation of vertebral osteomyelitis. This may be secondary to regional hypoperfusion in the setting of vertebral osteomyelitis with resultant decrease in the uptake. When used with bone imaging, gallium scan provides increased sensitivity for the diagnosis of vertebral osteomyelitis. In-111 oxine-labeled leukocyte scan is preferred over gallium scan in the evaluation of intra-abdominal infectious or inflammatory processes because of interference from normal physiologic activity within the bowel seen on Ga-67 scans. Combination of In-111 oxine-labeled leukocyte scan and Tc-99m sulfur colloid marrow scan is preferred in the diagnosis of suspected hip or knee prosthesis infection.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:418-426."}, {"number": "14", "stem": "An 89-year-old male with a history of right femoral vein stent undergoes the following examination for the evaluation of persistent bacteremia. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Colon cancer"}, {"letter": "B", "text": "Vertebral osteomyelitis"}, {"letter": "C", "text": "Stent infection"}, {"letter": "D", "text": "Mycotic aneurysm"}], "images": ["assets/q14_p234_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Anterior and posterior whole-body images and right lateral spot view image demonstrate physiologic distribution of the radiopharmaceutical in the liver, spleen, and bone marrow. The images appear coarse, suggesting that this is a polyenergetic medium-energy radiopharmaceutical. These images are from an In-111-oxine labeled leukocyte (In-111 WBC) scan. A large focus of intense activity is seen in the lower abdomen left to the midline, which is more intense on the anterior image compared to the posterior image and localizes anterior to the spine on the lateral projection. The findings are highly suspicious of a mycotic aneurysm in this patient with a history of bacteremia. Since intra-abdominal abscess can present similarly and SPECT-CT could not be obtained, correlation with CT scan was suggested. CT image (below) demonstrates an abdominal aortic aneurysm with surrounding soft tissue stranding in keeping with the suspected mycotic aneurysm. Because mycotic aneurysm carries a poor prognosis, early diagnosis is crucial. While Crohn disease would be positive on the In-111 WBC scan, the distribution would be more diffuse, and the uptake would be lower than seen in this case. Since the abnormality is not in the expected location of the femoral vein, stent infection is less likely as well. In-111 WBC is not a sensitive modality for the evaluation of vertebral osteomyelitis; Osteomyelitis tends to present as an area of photopenia and not increased activity on In-111 WBC scan. Ga-67 or F-18 FDG is preferred for the evaluation of vertebral osteomyelitis. Unlike Ga-67, a major advantage of the In-111 WBC scan in the evaluation of the abdomen is the lack of normal physiologic intra-abdominal activity. False positives with In-111 WBC scan in the abdomen include accessory splenic tissue, pseudoaneurysm, and a noninfected hematoma. Intraluminal intestinal activity resulting from swallowed or shedding cells that occur with esophagitis, pharyngitis, and sinusitis may also appear on In-111 WBC scan.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:413-415."}, {"number": "15", "stem": "The following scan was acquired on a 33-year-old patient who has diarrhea and abdominal discomfort. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Crohn disease"}, {"letter": "B", "text": "Sacral metastasis"}, {"letter": "C", "text": "Splenic lymphoma"}, {"letter": "D", "text": "Colloid shift"}], "images": ["assets/q15_p235_01.jpg"], "explanationImages": ["assets/a15_p243_01.jpg"], "answer": "A", "explanation": "Answer A. This is an In-111 oxine-labeled WBC scan with physiologic distribution in the spleen, liver, and bone marrow. Mild diffuse activity is seen in the colon. This is typically seen with infectious or inflammatory colitis such as Clostridium difficile colitis, Crohn disease, or ulcerative colitis. A small focus of intense activity overlying the region of the sacrum is from a rectal fissure. Sacral metastasis and lymphoma would not show up on an In-111 WBC scan. The colloid shift is seen on the Tc-99m sulfur colloid scan. It is typically associated with chronic liver dysfunction resulting in the shift of the colloid from the liver to spleen, making the spleen the most intense organ rather than the liver.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:363-368."}, {"number": "16", "stem": "In truncal melanoma, which basin has the highest chances of harboring the sentinel lymph node?", "options": [{"letter": "A", "text": "Axillary"}, {"letter": "B", "text": "Inguinal"}, {"letter": "C", "text": "Occipital"}, {"letter": "D", "text": "Truncal"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The most common drainage pathway in truncal melanoma is to the axillary basin (~90%). Approximately 50% of the truncal melanomas of the upper back may drain to a contralateral basin. About one-third of lesions on the back will drain to multiple basins. As such, performing lymphoscintigraphy in truncal melanoma is imperative. Since the migration to unanticipated drainage pathways may take longer time, delayed imaging at 2 to 4 hours may be useful. If more than one lymph node is visualized in the basin on the delayed imaging, the early or dynamic imaging can be used to determine the identity of the first draining (sentinel) lymph node.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:323."}, {"number": "17", "stem": "Which of the following is most likely to reduce false-negative finding when used in conjunction with lymphoscintigraphy, and is usually combined by many surgeons with the use of the intraoperative gamma probe?", "options": [{"letter": "A", "text": "Intraoperative ultrasound"}, {"letter": "B", "text": "F-18 FDG PET-CT"}, {"letter": "C", "text": "Blue dye injection"}, {"letter": "D", "text": "Palpation of lymph nodes"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. In sentinel lymph node excision, many surgeons use information obtained by vital blue dye (VBD) injection along with radioactivity to increase sensitivity as well as reduce false negatives. According to the American Society of Clinical Oncology (ASCO), using radioisotope and blue dye during the sentinel lymph node biopsy could achieve a much higher SLN identification rate (>90%) and a relatively low false-negative rate (<5% to 10%) than either tracer alone. This is compared to approximately 83% for the blue dye alone and 89% for the radiocolloid alone according to one widely cited meta-analysis.\n\nReferences: Kim T, Agboola O, Giuliano A, et al. Lymphatic mapping and sentinel lymph node sampling in early-stage breast cancer: a meta-analysis. Cancer 2006;106:4-16. Lyman GH, Giuliano AE, Somerfield MR, et al. American Society of Clinical Oncology guideline recommendations for sentinel lymph node biopsy in early-stage breast cancer. J Clin Oncol 2005;23:7703-7720. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:324."}, {"number": "18", "stem": "Which of the following is responsible for the accumulation of Tc-99m tilmanocept (Lymphoseek) in the sentinel lymph node?", "options": [{"letter": "A", "text": "Receptor-based binding to the metastatic cells"}, {"letter": "B", "text": "Receptor-based binding to the macrophages"}, {"letter": "C", "text": "Phagocytosis by the macrophages"}, {"letter": "D", "text": "Active transport by Na-K ATPase pump into the cytosol"}, {"letter": "E", "text": "Binding of the radiotracer to the mitochondria"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Tc-99m diethylenetriaminepentaacetic acid (DTPA)-mannosyl-dextran (Tc-99m Tilmanocept) was approved by the FDA on October 15, 2014 for lymphatic mapping in solid tumors. Tilmanocept (Lymphoseek) is a macromolecule with an average diameter of 7 nm, consisting of multiple units of DTPA and mannose covalently attached to the dextran backbone. The mannose acts as a ligand for the CD206 receptor, and the DTPA serves as the binding site for Tc-99m. The CD206 receptor protein is found on the surface of macrophages and dendritic cells, which are found in high concentration in lymph nodes.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-323. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:354-355."}, {"number": "19", "stem": "What is the advantage of Tc-99m tilmanocept (Lymphoseek) compared to Tc-99m sulfur colloid?", "options": [{"letter": "A", "text": "Higher distal lymph node uptake"}, {"letter": "B", "text": "Faster injection site clearance"}, {"letter": "C", "text": "Appearance of more lymph nodes"}, {"letter": "D", "text": "Lower proximal lymph node uptake"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The advantages of tilmanocept over radiocolloids include rapid clearance of the injection site, high sentinel lymph node (SNL) extraction, and low distal node accumulation. Because the average diameter of 7mm for Tc-99m tilmanocept is smaller than the average size of the filtered Tc-99m SC particles of 100 to 200 nm, it has faster injection site clearance. Specific and high-affinity binding of mannose to the CD206 receptors on macrophages and dendritic cells results in high sentinel lymph node extraction and lower distal node accumulation. Baker et al. found that fewer SLNs were removed from patients mapped with Tc-99m tilmanocept plus VBD than patients receiving filtered Tc-99m SC plus VBD. Also, a larger proportion of removed nodes were found to be positive (1.7 times greater) with Tc-99m tilmanocept compared to Tc-99m SC. In two nonrandomized phase III trials, Tc-99m tilmanocept identified more SLNs in more patients than did VBD.\n\nReferences: Baker JL, Pu M, Tokin CA, et al. Comparison of Tc-99m Tilmanocept and filtered Tc-99m sulfur colloid for identification of SLNs in breast cancer patients. Ann Surg Oncol 2015;22:40-45. Sondak VK, King DW, Zager JS, et al. Combined analysis of phase III trials evaluating [99mTc] tilmanocept and vital blue dye for identification of sentinel lymph nodes in clinically node-negative cutaneous melanoma. Ann Surg Oncol 2013;20(2):680-688. Wallace AM, Han LK, Povoski SP, et al. Comparative evaluation of [99mTc] Tilmanocept and vital blue dye for identification of sentinel lymph nodes in clinically node-negative cutaneous melanoma. Ann Surg Oncol 2013;20:2590-2599."}, {"number": "20", "stem": "What is the required minimum time interval between the injection of Tc-99m tilmanocept (Lymphoseek) and initiation of the intraoperative lymphatic mapping?", "options": [{"letter": "A", "text": "15 minutes"}, {"letter": "B", "text": "30 minutes"}, {"letter": "C", "text": "45 minutes"}, {"letter": "D", "text": "60 minutes"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. In clinical studies, Tc-99m tilmanocept (Lymphoseek) was detectable in lymph nodes within 10 minutes and up to 30 hours. It is recommended that lymphatic mapping with Tc-99m tilmanocept (Lymphoseek) be conducted no earlier than 15 minutes and up to 15 hours postinjection.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:322-323. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:354-355."}];
+    const APP_ID = "nuclear-medicine-vascular-lymphatics-quiz-ch6";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
