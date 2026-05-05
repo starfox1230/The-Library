@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuclear Medicine Cardiology Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Nuclear Medicine Cardiology Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"nuclear-medicine-cardiology-quiz-ch5",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "The following image is from a dual-isotope myocardial perfusion examination. What is the major difference between performing the myocardial perfusion stress imaging with thallium-201 (Tl- 201) and technetium-99m (Tc-99m) myocardial perfusion agents?", "options": [{"letter": "A", "text": "A higher dose of thallium-201 is used for imaging."}, {"letter": "B", "text": "Stress acquisition must begin within 10 minutes of Tl-201 injection."}, {"letter": "C", "text": "An exercise stress test cannot be performed with Tl-201."}, {"letter": "D", "text": "A pharmacologic stress test cannot be performed with Tl-201."}, {"letter": "E", "text": "Imaging is usually begun 30 to 45 minutes after Tl-201 administration."}, {"letter": "F", "text": "Tl-201 has less soft tissue attenuation."}], "images": ["assets/q1_p184_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Thallium-201 (Tl-201) is a potassium analog, which is transported across the myocardial membrane via the Na+−K+ ATPase pump into the myocardial cytosol. It localizes in the myocardium in two phases: initial distribution is mediated by blood flow and cellular extraction by viable myocardium, and delayed redistribution is mediated by the continued dynamic exchange between vascular blood pool and myocardium. It has a very high first-pass extraction rate of approximately 85% compared to about 60% for the Tc-99m-labeled myocardial perfusion imaging agents (sestamibi or tetrofosmin). Unlike Tc-99m-labeled myocardial perfusion imaging agents, Tl-201 quickly undergoes redistribution, which is a dynamic exchange of Tl-201 between the myocardial cytosol and the vascular blood pool. Because of redistribution, poststress images with Tl-201 must be performed quickly after its injection (<10 minutes). Redistribution is also the basis for the use of Tl-201 in the evaluation of myocardial viability with delayed 24-hour imaging. Either exercise or pharmacologic stress protocol can be used with Tl-201. Because of its higher absorbed dose, in part due to its longer half-life of 3 days, the injected dose of the Tl-201 (3 to 4 mCi total) is lower than those of the Tc-99m-labeled myocardial perfusion agents (30 to 45 mCi total). Biliary excretion of Tc-99m-labeled myocardial perfusion agents results in intense activity within the liver. In order to allow clearance from the liver and since these agents do not undergo redistribution, imaging is usually begun 30 to 45 minutes after their administration. In comparison, Tl-201 is excreted slowly and to an equal extent through urine and feces, resulting in less GI scatter. Since Tc-99m photon has higher energy (140 keV) than mercury daughter x-rays from Tl-201 (69 to 81 keV), less soft tissue attenuation would be seen with Tc-99m-labeled agents compared to Tl-201.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:120-123."}, {"number": "2", "stem": "What is the most appropriate dose range for the resting portion of 1-day rest/stress Tc-99m tetrofosmin SPECT myocardial perfusion imaging?", "options": [{"letter": "A", "text": "3 to 5 mCi"}, {"letter": "B", "text": "8 to 12 mCi"}, {"letter": "C", "text": "15 to 20 mCi"}, {"letter": "D", "text": "24 to 36 mCi"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Typical rest dose of Tc labeled myocardial perfusion agents for 1-day rest/stress myocardial perfusion study is between 8 and 12 mCi. For 1-day protocol, the rest dose is typically one-third of the stress dose. Some variations may be allowed depending on the length of time between rest and stress injections. If the time between the rest and stress injections is long, a full three times greater dose is not required for the stress injection due to greater decay of activity from the prior resting injection. If the time is short, the stress portion of the study requires a higher dose. With a high rest dose, stress dose will need to be three times higher, which will give patients unnecessary radiation. If a lower dose is used for stress without sufficient time between the two injections, there will be residual activity from the rest study, which can underestimate the amount of ischemia. Newer dedicated cardiac cameras with solid-state detectors and focused cardiac imaging are more efficient and may allow for a lower dose of the radiotracer injection than traditional gamma cameras.\n\nReferences: Henzlova MJ, et al. ASNC Imaging Guidelines for Nuclear Cardiology Procedures: stress protocols and tracers. J Nucl Cardiol 2016;23(3):606-639. doi: 10.1007/s12350-015-0387-x."}, {"number": "3", "stem": "Which of the following is a correct statement regarding regadenoson (Lexiscan)?", "options": [{"letter": "A", "text": "It is a selective A2B receptor agonist."}, {"letter": "B", "text": "It cannot be used in patients with a history of asthma or COPD."}, {"letter": "C", "text": "Fixed bolus injection of 400 μg is given over 10 seconds."}, {"letter": "D", "text": "Atropine is used to treat adverse effects associated with its administration."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Regadenoson is the most commonly used pharmacologic stress agent for myocardial perfusion imaging due to its ease of use and favorable side effect profile. It was first approved for clinical use by the FDA in 2009. It is a selective A2A receptor agonist with rapid onset (30 seconds) and vasodilatory effects lasting for approximately 2 to 5 minutes. The recommended IV dose of 400 μg is typically given over 10 to 30 seconds into a peripheral vein. Like adenosine and dipyridamole (Persantine), it induces coronary arteriolar hyperemia approximately 3.5 to 4 times that of the baseline. Unlike adenosine and Persantine, it is a selective adenosine receptor agonist. Since it does not bind to A3 receptors responsible for bronchospasm, severe asthma or COPD are not absolute contraindications to its use. While package insert states that appropriate bronchodilator therapy and resuscitative measures should be available prior to and following Lexiscan administration, we have not encountered serious complications in these patients in our clinical practice. With the exception of seizures, complications or side effects of all of the adenosine agonist agents can be reversed with intravenous administration of aminophylline (50 to 250 mg). Atropine may be used in conjunction with dobutamine or exercise to counteract the effects of beta-adrenergic blocking medications in order to achieve target heart rate and to increase the sensitivity of the myocardial perfusion imaging in certain patient populations.\n\nReferences: Henzlova MJ, et al. ASNC Imaging Guidelines for Nuclear Cardiology Procedures: stress protocols and tracers. J Nucl Cardiol 2016;23(3):606-639. doi: 10.1007/s12350-015-0387-x. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:144-146."}, {"number": "4", "stem": "What is the major difference between the PET myocardial perfusion images acquired with N-13 ammonia when compared to those acquired with rubidium-82?", "options": [{"letter": "A", "text": "Better resolution"}, {"letter": "B", "text": "Larger full width at half maximum"}, {"letter": "C", "text": "No difference"}, {"letter": "D", "text": "Higher energy photon"}, {"letter": "E", "text": "Less signal to noise"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. N-13 ammonia positron has less energy (1.198 MeV) than the positron emitted by the decay of rubidium-82 (Rb-82, 3.150 MeV). As such, it travels a shorter distance before undergoing annihilation. This decreased range is responsible for the better image resolution (smaller full width at half maximum) of N-13 ammonia myocardial perfusion images compared to that acquired with Rb-82. The energy of photons generated by annihilation is 511 keV for both N- 13 ammonia and Rb-82. N-13 ammonia, Rb-82, and F-18 flurpiridaz are the PET radiotracers that can be used to evaluate myocardial perfusion; F-18 FDG is used for the evaluation of myocardial viability. The use of N-13 ammonia (half-life 10 minutes) requires an on-site cyclotron. Rubidium-82 (half-life 76 seconds) is produced by a generator and does not require an on-site cyclotron. F-18 flurpiridaz is a new PET myocardial perfusion radiopharmaceutical in clinical development.\n\nReferences: Dicarli MF, Liptom MJ. Cardiac PET and PET/CT imaging. New York, NY: Springer, 2007:74. Dilsizian V, Bacharach SL, Beanlands RS, et al. Imaging guidelines for nuclear cardiology procedures: PET myocardial perfusion and metabolism clinical imaging. J Nucl Cardiol 2009;16:651. doi: 10.1007/s12350-009-9094-9."}, {"number": "5", "stem": "Which of the following myocardial perfusion agents has the longest half-life?", "options": [{"letter": "A", "text": "Rb-82"}, {"letter": "B", "text": "F-18 FDG"}, {"letter": "C", "text": "O-15 water"}, {"letter": "D", "text": "N-13 ammonia"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Since currently available PET myocardial perfusion agents have short half-lives, they are best suited for pharmacologic stress. O-15 water, Rb-82, and N-13 ammonia are myocardial perfusion agents with half-lives discussed in the table below. F-18 FDG has a longer half-life, but it evaluates glucose metabolism and not myocardial perfusion. Rb-82 is an analog of potassium. Its extraction in the myocardium is lower at 60% compared to 70% to 80% for N-13 ammonia. F- 18 Flurpiridaz is a new PET myocardial perfusion agent in clinical development. It has a longer half-life (110 minutes) and may allow for exercise PET myocardial perfusion imaging evaluation. Also, given that the positron resulting from F-18 annihilation travels the least distance, it also has the highest resolution of the clinically used positron emitters for myocardial perfusion imaging. Please note that because the energy of the Rb-82 positron is the highest, it has a range of 13 to 15 mm in soft tissues before undergoing annihilation. This results in inferior image quality compared to N-13 ammonia or F-18 FDG.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:130-134. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:465-467."}, {"number": "6", "stem": "Which of the following is most commonly associated with an inferior wall perfusion abnormality?", "options": [{"letter": "A", "text": "Breast attenuation"}, {"letter": "B", "text": "Diaphragm attenuation"}, {"letter": "C", "text": "Left bundle branch block"}, {"letter": "D", "text": "Left circumflex artery stenosis"}], "images": [], "explanationImages": ["assets/a6_p202_01.jpg", "assets/a6_8b_p203_01.jpg", "assets/a6_8b_p203_02.jpg"], "answer": "B", "explanation": "Answer B. Diaphragm attenuation artifact is typically seen along the mid to basal inferior wall, which is more severe along the base. The use of CT attenuation correction or prone imaging usually results in the resolution of the perfusion defect caused by the diaphragm attenuation artifact. Breast attenuation artifact is commonly seen along the anterior and anteroseptal walls (see below). Left bundle branch-related perfusion abnormalities are commonly seen along the anteroseptal and septal walls (see below). Left circumflex artery disease would be typically seen along the lateral and inferolateral walls.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:4131-4134."}, {"number": "7", "stem": "Name the labeling method where the red blood cells are separated via centrifugation, washed, incubated with Sn2+, incubated with 99m-TcO4−, and reinjected?", "options": [{"letter": "A", "text": "In vitro"}, {"letter": "B", "text": "In vivo"}, {"letter": "C", "text": "Modified in vivo"}, {"letter": "D", "text": "Modified in vitro"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The described method is in vitro labeling of the red blood cells (RBCs). As the name implies, all steps involved in the labeling of the RBCs with in vitro labeling are performed outside the patient. It has the highest labeling efficiency (>97%) of the three labeling methods. The labeling efficiency of the modified in vivo technique is about 85% to 90%, and in vivo technique is about 75%.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:166-167. Saha GB. Fundamentals of nuclear pharmacy, 6th ed. New York, NY: Springer, 2010:120-121."}, {"number": "8a", "stem": "A 68-year-old lady underwent rest-stress Tc-99m tetrofosmin myocardial perfusion imaging for chest pain. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Normal"}, {"letter": "B", "text": "Ischemia"}, {"letter": "C", "text": "Infarct"}, {"letter": "D", "text": "Attenuation artifact"}], "images": ["assets/q8a_p186_01.jpg"], "explanationImages": ["assets/a8a_8b_p204_01.jpg"], "answer": "B", "explanation": "Answer B. The images demonstrate a large area of severely decreased activity along the anteroseptal wall extending into the apex, which is not present (reversible) on resting images. Findings are most consistent with myocardial ischemia. A myocardial infarct would appear the same on stress and rest perfusion images. Although the breast attenuation artifact would be seen along the anteroseptal wall, it would typically present as a mild to moderate intensity fixed perfusion defect and not as a severe intensity reversible defect. Also, the cine images would show significant attenuation related to the breasts. Diaphragm attenuation artifact would be most prominent along the basal inferior wall.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:129-134. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:452-455."}, {"number": "8b", "stem": "This territory is supplied by which of the following arteries?", "options": [{"letter": "A", "text": "Left anterior descending artery (LAD)"}, {"letter": "B", "text": "Left circumflex artery (LCX)"}, {"letter": "C", "text": "Right coronary artery (RCA)"}, {"letter": "D", "text": "Ramus intermedius artery"}], "images": [], "explanationImages": ["assets/a6_8b_p203_01.jpg", "assets/a6_8b_p203_02.jpg", "assets/a8a_8b_p204_01.jpg"], "answer": "A", "explanation": "Answer A. Anterior, anteroseptal, and apical walls are typically supplied by the left anterior descending coronary artery (LAD). The left circumflex artery (LCX) typically supplies the lateral and inferolateral walls, while the inferior and inferoseptal walls are usually supplied by the right coronary artery (RCA), as shown in the image below.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:130-132. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:444-447."}, {"number": "9", "stem": "The following patient underwent a regadenoson pharmacologic stress test using Rb-82 rest-stress PET myocardial perfusion imaging. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Left anterior descending artery disease"}, {"letter": "B", "text": "Left circumflex artery disease"}, {"letter": "C", "text": "Right coronary artery disease"}, {"letter": "D", "text": "Multivessel disease"}], "images": ["assets/q9_p187_01.jpg"], "explanationImages": ["assets/a9_10a_p205_01.jpg"], "answer": "D", "explanation": "Answer D. The rest-stress perfusion images demonstrate a large area of severely decreased activity along the anterior wall extending into the anterolateral and lateral walls. Only a small area of mildly decreased activity is seen along the lateral wall on the rest images. Also, there is evidence of stress-induced dilatation of the left ventricular (LV) cavity and stress-induced reduction of LV ejection fraction (LVEF) from 54% to 39%, both of which suggest multivessel disease. Because of the short half-lives of current PET radiopharmaceuticals, the patient must undergo the stress perfusion PET imaging during the pharmacologic stress. As such, any reduction in the stress LVEF with PET represents myocardial stunning from significant ischemia with a resultant decrease in myocardial contractility. On the other hand, with Tc-99m tetrofosmin and sestamibi, the patients usually wait 10 to 40 minutes between the injection at peak stress and imaging to allow for clearance from the liver. By this time, the stunned myocardium may have recovered, and stress-induced reduction in the LVEF may have resolved. With these agents, transient ischemic dilatation (TID), dilatation of the LV cavity on stress images compared to the rest images, is thought to be representative of a combination of diffuse subendocardial ischemia and myocardial stunning.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:137, 156-157. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:465-469."}, {"number": "10a", "stem": "A 63-year-old gentleman with ischemic cardiomyopathy is being evaluated for possible coronary artery bypass grafting with the hope of symptom improvement. Based on the following immediate (top row) and 24-hour delayed (bottom row) short-axis thallium-201 perfusion images, what is the MOST likely diagnosis?", "options": [{"letter": "A", "text": "Ischemia"}, {"letter": "B", "text": "Attenuation artifact"}, {"letter": "C", "text": "Stunned myocardium"}, {"letter": "D", "text": "Hibernating myocardium"}, {"letter": "E", "text": "Nonviable myocardial infarct"}], "images": ["assets/q10a_p188_01.jpg"], "explanationImages": ["assets/a9_10a_p205_01.jpg"], "answer": "E", "explanation": "Answer E. The immediate images (top row) demonstrate a large-sized area of severely decreased activity along the inferolateral wall, which persists on 24-hour images (bottom row). Findings are consistent with a nonviable myocardial scar. Because of the redistribution phenomenon, Tl-201 would be expected to redistribute from the normal myocardium and localize in the chronically ischemic but viable (hibernating) myocardium on the delayed 6- or 24-hour images when compared to the immediate images. When identified, revascularization of the chronically ischemic but viable myocardium results in significant improvement in the myocardial function. Rest/redistribution Tl-201 myocardial scintigraphy or PET myocardial perfusion/F-18 FDG metabolism study may be used for the evaluation of myocardial viability.\n\nReferences: Maddahi J, Schelbert H, Brunken R, et al. Role of thallium-201 and PET imaging in evaluation of myocardial viability and management of patients with coronary artery disease and left ventricular dysfunction. J Nucl Med 1994;35(4):707-715. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:456-459."}, {"number": "10b", "stem": "What artery supplies this territory?", "options": [{"letter": "A", "text": "Left anterior descending artery"}, {"letter": "B", "text": "Left circumflex artery"}, {"letter": "C", "text": "Right coronary artery"}, {"letter": "D", "text": "Ramus intermedius artery"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. This area is typically supplied by the left circumflex artery, as discussed in explanation 8b.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:130-132. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:444-447, 456- 459."}, {"number": "11", "stem": "The patient is a 59-year-old gentleman with ischemic cardiomyopathy and LVEF of 35%. Based on the following resting N-13 ammonia (top row) and F-18 FDG- (bottom row) PET images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Ischemia"}, {"letter": "B", "text": "Attenuation artifact"}, {"letter": "C", "text": "Stunned myocardium"}, {"letter": "D", "text": "Hibernating myocardium"}, {"letter": "E", "text": "Nonviable myocardial infarct"}], "images": ["assets/q11_p188_02.jpg"], "explanationImages": ["assets/a11_p207_01.jpg"], "answer": "D", "explanation": "Answer D. The resting N-13 ammonia perfusion images demonstrate a large area of severely decreased perfusion along the anterior wall extending into the anteroseptal wall and septum. This defect demonstrates metabolism on the F-18 FDG images. As such, the findings are consistent with a large zone of hibernating myocardium in the LAD and RCA territories. Hibernating myocardium is chronically ischemic but viable myocardium, which should recover function after revascularization. The patient undergoing F-18 FDG myocardial viability imaging undergoes glucose loading (sometimes with insulin) prior to F-18 FDG administration. This will help switch myocardial metabolism from fatty acids to glucose and increase the amount of F-18 FDG taken up in the heart. F-18 FDG-PET viability images should always be interpreted in conjunction with perfusion images. The perfusion defect is the only area that should be evaluated on the metabolic viability images as the normally perfused myocardium may utilize fatty acids and may not demonstrate significant FDG uptake. Hibernating myocardium will preferentially use glucose over free fatty acids and will demonstrate an area of increased FDG uptake. If this area corresponds to the area of resting perfusion abnormality, then it represents a hibernating myocardium. If the defect is present on both perfusion and metabolism images, then it likely represents a nonviable myocardial scar, and the patient will not benefit from revascularization.\n\nReferences: Maddahi J, Schelbert H, Brunken R, et al. Role of thallium-201 and PET imaging in evaluation of myocardial viability and management of patients with coronary artery disease and left ventricular dysfunction. J Nucl Med 1994;35(4):707-715. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:454-455."}, {"number": "12", "stem": "This patient with decreased LVEF had abnormal patchy enhancement on a prior MRI, which prompted this resting Rb-82 (top) and 18-hour fasting F-18 FDG myocardial PET (bottom) examination. What is the MOST likely explanation for the finding?", "options": [{"letter": "A", "text": "Infarcted nonviable myocardium"}, {"letter": "B", "text": "Hibernating viable myocardium"}, {"letter": "C", "text": "Active granulomatous disease"}, {"letter": "D", "text": "Ischemic myocardium"}], "images": ["assets/q12_p189_01.jpg"], "explanationImages": ["assets/a12_p208_01.jpg"], "answer": "C", "explanation": "Answer C. Acquired resting N-13 ammonia perfusion (top) and delayed fasting F-18 FDG metabolism images demonstrate a moderate to large-sized area of increased glucose metabolism in the anterior wall extending into the anterolateral and anteroseptal walls (arrows below). Also, increased FDG metabolism is visualized in the mid to basal aspect of the right ventricle (arrowheads in the image below). Mildly decreased perfusion is noted in the anterior and septal walls. The findings are in keeping with cardiac sarcoidosis, likely in the peak active phase. In contrast to the F-18 FDG myocardial viability study in which the patient undergoes glucose loading prior to F-18 FDG administration, F-18 FDG-PET is performed after prolonged fasting if the patient is undergoing evaluation of active granulomatous disease such as sarcoidosis. Active granulomatous disease would demonstrate increased FDG uptake on 18-hour fasting images, while normal myocardium would have switched to fatty acid metabolism after prolonged fasting. The sensitivity and specificity of F-18 FDG-PET for cardiac sarcoidosis are reported to be 89% and 78%, respectively. FDG-PET and delayed contrast-enhanced MRI often play a complementary role in the early identification of cardiac sarcoidosis. The following figure from Skali et al. best summarizes the findings seen with various stages of sarcoidosis on F-18 FDG- PET imaging.\n\nReferences: Skali H, Schulman AR, Dorbala S. 18F-FDG PET/CT for the assessment of myocardial sarcoidosis. Curr Cardiol Rep 2013;15(4):352. Youssef G, Leung E, Mylonas I, et al. The use of 18F-FDG PET in the diagnosis of cardiac sarcoidosis: a systematic review and metaanalysis including the Ontario experience. J Nucl Med 2012;53(2):241-248."}, {"number": "13", "stem": "Rest rubidium-82 perfusion (top) and F-18 FDG metabolic (bottom) PET images from a 57-year- old male with a history of hypertension, CHF, and sarcoid are shown below. Based on the supplied images, what is the most appropriate conclusion?", "options": [{"letter": "A", "text": "Subcutaneous infiltration of dose"}, {"letter": "B", "text": "Dietary noncompliance"}, {"letter": "C", "text": "Diffuse myocardial sarcoidosis"}, {"letter": "D", "text": "Hibernating myocardium"}], "images": ["assets/q13_p190_01.jpg"], "explanationImages": ["assets/a13_p209_01.jpg"], "answer": "B", "explanation": "Answer B. Rest Rb-82 perfusion images demonstrate a small zone of severely decreased activity in distal inferolateral wall. F-18 FDG images demonstrate diffuse F-18 FDG uptake throughout the myocardium with the exception of a small zone of mildly decreased activity along the distal inferolateral wall, similar to the area of reduced resting perfusion seen on N-13 ammonia. Diffuse myocardial uptake is atypical for cardiac sarcoidosis. Questions regarding dietary noncompliance must be raised when diffuse homogeneous myocardial uptake of F-18 FDG is observed in patients undergoing evaluation of cardiac sarcoidosis with F-18 FDG-PET. Generally, focal, focal on diffuse, or multifocal uptake is seen with cardiac sarcoidosis. Normal myocytes can utilize either glucose or fatty acids for metabolism. In the fasting state, free fatty acids account for 90% of the metabolic demands of normal myocytes. However, this shifts to utilization of glucose in the postprandial state and with a high-carbohydrate diet. Dietary modifications with a high-fat, high-protein, and low-carbohydrate diet have been shown to reduce physiologic glucose uptake by the myocytes. Recent studies suggest that fasting for more than 18 hours further suppresses physiologic myocardial glucose uptake and is preferable for patients undergoing evaluation of cardiac sarcoidosis with F-18 FDG-PET. IV unfractionated heparin activates lipoprotein and hepatic lipases, which ultimately causes increase in plasma free fatty acid levels, and reduces glucose consumption of normal myocytes. Combining low-carbohydrate diet for two meals followed by extended fasting and use of IV unfractionated heparin prior to F-18 FDG administration have shown to result in significant reduction in physiologic myocyte uptake; optimizing the visualization abnormal F-18 FDG uptake by inflammatory granulomatous changes in patients with active cardiac sarcoidosis.\n\nReferences: Skali H, Schulman AR, Dorbala S. 18F-FDG PET/CT for the assessment of myocardial sarcoidosis. Curr Cardiol Rep 2013;15(4):352. Youssef G, Leung E, Mylonas I, et al. The use of 18F-FDG PET in the diagnosis of cardiac sarcoidosis: a systematic review and metaanalysis, including the Ontario experience. J Nucl Med 2012;53(2):241-248."}, {"number": "14", "stem": "The same patient underwent repeat imaging with proper adherence to the dietary instructions. Based on the supplied imaging, which of the following is the most appropriate conclusion regarding cardiac sarcoidosis?", "options": [{"letter": "A", "text": "Normal study"}, {"letter": "B", "text": "Early-stage sarcoidosis"}, {"letter": "C", "text": "Progressive stage"}, {"letter": "D", "text": "Inconclusive study"}], "images": ["assets/q14_p190_02.jpg"], "explanationImages": ["assets/a14_15_p210_01.jpg"], "answer": "A", "explanation": "Answer A. Repeat imaging with F-18 FDG shows uptake in the blood pool, but no discrete F-18 FDG uptake is seen in the myocardium. As such, there is no evidence of active sarcoidosis. This can be further confirmed by looking at acquired images in the axial plan, like a study done for malignancy evaluation. As seen in the MIP and axial fused images below, the activity in the region of the heart is in the blood pool and not in the myocardium. Intense metabolic activity is seen within the mediastinal lymph nodes from granulomatous involvement. Therefore, in this patient, the initial diffuse myocardial uptake was likely secondary to dietary noncompliance. Because the normal myocardium can utilize both fatty acids and glucose for metabolism, suppression of normal myocardial glucose uptake is paramount in order to visualize F-18 FDG uptake in the myocardium resulting from lymphocytic infiltration in active cardiac sarcoidosis.\n\nReferences: Skali H, Schulman AR, Dorbala S. 18F-FDG PET/CT for the assessment of myocardial sarcoidosis. Curr Cardiol Rep 2013;15:352."}, {"number": "15", "stem": "Based on the Rb-82 resting perfusion (top) and F-18 FDG metabolism (bottom) images as well as reconstructed FDG-PET/CT images from the same dataset in the second figure, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Negative cardiac sarcoidosis, positive systemic sarcoidosis"}, {"letter": "B", "text": "Negative cardiac sarcoidosis, negative systemic sarcoidosis"}, {"letter": "C", "text": "Positive cardiac sarcoidosis, positive systemic sarcoidosis"}, {"letter": "D", "text": "Positive cardiac sarcoidosis, negative systemic sarcoidosis"}], "images": ["assets/q15_p191_01.jpg", "assets/q15_p191_02.jpg"], "explanationImages": ["assets/a14_15_p210_01.jpg"], "answer": "A", "explanation": "Answer A. The supplied images show normal N-13 ammonia resting perfusion (top). No significant myocardial uptake is seen on the F-18 FDG metabolism (bottom). Findings indicate no evidence of active cardiac sarcoidosis. The supplied F-18 FDG processed cardiac images show activity in the blood pool, which appears prominent due to windowing. Reviewing the F-18 FDG images processed in the axial and coronal planes from the same dataset show intense FDG uptake in bilateral hilar and subcarinal lymph nodes. Note the absent myocardial uptake and mild blood pool activity. Findings indicate active sarcoid involvement in these lymph nodes without the involvement of myocardium. Since activated lymphocytes show intense FDG metabolism, in addition to the evaluation of cardiac sarcoidosis, FDG-PET can be used to evaluate pulmonary and systemic sarcoidosis. FDG PET can also be used to evaluate response to treatment in both cardiac and systemic sarcoidosis.\n\nReferences: Skali H, Schulman AR, Dorbala S. 18F-FDG PET/CT for the assessment of myocardial sarcoidosis. Curr Cardiol Rep 2013;15(4):352. Youssef G, Leung E, Mylonas I, et al. The use of 18F-FDG PET in the diagnosis of cardiac sarcoidosis: a systematic review and metaanalysis including the Ontario experience. J Nucl Med 2012;53(2):241-248."}, {"number": "16", "stem": "A 44-year-old lady was seen in the ED with the complaint of chest pain. The patient underwent a treadmill exercise stress test, during which she achieved her target heart rate. What is the MOST likely explanation for the following findings?", "options": [{"letter": "A", "text": "Infarct"}, {"letter": "B", "text": "Ischemia"}, {"letter": "C", "text": "Malignancy"}, {"letter": "D", "text": "Motion artifact"}, {"letter": "E", "text": "Gating abnormality"}, {"letter": "F", "text": "Attenuation artifact"}, {"letter": "G", "text": "Hibernating myocardium"}], "images": ["assets/q16_p192_01.jpg", "assets/q16_p192_02.jpg"], "explanationImages": ["assets/a16_17_p211_01.jpg"], "answer": "F", "explanation": "Answer F. The poststress images show a small-sized, mild intensity perfusion defect along the distal anteroseptal wall, which appears worse on the rest images and which resolves with the attenuation correction. The findings are consistent with the breast attenuation artifact. A single frame from the raw data demonstrates severe attenuation by the left breast (arrowheads). In the absence of attenuation correction, one could differentiate a myocardial infarct from an attenuation artifact by the presence of normal systolic wall thickening and normal wall motion. Another way to differentiate this artifact from a true defect would be to obtain images with the patient in the prone position. The resultant shift in the breast position may be enough to resolve the attenuation artifact. The breast attenuation artifact usually results in a perfusion defect along the anterior wall, but depending on body habitus, the lateral wall, septum, and apex can be affected as well. On the other hand, the diaphragmatic attenuation artifact is usually most pronounced along the mid to basal inferior wall and is more common in men compared to women.\n\nReferences: Burrell S, MacDonald A. Artifacts and pitfalls in myocardial perfusion imaging. J Nucl Med Technol 2006;34(4):193-211."}, {"number": "17", "stem": "What is the most likely cause of the artifact demonstrated by the following image?", "options": [{"letter": "A", "text": "Attenuation"}, {"letter": "B", "text": "Center of rotation"}, {"letter": "C", "text": "Patient motion"}, {"letter": "D", "text": "Abnormal gating"}, {"letter": "E", "text": "Field nonuniformity"}], "images": ["assets/q17_p193_01.jpg", "assets/q17_p193_02.jpg"], "explanationImages": ["assets/a16_17_p211_01.jpg"], "answer": "C", "explanation": "Answer C. This sinogram demonstrates an artifact related to patient motion. It is generated by stacking a single line of pixels at the level of the heart from the 60 raw projection images on top of each other. The most superior line of pixels is usually from the most posterior projection, 135- degree left posterior oblique (LPO), with the most inferior one from the most anterior projection, 45-degree right anterior oblique (RAO). A normal sinogram would show a smooth continuous contour progressing from the right side of the image to the left (see image below) as the heart moves from the relative right side of the frame to the left as the camera moves from the LPO to RAO projection. Disruption of the smooth contour as seen in this case would suggest the presence of significant patient motion. If the rotating cine images generated from the raw data cannot be viewed, a sinogram can serve as a quick quality control for the patient motion artifact.\n\nReferences: Burrell S, MacDonald A. Artifacts and pitfalls in myocardial perfusion imaging. J Nucl Med Technol 2006;34(4):193-211. Case JA, Bateman TM. Taking the perfect nuclear image: quality control, acquisition, and processing techniques for cardiac SPECT, PET, and hybrid imaging. J Nucl Cardiol 2013;20(5):891-907."}, {"number": "18", "stem": "A single-frame image below is from a rotating cine of a patient who underwent myocardial perfusion imaging for chest pain. What is the most appropriate next step?", "options": [{"letter": "A", "text": "Prone imaging"}, {"letter": "B", "text": "Repeat supine images with right arm up"}, {"letter": "C", "text": "HIDA scan"}, {"letter": "D", "text": "Attenuation correction"}, {"letter": "E", "text": "Mammogram"}, {"letter": "F", "text": "CT of the abdomen"}], "images": ["assets/q18_p194_01.jpg"], "explanationImages": ["assets/a18_p212_01.jpg"], "answer": "E", "explanation": "Answer E. A moderate-sized focus of intense extracardiac uptake is seen within the right breast, highly suspicious for breast cancer. Both Tc-99m sestamibi (Cardiolite) and tetrofosmin (Myoview) are lipophilic cations that localize in/adjacent to the mitochondria because of their negative transmembrane potential. Since malignancies have a high mitochondrial content, these agents localize into malignancies in high concentration. Therefore, a mammogram would be the next appropriate step to evaluate for breast cancer. It is important to review the cine images for any extracardiac foci of abnormal uptake for unsuspected malignancies such as breast cancer, lung cancer, or lymphoma.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:130-134. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:454-455."}, {"number": "19", "stem": "A 35-year-old with aberrant coronary arteries is being evaluated for demand ischemia. Based on the following rest-stress myocardial perfusion SPECT images, what is the most likely cause of the depicted abnormality?", "options": [{"letter": "A", "text": "Ischemia"}, {"letter": "B", "text": "Camera axis error"}, {"letter": "C", "text": "Attenuation artifact"}, {"letter": "D", "text": "Patient motion"}, {"letter": "E", "text": "Field nonuniformity"}, {"letter": "F", "text": "Dose infiltration"}], "images": ["assets/q19_20_p195_01.jpg"], "explanationImages": ["assets/a19_p214_01.jpg"], "answer": "D", "explanation": "Answer D. The poststress perfusion images demonstrate the presence of a large area of decreased activity along the distal anterior, lateral, and inferolateral walls, which is best seen on the horizontal long axis (arrow). There is a \"tail\" of activity extending from the left ventricular myocardium (arrowheads in the images below), which is often referred to as the \"hurricane sign.\" This finding is typical for patient motion. Vertical (craniocaudal) motion is more common than the horizontal patient motion. While this example represents one of the most severe motion artifacts, the artifact related to patient motion is usually more subtle and can often be confused with areas of ischemia. Their recognition is crucial in the accurate interpretation of myocardial perfusion imaging as a false-positive study would lead to unnecessary cardiac catheterization. As such, routine evaluation of either cine images or sinogram should be performed to ensure that the motion artifact is not present prior to the interpretation of the perfusion images. While software motion correction can be attempted for small degrees of vertical motion, motion correction algorithms cannot correct horizontal or significant vertical patient motion. In such instances, images should be reacquired.\n\nReferences: Burrell S, MacDonald A. Artifacts and pitfalls in myocardial perfusion imaging. J Nucl Med Technol 2006;34(4):193-211. Case JA, Bateman TM. Taking the perfect nuclear image: quality control, acquisition, and processing techniques for cardiac SPECT, PET, and hybrid imaging. J Nucl Cardiol 2013;20(5):891-907."}, {"number": "20", "stem": "Review the single frame from the cine images, sinogram, and the corresponding myocardial perfusion SPECT images. What is the MOST likely cause of the resting perfusion SPECT image degradation?", "options": [{"letter": "A", "text": "Patient motion"}, {"letter": "B", "text": "Attenuation artifact"}, {"letter": "C", "text": "Arterial injection"}, {"letter": "D", "text": "Right forearm malignancy"}, {"letter": "E", "text": "Improper reconstruction"}], "images": ["assets/q20_p196_01.jpg", "assets/q20_p196_02.jpg", "assets/q20_p197_01.jpg", "assets/q19_20_p195_01.jpg"], "explanationImages": ["assets/a20_21_p215_01.jpg"], "answer": "C", "explanation": "Answer C. A single frame from the cine image demonstrates markedly increased activity in the right forearm, which extends distally throughout the forearm; this is compatible with an arterial injection. This would result in a marked decrease in the amount of radiotracer delivered to the myocardium. As such, the study would be nondiagnostic. A normal sinogram excludes patient motion. An attenuation artifact would result in focal, regional perfusion defects. The appearance and distribution are typical for that of an arterial injection. While malignancy would have increased Tc-99m sestamibi or tetrofosmin uptake, the activity would be more focal rather than diffuse, as in this case.\n\nReferences: Burrell S, MacDonald A. Artifacts and pitfalls in myocardial perfusion imaging. J Nucl Med Technol 2006;34(4):193-211."}, {"number": "21", "stem": "A 55-year-old male with known coronary artery disease has a history of persistent chest pains. Based on the supplied PET myocardial perfusion images, what is the most appropriate next step?", "options": [{"letter": "A", "text": "Interpret the study as lateral wall ischemia."}, {"letter": "B", "text": "Review the PET and CT images for misregistration."}, {"letter": "C", "text": "Interpret the study as hibernating myocardium in the lateral wall."}, {"letter": "D", "text": "Interpret the study as an infarct in the lateral wall."}, {"letter": "E", "text": "Interpret the study as a stunned myocardium in the lateral wall."}], "images": ["assets/q21_p198_01.jpg"], "explanationImages": ["assets/a20_21_p215_01.jpg", "assets/a21_22_p216_01.jpg", "assets/a21_22_p216_02.jpg"], "answer": "B", "explanation": "Answer B. A moderate-sized area of severely decreased activity is present along the anterolateral wall on stress images that is not present on the rest images. This is a typical location of an artifact related to attenuation correction. One of the common artifacts caused by the CT attenuation correction with SPECT-CT or PET-CT myocardial perfusion studies is the false reduction in the activity along the lateral or anterolateral wall. This happens when a portion of the SPECT or PET images project over the adjacent lower attenuation lung or pericardial fat instead of the heart/myocardium on CT scan acquired for attenuation correction (arrow on the image below). Negative attenuation of the lung/fat results in the incorrect application of a lower attenuation correction factor resulting in falsely decreased counts in that region. In order to avoid such artifacts, technologists should always check for proper coregistration of CT and SPECT or PET data when the study is processed. This artifact was responsible for this false-positive study. Once it was recognized and corrective actions were taken, the resulting images showed no significant perfusion defect (image below).\n\nReferences: Loghin C, Sdringola S, Gould KL. Common artifacts in PET myocardial perfusion images due to attenuation-emission misregistration: clinical significance, causes, and solutions. J Nucl Med 2004;45(6):1029-1039. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:156-157."}, {"number": "22", "stem": "Which of the following statements is most accurate regarding the images provided below?", "options": [{"letter": "A", "text": "The patient is undergoing evaluation of myocardial perfusion."}, {"letter": "B", "text": "The patient is undergoing an evaluation of amyloid deposits formed from transthyretin."}, {"letter": "C", "text": "The patient is undergoing evaluation of myocardial ejection fraction."}, {"letter": "D", "text": "The patient is undergoing evaluation of cardiac sympathetic innervation."}], "images": ["assets/q22_p199_01.jpg"], "explanationImages": ["assets/a21_22_p216_01.jpg", "assets/a21_22_p216_02.jpg", "assets/a22_p217_01.jpg"], "answer": "B", "explanation": "Answer B. Anterior images acquired 1 hour after the IV administration of Tc-99m pyrophosphate (PYP) show markedly increased radiotracer uptake diffusely throughout the myocardium. The uptake in the myocardium is significantly greater than that in the adjacent ribs (grade 3), and the heart to contralateral mediastinum ratio is 2.1 (>1.5 abnormal). In the right clinical settings, the findings are most consistent with transthyretin (TTR) amyloidosis. Tc-99m PYP scan is done for the evaluation of TTR-related cardiac amyloidosis. Cardiac sympathetic innervation would be evaluated by the I-123 MIBG scan. Myocardial ejection fraction could be evaluated by in vivo tagging of RBCs by PYP, but gated LAO projection would be utilized for that purpose. Tc-99m tetrofosmin or sestamibi are utilized for myocardial perfusion imaging. Amyloidosis is characterized by the extracellular deposition of misfolded proteins resulting in the formation of amyloid fibrils. Light chain amyloidosis (AL) is caused by plasma cell dyscrasia while transthyretin amyloidosis (ATTR) is caused by deposition of misfolded transport thyroid retinol made by the liver. Differentiation between AL and ATTR is important as they have different prognosis and therapy. AL carries a poor prognosis and requires chemotherapy/oncology consultation. In contrast, ATTR tends to have a protracted clinical course and can be treated with newer agents such as Tafamidis (transthyretin stabilizer). Tc-99m PYP was historically utilized for bone scans. Subsequently, it was found to have utility in the evaluation of acute myocardial infarct imaging. Its most recent utility is in the diagnosis of amyloidosis related to transthyretin deposition (ATTR). PYP binds to the deposited ATTR amyloid fibrils in the myocardium and can be visualized using planar and SPECT imaging at 1 hour. Delayed, 3-hour imaging can be performed in patients with poor renal function and persistent blood pool activity. SPECT images are helpful in distinguishing physiologic blood pool activity from activity in the myocardium. Interpretation is done by visual analysis where the myocardial PYP uptake is compared to that within the rib. The Perugini grading system for semiquantitation is shown in the table below. Also, quantitative analysis is done by drawing a circular region of interest (ROI) over the heart (H) and contralateral lung (CL). Mean H/CL lung ratio of >1.5 at 1 hour is classified as suspicious, while ratio ≤1 is classified as negative for ATTR. The ratio between 1 and 1.5 is equivocal and requires correlation with visual grading and SPECT imaging. Of note, since up to 20% of AL patients can have a positive PYP scan (typically grade 1 or 2), correlation with serum light chains and serum/urine immunofixation is required for accurate interpretation/clinical diagnosis. Also, some mutational forms of ATTR can be falsely negative on PYP imaging. In the setting of high clinical suspicion, correlation with endomyocardial biopsy should be considered.\n\nReferences: ASNC Practice Point-99mTechnetium Pyrophosphate Imaging 2016 guidelines. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:463."}, {"number": "23", "stem": "The following radionuclide ventriculography (RVG) or gated equilibrium radionuclide angiography (E-RNA) is from a patient who is undergoing evaluation for stem cell transplantation. What conclusion can be made regarding the calculated left ventricular ejection fraction (LVEF)?", "options": [{"letter": "A", "text": "LVEF is falsely elevated."}, {"letter": "B", "text": "LVEF is falsely decreased."}, {"letter": "C", "text": "LVEF is normal; no further intervention is required."}, {"letter": "D", "text": "There is evidence of early diastolic failure."}, {"letter": "E", "text": "There is evidence of right bundle branch block."}], "images": ["assets/q23_p200_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Improper placement of regions of interest (ROI) is one of the common sources of error for left ventricular ejection fraction (LVEF) calculation by the radionuclide ventriculography (RVG). As such, proper placement of ROIs should always be confirmed. In this case, the background ROI was placed over blood pool activity. The left ventricular ejection fraction (LVEF) is calculated by the following formula: LVEF = (end-diastolic counts − end-systolic counts)/(end-diastolic counts − background counts). Subtraction of the (falsely) increased background counts from the denominator would result in falsely elevated LVEF when the background is erroneously placed over a high activity area (vascular blood pool or spleen). Other causes of a false increase in LVEF include too small systolic ROI and inclusion of the left atrium in the diastolic ROI. Causes of falsely decreased LVEF include too large systolic ROI, single ROI for the systole and diastole frames, and too small diastolic ROI.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:160, 166-170. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:475-476. A. Pan chamber cardiomegaly B. Right ventricular dilatation C. Double aortic arch D. Left ventricular aneurysm E. Right bundle branch block"}, {"number": "24", "stem": "A 47-year-old gentleman with a clinical history of chest pain and shortness of breath presents for evaluation of coronary artery disease. His resting ECG (below) showed a left bundle branch block. What is the most appropriate next step?", "options": [{"letter": "A", "text": "Exercise myocardial perfusion study"}, {"letter": "B", "text": "Dobutamine myocardial perfusion study"}, {"letter": "C", "text": "Regadenoson myocardial perfusion study"}, {"letter": "D", "text": "Coronary angiography"}], "images": ["assets/q24_p219_01.jpg"], "explanationImages": ["assets/a24_25_p224_01.jpg", "assets/a24_25_p224_02.jpg"], "answer": "C", "explanation": "Answer C. Patients presenting with a left bundle branch block (LBBB) or ventricular paced rhythm should undergo vasodilator myocardial perfusion study. The myocardium receives its blood flow during diastole. Exercise- or dobutamine-induced increase in heart rate would shorten the time of diastole. Since the myocardial contraction and subsequent relaxation are delayed in LBBB or V-paced rhythm, this may result in the stress-induced physiologic reduction of the radiotracer delivery and a false-positive myocardial perfusion study. This perfusion abnormality is typically seen in the septal and anteroseptal regions; arrows in the image below show an example of LBBB-induced perfusion reduction on stress images, which may result in the examination being false-positive for ischemia. While vasodilators cause a slight increase in heart rate, this increase is not to the same extent as would be expected from exercise or dobutamine. Regadenoson is an A2A receptor agonist, which results in a 3.5- to 4-fold increase in the myocardial blood flow. Adenosine and dipyridamole are nonspecific adenosine receptor agonists. Effects of different adenosine receptor activation are as follows:\n\nReferences: Henzlova MJ, et al. ASNC Imaging Guidelines for Nuclear Cardiology Procedures: stress protocols and tracers. J Nucl Cardiol 2009;23(3):606-639. doi:10.1007/s12350-009-9061-5. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:142-144. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:454-455."}, {"number": "25", "stem": "A patient who is undergoing a pharmacologic stress test with adenosine develops an atrioventricular block (shown below). What is the most appropriate next step?", "options": [{"letter": "A", "text": "Defibrillation"}, {"letter": "B", "text": "Synchronized cardioversion"}, {"letter": "C", "text": "Administering aminophylline"}, {"letter": "D", "text": "Administering atropine"}, {"letter": "E", "text": "Administering IV fluids"}, {"letter": "F", "text": "Turning off adenosine"}], "images": ["assets/q25_p219_02.jpg"], "explanationImages": ["assets/a24_25_p224_01.jpg", "assets/a24_25_p224_02.jpg"], "answer": "F", "explanation": "Answer F. Atrioventricular (AV) block is an occasional side effect of adenosine, which results from the activation of the A1 receptors in the AV node. Since the half-life of adenosine is <10 seconds, turning off the infusion will generally terminate the heart block. Common adverse effects reported with adenosine include flushing, chest pressure, dyspnea, and nausea. Most adverse effects are self-limiting and resolve shortly after the discontinuation of the infusion. Absolute contraindications for adenosine and dipyridamole include active wheezing in patients with severe asthma or COPD, second-degree or third-degree AV block without a pacemaker, and recent use of caffeine or other xanthenes such as aminophylline. While severe asthma or COPD is not an absolute contraindication for regadenoson, it should be used with caution in these patients. Regadenoson has been reported to lower the seizure threshold, and a history of seizures is a relative contraindication for its use.\n\nReferences: Henzlova MJ, et al. ASNC Imaging Guidelines for Nuclear Cardiology Procedures: stress protocols and tracers. J Nucl Cardiol 2009;23(3):606-639. doi:10.1007/s12350-009-9061-5. Adenosine and Lexiscan package inserts."}, {"number": "26", "stem": "Which of the following is an advantage of performing the first-pass radionuclide angiography (FPRNA) when compared to the gated equilibrium radionuclide angiography (E-RNA)?", "options": [{"letter": "A", "text": "High count statistics"}, {"letter": "B", "text": "Evaluation of the left ventricular function"}, {"letter": "C", "text": "Evaluation of the right ventricular function"}, {"letter": "D", "text": "Tighter bolus of radiopharmaceutical"}, {"letter": "E", "text": "Injection via a proximal vein"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Since there is a significant overlap of activities in the right and left ventricles on gated equilibrium radionuclide angiography (E-RNA), right ventricular (RV) function quantitation is more accurate with the first-pass radionuclide angiography (FPRNA). For quantitation of RV function with FPRNA, images are acquired at 20- to 30-degree RAO projection as it allows for better separation of the right atrium from the right ventricle. Gated equilibrium radionuclide angiography (E-RNA), also known as radionuclide ventriculogram (RVG) or multigated acquisition (MUGA) scan, is better for the evaluation of the left ventricular ejection fraction (LVEF). Images are typically acquired at 45-degree LAO projection, which allows for the best separation of the right and the left ventricular cavities. In contrast to the first-pass studies, it does not require tighter bolus or injection into the proximal vein.\n\nReferences: Ziessman HA, O'Malley JP, Thrall JH. Nuclear medicine: the requisites, 4th ed. Philadelphia, PA: Saunders, 2014:416."}, {"number": "27", "stem": "A 36-year-old man presents with shortness of breath. Based on the supplied resting and poststress myocardial perfusion SPECT images as well as the corresponding ejection fraction images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Multivessel coronary artery disease"}, {"letter": "B", "text": "Right ventricular hypertrophy"}, {"letter": "C", "text": "Ischemic cardiomyopathy"}, {"letter": "D", "text": "Nonischemic cardiomyopathy"}, {"letter": "E", "text": "Subendocardial ischemia"}], "images": ["assets/q27_p220_01.jpg", "assets/q27_p221_01.jpg"], "explanationImages": ["assets/a27_31_p226_01.jpg"], "answer": "D", "explanation": "Answer D. Nonischemic cardiomyopathy frequently presents with normal perfusion but a moderate-to-severe reduction in the ejection fraction. Often, heterogeneous perfusion without regional perfusion abnormalities may be seen. In contrast, ischemic cardiomyopathy is typically accompanied by a significant perfusion abnormality (ischemia or infarct) in a vascular territory. Right ventricular hypertrophy would result in the straightening of the interventricular septum, which is often referred to as the \"D-shaped\" septum (shown below).\n\nReferences: Danias PG, Ahlberg AW, Clark BA, III, et al. Combined assessment of myocardial perfusion and left ventricular function with exercise technetium-99m sestamibi gated single-photon emission computed tomography can differentiate between ischemic and nonischemic dilated cardiomyopathy. Am J Cardiol 1998;82(10):1253-1258."}, {"number": "28", "stem": "The following representative rest and poststress single frames from raw data cine images are from a patient who underwent a thallium-201 exercise stress test. What is your interpretation?", "options": [{"letter": "A", "text": "Bilateral pneumonia"}, {"letter": "B", "text": "Pulmonary sarcoidosis"}, {"letter": "C", "text": "Stress images acquired too early"}, {"letter": "D", "text": "High-risk coronary artery disease"}, {"letter": "E", "text": "Pulmonary hypertension"}], "images": ["assets/q28_p222_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Increased Tl-201 uptake in the lungs, often quantified by increased lung to heart ratio, is associated with a higher incidence of more severe and multivessel coronary artery disease or pulmonary causes. The normal upper limit of lung to heart ratios has been reported to be in the range of 0.33 to 0.37. Lung to heart ratio of >0.45 correlates with a very high risk of severe multivessel disease. It is thought to be the result of transient pulmonary edema due to stress- induced left ventricular dysfunction from myocardial ischemia. Of note, increased lung uptake with Tc-labeled myocardial perfusion agents is nondiagnostic. It is typically physiologic after the first few minutes of injection and improves with time due to physiologic clearance. Increased lung uptake on 30 to 45 minutes delayed images with these agents is typically seen in heavy smokers and patients with underlying lung disease.\n\nReferences: Boucher CA, Zir LM, Beller GA, et al. Increased lung uptake of thallium-201 during exercise myocardial imaging: clinical, hemodynamic and angiographic implications in patients with coronary artery disease. Am J Cardiol 1980;46(2):189-196. Kurata C, Tawarahara K, Taguchi T, et al. Lung thallium-201 uptake during exercise emission computed tomography. J Nucl Med 1991;32(3):417-423."}, {"number": "29", "stem": "Why is the medial antecubital site preferred over more peripheral IV sites for performing the first- pass radionuclide angiography?", "options": [{"letter": "A", "text": "Increased bolus fractionation"}, {"letter": "B", "text": "Decreased bolus prolongation"}, {"letter": "C", "text": "Ability for an adequate saline chaser"}, {"letter": "D", "text": "Decreased risk of infiltration"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The first-pass radionuclide angiography (FPRNA) involves rapid imaging (20 to 30 frames per second) of a tracer bolus as it passes through the heart over 30 to 60 seconds. Due to this very brief acquisition window, a very tight bolus of radiotracer is required. Sites other than SVC, jugular vein, or the antecubital veins will result in increased bolus prolongation and increased fractionation. Because of this, sites more peripheral than the antecubital vein are not suitable for the FPRNA.\n\nReferences: Imaging guidelines for nuclear cardiology procedures. American Society of Nuclear Cardiology. First-pass radionuclide angiography (FPRNA). J Nucl Cardiol 1996;3(3):G16-G25. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 6th ed. Philadelphia, PA: Saunders, 2012:178-183. Ziessman HA, O'Malley JP, Thrall JH. Nuclear medicine: the requisites, 4th ed. Philadelphia, PA: Saunders, 2014:416."}, {"number": "30", "stem": "What is the correct formula for calculating the percentage of the right-to-left shunt?", "options": [{"letter": "A", "text": "% R-L shunt = (whole-body counts − lung counts)/whole-body counts × 100%"}, {"letter": "B", "text": "% R-L shunt = whole-body counts/systemic counts × 100%"}, {"letter": "C", "text": "% R-L shunt = (lung counts − whole-body counts)/whole-body counts × 100%"}, {"letter": "D", "text": "% R-L shunt = (lung counts − whole-body counts)/lung counts × 100%"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. % R-L shunt = systemic circulation counts/whole-body counts × 100%; systemic counts = whole-body counts − lung counts. The right-to-left shunt can be estimated by using intravenous injection of Tc-99m macroaggregated albumin (MAA) and calculating counts in the regions of interest placed over the whole body and lungs. Cardiac MRI is usually done for this indication because in addition to accurately quantifying shunts, cardiac MRI can detect associated anomalies, evaluate pulmonary vasculature, and quantify ventricular size/function.\n\nReferences: MacDonald A, Burrell S. Infrequently performed studies in nuclear medicine: part 1. J Nucl Med Technol 2008;36(3):132-143."}, {"number": "31", "stem": "The following gated equilibrium radionuclide angiography was acquired in a patient who is undergoing evaluation for stem cell transplantation. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Pan chamber cardiomegaly"}, {"letter": "B", "text": "Right ventricular dilatation"}, {"letter": "C", "text": "Double aortic arch"}, {"letter": "D", "text": "Left ventricular aneurysm"}, {"letter": "E", "text": "Right bundle branch block"}], "images": ["assets/q31_p223_01.jpg"], "explanationImages": ["assets/a27_31_p226_01.jpg"], "answer": "D", "explanation": "Answer D. The phase analysis demonstrates a focal area along the inferoapical aspect marked by red color (arrow), which is approximately 180 degrees out of phase on phase histogram when compared to the ventricular contraction marked by yellow and green colors. This is consistent with focal dyskinesia secondary to an inferoapical aneurysm. The left ventricle is dilated, and the right ventricle appears normal in size. The vascular configuration is normal with the pulmonary artery marked by an arrowhead and the aorta marked by two arrowheads. Also, note that there are two separate peaks corresponding to the ventricular contraction on the phase histogram with the left ventricle lagging (asterisk) behind the right ventricle (#); this is seen with a left bundle branch block or a paced rhythm. In a right bundle branch block, the color corresponding to the left ventricle would appear before the right ventricle on the phase histogram. Normally, the right and left ventricles would contract together and present as a single peak.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:162."}];
+    const APP_ID = "nuclear-medicine-cardiology-quiz-ch5";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
