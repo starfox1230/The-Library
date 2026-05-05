@@ -8,7 +8,7 @@ AUDIO_TRIMMED_DIRECTORY_NAME = "Audio_trimmed"
 AUDIO_UPLOADS_DIRECTORY_NAME = "audio_uploads"
 AUDIO_UPLOADS_MANIFEST_NAME = "uploaded_audio_order.json"
 DEFAULT_AUDIO_ENABLED = False
-DEFAULT_AUDIO_FILE = "kenney_ui-audio/Audio/click1.ogg"
+DEFAULT_AUDIO_FILE = "kenney_ui-audio/Audio/click1.mp3"
 
 HAPTIC_PATTERN_OFF = "off"
 
@@ -174,15 +174,15 @@ HAPTIC_EVENT_OPTIONS: tuple[dict[str, str], ...] = (
 )
 
 DEFAULT_AUDIO_EVENT_FILES = {
-    "sync": "kenney_impact-sounds/Audio/footstep_grass_004.ogg",
-    "reveal": "kenney_rpg-audio/Audio/drawKnife2.ogg",
-    "again": "kenney_impact-sounds/Audio/impactSoft_heavy_000.ogg",
-    "hard": "kenney_impact-sounds/Audio/impactPlank_medium_002.ogg",
-    "good": "kenney_casino-audio/Audio/chips-handle-3.ogg",
-    "easy": "kenney_impact-sounds/Audio/impactMining_002.ogg",
-    "skip": "kenney_rpg-audio/Audio/bookFlip2.ogg",
-    "reset": "kenney_ui-audio/Audio/switch9.ogg",
-    "timeout": "kenney_impact-sounds/Audio/impactBell_heavy_000.ogg",
+    "sync": "kenney_impact-sounds/Audio/footstep_grass_004.mp3",
+    "reveal": "kenney_rpg-audio/Audio/drawKnife2.mp3",
+    "again": "kenney_impact-sounds/Audio/impactSoft_heavy_000.mp3",
+    "hard": "kenney_impact-sounds/Audio/impactPlank_medium_002.mp3",
+    "good": "kenney_casino-audio/Audio/chips-handle-3.mp3",
+    "easy": "kenney_impact-sounds/Audio/impactMining_002.mp3",
+    "skip": "kenney_rpg-audio/Audio/bookFlip2.mp3",
+    "reset": "kenney_ui-audio/Audio/switch9.mp3",
+    "timeout": "kenney_impact-sounds/Audio/impactBell_heavy_000.mp3",
 }
 
 DEFAULT_HAPTIC_EVENT_PATTERNS = {

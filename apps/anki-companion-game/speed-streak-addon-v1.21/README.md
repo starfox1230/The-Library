@@ -21,6 +21,7 @@ It does not modify the original standalone files in the parent folder.
 - Detects connected XInput slots and sends rumble to each connected slot, so Steam's virtual Xbox controller does not have to occupy slot 0.
 - Keeps native Windows XInput rumble as the default path for existing Xbox-style controllers.
 - Adds a dormant Steamworks flat-API bridge that can use `steam_api64.dll` from the add-on folder, `steamworks/`, `steam_haptics/`, or the `SPEED_STREAK_STEAM_API64` environment variable if a future Steam Input runtime is supplied.
+- Converts packaged feedback audio from OGG to MP3 for better cross-platform playback, especially on macOS.
 
 ### v1.20 (from v1.17)
 - Adds an experimental WebGL satellite renderer for the sphere view.
@@ -100,7 +101,7 @@ If you later add raw source packs back into an `Audio` folder, you can generate 
 .\trim_audio_to_trimmed.ps1
 ```
 
-The script trims only leading silence and writes the processed results into `Audio_trimmed` with the same subfolder structure. This repo currently ships the packaged audio in trimmed form.
+The script trims only leading silence and writes the processed results into `Audio_trimmed` with the same subfolder structure. It writes MP3 files by default for cross-platform playback; pass `-OutputExtension .ogg` or another supported extension if you need a different format. This repo currently ships the packaged audio in trimmed MP3 form.
 
 ### Faster install on macOS
 

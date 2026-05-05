@@ -2318,7 +2318,7 @@ class ReviewerOverlayController:
 
     def _flag_for_card(self, card: Any) -> int:
         try:
-            user_flag = getattr(card, "userFlag", None)
+            user_flag = getattr(card, "user_flag", None)
             if callable(user_flag):
                 return int(user_flag())
             if user_flag is not None:
@@ -2327,7 +2327,7 @@ class ReviewerOverlayController:
             pass
 
         try:
-            user_flag = getattr(card, "user_flag", None)
+            user_flag = getattr(card, "userFlag", None)
             if callable(user_flag):
                 return int(user_flag())
             if user_flag is not None:

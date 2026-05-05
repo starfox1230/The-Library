@@ -1,6 +1,7 @@
 param(
     [string]$SourceDir = "Audio",
     [string]$OutputDir = "Audio_trimmed",
+    [string]$OutputExtension = ".mp3",
     [double]$StartDurationSeconds = 0.02,
     [double]$WindowSeconds = 0.02,
     [double]$StartThresholdDb = -38.0,
@@ -23,6 +24,13 @@ if (-not $ffmpeg) {
 }
 
 $supportedExtensions = @(".aac", ".flac", ".m4a", ".mp3", ".oga", ".ogg", ".opus", ".wav")
+$normalizedOutputExtension = $OutputExtension.Trim()
+if (-not $normalizedOutputExtension.StartsWith(".")) {
+    $normalizedOutputExtension = ".$normalizedOutputExtension"
+}
+if ($supportedExtensions -notcontains $normalizedOutputExtension.ToLowerInvariant()) {
+    throw "Unsupported output extension: $OutputExtension"
+}
 $filter = "silenceremove=start_periods=1:start_duration=$($StartDurationSeconds):start_threshold=$($StartThresholdDb)dB:detection=peak:window=$($WindowSeconds)"
 
 function Get-EncoderArgs {
@@ -53,8 +61,9 @@ $failed = 0
 
 foreach ($file in $audioFiles) {
     $relativePath = $file.FullName.Substring($sourceRoot.Length).TrimStart('\')
-    $outputPath = Join-Path $outputRoot $relativePath
-    $tempOutputPath = "$outputPath.tmp$($file.Extension)"
+    $relativeOutputPath = [System.IO.Path]::ChangeExtension($relativePath, $normalizedOutputExtension)
+    $outputPath = Join-Path $outputRoot $relativeOutputPath
+    $tempOutputPath = "$outputPath.tmp$normalizedOutputExtension"
 
     if ($SkipExisting -and (Test-Path $outputPath)) {
         $skipped += 1
@@ -66,7 +75,7 @@ foreach ($file in $audioFiles) {
         New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
     }
 
-    $encoderArgs = Get-EncoderArgs -Extension $file.Extension
+    $encoderArgs = Get-EncoderArgs -Extension $normalizedOutputExtension
     $arguments = @(
         "-nostdin",
         "-hide_banner",
@@ -103,4 +112,5 @@ Write-Host "Processed: $processed"
 Write-Host "Skipped:   $skipped"
 Write-Host "Failed:    $failed"
 Write-Host "Output:    $outputRoot"
+Write-Host "Format:    $normalizedOutputExtension"
 Write-Host "Filter:    $filter"
