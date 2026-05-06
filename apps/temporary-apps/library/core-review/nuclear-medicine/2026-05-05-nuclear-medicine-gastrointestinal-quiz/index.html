@@ -1,0 +1,743 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuclear Medicine Gastrointestinal System Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Nuclear Medicine Gastrointestinal System Quiz</h1>
+        <a class="previousQuizLink" href="../../../2026-05-05-nuclear-medicine-gastrointestinal-quiz/index.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;color:var(--muted);font-size:12px;text-decoration:none;">Previous location for saved-state export</a>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"nuclear-medicine-gastrointestinal-quiz-ch8",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "Based on the consensus recommendations, what constitutes the solid-phase gastric emptying study standardized meal?", "options": [{"letter": "A", "text": "4 oz egg whites, 2 slices white bread, 30 g strawberry jam, 120 mL water"}, {"letter": "B", "text": "4 oz egg whites, 2 slices white bread, 30 g peanut butter, 120 mL water"}, {"letter": "C", "text": "4 oz egg whites, 2 slices white bread, 15 g strawberry jam, 120 mL water"}, {"letter": "D", "text": "4 oz egg whites, 2 slices white bread, 15 g peanut butter, 120 mL water"}, {"letter": "E", "text": "2 oz egg whites, 2 slices white bread, 30 g strawberry jam, 120 mL water"}, {"letter": "F", "text": "2 oz egg whites, 2 slices white bread, 30 g peanut butter, 120 mL water"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Gastric emptying study is commonly performed for the evaluation of gastroparesis. While it had been the standard for measuring gastric emptying, the gastric emptying study suffered from a lack of standardization regarding the meal composition, patient positioning, as well as the frequency and duration of imaging across the country. This prompted the American Neurogastroenterology and Motility Society and the Society of Nuclear Medicine and Molecular Imaging to publish consensus recommendations for standardizing these parameters in 2008. The meal's composition affects gastric emptying, with meals in high fat and protein content emptying slower than those composed of mainly simple carbohydrates. To reduce this variability, the composition of the meal was standardized. Approximately 1 mCi of Tc-99m sulfur colloid (SC) is cooked with 4 oz of egg whites only and served with 2 slices of bread, 30 g of strawberry jam, and 120 mL of water. Tc-99m SC remains bound to the ovalbumin in the egg white and does not dissociate into the liquid when in the stomach, thus allowing for accurate measurement of the solid emptying. Anterior and posterior planar images with the distal esophagus, stomach, and small bowel in the field of view are acquired for 1 minute immediately after the meal ingestion and at a minimum of 1 hour, 2 hours, and 4 hours after the meal ingestion with the patient standing upright. The images should be acquired with the same camera.\n\nReferences: Abell TL, Camilleri M, Donohoe K, et al. Consensus recommendations for gastric emptying scintigraphy: a joint report of the American Neurogastroenterology and Motility Society and the Society of Nuclear Medicine. Am J Gastroenterol 2008;103(3):753-763. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "2", "stem": "A patient presents for the gastric emptying study. The technologist calls and informs you that only one of the camera head is working. In what projection should you instruct the technologist to perform the examination?", "options": [{"letter": "A", "text": "Anterior"}, {"letter": "B", "text": "Posterior"}, {"letter": "C", "text": "Right anterior oblique"}, {"letter": "D", "text": "Left anterior oblique"}, {"letter": "E", "text": "Right lateral"}, {"letter": "F", "text": "Left lateral"}], "images": [], "explanationImages": ["assets/a2_p298_01.jpg"], "answer": "D", "explanation": "Answer D. While counts from the left anterior oblique (LAO) projection can be used as an alternative, geometric mean (GM) is the more accurate and preferred method of the two. If you only have one camera head, your best option is to take the anterior image immediately followed by the posterior image. The second-best option would be the LAO projection. Anterior and posterior views allow for the calculation of the geometric mean (GM) using the following formula: geometric mean = square root (anterior counts Ã— posterior counts). GM more accurately represents the amount of tracer in the stomach since it accounts for the posterior-to- anterior movement of the food as it travels from the fundus to the antrum, thus allowing for mathematical attenuation correction. With a dual-head gamma camera, anterior and posterior data are obtained simultaneously.\n\nReferences: Abell TL, Camilleri M, Donohoe K, et al. Consensus recommendations for gastric emptying scintigraphy: a joint report of the American Neurogastroenterology and Motility Society and the Society of Nuclear Medicine. Am J Gastroenterol 2008;103(3):753-763. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "3", "stem": "Which of the following corrections needs to be applied to the data acquired for the gastric emptying study?", "options": [{"letter": "A", "text": "CT-based attenuation correction"}, {"letter": "B", "text": "Uniformity correction"}, {"letter": "C", "text": "Linearity correction"}, {"letter": "D", "text": "Center of rotation correction"}, {"letter": "E", "text": "Decay correction"}], "images": [], "explanationImages": ["assets/a3_p299_01.jpg"], "answer": "E", "explanation": "Answer E. The half-life of Tc-99m sulfur colloid is 6 hours. Given that the standard protocol for gastric emptying study requires imaging for 4 hours, one must correct for radioactive decay to ensure that accurate count statistics are used to determine the gastric retention/emptying. Uniformity and linearity are quality control measures that are done on a daily and weekly basis, respectively. The center of rotation calibration matches the axis of camera rotation to the center of the image matrix. This quality control is for SPECT imaging and is typically performed every month.\n\nReferences: Abell TL, Camilleri M, Donohoe K, et al. Consensus recommendations for gastric emptying scintigraphy: a joint report of the American Neurogastroenterology and Motility Society and the Society of Nuclear Medicine. Am J Gastroenterol 2008;103(3):753-763. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "4", "stem": "Which of the following curves most likely represents normal emptying of the liquids from the stomach?", "options": [{"letter": "A", "text": "Curve A"}, {"letter": "B", "text": "Curve B"}, {"letter": "C", "text": "Curve C"}, {"letter": "D", "text": "Curve D"}], "images": ["assets/q4_p282_01.jpg"], "explanationImages": ["assets/a4_p300_01.jpg"], "answer": "A", "explanation": "Answer A. Liquid normally empties from the stomach in a monoexponential pattern soon after it enters the stomach, as shown by the curve in choice A. On the other hand, ingested solid food gets converted into smaller particles (chyme) by mechanical grinding and by chemical digestion before it begins to empty from the stomach. The length of time required for this to occur is referred to as the lag phase, a period of time when there is no significant emptying of the solids from the stomach. It usually lasts for 5 to 20 minutes. Once initiated, the emptying of the solid food from the stomach normally occurs in a linear fashion. As such, a normal solid gastric emptying curve would look like that seen on choice D.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:236-239. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "5", "stem": "Based on the following image, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Normal gastric emptying"}, {"letter": "B", "text": "Gastroparesis"}, {"letter": "C", "text": "Gastric hypermotility"}, {"letter": "D", "text": "Gastroesophageal reflux"}], "images": ["assets/q5_p282_02.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Normal values for the standardized solid meal gastric emptying study are shown in the table below. Forty-three percent remaining activity in the stomach at 4 hours suggests gastroparesis. The 4-hour time point is more sensitive for the detection of delayed gastric emptying compared to the 2-hour time point. In this patient, 47% remaining at 2 hours would have been normal, and the diagnosis of gastroparesis would have been missed if 4-hour imaging was not acquired. Gastric hypermotility is suggested if there is <30% retention at 1 hour (>70% emptying). It is important to know the causes of false-positive and false-negative gastric emptying study. Opiate analgesic medications (e.g., morphine, codeine, Demerol, and oxycodone), calcium channel blockers, antacids, and anticholinergic agents delay gastric emptying (GE); they can result in a false-positive study if not discontinued for the appropriate amount of time prior to the examination. Prokinetics such as domperidone and metoclopramide (Reglan) may lead to a false- negative GE study in a patient with gastroparesis and should be stopped before the study as well. Serotonin receptor (5-HT-3) antagonists, such as ondansetron, have little effect on GE and may be given for severe symptoms of nausea and vomiting before the GE study. Insulin-dependent diabetics should be scheduled for an early morning study and should generally take 1/2 of their usual morning insulin dose, followed by the radiolabeled meal. Patients on oral hypoglycemic should be instructed to take their usual morning dose of hypoglycemic medication shortly before the radiolabeled meal. Since hyperglycemia may delay gastric emptying independently, the study should be rescheduled if the fasting blood glucose level is >200 mg/dL.\n\nReferences: Abell TL, Camilleri M, Donohoe K, et al. Consensus recommendations for gastric emptying scintigraphy: a joint report of the American Neurogastroenterology and Motility Society and The Society of Nuclear Medicine. Am J Gastroenterol 2008;103(3):753-763. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "6", "stem": "In the following patient with an acute gastrointestinal bleed, a branch supplied by which of the following major vessels is the most likely source of bleeding?", "options": [{"letter": "A", "text": "Celiac artery"}, {"letter": "B", "text": "Gastroduodenal artery"}, {"letter": "C", "text": "Superior mesenteric artery (SMA)"}, {"letter": "D", "text": "Inferior mesenteric artery (IMA)"}], "images": ["assets/q6_p283_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Since gastrointestinal (GI) bleeding can be an intermittent process, a tagged red blood cell (RBC) study helps identify patients who are bleeding at the time of examination (thus suitable for angiography) and helps localize the probable site of bleeding. Dynamic acquisition and review of images in the cine mode allows for better localization and increased sensitivity. GI bleeding is marked by (1) accumulation of radiolabeled RBCs outside the normal area of the vascular blood pool, (2) increasing intensity over time, and (3) movement within the bowel either in an antegrade or in a retrograde direction. At 10 minutes (frame 2), focal uptake in the hepatic flexure is seen, which increases in intensity over time, conforms to the large bowel, and moves in the antegrade and retrograde directions. This area is typically supplied by the superior mesenteric artery (SMA). The SMA supplies the bowel from the second portion of the duodenum as far distally as the splenic flexure of the transverse colon. The celiac artery supplies the distal esophagus, stomach, and the first portion of the duodenum. The inferior mesenteric artery (IMA) supplies from the distal third of the transverse colon to the proximal rectum. Accurate localization of GI bleeding on tagged RBC study helps direct the interventional radiologist to a specific vascular territory. This allows for prompt localization, reduced contrast load, reduced procedure time, and reduced patient radiation exposure. Quick localization should also minimize the chance that intermittent bleeding would have stopped by the time of contrast injection.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:220-223. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:242-246."}, {"number": "7", "stem": "The following image is from a 62-year-old lady who underwent splenectomy for idiopathic thrombocytopenic purpura (ITP) approximately 10 years ago. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Focal nodular hyperplasia"}, {"letter": "B", "text": "Accessory spleen"}, {"letter": "C", "text": "Common bile duct obstruction"}, {"letter": "D", "text": "Acute cholecystitis"}, {"letter": "E", "text": "Intra-abdominal abscess"}, {"letter": "F", "text": "Lymphoma"}], "images": ["assets/q7_p284_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. A small focus of intense uptake is seen in the left upper quadrant on the posterior image of this heat-damaged Tc-99m-tagged red blood cell (RBC) scan. This is consistent with an accessory spleen or residual splenic tissue. Removal of abnormal erythrocytes by the reticuloendothelial system is the basis for denatured RBC uptake by the functioning splenic tissue. In this study, the Tc-99m-labeled RBCs are heat damaged for 20 minutes in a water bath at 49Â°C to 50Â°C. This causes them to become rigid spherocytes that, upon reinjection, are phagocytosed by the reticuloendothelial system. Normal physiologic distribution of denatured RBCs is in the liver, spleen, and bone marrow. In cases of ITP, recurrence after splenectomy prompts an evaluation for residual splenic tissue. This examination can also be used in the diagnosis of splenosis after trauma (arrows in the image below). Tc-99m sulfur colloid (SC) is taken up by the reticuloendothelial system and is commonly used for the evaluation of residual splenic tissue as well. Only 5% to 10% of the injected SC localizes in the normal spleen; 80% to 90% is sequestered by the liver, and <5% localizes in the bone marrow. This high liver uptake makes evaluation of the splenic tissue adjacent to the liver parenchyma difficult. Heat-damaged Tc-99m-labeled red blood cell (RBC) scan is more sensitive for the evaluation of residual splenic tissue as the denatured RBCs are sequestered by the splenic tissue in high concentration. This is due to their larger size compared to SC. Relatively higher uptake of denatured RBCs by the splenic tissue compared to the liver allows for better differentiation of a splenule from the adjacent liver parenchyma.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:220. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:218-219."}, {"number": "8", "stem": "The following image is from a patient who underwent Tc-99m RBC scintigraphy for the evaluation of gastrointestinal bleeding. What is the MOST likely diagnosis?", "options": [{"letter": "A", "text": "Bleeding gastric ulcer"}, {"letter": "B", "text": "Severe gastritis"}, {"letter": "C", "text": "Enterogastric reflux"}, {"letter": "D", "text": "Free pertechnetate"}, {"letter": "E", "text": "Aortogastric fistula"}], "images": ["assets/q8_p285_01.jpg"], "explanationImages": ["assets/a8_p301_01.jpg"], "answer": "D", "explanation": "Answer D. The supplied images demonstrate persistent diffuse radiotracer uptake in the stomach, which does not move. The blood pool activity is markedly reduced. Activity is also seen in the renal collecting system and bladder (more so than usual). The findings are consistent with free pertechnetate. Gastric mucosal, salivary gland, thyroid gland, and renal activities are seen when free Tc-99m pertechnetate is present. When free Tc-99m pertechnetate is suspected, an image of the thyroid and salivary glands should be obtained to confirm that it is the source of this artifact (see below). Of the methods for labeling autologous RBCs, the in vivo technique has the worst labeling efficiency (~75%) and higher chance of free pertechnetate. This can be avoided by using the in vitro RBC-labeling method (labeling efficiency of 98%) and performing quality control to check for the free pertechnetate. In the event of gastric hemorrhage, a significant amount of activity would transit into the small bowel on the subsequent images.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:242-246."}, {"number": "9", "stem": "Tc-99m-tagged red blood cell (RBC) scintigraphy enables detection of gastrointestinal bleeding at the rate of as low as:", "options": [{"letter": "A", "text": "0.01 to 0.04 mL/minute"}, {"letter": "B", "text": "0.1 to 0.4 mL/minute"}, {"letter": "C", "text": "1 to 4 mL/minute"}, {"letter": "D", "text": "10 to 14 mL/minute"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Tc-99m-tagged RBC scintigraphy has a high sensitivity in detecting bleeding rates as low as 0.04 to 0.2 mL/minute, although a total volume of 2 to 3 mL is necessary for scintigraphic detection. Comparatively, angiography will locate GI bleeding sites in up to 65% of cases when bleeding occurs at a rate >1 mL/minute. Also, the bleeding must be occurring during the 20 to 30 seconds of contrast injection for the angiography to localize the bleeding site. Compared to angiography, tagged RBC scintigraphy is easy to perform, requires no patient preparation, and is noninvasive. It also provides prognostic information as patients with negative scintigraphy will rarely require urgent surgery. CT angiography is less sensitive than tagged RBC but more sensitive than conventional angiography with an ability to detect bleeding at the rate of 0.3 to 0.5 mL/minute. CT angiography has the added ability to detect other causes of GI bleeding such as a tumor, diverticulosis, etc.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:220-223. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:237-250. Wells ML, Hansel SL, Bruining DH, et al. CT for evaluation of acute gastrointestinal bleeding. Radiographics 2018;38(4):1089-1107."}, {"number": "10", "stem": "The following arterial phase CT as well as anterior and posterior planar images are from a patient with a mass within the lateral segment of the left hepatic lobe. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Focal nodular hyperplasia"}, {"letter": "B", "text": "Hepatocellular carcinoma"}, {"letter": "C", "text": "Cavernous hemangioma"}, {"letter": "D", "text": "Solitary metastasis"}, {"letter": "E", "text": "Hepatic adenoma"}, {"letter": "F", "text": "Hepatic abscess"}], "images": ["assets/q10_p286_01.jpg", "assets/q10_p286_02.jpg"], "explanationImages": ["assets/a10_p303_01.jpg", "assets/a10_p304_01.jpg"], "answer": "C", "explanation": "Answer C. The anterior and posterior projection images from a 90-minute delayed Tc-99m RBC scan demonstrate intense physiologic activity in the blood pool and spleen with mild-to-moderate physiologic activity in the liver and kidneys. A moderate-sized focus of intense uptake in the lateral segment of the left hepatic lobe (arrow in the anterior image below) is consistent with a hemangioma. On the Tc-99m RBC scan, hemangioma generally has decreased intensity compared to the adjacent liver on the early flow images and increased intensity compared to the adjacent liver on the 90- to 120-minute delayed images. Radiotracer uptake of hemangioma is often equal to that of the blood pool, but heterogeneous uptake can be seen with giant cavernous hemangioma. Tc-99m RBC scintigraphy has a near 100% positive predictive value for diagnosing hemangioma. Other lesions present as areas of reduced tracer uptake (\"cold\") on the tagged RBC scans. The most common cause of a false-negative Tc-99m RBC scintigraphy for hemangioma is its small size. Performing SPECT significantly improves the sensitivity of tagged RBC scan for hemangioma detection when compared to the planar imaging, especially if the lesions measure <2.5 to 3.0 cm in diameter. The SPECT imaging using Tc-99m RBCs has close to 100% sensitivity for lesions >1.5 cm in diameter, which decreases to <50% for lesions <1 cm. SPECT imaging also helps in confirming the anatomic localization of central lesions and allows for better differentiation from adjacent vascular structures. Other reported causes of false-negative study include the hemangioma being adjacent to a vascular structure (such as the heart, portal vein, or IVC), extensive fibrosis within the hemangioma, and perceived increased activity on the flow images. Diagnostic features of hemangioma on multiphase liver CT or MRI include discontinuous peripheral nodular enhancement with progressive filling in on later phases with contrast enhancement following that of the vasculature. Tc-99m RBC scans are typically used when CT or MRI characteristics are not diagnostic or when contrast is contraindicated.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:218-219. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:211, 214."}, {"number": "11", "stem": "The following axial, sagittal, and coronal SPECT images are from Tc-99m sulfurc colloid scan in a patient with a mass within the medial segment of the left hepatic lobe on the CT scan. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Hepatic adenoma"}, {"letter": "B", "text": "Solitary metastasis"}, {"letter": "C", "text": "Cavernous hemangioma"}, {"letter": "D", "text": "Hepatocellular carcinoma"}, {"letter": "E", "text": "Focal nodular hyperplasia"}], "images": ["assets/q11_p287_01.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. The SPECT images from a Tc-99m sulfur colloid (SC) scintigraphy demonstrate physiologic radiopharmaceutical distribution in the liver and spleen. Unlike Tc-99m RBC scintigraphy (used to diagnose cavernous hemangioma), there is no activity in the blood pool (aorta, IVC, or heart). The supplied images show a lesion with increased tracer uptake (more than that of the adjacent liver) in the medial segment of the left hepatic lobe (arrows in the image below). This is consistent with focal nodular hyperplasia (FNH). The liver spleen scan using Tc- 99m SC is a specific but nonsensitive method for diagnosing FNH. Approximately 40% of the FNHs demonstrate increased radiotracer uptake, 30% demonstrate uptake similar to the remaining liver parenchyma, while the remaining 30% demonstrate decreased uptake. Other causes of focal \"hot spots\" on Tc-99m SC scintigraphy include regenerating nodules, hot quadrate lobe (seen with SVC/innominate vein obstruction), and hot caudate lobe (seen with the Budd-Chiari syndrome). A lesion without functioning Kupffer cells would demonstrate decreased SC uptake (i.e., cyst, hemangioma, hepatic adenoma, hepatoma, and metastasis). Contrast-enhanced MRI has a reported sensitivity of approximately 70% with a specificity of 98% for FNH. For the Tc-99m SC scan, approximately 2 to 6 mCi of SC is injected intravenously. It undergoes rapid clearance from the intravascular space by the reticuloendothelial system with the intravascular half time of about 2 to 3 minutes. The majority (>98.4%) of the radiopharmaceutical would be removed from the intravascular blood pool in six half-lives (18 minutes). As such, imaging is usually commenced 20 minutes after the IV injection of Tc-99m SC. The average particle size of the Tc-99m sulfur colloid (SC) is about 0.3 to 1.0 Î¼m. Given its particulate nature, Tc-99m SC is phagocytosed by the reticuloendothelial system: Kupffer cells in the liver and macrophages in the spleen and bone marrow.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:214-217. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:213-218."}, {"number": "12", "stem": "Which of the following is an indication for pretreatment with sincalide in a patient undergoing hepatobiliary scintigraphy?", "options": [{"letter": "A", "text": "Total parenteral nutrition"}, {"letter": "B", "text": "Fasting <24 hours"}, {"letter": "C", "text": "Fasting <2 hours"}, {"letter": "D", "text": "Biliary atresia"}, {"letter": "E", "text": "Biliary jaundice"}], "images": [], "explanationImages": ["assets/a12_p306_01.jpg"], "answer": "A", "explanation": "Answer A. Prolonged fasting and recent meal are some of the common causes of false-positive hepatobiliary scintigraphy. When the patient fasts for more than 24 hours, lack of endogenous CCK secretion/stimulation results in lack of gallbladder contraction. As such, gallbladder fills with viscous bile, resulting in increased intracholecystic pressure and lack of backflow of radiotracer into the gallbladder. In order to minimize the potential of a false-positive study, patients who have fasted for longer than 24 hours, are on parenteral hyperalimentation, or have a severe intercurrent illness should be pretreated with a 30- to 60-minute infusion of 0.02 Î¼g/kg of sincalide 15 to 30 minutes before the injection of the hepatobiliary radiotracer. Sincalide is a polypeptide analog of CCK. It increases biliary secretion by contracting the gallbladder and relaxing the sphincter of Oddi. Recent meal within 2 hours would result in gallbladder contraction; if the gallbladder is contracted at the time of examination, it will not fill in with radiotracer and result in a false- positive examination. As such, fasting for at least 2 hours, preferably 4 to 6 hours, should be required prior to the initiation of hepatobiliary scintigraphy.\n\nReferences: Tulchinsky M, Ciak BW, Delbeke D, et al. SNM practice guideline for hepatobiliary scintigraphy 4.0. J Nucl Med Technol 2010;38(4):210-218."}, {"number": "13", "stem": "The HIDA scan below is from a 26-year-old female with acute abdominal pain. Findings on the imaging are highly suggestive of what entity?", "options": [{"letter": "A", "text": "Partial common bile duct obstruction"}, {"letter": "B", "text": "Chronic cholecystitis"}, {"letter": "C", "text": "Acute cholecystitis"}, {"letter": "D", "text": "Pancreatitis"}, {"letter": "E", "text": "Bile leak"}], "images": ["assets/q13_p288_01.jpg"], "explanationImages": ["assets/a13_p307_01.jpg"], "answer": "C", "explanation": "Answer C. Sequential anterior images acquired for 60 minutes after the IV administration of Tc- 99m mebrofenin demonstrate prompt clearance of blood pool activity within 5 minutes (normal <10 minutes), hepatic ducts are visualized at 15 minutes (normal <20 minutes), and common bile duct/duodenum are visualized by 20 minutes (normal for CBD <30 minutes and for bowel <60 minutes). The gallbladder is not visualized. Increased radiopharmaceutical uptake is identified in a curvilinear fashion within the hepatic parenchyma adjacent to the gallbladder fossa (arrowheads in the image below). This is known as the rim sign. It is felt to be secondary to a combination of hyperemia from the inflammation (resulting in increased radiotracer delivery) and possible obstruction of biliary radicals owing to the inflammation. When present, it is a reliable indicator of acute cholecystitis, and no further imaging (delayed time point or postmorphine augmentation) is necessary. The rim sign indicates severe late-stage acute cholecystitis and has been associated with phlegmonous or gangrenous acute cholecystitis. The benefit of reporting this finding is that open cholecystectomy rather than routine laparoscopic cholecystectomy may be favored in these patients. Also seen is a cystic duct sign (arrow in the image below) where a small meniscus of activity is seen in the cystic duct distal to the obstruction.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:226-228. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:190-192. Tulchinsky M, Colletti PM, Allen TW. Hepatobiliary scintigraphy in acute cholecystitis. Semin Nucl Med 2012;42(2):84-100."}, {"number": "14", "stem": "According to the most recent and best-validated prospective randomized study, what is the recommended infusion of sincalide that results in the least variability of the gallbladder ejection fraction in the healthy subjects?", "options": [{"letter": "A", "text": "0.02 Î¼g/kg infusion over 15 minutes"}, {"letter": "B", "text": "0.02 Î¼g/kg infusion over 30 minutes"}, {"letter": "C", "text": "0.02 Î¼g/kg infusion over 60 minutes"}, {"letter": "D", "text": "0.02 Î¼g/kg infusion over 90 minutes"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. In a study by Ziessman et al. published in 2010, a sincalide infusion of 0.02 Î¼g/kg over 60 minutes resulted in the least variability and best-defined normal values of gallbladder ejection fraction (GBEF) in healthy volunteers. The calculated lower range of normal GBEF for 60-minute infusion was 38% (first percentile). A prospective randomized investigation by Yap et al. utilized a 45-minute infusion of sincalide at a rate of 0.02 Î¼g/kg/h with GBEF calculated at 1 hour. In this study, abnormal EF of <40% correlated well with the presence of chronic acalculous gallbladder disease and alleviation of the patient's symptoms after cholecystectomy. Reduced GBEF in response to sincalide, however, is a nonspecific finding, and correlation with the patient's presentation/clinical history is critical. Besides chronic gallbladder disease, it has been associated with acute medical illness from other causes, irritable bowel syndrome, obesity, achalasia, truncal vagotomy, as well as several medications (e.g., morphine, atropine, calcium channel blockers, octreotide, progesterone, indomethacin, theophylline, benzodiazepines, and histamine 2 receptor antagonists).\n\nReferences: Yap L, Wycherley AG, Morphett AD, et al. Acalculous biliary pain: cholecystectomy alleviates symptoms in patients with abnormal cholescintigraphy. Gastroenterology 1991;101:786-793. Ziessman HA, Tulchinsky M, Lavely WC, et al. Sincalide-stimulated cholescintigraphy: a multicenter investigation to determine optimal infusion methodology and gallbladder ejection fraction normal values. J Nucl Med 2010;51(2):277-281."}, {"number": "15", "stem": "Besides functional gallbladder disease, what can give delayed biliary to bowel transit?", "options": [{"letter": "A", "text": "Hypertension"}, {"letter": "B", "text": "Acute cholecystitis"}, {"letter": "C", "text": "Opiates"}, {"letter": "D", "text": "Hypothyroidism"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Morphine and other opiates constrict the sphincter of Oddi and may delay the biliary to bowel transit. The practice guidelines recommend delaying hepatobiliary scintigraphy for the time equal to four half-lives of the opiate used. Delayed biliary to bowel transit is commonly associated with chronic cholecystitis/functional gallbladder disease. However, by itself, it is not diagnostic as it can be seen in up to 20% of the normal population as well as in patients with diabetes, pregnancy, truncal vagotomy, progesterone, and oral contraceptives. Partial common bile duct obstruction and severe hepatic dysfunction would also present with delayed biliary to bowel transit. As such, an attempt should be made to assess the patient's history, clinical presentation, and medications to help determine the specific cause.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:224-225. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:190-198. Tulchinsky M, Ciak BW, Delbeke D, et al. SNM practice guideline for hepatobiliary scintigraphy 4.0. J Nucl Med Technol 2010;38(4):210-218."}, {"number": "16a", "stem": "A 52-year-old lady presents with elevated liver function tests. Ultrasound demonstrated gallbladder wall thickening and sludge. Based on the provided images, what is the most appropriate next step?", "options": [{"letter": "A", "text": "Acquire 24-hour delayed imaging"}, {"letter": "B", "text": "Recommend CT of the abdomen with IV contrast"}, {"letter": "C", "text": "Administer morphine"}, {"letter": "D", "text": "Administer booster dose"}, {"letter": "E", "text": "Administer phenobarbital"}], "images": ["assets/q16a_p289_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Images from hepatobiliary scintigraphy (HBS) demonstrate nonvisualization of the gallbladder at 60 minutes. This is a nonspecific finding and can be seen with acute cholecystitis, chronic cholecystitis, or physiologic failure of the gallbladder to fill with the radiotracer (e.g., GB contraction from a recent meal or CCK administration, fasting for >24 to 48 hours, severely ill or postoperative patients). In most of these cases, a specific diagnosis can be made based on the patient's clinical presentation. If not, and when the gallbladder is not visualized within 60 minutes, either 3- to 4-hour delayed images or images with morphine augmentation (0.04 mg/kg, maximum 3 mg) may be obtained. The radiotracer must be present in the intrahepatic biliary tree, common bile duct, and the small bowel prior to morphine injection. Morphine increases the tone of the sphincter of Oddi, in turn increasing the intraluminal bile duct pressure. This results in the backflow of the bile into the gallbladder if the cystic duct is patent. Contraindications to the use of morphine include increased intracranial pressure in children (absolute), respiratory depression in nonventilated patients (absolute), morphine allergy (absolute), and acute pancreatitis (relative). A second injection of the radiopharmaceutical, \"booster dose,\" should be given at the end of the 60 minutes if there is an insufficient amount of radiotracer in the liver and biliary tree to permit the gallbladder visualization. Phenobarbital, 5 mg/kg/day, may be given for 3 to 5 days before imaging infants in whom biliary atresia is suspected.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:229. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:190-198. Tulchinsky M, Ciak BW, Delbeke D, et al. SNM practice guideline for hepatobiliary scintigraphy 4.0. J Nucl Med Technol 2010;38(4):210-218."}, {"number": "16b", "stem": "Postmorphine images of the same patient are shown below. What is the diagnosis?", "options": [{"letter": "A", "text": "Bile leak"}, {"letter": "B", "text": "Focal nodular hyperplasia"}, {"letter": "C", "text": "Acute cholecystitis"}, {"letter": "D", "text": "Chronic cholecystitis"}], "images": ["assets/q16b_p290_01.jpg"], "explanationImages": ["assets/a16b_p309_01.jpg"], "answer": "D", "explanation": "Answer D. Postmorphine images demonstrate radiotracer uptake in the gallbladder, excluding the diagnosis of acute cholecystitis. Delayed visualization of the gallbladder in the right clinical settings suggests chronic cholecystitis. Nonvisualization of the gallbladder within 30 minutes of morphine administration or on delayed 3- to 4-hour imaging would indicate acute cholecystitis. FNH will present as a lesion with increased radiopharmaceutical uptake on the HIDA scan as it contains functioning hepatocytes without connection into the biliary system. Activity in the left upper quadrant (adjacent to the left hepatic lobe) is from bile reflux into the stomach (double arrow in the image below) and not bile leak. Bile reflux that is marked and occurs in a symptomatic patient correlates strongly with bile gastritis. Of note, a relative regional decrease in activity along the superior lateral aspect of the right hepatic lobe (arrowheads in the image below) is secondary to breast attenuation artifact. A small area of photopenia at the junction of the left and right hepatic lobes in the hepatic dome (arrow in the image below) corresponded to a cyst on CT (not shown).\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:229. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:190-198. Tulchinsky M, Ciak BW, Delbeke D, et al. SNM practice guideline for hepatobiliary scintigraphy 4.0. J Nucl Med Technol 2010;38(4):210-218."}, {"number": "17", "stem": "A 54-year-old female with a history of alcohol abuse presents for further evaluation with hepatobiliary scintigraphy (HIDA scan) due to right upper quadrant pain. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Common bile duct obstruction"}, {"letter": "B", "text": "Hepatocellular carcinoma"}, {"letter": "C", "text": "Cholecystitis"}, {"letter": "D", "text": "Pancreatitis"}, {"letter": "E", "text": "Hepatitis"}, {"letter": "F", "text": "Cirrhosis"}], "images": ["assets/q17_p291_01.jpg", "assets/q17_p292_01.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. The images demonstrate persistent blood pool activity (>60 minutes) consistent with severely impaired hepatic extraction. The liver is enlarged, and there is no excretion of the radiopharmaceutical into the bile ducts, the gallbladder, or the small bowel at 60 minutes. Differential considerations for poor hepatic extraction and biliary excretion include causes of hepatic dysfunction such as hepatitis or biliary obstruction. In this setting, delayed images should be obtained at 4 and/or 24 hours. The delayed 24-hour image demonstrates radiotracer in the gallbladder and small bowel, excluding acute cholecystitis and complete CBD obstruction, respectively. Delayed visualization of the gallbladder and small bowel, in this case, is most likely related to underlying poor liver function from acute alcoholic hepatitis. Delayed 24-hour imaging with hepatobiliary scintigraphy may be necessary in the setting of severe hepatocellular dysfunction, suspected common bile duct obstruction, or suspected biliary atresia because the hepatocellular dysfunction typically results in delayed extraction from the blood pool and excretion of the radiopharmaceutical into the biliary radicals, resulting in prolonged hepatic to biliary and hepatic to bowel transit times.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:203."}, {"number": "18", "stem": "What is the most likely diagnosis in this patient with the clinical history of a recent liver transplant?", "options": [{"letter": "A", "text": "Biliary obstruction"}, {"letter": "B", "text": "Malignant ascites"}, {"letter": "C", "text": "Normal study"}, {"letter": "D", "text": "Biliary leak"}, {"letter": "E", "text": "Hepatic hydrothorax"}, {"letter": "F", "text": "Choledochoenteric fistula"}], "images": ["assets/q18_p293_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. A single hepatobiliary scintigraphy (HBS) image demonstrates the pooling of the radiotracer in the gallbladder fossa, tracking along the inferior edge of the liver into the right paracolic gutter. This is consistent with a bile leak. Bile leak and biliary obstruction are two of the common complications after a liver transplant. A bile leak is present when the radiotracer is found in a location other than the liver, gallbladder, bile ducts, bowel, or urine. Using cinematic display or decubitus positioning may help with the diagnosis of a bile leak. Extravasation of a small quantity of bile occurs commonly after biliary surgery and is of little clinical significance. However, patients who develop profuse bilious drainage should be suspected of having a significant bile leak. Ultrasonography and CT detect the presence of fluid collections in these patients, but they cannot demonstrate if the collection communicates with the biliary tree. HBS can easily confirm bile leak as the etiology of the fluid collection (as opposed to infection, hemorrhage, or other postoperative fluid collections) and establish the primary route of bile flow. HBS is also useful in following these patients overtime to ensure the resolution of the leak.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:231-235. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:203."}, {"number": "19", "stem": "The following images are from hepatobiliary scintigraphy performed on a 66-year-old gentleman with right upper quadrant pain. What is the most appropriate next step in management?", "options": [{"letter": "A", "text": "SPECT CT imaging"}, {"letter": "B", "text": "Surgical consultation for cholecystectomy"}, {"letter": "C", "text": "Contrast-enhanced CT of the abdomen and pelvis"}, {"letter": "D", "text": "Right upper quadrant ultrasound"}], "images": ["assets/q19_p294_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Sequential anterior images acquired after the IV administration of Tc-99m mebrofenin demonstrate markedly enlarged liver with heterogeneous radiotracer distribution. Focal areas of photopenia are noted throughout the liver and are more prominent along the superior aspect and in the right hepatic lobe (arrows in the image below). Normally there is homogeneous radiotracer uptake throughout the liver parenchyma. Any lesions that do not contain functioning hepatocytes (cysts, hemangioma, metastasis, and hepatocellular carcinoma, to name a few) will have decreased activity on the HIDA scan. Since hepatic adenoma and FNH contain functioning hepatocytes, these lesions will have increased activity on the HIDA scan. In this patient with markedly heterogeneous uptake and enlarged liver, the findings are highly suspicious for neoplasm. As such, contrast-enhanced CT to evaluate the liver lesions and potential primary would be the most appropriate next step. While right upper quadrant ultrasound may help confirm liver metastasis, CT scan has the added advantage of finding a potential primary malignancy. In this case, the medially displaced gallbladder due to right hepatic lobe enlargement fills with the radiotracer. Therefore, there is no need for cholecystectomy. Contrast-enhanced CT in this patient confirmed multiple liver metastases (shown below) with primary colon cancer (not shown).\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:216."}, {"number": "20", "stem": "A 47-year-old gentleman with cirrhosis and recurrent ascites presents for evaluation of his LeVeen/Denver shunt. Based on the supplied images below, what radiopharmaceutical was injected into the peritoneal cavity to evaluate the shunt function.", "options": [{"letter": "A", "text": "TC-99m sulfur colloid"}, {"letter": "B", "text": "Tc-99m DTPA"}, {"letter": "C", "text": "Tc-99m MAA"}, {"letter": "D", "text": "Tc-99m pertechnetate"}], "images": ["assets/q20_p295_01.jpg"], "explanationImages": ["assets/a20_21_p311_01.jpg", "assets/a20_21_p311_02.jpg"], "answer": "C", "explanation": "Answer C. The acquired anterior images demonstrate the presence of radiopharmaceutical throughout the peritoneal cavity. Radiotracer is visualized in the lung on the chest images. Findings indicate a patent peritoneovenous shunt. Patients with recurrent ascites can be treated with a Denver or LeVeen peritoneovenous shunt, which transfer the fluid from the peritoneal cavity into the central vein through tubing with a one-way valve. This will take the fluid from the abdomen and transport it to the superior vena cava. For evaluation of the shunt patency, the radiotracer is injected into the peritoneal cavity. The patient then rolls around on the table to distribute the radiopharmaceutical. Either Tc-99m sulfur colloid (SC) or macro aggregated albumin (MAA) can be utilized for this purpose. Physiologic distribution depends on which radiopharmaceutical is injected. If Tc-99m MAA is injected, it will get trapped in the pulmonary capillaries and will result in a visualization of the lungs (such as in this case). If Tc-99m SC is used and the shunt is functioning appropriately, the activity will be visualized in the liver. MAA is preferred over SC due to the potential of activity within the ascites making visualization of activity within the liver difficult. MAA and SC are used because they are large particles and will not diffuse into the blood pool through the peritoneal surfaces.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:253-254."}, {"number": "21", "stem": "A 26-year-old patient admitted after a motor vehicle accident undergoes a HIDA scan for right upper quadrant pain. Based on the following images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Cholangiocarcinoma"}, {"letter": "B", "text": "Metastasis"}, {"letter": "C", "text": "Hemangioma"}, {"letter": "D", "text": "Biloma"}, {"letter": "E", "text": "Hepatocellular carcinoma"}], "images": ["assets/q21_p296_01.jpg"], "explanationImages": ["assets/a20_21_p311_01.jpg", "assets/a20_21_p311_02.jpg", "assets/a21_p313_01.jpg"], "answer": "D", "explanation": "Answer D. Sequential anterior images from the hepatobiliary scintigraphy demonstrate a moderate-sized area of progressive radiotracer accumulation within the right hepatic lobe, which increases in size and uptake throughout the examination. It appears to be in communication with the right bile duct. In a patient with a recent history of trauma, the imaging characteristics are most compatible with a biloma (see CT image below). Differential diagnosis of liver lesions with increased radiotracer uptake on hepatobiliary scintigraphy includes focal nodular hyperplasia and hepatic adenoma. Both of which contain functioning hepatocytes. Other liver lesions such as cyst, hemangioma, hepatocellular carcinoma, cholangiocarcinoma, and metastasis do not contain functioning hepatocytes. As such, they present as areas of photopenia on hepatobiliary scintigraphy.\n\nReferences: Habibian MR, Delbeke D, Martin WH, et al. Nuclear medicine imaging: a teaching file. Philadelphia, PA: LWW, 1999:276."}, {"number": "22", "stem": "What radiotracer is commonly used for the following examination that was done for the evaluation of gastroparesis?", "options": [{"letter": "A", "text": "Tc-99m pertechnetate"}, {"letter": "B", "text": "Tc-99m sulfur colloid"}, {"letter": "C", "text": "Tc-99m mebrofenin"}, {"letter": "D", "text": "Tc-99m dimercaptosuccinic acid (DMSA)"}], "images": ["assets/q22_p315_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. For the evaluation of gastroparesis, approximately 1 mCi of Tc-99m sulfur colloid (SC) is cooked with 4 oz of egg whites and served with 2 slices of bread, 30 g of strawberry jam, and 120 mL of water. Tc-99m SC remains bound to the ovalbumin in the egg white and does not dissociate into the liquid when in the stomach, thus allowing for accurate measurement of the solid emptying. If the patient is allergic to eggs, oatmeal can be used. Measuring simultaneous solid and liquid emptying is feasible by a dual-isotope study using an In-111 diethylenetriamine pentaacetic acid (DTPA)-radiolabeled liquid and Tc-99m SC-labeled solid. Tc-99m mebrofenin is used for hepatobiliary scintigraphy. Tc-99m pertechnetate is typically used for salivagram in infants, for thyroid scintigraphy, or for the evaluation of the Meckel diverticulum. Tc-99m dimercaptosuccinic acid (DMSA) is typically used for renal cortical imaging.\n\nReferences: Abell TL, Camilleri M, Donohoe K, et al. Consensus recommendations for gastric emptying scintigraphy: a joint report of the American Neurogastroenterology and Motility Society and the Society of Nuclear Medicine. Am J Gastroenterol 2008;103(3):753-763. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "23", "stem": "Which medication should be discontinued 48 to 72 hours before the gastric emptying scan?", "options": [{"letter": "A", "text": "Labetalol"}, {"letter": "B", "text": "Ondansetron"}, {"letter": "C", "text": "Morphine"}, {"letter": "D", "text": "Oral hypoglycemic"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Opiate analgesic medications (e.g., morphine, codeine, Demerol, and oxycodone), calcium channel blockers, antacids, and anticholinergic agents delay gastric emptying (GE); they can result in a false-positive study if not discontinued for the appropriate amount of time prior to the examination. Prokinetics such as domperidone and metoclopramide (Reglan) may lead to a false-negative GE study in a patient with gastroparesis and should be stopped before the study as well. Serotonin receptor (5-HT-3) antagonists, such as ondansetron, have little effect on GE and may be given for severe symptoms of nausea and vomiting before the GE study. Insulin-dependent diabetics should be scheduled for an early morning study and should generally take 1/2 of their usual morning insulin dose, followed by the radiolabeled meal. Patients on oral hypoglycemic should be instructed to take their usual morning dose of hypoglycemic medication shortly before the radiolabeled meal. Since hyperglycemia may delay gastric emptying independently, the study should be rescheduled if the fasting blood glucose level is >200 mg/dL.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "24", "stem": "Which of the following counts are preferred to generate the time-activity curve in the gastric emptying study?", "options": [{"letter": "A", "text": "Anterior"}, {"letter": "B", "text": "Posterior"}, {"letter": "C", "text": "Geometric mean"}, {"letter": "D", "text": "Left anterior oblique"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. For the gastric emptying study, anterior and posterior planar images with the distal esophagus, stomach, and small bowel in the field of view should be obtained for 1 minute immediately after ingestion of the meal and at 1, 2, and 4 hours on the same camera. Anterior and posterior views allow for the calculation of the geometric mean (GM) using the following formula: geometric mean = square root (anterior counts Ã— posterior counts). GM more accurately represents the amount of tracer in the stomach since it accounts for the posterior-to-anterior movement of the food as it travels from the fundus to the antrum, thus allowing for mathematical attenuation correction. Anterior and posterior data are obtained simultaneously with a dual-head gamma camera or sequentially on a single-headed camera. As the half-life of Tc-99m sulfur colloid is 6 hours, all data must be corrected for radioactive decay. While counts from the left anterior oblique (LAO) projection can be used as an alternative to GM, GM is the more accurate and preferred method of the two.\n\nReferences: Abell TL, Camilleri M, Donohoe K, et al. Consensus recommendations for gastric emptying scintigraphy: a joint report of the American Neurogastroenterology and Motility Society and The Society of Nuclear Medicine. Am J Gastroenterol 2008;103(3):753-763. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:220-229."}, {"number": "25", "stem": "Where in the liver does the Tc-99m sulfur colloid localize?", "options": [{"letter": "A", "text": "Hepatocytes"}, {"letter": "B", "text": "Sinusoids"}, {"letter": "C", "text": "Kupffer cells"}, {"letter": "D", "text": "End arterioles"}, {"letter": "E", "text": "Bile canaliculi"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The average particle size of the Tc-99m sulfur colloid (SC) is about 0.3 to 1.0 Î¼m. Given its particulate nature, Tc-99m SC is phagocytosed by the reticuloendothelial system: Kupffer cells in the liver and macrophages in the spleen and bone marrow.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:180, 213-218."}, {"number": "26", "stem": "In a tagged red blood cell (RBC) scan, where does the Tc-99m bind in the red blood cells?", "options": [{"letter": "A", "text": "Alpha chain of the hemoglobin"}, {"letter": "B", "text": "Beta chain of the hemoglobin"}, {"letter": "C", "text": "Gamma chain of the hemoglobin"}, {"letter": "D", "text": "Delta chain of the hemoglobin"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Tc-99m pertechnetate binds to the beta chain of the hemoglobin molecule.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:166."}, {"number": "27", "stem": "If Tc-99m-labeled RBC scintigraphy cannot be performed, which other radiotracer may be used for the evaluation of gastrointestinal bleeding?", "options": [{"letter": "A", "text": "Tc-99m sulfur colloid"}, {"letter": "B", "text": "In-111 DTPA"}, {"letter": "C", "text": "I-123 MIBG"}, {"letter": "D", "text": "Tc-99m DMSA"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Tc-99m sulfur colloid (SC) was the first radiopharmaceutical to be utilized for the evaluation of gastrointestinal bleeding (GI). An advantage of Tc-99m SC is rapid clearance from the intravascular space by the reticuloendothelial system (half time 2 to 3 minutes); this permits clear visualization of the extravasated radiotracer from the bleeding site. This is also a disadvantage as limited intravascular residence time (<10 minutes) increases the chance of missing an intermittent bleed. Also, prominent liver and spleen activity may obscure the bleeding sites in parts of the transverse colon, stomach, and duodenum. In contrast, Tc-99m RBCs remain within the intravascular space and can usually be imaged up to 24 hours after the injection, allowing for the detection of intermittent GI bleed. As such, Tc-99m RBCs are the radiopharmaceutical of choice for performing the GI bleeding scintigraphy.\n\nReferences: Dam HQ, Brandon DC, Grantham VV, et al. The SNMMI procedure standard/EANM practice guideline for gastrointestinal bleeding scintigraphy 2.0. J Nucl Med Technol 2014;42(4):308-317. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:213-214. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:237-250."}, {"number": "28", "stem": "The image below is that of a liver-spleen scan. How long after the intravenous administration of Tc-99m sulfur colloid is the imaging usually initiated?", "options": [{"letter": "A", "text": "10 minutes"}, {"letter": "B", "text": "20 minutes"}, {"letter": "C", "text": "40 minutes"}, {"letter": "D", "text": "60 minutes"}], "images": ["assets/q28_p317_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Approximately 2 to 6 mCi of Tc-99m sulfur colloid (SC) is injected intravenously for the liver spleen scintigraphy. It undergoes rapid clearance from the intravascular space by the reticuloendothelial system with the intravascular half time of about 2 to 3 minutes. The majority (>98.4%) of the radiopharmaceutical would be removed from the intravascular blood pool in six half-lives (18 minutes). As such, imaging is usually commenced 20 minutes after the IV injection of Tc-99m SC.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:213-214.O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:213-218."}, {"number": "29", "stem": "A patient presents for the evaluation of residual splenic tissue after splenectomy. In which of the following instances, is the heat-damaged red blood scan preferred over the Tc-99m sulfur colloid scintigraphy?", "options": [{"letter": "A", "text": "The lesion is adjacent to the liver."}, {"letter": "B", "text": "The lesion is in the chest."}, {"letter": "C", "text": "The lesion is adjacent to the bladder."}, {"letter": "D", "text": "The lesion is in the splenic hilum."}, {"letter": "E", "text": "The lesion is in the mesentery."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The Tc-99m sulfur colloid (SC) is taken up by the reticuloendothelial system and is commonly used for the evaluation of residual splenic tissue. Only 5% to 10% of the injected SC localizes in the normal spleen; 80% to 90% is sequestered by the liver, and <5% localizes in the bone marrow. This high liver uptake makes evaluation of the splenic tissue adjacent to the liver parenchyma difficult. Heat-damaged Tc-99m-labeled red blood cell (RBC) scan is more sensitive for the evaluation of residual splenic tissue as the denatured RBCs are sequestered by the splenic tissue in high concentration. This is due to their larger size compared to SC. Relatively higher uptake of denatured RBCs by the splenic tissue compared to the liver allows for better differentiation of a splenule from the adjacent liver parenchyma.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:218-219."}, {"number": "30", "stem": "What is the most common cause of a false-negative Tc-99m RBC scintigraphy for a hemangioma?", "options": [{"letter": "A", "text": "Poor injection bolus"}, {"letter": "B", "text": "The peripheral location of the lesion"}, {"letter": "C", "text": "The central location of the lesion"}, {"letter": "D", "text": "The small size of the lesion"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. The most common cause of a false-negative Tc-99m RBC scintigraphy for hemangioma is its small size. Performing SPECT significantly improves the sensitivity of tagged RBC scan for hemangioma detection when compared to the planar imaging, especially if the lesions measure <2.5 to 3.0 cm in diameter. The SPECT imaging using Tc-99m RBCs has close to 100% sensitivity for lesions >1.5 cm in diameter, which decreases to <50% for lesions <1 cm. SPECT imaging also helps in confirming the anatomic localization of central lesions and allows for better differentiation from adjacent vascular structures. Other reported causes of false-negative study include the hemangioma being adjacent to a vascular structure (such as the heart, portal vein, or IVC), extensive fibrosis within the hemangioma, and perceived increased activity on the flow images.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:218-219. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:211-215. Schillaci O, Danieli R, Manni C, et al. Technetium-99m-labelled red blood cell imaging in the diagnosis of hepatic haemangiomas: the role of SPECT/CT with a hybrid camera. Eur J Nucl Med Mol Imaging 2004;31(7):1011-1015."}, {"number": "31", "stem": "The following images were acquired after the intraperitoneal injection of Tc-99m sulfur colloid. What is the diagnosis?", "options": [{"letter": "A", "text": "Biliary leak"}, {"letter": "B", "text": "Malignant pleural effusion"}, {"letter": "C", "text": "Malignant ascites"}, {"letter": "D", "text": "LeVeen shunt malfunction"}, {"letter": "E", "text": "Hepatic hydrothorax"}, {"letter": "F", "text": "Patent ventriculoperitoneal shunt"}], "images": ["assets/q31_p318_01.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. Initial images after the intraperitoneal injection of Tc-99m sulfur colloid (SC) demonstrate activity widely dispersed throughout the ascitic fluid. Subsequent images demonstrate radiotracer uptake in the right pleural cavity. This is consistent with hepatic hydrothorax. This occurs due to the unidirectional transdiaphragmatic flow of ascitic fluid into the pleural cavity. Hepatic hydrothorax is defined as a pleural effusion, usually >500 mL, in patients with cirrhosis without cardiopulmonary disease. In a patient with cirrhosis, increased intra-abdominal pressure from the ascites can create microdefects in the tendinous portion of the right hemidiaphragm, leading to recurrent pleural effusions. Intraperitoneal injection of either Tc-99m SC or MAA can also be used to evaluate the patency of a LeVeen or a Denver peritoneal-venous shunt, which are used to drain intractable ascites from the peritoneal cavity into the superior vena cava by using a one-way pressure valve. Focal increased uptake medial and lateral to the right upper lung is related to the accumulation of SC in lymph nodes (similar to lymphoscintigraphy).\n\nReferences: Hewett LJ, Bradshaw ML, Gordon LL, et al. Diagnosis of isolated hepatic hydrothorax using peritoneal scintigraphy. Hepatology 2016;64(4):1364-1366. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:253-255."}, {"number": "32", "stem": "What is the critical organ for Tc-99m mebrofenin and disofenin?", "options": [{"letter": "A", "text": "Gallbladder"}, {"letter": "B", "text": "Large bowel"}, {"letter": "C", "text": "Small bowel"}, {"letter": "D", "text": "Liver"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Tc-99m mebrofenin and disofenin are used for the purposes of hepatobiliary scintigraphy or HIDA scan. The critical organ is the organ that receives the maximum radiation with a particular radiotracer. According to the International Commission on Radiological Protection (ICRP) task group, the gallbladder is the critical organ for hepatobiliary scintigraphy. The gallbladder wall is also the critical organ for myocardial perfusion agents Tc-99m tetrofosmin and sestamibi. Spleen and heart walls are the critical organs for Tc-99m RBCs. The spleen is the critical organ for Tc-99m sulfur colloid scintigraphy and In-111-labeled WBC scans.\n\nReferences: ICRP. Radiation dose to patients from radiopharmaceuticals. ICRP Publication 53. Ann ICRP 1988;18:1-4. http://www.snmmi.org/ClinicalPractice/doseTool.aspx? ItemNumber=11216&navItemNumber=11218"}];
+    const APP_ID = "nuclear-medicine-gastrointestinal-quiz-ch8";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

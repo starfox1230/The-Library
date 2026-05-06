@@ -31,7 +31,7 @@ def collect_library_paths() -> set[str]:
         return set()
 
     paths: set[str] = set()
-    for index_file in TEMP_LIBRARY.glob("*/index.html"):
+    for index_file in TEMP_LIBRARY.glob("**/index.html"):
         relative = index_file.relative_to(REPO_ROOT / "apps" / "temporary-apps")
         paths.add(relative.as_posix())
     return paths

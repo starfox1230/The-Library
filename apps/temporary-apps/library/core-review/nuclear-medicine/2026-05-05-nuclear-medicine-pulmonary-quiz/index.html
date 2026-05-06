@@ -1,0 +1,743 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuclear Medicine Pulmonary System Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Nuclear Medicine Pulmonary System Quiz</h1>
+        <a class="previousQuizLink" href="../../../2026-05-05-nuclear-medicine-pulmonary-quiz/index.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;color:var(--muted);font-size:12px;text-decoration:none;">Previous location for saved-state export</a>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"nuclear-medicine-pulmonary-quiz-ch7",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "Which one of the following sentences is true regarding the acquisition of perfusion images using Tc-99m MAA?", "options": [{"letter": "A", "text": "Rapid tight bolus injection is preferred over slower injection."}, {"letter": "B", "text": "The perfusion scan should be performed before the ventilation scan."}, {"letter": "C", "text": "Tc-99m MAA should be administered with the patient in the supine position."}, {"letter": "D", "text": "Central venous catheter injection is preferred over peripheral venous injection."}, {"letter": "E", "text": "Clinically significant pulmonary emboli can result if the blood is drawn into the syringe prior to the Tc-99m MAA injection."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Because of the gradient created by gravity, the lung bases receive about three times the amount of blood flow compared to the apex when the patient is in the upright position. In order to minimize this gravity-induced physiologic perfusion gradient, Tc-99m MAA should be injected with the patient in the supine position. Also, to allow proper mixing with blood and to prolong the bolus, peripheral vein injection is preferred and injection through the central venous catheter should be avoided. The injection should be slow over more than four respiratory cycles and have large enough volume to assist in homogeneous pulmonary distribution. Labeled blood clots formed by blood drawn into the syringe may result in focal hot spots on the perfusion scan (see arrows in image below); however, they are clinically insignificant. Since both DTPA and MAA are labeled with Tc-99m, sequential ventilation/perfusion images require a smaller dose of the first imaging agent to prevent interference with the second. Because it is difficult to deliver high doses of aerosolized DTPA to the lungs and since better count statistics are preferred for the perfusion imaging, the ventilation portion of the imaging is usually performed first. Because of the low photopeak and short biologic half-life, Xe-133 ventilation is also performed before the perfusion component of the study.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:177-179. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:128-132."}, {"number": "2", "stem": "Ventilation images can be acquired with an aerosol such as Tc-99m DTPA or a gas such as Xe- 133. Which of the following is an advantage of Tc-99m DTPA compared to Xe-133?", "options": [{"letter": "A", "text": "DTPA is more sensitive in the evaluation of airway disease."}, {"letter": "B", "text": "DTPA does not interfere with subsequent MAA perfusion images."}, {"letter": "C", "text": "DTPA has a short biologic half-life with lower radiation exposure to the patient."}, {"letter": "D", "text": "DTPA has better photon flux and allows for the acquisition of multiple projections."}], "images": [], "explanationImages": ["assets/a2_p264_01.jpg"], "answer": "D", "explanation": "Answer D. Advantages of Tc-99m DTPA include the ability to acquire multiple projections, ready availability, and ideal photon energy resulting in better imaging. Disadvantages include interference with subsequent perfusion images from crosstalk as well as central clumping of the radiopharmaceutical in the setting of poor respiratory effort or increased air turbulence (i.e., COPD or asthma). Advantages of Xe-133 compared to Tc-99m DTPA include superior sensitivity to detect COPD and lack of interference with the subsequent perfusion images owing to its short biologic half-life as well as low photopeak of 81 keV. Disadvantages include higher soft tissue attenuation due to low photon energy, inability to acquire multiple protections (with a single dose) or SPECT images due to rapid washout, and requirement of the special exhaust system, traps, and negative air pressure rooms.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:177-179, 197. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:128-132."}, {"number": "3", "stem": "In which of the following instances can a normal MAA particle dose be administered to the patient?", "options": [{"letter": "A", "text": "Pregnancy"}, {"letter": "B", "text": "Right-to-left shunt"}, {"letter": "C", "text": "Pediatric population"}, {"letter": "D", "text": "Pulmonary hypertension"}, {"letter": "E", "text": "Saddle pulmonary embolus"}], "images": [], "explanationImages": [], "answer": "E", "explanation": "Answer E. Usually, 200,000 to 500,000 particles of MAA are administered to the patient undergoing a ventilation-perfusion study for the evaluation of pulmonary embolism. In children, this number is decreased to 10,000 for the neonates and 50,000 to 150,000 for children <5 years of age. Also, reduction in the particle dose (100,000 to 150,000) should be considered in patients with pulmonary hypertension, right-to-left shunt, and pregnancy. Saddle pulmonary embolus is not an indication for the reduction in the particle dose.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:177. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:128."}, {"number": "4", "stem": "What radiopharmaceuticals were likely used to perform the following ventilation-perfusion study?", "options": [{"letter": "A", "text": "Xenon-133 and Tc-99m MAA"}, {"letter": "B", "text": "Tc-99m DTPA and Tc-99m MAA"}, {"letter": "C", "text": "Xenon-133 and Tc-99m DTPA"}, {"letter": "D", "text": "Tc-99m sulfur colloid and Tc-99m DTPA"}, {"letter": "E", "text": "Krypton-81m and Tc-99m DTPA"}], "images": ["assets/q4_p247_01.jpg"], "explanationImages": ["assets/a4_p266_01.jpg", "assets/a4_p266_02.jpg"], "answer": "B", "explanation": "Answer B. The acquired ventilation images demonstrate a large focus of intense activity within the posterior upper abdomen toward the left of the midline in what appears to be the stomach (arrows); activity is also visualized in the proximal small bowel. Findings are secondary to swallowed aerosol particles. The deposition of the radiopharmaceutical is also identified within the trachea and central airways (arrowheads). These findings are seen with the Tc-99m DTPA ventilation scan. Tc-99m DTPA is aerosolized using nebulizer into small particles. Because of its particulate nature, unlike ventilation performed with a gas such as Xe-133, central accumulation of DTPA may occur in patients unable to cooperate with deep breathing or in patients who have increased central airway flow turbulence from COPD or asthma. Also, the ingestion of the noninhaled particles from the oral cavity may result in activity within the esophagus and stomach. This patient had a hiatal hernia (arrows in the chest x-ray below) explaining the activity in the posterior mediastinum. Tc-99m MAA is currently the only agent used for lung perfusion imaging. Because the majority of the particles (60% to 80%) range in size from 10 to 30 Î¼m, it is appropriate for the blockage of pulmonary capillaries, which measure approximately 10 Î¼m in diameter. Since perfusion portion of the study is acquired after the ventilation, shine through of activity in stomach and central airways from the ventilation study is often seen on the perfusion images (as is the case with this patient).\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:179-181. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:132-135."}, {"number": "5", "stem": "Based on the following imaging, what is the most appropriate next step?", "options": [{"letter": "A", "text": "Radioiodine treatment"}, {"letter": "B", "text": "FDG-PET/CT"}, {"letter": "C", "text": "Liver function tests"}, {"letter": "D", "text": "Pulmonary function tests"}, {"letter": "E", "text": "CT chest"}, {"letter": "F", "text": "CT abdomen"}], "images": ["assets/q5_p248_01.jpg"], "explanationImages": ["assets/a5_p267_01.jpg"], "answer": "C", "explanation": "Answer C. The sequential anterior and posterior Xe-133 images demonstrate retention of Xe-133 within the right upper quadrant (arrow). This is typically seen in patients with fatty infiltration due to the retention of fat-soluble Xe-133 in the liver parenchyma. Liver function tests would be the most appropriate next step in this case, and the other choices would not be appropriate. Retained Xe-133 uptake within the lungs on washout images is associated with air trapping from small airways disease. However, careful inspection of the images demonstrates that the retained radiopharmaceutical is in the liver and not in the lung parenchyma. When present, this finding should not be mistaken for trapping of Xe-133 in the right lower lung.\n\nReferences: Conn HL Jr. Equilibrium distribution of radioxenon in tissue: xenon-hemoglobin association curve. J Appl Physiol 1961;16:1065-1070. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:179-181, 182. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:135,138."}, {"number": "6", "stem": "A 36-year-old female in the first trimester of pregnancy presents to the emergency department with chest pain. Which of the following is true regarding the CT pulmonary angiogram (CTPA) compared to the ventilation-perfusion scan (V/Q) in this patient?", "options": [{"letter": "A", "text": "CTPA has lower specificity."}, {"letter": "B", "text": "CTPA has lower fetal radiation exposure."}, {"letter": "C", "text": "CTPA has lower maternal breast radiation exposure."}, {"letter": "D", "text": "CTPA has lower maternal total body radiation exposure."}], "images": [], "explanationImages": ["assets/a6_p268_01.jpg"], "answer": "B", "explanation": "Answer B. Even though CT pulmonary angiogram (CTPA) may be the initial test of choice to diagnose pulmonary embolism, the maternal radiation dose is higher with CTPA (3 to 5 mSv) compared to the V/Q scan (2 mSv or less). Admittedly the maternal total body radiation dose is highly variable given the wide variety of CT scanners and protocols currently available. While CT scans with newer detector technology can reduce maternal dose further, CTPA delivers higher radiation to the breast tissue compared to the V/Q scan, increasing the risk of breast cancer. On the other hand, even with reduced dose (1 to 2 mCi of Tc-99m MAA), the fetal dose from the V/Q scan may be higher than that from the CTPA. According to the PIOPED II trial, the V/Q scan and pulmonary CT angiogram performed about equally in the diagnosis of pulmonary embolism. However, the specificity of CTPA for pulmonary emboli detection is greater than that of the V/Q scan. Other weaknesses of the V/Q scan include longer examination time and lack of ready availability as the preparation of radiopharmaceutical requires extra time.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:209-211. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:142-145."}, {"number": "7", "stem": "What is the most appropriate next step based on the following perfusion scintigraphy findings?", "options": [{"letter": "A", "text": "Cardiac MRI"}, {"letter": "B", "text": "CT angiography"}, {"letter": "C", "text": "Planar images of the brain"}, {"letter": "D", "text": "Contrast echocardiography"}], "images": ["assets/q7_p249_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Anterior and posterior Tc-99m MAA perfusion images demonstrate activity within the spleen (arrows) and kidneys (arrowheads). Activity is not visualized within the stomach (as would be expected with free pertechnetate). As such, findings represent right-to-left shunt, which should be confirmed with planar images of the brain. Visualization of activity within the brain would indicate a right-to-left shunt. Since Tc-99m pertechnetate cannot cross the blood-brain barrier, absence of radiotracer uptake within the brain would confirm free pertechnetate. Activity within the kidneys and thyroid may be seen due to either free pertechnetate or right-to-left cardiac shunt. When seen, planar images of the brain should be acquired to differentiate between the two. The right to left shunt may be assessed by Tc-99m MAA perfusion imaging. It can be intracardiac (patent foramen ovale, atrial septal defect, or anomalous pulmonary venous return) or extracardiac (pulmonary arteriovenous malformation or hepatopulmonary syndrome). The shunt fraction is calculated as follows: Percentage of R-L shunt = [(total body geometric mean count âˆ’ total lung geometric mean count)/total body geometric mean count] Ã—100.\n\nReferences: Chokkappan K, Kannivelu A, Srinivasan S, et al. Review of diagnostic uses of shunt fraction quantification with technetium-99m acroaggregated albumin perfusion scan as illustrated by a case of Osler-Weber-Rendu syndrome Ann Thorac Med 2016;11(2):155-160. PMID: 27168866.Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:177-178. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:134."}, {"number": "8", "stem": "What degree of FDG uptake is typically associated with a pulmonary hamartoma?", "options": [{"letter": "A", "text": "Less than that of the mediastinum"}, {"letter": "B", "text": "Greater than mediastinum but less than liver"}, {"letter": "C", "text": "Greater than liver but less than bladder"}, {"letter": "D", "text": "Greater than bladder"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Pulmonary hamartomas generally have no significant uptake (less than the mediastinum) on the F-18 FDG-PET imaging. If a lung nodule has a CT appearance that is benign but demonstrates increased metabolic activity, malignancy should be suspected. False-positive causes of FDG-PET imaging include infectious or granulomatous processes. Also, since well- differentiated adenocarcinoma with lepidic pattern and carcinoid may demonstrate no significant FDG activity, correlation with prior imaging, follow-up imaging, or biopsy should be considered for lesions with a low level of F-18 FDG uptake. If the nodule demonstrates characteristic popcorn-like calcifications within it, then hamartoma is likely and further workup would be unnecessary.\n\nReferences: Bury T, Dowlati A, Paulus P, et al. Evaluation of the solitary pulmonary nodule by positron emission tomography imaging. Eur Respir J 1996;9(3):410-414. Chang JM, Lee HJ, Goo JM, et al. False-positive and false-negative FDG-PET scans in various thoracic diseases. Korean J Radiol 2006;7(1):57-69. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:345."}, {"number": "9", "stem": "A 63-year-old lady presents with shortness of breath. Given the following images, what is your interpretation based on the modified PIOPED II criteria?", "options": [{"letter": "A", "text": "Very low probability"}, {"letter": "B", "text": "Low probability"}, {"letter": "C", "text": "Nondiagnostic"}, {"letter": "D", "text": "High probability"}], "images": ["assets/q9_p250_01.jpg"], "explanationImages": ["assets/a9_p270_01.jpg", "assets/a9_p271_01.jpg", "assets/a9_10_p272_01.jpg"], "answer": "D", "explanation": "Answer D. There is a large multisegmental mismatched perfusion defect involving the entire right lower lobe (arrowheads in the first image below). Since there are â‰¥2 (superior and four basilar segments of the right lower lobe) large (>75% of the lung segment), segmental (wedge-shaped, extending to pleura), mismatched perfusion defects, the findings are compatible with a high probability (85% to 90%) of pulmonary embolism. Occasionally, large defects such as this are misinterpreted when multiple adjacent segments are involved; close attention and correlation with a ventilation scan should help prevent this mistake. A more typical appearance of a high- probability ventilation-perfusion scan is shown in the second image below, which demonstrates multiple, large, wedge-shaped, mismatched segmental perfusion defects in the right and left lungs. *If the perfusion does not fall into one of these categories, then it is nondiagnostic and requires further workup.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:190-197. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:135-142."}, {"number": "10", "stem": "According to the modified PIOPED II criteria, what is the probability of pulmonary embolism in this patient?", "options": [{"letter": "A", "text": "Very low probability"}, {"letter": "B", "text": "Low probability"}, {"letter": "C", "text": "Nondiagnostic"}, {"letter": "D", "text": "High probability"}], "images": ["assets/q10_p251_01.jpg"], "explanationImages": ["assets/a9_10_p272_01.jpg"], "answer": "A", "explanation": "Answer A. The ventilation and perfusion images demonstrate the presence of a large, nonsegmental, matched perfusion defect involving the right upper lobe. Perfusion is present at the periphery of this defect (arrows); this is known as the stripe sign and represents a very low probability (<10%) of pulmonary embolus. A nonsegmental perfusion defect does not correspond to the bronchopulmonary anatomic segment and is generally not wedge shaped. It may be caused by pulmonary abnormalities such as emphysema/bullae (most common), atelectasis, neoplasm, pneumonia, hemorrhage, or edema. Extrapulmonary abnormalities resulting in nonsegmental perfusion defects include normal variance or pathology of hilar or mediastinal structures and alterations in diaphragmatic contour. According to modified PIOPED II criteria, the category of very low probability includes the following: nonsegmental perfusion defect, a perfusion defect with a stripe sign, one to three small segmental defects, single triple-matched defect in the upper or middle lung zone, and a perfusion defect smaller than the corresponding chest radiograph abnormality. If a V/Q scan does not fall into a high probability, a very low probability, or a normal category, then it should be assigned a nondiagnostic category requiring further workup.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:190-197. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:135-142."}, {"number": "11", "stem": "Diffuse lung uptake 1 hour after the injection of Indium-111-labeled white blood cells is secondary to which of the following?", "options": [{"letter": "A", "text": "Pneumonia"}, {"letter": "B", "text": "Radiation pneumonitis"}, {"letter": "C", "text": "Pleural effusion"}, {"letter": "D", "text": "Physiologic"}, {"letter": "E", "text": "Chemotherapy"}], "images": [], "explanationImages": ["assets/a11_p273_01.jpg"], "answer": "D", "explanation": "Answer D. On early images after intravenous administration of In-111-labeled WBC scan, diffuse physiologic lung activity is visualized. However, this activity should reduce over the course of 4 hours after the injection, reducing to the background. Persistent lung uptake can be secondary to damaged WBCs during the labeling process. Pneumonia, pneumonitis, and chemotherapy can all be associated with increased pulmonary uptake of tagged WBCs, but it would be present on delayed images. Benign pleural effusion would result in no significant abnormality.\n\nReferences: Love C, Opoku-Agyemang P, Tomas MB. Pulmonary activity on labeled leukocyte images: physiologic, pathologic, and imaging correlation. Radiographics 2002;22(6): 1385-1393. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:364."}, {"number": "12", "stem": "A 78-year-old male with a past medical history of smoking presents with the complaint of shortness of breath and palpitations. The ED physician was concerned for pulmonary embolism and requested a V/Q scan. What is the most likely interpretation using the modified PIOPED II criteria?", "options": [{"letter": "A", "text": "Very low probability"}, {"letter": "B", "text": "Low probability"}, {"letter": "C", "text": "Nondiagnostic"}, {"letter": "D", "text": "High probability"}], "images": ["assets/q12_p252_01.jpg", "assets/q12_p253_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The ventilation and perfusion images demonstrate a large matched perfusion defect involving the right lung apex, which corresponds to a mass-like density on the chest radiograph (arrows). Findings are consistent with a triple-matched upper lobe perfusion defect, which is considered to be a very low probability (<10%) of PE by the modified PIOPED II criteria. In this case, the perfusion defect is secondary to the right apical lung cancer. On the other hand, a triple- matched perfusion defect within the lower lungs would be considered nondiagnostic secondary to an increased prevalence of PE in the lower lobes. In this case, some would advocate an approach stating that there is no evidence of pulmonary embolus and the perfusion defect corresponds to the pulmonary malignancy.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:190-197. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:135-142."}, {"number": "13", "stem": "A 44-year-old female presents with shortness of breath. You are given the following images. What is the most important thing to review prior to the interpretation of this examination?", "options": [{"letter": "A", "text": "Chest x-ray"}, {"letter": "B", "text": "Venous Doppler"}, {"letter": "C", "text": "Prior V/Q scan"}, {"letter": "D", "text": "Prior chest CT"}], "images": ["assets/q13_p254_01.jpg"], "explanationImages": ["assets/a13_p274_01.jpg", "assets/a13_p275_01.jpg"], "answer": "C", "explanation": "Answer C. The perfusion images demonstrate multiple, large, bilateral, mismatched, segmental defects consistent with a high probability of pulmonary embolism. Incomplete resolution of prior pulmonary emboli is one of the most common causes of mismatched perfusion defects. As such, any prior ventilation/perfusion scan should be reviewed prior to rendering the diagnosis of an acute PE. While it is true that V/Q scans should be interpreted with a recent chest x-ray (at a minimum within the past 48 hours and preferably within 24 hours), a chest x-ray is unlikely to change your interpretation in this case with normal ventilation. This patient had a prior V/Q scan, which was identical in appearance making acute PE less likely. One should closely look for new mismatched defects in these patients, which would indicate new pulmonary emboli. Patients with a high burden of pulmonary emboli and elderly patients are less likely to return to normal after the treatment of PE. In these patients, perfusion lung imaging is preferred over CTPA to follow the course of the disease. A 3-month follow-up study should be considered to serve as a baseline for future reference since perfusion defects persisting at 3 months are less likely to resolve.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:197-201. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:138."}, {"number": "14", "stem": "A 67-year-old gentleman with coronary artery bypass grafting 2 days ago presents with new-onset shortness of breath and tachycardia. Because of these symptoms, a V/Q scan was performed. What is your interpretation based on the provided images?", "options": [{"letter": "A", "text": "Very low probability for PE"}, {"letter": "B", "text": "Low probability for PE"}, {"letter": "C", "text": "Nondiagnostic for PE"}, {"letter": "D", "text": "High probability for PE"}], "images": ["assets/q14_p255_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. A curvilinear-matched perfusion and ventilation defect is seen within the right lung that tracks along the expected course of the major fissure. This finding is known as the \"fissure sign\" and is commonly seen in the presence of pleural effusion. The corresponding radiograph below demonstrates the blunting of the right costophrenic angle and fluid within the right major fissure. Since this would qualify as a nonsegmental perfusion defect, it would be placed in the category of a very low probability for pulmonary embolus by the modified PIOPED II criteria.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:190-197. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:135-142."}, {"number": "15", "stem": "What is the most likely cause of bilateral diffuse intense lung uptake on a delayed whole-body bone scintigraphy?", "options": [{"letter": "A", "text": "Malignant pleural effusion"}, {"letter": "B", "text": "Pulmonary alveolar microlithiasis"}, {"letter": "C", "text": "Pulmonary radiation"}, {"letter": "D", "text": "Pulmonary osteosarcoma metastasis"}], "images": ["assets/q15_p256_01.jpg"], "explanationImages": ["assets/a15_p276_01.jpg"], "answer": "B", "explanation": "Answer B. Diffuse bilateral lung uptake can be seen with pulmonary alveolar microlithiasis. It is a rare disease of unknown etiology, which is characterized by the presence of calcific concretions in the alveolar spaces and development/deposition of intra-alveolar microliths. Diffuse pulmonary metastatic calcification from renal failure and hypercalcemia would also present with similar diffuse lung uptake on bone scan. Malignant pleural effusion may demonstrate a unilateral mild-to- moderate increase in activity, which is seen best on the posterior projection images. Pulmonary radiation-induced fibrosis would demonstrate a regional increase in activity while pulmonary osteosarcoma metastasis would demonstrate focal areas of increase in activity.\n\nReferences: Rosenthal DI, Chandler HL, Azizi F, et al. Uptake of bone imaging agents by diffuse pulmonary metastatic calcification. AJR Am J Roentgenol 1977;129(5):871-874. Shah TC, Talwar A, Shah RD, et al. Pulmonary alveolar microlithiasis: radiographic and scintigraphic correlation. Clin Nucl Med 2007;32(3):249-251."}, {"number": "16", "stem": "Based on the provided V/Q scan and chest x-ray, which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Swyer-James syndrome"}, {"letter": "B", "text": "Pulmonary embolus"}, {"letter": "C", "text": "Pulmonary atresia"}, {"letter": "D", "text": "Pneumonectomy"}, {"letter": "E", "text": "Lung cancer"}], "images": ["assets/q16_p257_01.jpg"], "explanationImages": ["assets/a16_p277_01.jpg"], "answer": "C", "explanation": "Answer C. The perfusion images demonstrate unilateral absence of perfusion to the entire left lung. Normal homogeneous perfusion is noted within the right lung without presence of any segmental perfusion defects. The ventilation portion of the study demonstrates patchy areas of nonsegmental ventilation defects in the left upper lung zone; however, there is a significant mismatch between the perfusion and ventilation. The chest radiograph demonstrates hypoplastic left lung with lack of pulmonary vascularity on the left. This is a case of pulmonary atresia secondary to the congenital absence of the left main pulmonary artery. Associated findings include atretic pulmonary valve with underdeveloped pulmonary artery. There is typically volume loss to the affected side on the chest x-ray. Reticular vessels from bronchial artery collateral circulation may be seen along with the rib notching from the prominence of the intercostal arteries. The differential considerations for absent or decreased perfusion to one lung can be remembered by pneumonic SAFE POEM: Swyer-James syndrome, pulmonary Agenesis/hypoplasia, mediastinal Fibrosis, pleural Effusion, Pneumonectomy, Obstruction by tumor, pulmonary Embolus, and Mucous plug. Both mucous plug and Swyer-James syndrome would present with matched ventilation-perfusion defect in the affected lung. A large pleural effusion will demonstrate more severe perfusion abnormality in the posterior projection due to layering in supine patients. Also, pleural effusion and pneumonectomy would be evident on the chest radiograph. Similarly, large enough lung neoplasm to cause compression of the pulmonary vasculature should be evident on the chest radiograph. When secondary to pulmonary embolus, unilateral lack of perfusion to one lung is usually accompanied by segmental mismatched perfusion defects on the contralateral side.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:201-207. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:139."}, {"number": "17", "stem": "A 75-year-old smoker presents with shortness of breath. Based on the images provided, how would you interpret this examination using the modified PIOPED II criteria?", "options": [{"letter": "A", "text": "Very low probability."}, {"letter": "B", "text": "Low probability."}, {"letter": "C", "text": "Nondiagnostic."}, {"letter": "D", "text": "High probability."}, {"letter": "E", "text": "The patient does not have a PE but should be evaluated for a hilar mass."}], "images": ["assets/q17_p258_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. There is near complete absence of perfusion to the right lung. Also, multiple large, segmental, mismatched perfusion defects are present within the left lung (arrowheads). The ventilation is normal. Combination of these findings is most compatible with a high probability of pulmonary embolus. While a whole lung mismatched perfusion defect is not commonly secondary to a PE, additional mismatched perfusion defects within the left lung make this case a high probability for pulmonary embolism. The corresponding CTPA below shows a saddle embolus with near occlusion of the right pulmonary artery and smaller embolus within the left pulmonary artery.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:201-207. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:139."}, {"number": "18", "stem": "An 82-year-old female with history of renal cell carcinoma undergoes the following scan to evaluate for a possible left below-the-knee amputation osteomyelitis. What is the most likely cause of the abnormal activity in the chest?", "options": [{"letter": "A", "text": "Lymphoma"}, {"letter": "B", "text": "Metastasis"}, {"letter": "C", "text": "Pulmonary abscesses"}, {"letter": "D", "text": "Granulomatous disease"}], "images": ["assets/q18_p259_01.jpg"], "explanationImages": ["assets/a18_p278_01.jpg"], "answer": "D", "explanation": "Answer D. Anterior and posterior planar images of the Ga-67 scan demonstrate the presence of physiologic radiopharmaceutical uptake within the liver, spleen, and bowel. Pharmaceutical uptake is noted within bilateral hila and right mediastinum (arrowheads) in a configuration also known as the \"lambda sign.\" While physiologic uptake can be seen in the lacrimal and salivary glands, it appears more intense than is expected. Intense activity in the lacrimal and salivary glands is known as the \"panda sign.\" The patient's head is slightly rotated to the left; as such, the left parotid gland is not visualized. The combination of these findings is typically associated with sarcoidosis. Differential considerations of hilar and mediastinal lymphadenopathy include lymphoma or mycobacterial infectious disease, especially in immunocompromised patients. Lymphoma would be expected to present with a larger mediastinal mass or additional nodal chain involvement. The chest findings are not localized to the lungs, and therefore pulmonary abscess is incorrect. Half-life of Ga-67 is 3.2 days with principle gamma photons of 93 keV (40%), 184 keV (24%), 296 keV (22%), and 388 keV (7%). The primary route of elimination is through the kidneys in the first 24 hours with intestinal mucosa becoming the major route of elimination after that. The liver has the most intense physiologic activity. Physiologic activity in the spleen, salivary glands, lacrimal glands, and axial skeleton should be less intense than that in the liver. Physiologic activity is seen in the renal collecting system in the first 24 hours and bowel after that. Ga-67 scans were routinely performed to evaluate response to treatment in patients with malignancies such as lymphoma before the advent of F-18 FDG-PET.\n\nReferences: Beaumont D, Herry JY, et al. Gallium-67 in the evaluation of sarcoidosis: correlations with serum angiotensin-converting enzyme and bronchoalveolar lavage. Thorax 1982;37(1):11-18. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:318-321, 370-373. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:434-436."}, {"number": "19", "stem": "The following Ga-67 scan is from a 34-year-old gentleman with a history of HIV and cough. Which of the following is the LEAST likely diagnosis?", "options": [{"letter": "A", "text": "Pneumocystis jiroveci pneumonia"}, {"letter": "B", "text": "Kaposi sarcoma"}, {"letter": "C", "text": "Radiation pneumonitis"}, {"letter": "D", "text": "Pulmonary drug toxicity"}, {"letter": "E", "text": "Mycobacterium avium-intracellulare"}], "images": ["assets/q19_p260_01.jpg"], "explanationImages": ["assets/a19_p279_01.jpg"], "answer": "B", "explanation": "Answer B. Diffuse pulmonary uptake of Ga-67 in a patient with known HIV is typically seen with Pneumocystis jiroveci pneumonia (PJP), formerly known as Pneumocystis carinii pneumonia (PCP). Ga-67 scans have reported sensitivity and negative predictive value of >90% in the diagnosis of PJP. In patients with PJP, Ga-67 scan findings typically precede radiographic changes by days or weeks, allowing for earlier diagnosis and treatment. Kaposi sarcoma does not demonstrate increased lung uptake on Ga-67, but it is Tl-201 avid. Since gallium is a nonspecific infectious/inflammatory agent, radiation pneumonitis, Mycobacterium avium-intracellulare infection, and pulmonary drug toxicity will demonstrate increased Ga-67 uptake. Notice intense lacrimal gland activity in this patient, which can be seen in patients with AIDS.\n\nReferences: Habibian MR. Nuclear medicine imaging: a teaching file, 2nd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2009:85-86. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:370-371. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:434."}, {"number": "20", "stem": "A patient with severe emphysema and a FEV1 of 2 L needs to undergo a right pneumonectomy for a right upper lobe lung cancer. Based on the perfusion images provided, what would you advise?", "options": [{"letter": "A", "text": "The patient can safely undergo right pneumonectomy."}, {"letter": "B", "text": "The patient cannot safely undergo right pneumonectomy."}, {"letter": "C", "text": "Study is incomplete as ventilation images were not done."}, {"letter": "D", "text": "Findings are inconclusive/indeterminate."}], "images": ["assets/q20_p261_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The purpose of the preoperative pulmonary function test and perfusion scan is to identify those patients who are at an increased risk of having respiratory failure after pneumonectomy. It is particularly important in patients with preoperative FEV1 of <2 L in patients undergoing pneumonectomy or <1.5 L in the case of a lobectomy. Postresection forced expiratory volume in the first second (FEV1) of >1 L is associated with low surgical mortality and acceptable quality of life after surgery. The loss of pulmonary function after pneumonectomy or lobectomy can be accurately predicted by the quantitative Tc-99m pulmonary perfusion scan, and its accuracy is not augmented by the ventilation study. As such, ventilation is not necessary. The postoperative residual function is calculated using the following formula: Postoperative residual function = Preoperative FEV1 Ã— % of perfusion in the remaining lung. If pneumonectomy is contemplated, right-to-left lung differential function is commonly performed by calculating the geometric mean from the regions of interest drawn around the right and left lung in the anterior and posterior views. If lobectomy is contemplated, posterior oblique views would allow better separation of upper and lower lobes and can be used instead to calculate the percent of total perfusion to the specific lobe. If the predicted FEV1 is <1 L, the patient should not be considered for pneumonectomy until further tests, such as unilateral balloon occlusion of the pulmonary artery, would suggest otherwise. In this example, the postoperative FEV1 in the remaining left lung would be 2 L Ã— 0.635 = 1.27 L. As such, this patient would qualify for a right pneumonectomy.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:145, 150. Wernly JA, DeMeester TR, Kirchner PT, et al. Clinical value of quantitative ventilation- perfusion lung scans in the surgical management of bronchogenic carcinoma. J Thorac Cardiovasc Surg 1980;80(4):535-543."}, {"number": "21", "stem": "What is the most likely etiology for the following findings?", "options": [{"letter": "A", "text": "Poor tagging"}, {"letter": "B", "text": "GI bleed"}, {"letter": "C", "text": "Prior examination"}, {"letter": "D", "text": "Metastatic calcifications"}], "images": ["assets/q21_p262_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Ventilation and perfusion images acquired after inhalation of aerosolized Tc-99m DTPA and IV administration of Tc-99m MAA respectively demonstrate a large amount of activity in the transverse colon. This activity is more intense on the ventilation images compared to the perfusion images due to higher count influx from lungs related to higher dose on the perfusion images, which are acquired after the ventilation images. A small amount of activity is visualized in the stomach due to swallowed radiotracer during the ventilation portion of the examination. The activity within the colon is likely secondary to a prior examination. In this case, the patient had a Tc-99m tetrofosmin injection for myocardial perfusion imaging done about 30 hours before the V/Q scan. Poor tagging of Tc-labeled agents would result in increased amount of free Tc-99m pertechnetate, which would localize to thyroid gland, salivary glands, and stomach. A GI bleed would not be present on ventilation images. Also, since most of the MAA particles measure 10 to 80 microns in size, they are trapped by the pulmonary capillaries, which are <10 Î¼m in diameter. As such, in the absence of a large right-to-left shunt and the presence of a large GI bleed, colonic activity from GI bleed would not be expected. Metastatic calcifications do not present with increased activity in the colon.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:177."}, {"number": "22", "stem": "The following examination was performed after oral administration of the radiopharmaceutical. What is the most likely indication for performing this study?", "options": [{"letter": "A", "text": "Elevated WBC count"}, {"letter": "B", "text": "Shortness of breath in a patient with AIDS"}, {"letter": "C", "text": "Increasing CEA levels"}, {"letter": "D", "text": "Increasing thyroglobulin levels"}], "images": ["assets/q22_p263_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The anterior and posterior whole-body images demonstrate physiologic activity within the oral cavity and bowel. Small-sized foci of moderate to intense activity are noted within bilateral neck. Also, diffusely increased activity is identified throughout the lungs. Physiologic activity within the liver is noted in the right upper quadrant. This is a posttherapy radioiodine scan with diffuse lung uptake secondary to diffuse military pattern of thyroid metastasis within the lungs. The patients with high-risk, well-differentiated thyroid carcinoma are treated with radioiodine and subsequently followed with serial serum thyroglobulin levels and/or whole-body radioiodine study acquired after the oral administration of I-123 or I-131. One of the early signs of disease recurrence in these patients is elevating serum thyroglobulin levels.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:106-108."}];
+    const APP_ID = "nuclear-medicine-pulmonary-quiz-ch7";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

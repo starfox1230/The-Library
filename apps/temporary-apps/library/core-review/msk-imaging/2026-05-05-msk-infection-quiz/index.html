@@ -1,0 +1,743 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MSK Infection Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>MSK Infection Quiz</h1>
+        <a class="previousQuizLink" href="../../../2026-05-05-msk-infection-quiz/index.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;color:var(--muted);font-size:12px;text-decoration:none;">Previous location for saved-state export</a>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"msk-infection-quiz-ch4",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "Which of the following MRI findings helps distinguish infectious tenosynovitis from noninfectious fluid within a tendon sheath?", "options": [{"letter": "A", "text": "Thin enhancement of the synovium"}, {"letter": "B", "text": "Thickened enhancement of the synovium"}, {"letter": "C", "text": "Low T2 signal within the tendon"}, {"letter": "D", "text": "Thin rim of simple fluid within the sheath"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Differentiating simple fluid from infectious fluid within a tendon sheath may be difficult. However there are signs that may suggest infection within the tendon sheath. These include a thickened, enhancing rim of synovium within the sheath, debris within the fluid, increased T2 signal in the tendon, or a tendon tear. Adjacent soft tissue infection may also suggest spread of infection into the tendon sheath.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:996."}, {"number": "2a", "stem": "A 26-year-old male is transferred from an outside institution after a radiograph at that institution was interpreted as a possible malignancy of the right femur. Based on the radiographs below, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Osteosarcoma"}, {"letter": "B", "text": "Ewing sarcoma"}, {"letter": "C", "text": "Metastatic disease"}, {"letter": "D", "text": "Osteomyelitis"}], "images": ["assets/q2a_p113_01.jpg", "assets/q2a_p114_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The radiographs depict a sequestrum associated with osteomyelitis. The appearance is not typical for osteosarcoma, Ewing sarcoma, or metastatic disease, and the age is also not typical for Ewing sarcoma. Eighty to ninety percent of patients diagnosed with Ewing sarcoma are 20 years of age or younger. After further inquiry, the patient admitted to recent IV drug use.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:974-979. Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:314-318."}, {"number": "2b", "stem": "A CT examination of the previous finding was performed. What is indicated by the arrow in the coronal CT image below performed in bone window?", "options": [{"letter": "A", "text": "Sequestrum"}, {"letter": "B", "text": "Involucrum"}, {"letter": "C", "text": "Periosteal reaction"}, {"letter": "D", "text": "Sinus tract"}], "images": ["assets/q2b_p115_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The coronal CT image depicts a sequestrum, which is necrotic bone surrounded by purulent material or granulation tissue. The sequestrum is usually of normal density and may harbor bacteria serving as a source for chronic osteomyelitis. The sequestrum and purulent material is typically surrounded by a bone shell called the involucrum, which is also seen in this image surrounding the sequestrum. Periosteal reaction and sinus tracts may be associated with osteomyelitis as well.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:974-979. Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:314-318."}, {"number": "2c", "stem": "An MRI of the above finding was performed. What is indicated by the arrow on the axial T1 fat- saturated postcontrast image below?", "options": [{"letter": "A", "text": "Sequestrum"}, {"letter": "B", "text": "Involucrum"}, {"letter": "C", "text": "Cloaca"}, {"letter": "D", "text": "Periosteum"}], "images": ["assets/q2c_p116_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The arrow points to the cloaca, which is a cortical and periosteal defect that allows pus to drain from the infected medullary cavity into the adjacent surrounding tissues. This can lead to abscess formation, which is seen in this case.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:974-979. Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:314-318."}, {"number": "3", "stem": "A 7-year-old female presents to the emergency department with ankle swelling. MR images of the distal tibial and fibular metaphysis are presented. What is the most likely diagnosis? Axial T1-weighted Axial T2-weighted fat-saturated Axial T1-weighted fat-saturated postcontrast", "options": [{"letter": "A", "text": "Necrotizing fasciitis"}, {"letter": "B", "text": "Subperiosteal abscess"}, {"letter": "C", "text": "Pyomyositis"}, {"letter": "D", "text": "Gas gangrene"}], "images": ["assets/q3_p117_01.jpg", "assets/q3_p118_01.jpg", "assets/q3_p119_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The images demonstrate a subperiosteal abscess of the distal fibular metaphysis. In children, relative to adults, the periosteum is more loosely attached to the cortex. As pus develops in the medullary space, it eventually breaks through the cortex and fills the subperiosteal space, creating a subperiosteal abscess. The most common infectious etiology is S. aureus.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:970-973. Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:328-330."}, {"number": "4", "stem": "Pictured below are two radiographs of a diabetic right foot, one current and one 6 months prior immediately after amputation of a portion of the great toe. In diabetic patients, what is the most common site of osteomyelitis of the foot? 6 months prior Current", "options": [{"letter": "A", "text": "Navicular and medial cuneiform"}, {"letter": "B", "text": "Third and fourth metatarsal shafts"}, {"letter": "C", "text": "Cuboid and lateral cuneiform"}, {"letter": "D", "text": "First and fifth metatarsal heads"}], "images": ["assets/q4_p120_01.jpg", "assets/q4_p121_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Osteomyelitis typically occurs at sites of increased pressure. In the foot, the most common sites are the first and fifth metatarsal heads, the phalanges, and the calcaneus. In this case, the original image demonstrated osteomyelitis of the first metatarsal head. Six months later, after resection of the first metatarsal head, the second metatarsal demonstrates osteomyelitis.\n\nReferences: Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:326."}, {"number": "5", "stem": "A 25-year-old male presents to the emergency department complaining of left hip pain. Based on the MR images below, what is the diagnosis? Axial T2-weighted fat-saturated Axial T1-weighted fat-saturated postcontrast", "options": [{"letter": "A", "text": "Cellulitis"}, {"letter": "B", "text": "Pyomyositis"}, {"letter": "C", "text": "Osteomyelitis"}, {"letter": "D", "text": "Necrotizing fasciitis"}], "images": ["assets/q5_p122_01.jpg", "assets/q5_p123_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The images note pyomyositis of the gluteal musculature in the setting of IV drug abuse. There is a component of cellulitis as well, but this is not the predominant finding. Pyomyositis is demonstrated by an intramuscular abscess with an enhancing peripheral rim. There is typically inflammation in the adjacent soft tissues. No changes are noted in the bone marrow signal to suggest osteomyelitis. There is no enhancement of the deep fascia to suggest necrotizing fasciitis.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:998-1001. Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:333-334."}, {"number": "6", "stem": "Presented below are two MR images of osteomyelitis of the second metatarsal in a diabetic patient. Which T1-weighted signal pattern is most reliable in diagnosing osteomyelitis of the foot? Sagittal T1-weighted Sagittal T2-weighted fat-saturated", "options": [{"letter": "A", "text": "Low geographic, medullary T1 signal"}, {"letter": "B", "text": "Low hazy, reticulated T1 signal"}, {"letter": "C", "text": "Low subcortical T1 signal"}, {"letter": "D", "text": "Low subchondral T1 signal"}], "images": ["assets/q6_p124_01.jpg", "assets/q6_p124_02.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The most reliable T1-weighted MR signal pattern of pedal osteomyelitis is low signal in a geographic medullary distribution. In the study by Collins et al., 100% of the surgically proven cases of osteomyelitis had this T1 signal pattern with corresponding high signal on T2-weighted fat- saturated images. If the T1 signal pattern did not match a geographic medullary pattern, the authors of this paper excluded the diagnosis of osteomyelitis. The other T1 signal patterns provided as answer options do not represent true cases of osteomyelitis but may be seen in cases of reactive edema.\n\nReferences: Collins MS, Schaar MM, Wenger DE, et al. T1 weighted MRI characteristics of pedal osteomyelitis. AJR Am J Roentgenol. 2005;185:386-393. Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:974-979."}, {"number": "7", "stem": "A 24-year-old female presents with swelling of the elbow and forearm. What is the characteristic appearance of the fibrous capsule of an abscess on MRI? Axial T1-weighted Axial T1-weighted fat-saturated postcontrast", "options": [{"letter": "A", "text": "Thin, nonenhancing"}, {"letter": "B", "text": "Thin, enhancing"}, {"letter": "C", "text": "Thick, nonenhancing"}, {"letter": "D", "text": "Thick, enhancing"}], "images": ["assets/q7_p125_01.jpg", "assets/q7_p126_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The fibrous capsule of a soft tissue abscess characteristically has a thick, enhancing rim. The abscess centrally has low T1-weighted and high T2-weighted signal. Other MRI findings that can be seen with a soft tissue abscess include cellulitis, fasciitis, myositis or pyomyositis, adjacent reactive bone formation or saucerization, or sinus tracts to the skin surface.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:998-1001. Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:333."}, {"number": "8", "stem": "Bone biopsy results in patients with chronic recurrent multifocal osteomyelitis (CRMO) reveals which of the following is the most common cause?", "options": [{"letter": "A", "text": "Salmonella"}, {"letter": "B", "text": "Staphylococcus"}, {"letter": "C", "text": "Streptococcus"}, {"letter": "D", "text": "Negative biopsy"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Chronic recurrent multifocal osteomyelitis (CRMO) is thought to be the result of an autoimmune cause. Bone biopsy results do not show an infectious agent. Instead, biopsy results show evidence of nonspecific inflammation with histiocytes, lymphocytes, and plasma cells. Blood cultures are also typically negative. CRMO typically occurs in children, with the ages of 9 to 14 years being the most common.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:1019."}, {"number": "9a", "stem": "A 59-year-old diabetic male presents with the following images of the right foot. What is the earliest osseous radiographic sign of osteomyelitis?", "options": [{"letter": "A", "text": "Permeative osseous destruction"}, {"letter": "B", "text": "Endosteal scalloping"}, {"letter": "C", "text": "Indistinctness of the cortex"}, {"letter": "D", "text": "Periosteal reaction"}], "images": ["assets/q9a_p128_01.jpg", "assets/q9a_p129_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Typically, radiographs do not demonstrate osseous changes during the first 1 to 2 weeks after the initiation of the infection. The earliest osseous change of osteomyelitis is indistinctness of the cortex. This is followed by permeative osseous destruction, endosteal scalloping, and periosteal reaction. Later changes include the formation of a sequestrum, involucrum, or an abscess.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:974-979."}, {"number": "9b", "stem": "The ordering physician is concerned about gangrene of the foot. Which of the following MRI findings is most critical in diagnosing gangrene of the foot?", "options": [{"letter": "A", "text": "Signal voids resulting from gas created by gas forming organisms"}, {"letter": "B", "text": "Skin thickening and cellulitis"}, {"letter": "C", "text": "Areas of absent contrast enhancement"}, {"letter": "D", "text": "Areas of associated osteomyelitis"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The most critical MRI finding in diagnosing gangrene of the foot is detecting areas of nonenhancement. This results from devitalization of the tissue. The skin may be focally thinned within the involved area. Gas may be present within the area involved; however, this is more commonly the result of an ulcer communicating with the skin surface than from gas from the infecting organism. Osteomyelitis may be an associated finding, but alone it does not make the diagnosis of gangrene.\n\nReferences: Russell JM, Peterson JJ, Bancroft LW. MR imaging of the diabetic foot. Magn Reson Imaging Clin N Am. 2008;16:59-70."}, {"number": "10", "stem": "A 54-year-old diabetic male presents with the images below. Which MRI finding is typically present in cellulitis and not present in soft tissue edema associated with diabetic vasculopathy? Axial T1-weighted Axial T2-weighted fat-saturated Axial T1-weighted fat-saturated postcontrast", "options": [{"letter": "A", "text": "Contrast enhancement of the involved area."}, {"letter": "B", "text": "T1-weighted signal of the affected area is hypointense to fat."}, {"letter": "C", "text": "T2-weighted signal of the affected area is hyperintense to muscle."}, {"letter": "D", "text": "A skin ulceration is present in the affected area."}], "images": ["assets/q10_p131_01.jpg", "assets/q10_p132_01.jpg", "assets/q10_p133_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Cellulitis is differentiated from soft tissue edema in diabetic patients with vasculopathy by the intense soft tissue enhancement associated with cellulitis. Both cellulitis and edema will have T1 signal that is hypointense to fat and T2 signal that is hyperintense to muscle. An ulceration is not required to make the diagnosis of cellulitis.\n\nReferences: Russell JM, Peterson JJ, Bancroft LW. MR imaging of the diabetic foot. Magn Reson Imaging Clin N Am. 2008;16:59-70."}, {"number": "11", "stem": "A 34-year-old diabetic male with a known neuropathic midfoot presents with the MR images below. Which of the following MRI features suggests superimposed osteomyelitis in a neuropathic foot? Long axis T1-weighted Long axis T2-weighted fat-saturated Long axis T1-weighted fat- saturated postcontrast. Long axis T1-weighted fat-saturated postcontrast", "options": [{"letter": "A", "text": "Intraarticular loose bodies"}, {"letter": "B", "text": "Subchondral cystic change"}, {"letter": "C", "text": "Thin rim enhancement of joint effusions"}, {"letter": "D", "text": "Soft tissue abscess"}], "images": ["assets/q11_p134_01.jpg", "assets/q11_p135_01.jpg", "assets/q11_p136_01.jpg", "assets/q11_p137_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Osteomyelitis superimposed on a neuropathic joint may be difficult to detect. There are, however, MRI signs that may suggest the presence of osteomyelitis in these cases. These include sinus tracts, replacement of the soft tissue fat, fluid collections, disappearance of subchondral cysts on sequential imaging, and extensive marrow abnormalities. Signs that suggest osteomyelitis is not present include thin rim enhancement of joint effusions, the presence of subchondral cysts, and the presence of intraarticular loose bodies. Features that can be seen in both osteomyelitis and neuropathic joints, and therefore, do not help distinguish the two include erosions, fragmentation, subluxations, and bone proliferations. In this case, there is a soft tissue abscess between the first and second metatarsal heads, diffuse replacement of the soft tissue fat, and extensive marrow abnormalities.\n\nReferences: Russell JM, Peterson JJ, Bancroft LW. MR imaging of the diabetic foot. Magn Reson Imaging Clin N Am. 2008;16:59-70."}, {"number": "12", "stem": "A 65-year-old male presents to the emergency room with a fever, malaise, and bilateral posterior thigh pain. A CT of the bilateral lower extremities was performed. Which of the following microorganisms is most often implicated in the condition depicted on the CT image?", "options": [{"letter": "A", "text": "Salmonella"}, {"letter": "B", "text": "Staphylococcus"}, {"letter": "C", "text": "Streptococcus"}, {"letter": "D", "text": "Polymicrobial"}], "images": ["assets/q12_p138_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The majority of the cases of necrotizing fasciitis are caused by a polymicrobial infection, including the involvement of both aerobes and anaerobes, and are often seeded by an underlying preexisting infection. Approximately 15% of the cases of necrotizing fasciitis can be attributed to a single pathogen, and group A streptococci, previously coined \"the flesh-eating bacteria\" accounts for approximately 10% of these cases. The classic CT finding of necrotizing fasciitis is soft tissue gas associated with fluid collections within the deep fascial planes.\n\nReferences: Fugitt JB, Puckett ML, Quigley MM, et al. Necrotizing fasciitis. Radiographics. 2004;24:1472-1476. Mulcahy H, Richardson ML. Imaging of necrotizing fasciitis: self-assessment module. AJR Am J Roentgenol. 2010;195:S66-S69."}, {"number": "13", "stem": "Images of the fifth metatarsal phalangeal joint are presented in a 49-year-old patient. Which of the following is the earliest radiographic finding of septic arthritis?", "options": [{"letter": "A", "text": "Osteomyelitis"}, {"letter": "B", "text": "Joint effusion"}, {"letter": "C", "text": "Periarticular osteoporosis"}, {"letter": "D", "text": "Erosions"}], "images": ["assets/q13_p143_01.jpg", "assets/q13_p144_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The earliest radiographic sign of a septic joint is a joint effusion. Later findings include periarticular osteoporosis, cartilage destruction seen as joint space narrowing, indistinctness of the cortical bone, marginal erosions, osteomyelitis, sclerosis, and eventually ankylosis.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:990-995.Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders;2009:330."}, {"number": "14", "stem": "A 63-year-old paraplegic male is imaged. A right hip radiograph and CT from 3 years prior are presented for comparison to the current CT of the right hip. What is the most likely diagnosis? Current 3 years prior 3 years prior", "options": [{"letter": "A", "text": "Soft tissue abscess"}, {"letter": "B", "text": "Joint effusion"}, {"letter": "C", "text": "Chronic osteomyelitis"}, {"letter": "D", "text": "Myositis"}], "images": ["assets/q14_p145_01.jpg", "assets/q14_p145_02.jpg", "assets/q14_p146_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. This case is of a paraplegic male with chronic decubitus ulcers, as noted by the air adjacent to the ischium on both the CT and radiograph images. This case represents chronic osteomyelitis. In the interval from the prior study, ischial changes include increased osseous destruction, sclerosis, and thickening of the remaining cortex consistent with chronic osteomyelitis. Other findings that can be seen with chronic osteomyelitis include periosteal new bone formation, sequestrum and involucrum formation, cloaca formation, and sinus tracts to the skin surface. Chronic osteomyelitis has been associated with development of squamous cell carcinoma within sinus tracts in 0.2% to 1.6% of patients.\n\nReferences: Manaster BJ. Diagnostic Imaging: Musculoskeletal: Non-Traumatic Disease. 2nd ed. Philadelphia, PA: Amirsys; 2016:986-989.Weissman BN. Imaging of Arthritis and Metabolic Bone Disease. Philadelphia, PA: Saunders; 2009:322."}];
+    const APP_ID = "msk-infection-quiz-ch4";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

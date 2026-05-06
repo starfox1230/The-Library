@@ -1,0 +1,743 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuclear Medicine Endocrine System Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Nuclear Medicine Endocrine System Quiz</h1>
+        <a class="previousQuizLink" href="../../../2026-05-03-nuclear-medicine-endocrine-quiz/index.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;color:var(--muted);font-size:12px;text-decoration:none;">Previous location for saved-state export</a>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"nuclear-medicine-endocrine-quiz-ch2-v2",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "What particulate emission during the radioactive decay of I-131 causes the destruction of the thyroid follicular cells?", "options": [{"letter": "A", "text": "Alpha"}, {"letter": "B", "text": "Beta"}, {"letter": "C", "text": "Gamma"}, {"letter": "D", "text": "Positron"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Iodine-131 (I-131) undergoes beta minus decay and emits a primary gamma photon of 364 keV as well as high-energy beta particles. Beta particles travel substantial distances in the air but only travel a few millimeters in tissue before getting absorbed. High radiation absorbed dose from beta particle emission combined with a long physical and biologic half-life of I-131 in the thyroid results in the gradual destruction of the thyroid follicular cells. Gamma and positrons are photons and not particles. Alpha particle is basically a helium nucleus consisting of two protons and two neutrons. Because of its heavy mass, it can only travel a few centimeters in air and is unable to penetrate a thin paper. Ra-223 (Xofigo) used in the treatment of metastatic prostate cancer emits alpha particles as it decays.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:6-8, 152-154."}, {"number": "2", "stem": "What is the half-life of I-131?", "options": [{"letter": "A", "text": "13 hours"}, {"letter": "B", "text": "2.8 days"}, {"letter": "C", "text": "3.2 days"}, {"letter": "D", "text": "8.1 days"}, {"letter": "E", "text": "13.2 days"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. I-131 has a half-life of 8.1 days. I-123 has a half-life of 13 hours. In-111 has a half- life of 67.2 hours (2.8 days), and Ga-67 has a half-life of 78 hours (3.2 days).\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:6-8, 152-154."}, {"number": "3", "stem": "You have 30 mCi of I-123 remaining in the radiopharmacy. A patient is scheduled to have I-123 scintigraphy approximately 2 days from now. How much I-123 would remain at the time of the scheduled examination?", "options": [{"letter": "A", "text": "25.3 mCi"}, {"letter": "B", "text": "18.9 mCi"}, {"letter": "C", "text": "8.3 mCi"}, {"letter": "D", "text": "2.3 mCi"}, {"letter": "E", "text": "1.2 mCi"}, {"letter": "F", "text": "0.646 mCi"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Iodine-123 has a half-life of 13 hours. Two days (48 hours) is slightly less than four half-lives of 52 hours. So, the remaining activity would be slightly more than the residual activity of 1.8 mCi at 52 hours, making 2.3 mCi as the correct answer. Alternatively, this can be accurately calculated using the following formula: A = A Ã— e(âˆ’0.693/halflife)Ã—(t) A = remaining activity; A0 = activity at time 0; t = time of decay.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:4-5. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:8-9."}, {"number": "4", "stem": "Which of the following radiopharmaceuticals is trapped by the thyroid follicular cells but NOT organified?", "options": [{"letter": "A", "text": "Tc-99m pertechnetate"}, {"letter": "B", "text": "I-123 sodium iodide"}, {"letter": "C", "text": "I-131 MIBG"}, {"letter": "D", "text": "In-111 pentetreotide"}, {"letter": "E", "text": "Tc-99m sestamibi"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. \"Trapping\" refers to the intracellular concentration of a substance by the sodium- iodide symporter located on the cell membrane of the thyroid follicular cells. \"Organification\" refers to oxidation, iodination, and coupling of iodine to the tyrosine residues on thyroglobulin by the thyroid peroxidase enzymes. Tc-99m pertechnetate undergoes trapping without organification. As such, it can gradually wash out of the thyroid gland, requiring imaging at 20 minutes after IV administration. On the other hand, I-123 and I-131 are organified into T3 and T4 and stored in the colloid-filled follicular lumen. Antithyroid medication such as propylthiouracil and methimazole block this organification process. As such, they should be discontinued approximately 5-7 days prior to radioiodine uptake or therapy.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:152-154."}, {"number": "5", "stem": "A 67-year-old gentleman received 101 mCi of I-131 sodium iodide for the treatment of his differentiated thyroid carcinoma. Which of the following instruments would be typically used to measure the radioactivity emanating from the patient prior to his release?", "options": [{"letter": "A", "text": "Image A"}, {"letter": "B", "text": "Image B"}, {"letter": "C", "text": "Image C"}, {"letter": "D", "text": "Image D"}], "images": ["assets/q5_p033_01.jpg"], "explanationImages": ["assets/a5_p053_01.jpg"], "answer": "B", "explanation": "Answer B. Ionization chambers (image B) are typically used to measure high exposure rates (range from 0.1 mR to 100 R), such as those from the patients receiving radioiodine therapy for cancer. If the patient receives more than 33 mCi of I-131 on an outpatient basis, then precautions are taken to ensure that no other person would receive more than 500 mrem (5 mSv) from exposure to the released patient. Activity is measured at 1 meter (m) and 3 m using an ionization chamber, and values are typically entered into a spreadsheet to generate a list of precautions to be discussed with the patient and the family members. Geiger-MÃ¼ller counters (image A) are very sensitive and are used to detect a very small amount of radioactivity (i.e., contamination). Gamma camera (image C) and scintillation probe (image D) are used for scintigraphy and radioiodine uptake measurement, respectively. The liquid scintillation counter (shown in the picture below) is utilized for detecting low-energy beta emitters such as hydrogen-3 (tritium), carbon-14, or sulfur-35. Due to low energy resulting in low penetration, B-particle emitters can be difficult to detect. With the liquid scintillation counter, a sample containing the isotope is placed in liquid organic scintillation material.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:19-23. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:14-17, 57-158."}, {"number": "6", "stem": "The following Tc-99m pertechnetate thyroid scintigraphy image is from a 25-year-old female with hyperthyroidism. What is the most likely 24-hour I-123 radioiodine uptake (RAIU) value for this patient?", "options": [{"letter": "A", "text": "5%"}, {"letter": "B", "text": "15%"}, {"letter": "C", "text": "30%"}, {"letter": "D", "text": "60%"}], "images": ["assets/q6_p034_01.jpg"], "explanationImages": ["assets/a6_p055_01.jpg"], "answer": "D", "explanation": "Answer D. The 20-minute anterior image obtained after IV administration of 10.9 mCi of Tc-99m pertechnetate demonstrates an enlarged thyroid gland with convex borders. A linear focus of activity extending superiorly from the left isthmus is the pyramidal lobe. The absence of significant background activity and lack of visualization of the physiologic uptake in the salivary glands imply a marked increase in the radiopharmaceutical uptake. The findings are those of Graves disease. Graves disease is caused by increased levels of thyroid-stimulating immunoglobulins (TSI), which cause marked overstimulation of the thyroid follicular cells. Typical 24-hour RAIU in these patients ranges from 50% to 80%. In comparison, the 24-hour RAIU in multinodular goiter and toxic autonomously functioning nodule ranges from 20% to 30% (upper limits of normal to mildly elevated). Normal % RAIU is 4% to 15% at 4 to 6 hours and 10% to 30% at 24 hours.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:158-164."}, {"number": "7a", "stem": "The following image is from a 21-year-old female with a recent history of viral upper respiratory infection who presents with complaints of palpitations and tremors. Which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Plummer disease"}, {"letter": "B", "text": "Subacute thyroiditis"}, {"letter": "C", "text": "Graves disease"}, {"letter": "D", "text": "Acute suppurative thyroiditis"}, {"letter": "E", "text": "Primary hypothyroidism"}], "images": ["assets/q7a_7b_p035_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Absent or poor visualization of the thyroid gland and decreased RAIU are seen with primary or secondary hypothyroidism, thyroid gland destruction (acute phase of subacute thyroiditis, type II amiodarone toxicity), exposure to excess iodine (iodinated contrast, or type I amiodarone toxicity), or suppression of thyroid from excess exogenous thyroid hormone (struma ovarii or factitious hyperthyroidism). In this patient with a clinical history of recent URI and symptoms of hyperthyroidism, the diagnosis is subacute thyroiditis, specifically subacute granulomatous thyroiditis. Acute suppurative thyroiditis is an extremely rare but potentially life-threatening bacterial infection; patients present with anterior neck swelling, pain, and fever. However, it typically does not result in significant hyperthyroidism. Plummer disease and Graves disease result in hyperthyroidism but demonstrate increased radioiodine uptake.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:157-160."}, {"number": "7b", "stem": "What is the cause of hyperthyroidism in these patients?", "options": [{"letter": "A", "text": "Increased thyroid-stimulating immunoglobulins"}, {"letter": "B", "text": "Increased thyroid hormone production"}, {"letter": "C", "text": "Increased TSH secretion by the pituitary"}, {"letter": "D", "text": "Release of preformed thyroid hormone"}, {"letter": "E", "text": "Antithyroid peroxidase antibodies"}], "images": ["assets/q7a_7b_p035_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Subacute thyroiditis occurs secondary to the destruction of the thyroid follicular cells, which results in the spillage of preformed thyroid hormone into the bloodstream. Three forms of subacute thyroiditis are recognized: subacute granulomatous thyroiditis (aka painful or de Quervain thyroiditis), subacute lymphocytic thyroiditis (aka painless thyroiditis), and subacute postpartum thyroiditis. Increased thyroid-stimulating immunoglobulins (TSI) are seen with Graves disease. Antithyroid peroxidase antibodies are typically elevated with Hashimoto thyroiditis. The specific diagnosis in patients with absent or markedly decreased radioiodine uptake and hyperthyroidism depends on their clinical presentation. Specific clinical inquiries regarding recent URI infection and neck pain, recent exposure to iodinated contrast, postpartum status, and amiodarone treatment would help establish a specific diagnosis of subacute granulomatous thyroiditis, Jod-Basedow syndrome, postpartum thyroiditis, and amiodarone toxicity, respectively.\n\nReferences: Fatourechi V, Aniszewski JP, Fatourechi GZ, et al. Clinical features and outcome of subacute thyroiditis in an incidence cohort: Olmsted County, Minnesota, study. J Clin Endocrinol Metab 2003;88(5):2100-2105. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:157-160."}, {"number": "8", "stem": "What is the most appropriate I-131 dose to treat the patients with Graves disease?", "options": [{"letter": "A", "text": "1 to 5 mCi"}, {"letter": "B", "text": "10 to 20 mCi"}, {"letter": "C", "text": "30 to 50 mCi"}, {"letter": "D", "text": "100 to 200 mCi"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Most patients with Graves disease are effectively treated with I-131, with only 10% requiring retreatment. Symptomatic improvement is usually noted by 3 weeks with full therapeutic effect typically in 3 to 6 months. Some patients may experience an exacerbation of hyperthyroidism symptoms soon after the administration of I-131 due to spillage of preformed thyroid hormone. Elderly patients with cardiac history and pediatric patients may benefit from pretreatment with methimazole to \"cool down\" the thyroid gland and beta-blockade to prevent tachycardia. One of the approaches to treating Graves disease is to use an empirical I-131 dose in the range of 8 to 15 mCi. Another approach takes into account the estimated size of the thyroid gland and 24- hour RAIU using the following formula: I-131 dose = (estimated thyroid gland size Ã— 0.130 to 0.180 mCi/g of thyroid tissue)/24-hour RAIU. Compared to Graves disease, hyperthyroidism from toxic multinodular goiter (MNG) and toxic autonomously functioning (AFN) thyroid nodule (shown in the image below) is generally more resistant to radioiodine therapy. This, combined with lower RAIU by the thyroid (typically 20% to 30%) in MNG, requires about twice the amount of I-131 compared to Graves disease. The typical empirical I-131 dose for these entities ranges from 20 to 30 mCi. Doses of 30 to 50 mCi of I-131 are typically used in thyroid cancer patients with a low to moderate risk of recurrence to ablate the remnant thyroid tissue. Higher doses of 100 to 200 mCi of I-131 are utilized as adjuvant therapy after surgery in patients with moderate to high risk of recurrence or in patients with suspected recurrence.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:164-172."}, {"number": "9", "stem": "Which of the following disease processes results in increased radioiodine uptake by the thyroid gland?", "options": [{"letter": "A", "text": "Viral thyroiditis"}, {"letter": "B", "text": "Iodine deficiency-induced hypothyroidism"}, {"letter": "C", "text": "Jod-Basedow phenomenon"}, {"letter": "D", "text": "Factitious hyperthyroidism"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Iodine deficiency-induced hypothyroidism would result in elevated radioiodine uptake due to increased stimulation from elevated TSH levels. This is rarely seen in developed countries in the present day and age. The remaining choices demonstrate decreased or absent radioiodine uptake in the thyroid gland and would typically be associated with hyperthyroidism. In the Jod-Basedow phenomenon, thyrotoxic condition is caused by exposure to an increased amount of iodine, usually in patients with predisposing conditions such as subclinical multinodular goiter or Graves disease. In factitious hyperthyroidism, higher than normal thyroid hormone level is seen in blood from taking too much thyroid hormone medicine. This results in suppression of TSH and resultant decrease in the radioiodine uptake.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:155."}, {"number": "10", "stem": "How long after the administration of I-131 radioiodine can the patient resume breast-feeding?", "options": [{"letter": "A", "text": "8 days"}, {"letter": "B", "text": "80 days"}, {"letter": "C", "text": "8 months"}, {"letter": "D", "text": "Next pregnancy"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Iodine is concentrated in large amounts by the glandular tissue in the breast and is secreted in breast milk. As such, all lactating women undergoing I-131 therapy should be asked to stop breast-feeding to minimize the radiation dose to the sensitive breast tissue and to prevent the infant's exposure to I-131. Lactation and the ability of the breast tissue to concentrate a large amount of iodine stop 4 to 6 weeks after delivery or cessation of breast-feeding. As such, if possible, therapy should be delayed for approximately 6 weeks, and the patient should be initiated on dopamine agonist therapy to reduce the absorbed dose to the breast tissue. The patient should not resume breast-feeding for that child but may resume with the birth of another child. Unlike I-131, Tc-99m pertechnetate and I-123 have short half-lives and do not emit beta radiation. As such, breast-feeding may be resumed 48 hours after administration of I-123 and 24 hours after administration of Tc-99m pertechnetate. The following I-123 whole body image from a postpartum lactating patient shows intense physiologic radiotracer activity in the glandular tissues of the breast.\n\nReferences: Baeumler GR, Joo KG. Radioactive iodine uptake by breasts. J Nucl Med 1986;27(1):149-151. Oh JR, Ahn BC. False-positive uptake on radioiodine whole-body scintigraphy: physiologic and pathologic variants unrelated to thyroid cancer. Am J Nucl Med Mol Imaging 2012;2(3):362-385. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:58."}, {"number": "11", "stem": "What is the most accurate serum tumor marker to detect the recurrence of a well-differentiated papillary or follicular thyroid carcinoma?", "options": [{"letter": "A", "text": "Triiodothyronine"}, {"letter": "B", "text": "Thyroglobulin"}, {"letter": "C", "text": "Thyrogen"}, {"letter": "D", "text": "Thyroid peroxidase antibody"}, {"letter": "E", "text": "Calcitonin"}, {"letter": "F", "text": "Thyroid-stimulating immunoglobulin"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Serum thyroglobulin (Tg) is the most accurate tumor marker to detect the recurrence of well-differentiated thyroid carcinoma. It is not useful for poorly differentiated, anaplastic, or medullary forms of thyroid carcinoma. Please note that the presence of Tg antibody may compromise the accuracy of the Tg essay. Calcitonin levels are used to monitor medullary thyroid carcinoma as it is produced by the parafollicular cells (C cells) in the thyroid gland. Thyroid- stimulating immunoglobulins are elevated in Graves disease while thyroid peroxidase antibodies are elevated with any thyroid disease such as Hashimoto thyroiditis or Graves disease.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:152."}, {"number": "12", "stem": "Whole-body radioiodine scintigraphy is the most effective method for tumor detection and staging of which of the following malignancies?", "options": [{"letter": "A", "text": "Medullary thyroid carcinoma"}, {"letter": "B", "text": "Papillary thyroid carcinoma"}, {"letter": "C", "text": "HÃ¼rthle cell thyroid carcinoma"}, {"letter": "D", "text": "Anaplastic thyroid carcinoma"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Papillary thyroid carcinoma is the most common thyroid malignancy and represents about 80% to 90% of well-differentiated thyroid cancers with follicular neoplasm accounting for the remaining percentage. Well-differentiated thyroid cancers are usually iodine avid but not FDG avid. Whole-body scan with radioiodine is the most effective method for tumor detection, staging, and treatment planning in patients with differentiated thyroid carcinoma (DTC). F-18 FDG PET/CT has reduced sensitivity in the detection of DTC. As DTC cells dedifferentiate, their radioiodine uptake generally decreases, and their glucose metabolism/FDG uptake typically increases. FDG PET/CT is useful in the detection and localization of recurrent DTC only in patients with negative diagnostic radioiodine imaging despite elevated thyroglobulin levels. FDG PET/CT also has high sensitivity and specificity in the evaluation of recurrent HÃ¼rthle cell thyroid carcinoma (subtype of follicular carcinoma), undifferentiated/anaplastic thyroid carcinoma, and most cases of medullary thyroid carcinoma. These cancers are more aggressive and are associated with poorer prognosis than DTC. They are typically NOT iodine avid and are better evaluated with F-18 FDG PET/CT.\n\nReferences: Marcus C, Whitworth PW, Surasi DS, et al. PET/CT in the management of thyroid cancers. AJR Am J Roentgenol 2014;202(6):1316-1329. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:166-171, 172, 314."}, {"number": "13", "stem": "The following whole-body posttherapy I-131 scintigraphy was acquired in a patient with a history of high-risk, well-differentiated papillary thyroid carcinoma who was treated with 157 mCi of I- 131 7 days ago. What is the significance of radiopharmaceutical uptake within the liver?", "options": [{"letter": "A", "text": "Physiologic distribution"}, {"letter": "B", "text": "Liver metastasis"}, {"letter": "C", "text": "Fatty liver"}, {"letter": "D", "text": "Hepatitis"}, {"letter": "E", "text": "Cirrhosis"}], "images": ["assets/q13_p037_01.jpg"], "explanationImages": ["assets/a13_p057_01.jpg"], "answer": "A", "explanation": "Answer A. A large focus of intense activity within the right thyroid bed and a small focus of mild activity within the left thyroid bed likely represent remnant thyroid tissue in this patient with clean surgical margins on pathology. Physiologic radioiodine distribution is seen in the salivary glands, the oral cavity, liver, bowel, and bladder. Thyroid hormone undergoes conversion from T4 to T3 by type I iodothyronine deiodinase within the liver. Thus, the presence of liver uptake suggests evidence of functioning thyroid tissue elsewhere in the body. In this patient with remnant thyroid tissue in the neck, this finding is physiologic and requires no further workup.\n\nReferences: Oh JR, Ahn BC. False-positive uptake on radioiodine whole-body scintigraphy: physiologic and pathologic variants unrelated to thyroid cancer. Am J Nucl Med Mol Imaging 2012;2(3):362-385. Shapiro B, Rufini V, Jarwan A, et al. Artifacts, anatomical and physiological variants, and unrelated diseases that might cause false- positive whole-body 131-I scans in patients with thyroid cancer. Semin Nucl Med 2000;30(2):115-132."}, {"number": "14", "stem": "The following whole-body I-123 scintigraphy is of a patient who underwent thyroidectomy and radioiodine ablation for differentiated thyroid carcinoma 5 years ago. She now has progressively increasing serum thyroglobulin (Tg) levels, and her recent Thyrogen-stimulated Tg level was 23 ng/mL. What is the most appropriate next step?", "options": [{"letter": "A", "text": "Follow-up I-123 scan in 6 months"}, {"letter": "B", "text": "Follow-up I-123 scan in 1 year"}, {"letter": "C", "text": "CT of the abdomen"}, {"letter": "D", "text": "I-131 therapy"}, {"letter": "E", "text": "FDG PET/CT"}], "images": ["assets/q14_p038_01.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. Delayed anterior and posterior whole-body images demonstrate physiologic radiotracer uptake within the nasal mucosa, oral cavity, stomach, bowel, renal collecting system, and bladder. There are no foci of abnormal activity identified. F-18 FDG uptake in differentiated thyroid carcinoma (DTC) is related to the loss of differentiation and transformation of the tumor into a higher grade. As such, FDG PET/CT is useful in the detection and localization of recurrent DTC in patients with negative diagnostic radioiodine imaging despite elevated thyroglobulin (Tg) levels; Centers for Medicare and Medicaid Services requires serum TG level of >10 ng/mL for approval of the procedure. The diagnostic accuracy of FDG PET/CT increases with increasing stimulated Tg levels and is most promising at levels >20 ng/mL.\n\nReferences: Na SJ, Yoo IR, O JH, et al. Diagnostic accuracy of (18)F-fluorodeoxyglucose positron emission tomography/computed tomography in differentiated thyroid cancer patients with elevated thyroglobulin and negative (131)I whole body scan: evaluation by thyroglobulin level. Ann Nucl Med 2012;26(1):26-34. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:172. SchlÃ¼ter B, Bohuslavizki KH, Beyer W, et al. Impact of FDG PET on patients with differentiated thyroid cancer who present with elevated thyroglobulin and negative 131I scan. J Nucl Med 2001;42:71-76."}, {"number": "15", "stem": "A patient with high-risk differentiated thyroid carcinoma (DTC) is undergoing thyroid hormone withdrawal prior to radioiodine ablation therapy. Serum TSH value greater than what level is desirable to ensure the maximal effect of the ablation?", "options": [{"letter": "A", "text": "10 mIU/L"}, {"letter": "B", "text": "15 mIU/L"}, {"letter": "C", "text": "30 mIU/L"}, {"letter": "D", "text": "60 mIU/L"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The patients undergoing radioiodine ablation therapy (RIAT) for DTC should undergo thyroid hormone withdrawal by stopping tetraiodothyronine (LT4, Synthroid) for 4 weeks or triiodothyronine (LT3, Cytomel) for 2 weeks before RIAT. The resultant elevation in the endogenous TSH levels ensures proper stimulation of the thyroid tissue to allow a poorly functioning or small amount of residual thyroid tissue to take up a maximal amount of radioiodine. Serum TSH value >30 mIU/L is desirable, and a level >50 mIU/L is optimal for this purpose. For patients who are unable to tolerate hypothyroidism or unable to generate an elevated TSH level, remnant ablation can be achieved with two doses of rh-TSH (Thyrogen) given intramuscularly 48 and 24 hours before RIAT.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:107. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174."}, {"number": "16", "stem": "What is the MOST common cause of primary hyperparathyroidism?", "options": [{"letter": "A", "text": "Multiple gland hyperplasia"}, {"letter": "B", "text": "Parathyroid carcinoma"}, {"letter": "C", "text": "Multiple adenomas"}, {"letter": "D", "text": "Single adenoma"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. In a large meta-analysis, primary hyperparathyroidism was caused by a single adenoma in 89%, multiple gland hyperplasia in 6%, double adenomas in 4%, and carcinomas in <1% of the patients who underwent resection for primary hyperparathyroidism. Tc-99m sestamibi scintigraphy with SPECT imaging has the highest positive predictive value of the available imaging techniques and is the preferred procedure to localize a parathyroid adenoma prior to surgery. It is usually supplemented with neck sonography and, in some cases, 4D CT of the neck/mediastinum with and without contrast.\n\nReferences: Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476. Lew JI, Solorzano CC. Surgical management of primary hyperparathyroidism: state of the art. Surg Clin North Am 2009;89(5):1205-1225. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:173-174. Ruda JM, Hollenbeak CS, Stack BC Jr. A systematic review of the diagnosis and treatment of primary hyperparathyroidism from 1995 to 2003. Otolaryngology Head Neck Surg 2005;132(3):359-372."}, {"number": "17", "stem": "The patient is a 37-year-old lady with a clinical history of differentiated thyroid carcinoma status post thyroidectomy and radioiodine ablation approximately 4 years ago. Her Thyrogen-stimulated thyroglobulin level is 1.2 ng/mL. Based on the following 24-hour I-123 whole-body images, what is the most appropriate next step?", "options": [{"letter": "A", "text": "FDG PET/CT"}, {"letter": "B", "text": "Treatment with I-131 iodine"}, {"letter": "C", "text": "Contrast-enhanced CT of the chest"}, {"letter": "D", "text": "Reacquire images after water administration"}], "images": ["assets/q17_p039_01.jpg"], "explanationImages": ["assets/a17_p060_01.jpg", "assets/a17_p060_02.jpg"], "answer": "D", "explanation": "Answer D. Anterior and posterior whole-body images acquired at 24 hours after the oral administration of 5.3 mCi of I-123 demonstrate the presence of a linear focus of a mild to moderately increased activity within the midline of the upper thorax. This likely represents physiologic activity within the esophagus from the swallowed saliva or reflux. This can be confirmed by reacquiring images after the patient ingests some water to ensure that it clears (which was done for this patient; see image below). Alternatively, SPECT/CT images could be performed to confirm that the activity corresponds to the esophagus. FDG PET/CT is not indicated as the thyroglobulin (Tg) level is <10 ng/mL. The Thyrogen-stimulated Tg level of <2 is also reassuring for the absence of recurrence.\n\nReferences: Knapska-Kucharska M, Makarewicz J. A case of iodine-131 retention in the esophagus mimicking a mediastinal metastasis in a patient with follicular thyroid carcinoma after gastric volume reduction operation. Clin Nucl Med 2011;36(9):817-818. Oh JR, Ahn BC. False-positive uptake on radioiodine whole-body scintigraphy: physiologic and pathologic variants unrelated to thyroid cancer. Am J Nucl Med Mol Imaging 2012;2(3):362-385."}, {"number": "18", "stem": "A 68-year-old gentleman had the following incidental finding on his FDG PET/CT. What is the most likely chance of malignancy?", "options": [{"letter": "A", "text": "1% to 10%"}, {"letter": "B", "text": "10% to 20%"}, {"letter": "C", "text": "30% to 40%"}, {"letter": "D", "text": "60% to 80%"}], "images": ["assets/q18_p040_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. CT and fused F-18 FDG PET/CT images demonstrate an intensely FDG-avid thyroid nodule in the anterior aspect of the left thyroid lobe. Thyroid incidentaloma (TI) is defined as an unsuspected, asymptomatic thyroid nodule detected on an imaging study or during an operation unrelated to the thyroid gland. The rate of detection of thyroid incidentaloma with FDG PET/CT is low at 1% to 3% (compared to 16% by CT and MRI and 9% by carotid duplex scan). However, FDG PET/CT-detected TI carries a higher risk of malignancy at about 33%, and the detected cancers are more aggressive. Because of this, when found, FDG-avid thyroid incidentaloma requires a prompt workup, preferably with an ultrasound-guided fine needle aspiration. On the other hand, diffuse increase in FDG uptake is benign, likely related to autoimmune thyroiditis, and does not require biopsy (see picture below).\n\nReferences: Are C, Hsu JF, Ghossein RA, et al. Histological aggressiveness of fluorodeoxyglucose positron-emission tomogram (FDG-PET)-detected incidental thyroid carcinomas. Ann Surg Oncol 2007;14(11):3210-3215. Choi JY, Lee KS, Kim HJ, et al. Focal thyroid lesions incidentally identified by integrated 18F-FDG PET/CT: clinical significance and improved characterization. J Nucl Med 2006;47(4):609-615. Jin J, Wilhelm SM, McHenry CR. Incidental thyroid nodule: patterns of diagnosis and rate of malignancy. Am J Surg 2009;197(3):320-324."}, {"number": "19", "stem": "Dual-time imaging using which of the following radiopharmaceuticals is commonly used for the evaluation of primary hyperparathyroidism?", "options": [{"letter": "A", "text": "Tc-99m sestamibi"}, {"letter": "B", "text": "Tc-99m pertechnetate"}, {"letter": "C", "text": "Tl-201"}, {"letter": "D", "text": "Tc-99m tetrofosmin"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Tc-99m sestamibi is a lipophilic cationic substance that crosses the cell membrane by passive diffusion and is concentrated within the mitochondria. Parathyroid adenomas are typically composed of chief cells (responsible for the synthesis and release of parathyroid hormone) and mitochondria-rich oxyphil cells, which accumulate the radiopharmaceutical in high concentrations. Immediate image acquired 20 minutes after the IV administration of Tc-99m sestamibi typically shows physiologic activity in the thyroid gland and in the parathyroid adenoma. On a 2-hour delayed image, activity from the thyroid is usually washed out with retention of activity in the parathyroid adenoma. Atypical parathyroid adenomas typically have a washout similar to that of the thyroid gland. Hence the need for dual-time imaging. While tetrofosmin localizes in both parathyroid and thyroid tissues, in contrast to sestamibi, there is no differential washout between the thyroid and parathyroid tissue. As such, dual-time imaging is not useful with tetrofosmin. Tc-99m pertechnetate is commonly utilized for thyroid scintigraphy and for the evaluation of Meckel diverticulum. Tl-201 is a potassium analog that is utilized in the evaluation of myocardial perfusion and viability.\n\nReferences: Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174-178."}, {"number": "20", "stem": "Based on the following Tc-99m pertechnetate imaging, which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Thyroid carcinoma"}, {"letter": "B", "text": "Thyroid metastasis"}, {"letter": "C", "text": "Parathyroid adenoma"}, {"letter": "D", "text": "Parathyroid carcinoma"}, {"letter": "E", "text": "Hyperfunctioning thyroid adenoma"}], "images": ["assets/q20_21_p041_01.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. Single anterior pinhole collimation Tc-99m pertechnetate image demonstrates a large focus of intense activity within the left thyroid lobe. The remaining thyroid gland is not visualized. Findings are consistent with a toxic hyperfunctioning thyroid nodule or a toxic thyroid adenoma. This nodule represents less than a 1% chance of malignancy, and sonography and/or biopsy is not necessary for further workup. This is not a parathyroid adenoma or carcinoma as the supplied image is of Tc-99m pertechnetate and NOT Tc-99m sestamibi. Thyroid carcinoma usually presents as a cold nodule on Tc-99m pertechnetate or I-123 scintigraphy with preserved uptake in the normal surrounding thyroid gland.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174-178."}, {"number": "21", "stem": "Which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Thyroid metastasis"}, {"letter": "B", "text": "Thyroid carcinoma"}, {"letter": "C", "text": "Parathyroid adenoma"}, {"letter": "D", "text": "Parathyroid carcinoma"}, {"letter": "E", "text": "Hyperfunctioning thyroid adenoma"}], "images": ["assets/q20_21_p041_01.jpg", "assets/q21_25_p042_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Anterior early 20 minutes and 2.5-hour delayed images following the IV administration of Tc-99m sestamibi demonstrate a moderate-sized focus of persistent activity about the superior aspect of the left thyroid lobe. This is consistent with a parathyroid adenoma. A portion of the myocardium is usually included on these images for the purposes of quality control, as it should be visualized with Tc-99m sestamibi. Parathyroid carcinoma is rare and usually presents as a large sestamibi avid neck mass. Thyroid adenomas are a common cause of false- positive parathyroid scintigraphy, but most washout on delayed imaging. SPECT/CT imaging, as well as thyroid sonogram in this patient (shown below), confirmed a large parathyroid adenoma posterior to the upper pole of the left thyroid lobe.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174-178."}, {"number": "22", "stem": "What is the most common cause of false-positive parathyroid scintigraphy?", "options": [{"letter": "A", "text": "Small size"}, {"letter": "B", "text": "Thyroid adenoma"}, {"letter": "C", "text": "Thyroid carcinoma"}, {"letter": "D", "text": "Thyroid metastases"}, {"letter": "E", "text": "Multigland hyperplasia"}], "images": [], "explanationImages": ["assets/a22_p062_01.jpg", "assets/a22_p062_02.jpg"], "answer": "B", "explanation": "Answer B. Thyroid follicular adenoma is the most common cause of false-positive parathyroid scintigraphy (see example below). When suspected, correlation with either SPECT/CT or thyroid sonogram should be considered for confirmation. While intrathyroidal parathyroid adenoma, thyroid carcinoma, and metastases may appear similarly, they are less common. Small size of the parathyroid adenoma and multigland hyperplasia are common causes of false-negative parathyroid scintigraphy.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:484."}, {"number": "23", "stem": "Metaiodobenzylguanidine (MIBG) is an analog of what naturally occurring substance in the body?", "options": [{"letter": "A", "text": "Norepinephrine"}, {"letter": "B", "text": "Somatostatin"}, {"letter": "C", "text": "Epinephrine"}, {"letter": "D", "text": "Serotonin"}, {"letter": "E", "text": "Guanine"}], "images": [], "explanationImages": ["assets/a23_p063_01.jpg"], "answer": "A", "explanation": "Answer A. MIBG is an analog of norepinephrine. It localizes in the presynaptic neuron vesicles of the sympathetic nervous system (D in the image below) after getting transported intracellularly by an energy-dependent, active amine transport mechanism. Free form of the I-123 or I-131 used to label MIBG will be taken up by the normally functioning thyroid gland, resulting in unnecessary radiation exposure. As such, the patients undergoing I-131 or I-123 MIBG are instructed to take a concentrated solution of potassium iodide (SSKI) or Lugol solution to block unwanted radioiodine accumulation in the normal thyroid gland. Similar precautions are taken with non-Hodgkin lymphoma patients undergoing radioimmunotherapy with I-131 tositumomab (Bexxar).\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:346-347."}, {"number": "24", "stem": "What is the most common clinical presentation of patients with hyperparathyroidism?", "options": [{"letter": "A", "text": "Cramps"}, {"letter": "B", "text": "Bone pain"}, {"letter": "C", "text": "Renal stones"}, {"letter": "D", "text": "Asymptomatic"}, {"letter": "E", "text": "Generalized weakness"}], "images": [], "explanationImages": ["assets/a24_p064_01.jpg"], "answer": "D", "explanation": "Answer D. Today, the clinical diagnosis of primary hyperparathyroidism is predominantly based on serum laboratory test results, and the majority of these patients are asymptomatic. In the past, patients presented with secondary symptoms of hyperparathyroidism due to late diagnosis. These included brown tumors, nephrolithiasis, osteoporosis, pathologic fractures, as well as GI and neuropsychiatric symptoms.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:173. Answer B. A posterior I-123 MIBG image demonstrates a moderate-sized focus of intense 25 activity within the left paraspinous region. The focus appears to be too low for the adrenal glands suggesting a paraganglioma. SPECT/CT confirmed that this was an extra-adrenal paraganglioma, which was responsible for the patient's symptoms. Testicular carcinoma and lymphoma do not demonstrate abnormal MIBG uptake and are not indications of performing an MIBG scan. Anterior and posterior I-123 MIBG images in a different patient below show a small-sized focus of intense activity in the left adrenal bed, which corresponds to a left adrenal nodule on the SPECT/CT (white arrow), consistent with an adrenal pheochromocytoma.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:327. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:346-348."}, {"number": "25", "stem": "Which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Lymphoma"}, {"letter": "B", "text": "Extra-adrenal paraganglioma"}, {"letter": "C", "text": "Metastatic testicular carcinoma"}, {"letter": "D", "text": "Benign adrenal pheochromocytoma"}], "images": ["assets/q21_25_p042_01.jpg", "assets/q25_p043_01.jpg", "assets/q25_p044_01.jpg"], "explanationImages": ["assets/a25_p065_01.jpg"], "answer": "B", "explanation": "Answer B. See source explanation."}, {"number": "26", "stem": "Which of the following classes of antihypertensive medications interfere with the uptake of metaiodobenzylguanidine (MIBG)?", "options": [{"letter": "A", "text": "Beta-blockers (except labetalol)"}, {"letter": "B", "text": "Calcium channel blockers"}, {"letter": "C", "text": "Alpha-blockers"}, {"letter": "D", "text": "ACE inhibitors"}, {"letter": "E", "text": "Diuretics"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Numerous medications interfere with the physiologic distribution of MIBG. As such, patients undergoing MIBG scan should be routinely screened for interfering medications prior to the initiation of the examination. Sympathomimetics such as phenylephrine, ephedrine, and pseudoephedrine are common ingredients in over-the-counter cold medications. These, along with tricyclic antidepressants, cocaine, insulin, some antipsychotics, and antihypertensives such as labetalol, calcium channel blockers, guanethidine, and reserpine, are expected to reduce MIBG uptake. Beta-blockers other than labetalol, alpha-blockers, ACE inhibitors, and diuretics are the class of antihypertensives that do not interfere with the MIBG uptake.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:347."}, {"number": "27", "stem": "Which of the following receptors serves as the basis for In-111 pentetreotide (OctreoScan) uptake?", "options": [{"letter": "A", "text": "EGFR"}, {"letter": "B", "text": "Serotonin"}, {"letter": "C", "text": "Somatostatin"}, {"letter": "D", "text": "Growth hormone"}, {"letter": "E", "text": "Norepinephrine"}], "images": [], "explanationImages": ["assets/a27_p066_01.jpg"], "answer": "C", "explanation": "Answer C. In-111 pentetreotide is an analog of octreotide, which binds with a high affinity to the somatostatin receptors type II and type V. It has a lesser affinity for type III receptors and does not bind to type I or IV receptors. Physiologic distribution of OctreoScan includes the liver, spleen, kidneys, and bowel on the 24-hour imaging. Although the main clearance of In-111-DTPA- pentetreotide (OctreoScan) is by the kidneys, about 2% of the radiopharmaceutical is cleared by the hepatobiliary system. Caution must be used to avoid misinterpreting physiologic gallbladder activity as hepatic metastases or primary gallbladder malignancy. Arrows in the below point to physiologic activity in the gallbladder, which should not be confused with liver metastasis. If indicated, this can be confirmed with SPECT/CT imaging. Meningioma is also a common cause of false-positive findings on OctreoScan. Other nonneuroendocrine tumors, which express somatostatin receptors and are positive on OctreoScan, include lymphoma, low-grade gliomas, renal cell carcinoma, and breast cancer. Remember that small cell carcinoma is a poorly differentiated neuroendocrine tumor and be positive on OctreoScan. Recently, OctreoScan has been largely replaced by somatostatin receptor binding positron emission tomography agents such as Ga-68 DOTATATE, DOTATOC, or DOTANOC.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:316-318."}, {"number": "28", "stem": "The following CT scan and OctreoScan are from a 48-year-old gentleman suspected of having a pancreatic islet cell tumor. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "VIPoma"}, {"letter": "B", "text": "Insulinoma"}, {"letter": "C", "text": "Glucagonoma"}, {"letter": "D", "text": "Gastrinoma"}, {"letter": "E", "text": "Ectopic spleen"}], "images": ["assets/q28_p045_01.jpg", "assets/q28_p045_02.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The CT scans show a hyperenhancing lesion in the pancreatic body. However, OctreoScan is normal. Of the neuroendocrine tumors, In-111 OctreoScan has the least sensitivity for insulinoma (25% to 70%) and medullary thyroid carcinoma (50% to 75%). Insulinoma is typically small in size at the time of diagnosis, secondary to an early symptomatic presentation. Small size, along with the lack of type II somatostatin receptors, are thought to be the reason why OctreoScan is less sensitive for its evaluation and may be falsely negative.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:339-340. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:339-344."}, {"number": "29", "stem": "Based on the following anterior whole-body image, which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Hepatocellular carcinoma"}, {"letter": "B", "text": "Metastatic colon cancer"}, {"letter": "C", "text": "Metastatic gastrinoma"}, {"letter": "D", "text": "Metastatic carcinoid"}], "images": ["assets/q29_p046_01.jpg"], "explanationImages": ["assets/a29_p067_01.jpg"], "answer": "D", "explanation": "Answer D. The anterior In-111 OctreoScan images demonstrate a large focus of intense activity within the right lower quadrant (seen inferolateral to the right kidney) accompanied by a large focus of intense activity within the left hepatic lobe. The distribution pattern is typical for that of the metastatic carcinoid. Carcinoid is a slow-growing neuroendocrine tumor that typically originates in the GI tract or lungs. Since it overexpresses somatostatin receptors, OctreoScan and now Ga-68 DOTATATE or DOTATOC are very sensitive in its evaluation.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:346-348."}, {"number": "30", "stem": "What is the most likely diagnosis in this patient with a clinical history of MEN type I?", "options": [{"letter": "A", "text": "Carcinoid"}, {"letter": "B", "text": "Renal cell carcinoma"}, {"letter": "C", "text": "Pheochromocytoma"}, {"letter": "D", "text": "Pancreatic islet cell tumor"}], "images": ["assets/q30_p047_01.jpg"], "explanationImages": ["assets/a30_p068_01.jpg"], "answer": "D", "explanation": "Answer D. The anterior and posterior In-111 OctreoScan images demonstrate a small focus of intense activity superior and medial to the left kidney, which is seen on the anterior image and not on the posterior. In this patient with a history of MEN I, the findings are most compatible with a pancreatic neuroendocrine tumor. While a pheochromocytoma would be intensely avid on OctreoScan, it would appear more intense on the posterior image. Also, I-123 MIBG is typically utilized for the evaluation of pheochromocytoma and not OctreoScan. Contrast-enhanced CT demonstrated a hyperenhancing lesion in the pancreatic tail (arrow below). An area of photopenia along the lateral aspect of the left kidney corresponded to a renal cyst on the CT (not shown).\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:346-348."}, {"number": "31", "stem": "A 56-year-old lady with a recent diagnosis of papillary thyroid cancer has been referred for radioiodine ablation after undergoing complete thyroidectomy. The referring clinician noted that she had received intravenous iodinated contrast for a CT scan and asked what is the minimum wait time after the IV contrast administration to do the I-131 ablation.", "options": [{"letter": "A", "text": "None"}, {"letter": "B", "text": "24 hours"}, {"letter": "C", "text": "2 weeks"}, {"letter": "D", "text": "4 weeks"}, {"letter": "E", "text": "4 months"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Intravenous iodinated contrast agents contain a lot of iodine, which will compete and interfere with subsequent whole-body scans or radioactive iodine treatment, potentially making thyroid ablation with I-131 ineffective. In patients with normal renal function, it takes approximately 1 month for the urinary iodine levels to return to baseline after the administration of intravenous iodinated contrast agents. As such, at least 4 weeks of wait is desired prior to the administration of radioiodine for thyroid ablation or whole-body thyroid scans.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:155."}, {"number": "32", "stem": "A 33-year-old gentleman presents with a markedly elevated parathyroid hormone level of 807 pg/mL. Based on the following Tc-99m sestamibi scan below, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Hyperfunctioning thyroid nodule"}, {"letter": "B", "text": "Thyroid carcinoma"}, {"letter": "C", "text": "Parathyroid adenoma"}, {"letter": "D", "text": "Parathyroid carcinoma"}], "images": ["assets/q32_p048_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Anterior 20 minutes and 2 hours delayed images show a large mass with intense sestamibi uptake in the right lower neck with a small area of photopenia along its inferolateral aspect. The large size of the lesion, intense uptake (greater than the submandibular gland activity on the delayed image), and markedly elevated parathyroid hormone (PTH) level favor this to be a parathyroid carcinoma over a parathyroid adenoma. Marked elevation in PTH level can also be seen with tertiary hyperparathyroidism in patients with chronic renal failure; however, a large mass would not be expected in that case. Also, parathyroid scintigraphy is not sensitive in the evaluation of multigland hyperplasia resulting from tertiary hyperparathyroidism. Thyroid carcinomas and hyperfunctioning thyroid nodules may present similarly but would not be associated with an increased parathyroid hormone level. Parathyroid carcinomas are an uncommon cause of primary hyperparathyroidism, with an incidence of <1%. They should be suspected in patients with markedly high PTH levels (>500) with a large sestamibi-avid lesion. Correlating sonographic images of this lesion (below) show a 4.3 Ã— 2.5 cm hypoechoic, hypervascular mass inferior to and invading the inferior pole of the right thyroid lobe.\n\nReferences: Cheon M, Choi JY, Chung JH, et al. Differential findings of Tc-99m sestamibi dual-phase parathyroid scintigraphy between benign and malignant parathyroid lesions in patients with primary hyperparathyroidism. Nucl Med Mol Imaging 2011;45(4):276-284. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:111. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:173."}, {"number": "33", "stem": "A patient has persistent hyperthyroidism after undergoing radioactive iodine (RAI) ablation for Graves disease. How long should you wait prior to retreatment with I-131?", "options": [{"letter": "A", "text": "10 to 20 days"}, {"letter": "B", "text": "2 to 4 weeks"}, {"letter": "C", "text": "3 to 6 months"}, {"letter": "D", "text": "12 to 24 months"}, {"letter": "E", "text": "Cannot retreat"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. While the majority of the administered I-131 localizes in the thyroid gland within 24 hours, it destroys thyroid follicular cells gradually over several weeks. Symptomatic improvement is generally seen in about 3 weeks after the treatment; however, the full effect may take 3 to 6 months. Approximately 10% of patients may require retreatment. These patients should wait approximately 4 to 6 months after the initial treatment to evaluate its efficacy. For this reason, patients of childbearing age should be advised to avoid conception for at least 6 months after the initial treatment. Radioiodine ablation (RAI) is the most widely used, effective treatment for Graves disease in the United States. Medical treatment with methimazole or propylthiouracil has variable control and is associated with poor compliance. Also, since these agents work by blocking the organification process, they do not offer a permanent solution. Surgical resection is uncommon and typically reserved in cases of uncontrolled thyrotoxicosis in pregnancy or large goiter resulting in significant airway narrowing/obstruction.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:104-105. Ziessman HA, O'Malley JP, Thrall JH. Nuclear medicine: the requisites, 4th ed. Philadelphia, PA: Saunders, 2014:267-268."}, {"number": "34a", "stem": "A 58-year-old female with gradually progressive hyperparathyroidism undergoes a repeat parathyroid scintigraphy with Tc-99m sestamibi. What is the most appropriate next step?", "options": [{"letter": "A", "text": "Neck ultrasound"}, {"letter": "B", "text": "SPECT/CT"}, {"letter": "C", "text": "PET CT"}, {"letter": "D", "text": "Chest CT"}, {"letter": "E", "text": "4D contrast-enhanced neck CT"}], "images": ["assets/q34a_p049_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. Early and delayed anterior planar images show a small focus of moderate to severely increased activity in the anterior mediastinum to the left of the midline (arrow below). In this patient with persistent hyperparathyroidism and prior negative workup, findings are highly suspicious for an ectopic mediastinal parathyroid adenoma. Further evaluation with SPECT/CT would help confirm the diagnosis and better localize its location to facilitate preoperative planning.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:111-112. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174-179."}, {"number": "34b", "stem": "Based on the following SPECT/CT images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Parathyroid adenoma"}, {"letter": "B", "text": "Lymphoma"}, {"letter": "C", "text": "Brown fat"}, {"letter": "D", "text": "Atrial appendage"}, {"letter": "E", "text": "Thymic rebound"}], "images": ["assets/q34b_p050_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. SPECT images confirm a small focus of moderate to intense activity in the superior anterior mediastinum, which corresponds to a 4-mm soft tissue nodule on CT scan (arrow below). The findings are consistent with an ectopic inferior parathyroid adenoma. The superior parathyroid glands originate from the fourth branchial pouch and descend with the thyroid glands, while the inferior glands originate from the third branchial pouch and descend with the thymus. Because the inferior glands descend a greater distance with the thymus, they have a more variable location and are typically present anywhere from the posterior aspect of the inferior thyroid lobe superiorly to the thymus in the anterior mediastinum inferiorly (as seen on image 2 from a different patient's SPECT/CT) as well as along the course of the thyrothymic ligament in between (our patient, image 1). While 90% of the superior parathyroid glands tend to be eutopic, only 61% of the inferior parathyroid glands are eutopic. The majority (~26%) of the ectopic inferior parathyroid glands are located in the thyrothymic ligament/cervical thymus, with about 4% to 5% located in the anterior mediastinum. The graphic below from an excellent RadioGraphics article best summarizes the ectopic locations of parathyroid glands. An atrial appendage is a common cause of abnormal sestamibi uptake in the mediastinum. Along with its location and shape, SPECT/CT helps localize this physiologic uptake to the atrium. The classic thymic rebound has a triangular configuration in the anterior mediastinum, which has uptake seen mainly on FDG PET CT and not on the sestamibi scan. Brown fat uptake is generally seen in supraclavicular regions and in a paraspinal location, not in the anterior mediastinum, and should not have any soft tissue correlation on CT. Reprinted with permission from Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476.\n\nReferences: Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:111-112. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174-179."}, {"number": "35", "stem": "What is the most likely diagnosis in this 59-year-old lady with hyperparathyroidism?", "options": [{"letter": "A", "text": "Thyroid carcinoma metastasis"}, {"letter": "B", "text": "Parathyroid adenoma"}, {"letter": "C", "text": "Parathyroid carcinoma"}, {"letter": "D", "text": "Esophageal duplication cyst"}, {"letter": "E", "text": "Lung cancer"}], "images": ["assets/q35_36_p051_01.jpg", "assets/q35_36_p051_02.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The 20-minute anterior planar image acquired after the IV administration of Tc-99m sestamibi demonstrates a moderate-sized focus of moderate to intense radiotracer uptake in the left lower neck inferior to the left thyroid lobe (arrow in the image below). This focus is not visualized on the 2-hour delayed images. In the setting of hyperparathyroidism, this abnormality is most consistent with an ectopic parathyroid adenoma with an early washout. While the majority of the parathyroid adenomas exhibit delayed washout pattern (retention of radiotracer on the 2 hours delayed imaging), early washout defined as minimal or no retention of radiotracer in the parathyroid gland on delayed imaging is also observed frequently (as in this case). As such, close evaluation of both early and delayed images is warranted. The delayed washout pattern provides additional diagnostic information when the activity in the adenoma is either contiguous or overlaps that in the thyroid gland; As such, the underlying adenoma is more conspicuous on delayed images upon normal washout from the overlying or adjacent thyroid gland. In order to avoid missing early washout parathyroid adenoma, some clinicians prefer SPECT/CT imaging soon after the 20-minute planar imaging is completed.\n\nReferences: Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476. Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:111-112. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:174-179."}, {"number": "36", "stem": "A 35-year-old gentleman with chronic renal failure, hypothyroidism, hyperparathyroidism, and elevated calcium levels has the following imaging done. Based on the findings, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Multinodular goiter"}, {"letter": "B", "text": "Multigland hyperplasia"}], "images": ["assets/q35_36_p051_01.jpg", "assets/q35_36_p051_02.jpg"], "explanationImages": ["assets/a36_p071_01.jpg", "assets/a36_p071_02.jpg", "assets/a36_p071_03.jpg"], "answer": "B", "explanation": "Answer B. Four small foci of mild to moderate sestamibi uptake are present, two in the upper neck and two in the lower neck on the delayed images (arrows on the images below). These are in the expected location of parathyroid glands. The findings are most consistent with multigland hyperplasia in this patient with a history of chronic kidney disease and tertiary hyperparathyroidism. Multigland hyperplasia is typically difficult to detect with sestamibi scans secondary to the smaller size of the hyperplastic glands compared to a solitary enlarged parathyroid adenoma. Parathyroid adenoma would present with a solitary area of retained uptake on delayed images. Reduced physiologic radiotracer uptake in the thyroid gland in this patient with hypothyroidism is likely secondary to atrophy from chronic thyroiditis. Subtle but decreased physiologic uptake within thyroid on early images washes out on the delayed images; given the clinical history and these findings, multinodular goiter is less likely. In addition, multinodular goiter and thyroiditis would not explain the patient's hyperparathyroidism.\n\nReferences: Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476. Pitt SC, Sippel RS, Chen H. Secondary, and tertiary hyperparathyroidism, state of the art surgical management. Surg Clin North Am 2009;89(5):1227-1239. A. Physiologic B. Inflammatory C. Primary malignancy D. Metastatic malignancy"}, {"number": "37", "stem": "The following histogram is generated by what radionuclide?", "options": [{"letter": "A", "text": "I-131"}, {"letter": "B", "text": "In-111"}, {"letter": "C", "text": "I-123"}, {"letter": "D", "text": "Tc-99m"}, {"letter": "E", "text": "Tl-201"}], "images": ["assets/q37_p074_01.jpg"], "explanationImages": ["assets/a37_p080_01.jpg"], "answer": "C", "explanation": "Answer C. Iodine-123 (I-123) decays by electron capture and emits a primary gamma photon of 159 keV. No particulate emission (alpha or beta) combined with relatively short half-life results in low radiation absorbed dose to the thyroid gland. Also, the primary gamma photon of 159 keV is well suited for imaging using modern gamma cameras. The table below summarizes the mode of decay, half-lives, and primary photon energies associated with the radiotracers.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:6-8, 152-154."}, {"number": "38", "stem": "What type of collimator is typically used to acquire I-123 thyroid scintigraphy images?", "options": [{"letter": "A", "text": "Low energy high resolution (LEHR)"}, {"letter": "B", "text": "Medium energy"}, {"letter": "C", "text": "High energy"}, {"letter": "D", "text": "Pinhole"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. Pinhole collimator is typically used for imaging the thyroid gland. The resultant magnification provides superior resolution compared to the parallel hole collimator.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:21-23."}, {"number": "39", "stem": "Which of the following symptoms would be MOST helpful in establishing the correct diagnosis of subacute granulomatous thyroiditis, also known as de Quervain thyroiditis?", "options": [{"letter": "A", "text": "Painful thyroid on palpation"}, {"letter": "B", "text": "Nonpalpable thyroid"}, {"letter": "C", "text": "Nodular thyroid gland"}, {"letter": "D", "text": "Proptosis"}, {"letter": "E", "text": "Tachycardia"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The specific diagnosis in patients with absent or markedly decreased radioiodine uptake and hyperthyroidism depends on their clinical presentation. Specific clinical inquiries regarding recent URI infection and neck pain, recent exposure to iodinated contrast, postpartum status, and amiodarone treatment would help establish a specific diagnosis of subacute granulomatous thyroiditis, Jod-Basedow syndrome, postpartum thyroiditis, and amiodarone toxicity, respectively. Proptosis would indicate Graves disease, while a nodular thyroid gland would imply toxic multinodular goiter.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:157-160."}, {"number": "40", "stem": "The instrument shown below is a scintillation probe, which is commonly used to calculate the radioiodine uptake by the thyroid gland. Which of the following instruments is most closely related to the scintillation probe?", "options": [{"letter": "A", "text": "Geiger-MÃ¼ller counter"}, {"letter": "B", "text": "Ionization chamber"}, {"letter": "C", "text": "Well counter"}, {"letter": "D", "text": "Dose calibrator"}], "images": ["assets/q40_p075_01.jpg"], "explanationImages": ["assets/a40_p081_01.jpg"], "answer": "C", "explanation": "Answer C. Scintillation probes, well counters, and gamma cameras utilize crystal-based scintillation detectors (NaI, CdZnTe, etc.) coupled to a photomultiplier tube for radiation detection. Radiation from the radiopharmaceuticals generates light pulses in the crystal, which are then converted into a voltage signal by the photomultiplier tube (PMT). A scintillation probe used for thyroid uptake utilizes a thick (5-cm) NaI crystal coupled to a PMT. A well counter uses a similar crystal with a well cut into the center of the crystal where a sample may be placed; it is a highly sensitive device used to detect a very small amount of radioactivity (up to 1 mCi) such as those of wipe tests or in vitro studies (GFR, shillings test, etc.). Geiger-MÃ¼ller (GM) counters, ionization chambers, and dose calibrators employ detectors with gas-filled chambers. Radiation from the radiopharmaceuticals interacts with the gas, causing ionization and generating an electric signal. A GM survey meter is used to detect low levels of radiation, while the ionization survey chamber can be used to detect and quantify higher levels of radiation. A dose calibrator is a well-type ionization chamber used to accurately measure the radiopharmaceutical doses (activities) given to the patients.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:19-23. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:14-17, 57-158."}, {"number": "41", "stem": "How long after administration of I-123 radioiodine can the patient resume breast-feeding?", "options": [{"letter": "A", "text": "24 hours"}, {"letter": "B", "text": "48 hours"}, {"letter": "C", "text": "8 days"}, {"letter": "D", "text": "Next pregnancy"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Radioiodine is concentrated and secreted by the glandular tissue of the breast. Unlike I-131, Tc-99m pertechnetate and I-123 have short half-lives and do not emit beta radiation. As such, breast-feeding may resume 48 hours after administration of I-123 and 24 hours after administration of Tc-99m pertechnetate.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:58."}, {"number": "42", "stem": "The F-18 FDG PET/CT has poor sensitivity in the evaluation of which of the following thyroid malignancies?", "options": [{"letter": "A", "text": "Medullary thyroid carcinoma"}, {"letter": "B", "text": "Papillary thyroid carcinoma"}, {"letter": "C", "text": "HÃ¼rthle cell thyroid carcinoma"}, {"letter": "D", "text": "Anaplastic thyroid carcinoma"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. FDG PET/CT has reduced sensitivity in the detection of differentiated thyroid carcinoma (DTC). As DTC cells dedifferentiate, their radioiodine uptake generally decreases, and their glucose metabolism typically increases. FDG PET/CT is useful in the detection and localization of recurrent DTC only in patients with negative diagnostic radioiodine imaging despite elevated thyroglobulin levels. FDG PET/CT also has high sensitivity and specificity in the evaluation of recurrent HÃ¼rthle cell thyroid carcinoma, anaplastic thyroid carcinoma, and most cases of medullary thyroid carcinoma.\n\nReferences: Marcus C, Whitworth PW, Surasi DS, et al. PET/CT in the management of thyroid cancers. AJR Am J Roentgenol 2014;202(6):1316-1329. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:172,314."}, {"number": "43", "stem": "Which of the following thyroid malignancies can be evaluated using In-111 pentetreotide (OctreoScan)?", "options": [{"letter": "A", "text": "Anaplastic thyroid carcinoma"}, {"letter": "B", "text": "Papillary thyroid carcinoma"}, {"letter": "C", "text": "Medullary thyroid carcinoma"}, {"letter": "D", "text": "Follicular thyroid carcinoma"}, {"letter": "E", "text": "HÃ¼rthle cell carcinoma"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Medullary thyroid carcinoma can be imaged with somatostatin receptor agents such as In-111 pentetreotide or Ga-68 DOTATATE. It arises from the neuroendocrine parafollicular cells (C cells) in the thyroid, which produce calcitonin, and is associated with MEN type II. However, the sensitivity of OctreoScan in detecting medullary thyroid carcinoma is moderate compared to other neuroendocrine malignancies.\n\nReferences: Mettler FA, Guiberteau MJ. Essentials of nuclear medicine imaging, 7th ed. Philadelphia, PA: Saunders, 2019:320. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:339-344."}, {"number": "44", "stem": "What is the most appropriate I-131 dose to treat patients with the condition shown in the image below?", "options": [{"letter": "A", "text": "5 mCi"}, {"letter": "B", "text": "10 mCi"}, {"letter": "C", "text": "30 mCi"}, {"letter": "D", "text": "100 mCi"}], "images": ["assets/q44_p077_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. A single anterior image following the IV administration of Tc-99m pertechnetate demonstrates multiple nodular areas of markedly increased activity with the suppression of the intervening remaining thyroid gland (right worse than left). The findings are consistent with toxic multinodular goiter. Compared to Graves disease, hyperthyroidism from toxic multinodular goiter (MNG) is generally more resistant to radioiodine therapy. This, combined with lower RAIU by the thyroid (20% to 30%) in MNG, requires about twice the amount of I-131 compared to Graves' disease. The typical empirical I-131 dose ranges from 20 to 30 mCi. A similar approach is used in treating a toxic autonomously functioning thyroid nodule.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:164-166."}, {"number": "45", "stem": "What is the radiopharmaceutical of choice for the evaluation of substernal goiter/anterior mediastinal mass?", "options": [{"letter": "A", "text": "I-131"}, {"letter": "B", "text": "I-123"}, {"letter": "C", "text": "Tc-99m pertechnetate"}, {"letter": "D", "text": "Tc-99m sestamibi"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Benefits of I-123 radioiodine imaging are better target to background ratio, better tissue penetration, and improved specificity (compared to pertechnetate), as well as the ability to perform SPECT-CT images. As such, it is the radiopharmaceutical of choice for the evaluation of substernal goiter. Increased background uptake and lower photon energy make Tc-99m pertechnetate suboptimal for this indication. Tc-99m sestamibi is used in parathyroid imaging.\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:157."}, {"number": "46", "stem": "In the picture shown below, where does the MIBG localize?", "options": [{"letter": "A", "text": "Image A"}, {"letter": "B", "text": "Image B"}, {"letter": "C", "text": "Image C"}, {"letter": "D", "text": "Image D"}], "images": ["assets/q46_47_p078_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. MIBG localizes in the presynaptic neuron vesicles (D). OctreoScan binds to the somatostatin receptors and would localize there (B).\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:346-347."}, {"number": "47", "stem": "This finding has been typically associated with what percent chance of malignancy?", "options": [{"letter": "A", "text": "1% to 10%"}, {"letter": "B", "text": "10% to 20%"}, {"letter": "C", "text": "30% to 40%"}, {"letter": "D", "text": "40% to 50%"}], "images": ["assets/q46_47_p078_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The anterior image shows a cold nodule in the upper pole of the right thyroid lobe. This finding represents 5% to 20% chance of malignancy. This patient would require a follow-up ultrasound with or without biopsy, depending on the ultrasound findings. In a patient with a suspected thyroid nodule and normal thyroid function tests, thyroid sonography is the most appropriate first step.\n\nReferences: American Thyroid Association Guidelines Taskforce on Thyroid Nodules and Differentiated Thyroid Cancer; Cooper DS, et al. Revised American Thyroid Association management guidelines for patients with thyroid nodules and differentiated thyroid cancer. Thyroid 2009;19(11):1167-1214. O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:172, 161."}, {"number": "48", "stem": "Which of the following diagnostic imaging procedures is preferred for preoperative localization of a hyperfunctioning parathyroid adenoma?", "options": [{"letter": "A", "text": "Sonography"}, {"letter": "B", "text": "Computed tomography"}, {"letter": "C", "text": "Radionuclide scintigraphy"}, {"letter": "D", "text": "Magnetic resonance imaging"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Tc-99m sestamibi scintigraphy with SPECT imaging has the highest positive predictive value of the available imaging techniques and is the preferred procedure to localize a parathyroid adenoma prior to surgery. It is usually supplemented with neck sonography and, in some cases, 4D CT of the neck/mediastinum with and without contrast.\n\nReferences: Eslamy HK, Ziessman HA. Parathyroid scintigraphy in patients with primary hyperparathyroidism: 99mTc sestamibi SPECT and SPECT/CT. Radiographics 2008;28(5):1461-1476. Lew JI, Solorzano CC. Surgical management of primary hyperparathyroidism: state of the art. Surg Clin North Am 2009;89(5):1205-1225."}, {"number": "49", "stem": "Administration of which of the following radiopharmaceuticals typically requires pretreatment with supersaturated potassium iodide (SSKI) or Lugol solution?", "options": [{"letter": "A", "text": "Tl-201"}, {"letter": "B", "text": "I-131 sodium iodide"}, {"letter": "C", "text": "I-131 MIBG"}, {"letter": "D", "text": "In-111 OctreoScan"}, {"letter": "E", "text": "Tl-201"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Free form of the I-123 or I-131 used to label MIBG will be taken up by the normally functioning thyroid gland, resulting in unnecessary radiation exposure. The patients undergoing I- 131 or I-123 MIBG are instructed to take a concentrated solution of potassium iodide (SSKI) or Lugol solution to block unwanted radioiodine accumulation in the normal thyroid gland. Similar precautions are taken with non-Hodgkin lymphoma patients undergoing radioimmunotherapy with I-131 tositumomab (Bexxar).\n\nReferences: O'Malley JP, Ziessman HA, Thrall JH. Nuclear medicine: the requisites, 5th ed. Philadelphia, PA: Saunders, 2020:347."}, {"number": "50", "stem": "You are shown 4 hours and 24 hours anterior images of the abdomen from an OctreoScan. What is the most likely etiology for the focus of increased activity indicated by the arrow?", "options": [{"letter": "A", "text": "Physiologic"}, {"letter": "B", "text": "Inflammatory"}, {"letter": "C", "text": "Primary malignancy"}, {"letter": "D", "text": "Metastatic malignancy"}], "images": ["assets/q50_p080_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The 4 and 24 hours delayed anterior images demonstrate the physiologic distribution of radiopharmaceutical corresponding to the liver, spleen, kidneys, bladder, and bowel. The focus of intense activity in the location of the gallbladder fossa represents physiologic radiotracer activity within the gallbladder. Although the main clearance of In-111-DTPA-pentetreotide (OctreoScan) is by the kidneys, about 2% of the radiopharmaceutical is cleared by the hepatobiliary system. Caution must be used to avoid misinterpreting physiologic gallbladder activity as hepatic metastases or primary gallbladder malignancy.\n\nReferences: Gedik GK, Kiratli PO, Erbas B. Visualization of gallbladder with In-111 labeled octreotide in post prandial state. Ann Nucl Med 2006;20(8):557-560. Krausz Y, Shibley N, De Jong RB, et al. Gallbladder visualization with In-111 labeled octreotide. Clin Nucl Med 1994;19(2):133-135."}];
+    const APP_ID = "nuclear-medicine-endocrine-quiz-ch2-v2";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
