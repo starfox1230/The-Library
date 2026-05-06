@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gastrointestinal Imaging Stomach Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Gastrointestinal Imaging Stomach Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"gi-imaging-stomach-quiz-ch2",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "A 78-year-old female with epigastric discomfort undergoes an upper GI study. What does the mucosal pattern represent?", "options": [{"letter": "A", "text": "Areae gastricae"}, {"letter": "B", "text": "Hypertrophic sessile polyps"}, {"letter": "C", "text": "Atrophic gastritis"}, {"letter": "D", "text": "Ménétrier gastropathy"}], "images": ["assets/q1_p114_01.jpg"], "explanationImages": ["assets/a1_p156_01.jpg"], "answer": "A", "explanation": "Answer A. The upper GI study demonstrates a confluent reticular appearance of the gastric mucosa with the intersecting furrows outlining regular ovoid or polygonal structures 1 to 5 mm in size, known as areae gastricae. The other conditions listed result in a different mucosal appearance: hypertrophic polyps are seen on a background of flatter mucosa; atrophic gastritis has smooth featureless mucosa; and Ménétrier gastropathy results in a thickened wall and rugal folds. When involvement is limited, areae gastricae are considered a normal finding and an indication of good mucosal coating using double-contrast technique. They are more commonly demonstrated in older patients, and when enlarged or more extensive (as in this case), they are thought to indicate thinning of the mucus coating of the stomach lining and are associated with gastric hypersecretion. Areae gastricae on radiographic studies correspond to a mosaic mucosal pattern on endoscopy which is associated with H. pylori infection.\n\nReferences: Charagundla SR, Levine MS, Langlotz CP, et al. Visualization of areae gastricae on double-contrast upper gastrointestinal radiography: relationship to age of patients. AJR Am J Roentgenol 2001;177(1):61-63. Watanabe H, Magota S, Shiiba S, et al. Coarse areae gastricae in the proximal body and fundus: a sign of gastric hypersecretion. Radiological and endoscopic correlation. Radiology 1983;146(2):303-306."}, {"number": "2", "stem": "A 69-year-old female with a history of breast cancer presents for evaluation of nausea, vomiting, and poor oral intake. An upper GI study and contrast-enhanced CT scan were performed. What is the correct diagnosis?", "options": [{"letter": "A", "text": "Chemotherapy toxicity"}, {"letter": "B", "text": "Gastric ulcer"}, {"letter": "C", "text": "Linitis plastica"}, {"letter": "D", "text": "Gastric varices"}], "images": ["assets/q2_p115_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Fluoroscopic spot image from a double-contrast upper GI demonstrates nodular pattern of the wall and diffuse narrowing of the stomach lumen. Axial contrast-enhanced CT image demonstrates diffuse wall thickening and enhancement. No ulceration is demonstrated, and gastritis from chemotherapy or other causes would involve fold thickening but not the nodularity demonstrated in this case. Varices are usually found in the proximal stomach and would not cause the diffuse luminal restriction. The imaging features are most compatible with linitis plastica, in this case from metastatic breast carcinoma. Linitis plastica is characterized by loss of normal gastric distensibility as a result of infiltrative tumor, leading to a \"leather bottle\" appearance of the stomach. The degree of gastric distensibility is variable, ranging from a quite subtle limitation to severe rigidity. This may occur in the setting of advanced scirrhous gastric carcinoma as in this case below from a different patient. Note the invariant gastric contours on the AP (left) and RAO (right) images. A linitis plastica appearance can also be seen with lymphoma or metastatic disease (most commonly of breast and lung origin). Imaging plays an important role in diagnosis, as up to 30% of cases may have a false-negative endoscopic biopsy due to the tumor's deep and infiltrative behavior.\n\nReferences: Levine MS. Stomach. In: Levine MS, Ramchandani P, Rubesin SE, eds. Practical fluoroscopy of the GI and GU tracts. New York, NY: Cambridge University Press; 2012:73-104. Taal BG, Peterse H, Boot H. Clinical presentation, endoscopic features, and treatment of gastric metastases from breast carcinoma. Cancer 2000;89(11):2214-2221."}, {"number": "3", "stem": "A 67-year-old patient presents with hematemesis. Endoscopic evaluation demonstrates marked fold thickening with ulcerations, and biopsy is consistent with lymphoma. The CT and PET scan obtained for staging is shown below. Regarding primary gastric lymphoma, which of the following statements is TRUE?", "options": [{"letter": "A", "text": "Most primary gastric lymphomas are Hodgkin lymphoma."}, {"letter": "B", "text": "Lymphoma is the most common type of gastric malignancy."}, {"letter": "C", "text": "Transpyloric spread of a gastric mass favors the diagnosis of lymphoma over adenocarcinoma."}, {"letter": "D", "text": "Eradication of H. pylori infection may cause regression of low-grade MALT lymphoma."}], "images": ["assets/q3_p116_01.jpg", "assets/q3_p117_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Primary gastric lymphoma is the most common type of extranodal lymphoma, accounting for 50% to 70% of all primary gastrointestinal lymphomas. Gastrointestinal lymphoma is nearly always of the non-Hodgkin type. Lymphoma is much less common than adenocarcinoma in the stomach, accounting for only 1% to 5% of all gastric malignancies. Adenocarcinoma and lymphoma may present with similar radiographic features, including fold thickening, polypoid masses, and ulceration. Severe infiltration with lymphoma may even produce a linitis plastica appearance, although in distinction from adenocarcinoma, gastric distention is usually relatively preserved. Note that while transpyloric spread is more common in lymphoma than adenocarcinoma, a tumor showing such transpyloric spread is still more likely to be adenocarcinoma, given its much higher prevalence. Of the primary gastric lymphomas, a large proportion (50% to 72%) are mucosa-associated lymphoid tissue (MALT)-type lymphomas. MALT-type lymphomas are associated with chronic H. pylori infection and are classified into low-grade and high-grade histologic categories. Eradication of H. pylori infection with antibiotics and proton pump inhibitors is the first line of therapy for low-grade tumors and may cause complete tumor regression. Radiographically most low-grade MALT lymphomas may show superficial spreading lesions with mucosal nodularity, shallow ulcerations, and mild fold thickening on barium studies, whereas high-grade tumors are associated with formation of masses or marked wall thickening.\n\nReferences: Choi D, Lim HK, Lee SJ, et al. Gastric mucosa-associated lymphoid tissue lymphoma: helical CT findings and pathologic correlation. AJR Am J Roentgenol 2002;178(5):1117-1122. Ghai S, Pattison J, Ghai S, et al. Primary gastrointestinal lymphoma: spectrum of imaging findings with pathologic correlation. Radiographics 2007;27(5):1371-1388."}, {"number": "4", "stem": "An upper GI is performed on a 72-year-old male with epigastric pain. What is the appropriate next step in management?", "options": [{"letter": "A", "text": "Examination should be repeated with double-contrast technique to better characterize the polyps."}, {"letter": "B", "text": "Polyps have definitive benign features and need no further workup."}, {"letter": "C", "text": "Endoscopy is required for diagnosis and potential treatment."}, {"letter": "D", "text": "Polyps have malignant features and as endoscopic biopsy may be prone to sampling error and false-negative results, surgical consultation is needed."}], "images": ["assets/q4_p118_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. There are multiple polyps in the gastric antrum, incompletely characterized with regard to morphology on this single-contrast study. Gastric polyps are common findings on endoscopy and upper gastrointestinal fluoroscopic studies. 90% are asymptomatic and do not have malignant potential, but some do require intervention. Detection of polyps on radiographic studies should prompt endoscopic evaluation. Certain morphologic features are associated with different rates of malignancy. Pedunculated or larger polyps are more commonly adenomatous, which are considered premalignant, and small sessile polyps are more likely hyperplastic and benign. Morphologic features are not sufficient however to determine management; therefore characterization on imaging studies with optimized technique (e.g., double-contrast) will not preclude the need for endoscopy. Hyperplastic polyps are a response to chronic inflammation, and there is an increased risk for a synchronous gastric cancer when atrophic gastritis is present. For this reason, even though small sessile polyps are themselves likely benign, endoscopy is still warranted to evaluate for separate cancers. Polypectomy is indicated for larger (≥1 cm) polyps; smaller solitary polyps may be resected or biopsied. In addition, the surrounding mucosa is sampled to rule out dysplasia, underlying atrophic gastritis, and to assess for Helicobacter pylori. Polyps may be classified by their tissue type of origin: epithelial, hamartomatous, or mesenchymal. Epithelial polyps include hyperplastic polyps, fundic gland polyps, and adenomatous polyps. Hyperplastic polyps are seen in the setting of chronic inflammation (such as atrophic gastritis), H. pylori infection, pernicious anemia, and adjacent to ulcers. They are generally benign but have some risk for malignant potential (between 1 and 20%, with increased risk for polyps >1 cm). Fundic gland polyps are the most common type in Western countries where H. pylori infection rates are lower. These are sporadic or may be associated with polyposis syndromes. Long-term proton pump inhibitor (PPI) use is associated with an increased risk of fundic gland polyps. Fundic gland polyps that are sporadic or associated with PPI use have no significant malignant potential. In patients with familial adenomatous polyposis (FAP), there is a greater incidence of dysplasia present in the fundic gland polyps (usually low grade with progression to malignancy rare). Adenomas are seen typically in a background of chronic atrophic gastritis with intestinal metaplasia. Eight to fifty-nine percent of adenomas are associated with a synchronous gastric carcinoma. Increased risk of invasive carcinoma in an adenoma is correlated with larger size, villous morphology, and the degree of dysplasia. Hamartomatous polyps are seen in Peutz-Jeghers syndrome, juvenile polyposis, and Cowden disease. Mesenchymal tissues may give rise to a number of polyp types. Inflammatory fibroid polyps are rare mesenchymal tumors that arise in the submucosa and mucosa and are considered nonneoplastic. Other mesenchymal origin polyps include gastrointestinal or gut stroma tumors (GST), leiomyomas, and granular cell tumors.\n\nReferences: Carmack SW, Genta RM, Schuler CM, et al. The current spectrum of gastric polyps: a 1-year national study of over 120,000 patients. Am J Gastroenterol 2009;104(6):1524-1532. Feczko PJ, Halpert RD, Ackerman LV. Gastric polyps: radiological evaluation and clinical significance. Radiology 1985;155(3):581-584."}, {"number": "5a", "stem": "A 45-year-old male presents with left upper quadrant pain, melena, and a hematocrit of 30. An endoscopy reveals an ulcerated gastric mass. Immunohistochemistry of the biopsy is strongly positive for CD117. A CT scan is performed for staging purposes. What type of tumor is this most likely?", "options": [{"letter": "A", "text": "Leiomyosarcoma"}, {"letter": "B", "text": "Adenocarcinoma"}, {"letter": "C", "text": "Lymphoma"}, {"letter": "D", "text": "Gastrointestinal stromal tumor (GST)"}], "images": ["assets/q5a_p118_02.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The CT scan demonstrates a mass centered in the gastric body wall with an endoluminal component that has a large ulceration, likely the cause of the bleeding. The mass also has a large exophytic component extending inferiorly. These morphologic features favor a gastrointestinal stromal tumor over the other choices. Gastrointestinal stromal tumors (GSTs) also called gut stroma tumors are the most common mesenchymal tumor of the gastrointestinal tract. They are defined by the positive immunoreactivity to CD117 (KIT), a tyrosine kinase growth factor receptor. Other mesenchymal tumors are negative or only weakly positive for CD117. Ulcerations are common, seen in 50% of GSTs. The exophytic growth pattern is also common. The tumors have a tendency to hemorrhage. Enhancement tends to be heterogeneous, but more pronounced peripherally. Aside from the immunohistochemistry marker, no lymphadenopathy is seen that might be associated with lymphoma or adenocarcinoma."}, {"number": "5b", "stem": "A factor which determines for malignant potential of gastric GSTs is", "options": [{"letter": "A", "text": "Size"}, {"letter": "B", "text": "Ulceration"}, {"letter": "C", "text": "Degree of enhancement"}, {"letter": "D", "text": "Adjacent mesenteric fat stranding"}], "images": ["assets/q5a_p118_02.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The malignant potential for GSTs is based upon size and mitotic rate. Tumors <5 cm in diameter with five or fewer mitoses per 50 consecutive high power fields (HPFs) have a very low risk for malignant behavior. Tumors >10 cm with more than five mitoses per HPF are considered to be at high risk. Tumors that fall in between these categories are of uncertain or intermediate risk. The risk of malignant potential is also related to location. In the small intestine, a GST may have a more aggressive behavior compared to a tumor of the same size in the stomach."}, {"number": "5c", "stem": "Where is this tumor most likely to metastasize?", "options": [{"letter": "A", "text": "Liver"}, {"letter": "B", "text": "Lungs"}, {"letter": "C", "text": "Lymph nodes"}, {"letter": "D", "text": "Brain"}], "images": ["assets/q5a_p118_02.jpg"], "explanationImages": ["assets/a5c_p159_01.jpg"], "answer": "A", "explanation": "Answer A. GSTs most commonly metastasize to liver and intraabdominally within the peritoneal cavity. Lymph node metastases are rare, and lymph node dissections are not performed routinely at resection. Lung and brain metastases are unusual as well. With tyrosine kinase inhibitor therapy, liver metastases may become almost completely cystic.\n\nReferences: Kim HC, Lee JM, Kim KW, et al. Gastrointestinal stromal tumors of the stomach: CT findings and prediction of malignancy. AJR Am J Roentgenol 2004;183(4):893-898. Sandrasegaran K, Rajesh A, Rydberg J, et al. Gastrointestinal stromal tumors: clinical, radiologic, and pathologic features. AJR Am J Roentgenol 2005;184(3):803-811."}, {"number": "6", "stem": "A 45-year-old female presents with epigastric pain. She undergoes a single-contrast barium UGI examination. Based upon the finding, which of the following statements is most accurate?", "options": [{"letter": "A", "text": "The ulcer appears benign because it extends beyond the expected lumen of the stomach."}, {"letter": "B", "text": "The ulcer appears malignant because it is associated with a mass."}, {"letter": "C", "text": "The ulcer appears malignant because it is located in the body of the stomach."}, {"letter": "D", "text": "The ulcer is indeterminate and has no features suggestive of a benign or malignant nature."}], "images": ["assets/q6_p120_01.jpg", "assets/q6_p121_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The UGI study demonstrates an ulcer crater along the lesser curvature of the stomach. This ulcer extends beyond the expected lumen of the stomach, has no associated mass, and is consistent with a 0 ulcer. Additional features favoring a benign nature include its regular ovoid shape, folds radiating to the edge of the crater, and smooth ulcer collar. Benign ulcers are more common in the antrum and lesser curvature, but location in the stomach is not a reliable indicator of benignity versus malignancy. Duodenal ulcers are almost invariably benign. Malignant ulcer in a gastric mass. Benign duodenal ulcer. Helicobacter pylori infection is a major etiologic cause of duodenal and gastric ulcers. One current approach to evaluating patients with initial presentation of dyspepsia is to screen for H. pylori infection with noninvasive tests (stool antigen and urea breath test) or to try empiric proton pump inhibitor (PPI) therapy. For patients who are older than age 55 or have alarm features (such as unintended weight loss, GI bleeding, family history of GI malignancy), endoscopy is usually recommended. Barium studies have been supplanted by endoscopy in the past 30 years, partly due to early reports of relative lack of sensitivity and specificity for detection of gastric malignancy. These data were based on comparison of endoscopy with single-contrast barium technique, and although double-contrast technique has been since shown to have comparable sensitivity and specificity to endoscopy for detection and characterization of most ulcers, the bias toward endoscopy remains. Nevertheless, as some patients may not tolerate endoscopy, the ability to characterize ulcers by barium radiography remains important.\n\nReferences: Gore RM, Levine MS. Textbook of gastrointestinal radiology. 4th ed. Philadelphia, PA: Elsevier/Saunders, 2015. Talley NJ, American Gastroenterological Association. American Gastroenterological Association medical position statement: evaluation of dyspepsia. Gastroenterology 2005;129(5):1753-1755."}, {"number": "7", "stem": "A radiologist is performing an UGI study and sees a possible small ulceration in the stomach. The finding is subtle and she chooses a smaller field of view (FOV) to better visualize the finding. As a consequence of this magnification, which of the following statements is TRUE?", "options": [{"letter": "A", "text": "The spatial resolution is decreased."}, {"letter": "B", "text": "The dose to the patient is increased."}, {"letter": "C", "text": "The magnification gain is higher."}, {"letter": "D", "text": "There is a decrease in the kVp."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. When a smaller field of view is chosen by the fluoroscopist, the image intensifier electronically alters the size of the input radiation field of view while keeping the output field fixed. This will increase the spatial resolution performance. The minification gain is defined as the input phosphor area/output phosphor area, thus decreasing the input area will decrease the minification gain. As the input field of view is decreased, a smaller area of the input phosphor is being irradiated. This decreases the brightness gain, so in compensation the automatic brightness control feedback circuit increases the exposure rate to maintain the brightness at the output phosphor. The dose to the patient is increased, and as a rule of thumb, the dose generally increases as the square of the ratios of the image intensifier diameters. Use of magnification modes in fluoroscopy is usually accompanied by an increase in kVp in order to reduce the entrance skin air kerma. In addition, the kVp increases in order to keep the tube current low and not overheat the x-ray tube.\n\nReferences: Bushberg JT. The essential physics of medical imaging, 3rd ed. Philadelphia, PA: Wolters Kluwer Health/Lippincott Williams & Wilkins, 2012. Mahesh M. Fluoroscopy: patient radiation exposure issues. Radiographics 2001;21(4):1033-1045."}, {"number": "8", "stem": "A 22-year-old male with vague upper abdominal pain undergoes an upper GI examination. No additional lesions were seen. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Metastatic melanoma"}, {"letter": "B", "text": "Gastrointestinal stromal tumor (GIST)"}, {"letter": "C", "text": "Lymphoma"}, {"letter": "D", "text": "Ectopic pancreatic rest"}], "images": ["assets/q8_p122_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The finding on the upper GI examination is an approximately 2 cm smooth submucosal mass in the gastric antrum containing a central collection of barium. This lesion with a target appearance is most likely an ectopic pancreatic rest. As a solitary lesion in a young patient, lymphoma and metastases would be unlikely. While a solitary GIST is a more common submucosal mass, lesions of this size do not typically ulcerate. Pancreatic rests are uncommon, reported as present in up to 0.21% at autopsy. They are most commonly located in the gastric antrum within 6 cm of the pylorus, with the duodenum the next most common site. A rudimentary duct forms a central umbilication in 50% of lesions. Pancreatic rests are usually asymptomatic, but they can develop pancreatitis and consequent gastric outlet obstruction, and there are rare reports of carcinoma arising from the rest.\n\nReferences: Jeong HY, Yang HW, Seo SW, et al. Adenocarcinoma arising from an ectopic pancreas in the stomach. Endoscopy 2002;34(12):1014-1017. Kilman WJ, Berk RN. The spectrum of radiographic features of aberrant pancreatic rests involving the stomach. Radiology 1977;123(2):291-296. Yuan Z, Chen J, Zheng Q, et al. Heterotopic pancreas in the gastrointestinal tract. World J Gastroenterol 2009;15(29):3701-3703."}, {"number": "9", "stem": "A 56-year-old male with a history of abdominal discomfort has a CT. A urea breath test is reported as abnormal. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Helicobacter pylori gastritis"}, {"letter": "B", "text": "Ménétrier disease"}, {"letter": "C", "text": "Gastric lymphoma"}, {"letter": "D", "text": "Zollinger-Ellison syndrome"}], "images": ["assets/q9_p123_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Contrast-enhanced CT images through the stomach demonstrate marked gastric fold thickening, which predominantly involves the gastric fundus and body. The gastric antrum appears relatively spared. Gastric fold thickening is nonspecific and differential includes H. pylori gastritis, Ménétrier disease, gastric lymphoma, and Zollinger-Ellison syndrome. The urea breath test is a simple and highly accurate method for clinical assessment of H. pylori infection. Ingested urea that is labeled with carbon isotopes is rapidly converted to carbon dioxide due to the presence of urease in H. pylori species, which is subsequently exhaled by the patient in their breath and easily detected. Reported sensitivity and specificity values for the urea breath test both exceed 95%. H. pylori is a common gram-negative bacillus in westernized populations, estimated to occur in >50% of patients over the age of 50 years. It is the most common cause of chronic gastritis, and its presence can be documented in most cases of gastric and duodenal ulcers. H. pylori gastritis is the number one cause of gastric fold thickening which can be either diffuse or localized. The degree of gastric fold thickening is often mild to moderate. However, marked fold thickening can be seen, and overlaps with other entities that result in giant gastric folds such as Ménétrier disease and Zollinger-Ellison syndrome. While H. pylori gastritis can result in localized symptoms of epigastric pain and dyspepsia, it is also an important causative factor in the development of gastric carcinoma and gastric lymphoma.\n\nReferences: Levine MS. Stomach. In: Levine MS, Ramchandani P, Rubesin SE, eds. Practical fluoroscopy of the GI and GU tracts. New York, NY: Cambridge University Press; 2012:73-104. Rubesin SE, Levine MS, Laufer I. Double-contrast upper gastrointestinal radiography: a pattern approach for diseases of the stomach. Radiology 2008;246(1):33-48."}, {"number": "10a", "stem": "A 41-year-old female presents with a history of chronic abdominal pain. A contrast-enhanced CT scan was obtained, followed by an In-111 Octreotide SPECT study. What is the best diagnosis?", "options": [{"letter": "A", "text": "H. pylori gastritis"}, {"letter": "B", "text": "Ménétrier disease"}, {"letter": "C", "text": "Gastric lymphoma"}, {"letter": "D", "text": "Zollinger-Ellison syndrome"}], "images": ["assets/q10a_p124_01.jpg", "assets/q10a_p125_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Axial and sagittal contrast-enhanced CT images (top left and right) demonstrate marked gastric fold thickening in the gastric fundus and body. There is an enlarged node near the pancreatic head (arrow, bottom left). Axial SPECT image from the In-111 Octreotide scan demonstrates a focus of avid tracer uptake in the right abdomen, corresponding to the enlarged node. The imaging features are compatible with Zollinger-Ellison syndrome (ZES). ZES is a rare condition associated with an autonomous gastrin-producing neuroendocrine tumor, typically found in the pancreas or duodenum. They are frequently multiple and often extrapancreatic in location. Laboratory tests often reveal elevated serum gastrin levels. This results in gastric hyperchlorhydria and can lead to ulcer disease in affected patients. Gastrinomas are malignant in over 50% of cases. Approximately 25% of patients will have multiple endocrine neoplasia type I. From an imaging standpoint, traditional cross-sectional techniques such as CT and MRI are less effective than somatostatin receptor scintigraphy for identification of the primary tumor and metastatic foci.\n\nReferences: Ellison EC, Johnson JA. The Zollinger-Ellison syndrome: a comprehensive review of historical, scientific, and clinical considerations. Curr Probl Surg 2009;46(1):13-106. Metz DC, Jensen RT. Gastrointestinal neuroendocrine tumors: pancreatic endocrine tumors. Gastroenterology 2008;135(5):1469-1492."}, {"number": "10b", "stem": "The mass identified in this patient is located in the gastrinoma triangle, which is bounded medially by the junction of the pancreatic neck-body and inferiorly by the junction of the second- third portions of the duodenum. What comprises the superior margin of the gastrinoma triangle?", "options": [{"letter": "A", "text": "Falciform ligament"}, {"letter": "B", "text": "Junction of common hepatic artery and gastroduodenal artery"}, {"letter": "C", "text": "Junction of cystic duct and common bile duct"}, {"letter": "D", "text": "Right portal vein"}], "images": ["assets/q10a_p124_01.jpg", "assets/q10a_p125_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The gastrinoma triangle is an important surgical space for patients with suspected gastrinomas, as most surgically apparent and visually occult gastrin-producing neoplasms occur in this space. The triangle is bounded medially by the pancreatic neck and body junction. The inferior margin is bounded by the junction of the second and third portions of the duodenal sweep. The superior margin is bounded by the junction of the cystic duct and common bile duct.\n\nReferences: Howard TJ, Zinner MJ, Stabile BE, et al. Gastrinoma excision for cure. A prospective analysis. Ann Surg 1990;211(1):9-14. Stabile BE, Morrow DJ, Passaro E Jr. The gastrinoma triangle: operative implications. Am J Surg 1984;147(1):25-31."}, {"number": "11a", "stem": "A 53-year-old male presented with epigastric discomfort. An endoscopy reveals a gastric mass. An MRI of the abdomen is performed with the following T1-weighted sequences post contrast. What is the most likely etiology for the findings?", "options": [{"letter": "A", "text": "Lymphoma"}, {"letter": "B", "text": "Gastrointestinal stromal tumor"}, {"letter": "C", "text": "Gastric adenocarcinoma"}, {"letter": "D", "text": "Gastric carcinoid"}], "images": ["assets/q11a_p126_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. There is a mass arising from the posterior gastric body wall, which demonstrates avid arterial enhancement. Multiple liver lesions consistent with metastases also demonstrate intense arterial enhancement, which diminishes on venous phase imaging, features typical for a carcinoid tumor. The other entities are not characterized by the same degree of arterial enhancement. Carcinoids are well-differentiated neuroendocrine tumors that arise from amine precursor uptake and decarboxylation (APUD) cells. Gastrointestinal carcinoids account for the majority of all carcinoids (66.9%), followed by the tracheobronchial system (24.5%). Gastrointestinal carcinoids are a diverse group of tumors that may arise from a variety of endocrine cells throughout the gastrointestinal tract. Their biologic behavior and malignant potential depend upon the anatomic site of origin and cell type. The stomach is a relatively uncommon location, accounting for 8.7% of all gastrointestinal carcinoids. Gastric carcinoids are divided into three subtypes: Type I associated with autoimmune chronic atrophic gastritis; Type II, associated with Zollinger-Ellison syndrome in patients with multiple endocrine neoplasia type 1 (MEN-1); and Type III, a sporadic type without the association with atrophic gastritis or hypergastrinemia. Type I and II carcinoids are multifocal, smaller (1 to 2 cm) with a tendency toward benign behavior, whereas Type III is solitary, large (>2 cm), with more aggressive behavior including a tendency to metastasize (as in this case)."}, {"number": "11b", "stem": "Following a partial gastrectomy, later staging studies included a gallium-68 DOTATATE PET-CT. What receptor is bound by this radiotracer?", "options": [{"letter": "A", "text": "Somatostatin"}, {"letter": "B", "text": "Gastrin"}, {"letter": "C", "text": "Vasoactive intestinal peptide (VIP)"}, {"letter": "D", "text": "Glucagon-like peptide 1 (GLP-1)"}], "images": ["assets/q11a_p126_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Somatostatin is an endogenous peptide secreted by neuroendocrine cells. Imaging of neuroendocrine tumors (NET) takes advantage of the high expression of somatostatin receptors (SSTRs) on cell membranes of NETs. Previously, the most common imaging study used forms of an indium-111-labeled octreotide, a synthetic somatostatin analog, combined with single photo emission computed tomography (SPECT). This has largely been replaced by imaging using Gallium-68 DOTATATE, a radiotracer with much higher affinity for the somatostatin receptor subtype 2 (SSTR2), in conjunction with the higher spatial resolution positron emission computed tomography (PET-CT).\n\nReferences: Binstock AJ, Johnson CD, Stephens DH, et al. Carcinoid tumors of the stomach: a clinical and radiographic study. AJR Am J Roentgenol. 2001;176(4):947-951. Hofman MS, Lau WF, Hicks RJ. Somatostatin receptor imaging with 68Ga DOTATATE PET/CT: clinical utility, normal patterns, pearls, and pitfalls in interpretation. Radiographics 2015;35(2):500-516. Levy AD, Sobin LH. From the archives of the AFIP: gastrointestinal carcinoids: imaging features with clinicopathologic comparison. Radiographics 2007;27(1):237-257. 12 Answers: Patient 1: D Patient 2: B Patient 3: A Patient 4: C In the adult, gastric outlet obstruction may be caused by a variety of neoplastic, inflammatory, posttraumatic conditions. Congenital abnormalities, not included here such as duodenal atresia and annular pancreas, are additional causes that may present earlier in life. Patient 1: The CT demonstrates gastric distention and an ovoid circumscribed structure adjacent to the horizontal portion of the duodenum with mildly hyperdense contents consistent with a hematoma. These may be due to lap-belt injuries or other iatrogenic causes, as in this case with an ERCP. Patient 2: The upper GI and CT demonstrate gastric distention and long smooth narrowing of the pylorus with smooth muscular hypertrophy seen as a hypodense parallel structures on the CT, suggesting adult hypertrophic pyloric stenosis. This condition is rare, and the etiology is controversial with possible causes that include postinflammatory changes related to prior peptic ulcer disease, Crohn's, or other inflammatory conditions, and a persistence of the juvenile form into adult life. Patient 3: The CT demonstrates gastric distention and a large amount of retained food not mixing with oral contrast. The antrum, pylorus, and bulb demonstrate irregular enhancing wall thickening and soft tissue infiltration around adjacent vessels highly suspicious for neoplasm. The wall thickening is more abrupt and the enhancement pattern more nodular than is seen in benign senile antral muscular hypertrophy. The most common malignant cause of gastric outlet obstruction is peripancreatic malignancy. Patient 4: The CT demonstrates gastric distention, intraperitoneal free air, and retroperitoneal fluid consistent with an inflammatory process in the setting of a perforated ulcer. The duodenal ulcer crater is identified (arrow) in this case, although it may seal off and not be detectable in many cases. Peptic ulcer disease is the most common cause of gastric outlet obstruction in the adult.\n\nReferences: Gibson JB, Behrman SW, Fabian TC, et al. Gastric outlet obstruction resulting from peptic ulcer disease requiring surgical intervention is infrequently associated with Helicobacter pylori infection. J Am Coll Surg 2000;191(1):32-37. Horton KM, Fishman EK. Current role of CT in imaging of the stomach. Radiographics 2003;23(1):75-87. Zarineh A, Leon ME, Saad RS, et al. Idiopathic hypertrophic pyloric stenosis in an adult, a potential mimic of gastric carcinoma. Patholog Res Int 2010;2010:614280. 13 Answer: 1-C; 2-A; 3-B; 4-D Bariatric surgery is currently the most effective treatment for morbid obesity. The most commonly performed procedures are the Roux-en-Y gastric bypass (RYGB), sleeve gastrectomy, adjustable gastric banding, and biliopancreatic diversion with duodenal switch. Example 1 demonstrates the adjustable gastric band performed laparoscopically (more commonly called the lap band), which involves placement of an inflatable band around the proximal stomach creating a small gastric pouch above the band. Advantages include easy reversibility with no resection of the stomach or intestine and lowest rate of early complications compared to all procedures. Later complications may be related to band slippage or erosion and less effective weight loss compared to other procedures. Example 2 is the Roux-en-Y gastric bypass (RYGB) also called gastric bypass. This procedure involves division of the proximal stomach with creation of a small gastric pouch (~30 cc). The proximal jejunum is divided, and a roux limb is attached to the gastric pouch. The roux (alimentary) limb is anastomosed to the jejunal limb draining the excluded stomach and duodenum (pancreaticobiliary limb) with both limbs draining into a common channel. This commonly performed procedure is effective for both weight loss and metabolic changes (amelioration of type II diabetes) and has been until recently considered the standard for bariatric surgical procedures. It is technically more difficult than some of the other procedures and disrupts the normal access to the biliopancreatic ducts for endoscopic evaluation. Example 3 shows a sleeve gastrectomy which involves a partial gastrectomy (~80% removed) with creation of a tubular stomach. This increasingly popular procedure is technically easier than some of the other procedures. It maintains the normal outlet anatomy, with preservation of access to the biliopancreatic ducts. Disadvantages are that it is nonreversible and has a longer staple line for potential disruption. It may be associated with increased gastroesophageal reflux. Example 4 shows staples associated with a sleeve gastrectomy and oral contrast in the duodenum and distal small bowel, but not in the intervening small bowel which is bypassed. This is a biliopancreatic diversion (now most commonly performed with duodenal switch), which involves a sleeve gastrectomy and anastomosis of a short (250 cm) roux limb to the proximal duodenum, bypassing a long segment of the small intestine. The pancreaticobiliary limb is anastomosed approximately 50 cm proximal to the ileocecal valve. This procedure involves both restrictive and significant malabsorptive effects. It promotes the greatest weight loss but has a higher complication rate than the other procedures and is also associated with greater potential for nutritional deficiencies.\n\nReferences: American Society for Metabolic and Bariatric Surgery. Bariatric Surgery Procedures. Available at: https://asmbs.org/patients/bariatric-surgery-procedures. Accessed June 4, 2020. Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341."}, {"number": "12a", "stem": "In these cases of gastric outlet obstruction, match the following images with the best diagnosis. Each answer may be used once only. Patient 1: A 39-year-old male with a history of vomiting after an ERCP. Patient 2: A 31-year-old male recently begun on a proton pump inhibitor with postprandial bloating. Patient 3: A 78-year-old female with early satiety. Patient 4: A 40-year-old male with severe acute abdominal pain. Select the best diagnosis for Patient 1.", "options": [{"letter": "A", "text": "Gastric carcinoma involving the antrum and duodenal bulb"}, {"letter": "B", "text": "Adult hypertrophic pyloric stenosis"}, {"letter": "C", "text": "Perforated duodenal ulcer"}, {"letter": "D", "text": "Duodenal hematoma"}], "images": ["assets/q12a_12b_12c_12d_p127_01.jpg", "assets/q12a_12b_12c_12d_p128_01.jpg", "assets/q12a_12b_12c_12d_p129_01.jpg", "assets/q12a_12b_12c_12d_p130_01.jpg", "assets/q12a_12b_12c_12d_p131_01.jpg", "assets/q12a_12b_12c_12d_p132_01.jpg", "assets/q12a_12b_12c_12d_p133_01.jpg", "assets/q12a_12b_12c_12d_p134_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "12 Answers: Patient 1: D Patient 2: B Patient 3: A Patient 4: C In the adult, gastric outlet obstruction may be caused by a variety of neoplastic, inflammatory, posttraumatic conditions. Congenital abnormalities, not included here such as duodenal atresia and annular pancreas, are additional causes that may present earlier in life. Patient 1: The CT demonstrates gastric distention and an ovoid circumscribed structure adjacent to the horizontal portion of the duodenum with mildly hyperdense contents consistent with a hematoma. These may be due to lap-belt injuries or other iatrogenic causes, as in this case with an ERCP. Patient 2: The upper GI and CT demonstrate gastric distention and long smooth narrowing of the pylorus with smooth muscular hypertrophy seen as a hypodense parallel structures on the CT, suggesting adult hypertrophic pyloric stenosis. This condition is rare, and the etiology is controversial with possible causes that include postinflammatory changes related to prior peptic ulcer disease, Crohn's, or other inflammatory conditions, and a persistence of the juvenile form into adult life. Patient 3: The CT demonstrates gastric distention and a large amount of retained food not mixing with oral contrast. The antrum, pylorus, and bulb demonstrate irregular enhancing wall thickening and soft tissue infiltration around adjacent vessels highly suspicious for neoplasm. The wall thickening is more abrupt and the enhancement pattern more nodular than is seen in benign senile antral muscular hypertrophy. The most common malignant cause of gastric outlet obstruction is peripancreatic malignancy. Patient 4: The CT demonstrates gastric distention, intraperitoneal free air, and retroperitoneal fluid consistent with an inflammatory process in the setting of a perforated ulcer. The duodenal ulcer crater is identified (arrow) in this case, although it may seal off and not be detectable in many cases. Peptic ulcer disease is the most common cause of gastric outlet obstruction in the adult. References: Gibson JB, Behrman SW, Fabian TC, et al. Gastric outlet obstruction resulting from peptic ulcer disease requiring surgical intervention is infrequently associated with Helicobacter pylori infection. J Am Coll Surg 2000;191(1):32-37. Horton KM, Fishman EK. Current role of CT in imaging of the stomach. Radiographics 2003;23(1):75-87. Zarineh A, Leon ME, Saad RS, et al. Idiopathic hypertrophic pyloric stenosis in an adult, a potential mimic of gastric carcinoma. Patholog Res Int 2010;2010:614280."}, {"number": "12b", "stem": "In these cases of gastric outlet obstruction, match the following images with the best diagnosis. Each answer may be used once only. Patient 1: A 39-year-old male with a history of vomiting after an ERCP. Patient 2: A 31-year-old male recently begun on a proton pump inhibitor with postprandial bloating. Patient 3: A 78-year-old female with early satiety. Patient 4: A 40-year-old male with severe acute abdominal pain. Select the best diagnosis for Patient 2.", "options": [{"letter": "A", "text": "Gastric carcinoma involving the antrum and duodenal bulb"}, {"letter": "B", "text": "Adult hypertrophic pyloric stenosis"}, {"letter": "C", "text": "Perforated duodenal ulcer"}, {"letter": "D", "text": "Duodenal hematoma"}], "images": ["assets/q12a_12b_12c_12d_p127_01.jpg", "assets/q12a_12b_12c_12d_p128_01.jpg", "assets/q12a_12b_12c_12d_p129_01.jpg", "assets/q12a_12b_12c_12d_p130_01.jpg", "assets/q12a_12b_12c_12d_p131_01.jpg", "assets/q12a_12b_12c_12d_p132_01.jpg", "assets/q12a_12b_12c_12d_p133_01.jpg", "assets/q12a_12b_12c_12d_p134_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "12 Answers: Patient 1: D Patient 2: B Patient 3: A Patient 4: C In the adult, gastric outlet obstruction may be caused by a variety of neoplastic, inflammatory, posttraumatic conditions. Congenital abnormalities, not included here such as duodenal atresia and annular pancreas, are additional causes that may present earlier in life. Patient 1: The CT demonstrates gastric distention and an ovoid circumscribed structure adjacent to the horizontal portion of the duodenum with mildly hyperdense contents consistent with a hematoma. These may be due to lap-belt injuries or other iatrogenic causes, as in this case with an ERCP. Patient 2: The upper GI and CT demonstrate gastric distention and long smooth narrowing of the pylorus with smooth muscular hypertrophy seen as a hypodense parallel structures on the CT, suggesting adult hypertrophic pyloric stenosis. This condition is rare, and the etiology is controversial with possible causes that include postinflammatory changes related to prior peptic ulcer disease, Crohn's, or other inflammatory conditions, and a persistence of the juvenile form into adult life. Patient 3: The CT demonstrates gastric distention and a large amount of retained food not mixing with oral contrast. The antrum, pylorus, and bulb demonstrate irregular enhancing wall thickening and soft tissue infiltration around adjacent vessels highly suspicious for neoplasm. The wall thickening is more abrupt and the enhancement pattern more nodular than is seen in benign senile antral muscular hypertrophy. The most common malignant cause of gastric outlet obstruction is peripancreatic malignancy. Patient 4: The CT demonstrates gastric distention, intraperitoneal free air, and retroperitoneal fluid consistent with an inflammatory process in the setting of a perforated ulcer. The duodenal ulcer crater is identified (arrow) in this case, although it may seal off and not be detectable in many cases. Peptic ulcer disease is the most common cause of gastric outlet obstruction in the adult. References: Gibson JB, Behrman SW, Fabian TC, et al. Gastric outlet obstruction resulting from peptic ulcer disease requiring surgical intervention is infrequently associated with Helicobacter pylori infection. J Am Coll Surg 2000;191(1):32-37. Horton KM, Fishman EK. Current role of CT in imaging of the stomach. Radiographics 2003;23(1):75-87. Zarineh A, Leon ME, Saad RS, et al. Idiopathic hypertrophic pyloric stenosis in an adult, a potential mimic of gastric carcinoma. Patholog Res Int 2010;2010:614280."}, {"number": "12c", "stem": "In these cases of gastric outlet obstruction, match the following images with the best diagnosis. Each answer may be used once only. Patient 1: A 39-year-old male with a history of vomiting after an ERCP. Patient 2: A 31-year-old male recently begun on a proton pump inhibitor with postprandial bloating. Patient 3: A 78-year-old female with early satiety. Patient 4: A 40-year-old male with severe acute abdominal pain. Select the best diagnosis for Patient 3.", "options": [{"letter": "A", "text": "Gastric carcinoma involving the antrum and duodenal bulb"}, {"letter": "B", "text": "Adult hypertrophic pyloric stenosis"}, {"letter": "C", "text": "Perforated duodenal ulcer"}, {"letter": "D", "text": "Duodenal hematoma"}], "images": ["assets/q12a_12b_12c_12d_p127_01.jpg", "assets/q12a_12b_12c_12d_p128_01.jpg", "assets/q12a_12b_12c_12d_p129_01.jpg", "assets/q12a_12b_12c_12d_p130_01.jpg", "assets/q12a_12b_12c_12d_p131_01.jpg", "assets/q12a_12b_12c_12d_p132_01.jpg", "assets/q12a_12b_12c_12d_p133_01.jpg", "assets/q12a_12b_12c_12d_p134_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "12 Answers: Patient 1: D Patient 2: B Patient 3: A Patient 4: C In the adult, gastric outlet obstruction may be caused by a variety of neoplastic, inflammatory, posttraumatic conditions. Congenital abnormalities, not included here such as duodenal atresia and annular pancreas, are additional causes that may present earlier in life. Patient 1: The CT demonstrates gastric distention and an ovoid circumscribed structure adjacent to the horizontal portion of the duodenum with mildly hyperdense contents consistent with a hematoma. These may be due to lap-belt injuries or other iatrogenic causes, as in this case with an ERCP. Patient 2: The upper GI and CT demonstrate gastric distention and long smooth narrowing of the pylorus with smooth muscular hypertrophy seen as a hypodense parallel structures on the CT, suggesting adult hypertrophic pyloric stenosis. This condition is rare, and the etiology is controversial with possible causes that include postinflammatory changes related to prior peptic ulcer disease, Crohn's, or other inflammatory conditions, and a persistence of the juvenile form into adult life. Patient 3: The CT demonstrates gastric distention and a large amount of retained food not mixing with oral contrast. The antrum, pylorus, and bulb demonstrate irregular enhancing wall thickening and soft tissue infiltration around adjacent vessels highly suspicious for neoplasm. The wall thickening is more abrupt and the enhancement pattern more nodular than is seen in benign senile antral muscular hypertrophy. The most common malignant cause of gastric outlet obstruction is peripancreatic malignancy. Patient 4: The CT demonstrates gastric distention, intraperitoneal free air, and retroperitoneal fluid consistent with an inflammatory process in the setting of a perforated ulcer. The duodenal ulcer crater is identified (arrow) in this case, although it may seal off and not be detectable in many cases. Peptic ulcer disease is the most common cause of gastric outlet obstruction in the adult. References: Gibson JB, Behrman SW, Fabian TC, et al. Gastric outlet obstruction resulting from peptic ulcer disease requiring surgical intervention is infrequently associated with Helicobacter pylori infection. J Am Coll Surg 2000;191(1):32-37. Horton KM, Fishman EK. Current role of CT in imaging of the stomach. Radiographics 2003;23(1):75-87. Zarineh A, Leon ME, Saad RS, et al. Idiopathic hypertrophic pyloric stenosis in an adult, a potential mimic of gastric carcinoma. Patholog Res Int 2010;2010:614280."}, {"number": "12d", "stem": "In these cases of gastric outlet obstruction, match the following images with the best diagnosis. Each answer may be used once only. Patient 1: A 39-year-old male with a history of vomiting after an ERCP. Patient 2: A 31-year-old male recently begun on a proton pump inhibitor with postprandial bloating. Patient 3: A 78-year-old female with early satiety. Patient 4: A 40-year-old male with severe acute abdominal pain. Select the best diagnosis for Patient 4.", "options": [{"letter": "A", "text": "Gastric carcinoma involving the antrum and duodenal bulb"}, {"letter": "B", "text": "Adult hypertrophic pyloric stenosis"}, {"letter": "C", "text": "Perforated duodenal ulcer"}, {"letter": "D", "text": "Duodenal hematoma"}], "images": ["assets/q12a_12b_12c_12d_p127_01.jpg", "assets/q12a_12b_12c_12d_p128_01.jpg", "assets/q12a_12b_12c_12d_p129_01.jpg", "assets/q12a_12b_12c_12d_p130_01.jpg", "assets/q12a_12b_12c_12d_p131_01.jpg", "assets/q12a_12b_12c_12d_p132_01.jpg", "assets/q12a_12b_12c_12d_p133_01.jpg", "assets/q12a_12b_12c_12d_p134_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "12 Answers: Patient 1: D Patient 2: B Patient 3: A Patient 4: C In the adult, gastric outlet obstruction may be caused by a variety of neoplastic, inflammatory, posttraumatic conditions. Congenital abnormalities, not included here such as duodenal atresia and annular pancreas, are additional causes that may present earlier in life. Patient 1: The CT demonstrates gastric distention and an ovoid circumscribed structure adjacent to the horizontal portion of the duodenum with mildly hyperdense contents consistent with a hematoma. These may be due to lap-belt injuries or other iatrogenic causes, as in this case with an ERCP. Patient 2: The upper GI and CT demonstrate gastric distention and long smooth narrowing of the pylorus with smooth muscular hypertrophy seen as a hypodense parallel structures on the CT, suggesting adult hypertrophic pyloric stenosis. This condition is rare, and the etiology is controversial with possible causes that include postinflammatory changes related to prior peptic ulcer disease, Crohn's, or other inflammatory conditions, and a persistence of the juvenile form into adult life. Patient 3: The CT demonstrates gastric distention and a large amount of retained food not mixing with oral contrast. The antrum, pylorus, and bulb demonstrate irregular enhancing wall thickening and soft tissue infiltration around adjacent vessels highly suspicious for neoplasm. The wall thickening is more abrupt and the enhancement pattern more nodular than is seen in benign senile antral muscular hypertrophy. The most common malignant cause of gastric outlet obstruction is peripancreatic malignancy. Patient 4: The CT demonstrates gastric distention, intraperitoneal free air, and retroperitoneal fluid consistent with an inflammatory process in the setting of a perforated ulcer. The duodenal ulcer crater is identified (arrow) in this case, although it may seal off and not be detectable in many cases. Peptic ulcer disease is the most common cause of gastric outlet obstruction in the adult. References: Gibson JB, Behrman SW, Fabian TC, et al. Gastric outlet obstruction resulting from peptic ulcer disease requiring surgical intervention is infrequently associated with Helicobacter pylori infection. J Am Coll Surg 2000;191(1):32-37. Horton KM, Fishman EK. Current role of CT in imaging of the stomach. Radiographics 2003;23(1):75-87. Zarineh A, Leon ME, Saad RS, et al. Idiopathic hypertrophic pyloric stenosis in an adult, a potential mimic of gastric carcinoma. Patholog Res Int 2010;2010:614280."}, {"number": "13a", "stem": "Identify the following bariatric surgical procedures: Identify Example 1.", "options": [{"letter": "A", "text": "Roux-en-Y gastric bypass"}, {"letter": "B", "text": "Sleeve gastrectomy"}, {"letter": "C", "text": "Adjustable gastric band (lap band)"}, {"letter": "D", "text": "Biliopancreatic diversion with duodenal switch"}], "images": ["assets/q13a_13b_13c_13d_p135_01.jpg", "assets/q13a_13b_13c_13d_p136_01.jpg", "assets/q13a_13b_13c_13d_p136_02.jpg"], "explanationImages": [], "answer": "C", "explanation": "13 Answer: 1-C; 2-A; 3-B; 4-D Bariatric surgery is currently the most effective treatment for morbid obesity. The most commonly performed procedures are the Roux-en-Y gastric bypass (RYGB), sleeve gastrectomy, adjustable gastric banding, and biliopancreatic diversion with duodenal switch. Example 1 demonstrates the adjustable gastric band performed laparoscopically (more commonly called the lap band), which involves placement of an inflatable band around the proximal stomach creating a small gastric pouch above the band. Advantages include easy reversibility with no resection of the stomach or intestine and lowest rate of early complications compared to all procedures. Later complications may be related to band slippage or erosion and less effective weight loss compared to other procedures. Example 2 is the Roux-en-Y gastric bypass (RYGB) also called gastric bypass. This procedure involves division of the proximal stomach with creation of a small gastric pouch (~30 cc). The proximal jejunum is divided, and a roux limb is attached to the gastric pouch. The roux (alimentary) limb is anastomosed to the jejunal limb draining the excluded stomach and duodenum (pancreaticobiliary limb) with both limbs draining into a common channel. This commonly performed procedure is effective for both weight loss and metabolic changes (amelioration of type II diabetes) and has been until recently considered the standard for bariatric surgical procedures. It is technically more difficult than some of the other procedures and disrupts the normal access to the biliopancreatic ducts for endoscopic evaluation. Example 3 shows a sleeve gastrectomy which involves a partial gastrectomy (~80% removed) with creation of a tubular stomach. This increasingly popular procedure is technically easier than some of the other procedures. It maintains the normal outlet anatomy, with preservation of access to the biliopancreatic ducts. Disadvantages are that it is nonreversible and has a longer staple line for potential disruption. It may be associated with increased gastroesophageal reflux. Example 4 shows staples associated with a sleeve gastrectomy and oral contrast in the duodenum and distal small bowel, but not in the intervening small bowel which is bypassed. This is a biliopancreatic diversion (now most commonly performed with duodenal switch), which involves a sleeve gastrectomy and anastomosis of a short (250 cm) roux limb to the proximal duodenum, bypassing a long segment of the small intestine. The pancreaticobiliary limb is anastomosed approximately 50 cm proximal to the ileocecal valve. This procedure involves both restrictive and significant malabsorptive effects. It promotes the greatest weight loss but has a higher complication rate than the other procedures and is also associated with greater potential for nutritional deficiencies. References: American Society for Metabolic and Bariatric Surgery. Bariatric Surgery Procedures. Available at: https://asmbs.org/patients/bariatric-surgery-procedures. Accessed June 4, 2020. Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341."}, {"number": "13b", "stem": "Identify the following bariatric surgical procedures: Identify Example 2.", "options": [{"letter": "A", "text": "Roux-en-Y gastric bypass"}, {"letter": "B", "text": "Sleeve gastrectomy"}, {"letter": "C", "text": "Adjustable gastric band (lap band)"}, {"letter": "D", "text": "Biliopancreatic diversion with duodenal switch"}], "images": ["assets/q13a_13b_13c_13d_p135_01.jpg", "assets/q13a_13b_13c_13d_p136_01.jpg", "assets/q13a_13b_13c_13d_p136_02.jpg"], "explanationImages": [], "answer": "A", "explanation": "13 Answer: 1-C; 2-A; 3-B; 4-D Bariatric surgery is currently the most effective treatment for morbid obesity. The most commonly performed procedures are the Roux-en-Y gastric bypass (RYGB), sleeve gastrectomy, adjustable gastric banding, and biliopancreatic diversion with duodenal switch. Example 1 demonstrates the adjustable gastric band performed laparoscopically (more commonly called the lap band), which involves placement of an inflatable band around the proximal stomach creating a small gastric pouch above the band. Advantages include easy reversibility with no resection of the stomach or intestine and lowest rate of early complications compared to all procedures. Later complications may be related to band slippage or erosion and less effective weight loss compared to other procedures. Example 2 is the Roux-en-Y gastric bypass (RYGB) also called gastric bypass. This procedure involves division of the proximal stomach with creation of a small gastric pouch (~30 cc). The proximal jejunum is divided, and a roux limb is attached to the gastric pouch. The roux (alimentary) limb is anastomosed to the jejunal limb draining the excluded stomach and duodenum (pancreaticobiliary limb) with both limbs draining into a common channel. This commonly performed procedure is effective for both weight loss and metabolic changes (amelioration of type II diabetes) and has been until recently considered the standard for bariatric surgical procedures. It is technically more difficult than some of the other procedures and disrupts the normal access to the biliopancreatic ducts for endoscopic evaluation. Example 3 shows a sleeve gastrectomy which involves a partial gastrectomy (~80% removed) with creation of a tubular stomach. This increasingly popular procedure is technically easier than some of the other procedures. It maintains the normal outlet anatomy, with preservation of access to the biliopancreatic ducts. Disadvantages are that it is nonreversible and has a longer staple line for potential disruption. It may be associated with increased gastroesophageal reflux. Example 4 shows staples associated with a sleeve gastrectomy and oral contrast in the duodenum and distal small bowel, but not in the intervening small bowel which is bypassed. This is a biliopancreatic diversion (now most commonly performed with duodenal switch), which involves a sleeve gastrectomy and anastomosis of a short (250 cm) roux limb to the proximal duodenum, bypassing a long segment of the small intestine. The pancreaticobiliary limb is anastomosed approximately 50 cm proximal to the ileocecal valve. This procedure involves both restrictive and significant malabsorptive effects. It promotes the greatest weight loss but has a higher complication rate than the other procedures and is also associated with greater potential for nutritional deficiencies. References: American Society for Metabolic and Bariatric Surgery. Bariatric Surgery Procedures. Available at: https://asmbs.org/patients/bariatric-surgery-procedures. Accessed June 4, 2020. Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341."}, {"number": "13c", "stem": "Identify the following bariatric surgical procedures: Identify Example 3.", "options": [{"letter": "A", "text": "Roux-en-Y gastric bypass"}, {"letter": "B", "text": "Sleeve gastrectomy"}, {"letter": "C", "text": "Adjustable gastric band (lap band)"}, {"letter": "D", "text": "Biliopancreatic diversion with duodenal switch"}], "images": ["assets/q13a_13b_13c_13d_p135_01.jpg", "assets/q13a_13b_13c_13d_p136_01.jpg", "assets/q13a_13b_13c_13d_p136_02.jpg"], "explanationImages": [], "answer": "B", "explanation": "13 Answer: 1-C; 2-A; 3-B; 4-D Bariatric surgery is currently the most effective treatment for morbid obesity. The most commonly performed procedures are the Roux-en-Y gastric bypass (RYGB), sleeve gastrectomy, adjustable gastric banding, and biliopancreatic diversion with duodenal switch. Example 1 demonstrates the adjustable gastric band performed laparoscopically (more commonly called the lap band), which involves placement of an inflatable band around the proximal stomach creating a small gastric pouch above the band. Advantages include easy reversibility with no resection of the stomach or intestine and lowest rate of early complications compared to all procedures. Later complications may be related to band slippage or erosion and less effective weight loss compared to other procedures. Example 2 is the Roux-en-Y gastric bypass (RYGB) also called gastric bypass. This procedure involves division of the proximal stomach with creation of a small gastric pouch (~30 cc). The proximal jejunum is divided, and a roux limb is attached to the gastric pouch. The roux (alimentary) limb is anastomosed to the jejunal limb draining the excluded stomach and duodenum (pancreaticobiliary limb) with both limbs draining into a common channel. This commonly performed procedure is effective for both weight loss and metabolic changes (amelioration of type II diabetes) and has been until recently considered the standard for bariatric surgical procedures. It is technically more difficult than some of the other procedures and disrupts the normal access to the biliopancreatic ducts for endoscopic evaluation. Example 3 shows a sleeve gastrectomy which involves a partial gastrectomy (~80% removed) with creation of a tubular stomach. This increasingly popular procedure is technically easier than some of the other procedures. It maintains the normal outlet anatomy, with preservation of access to the biliopancreatic ducts. Disadvantages are that it is nonreversible and has a longer staple line for potential disruption. It may be associated with increased gastroesophageal reflux. Example 4 shows staples associated with a sleeve gastrectomy and oral contrast in the duodenum and distal small bowel, but not in the intervening small bowel which is bypassed. This is a biliopancreatic diversion (now most commonly performed with duodenal switch), which involves a sleeve gastrectomy and anastomosis of a short (250 cm) roux limb to the proximal duodenum, bypassing a long segment of the small intestine. The pancreaticobiliary limb is anastomosed approximately 50 cm proximal to the ileocecal valve. This procedure involves both restrictive and significant malabsorptive effects. It promotes the greatest weight loss but has a higher complication rate than the other procedures and is also associated with greater potential for nutritional deficiencies. References: American Society for Metabolic and Bariatric Surgery. Bariatric Surgery Procedures. Available at: https://asmbs.org/patients/bariatric-surgery-procedures. Accessed June 4, 2020. Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341."}, {"number": "13d", "stem": "Identify the following bariatric surgical procedures: Identify Example 4.", "options": [{"letter": "A", "text": "Roux-en-Y gastric bypass"}, {"letter": "B", "text": "Sleeve gastrectomy"}, {"letter": "C", "text": "Adjustable gastric band (lap band)"}, {"letter": "D", "text": "Biliopancreatic diversion with duodenal switch"}], "images": ["assets/q13a_13b_13c_13d_p135_01.jpg", "assets/q13a_13b_13c_13d_p136_01.jpg", "assets/q13a_13b_13c_13d_p136_02.jpg"], "explanationImages": [], "answer": "D", "explanation": "13 Answer: 1-C; 2-A; 3-B; 4-D Bariatric surgery is currently the most effective treatment for morbid obesity. The most commonly performed procedures are the Roux-en-Y gastric bypass (RYGB), sleeve gastrectomy, adjustable gastric banding, and biliopancreatic diversion with duodenal switch. Example 1 demonstrates the adjustable gastric band performed laparoscopically (more commonly called the lap band), which involves placement of an inflatable band around the proximal stomach creating a small gastric pouch above the band. Advantages include easy reversibility with no resection of the stomach or intestine and lowest rate of early complications compared to all procedures. Later complications may be related to band slippage or erosion and less effective weight loss compared to other procedures. Example 2 is the Roux-en-Y gastric bypass (RYGB) also called gastric bypass. This procedure involves division of the proximal stomach with creation of a small gastric pouch (~30 cc). The proximal jejunum is divided, and a roux limb is attached to the gastric pouch. The roux (alimentary) limb is anastomosed to the jejunal limb draining the excluded stomach and duodenum (pancreaticobiliary limb) with both limbs draining into a common channel. This commonly performed procedure is effective for both weight loss and metabolic changes (amelioration of type II diabetes) and has been until recently considered the standard for bariatric surgical procedures. It is technically more difficult than some of the other procedures and disrupts the normal access to the biliopancreatic ducts for endoscopic evaluation. Example 3 shows a sleeve gastrectomy which involves a partial gastrectomy (~80% removed) with creation of a tubular stomach. This increasingly popular procedure is technically easier than some of the other procedures. It maintains the normal outlet anatomy, with preservation of access to the biliopancreatic ducts. Disadvantages are that it is nonreversible and has a longer staple line for potential disruption. It may be associated with increased gastroesophageal reflux. Example 4 shows staples associated with a sleeve gastrectomy and oral contrast in the duodenum and distal small bowel, but not in the intervening small bowel which is bypassed. This is a biliopancreatic diversion (now most commonly performed with duodenal switch), which involves a sleeve gastrectomy and anastomosis of a short (250 cm) roux limb to the proximal duodenum, bypassing a long segment of the small intestine. The pancreaticobiliary limb is anastomosed approximately 50 cm proximal to the ileocecal valve. This procedure involves both restrictive and significant malabsorptive effects. It promotes the greatest weight loss but has a higher complication rate than the other procedures and is also associated with greater potential for nutritional deficiencies. References: American Society for Metabolic and Bariatric Surgery. Bariatric Surgery Procedures. Available at: https://asmbs.org/patients/bariatric-surgery-procedures. Accessed June 4, 2020. Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341."}, {"number": "14", "stem": "A 53-year-old female with a history of laparoscopic gastric band placement for morbid obesity presents with increased vomiting and poor oral intake. An upper GI study was performed. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Gastric band slippage"}, {"letter": "B", "text": "Gastric perforation"}, {"letter": "C", "text": "Intraluminal band erosion"}, {"letter": "D", "text": "Normal appearance"}], "images": ["assets/q14_p137_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. Scout image from upper GI study (figure on left) demonstrates a gastric band projecting over the epigastrium with a shallow, horizontal position. The band has a slightly circular/O-shape on this frontal view (\"O sign\"), rather than a rectangular appearance. Fluoroscopic spot image from upper GI study demonstrates gastric prolapse with pouch dilation above the gastric band and near-complete outlet obstruction at the level of the band itself. There are no signs of perforation (extraluminal contrast or gas) and the band appears to be extrinsic to the gastric lumen. The laparoscopic gastric band procedure involves placement of an inflatable band approximately 2 cm below the gastroesophageal junction to create a small restrictive gastric pouch. The band may be adjusted through saline injection or withdrawal from the band via a subcutaneous port. Typically, the band is seen in near profile when viewed on a frontal radiograph of the abdomen. Slippage of the band will result in an oblique projection of the band, resulting in the O shape. A φ angle can be calculated by assessing the angle between the long axis of the band and the vertical axis of the spine (orientation of the spinous processes). Normal values should range between 4 and 58 degrees. The calculated φ angle for this patient is 88 degrees (see figure at presentation below). A change in band orientation on comparison studies is an additional valuable clue for assessing band slippage. Comparison scout image from upper GI study performed 3 years earlier, demonstrated normal rectangular appearance of the gastric band with a normal φ angle (51 degrees). Band slippage can result in stomal narrowing and/or obstruction with upstream pouch dilation. As a rule, an ingested bolus of 15 to 20 mL should distend the proximal pouch no more than 4 cm in widest diameter, and the stomal diameter at the level of the pouch should be no more than 4 mm.\n\nReferences: Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341. Sonavane SK, Menias CO, Kantawala KP, et al. Laparoscopic adjustable gastric banding: what radiologists need to know. Radiographics 2012;32(4):1161-1178."}, {"number": "15", "stem": "A 60-year-old female who had a sleeve gastrectomy performed 5 days ago undergoes a routine postoperative upper GI study. What is the diagnosis?", "options": [{"letter": "A", "text": "Normal postoperative appearance"}, {"letter": "B", "text": "Staple line leak"}, {"letter": "C", "text": "Gastrocolic fistula"}, {"letter": "D", "text": "Gastric obstruction"}], "images": ["assets/q15_p138_01.jpg", "assets/q15_p139_01.jpg"], "explanationImages": ["assets/a15_p168_01.jpg"], "answer": "B", "explanation": "Answer B. Fluoroscopic spot images from single-contrast upper GI study demonstrate abnormal contrast accumulating around the proximal margin of the gastric sleeve, compatible with a staple line leak (arrows). Opacification of a surgical drain is seen in the figure on the right. No opacification of the colon is seen, and there is no gastric obstruction with filling of the small bowel shown. Sleeve gastrectomy originated as part of a staged duodenal switch procedure for bariatric surgery and became a stand-alone procedure due to advancements in laparoscopic technique and promising results after single-stage surgery. In this procedure, a small banana-shaped stomach is fashioned by resecting portions of the greater curvature. The resulting gastric sleeve is approximately 25% of the size of the original stomach and restricts intake. The complication rate for sleeve gastrectomy is low with reported leak rate of 1.3%. Leaks often occur near the proximal end of the staple line, toward the gastroesophageal junction. Patients may present with symptoms of abdominal infection or sepsis, including fever, leukocytosis, and abdominal pain. Sleeve gastrectomies may also develop strictures along the staple line as in this case below. These may be treated endoscopically or surgically depending upon the severity.\n\nReferences: Deitel M, Gagner M, Erickson AL, et al. Third International Summit: current status of sleeve gastrectomy. Surg Obes Relat Dis 2011;7(6):749-759. Levine MS, Carucci LR. Imaging of bariatric surgery: normal anatomy and postoperative complications. Radiology 2014;270(2):327-341."}, {"number": "16", "stem": "A 50-year-old female with a history of laparoscopic Roux-en-Y gastric bypass presents with a history of persistent abdominal pain and poor weight loss. An upper GI study was performed. What finding is demonstrated?", "options": [{"letter": "A", "text": "Esophageal reflux"}, {"letter": "B", "text": "Gastrocolic fistula"}, {"letter": "C", "text": "Gastrogastric fistula"}, {"letter": "D", "text": "Efferent limb obstruction"}], "images": ["assets/q16_p140_01.jpg", "assets/q16_p141_01.jpg"], "explanationImages": ["assets/a16_p171_01.jpg"], "answer": "C", "explanation": "Answer C. Fluoroscopic spot images from single-contrast upper GI study demonstrate postoperative changes compatible with Roux-en-Y gastric bypass surgery. There is prompt opacification of the gastric pouch in the figure on the left, along with opacification of the efferent limb of the gastrojejunostomy and simultaneous opacification of the excluded stomach, which progressively fills in the figure on the right. In Roux-en-Y gastric bypass surgery, a small gastric pouch is divided from the remainder of the stomach and drained via a gastrojejunostomy limb to create a restrictive bariatric effect (in addition to hormonal changes promoting loss of appetite). The gastric remnant remains in situ and drains through the normal anatomic route, including duodenal C-loop and proximal jejunum. After surgery, contrast should normally pass from the esophagus through the gastric pouch and into the efferent limb of the gastrojejunostomy. The gastric remnant should not opacify during ingestion of contrast material, although a small amount may appear on a delayed basis due to retrograde flow from the pancreaticobiliary limb at the jejunojejunostomy. A gastro-gastric fistula may occur as a result of gastric pouch staple line dehiscence (such as from pouch overdistention, infection, or ischemia) with organization and communication of the leak to the excluded stomach. Patients may present with poor postoperative weight loss.\n\nReferences: Chandler RC, Srinivas G, Chintapalli KN, et al. Imaging in bariatric surgery: a guide to postsurgical anatomy and common complications. AJR Am J Roentgenol 2008;190(1):122-135. Scheirey CD, Scholz FJ, Shah PC, et al. Radiology of the laparoscopic Roux-en-Y gastric bypass procedure: conceptualization and precise interpretation of results. Radiographics 2006;26(5):1355-1371."}, {"number": "17", "stem": "What type of artifact is illustrated in the CT scan below?", "options": [{"letter": "A", "text": "Quantum mottle"}, {"letter": "B", "text": "Wrap-around artifact"}, {"letter": "C", "text": "Truncation artifact"}, {"letter": "D", "text": "Beam hardening"}], "images": ["assets/q17_p142_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Image truncation artifact is illustrated on the left side of the images. When a patient's girth exceeds the field of view, the scan reconstruction assumes that the beam attenuation is caused by tissue within the field of view. The resulting reconstructed image will have high attenuation around the periphery of the image. The artifact may be eliminated by increasing the field of view to include all the tissues, but at a cost of decreasing the resolution and thus affecting the image quality negatively.\n\nReferences: Fursevich DM, LiMarzi GM, O'Dell MC, et al. Bariatric CT imaging: challenges and solutions. Radiographics 2016;36(4):1076-1086. Huda W, Scalzetti EM, Levin G. Technique factors and image quality as functions of patient weight at abdominal CT. Radiology 2000;217(2):430-435."}, {"number": "18", "stem": "A 26-year-old female presents with cramping epigastric pain. An upper GI and small bowel follow-through examination is performed. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "H. pylori gastroduodenitis"}, {"letter": "B", "text": "Crohn disease"}, {"letter": "C", "text": "Eosinophilic gastroenteritis"}, {"letter": "D", "text": "Pancreatitis"}], "images": ["assets/q18_p143_01.jpg", "assets/q18_p144_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The upper GI with small bowel follow-through demonstrates narrowing and deformity of the duodenal C-loop with thickened or effaced folds. The gastric antrum appears slightly coned as well. The small bowel follow-through demonstrates additional segments of small bowel abnormality, including marked narrowing at the terminal ileum with a \"string sign\" (arrow) and redundancy of portions of the small bowel wall with pseudosacculations (arrowheads). While a number of conditions included among the answer choices may cause gastroduodenal fold thickening, the only entity which would be associated with the more distal small bowel abnormalities is Crohn disease. Clinically significant Crohn disease involving the stomach and duodenum is seen in up to 4% of patients, usually with other sites of involvement. Gastric wall and duodenal fold thickening is present, and the gastric antrum can have a rigid appearance (ram's horn sign). Eosinophilic gastroenteritis is an uncommon condition associated with an eosinophilic infiltrate, peripheral eosinophilia; food allergies or other atopic history is common. Presentation can mimic peptic ulcer disease. Pancreatitis commonly causes wall edema of the stomach and duodenum, and if severe can lead to outlet obstruction.\n\nReferences: Farman J, Faegenburg D, Dallemand S, Chen CK. Crohn's disease of the stomach: the \"ram's horn\" sign. Am J Roentgenol Radium Ther Nucl Med 1975;123(2):242-251. Kefalas CH. Gastroduodenal Crohn's disease. Proc (Bayl Univ Med Cent) 2003;16(2):147-151."}, {"number": "19", "stem": "An 86-year-old female with symptoms of mild early satiety has an upper GI barium examination. What is the name for the gastric abnormality seen?", "options": [{"letter": "A", "text": "Organoaxial rotation"}, {"letter": "B", "text": "Mesenteroaxial rotation"}, {"letter": "C", "text": "Borchardt hernia"}, {"letter": "D", "text": "Bochdalek hernia"}], "images": ["assets/q19_p145_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. On this patient's upper GI study, the stomach is located entirely within the chest. There is organoaxial rotation of the stomach and moderately gastric distention suggesting a partial obstruction. There is progression of barium through the pylorus however. Abnormal rotation of the stomach may occur in two major forms: organoaxial and mesenteroaxial. With organoaxial rotation, the more common variant, the stomach rotates along its long axis with the greater curvature located cephalad to the lesser curvature as in this case. With a mesenteroaxial rotation, the stomach rotates along its short axis, with the antrum displaced above the gastroesophageal junction. Organoaxial rotation is often associated with a paraesophageal hernia or traumatic diaphragmatic defect. If the stomach rotates more than 180 degrees, a closed loop obstruction results and is called a volvulus. The term \"volvulus\" is commonly used to describe the abnormal rotation, but probably should be reserved for those cases which result in an obstruction. The clinical triad of a complete volvulus with sudden epigastric pain, intractable nonproductive retching, and inability to pass a nasogastric tube is known as the Borchardt triad. Complete gastric volvulus is a surgical emergency, with the stomach at risk for ischemia and perforation if the volvulus is not repaired. The mesenteroaxial variant has a higher risk than organoaxial for a complete volvulus.\n\nReferences: Abbara S, Kalan MM, Lewicki AM. Intrathoracic stomach revisited. AJR Am J Roentgenol 2003;181(2):403-414. Peterson CM, Anderson JS, Hara AK, et al. Volvulus of the gastrointestinal tract: appearances at multimodality imaging. Radiographics 2009;29(5):1281-1293."}, {"number": "20", "stem": "A 74-year-old female with a history of hiatal hernia presents to the emergency department with acute onset of nausea and vomiting. An upper GI study was performed. Based on these results, the most appropriate treatment strategy is", "options": [{"letter": "A", "text": "Discharge to home with prescription for proton pump inhibitor."}, {"letter": "B", "text": "Obtain a CT scan of the chest and abdomen."}, {"letter": "C", "text": "Admit to internal medicine service for observation."}, {"letter": "D", "text": "Obtain surgical consultation for urgent operation."}], "images": ["assets/q20_p146_01.jpg", "assets/q20_p147_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Fluoroscopic spot images demonstrate a complex hernia. The ingested contrast enters from the esophagus into the proximal gastric body, which is located below the diaphragm (image on left), subsequently filling a large paraesophageal hernia that contains the distal gastric body and much of the antrum (image on right). The herniated stomach has rotated along the gastric short axis, with the pylorus now situated near the gastric fundus and the antrum above the level of the gastroesophageal (GE) junction. There is little passage of contrast through the pylorus into the duodenum. The clinical and imaging features in this patient with acute onset of vomiting are diagnostic of gastric volvulus with acute obstruction. Paraesophageal hernias are at risk for development of volvulus, which can result in gastric ischemia, necrosis, and perforation if left untreated. Although some patients with paraesophageal hernias may by asymptomatic or have intermittent mild symptoms, patients with progressive symptoms or acute obstruction require emergent surgery. Below is an example of a mesenteroaxial rotation (note the cephalad antral position relative to the GE junction) without complete obstruction. Mesenteroaxial volvulus.\n\nReferences: Abbara S, Kalan MM, Lewicki AM. Intrathoracic stomach revisited. AJR Am J Roentgenol 2003;181(2):403-414. Levine MS. Stomach. In: Levine MS, Ramchandani P, Rubesin SE, eds. Practical fluoroscopy of the GI and GU tracts. New York, NY: Cambridge University Press; 2012:73-104."}, {"number": "21", "stem": "A 77-year-old male underwent ERCP for suspected choledocholithiasis. Cannulation of the bile duct was technically challenging. He was afebrile and clinically stable at the time of the follow- up CT. What is the most likely cause of the finding below?", "options": [{"letter": "A", "text": "Clostridium infection"}, {"letter": "B", "text": "Ischemia"}, {"letter": "C", "text": "Iatrogenic from the ERCP"}, {"letter": "D", "text": "Benign pneumatosis related to underlying COPD"}], "images": ["assets/q21_p148_01.jpg", "assets/q21_p149_01.jpg"], "explanationImages": ["assets/a21_p177_01.jpg"], "answer": "C", "explanation": "Answer C. Images from the CT demonstrate gas in the wall of the stomach, known as gastric emphysema (or pneumatosis). Gastric emphysema is an uncommon finding and has a number of causes which range from serious and life-threatening to benign and self-limited. When infection with a gas-forming organism is present, the condition has very high mortality rate (60% to 80%) and is called emphysematous gastritis. Of the possible visceral sites of involvement, the stomach is the least commonly affected. Caustic ingestion and alcohol abuse are the most common causes of mucosal injury-associated emphysematous gastritis. Causative bacteria include Escherichia coli, Clostridium perfringens, and Staphylococcus aureus. This patient's improved clinical status does not fit the expected clinical course for either emphysematous gastritis or ischemia. Given his history, the findings more likely represent benign gastric emphysema, introduced during his unsuccessful endoscopic procedure. Intramural dissection during these procedures and high intraluminal pressure created by air insufflation lead to the ingress of intramural air. Traumatic nasogastric tube placements have been described as another procedural cause. Benign gastric emphysema may also be seen in the setting of COPD, especially with persistent vigorous coughing, but this would likely cause more diffuse small bowel involvement than seen in this case. Gastric outlet obstruction from any cause can lead to increased intraluminal pressure. Mucosal disruption from an ulcer or tumor may be the entrance site for the gas.\n\nReferences: Grayson DE, Abbott RM, Levy AD, et al. Emphysematous infections of the abdomen and pelvis: a pictorial review. Radiographics 2002;22(3):543-561. Johnson PT, Horton KM, Edil BH, et al. Gastric pneumatosis: the role of CT in diagnosis and patient management. Emerg Radiol 2011;18(1):65-73."}, {"number": "22", "stem": "An image from an abdominal CT is shown. What features produce this artifact?", "options": [{"letter": "A", "text": "The artifact is a result of both image acquisition and reconstruction processes."}, {"letter": "B", "text": "The artifact may be eliminated by slower scanning."}, {"letter": "C", "text": "The artifact is caused by the presence of stationary gas bubbles."}, {"letter": "D", "text": "The artifact is increased with solid food ingestion."}], "images": ["assets/q22_p150_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The CT shows a series of gas-attenuation semicircles along the lesser curvature of the contrast-filled stomach. This represents a gas bubble motion artifact. A gas bubble motion artifact is described as an air-attenuation curvilinear structure that is created by a moving gas bubble through a liquid. The artifact is caused by both the image acquisition and reconstruction processes. The artifact is produced as the rotating gantry continuously measures the gas bubble during its trajectory. The reconstruction technique utilized assumes the attenuation measurement is from a stationary object. As the assumption is incorrect, the back projection maps the finding to an incorrect location. The shape and size of the artifact is affected by the bubble size and velocity, the scanner rotation speed, and the relative position of the X-ray tube. Theoretically scanning faster (not slower) should eliminate an artifact based upon motion although current scan acquisition times are still slightly too slow to accomplish this.\n\nReferences: Liu F, Cuevas C, Moss AA, et al. Gas bubble motion artifact in MDCT. AJR Am J Roentgenol 2008;190(2):294-299."}, {"number": "23", "stem": "An 81-year-old male presents to the emergency department with a history of acute abdominal pain after several hours of severe intermittently productive retching. He becomes hypotensive and a CT without contrast is obtained, due to renal impairment. What is the diagnosis?", "options": [{"letter": "A", "text": "Large sliding hiatal hernia with pneumobilia"}, {"letter": "B", "text": "Nasogastric tube perforation of the esophagus with mediastinal abscess"}, {"letter": "C", "text": "Large paraesophageal hernia with gastric ischemia and perforation"}, {"letter": "D", "text": "Achalasia with perforation"}], "images": ["assets/q23_p151_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The CT study demonstrates distention of the stomach within a large paraesophageal hernia (note the nasogastric tube in the intact nondilated esophagus posterior to the hernia). There is pneumatosis in the gastric wall. In the abdomen, there is intraperitoneal free air and branching, peripheral gas within the liver consistent with portal venous gas. Absent another cause for gastric ischemia, the likely etiology in this patient is antecedent incarceration of the paraesophageal hernia. Prior reports cited high lethal complication rates for incarcerated paraesophageal hernias as well as high operative mortality rates for emergent repair (56% in one series). Because of these reports, the prevailing recommendation has traditionally been for elective repair of most paraesophageal hernias, even if patients are asymptomatic. More recent series have suggested that both the rates of complications of unrepaired hernias and the surgical mortality have been overestimated, and that repair may be more selectively offered to patients who are symptomatic.\n\nReferences: Schieman C, Grondin SC. Paraesophageal hernia: clinical presentation, evaluation, and management controversies. Thorac Surg Clin 2009;19(4):473-484. Stylopoulos N, Gazelle GS, Rattner DW. Paraesophageal hernias: operation or observation? Ann Surg 2002;236(4):492-500; discussion 500-491."}, {"number": "24", "stem": "A 38-year-old female with epigastric pain undergoes an upper GI study. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Epiphrenic diverticulum"}, {"letter": "B", "text": "Gastric diverticulum"}, {"letter": "C", "text": "Slipped fundoplication"}, {"letter": "D", "text": "Gastric fundal ulcer"}], "images": ["assets/q24_p152_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. There is a large barium and gas containing structure extending posteriorly from the gastric fundus below the diaphragm. This is the typical location for a gastric diverticulum. This originates from the stomach, not the esophagus as would be expected for an epiphrenic diverticulum. This diverticulum is smoothly marginated and lined with normal-appearing mucosa, distinguishing it from a giant ulcer. The neck of the diverticulum is oriented in the vertical plane, orthogonal to the expected plane of a fundoplication impression. Fundal diverticula are congenital true diverticula containing all wall layers. These are rare, present in 0.12% of patients on a large series of abdominal CTs. These are most commonly asymptomatic, although they may trap gastric contents, ulcerate, or rarely torse. The other described location of gastric diverticula is in the antrum; these are acquired pulsion-type outpouchings and are pseudodiverticula not containing all layers of the gastric wall.\n\nReferences: Rashid F, Aber A, Iftikhar SY. A review on gastric diverticulum. World J Emerg Surg 2012;7(1):1. Schramm D, Bach AG, Zipprich A, et al. Imaging findings of gastric diverticula. ScientificWorldJournal 2014;2014:923098."}, {"number": "25", "stem": "A 20-year-old female presents with a 2-week history of abdominal pain and nausea. On examination, she has a palpable periumbilical mass. She has a CT scan performed. She is not diabetic and is on no medications that would affect gastric motility. What should be recommended as the next step in evaluation?", "options": [{"letter": "A", "text": "Endoscopic evaluation"}, {"letter": "B", "text": "Surgical consultation"}, {"letter": "C", "text": "PET scan"}, {"letter": "D", "text": "Gastric emptying study"}], "images": ["assets/q25_p153_01.jpg", "assets/q25_p154_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The CT demonstrates a stomach distended with a cast of mottled density material surrounded by a rim of oral contrast which does not mix with the central material suggesting a bezoar. Upon questioning, the patient admitted to a 7-year history of chewing her hair. Hair is not digestible in the gastrointestinal tract and will accumulate in the stomach. Endoscopy should be the next step in evaluation to confirm that the material is not ordinary ingested food and to attempt removal of the material. Ultimately however, most patients require a surgical removal of the bezoar. Rapunzel syndrome refers to the condition of ingesting hair (trichophagia), often associated with a hair-pulling impulse control disorder (trichotillomania). The resulting trichobezoar consists of the large gastric portion and a long tail extending into the small bowel and possibly the right colon. The other most common type of bezoar is known as a phytobezoar, composed of vegetable and fruit material (commonly persimmons). These may pass into the small bowel and cause obstruction. CT is the ideal method of imaging bezoars, assessing for degree of obstruction, and identifying possible multiple bezoars.\n\nReferences: Gaillard M, Tranchart H. Images in clinical medicine. Trichobezoar. N Engl J Med 2015;372(6):e8. Ripolles T, Garcia-Aguayo J, Martinez MJ, et al. Gastrointestinal bezoars: sonographic and CT characteristics. AJR Am J Roentgenol 2001;177(1):65-69."}, {"number": "26", "stem": "Regarding gastric erosions, which of the following statements is TRUE?", "options": [{"letter": "A", "text": "Gastric erosions are best visualized on single-contrast UGI."}, {"letter": "B", "text": "Gastric erosions are the most common radiographic manifestation of gastritis due to H. pylori infection."}, {"letter": "C", "text": "Gastric erosions are most commonly located in the stomach fundus."}, {"letter": "D", "text": "Gastric erosions are nonspecific and may be seen with a number of different etiologies."}], "images": ["assets/q26_p155_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. The upper GI demonstrates multiple small collections of barium that are surrounded by a lucent halo of edema. These are best seen with double-contrast technique, although they may be seen on single-contrast examinations with the use of compression. Gastric erosions are most commonly seen in the antrum and have a tendency to line up along folds. Gastric erosions are a nonspecific finding and may be seen in gastritis from a number of different etiologies. NSAIDs are the most common cause. Other causes include alcohol, stress, trauma, burns, viral or fungal infections, and Crohn disease. H. pylori infection causes gastritis with a number of radiographic features, of which thickened or polypoid folds are found to be the most commonly demonstrated feature.\n\nReferences: Chen MY, Ott DJ, Clark HP, et al. Gastritis: classification, pathology, and radiology. South Med J 2001;94(2):184-189. Ott DJ, Gelfand DW, Wu WC, et al. Sensitivity of single- vs. double-contrast radiology in erosive gastritis. AJR Am J Roentgenol 1982;138(2):263-266. Sohn J, Levine MS, Furth EE, et al. Helicobacter pylori gastritis: radiographic findings. Radiology 1995;195(3):763-767. D. H. pylori gastritis is an indolent process with little long-term significance."}, {"number": "27", "stem": "A 34-year-old patient with a history of dyspepsia undergoes an upper GI barium study. Based upon the findings, what is the next best step?", "options": [{"letter": "A", "text": "The findings are likely benign, and no further workup is warranted in this young patient."}, {"letter": "B", "text": "The findings are likely benign, and a repeat upper GI barium study is recommended after a trial of proton pump inhibitor (PPI) therapy."}, {"letter": "C", "text": "The findings are possibly malignant and endoscopy with polypectomy warranted."}, {"letter": "D", "text": "The findings are possibly malignant and endoscopy with polypectomy is recommended and screening colonoscopy should be considered."}], "images": ["assets/q27_p181_01.jpg"], "explanationImages": ["assets/a27_p185_01.jpg"], "answer": "D", "explanation": "Answer D. Several polyps are demonstrated on this double-contrast UGI examination including a large pedunculated polyp. The presence of a stalk can be inferred on this en face view due to an inner ring (Mexican hat sign). Mexican hat sign. Gastric adenomas may be sessile or pedunculated, with the small sessile lesions indistinguishable from other benign polyps (hyperplastic or fundic gland). Polyps that are pedunculated and large are more likely adenomatous polyps. Adenomas (recently renamed raised intraepithelial neoplasia) are premalignant lesions, and similar to those occurring in the colon progress to carcinoma through increasing degrees of dysplasia. Most benign sessile polyps are <1 cm in size and multiple, while adenomas are more commonly solitary and >1 cm in size. Risk of malignancy increases with size, with 50% of polyps over 2 cm in size found to have foci of cancer. All large or potentially suspicious polyps should therefore be removed by polypectomy or surgery if necessary. Adenomas frequently arise in a background of atrophic gastritis, which is itself associated with a high risk for gastric carcinoma, and surveillance of the remainder of the stomach for separate cancers is important. Gastric adenomatous polyps are present in about 10% of patients with familial adenomatous polyposis (FAP) but malignant potential is unclear with some studies showing risk for development of gastric carcinoma in patients with FAP not increased compared to that of the background population in western countries. Given this patient's young age and multiple polyps, screening for FAP would be recommended in addition to endoscopy with colonoscopy and potential genetic testing.\n\nReferences: Gore RM, Levine MS. Textbook of gastrointestinal radiology, 4th ed. Philadelphia, PA: Elsevier/Saunders, 2015. Lauwers GY, Srivastava A. Gastric preneoplastic lesions and epithelial dysplasia. Gastroenterol Clin North Am 2007;36(4):813-829, vi. Ming SC II. Malignant potential of gastric polyps. Gastrointest Radiol 1976;1(2):121-125. Ngamruengphong S, Boardman LA, Heigh RI, et al. Gastric adenomas in familial adenomatous polyposis are common, but subtle, and have a benign course. Hered Cancer Clin Pract 2014;12(1):4."}, {"number": "28", "stem": "A 38-year-old male presents with epigastric pain and has an upper GI barium examination. What is the next best step?", "options": [{"letter": "A", "text": "The findings are likely malignant and endoscopy with polypectomy is recommended."}, {"letter": "B", "text": "The findings are likely benign, and no further workup is necessary."}, {"letter": "C", "text": "The findings are likely benign, but the patient should undergo endoscopy with biopsy and colonoscopy should be considered."}, {"letter": "D", "text": "The findings are likely benign, but endoscopy with polypectomy is still warranted."}], "images": ["assets/q28_p182_01.jpg", "assets/q28_p183_01.jpg", "assets/q28_p184_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. On this double-contrast UGI examination, multiple small sessile polyps are present in the stomach. Most gastric polyps are benign, the two most common types being hyperplastic and fundic gland polyps (FGPs). Hyperplastic polyps were formerly the most common type of gastric polyp, and they remain so in countries where Helicobacter pylori infection is prevalent. In western countries, where H. pylori infection is decreasing and there is widespread use of PPIs, FGPs are now the most common type of gastric polyp, accounting for 50% to 70% of all gastric polyps found on endoscopy. There is a negative correlation between FGPs and H. pylori infection: H. pylori infection is rarely seen in the presence of FGPs, and FGPs regress with the onset of H. pylori infection. Hyperplastic polyps are a response to chronic inflammation, and there is an increased risk for a synchronous gastric cancer when atrophic gastritis is present. For this reason, even though small sessile polyps are statistically highly likely benign, endoscopy is still warranted to evaluate for separate cancers. FGPs are most commonly sporadic but are also seen in up to 84% of patients with familial adenomatous polyposis (FAP). Sporadic FGPs have a very low or no malignant potential. When associated with FAPs, the FGPs are more commonly multiple and present at younger age. FGPs associated with FAP may have an increased incidence of dysplasia but still remain very low risk for malignant transformation. If >20 FGPs are present and if the patient is under the age of 40, these patients should undergo testing including screening colonoscopy for FAP syndrome. (Answer D is not incorrect, but Answer C is a better choice in this young patient.)\n\nReferences: Carmack SW, Genta RM, Schuler CM, et al. The current spectrum of gastric polyps: a 1-year national study of over 120,000 patients. Am J Gastroenterol 2009;104(6):1524-1532. Spiegel A, Stein P, Patel M, et al. A report of gastric fundic gland polyps. Gastroenterol Hepatol (N Y) 2010;6(1):45-48."}, {"number": "29", "stem": "Regarding H. pylori infection in the United States, which of the following statements is TRUE?", "options": [{"letter": "A", "text": "H. pylori is an uncommon gram-positive rod that typically affects young patients."}, {"letter": "B", "text": "H. pylori infection is frequently encountered in patients with gastric and duodenal ulcers."}, {"letter": "C", "text": "H. pylori gastritis is readily distinguished from Ménétrier disease on upper GI studies."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. H. pylori is a common gram-negative bacillus in westernized populations, estimated to occur in >50% of patients over the age of 50 years. It is the most common cause of chronic gastritis, and its presence can be documented in most cases of gastric and duodenal ulcers. H. pylori gastritis is the number one cause of gastric fold thickening which can be either diffuse or localized. The degree of gastric fold thickening is often mild to moderate. However, marked fold thickening can be seen, and overlaps with other entities that result in giant gastric folds such as Ménétrier disease and Zollinger-Ellison syndrome. While H. pylori gastritis can result in localized symptoms of epigastric pain and dyspepsia, it is also an important causative factor in the development of gastric carcinoma and gastric lymphoma.\n\nReferences: Levine MS. Stomach. In: Levine MS, Ramchandani P, Rubesin SE, eds. Practical fluoroscopy of the GI and GU tracts. New York, NY: Cambridge University Press; 2012:73-104. Rubesin SE, Levine MS, Laufer I. Double-contrast upper gastrointestinal radiography: a pattern approach for diseases of the stomach. Radiology 2008;246(1):33-48."}];
+    const APP_ID = "gi-imaging-stomach-quiz-ch2";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
