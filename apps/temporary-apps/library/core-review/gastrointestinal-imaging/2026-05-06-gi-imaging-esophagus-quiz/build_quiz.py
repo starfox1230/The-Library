@@ -15,6 +15,45 @@ ASSET_DIR = APP_DIR / "assets"
 
 TITLE = "Gastrointestinal Imaging Pharynx and Esophagus Quiz"
 APP_ID = "gi-imaging-esophagus-quiz-ch1"
+DEFAULT_SEED_VERSION = 2
+DEFAULT_SELECTED = {
+    "1": "C",
+    "2": "B",
+    "3": "B",
+    "4": "B",
+    "5": "C",
+    "6": "A",
+    "7": "B",
+    "8a": "A",
+    "8b": "B",
+    "8c": "E",
+    "9": "D",
+    "10": "C",
+    "11a": "D",
+    "11b": "B",
+    "12": "A",
+    "13": "C",
+    "14": "D",
+    "15": "A",
+    "16": "C",
+    "17a": "B",
+    "17b": "D",
+    "18a": "D",
+    "18b": "B",
+    "19a": "B",
+    "19b": "C",
+    "20a": "B",
+    "20b": "C",
+    "21": "D",
+    "22": "D",
+    "23": "D",
+    "24": "C",
+    "25": "C",
+    "26": "A",
+    "27a": "C",
+    "27b": "E",
+    "28": "D",
+}
 
 # Zero-based PDF page indexes for chapter 1.
 QUESTION_RANGES = [range(10, 55), range(93, 109)]
@@ -356,7 +395,17 @@ def render_html(questions: list[dict]) -> str:
     template = template.replace("nuclear-medicine-genitourinary-quiz-ch9", APP_ID)
     template = template.replace("nuclear-medicine-pediatric-quiz-ch10", APP_ID)
     template = template.replace("nuclear-medicine-oncology-quiz-ch11", APP_ID)
-    template = re.sub(r"const DEFAULT_SELECTED = \{.*?\};", "const DEFAULT_SELECTED = {};", template)
+    default_selected_json = json.dumps(DEFAULT_SELECTED, ensure_ascii=False)
+    template = re.sub(r"const DEFAULT_SELECTED = \{.*?\};", f"const DEFAULT_SELECTED = {default_selected_json};", template)
+    template = re.sub(r"(const DEFAULT_SELECTED = .*?;\n)", rf"\1    const DEFAULT_SEED_VERSION = {DEFAULT_SEED_VERSION};\n", template)
+    template = template.replace(
+        "if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };",
+        "if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };",
+    )
+    template = template.replace(
+        "appId: APP_ID,\n        savedAt:",
+        "appId: APP_ID,\n        defaultSeedVersion: DEFAULT_SEED_VERSION,\n        savedAt:",
+    )
     return template
 
 
