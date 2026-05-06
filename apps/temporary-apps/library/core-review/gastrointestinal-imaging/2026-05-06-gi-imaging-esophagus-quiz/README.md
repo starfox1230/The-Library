@@ -24,10 +24,12 @@ The generated module has 52 scored entries because several source questions have
 ## Extraction Notes
 
 - Use `pypdf` layout extraction: `extract_text(extraction_mode="layout")`.
-- Default answers are intentionally empty: `const DEFAULT_SELECTED = {};`.
+- Default answers are seeded from the highlighted choices in the source PDF for this chapter.
 - q2 and q32 have answer choices embedded as figure panels, so the generator supplies generic `Case A-E` and `Case A-D` options.
 - q34b is a matching anatomy-label question. The generator splits it into `34bA` through `34bH`, sharing the source images and using the numbered anatomy labels as answer choices.
 - Image alignment was manually mapped because image pages frequently sit between the stem and choices.
+- For future GI chapters, do not rely on nearest-question page adjacency. Generate a contact sheet of all extracted question images, then compare every image-bearing PDF page against the page's text flow. If a page contains answer choices for one question and a new stem below, decide whether the image belongs to the previous stem, the current choices, or the next stem. Use per-image overrides when one PDF page contains unrelated figures.
+- After rebuilding, print every question number with its image paths and skim for shifted filenames, especially around multi-page cases, lettered subparts, and pages where figures sit above answer choices. Also verify that subparts sharing a stem inherit the correct parent image and that explanation-side figures remain in `explanationImages`.
 
 ## Required UI Behavior
 
