@@ -64,6 +64,14 @@ For migrated copies:
 - Add a small top-of-page link back to the previous/original app URL so users can open the old copy and export JSON if their local browser state does not appear in the new location.
 - After a grace period, remove old copies only after confirming users no longer need old local saves.
 
+For new chapters created after the Core Review reorganization, create only the organized app under:
+
+```text
+apps/temporary-apps/library/core-review/<book-slug>/<YYYY-MM-DD-chapter-slug>/
+```
+
+Do not create a new duplicate legacy/root-level folder for new chapters unless the user explicitly asks for one. Register only the organized app path in `apps/temporary-apps/index.html` and add/update the chapter link in `apps/temporary-apps/library/core-review/index.html`.
+
 ## Required Validation
 
 For apps under `apps/temporary-apps/library/`:
