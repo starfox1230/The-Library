@@ -53,6 +53,17 @@ Only preselect answers when explicitly requested. If the user asks for highlight
 const DEFAULT_SELECTED = {};
 ```
 
+## Reorganizing Existing Quiz Apps
+
+If moving these apps into a more organized library folder, copy them first and leave the original folders in place until users have had a chance to export/import saved state JSON. Browser `localStorage` may not automatically follow a changed `file://` URL or hosted path, even when the quiz content is identical.
+
+For migrated copies:
+
+- Keep each quiz's `APP_ID` unchanged forever so exported state JSON remains compatible.
+- Do not prefill or reset user answers during the move.
+- Add a small top-of-page link back to the previous/original app URL so users can open the old copy and export JSON if their local browser state does not appear in the new location.
+- After a grace period, remove old copies only after confirming users no longer need old local saves.
+
 ## Required Validation
 
 For apps under `apps/temporary-apps/library/`:

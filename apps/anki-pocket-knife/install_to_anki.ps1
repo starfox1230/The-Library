@@ -59,6 +59,9 @@ Get-ChildItem -Path $source -Force | Where-Object {
     }
 
     if ($_.PSIsContainer) {
+        if (Test-Path $destination) {
+            Remove-Item -Path $destination -Recurse -Force
+        }
         Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
     } else {
         Copy-Item -Path $_.FullName -Destination $destination -Force
