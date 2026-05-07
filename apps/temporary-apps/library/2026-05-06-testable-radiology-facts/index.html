@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selectable Testable Radiology Facts</title>
+<style>
+  :root {
+    --bg: #080b12;
+    --panel: #111827;
+    --panel2: #0f172a;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --selected: #164e63;
+    --selected-border: #67e8f9;
+    --danger: #ef4444;
+    --ok: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #111827 0, var(--bg) 55%);
+    color: var(--text);
+    line-height: 1.45;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(8, 11, 18, 0.96);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #1f2937;
+    padding: 12px 14px;
+  }
+  .toprow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  h1 {
+    font-size: 1.08rem;
+    margin: 0 0 8px 0;
+    letter-spacing: 0.02em;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  button {
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary {
+    background: linear-gradient(135deg, #075985, #4c1d95);
+    border-color: var(--accent);
+  }
+  button.danger { border-color: #7f1d1d; color: #fecaca; }
+  .status {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 14px;
+    padding: 14px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    aside { position: static !important; max-height: none !important; }
+  }
+  section, aside {
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid #1f2937;
+    border-radius: 18px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+  }
+  section { padding: 12px; }
+  aside {
+    position: sticky;
+    top: 88px;
+    max-height: calc(100vh - 102px);
+    overflow: auto;
+    padding: 12px;
+  }
+  h2 {
+    margin: 24px 0 10px;
+    font-size: 1.25rem;
+    color: #bfdbfe;
+    border-bottom: 1px solid #1f2937;
+    padding-bottom: 6px;
+  }
+  h2:first-child { margin-top: 4px; }
+  h3 {
+    margin: 18px 0 8px;
+    font-size: 1.05rem;
+    color: #ddd6fe;
+  }
+  .note {
+    color: var(--muted);
+    margin: 8px 0 12px;
+  }
+  .fact {
+    margin: 6px 0;
+    padding: 10px 12px;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.72);
+    cursor: pointer;
+    user-select: none;
+  }
+  .fact:hover {
+    border-color: #475569;
+    background: rgba(30, 41, 59, 0.85);
+  }
+  .fact.selected {
+    background: linear-gradient(135deg, rgba(14, 116, 144, 0.62), rgba(88, 28, 135, 0.45));
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 1px rgba(103,232,249,0.18), 0 0 22px rgba(56,189,248,0.16);
+  }
+  .fact.selected::before {
+    content: "✓ ";
+    color: var(--ok);
+    font-weight: 700;
+  }
+  .favorite-item {
+    border: 1px solid #263244;
+    background: rgba(2, 6, 23, 0.55);
+    border-radius: 12px;
+    padding: 9px 10px;
+    margin: 7px 0;
+    font-size: 0.9rem;
+  }
+  .favorite-item .section-label {
+    display: block;
+    color: var(--accent);
+    font-size: 0.76rem;
+    margin-bottom: 3px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    background: #020617;
+    color: var(--text);
+    padding: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  .help {
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin: 6px 0 12px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Selectable Testable Radiology Facts</h1>
+  <div class="toprow">
+    <div class="toolbar">
+      <button class="primary" id="copyBtn">Copy favorites</button>
+      <button id="showTextBtn">Refresh copy box</button>
+      <button class="danger" id="clearBtn">Clear favorites</button>
+    </div>
+    <div class="status"><span id="count">0</span> selected</div>
+  </div>
+</header>
+
+<main>
+  <section id="content"></section>
+  <aside>
+    <h2 style="margin-top:0;">Favorites</h2>
+    <p class="help">Tap any fact on the left to add or remove it. Favorites save automatically in this browser. Use “Copy favorites” to copy them for pasting elsewhere.</p>
+    <div id="favorites"></div>
+    <textarea id="copyBox" placeholder="Selected facts will appear here."></textarea>
+  </aside>
+</main>
+
+<script>
+const elements = [{"type": "note", "text": "Testable Radiology Facts from the Transcript", "section": ""}, {"type": "note", "text": "I cleaned this into testable radiology facts, ignoring obvious transcription filler/banter. Sources: uploaded transcript 1, transcript 2, and transcript 3.", "section": ""}, {"type": "h2", "text": "Vascular / Doppler"}, {"type": "h3", "text": "AV fistula"}, {"type": "fact", "text": "Arterialized venous waveform in a vein suggests an AV fistula.", "section": "AV fistula"}, {"type": "fact", "text": "Proximal to a fistula, the feeding artery may show persistent forward diastolic flow instead of normal high-resistance peripheral arterial flow.", "section": "AV fistula"}, {"type": "fact", "text": "In a normal peripheral end artery, diastolic flow should approach baseline and may transiently reverse.", "section": "AV fistula"}, {"type": "fact", "text": "Distal/past the fistula, the artery may show reversed diastolic flow because flow is being “sumped” back into the low-resistance fistula.", "section": "AV fistula"}, {"type": "fact", "text": "You may diagnose the fistula without seeing the tract if you see proximal persistent forward diastolic flow, arterialized venous flow at the level of the fistula, and reversed diastolic flow distal to the fistula.", "section": "AV fistula"}, {"type": "fact", "text": "Treatment is covered stent for significant cases.", "section": "AV fistula"}, {"type": "fact", "text": "Small, recent, asymptomatic post-groin-stick fistulas may be managed conservatively with follow-up.", "section": "AV fistula"}, {"type": "h3", "text": "Native renal artery stenosis"}, {"type": "fact", "text": "Direct Doppler criteria include peak systolic velocity approximately greater than 200 cm/s, renal artery-to-aorta ratio greater than 3.5:1, and spectral broadening from turbulence.", "section": "Native renal artery stenosis"}, {"type": "fact", "text": "Older velocity cutoff mentioned: 180 cm/s, but 200 cm/s was emphasized.", "section": "Native renal artery stenosis"}, {"type": "fact", "text": "Indirect downstream findings include tardus parvus waveform, delayed systolic acceleration, post-stenotic low resistance waveform, and side-to-side resistive index difference greater than 0.1 or about 10%.", "section": "Native renal artery stenosis"}, {"type": "fact", "text": "Delayed systolic acceleration means acceleration time greater than about 70 ms.", "section": "Native renal artery stenosis"}, {"type": "fact", "text": "In fibromuscular dysplasia, stenoses are often not ostial, so PSV may not be elevated at the sampled location, but downstream tardus parvus/delayed acceleration may still be present.", "section": "Native renal artery stenosis"}, {"type": "fact", "text": "A separate iliac-comparison criterion mentioned: 250 cm/s and approximately 2:1 ratio relative to the iliac artery.", "section": "Native renal artery stenosis"}, {"type": "h3", "text": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "Echogenic material in the main portal vein indicates portal vein thrombus.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "Untreated chronic portal vein thrombosis can progress to cavernous transformation, with a shrunken portal vein and collateral cluster.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "Normal main portal vein size is about 12–13 mm, or 1.3 cm or less.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "Do not call portal hypertension based on portal vein size until it is greater than 1.5 cm.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "If the apparent portal vein is less than 7 mm, question whether it is truly the portal vein; consider cavernous transformation.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "Doppler on thrombus helps distinguish bland thrombus from tumor thrombus.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "fact", "text": "Flow within thrombus, especially an arterial waveform, suggests tumor in vein, classically HCC-related tumor thrombus.", "section": "Portal vein thrombus / tumor in vein"}, {"type": "h3", "text": "Subclavian steal"}, {"type": "fact", "text": "Complete reversal of flow in the vertebral artery indicates severe subclavian steal physiology.", "section": "Subclavian steal"}, {"type": "fact", "text": "Cause: subclavian artery stenosis/occlusion proximal to the vertebral artery origin.", "section": "Subclavian steal"}, {"type": "fact", "text": "The arm steals flow from the vertebrobasilar system.", "section": "Subclavian steal"}, {"type": "fact", "text": "Symptoms can occur with arm use because flow is diverted away from the brain.", "section": "Subclavian steal"}, {"type": "h2", "text": "Liver / biliary / gallbladder"}, {"type": "h3", "text": "Echogenic liver lesions"}, {"type": "fact", "text": "Multiple hyperechoic liver lesions with a hypoechoic halo are suspicious for metastases rather than hemangiomas.", "section": "Echogenic liver lesions"}, {"type": "fact", "text": "A hypoechoic halo represents compressed surrounding liver parenchyma.", "section": "Echogenic liver lesions"}, {"type": "fact", "text": "Hemangiomas generally blend into the liver parenchyma and should not have a halo.", "section": "Echogenic liver lesions"}, {"type": "fact", "text": "Echogenic liver metastases differential includes melanoma, RCC, thyroid, choriocarcinoma, neuroendocrine/carcinoid tumor, and mucinous metastases such as colon.", "section": "Echogenic liver lesions"}, {"type": "fact", "text": "Melanoma metastases may be echogenic because of hemorrhage.", "section": "Echogenic liver lesions"}, {"type": "fact", "text": "Big echogenic cannonball liver metastases with vascularity should make you think of neuroendocrine tumor.", "section": "Echogenic liver lesions"}, {"type": "h3", "text": "Medullary nephrocalcinosis"}, {"type": "fact", "text": "Medullary nephrocalcinosis appears as echogenic renal pyramids/medullary calcification.", "section": "Medullary nephrocalcinosis"}, {"type": "fact", "text": "Causes include hyperparathyroidism, type 1 renal tubular acidosis, milk-alkali syndrome, hypervitaminosis D, hyperoxaluria, medullary sponge kidney, furosemide/Lasix therapy in children, and Bartter syndrome.", "section": "Medullary nephrocalcinosis"}, {"type": "fact", "text": "Hyperparathyroidism was emphasized as the most common cause of medullary nephrocalcinosis.", "section": "Medullary nephrocalcinosis"}, {"type": "h3", "text": "Cortical nephrocalcinosis"}, {"type": "fact", "text": "Causes include oxalosis, chronic cortical necrosis, Alport syndrome, and chronic glomerulonephritis.", "section": "Cortical nephrocalcinosis"}, {"type": "fact", "text": "Oxalosis was emphasized as the entity that can cause both cortical and medullary nephrocalcinosis.", "section": "Cortical nephrocalcinosis"}, {"type": "h3", "text": "Hepatic steatosis"}, {"type": "fact", "text": "Ultrasound findings include liver echogenicity increased relative to kidney.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Normal liver is only mildly more echogenic than kidney; marked increase suggests steatosis.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "A rough ultrasound rule is about 40% greater echogenicity than kidney supports steatosis.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Increased sound beam attenuation, especially loss of diaphragm visualization, suggests severe steatosis.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Portal tracts become less conspicuous as liver echogenicity approaches portal tract fat echogenicity; this suggests moderate steatosis.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Hazy hepatic vein margins can be an early finding.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Focal sparing can reveal diffuse steatosis.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Common sites of focal fatty sparing include the falciform ligament region, gallbladder fossa, and posterior surface of segment IV.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Focal sparing appears as a wedge-shaped hypoechoic/darker area against an echogenic fatty liver.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "CT criterion: liver attenuation 40 HU or less supports fatty liver.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "CT criterion: liver 20 HU less than expected/adjacent reference on contrast venous phase was mentioned.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "CT criterion: liver 10 HU less than spleen on noncontrast CT is useful.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "MRI criterion: signal drop from in-phase to opposed-phase imaging indicates intracellular fat.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "A 16–20% signal drop or 2 standard deviations was mentioned.", "section": "Hepatic steatosis"}, {"type": "fact", "text": "Opposed phase is technically preferred over out of phase, because signal cancellation requires fat and water protons to be opposed.", "section": "Hepatic steatosis"}, {"type": "h3", "text": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "fact", "text": "Intrahepatic ductal dilation with a central hilar mass should lead with cholangiocarcinoma/Klatskin tumor, not HCC.", "section": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "fact", "text": "Cholangio arises from the bile duct wall, so it obstructs ducts before vessels.", "section": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "fact", "text": "HCC is favored when a central mass shows more vascular involvement and less dominant ductal dilation.", "section": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "fact", "text": "PSC causes multifocal segmental intrahepatic duct dilation and strictures, often with irregularity.", "section": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "fact", "text": "Multiple intrahepatic ductal stones suggest recurrent pyogenic cholangitis.", "section": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "fact", "text": "Older terms mentioned include Oriental cholangitis, Oriental cholangiohepatitis, and primary hepatolithiasis.", "section": "Biliary dilation / hilar cholangiocarcinoma"}, {"type": "h3", "text": "Acute cholecystitis and complications"}, {"type": "fact", "text": "Acute cholecystitis ultrasound findings include gallstones, gallbladder wall thickening, hyperemia, and possible pericholecystic fluid.", "section": "Acute cholecystitis and complications"}, {"type": "fact", "text": "If acute cholecystitis is found in an outpatient, it warrants notification/call.", "section": "Acute cholecystitis and complications"}, {"type": "fact", "text": "Treatment is generally surgical if the patient is a candidate.", "section": "Acute cholecystitis and complications"}, {"type": "fact", "text": "Linear echogenic material/sloughed mucosa within the gallbladder lumen suggests gangrenous cholecystitis.", "section": "Acute cholecystitis and complications"}, {"type": "fact", "text": "Dirty shadowing from gas suggests emphysematous cholecystitis.", "section": "Acute cholecystitis and complications"}, {"type": "fact", "text": "Pericholecystic fluid collection or acute-appearing adjacent collection raises concern for perforated cholecystitis.", "section": "Acute cholecystitis and complications"}, {"type": "fact", "text": "Sonographic Murphy sign is less reliable in practice, especially in patients on pain medication.", "section": "Acute cholecystitis and complications"}, {"type": "h2", "text": "Renal transplant / GU / scrotum"}, {"type": "h3", "text": "Echogenic renal transplant"}, {"type": "fact", "text": "Diffusely echogenic transplant kidney differential includes rejection, acute tubular necrosis, calcineurin inhibitor toxicity, and renal vein thrombosis.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Acute tubular necrosis is especially relevant immediately or early post-transplant.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Renal vein thrombosis is especially important in the first two weeks.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Kidney size greater than about 13 cm was mentioned as enlarged.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Evaluate transplant resistive indices.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Increased transplant renal resistive index cutoff mentioned: 0.75.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Urothelial thickening of the calyces/renal pelvis favors rejection more than some other transplant etiologies.", "section": "Echogenic renal transplant"}, {"type": "fact", "text": "Reversal of diastolic flow can occur in severe transplant pathology.", "section": "Echogenic renal transplant"}, {"type": "h3", "text": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Focal hypoechoic epididymal lesion without flow and with rim calcification suggests benignity.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Lack of flow generally favors benign over malignant lesion.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Differential discussed includes sperm granuloma, epidermoid cyst, papillary cystadenoma, and torsed appendage.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Papillary cystadenoma is especially relevant with VHL context.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "A torsed appendage could be considered, though calcification would be less typical acutely.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Epidermoid cyst classically has an onion skin/concentric ring appearance if present.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Epidermoid cyst is treated by enucleation.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Epidermoid cyst presents as a palpable nodular mass.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Sperm granuloma is often painful, even very painful.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Sperm granuloma may be associated with vasectomy.", "section": "Epididymal/testicular benign lesions"}, {"type": "fact", "text": "Both sperm granuloma and epidermoid cyst may lack internal flow.", "section": "Epididymal/testicular benign lesions"}, {"type": "h3", "text": "Testicular sarcoidosis / adrenal rests"}, {"type": "fact", "text": "Sarcoid testicle appearance discussed: multiple bilateral 2–3 mm hypoechoic nodules.", "section": "Testicular sarcoidosis / adrenal rests"}, {"type": "fact", "text": "Sarcoid testicular nodules may show tiny/pinpoint flow.", "section": "Testicular sarcoidosis / adrenal rests"}, {"type": "fact", "text": "Differential includes metastases.", "section": "Testicular sarcoidosis / adrenal rests"}, {"type": "fact", "text": "Lymphoma is less favored when lesions are tiny and multifocal because lymphoma is more often larger/infiltrative.", "section": "Testicular sarcoidosis / adrenal rests"}, {"type": "fact", "text": "In congenital adrenal hyperplasia, testicular adrenal rest tumors are a consideration.", "section": "Testicular sarcoidosis / adrenal rests"}, {"type": "fact", "text": "Most common CAH enzyme deficiency mentioned: 21-hydroxylase.", "section": "Testicular sarcoidosis / adrenal rests"}, {"type": "h3", "text": "Fournier gangrene / dermatomyositis calcifications"}, {"type": "fact", "text": "Echogenic shadowing foci in the subcutaneous fat of the perineum/scrotum should raise concern for Fournier gangrene.", "section": "Fournier gangrene / dermatomyositis calcifications"}, {"type": "fact", "text": "In Fournier gangrene, the echogenic foci are gas with dirty shadowing.", "section": "Fournier gangrene / dermatomyositis calcifications"}, {"type": "fact", "text": "Adjacent focal testicular hyperemia can occur from local inflammation.", "section": "Fournier gangrene / dermatomyositis calcifications"}, {"type": "fact", "text": "Treatment is urgent surgical debridement.", "section": "Fournier gangrene / dermatomyositis calcifications"}, {"type": "fact", "text": "Similar echogenic shadowing foci outside the perineum, especially in soft tissues of arm/leg/chest wall, should make you think of dermatomyositis calcifications.", "section": "Fournier gangrene / dermatomyositis calcifications"}, {"type": "h3", "text": "Testicular mass by age"}, {"type": "fact", "text": "Hypervascular solid hypoechoic testicular mass in a young man, especially 20s, favors seminoma if relatively homogeneous and vascular.", "section": "Testicular mass by age"}, {"type": "fact", "text": "Choriocarcinoma is usually not this large.", "section": "Testicular mass by age"}, {"type": "fact", "text": "Hypervascular solid hypoechoic testicular mass in an older man, such as 55, should include lymphoma and metastases.", "section": "Testicular mass by age"}, {"type": "fact", "text": "Testicular lymphoma can be solitary or multifocal.", "section": "Testicular mass by age"}, {"type": "h3", "text": "Epididymo-orchitis"}, {"type": "fact", "text": "Epididymo-orchitis is usually from ascending infection.", "section": "Epididymo-orchitis"}, {"type": "fact", "text": "Epididymis is affected first.", "section": "Epididymo-orchitis"}, {"type": "fact", "text": "About 20% of epididymitis cases have associated orchitis.", "section": "Epididymo-orchitis"}, {"type": "fact", "text": "Isolated orchitis without epididymitis suggests mumps or TB.", "section": "Epididymo-orchitis"}, {"type": "h3", "text": "Testicular torsion"}, {"type": "fact", "text": "No flow in the symptomatic testis suggests torsion.", "section": "Testicular torsion"}, {"type": "fact", "text": "Salvage/detorsion success is about 80% if treated within 6 hours.", "section": "Testicular torsion"}, {"type": "fact", "text": "Salvage/detorsion success is about 20% if more than 12 hours.", "section": "Testicular torsion"}, {"type": "fact", "text": "Earlier treatment is strongly preferred; delays are common.", "section": "Testicular torsion"}, {"type": "h3", "text": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "Hutch diverticulum occurs at a weak point adjacent to the ureteral orifice.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "When Hutch diverticulum is seen, check ipsilateral hydronephrosis and the ureteral jet.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "The ureteral jet helps evaluate for obstruction.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "Horseshoe kidney ultrasound clue: kidney seen anterior to the aorta.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "Horseshoe kidney ultrasound clue: upper pole appears more superficial/closer to the transducer than the lower pole.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "Normal kidney orientation should have the upper pole deeper than the lower pole.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "fact", "text": "Look for midline connecting tissue/isthmus.", "section": "Hutch diverticulum / horseshoe kidney"}, {"type": "h3", "text": "Deflux procedure"}, {"type": "fact", "text": "Deflux/collagen-type injection is used in children with vesicoureteral reflux to bulk up the UVJ and prevent reflux.", "section": "Deflux procedure"}, {"type": "fact", "text": "Deflux material may appear as echogenic foci near the UVJ and can potentially mimic a stone, especially on CT.", "section": "Deflux procedure"}, {"type": "h3", "text": "Adrenal lesion near liver"}, {"type": "fact", "text": "A hypoechoic lesion near the gallbladder fossa/liver may actually be adrenal.", "section": "Adrenal lesion near liver"}, {"type": "fact", "text": "Adrenal differential mentioned includes adenoma, pheochromocytoma, metastasis, and myelolipoma.", "section": "Adrenal lesion near liver"}, {"type": "fact", "text": "Negative attenuation, such as -11 HU, supported lipid-rich adrenal adenoma in the discussed case.", "section": "Adrenal lesion near liver"}, {"type": "h2", "text": "GYN / pelvic ultrasound"}, {"type": "h3", "text": "Ovarian torsion mimicking tumor"}, {"type": "fact", "text": "A complex multicystic ovarian mass in an 18-year-old with acute severe pelvic pain may represent missed torsion.", "section": "Ovarian torsion mimicking tumor"}, {"type": "fact", "text": "Torsion first obstructs venous outflow, causing ovarian swelling.", "section": "Ovarian torsion mimicking tumor"}, {"type": "fact", "text": "Over days, hemorrhagic change may develop.", "section": "Ovarian torsion mimicking tumor"}, {"type": "fact", "text": "A chronically torsed, nonviable ovary can mimic hemorrhagic cyst or cystadenoma.", "section": "Ovarian torsion mimicking tumor"}, {"type": "fact", "text": "History is crucial for torsion calls.", "section": "Ovarian torsion mimicking tumor"}, {"type": "fact", "text": "Key teaching point: not every complex ovarian mass is tumor.", "section": "Ovarian torsion mimicking tumor"}, {"type": "h3", "text": "Endometrial polyp / hyperplasia / carcinoma"}, {"type": "fact", "text": "Thickened endometrium with cystic spaces should prompt consideration of tamoxifen-related endometrial hyperplasia if there is breast cancer/tamoxifen history.", "section": "Endometrial polyp / hyperplasia / carcinoma"}, {"type": "fact", "text": "If a young patient has very high HCG, consider gestational trophoblastic disease/molar pregnancy.", "section": "Endometrial polyp / hyperplasia / carcinoma"}, {"type": "fact", "text": "Central cystic spaces with internal flow and circumscribed lesion suggest endometrial polyp.", "section": "Endometrial polyp / hyperplasia / carcinoma"}, {"type": "fact", "text": "Tamoxifen/hyperplasia cysts tend to be in the basalis layer near the junctional zone.", "section": "Endometrial polyp / hyperplasia / carcinoma"}, {"type": "fact", "text": "Cystic spaces in the center of a vascular lesion favor polyp.", "section": "Endometrial polyp / hyperplasia / carcinoma"}, {"type": "h3", "text": "Endometrial thickness cutoffs"}, {"type": "fact", "text": "Postmenopausal bleeding: abnormal if endometrium greater than 5 mm.", "section": "Endometrial thickness cutoffs"}, {"type": "fact", "text": "Postmenopausal without bleeding: cutoff mentioned 12 mm.", "section": "Endometrial thickness cutoffs"}, {"type": "fact", "text": "Postmenopausal on tamoxifen without bleeding: cutoff mentioned 8 mm.", "section": "Endometrial thickness cutoffs"}, {"type": "fact", "text": "Premenopausal upper limit mentioned: about 15 mm.", "section": "Endometrial thickness cutoffs"}, {"type": "h3", "text": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Junctional zone thickness 12 mm or greater supports adenomyosis.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Focal adenomyosis/adenomyoma is ill-defined/hazy, hypoechoic, and may contain tiny cystic spaces.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Tiny cystic spaces in adenomyosis can appear as echogenic islands.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Fibroid is typically encapsulated/well-defined.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Fibroid may show venetian blind shadowing.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Adenomyosis can also show diffuse venetian blind shadowing.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Fibroid shadowing is from edge/refraction artifact.", "section": "Adenomyosis vs fibroid"}, {"type": "fact", "text": "Adenomyosis shadowing is from many tiny foci/microcysts at different myometrial levels causing ring-down/shadowing.", "section": "Adenomyosis vs fibroid"}, {"type": "h3", "text": "Ectopic pregnancy"}, {"type": "fact", "text": "Ruptured ectopic can show hemoperitoneum/echogenic blood in cul-de-sac with hypotension.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Classic ectopic appearance: thick echogenic ring around a central hypoechoic area.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "An echogenic ring favors decidual reaction of ectopic.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Hemorrhagic cyst/corpus luteum tends to have a darker ring.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Diagnostic approach begins with positive HCG and looking in the uterus first.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Empty uterus or irregular pseudo-sac without double decidual sign raises concern.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Positive HCG plus empty uterus equals about 50% chance ectopic as stated.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Positive HCG plus adnexal mass equals about 90% chance ectopic as stated.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Visible embryo outside uterus equals 100% ectopic.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Sliding sign: adnexal lesion moving independently from ovary helps distinguish ectopic from ovarian cyst/corpus luteum.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Less than 2% of ectopics are intraovarian.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Heterotopic pregnancy was described as rare, about 1 in 5800.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Pregnancy failure criterion: crown-rump length greater than 7 mm with no cardiac motion.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Pregnancy failure criterion: gestational sac 25 mm without embryo/yolk sac.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "HCG discriminatory zone should not be used rigidly as an absolute cutoff.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Old transvaginal HCG discriminatory number mentioned: 1500.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "Once HCG reaches about 1500, repeat scan may be used.", "section": "Ectopic pregnancy"}, {"type": "fact", "text": "By 2000–3000, intrauterine pregnancy should generally be seen, but caution was emphasized.", "section": "Ectopic pregnancy"}, {"type": "h3", "text": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "Hydrosalpinx appears as a tubular cystic structure adjacent to, not within, the ovary.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "Cogwheel appearance comes from salpingeal folds.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "Tubular communication helps confirm hydrosalpinx.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "MRI can help distinguish hydro-, hemato-, and pyosalpinx.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "Hematosalpinx tends to be T1 hyperintense.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "Pyosalpinx may show inflammatory change and diffusion restriction.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "fact", "text": "Hematosalpinx and pyosalpinx can both restrict diffusion to some degree.", "section": "Hydrosalpinx / pyosalpinx / hematosalpinx"}, {"type": "h2", "text": "Thyroid / parathyroid"}, {"type": "h3", "text": "Parathyroid adenoma"}, {"type": "fact", "text": "Parathyroid adenomas often sit along/posterior to the thyroid and can have a consistent appearance.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Differential includes parathyroid adenoma, thyroid nodule, lymph node, and parathyroid carcinoma if very large/lobular/infiltrative.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Thyroid nodule should be within thyroid parenchyma.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Benign thyroid nodules usually do not break through the capsule.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Lymph node should have a fatty hilum and hilar flow.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Parathyroid adenoma has no fatty hilum, prominent vascularity, and a polar feeding vessel/flow entering at an end.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Inferior parathyroid glands are more variable in location and can be mediastinal.", "section": "Parathyroid adenoma"}, {"type": "fact", "text": "Superior parathyroids are more consistent in location.", "section": "Parathyroid adenoma"}, {"type": "h2", "text": "GI fluoro / abdomen"}, {"type": "h3", "text": "Intussusception"}, {"type": "fact", "text": "Ringed/concentric filling defect on fluoro suggests intussusception, not polypoid cancer.", "section": "Intussusception"}, {"type": "fact", "text": "Rings occur because inner and outer bowel loops create alternating barium-filled and non-barium spaces.", "section": "Intussusception"}, {"type": "fact", "text": "Intussusception with “colon” in the name is more likely to have a lead point.", "section": "Intussusception"}, {"type": "fact", "text": "Ileocolic intussusception is associated with lead points.", "section": "Intussusception"}, {"type": "fact", "text": "About 30% of lead points are malignant.", "section": "Intussusception"}, {"type": "fact", "text": "Small bowel-small bowel intussusception without visible lead point or obstruction is more likely transient.", "section": "Intussusception"}, {"type": "fact", "text": "Transient small bowel intussusception can occur with trauma/jostling or lymphoid tissue in young patients.", "section": "Intussusception"}, {"type": "fact", "text": "Do not call it transient if there is obstruction, a visible lead point, or length greater than 5 cm.", "section": "Intussusception"}, {"type": "h3", "text": "Colon polyp"}, {"type": "fact", "text": "Small filling defect on barium enema can represent an adenomatous polyp.", "section": "Colon polyp"}, {"type": "fact", "text": "Treatment/referral: colonoscopy.", "section": "Colon polyp"}, {"type": "fact", "text": "Instructor-stated risk comparison: death from a 1 cm polyp is about 1 in 10,000.", "section": "Colon polyp"}, {"type": "fact", "text": "Instructor-stated risk comparison: death from colonoscopy is about 1 in 10,000.", "section": "Colon polyp"}, {"type": "fact", "text": "A real narrowing/finding that is not the study target may be dismissed as known spasm/peristalsis by examiner clarification.", "section": "Colon polyp"}, {"type": "h3", "text": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "ERCP: ampulla is cannulated and contrast is injected retrograde into the biliary tree.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "Focal narrowing of the CBD with proximal dilation suggests stricture.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "Meniscus/filling defect distal to stricture suggests stone.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "In liver transplant, anastomotic stricture can form first.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "Stasis from the stricture can lead to stone formation.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "This is a classic location for an anastomotic stricture.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "You cannot necessarily tell it is a transplant from the ERCP image alone.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "fact", "text": "Postoperative cystic duct anatomy varies; there may be no cystic duct, one cystic duct, or two cystic ducts depending on surgical anatomy/cuts.", "section": "ERCP / liver transplant anastomotic stricture"}, {"type": "h3", "text": "Crohn disease"}, {"type": "fact", "text": "String sign on small bowel study is classic for Crohn disease.", "section": "Crohn disease"}, {"type": "fact", "text": "Fibrofatty proliferation around chronically inflamed bowel can displace other loops, making the diseased loop more conspicuous.", "section": "Crohn disease"}, {"type": "fact", "text": "Tightly packed valvulae conniventes can produce a stacked-coin appearance, seen with intramural hematoma or inflammation.", "section": "Crohn disease"}, {"type": "fact", "text": "Stacked-coin appearance may look similar to hidebound bowel in scleroderma; no clear differentiating feature was given.", "section": "Crohn disease"}, {"type": "fact", "text": "Crohn inflammation vs stricture: both can show edema.", "section": "Crohn disease"}, {"type": "fact", "text": "Active inflammation tends to enhance more.", "section": "Crohn disease"}, {"type": "fact", "text": "Stricture may show delayed enhancement.", "section": "Crohn disease"}, {"type": "fact", "text": "Best sign of stricturing component: proximal bowel dilation.", "section": "Crohn disease"}, {"type": "fact", "text": "Small bowel dilation greater than 2.5 cm anywhere suggests stricturing component.", "section": "Crohn disease"}, {"type": "fact", "text": "Most Crohn segments are mixed inflammation plus stricture, rarely pure inflammation.", "section": "Crohn disease"}, {"type": "h3", "text": "Gastric adenocarcinoma"}, {"type": "fact", "text": "Irregular/lobular antral mass on upper GI/fluoro can represent gastric adenocarcinoma.", "section": "Gastric adenocarcinoma"}, {"type": "fact", "text": "CT may show a large hypoattenuating distal gastric mass.", "section": "Gastric adenocarcinoma"}, {"type": "fact", "text": "Treatment is surgery if resectable.", "section": "Gastric adenocarcinoma"}, {"type": "fact", "text": "Treatment is systemic therapy if diffuse metastatic disease.", "section": "Gastric adenocarcinoma"}, {"type": "h3", "text": "Pneumoperitoneum"}, {"type": "fact", "text": "Supine pneumoperitoneum signs include free air outlining liver/diaphragm, continuous diaphragm sign, Rigler sign, and triangular collection of free air.", "section": "Pneumoperitoneum"}, {"type": "fact", "text": "Rigler sign means both sides of the bowel wall are visible.", "section": "Pneumoperitoneum"}, {"type": "fact", "text": "Supine visible free air suggests a large amount of pneumoperitoneum.", "section": "Pneumoperitoneum"}, {"type": "h3", "text": "Mesenteric traction diverticula"}, {"type": "fact", "text": "Numerous tiny outpouchings only along the mesenteric border at the splenic flexure suggest traction/retraction diverticula.", "section": "Mesenteric traction diverticula"}, {"type": "fact", "text": "Key clue is one-sided mesenteric border involvement rather than circumferential disease.", "section": "Mesenteric traction diverticula"}, {"type": "fact", "text": "Causes discussed include pancreatic tail neoplasm, nonfunctional islet cell tumor, desmoplastic/retractile mesenteric process, and pancreatitis-related inflammatory retraction.", "section": "Mesenteric traction diverticula"}, {"type": "fact", "text": "Ulcerative colitis should be circumferential, not only mesenteric border.", "section": "Mesenteric traction diverticula"}, {"type": "fact", "text": "Focal abnormality isolated to the antimesenteric side in the right lower quadrant suggests appendicitis.", "section": "Mesenteric traction diverticula"}, {"type": "fact", "text": "Most ordinary diverticula involve both sides/multiple borders rather than a purely mesenteric distribution.", "section": "Mesenteric traction diverticula"}, {"type": "h3", "text": "Esophageal ulcers / strictures / infection"}, {"type": "fact", "text": "Multiple shallow aphthous esophageal ulcers can be seen on esophagram.", "section": "Esophageal ulcers / strictures / infection"}, {"type": "fact", "text": "Long flat/linear esophageal ulcer differential includes HIV and CMV.", "section": "Esophageal ulcers / strictures / infection"}, {"type": "fact", "text": "Long esophageal stricture differential includes radiation and caustic ingestion.", "section": "Esophageal ulcers / strictures / infection"}, {"type": "fact", "text": "Candida esophagitis produces plaque-like/shaggy esophageal mucosa.", "section": "Esophageal ulcers / strictures / infection"}, {"type": "fact", "text": "Candida esophagitis can have a “shaggy carpet” appearance.", "section": "Esophageal ulcers / strictures / infection"}, {"type": "h3", "text": "Ulcerative colitis vs ischemic colitis"}, {"type": "fact", "text": "Chronic ulcerative colitis can produce a featureless lead pipe colon.", "section": "Ulcerative colitis vs ischemic colitis"}, {"type": "fact", "text": "Transition at the splenic flexure raises concern for ischemia because it is a watershed zone.", "section": "Ulcerative colitis vs ischemic colitis"}, {"type": "fact", "text": "Rectal involvement favors ulcerative colitis.", "section": "Ulcerative colitis vs ischemic colitis"}, {"type": "fact", "text": "Rectal sparing favors ischemia because the rectum has dual supply from iliac vessels.", "section": "Ulcerative colitis vs ischemic colitis"}, {"type": "fact", "text": "CTA is a modern problem-solving study, but rectal involvement/sparing is the classic fluoroscopic discriminator.", "section": "Ulcerative colitis vs ischemic colitis"}, {"type": "h3", "text": "Rectal / sigmoid cancer"}, {"type": "fact", "text": "Apple-core lesion in sigmoid/high rectum suggests malignancy.", "section": "Rectal / sigmoid cancer"}, {"type": "fact", "text": "Rectal cancer staging is best with MRI.", "section": "Rectal / sigmoid cancer"}, {"type": "fact", "text": "Helpful staging/report details include distance above the dentate line and relationship to the peritoneal reflection.", "section": "Rectal / sigmoid cancer"}, {"type": "h3", "text": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "Serpentine thickened folds through the pylorus into the duodenal bulb can represent inflamed folds.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "Thickened folds radiating all the way to an ulcer crater support benign ulcer.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "Benign ulcer clue: folds go directly to the crater/surface.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "Malignant ulcer concern: thick soft-tissue rim/shouldered mass around the crater, with folds stopping short.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "H. pylori was implied as a common cause of benign peptic ulcer.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "Prolapsed gastric mucosa can mimic thickened folds extending into duodenum, but identifying an ulcer crater helps.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "fact", "text": "Ectopic pancreatic tissue in the duodenal wall can mimic an ulcer-like lesion.", "section": "Duodenal ulcer / benign vs malignant ulcer"}, {"type": "h3", "text": "Diverticulosis / colonic cancer search pattern"}, {"type": "fact", "text": "Diverticula project beyond the colonic margin.", "section": "Diverticulosis / colonic cancer search pattern"}, {"type": "fact", "text": "Bowler hat diverticulum: coated neck plus coated outer surface can mimic a polyp.", "section": "Diverticulosis / colonic cancer search pattern"}, {"type": "fact", "text": "In polypoid colonic cancer, about 5% have a second polyp/lesion, so search the rest of the colon.", "section": "Diverticulosis / colonic cancer search pattern"}, {"type": "fact", "text": "In the discussed case, two 2–3 cm polypoid masses were present and turned out cancerous.", "section": "Diverticulosis / colonic cancer search pattern"}, {"type": "fact", "text": "Lateral decubitus/cross-table barium views coat different sides of the mucosa; rolling the patient helps evaluate more mucosal surface.", "section": "Diverticulosis / colonic cancer search pattern"}, {"type": "h2", "text": "Oral-board / test-taking facts"}, {"type": "fact", "text": "Oral boards may guide gently but should not give away the diagnosis.", "section": "Oral-board / test-taking facts"}, {"type": "fact", "text": "They expect recognition of abnormal waveforms without necessarily directing you to a specific vessel.", "section": "Oral-board / test-taking facts"}, {"type": "fact", "text": "If you initially say something wrong but correct yourself and give a coherent final interpretation, the corrected final answer can matter more than the initial miss.", "section": "Oral-board / test-taking facts"}, {"type": "fact", "text": "For image interpretation, state observations directly: “I see ___,” rather than asking whether something is present.", "section": "Oral-board / test-taking facts"}, {"type": "fact", "text": "Search pattern advice from old CT film reading: review organ-by-organ across images and use a checklist so interruptions do not break the search pattern.", "section": "Oral-board / test-taking facts"}, {"type": "h2", "text": "Nuclear Medicine"}, {"type": "h3", "text": "HIDA scan gallbladder nonvisualization"}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "Nonvisualization of the gallbladder on HIDA can be due to acute cholecystitis/cystic duct obstruction, absent gallbladder, poor patient preparation, prolonged fasting, recent meal, severe illness/postoperative state, TPN, chronic cholecystitis, or opioid effect."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "For routine HIDA preparation, the patient should fast for at least 2 hours, preferably 4–6 hours, but should generally have eaten within the prior 24 hours."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "A practical board-style target is that the last meal should be roughly 4–24 hours before the HIDA scan."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "Eating too recently can stimulate endogenous CCK, causing gallbladder contraction and artificially absent or delayed gallbladder filling."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "Fasting for more than 24 hours can thicken/concentrate gallbladder bile and prevent radiotracer entry, producing false-positive gallbladder nonvisualization."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "If prolonged fasting or TPN is the issue, pretreatment with sincalide/CCK may help empty and reset the gallbladder before imaging."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "Chronic cholecystitis may show delayed gallbladder filling, often after bowel activity; delayed imaging or morphine augmentation can help distinguish it from acute cystic duct obstruction."}, {"type": "fact", "section": "HIDA scan gallbladder nonvisualization", "text": "True acute cholecystitis classically shows persistent gallbladder nonvisualization after delayed imaging or after morphine augmentation."}, {"type": "h3", "text": "Xenon-133 ventilation scans"}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Xenon-133 is fat soluble/lipid soluble."}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Xenon-133 can be retained in fatty liver, so hepatic activity may be increased in patients with hepatic steatosis."}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Prominent hepatic xenon activity can project near the right lung base; if the right lower lung looks abnormal, consider whether liver activity/background is contributing before calling a true ventilation abnormality."}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Xenon-133 ventilation is useful because it can show wash-in, equilibrium/rebreathing, and washout phases."}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Because Xenon-133 has relatively low-energy photons and is attenuated by overlying soft tissues, ventilation images are commonly obtained in the posterior projection."}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Additional posterior oblique views, such as RPO and LPO, may be used to better localize abnormalities/gas trapping."}, {"type": "fact", "section": "Xenon-133 ventilation scans", "text": "Anterior, anterior oblique, and lateral xenon images are less commonly obtained because overlying soft tissues degrade image quality."}];
+const STORAGE_KEY = "radiology_fact_favorites_v1";
+let selected = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"));
+
+const content = document.getElementById("content");
+const favorites = document.getElementById("favorites");
+const count = document.getElementById("count");
+const copyBox = document.getElementById("copyBox");
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...selected]));
+}
+
+function selectedFacts() {
+  return elements
+    .map((el, idx) => ({...el, idx}))
+    .filter(el => el.type === "fact" && selected.has(String(el.idx)));
+}
+
+function favoritesText() {
+  return selectedFacts()
+    .map(el => `- ${el.text}`)
+    .join("\n");
+}
+
+function renderFavorites() {
+  const facts = selectedFacts();
+  count.textContent = facts.length;
+  favorites.innerHTML = "";
+  if (!facts.length) {
+    favorites.innerHTML = '<p class="help">No favorites selected yet.</p>';
+  } else {
+    for (const fact of facts) {
+      const div = document.createElement("div");
+      div.className = "favorite-item";
+      div.innerHTML = `<span class="section-label">${escapeHtml(fact.section || "")}</span>${escapeHtml(fact.text)}`;
+      favorites.appendChild(div);
+    }
+  }
+  copyBox.value = favoritesText();
+}
+
+function renderContent() {
+  content.innerHTML = "";
+  elements.forEach((el, idx) => {
+    const div = document.createElement(el.type === "h2" ? "h2" : el.type === "h3" ? "h3" : "div");
+    if (el.type === "fact") {
+      div.className = "fact";
+      div.textContent = el.text;
+      div.dataset.idx = String(idx);
+      if (selected.has(String(idx))) div.classList.add("selected");
+      div.addEventListener("click", () => {
+        const key = String(idx);
+        if (selected.has(key)) selected.delete(key);
+        else selected.add(key);
+        div.classList.toggle("selected");
+        save();
+        renderFavorites();
+      });
+    } else if (el.type === "note") {
+      div.className = "note";
+      div.textContent = el.text;
+    } else {
+      div.textContent = el.text;
+    }
+    content.appendChild(div);
+  });
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function copyFavorites() {
+  const text = favoritesText();
+  copyBox.value = text;
+  copyBox.select();
+  try {
+    await navigator.clipboard.writeText(text);
+    flash("Copied favorites");
+  } catch (err) {
+    document.execCommand("copy");
+    flash("Copied from copy box");
+  }
+}
+
+function flash(message) {
+  const old = count.textContent;
+  count.textContent = message;
+  setTimeout(() => {
+    count.textContent = selectedFacts().length;
+  }, 1200);
+}
+
+document.getElementById("copyBtn").addEventListener("click", copyFavorites);
+document.getElementById("showTextBtn").addEventListener("click", renderFavorites);
+document.getElementById("clearBtn").addEventListener("click", () => {
+  if (!confirm("Clear all selected favorites?")) return;
+  selected.clear();
+  save();
+  renderContent();
+  renderFavorites();
+});
+
+renderContent();
+renderFavorites();
+</script>
+</body>
+</html>
