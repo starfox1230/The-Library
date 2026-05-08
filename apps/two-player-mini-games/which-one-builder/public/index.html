@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Which One Builder</title>
+  <style>
+    :root { --bg:#111827; --panel:#1f2937; --ink:#f9fafb; --muted:#a7b0bf; --line:#374151; --accent:#38bdf8; --good:#86efac; --warn:#fde68a; --bad:#fca5a5; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Inter,system-ui,Segoe UI,sans-serif; background:#0b1020; color:var(--ink); }
+    main { width:min(1320px,96vw); margin:1.2rem auto 2rem; display:grid; gap:1rem; }
+    h1,h2,h3 { margin:.1rem 0 .45rem; }
+    button,input,textarea,select { font:inherit; border-radius:8px; border:1px solid var(--line); padding:.55rem .65rem; }
+    button { background:var(--accent); color:#062034; font-weight:800; cursor:pointer; border:0; }
+    button.secondary { background:#111827; color:var(--ink); border:1px solid var(--line); }
+    button.danger { background:var(--bad); color:#3f0b0b; }
+    input,textarea,select { width:100%; background:#111827; color:var(--ink); }
+    textarea { min-height:90px; resize:vertical; }
+    .grid { display:grid; grid-template-columns:330px 1fr; gap:1rem; align-items:start; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1rem; }
+    .pair-list { display:grid; gap:.55rem; }
+    .pair-row { text-align:left; background:#111827; color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:.65rem; }
+    .pair-row.active { outline:3px solid var(--accent); }
+    .meta { color:var(--muted); font-size:.86rem; line-height:1.35; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+    .side-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .drop { min-height:170px; display:grid; place-items:center; text-align:center; border:2px dashed var(--line); border-radius:12px; background:#111827; padding:1rem; }
+    .drop:focus { outline:3px solid var(--accent); }
+    .thumbs { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:.6rem; margin-top:.7rem; }
+    .thumb { background:#111827; border:1px solid var(--line); border-radius:10px; padding:.4rem; display:grid; gap:.35rem; }
+    .thumb img { width:100%; aspect-ratio:4/3; object-fit:contain; background:#e5e7eb; border-radius:6px; }
+    .status { white-space:pre-wrap; color:var(--muted); }
+    .side-head { display:flex; justify-content:space-between; gap:.7rem; align-items:center; flex-wrap:wrap; }
+    .image-link { color:var(--accent); font-weight:800; }
+    .audio-section { margin-top:.8rem; }
+    .audio-grid { display:grid; grid-template-columns:1fr; gap:.5rem; }
+    .audio-item { background:#111827; border:1px solid var(--line); border-radius:10px; padding:.65rem; display:grid; grid-template-columns:minmax(150px,220px) 1fr auto; gap:.7rem; align-items:center; }
+    .audio-item audio { width:100%; max-width:320px; }
+    .audio-players { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; align-items:start; }
+    .audio-player-label { display:block; color:var(--muted); font-size:.78rem; margin-bottom:.2rem; }
+    .ok { color:var(--good); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+    @media (max-width: 900px) { .grid,.side-grid,.form-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="panel">
+      <h1>Which One Builder</h1>
+      <div class="meta">Local authoring tool. Paste copied web images or screenshots into either side; files are saved into the playable mini-game folder.</div>
+    </header>
+    <section class="grid">
+      <aside class="panel">
+        <h2>Pairs</h2>
+        <div id="pairList" class="pair-list"></div>
+        <h3>Create Pair</h3>
+        <div class="form-grid">
+          <input id="newA" placeholder="llama" />
+          <input id="newB" placeholder="alpaca" />
+        </div>
+        <button id="createBtn" style="margin-top:.6rem;width:100%">Create / Open Pair</button>
+      </aside>
+      <section class="panel">
+        <div id="editorEmpty">Choose or create a pair.</div>
+        <div id="editor" style="display:none">
+          <h2 id="pairTitle"></h2>
+          <div class="form-grid">
+            <label>Side A label<input id="displayA" /></label>
+            <label>Side B label<input id="displayB" /></label>
+          </div>
+          <label>Teaching point<textarea id="teachingPoint"></textarea></label>
+          <label>Key Distinguishing Characteristics<textarea id="characteristics" placeholder="One characteristic per line"></textarea></label>
+          <button id="saveContentBtn">Save Teaching Content</button>
+          <div class="side-grid" style="margin-top:1rem">
+            <section>
+              <div class="side-head">
+                <h3 id="sideATitle">Side A</h3>
+                <a id="imageSearchA" class="image-link" target="_blank" rel="noopener">Google Images</a>
+              </div>
+              <div id="dropA" class="drop" tabindex="0">Click here, then paste images for side A</div>
+              <div id="thumbsA" class="thumbs"></div>
+            </section>
+            <section>
+              <div class="side-head">
+                <h3 id="sideBTitle">Side B</h3>
+                <a id="imageSearchB" class="image-link" target="_blank" rel="noopener">Google Images</a>
+              </div>
+              <div id="dropB" class="drop" tabindex="0">Click here, then paste images for side B</div>
+              <div id="thumbsB" class="thumbs"></div>
+            </section>
+          </div>
+          <section style="margin-top:1rem">
+            <h3>Audio</h3>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem">
+              <button id="generateTopMissingBtn">Generate Top-Tier Missing</button>
+              <button id="generateAllMissingBtn" class="secondary">Generate All Missing</button>
+              <button id="regenerateTopBtn" class="secondary">Regenerate Top Tier</button>
+              <button id="regenerateAllBtn" class="secondary">Regenerate All Audio</button>
+            </div>
+            <div class="audio-section">
+              <h3>Top Tier</h3>
+              <div id="topAudioGrid" class="audio-grid"></div>
+            </div>
+            <div class="audio-section">
+              <h3>Secondary</h3>
+              <div id="secondaryAudioGrid" class="audio-grid"></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+    <section class="panel"><h2>Status</h2><div id="status" class="status">Ready.</div></section>
+  </main>
+  <script>
+    let pairs = [];
+    let statuses = [];
+    let selectedId = null;
+    const pendingPreviews = {};
+    const topAudioKeys = ["promptA","promptB","answerA","answerB","teachingPoint"];
+    const secondaryAudioKeys = ["labelA","labelB","correctA","correctB","gentleCorrectionA","gentleCorrectionB"];
+    const audioLabels = {
+      promptA: "Prompt A",
+      promptB: "Prompt B",
+      answerA: "Neutral Answer A",
+      answerB: "Neutral Answer B",
+      teachingPoint: "Teaching Point",
+      labelA: "Label A",
+      labelB: "Label B",
+      correctA: "Correct A",
+      correctB: "Correct B",
+      gentleCorrectionA: "Nice Try A",
+      gentleCorrectionB: "Nice Try B"
+    };
+    const $ = (id) => document.getElementById(id);
+    const api = async (url, options = {}) => {
+      const res = await fetch(url, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    };
+    const setStatus = (msg) => { $("status").textContent = msg; };
+    const selectedPair = () => pairs.find((p) => p.id === selectedId);
+    const selectedStatus = () => statuses.find((s) => s.id === selectedId);
+
+    async function load() {
+      const data = await api("/api/pairs");
+      pairs = data.pairs;
+      statuses = data.statuses;
+      renderPairs();
+      if (selectedId) selectPair(selectedId);
+    }
+
+    function renderPairs() {
+      $("pairList").innerHTML = statuses.map((s) => `
+        <button class="pair-row ${s.id === selectedId ? "active" : ""}" data-id="${s.id}">
+          <strong>${s.displayName}</strong>
+          <div class="meta">${s.imageCountA} vs ${s.imageCountB} images · ${s.status}</div>
+        </button>
+      `).join("") || "<div class='meta'>No pairs yet.</div>";
+      document.querySelectorAll(".pair-row").forEach((btn) => btn.onclick = () => selectPair(btn.dataset.id));
+    }
+
+    function selectPair(id) {
+      selectedId = id;
+      const pair = selectedPair();
+      if (!pair) return;
+      $("editorEmpty").style.display = "none";
+      $("editor").style.display = "block";
+      $("pairTitle").textContent = `${pair.displayLabelA} vs ${pair.displayLabelB}`;
+      $("displayA").value = pair.displayLabelA;
+      $("displayB").value = pair.displayLabelB;
+      $("teachingPoint").value = pair.teachingPoint || "";
+      $("characteristics").value = (pair.distinguishingCharacteristics || []).join("\n");
+      $("sideATitle").textContent = pair.displayLabelA;
+      $("sideBTitle").textContent = pair.displayLabelB;
+      $("imageSearchA").href = googleImageUrl(pair.displayLabelA);
+      $("imageSearchB").href = googleImageUrl(pair.displayLabelB);
+      $("imageSearchA").textContent = `Find ${pair.displayLabelA} images`;
+      $("imageSearchB").textContent = `Find ${pair.displayLabelB} images`;
+      renderThumbs(pair);
+      renderAudio(pair);
+      renderPairs();
+    }
+
+    function googleImageUrl(label) {
+      return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(label)}`;
+    }
+
+    function renderThumbs(pair) {
+      const make = (rel) => `<div class="thumb"><img src="/game/${rel}" /><button class="danger" data-delete="${rel}">Delete</button></div>`;
+      $("thumbsA").innerHTML = pair.imagesA.map(make).join("");
+      $("thumbsB").innerHTML = pair.imagesB.map(make).join("");
+      document.querySelectorAll("[data-delete]").forEach((btn) => btn.onclick = async () => {
+        await api(`/api/pairs/${selectedId}/images?path=${encodeURIComponent(btn.dataset.delete)}`, { method: "DELETE" });
+        await load();
+      });
+    }
+
+    function renderAudio(pair) {
+      const status = selectedStatus();
+      $("topAudioGrid").innerHTML = renderAudioItems(pair, status, topAudioKeys);
+      $("secondaryAudioGrid").innerHTML = renderAudioItems(pair, status, secondaryAudioKeys);
+      document.querySelectorAll("[data-audio-key]").forEach((btn) => btn.onclick = () => generateAudio({ onlyMissing: false, keys: [btn.dataset.audioKey] }));
+      document.querySelectorAll("[data-keep-preview]").forEach((btn) => btn.onclick = () => keepPreview(btn.dataset.keepPreview));
+      document.querySelectorAll("[data-discard-preview]").forEach((btn) => btn.onclick = () => discardPreview(btn.dataset.discardPreview));
+    }
+
+    function renderAudioItems(pair, status, keys) {
+      return keys.map((key) => {
+        const rel = pair.audio?.[key];
+        const exists = status?.audio?.[key];
+        const preview = pendingPreviews[`${pair.id}:${key}`];
+        return `<div class="audio-item">
+          <div>
+            <strong>${audioLabels[key] || key}</strong><br>
+            <span class="${exists ? "ok" : "warn"}">${exists ? "exists" : "missing"}</span>
+          </div>
+          <div class="audio-players">
+            <div>${rel ? `<span class="audio-player-label">Current</span><audio controls src="/game/${rel}"></audio>` : `<span class="meta">No current audio</span>`}</div>
+            <div>${preview ? `<span class="audio-player-label">New Preview</span><audio controls src="/game/${preview}"></audio>` : `<span class="meta">No preview</span>`}</div>
+          </div>
+          <div style="display:grid;gap:.35rem">
+            <button class="secondary" data-audio-key="${key}">${exists ? "Generate Preview" : "Generate"}</button>
+            ${preview ? `<button data-keep-preview="${key}">Keep New</button><button class="secondary" data-discard-preview="${key}">Discard</button>` : ""}
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    async function saveContent() {
+      await api(`/api/pairs/${selectedId}/content`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayLabelA: $("displayA").value,
+          displayLabelB: $("displayB").value,
+          teachingPoint: $("teachingPoint").value,
+          distinguishingCharacteristics: $("characteristics").value.split("\n").map((x) => x.trim()).filter(Boolean)
+        })
+      });
+      setStatus("Saved teaching content.");
+      await load();
+    }
+
+    async function uploadImage(side, file) {
+      const form = new FormData();
+      form.append("image", file);
+      await api(`/api/pairs/${selectedId}/images/${side}`, { method: "POST", body: form });
+      setStatus(`Saved pasted image to side ${side}.`);
+      await load();
+    }
+
+    async function handlePaste(side, event) {
+      const items = [...(event.clipboardData?.items || [])];
+      const imageItem = items.find((item) => item.type.startsWith("image/"));
+      if (!imageItem) return;
+      event.preventDefault();
+      await uploadImage(side, imageItem.getAsFile());
+    }
+
+    async function generateAudio(options) {
+      setStatus("Generating audio...");
+      const data = await api(`/api/pairs/${selectedId}/audio/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options)
+      });
+      const failed = data.results.filter((r) => r.status === "failed");
+      const previews = data.results.filter((r) => r.status === "preview");
+      previews.forEach((item) => { pendingPreviews[`${selectedId}:${item.key}`] = item.previewPath; });
+      setStatus(`Audio done. Generated: ${data.results.length - failed.length - previews.length}. New previews: ${previews.length}. Failed: ${failed.length}.${failed.length ? "\n" + failed.map((f) => `${f.key}: ${f.error}`).join("\n") : ""}`);
+      await load();
+    }
+
+    async function keepPreview(key) {
+      const previewPath = pendingPreviews[`${selectedId}:${key}`];
+      if (!previewPath) return;
+      await api(`/api/pairs/${selectedId}/audio/keep-preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, previewPath })
+      });
+      delete pendingPreviews[`${selectedId}:${key}`];
+      setStatus(`Kept new audio for ${key}.`);
+      await load();
+    }
+
+    function discardPreview(key) {
+      delete pendingPreviews[`${selectedId}:${key}`];
+      renderAudio(selectedPair());
+      setStatus(`Discarded preview for ${key}.`);
+    }
+
+    $("createBtn").onclick = async () => {
+      const a = $("newA").value.trim();
+      const b = $("newB").value.trim();
+      if (!a || !b) return setStatus("Both labels are required.");
+      const data = await api("/api/pairs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayLabelA: a, displayLabelB: b, labelA: a, labelB: b })
+      });
+      selectedId = data.pair.id;
+      await load();
+    };
+    $("saveContentBtn").onclick = saveContent;
+    $("generateTopMissingBtn").onclick = () => generateAudio({ onlyMissing: true, tier: "top" });
+    $("generateAllMissingBtn").onclick = () => generateAudio({ onlyMissing: true, tier: "all" });
+    $("regenerateTopBtn").onclick = () => generateAudio({ onlyMissing: false, tier: "top" });
+    $("regenerateAllBtn").onclick = () => generateAudio({ onlyMissing: false, tier: "all" });
+    $("dropA").addEventListener("paste", (event) => handlePaste("A", event));
+    $("dropB").addEventListener("paste", (event) => handlePaste("B", event));
+    load().catch((error) => setStatus(error.message));
+  </script>
+</body>
+</html>
