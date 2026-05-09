@@ -417,12 +417,65 @@ def _subtree_deck_ids(deck_id: int) -> list[int]:
     return ids or [int(deck_id)]
 
 
+def _deck_name_id_from_item(item: Any) -> tuple[int, str] | None:
+    candidate_id: Any
+    candidate_name: Any
+    if isinstance(item, dict):
+        candidate_id = item.get("id")
+        candidate_name = item.get("name")
+    elif isinstance(item, (tuple, list)) and len(item) >= 2:
+        first, second = item[0], item[1]
+        if isinstance(first, int):
+            candidate_id, candidate_name = first, second
+        else:
+            candidate_name, candidate_id = first, second
+    else:
+        candidate_id = getattr(item, "id", None)
+        candidate_name = getattr(item, "name", None)
+
+    if candidate_id is None or not candidate_name:
+        return None
+
+    try:
+        safe_id = int(candidate_id)
+    except Exception:
+        return None
+    if safe_id <= 0:
+        return None
+    return safe_id, str(candidate_name)
+
+
+def _existing_lightning_deck_ids() -> list[int]:
+    manager = mw.col.decks
+    ids: list[int] = []
+    all_names_and_ids = getattr(manager, "all_names_and_ids", None)
+    if callable(all_names_and_ids):
+        try:
+            raw_items = list(all_names_and_ids() or [])
+        except Exception:
+            raw_items = []
+        for item in raw_items:
+            parsed = _deck_name_id_from_item(item)
+            if parsed is None:
+                continue
+            candidate_id, candidate_name = parsed
+            if str(candidate_name).startswith(LIGHTNING_MODE_DECK_NAME_PREFIX):
+                ids.append(int(candidate_id))
+    return ids
+
+
 def _recent_new_card_candidates(deck_id: int, *, limit: int) -> list[CardCandidate]:
     subtree_ids = _subtree_deck_ids(int(deck_id))
     if not subtree_ids:
         return []
 
     placeholders = _placeholders(len(subtree_ids))
+    lightning_deck_ids = _existing_lightning_deck_ids()
+    lightning_exclusion = ""
+    lightning_args: list[int] = []
+    if lightning_deck_ids:
+        lightning_exclusion = f"AND c.did NOT IN ({_placeholders(len(lightning_deck_ids))})"
+        lightning_args = [int(value) for value in lightning_deck_ids]
     safe_limit = max(1, min(1000, int(limit)))
     rows = _db_rows(
         f"""
@@ -434,11 +487,13 @@ def _recent_new_card_candidates(deck_id: int, *, limit: int) -> list[CardCandida
             (c.odid = 0 AND c.did IN ({placeholders}))
             OR c.odid IN ({placeholders})
           )
+          {lightning_exclusion}
         ORDER BY c.id DESC
         LIMIT ?
         """,
         *[int(value) for value in subtree_ids],
         *[int(value) for value in subtree_ids],
+        *lightning_args,
         int(safe_limit),
     )
     return [

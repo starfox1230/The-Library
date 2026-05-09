@@ -108,6 +108,7 @@ def _load_module(cards: dict[int, dict[str, int]]):
     sys.modules["aqt.utils"] = utils
 
     common = types.ModuleType("anki_pocket_knife.common")
+    common.card_id_search = lambda card_ids: " or ".join(f"cid:{card_id}" for card_id in card_ids)
     common.create_or_update_filtered_deck = lambda *args, **kwargs: 1
     common.get_card = lambda card_id: None
     common.rebuild_filtered_deck = lambda deck_id: None
@@ -201,3 +202,41 @@ def test_restore_moves_cards_back_without_rebuilding_or_changing_schedule(monkey
         "odue": 42,
         "due": 42,
     }
+
+
+def test_recent_new_candidates_exclude_existing_lightning_decks(monkeypatch):
+    cards: dict[int, dict[str, int]] = {}
+    module = _load_module(cards)
+    saved_deck_id = 10
+    lightning_deck_id = 20
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "_subtree_deck_ids", lambda deck_id: [saved_deck_id])
+    monkeypatch.setattr(module, "_existing_lightning_deck_ids", lambda: [lightning_deck_id])
+
+    def fake_db_rows(sql, *args):
+        captured["sql"] = sql
+        captured["args"] = args
+        return [(101, saved_deck_id, 0)]
+
+    monkeypatch.setattr(module, "_db_rows", fake_db_rows)
+
+    candidates = module._recent_new_card_candidates(saved_deck_id, limit=100)
+
+    assert [candidate.card_id for candidate in candidates] == [101]
+    assert "c.did NOT IN (?)" in str(captured["sql"])
+    assert captured["args"] == (saved_deck_id, saved_deck_id, lightning_deck_id, 100)
+
+
+def test_existing_lightning_deck_ids_accept_anki_name_id_objects():
+    cards: dict[int, dict[str, int]] = {}
+    module = _load_module(cards)
+
+    module.mw.col.decks = types.SimpleNamespace(
+        all_names_and_ids=lambda: [
+            types.SimpleNamespace(id=20, name="Lightning mode 2026-05-08 18-30-45"),
+            types.SimpleNamespace(id=10, name="Saved Cards"),
+        ]
+    )
+
+    assert module._existing_lightning_deck_ids() == [20]
