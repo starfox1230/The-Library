@@ -149,6 +149,10 @@ def parse_answers(reader: PdfReader, questions: list[dict]) -> None:
 def normalize_options(questions: list[dict]) -> None:
     parent_stems = {q["number"]: q["stem"] for q in questions if re.fullmatch(r"\d{1,2}", q["number"]) and not q["options"]}
     parent_stems["1"] = "A 50-year-old female with back pain, fevers, and chills presented to the ER. A contrast-enhanced CT was performed. Key image is shown below."
+    transition_to_subpart = {
+        "1a": "To further assess the abnormality, an MRI of the lumbar spine was performed. Key image is shown below.",
+        "2a": "Additional workup included an MRI with contrast. Key images are provided below.",
+    }
     collapsed: list[dict] = []
     for q in questions:
         if re.fullmatch(r"\d{1,2}", q["number"]) and not q["options"]:
@@ -160,8 +164,15 @@ def normalize_options(questions: list[dict]) -> None:
         for index, option in enumerate(q["options"]):
             if index >= 4:
                 break
+            transition = transition_to_subpart.get(q["number"])
+            if transition:
+                option["text"] = option["text"].split(transition, 1)[0].strip()
             normalized.append({"letter": LETTERS[index], "text": option["text"]})
         q["options"] = normalized
+        if q["number"] == "1b" and transition_to_subpart["1a"] not in q["stem"]:
+            q["stem"] = clean_text(parent_stems.get("1", "") + " " + transition_to_subpart["1a"] + " What is the diagnosis?")
+        if q["number"] == "2b" and transition_to_subpart["2a"] not in q["stem"]:
+            q["stem"] = clean_text(parent_stems.get("2", "") + " " + transition_to_subpart["2a"] + " What is the most likely diagnosis?")
         collapsed.append(q)
     questions[:] = collapsed
 
