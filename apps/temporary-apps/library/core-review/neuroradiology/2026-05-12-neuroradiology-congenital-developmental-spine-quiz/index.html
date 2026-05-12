@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neuroradiology Congenital and Developmental Spine Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Neuroradiology Congenital and Developmental Spine Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"neuroradiology-congenital-developmental-spine-quiz-ch12",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1a", "stem": "Patient A presents with cough-induced headaches. Patient B presents with upper extremity sensory deficits. MRI was performed for further assessment. Key images are shown below. Which of the following is the most accurate diagnoses based on the images shown?", "options": [{"letter": "A", "text": "Both patients have Chiari I malformation."}, {"letter": "B", "text": "Only patient A has Chiari I."}, {"letter": "C", "text": "Only patient B has Chiari I."}, {"letter": "D", "text": "Patient A has Chiari I and patient B has Chiari II malformation."}], "images": ["assets/q1a_p001_01.jpg"], "explanationImages": ["assets/a1a_p012_01.jpg"], "answer": "A", "explanation": "Answer A. Both patients have Chiari I malformation. Both patients have tonsillar ectopia with downward positioning of the cerebellar tonsils measuring at least 5 mm beyond the foramen magnum. There is an associated syrinx with patient B. These findings are compatible with Chiari I malformation."}, {"number": "1b", "stem": "Patient A presents with cough-induced headaches. Patient B presents with upper extremity sensory deficits. MRI was performed for further assessment. Key images are shown below. Additional advanced imaging was performed to understand the CSF flow dynamics, and the image is shown. Which of the following MR imaging sequences was used to obtain the image?", "options": [{"letter": "A", "text": "3D steady-state gradient echo sequence such as CISS/FIESTA"}, {"letter": "B", "text": "Subtraction MR myelogram"}, {"letter": "C", "text": "Phase-contrast sequence CSF flow"}, {"letter": "D", "text": "3D volumetric fast spin echo T1w"}], "images": ["assets/q1b_p002_01.jpg"], "explanationImages": ["assets/a1b_p012_02.jpg"], "answer": "C", "explanation": "Answer C. Phase-contrast sequence CSF flow. The image shown below (C) is a sagittal plane phase-contrast CSF flow sequence. The arrow points to the lack of flow-related signal in the dorsal subarachnoid CSF space at the cervicomedullary junction. Imaging Findings: Sagittal T1w image in patient A and sagittal T2w image in patient B showing tonsillar ectopia (solid arrow A and B) with a syrinx seen in the upper cord in patient B (dotted arrow, B). Note lack of flow-related signal in the dorsal subarachnoid CSF space in phase-contrast CSF flow study in image C (solid arrow, C). Discussion: Chiari I malformation. Chiari I malformation is defined as inferior displacement of the cerebellar tonsils below the foramen magnum typically by at least 5 mm. It may be idiopathic or could be secondary to posterior fossa or craniovertebral junction anomalies. Caudally displaced tonsils are typically pointed or peg-like. The most common complications of Chiari I result from altered CSF flow dynamics and include syringohydromyelia and hydrocephalus. Chiari 1.5 is a more recently described entity, which combines features of Chiari I with inferior descent of the brainstem, typically the inferior margin of 4th ventricle (obex) lying below the foramen magnum. Phase-contrast CSF flow imaging can be useful in evaluating CSF flow at the foramen magnum. Treatment in symptomatic patients most often consists of suboccipital craniectomy, and often also resection of the posterior arch of C1, with the goal of restoring normal CSF flow.\n\nReferences: Barkovich AJ. Congenital anomalies of the spine. In: Barkovich AJ, Raybaud C, eds. Pediatric Neuroimaging. 5th ed. Lippincott Williams & Wilkins; 2011. Tubbs RS, Iskandar BJ, Bartolucci AA, et al. A critical analysis of the Chiari 1.5 malformation. J Neurosurg. 2004;101(2 Suppl):179-183."}, {"number": "2a", "stem": "History withheld. Which of the following is the most appropriate diagnosis?", "options": [{"letter": "A", "text": "Lipoma of filum terminale"}, {"letter": "B", "text": "Lipomyelocele"}, {"letter": "C", "text": "Myelomeningocele"}, {"letter": "D", "text": "Lipomyelomeningocele"}], "images": ["assets/q2a_2b_p003_01.jpg"], "explanationImages": ["assets/a2a_2b_p014_01.jpg"], "answer": "B", "explanation": "Answer B. Lipomyelocele. Sagittal T1 and STIR images show fat signal compatible with a lipoma, which is located between the neural placode ventrally and a spinal dysraphic defect dorsally. There is intact skin overlying the defect making the lesion most compatible with a lipomyelocele."}, {"number": "2b", "stem": "History withheld. Which of the following is true about this entity?", "options": [{"letter": "A", "text": "Neural placode-lipoma interface lies within the spinal canal."}, {"letter": "B", "text": "Neural placode-lipoma interface projects beyond the spinal canal."}, {"letter": "C", "text": "Skin overlying the spinal dysraphic defect is disrupted."}, {"letter": "D", "text": "Normally positioned conus medullaris."}], "images": ["assets/q2a_2b_p003_01.jpg"], "explanationImages": ["assets/a2a_2b_p014_01.jpg"], "answer": "A", "explanation": "Answer A. Neural placode-lipoma interface lies within the spinal canal. Because of the above explained relationship of the structures involved, the interface lies within the spinal canal. Imaging Findings: Sagittal T1w (A) and STIR (B) images show a tethered cord with a terminal syringomyelia. There is expansion of the lumbar spinal canal. There is fat containing signal compatible with a lipoma (black arrow) located between the neural placode ventrally and a sacral dysraphic defect dorsally with intact overlying skin (white arrow). Discussion: Lipomyelocele. Lipomyelocele refers to a skin-covered spinal dysraphism characterized by an intraspinal lipoma in contiguity with the subcutaneous fat via the dysraphic defect in the posterior elements. The neural placode is located within the spinal canal. If the neural placode projects through the dysraphic defect into the subcutaneous tissues, it is referred to as a lipomyelomeningocele. Location of the spinal lipoma may be intra- or extradural. The cord is low lying and tethered to the intraspinal lipoma. There is typically mild expansion of the spinal canal and distention of the subarachnoid space at the level of lipomyelocele. Differential Diagnosis: Imaging differentials include an intradural lipoma, which is characterized by an intact overlying dura and absence of communication with the subcutaneous fat. The spinal canal is not expanded although a tethered cord is often associated. The other important differential is a myelomeningocele, which is an open spinal dysraphism where the neural placode projects outside the spinal canal and is not covered by the skin remaining exposed as a result to amniotic fluid in utero and air after birth.\n\nReferences: Barkovich AJ. Congenital anomalies of the spine. In: Barkovich AJ, Raybaud C, eds. Pediatric Neuroimaging. 5th ed. Lippincott Williams & Wilkins; 2011. Rufener SL, Ibrahim M, Raybaud CA, et al. Congenital spine and spinal cord malformations-pictorial review. AJR Am J Roentgenol. 2010;194(3 Suppl):S26-S37."}, {"number": "3a", "stem": "Below are shown two contrasting developmental abnormalities in patients A and B. Key images from MRI are provided below. Patient A Patient B Which of the following is the most likely diagnosis in patient A?", "options": [{"letter": "A", "text": "Type 1 caudal regression syndrome"}, {"letter": "B", "text": "Type 2 caudal regression syndrome"}, {"letter": "C", "text": "Tethered cord"}, {"letter": "D", "text": "Myelomeningocele"}], "images": ["assets/q3a_p004_01.jpg"], "explanationImages": ["assets/a3a_p016_01.jpg"], "answer": "A", "explanation": "Answer A. Type 1 caudal regression syndrome. Sagittal T2-weighted image demonstrates sacral agenesis beyond S1. The conus medullaris terminates at T11-T12 and appears blunted."}, {"number": "3b", "stem": "Below are shown two contrasting developmental abnormalities in patients A and B. Key images from MRI are provided below. Patient A Patient B Which of the following is the most likely diagnosis in patient B?", "options": [{"letter": "A", "text": "Type 1 caudal regression syndrome"}, {"letter": "B", "text": "Type 2 caudal regression syndrome"}, {"letter": "C", "text": "Tethered cord"}, {"letter": "D", "text": "Myelomeningocele"}], "images": ["assets/q3b_p005_01.jpg"], "explanationImages": ["assets/a3b_p017_01.jpg"], "answer": "B", "explanation": "Answer B. Type 2 caudal regression syndrome. Sagittal T2-weighted images demonstrate low-lying conus terminating at inferior border of L3. There is agenesis of the coccyx. Patient A Patient B Discussion: Caudal regression syndrome. Caudal regression syndrome is a complex congenital malformation characterized by varying degrees of lumbosacral agenesis/dysgenesis, along with malformations of the cord. Depending on the position of the conus, it is divided into two types: Type 1: Abnormal high termination (above L1) of the conus, which is blunted or wedge shaped typically associated with sacral anomalies above S1. Type 2: Low-lying tethered cord with less severe sacral agenesis, typically below S2. Attention to the diagnosis is often directed initially during evaluation of associated genitourinary or gastrointestinal malformations. Most common GU malformations include renal agenesis and hydronephrosis, whereas associated GI anomalies are typically anal atresia and imperforate anus. Other than lumbosacral agenesis, patients may also have associated vertebral segmentation anomalies and the entire spine should be screened for complete evaluation. There is an association with diabetic embryopathy, especially in diabetic pregnant women on insulin. Ultrasound screening in the first trimester may demonstrate a shortened crown-rump length, whereas second trimester fetal survey can better demonstrate the sacral agenesis as well as associated genitourinary malformations.\n\nReferences: Barkovich AJ. Congenital anomalies of the spine. In: Barkovich AJ, Raybaud C, eds. Pediatric Neuroimaging. 5th ed. Lippincott Williams & Wilkins; 2011. Stroustrup Smith A, Grable I, Levine D. Case 66: caudal regression syndrome in the fetus of a diabetic mother. Radiology. 2004;230(1):229-233."}, {"number": "4a", "stem": "Incidental finding on an MRI lumbar spine performed for low back pain in an otherwise healthy patient. Key images are provided below. Which of the following is the most likely diagnosis?", "options": [{"letter": "A", "text": "Fibrolipoma"}, {"letter": "B", "text": "Dermoid"}, {"letter": "C", "text": "Tethered cord"}, {"letter": "D", "text": "Lipomyelocele"}], "images": ["assets/q4a_4b_p006_01.jpg"], "explanationImages": ["assets/a4a_4b_p018_01.jpg"], "answer": "A", "explanation": "Answer A. Fibrolipoma."}, {"number": "4b", "stem": "Incidental finding on an MRI lumbar spine performed for low back pain in an otherwise healthy patient. Key images are provided below. Which of the following associations are seen with this entity?", "options": [{"letter": "A", "text": "Conus medullaris terminates at a normal position."}, {"letter": "B", "text": "Associated with spinal dysraphism."}, {"letter": "C", "text": "Patients often have neurologic symptoms."}, {"letter": "D", "text": "Vertebral segmentation anomalies."}], "images": ["assets/q4a_4b_p006_01.jpg"], "explanationImages": ["assets/a4a_4b_p018_01.jpg"], "answer": "A", "explanation": "Answer A. Conus medullaris terminates at normal position. Imaging Findings: Sagittal T1w image demonstrates high signal within the filum at L4-S1 level (arrow A), which is suppressed on the STIR images. Note normal position of the conus (arrow B). Axial T1 images with fat signal within the distal filum, which in this case, is not abnormally thickened. Findings compatible with a fatty filum or fibrolipoma. Discussion: Fibrolipoma of filum terminale or fatty filum. Fatty filum refers to detection of fat in an otherwise normal-size filum (transverse diameter <2 mm) in an asymptomatic patient. It is most commonly an incidental finding, which does not warrant further investigation. Differential Diagnosis: It is important to differentiate from other fat-containing lesions such as intraspinal lipoma (larger in size), dermoid/epidermoid (more complex appearing), lipomyelocele (associated with posterior spinal fusion anomalies), and tethered cord (low-lying conus). MRI classically depicts high T1 signal within the filum, which is suppressed on fat-saturated sequences.\n\nReferences: Barkovich AJ. Congenital anomalies of the spine. In: Barkovich AJ, Raybaud C, eds. Pediatric Neuroimaging. 5th ed. Lippincott Williams & Wilkins; 2011. Bulsara KR, Zomorodi AR, Enterline DS, et al. The value of magnetic resonance imaging in the evaluation of fatty filum terminale. Neurosurgery. 2004;54(2):375-379; discussion 379-380."}, {"number": "5", "stem": "Chronic low back pain without radiculopathy or neurologic symptoms. An MRI was performed for further assessment. Key images are shown below. Based on the above images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Syringomyelia"}, {"letter": "B", "text": "Terminal ventricle"}, {"letter": "C", "text": "Myxopapillary ependymoma"}, {"letter": "D", "text": "Tethered cord"}], "images": ["assets/q5_p007_01.jpg"], "explanationImages": ["assets/a5_p019_01.jpg"], "answer": "B", "explanation": "Answer B. Terminal ventricle. Images courtesy of Dr. Mai Lan Ho Imaging Findings: Sagittal and axial T2w images demonstrate dilation of the central canal in the distal spinal cord. Note lack of complexity within the canal or associated signal changes in adjacent cord/conus. Discussion: Terminal ventricle. Mild dilation of the central canal of the spinal cord in or around the conus medullaris is an incidental finding that warrants no further investigation in an asymptomatic patient in the absence of any evidence of enhancement, septations, eccentric location, or cord tethering. Also referred to as ventriculus terminalis or 5th ventricle, it is often seen incidentally especially in pediatric population. It may sometimes be detected in newborns undergoing spinal cord ultrasound screening. Differential Diagnosis: It is important to differentiate this entity from syringomyelia (which is usually accompanied by other developmental abnormalities) as well as neoplasms especially if there is cystic dilation of the central canal. Contrast-enhanced MRI is instrumental in depicting lack of enhancement, nodularity, or septations in patients with suspected neoplasms of the conus.\n\nReferences: Ciappetta P, Ivo D'urso P, Luzzi S, Ingravallo G, Cimmino A, Resta L. Cystic dilation of the ventriculus terminalis in adults. J Neurosurg Spine. 2008;8:92-99. Coleman LT, Zimmerman RA, Rorke LB. Ventriculus terminalis of the conus medullaris: MR findings in children. AJNR Am J Neuroradiol. 1995;16(7):1421-1426."}, {"number": "6", "stem": "What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Chiari I malformation"}, {"letter": "B", "text": "Chiari II malformation"}, {"letter": "C", "text": "Low-lying cerebellar tonsils"}, {"letter": "D", "text": "Dandy-Walker malformation"}], "images": ["assets/q6_p008_01.jpg"], "explanationImages": ["assets/a6_p020_01.jpg"], "answer": "B", "explanation": "Answer B. Chiari II malformation. Imaging Findings: Sagittal STIR and Sag T1w images demonstrate a small posterior fossa with inferior displacement of the vermis (arrow, image A), cervicomedullary kinking (arrow, image B), tectal beaking, and flattening of the 4th ventricle diagnostic of Chiari II malformation. Discussion: Chiari II malformation. Chiari II malformation is a congenital hindbrain malformation, which results from a developmentally small posterior fossa, which can no longer accommodate the normally growing brainstem and cerebellum. The cerebellum is displaced both superiorly through a widened tentorial incisura (with resulting mass effect on the tectum causing tectal beaking) as well as inferiorly into the upper cervical canal resulting in a flattening of 4th ventricle. It is important to recognize that unlike Chiari I, it is the vermis that typically herniates inferiorly in Chiari II whereas Chiari I shows tonsillar herniation. The cerebellum may also extend anterolaterally into the cerebellopontine angle cisterns (\"wrapping around the brainstem\") associated with concavity of the petrous bones. Cervicomedullary kinking results from inferior displacement of the medulla into the cervical canal. Nearly all patients have a myelomeningocele, which requires closure immediately after birth. Supratentorial abnormalities are commonly present and include hydrocephalus, callosal dysgenesis, as well as gray matter abnormalities like heterotopias and polymicrogyria.\n\nReferences: Barkovich AJ. Congenital anomalies of the spine. In: Barkovich AJ, Raybaud C, eds. Pediatric Neuroimaging. 5th ed. Lippincott Williams & Wilkins; 2011. Geerdink N, van der Vliet T, Rotteveel JJ, et al. Essential features of Chiari II malformation in MR imaging: an interobserver reliability study-part 1. Childs Nerv Syst. 2012;28(7):977-985. doi:10.1007/s00381-012-1761-5"}, {"number": "7", "stem": "A 16-year-old female presents with back pain. Lateral radiographs of the lumbar spine demonstrate L5 pars defect with minimal anterior translation of L5 on S1. Which of the following is the likely etiology for the imaging findings above?", "options": [{"letter": "A", "text": "Acute traumatic injury"}, {"letter": "B", "text": "Congenital"}, {"letter": "C", "text": "Neoplastic"}, {"letter": "D", "text": "Repetitive stress injury"}], "images": ["assets/q7_p009_01.jpg"], "explanationImages": ["assets/a7_p021_01.jpg"], "answer": "D", "explanation": "Answer D. Repetitive stress injury. The etiology is believed to be chronic stress-related injury resulting in a fracture of the pars interarticularis. It most often develops in the first decade of life and is not present at birth. Imaging Findings: Lateral radiographs of the lumbar spine show an abnormal lucency in the pars interarticularis, the bony connection between the superior and inferior articular processes. This is a pars defect/spondylosis. It is most commonly seen at L5 followed by L4. Discussion: Pars defect. Defects in the pars may result in varying degrees of anterolisthesis of the involved vertebra. The etiology is believed to be chronic stress-related injury resulting in a fracture of the pars interarticularis. It most often develops in the first decade of life and is not present at birth. Radiographs and midline sagittal CT images can readily depict the bony defect with sclerotic edges as well as any associated anterior vertebral translation. On axial CT imaging, there is an elongation of the spinal canal with increased AP diameter. In addition to visualizing the pars defect, MRI can also depict reactive marrow changes. Other ancillary findings include horizontally oriented neural foramina and posterior wedging of the vertebral body. Spondylolisthesis can also develop in the absence of pars defect in patients with degenerative facet arthropathy and acute fractures in the setting of trauma. Acute pars fractures, however, do not have sclerotic edges, and there are often other associated fractures in the spine. Treatment is mostly conservative with surgical fusion and/or posterior decompression reserved for cases with higher grades of anterolisthesis and neurologic deficits.\n\nReferences: Jinkins JR, Matthes JC, Sener RN, et al. Spondylolysis, spondylolisthesis, and associated nerve root entrapment in the lumbosacral spine: MR evaluation. AJR Am J Roentgenol. 1992;159(4):799-803. Standaert CJ, Herring SA, Halpern B, et al. Spondylolysis. Phys Med Rehabil Clin N Am. 2000;11:785."}, {"number": "8", "stem": "A young child with scoliosis presented for further evaluation. Key images from an MRI are shown below. Which of the following is the most accurate description of the above abnormality?", "options": [{"letter": "A", "text": "Vertebral segmentation anomaly"}, {"letter": "B", "text": "Spinal dysraphism"}, {"letter": "C", "text": "Chiari I malformation"}, {"letter": "D", "text": "Aberrant left subclavian artery"}], "images": ["assets/q8_p010_01.jpg"], "explanationImages": ["assets/a8_p023_01.jpg"], "answer": "A", "explanation": "Answer A. Vertebral segmentation anomaly. Imaging Findings: Coronal T2-weighted image shows a C6 hemivertebra (arrow). Discussion: Vertebral segmentation anomaly. Vertebral segmentation anomalies result from abnormal vertebral development during embryogenesis. These may be detected incidentally or during evaluation of patients with congenital scoliosis. Segmentation anomalies include vertebral agenesis, hemivertebra, butterfly vertebra (sagittal cleft), coronal cleft, and block vertebra. A lateral (right or left) hemivertebra results from lack of ossification of one-half of the vertebral body and presents with congenital scoliosis. Ventral or dorsal hemivertebra results from lack of ossification in ventral or dorsal half of vertebral body. These may present with exaggerated kyphosis or lordosis. Butterfly vertebra describes a sagittal cleft in the vertebral body and results from lack of fusion of lateral halves of the vertebral body. This is best seen on the coronal view. Block vertebrae result from congenital fusion of the vertebral bodies, which can involve the anterior or posterior aspect of the vertebral bodies or both.\n\nReferences: Barkovich AJ. Congenital anomalies of the spine. In: Barkovich AJ, Raybaud C, eds. Pediatric Neuroimaging. 5th ed. Lippincott Williams & Wilkins; 2011. Kumar R, Guinto FC Jr, Madewell JE, et al. The vertebral body: radiographic configurations in various congenital and acquired disorders. Radiographics. 1988;8(3):455-485."}, {"number": "9", "stem": "Key image for a developmental abnormality is shown below. What is the diagnosis?", "options": [{"letter": "A", "text": "Congenital block vertebrae"}, {"letter": "B", "text": "Spinal dysraphism"}, {"letter": "C", "text": "Diastematomyelia"}, {"letter": "D", "text": "Dural ectasia"}], "images": ["assets/q9_p011_01.jpg"], "explanationImages": ["assets/a9_p024_01.jpg"], "answer": "C", "explanation": "Answer C. Diastematomyelia. Imaging Findings: Axial T2w MR images reveal splitting of the spinal cord into two hemicords (arrow). Discussion: Diastematomyelia/split cord malformation. Diastematomyelia/split cord malformation refers to sagittal splitting of the spinal cord into two hemicords secondary to a bony or fibrocartilaginous septum. Each hemicord has an anterior and posterior horn with its associated nerve roots. The extent of cord involvement can be variable. It is most commonly seen in the thoracolumbar spine. Split cord malformation is classically divided into two types: Type 1: Two hemicords with individual dural sheaths Type 2: Two hemicords within a common dural sheath It is commonly associated with vertebral segmentation anomalies, intersegmental laminar fusion, and spinal dysraphism. Patients are most often diagnosed in childhood during evaluation of progressive scoliosis or presence of cutaneous stigmata such as hairy patch, which is seen in more than half the cases.\n\nReferences: Huang SL, He XJ, Xiang L, et al. CT and MRI features of patients with diastematomyelia. Spinal Cord. 2014;52:689-692. doi:10.1038/sc.2014.68 Rufener SL, Ibrahim M, Raybaud CA, et al. Congenital spine and spinal cord malformations-pictorial review. AJR Am J Roentgenol. 2010;194(3 Suppl):S26-S37."}];
+    const APP_ID = "neuroradiology-congenital-developmental-spine-quiz-ch12";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

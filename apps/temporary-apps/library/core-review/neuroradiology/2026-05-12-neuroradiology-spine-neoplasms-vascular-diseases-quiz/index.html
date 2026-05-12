@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neuroradiology Spine Neoplasms and Vascular Diseases Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Neuroradiology Spine Neoplasms and Vascular Diseases Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"neuroradiology-spine-neoplasms-vascular-diseases-quiz-ch11",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "A 52-year-old man presents with progressive lower back pain. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Hemangioma"}, {"letter": "B", "text": "Osteomyelitis"}, {"letter": "C", "text": "Neoplasm"}, {"letter": "D", "text": "Aneurysmal bone cyst"}], "images": ["assets/q1_p001_01.jpg"], "explanationImages": ["assets/a1_2_p025_01.jpg"], "answer": "C", "explanation": "Answer C. Neoplasm. There is an expansile vertebral body mass that extends into the anterior epidural space, most likely neoplastic in etiology."}, {"number": "2", "stem": "Which of the following lesions is the most common malignancy of the spine?", "options": [{"letter": "A", "text": "Chondrosarcoma"}, {"letter": "B", "text": "Chordoma"}, {"letter": "C", "text": "Metastasis"}, {"letter": "D", "text": "Osteosarcoma"}], "images": [], "explanationImages": ["assets/a1_2_p025_01.jpg"], "answer": "C", "explanation": "Answer C. Metastasis. Imaging Findings: Images demonstrate a pathologic compression deformity of the L1 vertebral body with a highly T2 hyperintense (C), T1 hypointense (A), and mildly enhancing lesion (B), replacing the entirety of the vertebral body with epidural extension and resultant cord compression. Discussion: Metastatic disease, myeloma, and lymphoproliferative tumors are the most common malignant spinal tumors. These usually present with multiple lesions. In case of solitary lesions, one must consider lesions such as plasmacytoma, Ewing sarcoma, and chordoma. Chordoma, (as shown in this case), although quite rare, remains the most common primary malignancy of spine in adults after lymphoproliferative lesions and myeloma. It arises from cells of the primitive notochord and thus can arise from the bone anywhere in the axial skeleton from Rathke pouch to the coccyx. Cases typically are most common in the sacrococcygeal region followed by the clivus and then the vertebral bodies. Though chordomas are locally aggressive, they metastasize relatively infrequently, roughly 15% of the time. Chordomas are treated with surgical resection and radiation therapy with gross total resection having a better prognosis. Differential Diagnosis: metastasis, lymphoproliferative disorder/plasmacytoma, chondrosarcoma, and giant cell tumor.\n\nReferences: Ha AS, Chew FS. Imaging of sacral masses: self-assessment module. AJR Am J Roentgenol. 2010;195:S32- S36. Murphey MD, Andrews CL, Flemming DJ, et al. From the archives of the AFIP. Primary tumors of the spine: radiologic pathologic correlation. Radiographics. 1996;16:1131-1158. Nishiguchi T, Mochizuki K, Ohsawa M, et al. Differentiating benign notochordal cell tumors from chordomas: radiographic features on MRI, CT, and tomography. AJR Am J Roentgenol. 2011;196:644-650."}, {"number": "3a", "stem": "A 72-year-old woman presents with right lower extremity weakness. What is the next best step in evaluation?", "options": [{"letter": "A", "text": "No further evaluation"}, {"letter": "B", "text": "CT with contrast"}, {"letter": "C", "text": "MRI with contrast"}, {"letter": "D", "text": "MRI without contrast An MRI with contrast was performed. Key images are shown below:"}], "images": ["assets/q3a_p002_01.jpg"], "explanationImages": ["assets/a3a_3b_p027_01.jpg", "assets/a3a_3b_p028_01.jpg"], "answer": "C", "explanation": "Answer C. MRI with contrast. Although a partially calcified mass of the spinal canal is clearly evident on the CT images, MRI with contrast is indicated for further evaluation given superior soft tissue contrast and also to evaluate the relationship of the mass to the spinal cord."}, {"number": "3b", "stem": "A 72-year-old woman presents with right lower extremity weakness. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Meningioma"}, {"letter": "B", "text": "Metastasis"}, {"letter": "C", "text": "Schwannoma"}, {"letter": "D", "text": "Paraganglioma"}], "images": ["assets/q3b_p003_01.jpg"], "explanationImages": ["assets/a3a_3b_p027_01.jpg", "assets/a3a_3b_p028_01.jpg"], "answer": "A", "explanation": "Answer A. Meningioma. All choices are reasonable differential etiologies; however, given intradural, extramedullary location; well-defined borders; broad-based dural attachment; calcifications; and relatively homogenous enhancement, meningioma is most likely. Meningioma is overall the second most common intradural, extramedullary lesion in the spine, with the thoracic spine being the most common location. Imaging Findings: Image (A) shows a sagittal CT of the thoracic spine demonstrating a partially calcified lesion within the spinal canal at the midthoracic level. Images B to D show sagittal T2, T1, and T1 postcontrast images demonstrating a T1 and T2 intermediate intradural extramedullary lesion with areas of low signal corresponding to calcification, a broad-based dural attachment, and relatively homogenous postcontrast enhancement. There is significant displacement and compression of the adjacent spinal cord. Discussion: Spinal meningioma is the second most common intradural extramedullary spinal neoplasm after schwannoma and is more common in women and elderly. Extradural or mixed location is possible, though much less common. Within the spine, meningioma is most common in the thoracic spine, followed by the cervical spine, and is rarely seen in the lumbosacral spine. Most lesions are isolated, and when multiple lesions are seen, neurofibromatosis type 2 should be suspected. Imaging findings are generally identical to intracranial meningioma, with a dural-based, homogeneously enhancing lesion with calcifications being common. Like within the intracranial compartment, a dural tail and adjacent hyperostosis can be seen, though less common. Total surgical resection is generally curative, and recurrence is uncommon. Differential Diagnosis: The primary differential etiology is nerve sheath tumor, though other possibilities include other intradural extramedullary lesions such as ependymoma or metastasis.\n\nReferences: De Verdelhan O, Haegelen C, Carsin-Nicol B, et al. MR imaging features of spinal schwannomas and meningiomas. J Neuroradiol. 2005;32:42-49. Lee JW, Lee IS, Choi KU, et al. CT and MRI findings of calcified spinal meningiomas: correlation with pathological findings. Skeletal Radiol. 2010;39:345-352."}, {"number": "4a", "stem": "A 35-year-old man presents with lower back pain and lower extremity radiculopathy. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Meningioma"}, {"letter": "B", "text": "Schwannoma"}, {"letter": "C", "text": "Myxopapillary ependymoma"}, {"letter": "D", "text": "Chordoma"}], "images": ["assets/q4a_4b_p004_01.jpg"], "explanationImages": ["assets/a4a_4b_p029_01.jpg"], "answer": "C", "explanation": "Answer C. Myxopapillary ependymoma. This is the most common intradural extramedullary lesion of the cauda equina/filum terminale and is thus the most likely diagnosis in this case. Though imaging findings are nonspecific, hemorrhagic component and calcification, shown here, are commonly seen in myxopapillary ependymoma."}, {"number": "4b", "stem": "A 35-year-old man presents with lower back pain and lower extremity radiculopathy. Which of the following anatomic locations best characterizes this lesion?", "options": [{"letter": "A", "text": "Intradural, extramedullary"}, {"letter": "B", "text": "Intramedullary"}, {"letter": "C", "text": "Extradural"}, {"letter": "D", "text": "Presacral"}], "images": ["assets/q4a_4b_p004_01.jpg"], "explanationImages": ["assets/a4a_4b_p029_01.jpg"], "answer": "A", "explanation": "Answer A. Intradural, extramedullary. The lesion in question is intradural, extramedullary in location, which is most common for myxopapillary ependymoma. The other locations are possible, but far less likely. Imaging Findings: Images demonstrate a large, lobulated T2 hyperintense (A), largely homogeneously enhancing (C), intradural extramedullary mass at the lumbosacral junction. There are areas of low T2 signal suggesting hemorrhage and calcification, respectively. There is scalloping of the adjacent posterior vertebral bodies (A to C). Discussion: Myxopapillary ependymoma is a low-grade variant of ependymoma that is limited to the conus medullaris/filum terminale and is also the most common malignancy in this location in adults. This variant has a younger age of presentation in the 30s as compared to other ependymoma subtypes and demonstrates a slight male predominance. Differential Diagnosis: Imaging features can be difficult to distinguish from other lesions such as schwannoma or paraganglioma in the intradural location. Depending on the level of involvement, it can also be difficult to distinguish between other entities such as chordoma or giant cell tumor. However, hemorrhage is more common in myxopapillary ependymoma. As a low-grade tumor, outcomes are generally good with total surgical resection. However, in a minority of cases, the lesion can disseminate through CSF and multiple lesions can be seen.\n\nReferences: Abul-Kasim K, Thurnher MM, McKeever P, et al. Intradural spinal tumors: current classification and MRI features. Neuroradiology. 2008;50:301-314. Ha AS, Chew FS. Imaging of sacral masses: self-assessment module. AJR Am J Roentgenol. 2010;195:S32- S36. Shors SM, Jones TA, Jhaveri MD, et al. Myxopapillary ependymoma of the sacrum. Radiographics. 2006; 26:S111-S116. Wippold FJ, Smirniotopoulos JG, Moran CJ, et al. MR imaging of myxopapillary ependymoma: findings and value to determine extent of tumor and its relation to intraspinal structures. AJR Am J Roentgenol. 1995;165:1263-1267."}, {"number": "5a", "stem": "A 26-year-old woman presents with severe neck pain. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Meningioma"}, {"letter": "B", "text": "Abscess"}, {"letter": "C", "text": "Nerve sheath tumor"}, {"letter": "D", "text": "Perineural root sleeve cyst"}], "images": ["assets/q5a_5b_p005_01.jpg"], "explanationImages": ["assets/a5a_5b_p031_01.jpg"], "answer": "C", "explanation": "Answer C. Nerve sheath tumor. Well-circumscribed T2 hyperintense mass centered in the neural foramen with bony expansion is most consistent with a diagnosis of nerve sheath tumor. Meningioma is a reasonable differential diagnosis, though is the second most common intradural extramedullary spinal lesion behind nerve sheath tumors. Abscess is unlikely given the lack of a clear source and lack of surrounding inflammatory change. Perineural root sleeve cyst is also excluded as this lesion demonstrates enhancement."}, {"number": "5b", "stem": "A 26-year-old woman presents with severe neck pain. Multiple cutaneous lesions are also seen. Which of the following is the most likely underlying disorder?", "options": [{"letter": "A", "text": "Tuberous sclerosis"}, {"letter": "B", "text": "Neurofibromatosis type 1"}, {"letter": "C", "text": "Neurofibromatosis type 2"}, {"letter": "D", "text": "von Hippel-Lindau syndrome"}], "images": ["assets/q5a_5b_p005_01.jpg"], "explanationImages": ["assets/a5a_5b_p031_01.jpg"], "answer": "B", "explanation": "Answer B. Neurofibromatosis type 1. Given the presence of a likely nerve sheath tumor and cutaneous lesion the patient most likely has neurofibromatosis type 1. Neurofibromatosis type 2 lacks the cutaneous lesions and is associated with intracranial schwannomas as well as meningioma and spinal ependymoma. Imaging Findings: Images demonstrate a well-circumscribed, lobulated T2 hyperintense lesion (arrow in A), with heterogeneous enhancement (arrow in B and C), centered in the right C1-C2 neural foramen (arrow in D and E). Discussion: Nerve sheath tumors are benign neoplasms and constitute the most common primary intradural extramedullary spinal lesion. Purely extradural or mixed intradural and extradural location can be seen but is less common. Nerve sheath tumors include both schwannoma and neurofibroma, though these entities largely cannot be distinguished from one another by imaging characteristics alone. Nerve sheath tumors typically arise from the dorsal root ganglion, and thus affected patients present more often with pain rather than weakness. Neurofibromas have an association with neurofibromatosis type 1 and multiple lesions are common. Neurofibromas tend to grow encasing a nerve root and sometimes a target sign suggesting this can be seen, though this is nonspecific and can also be seen in schwannoma. Although neurofibromas are a benign lesion, a minority (~10%) can undergo malignant transformation into neurofibrosarcoma. Spinal schwannomas have an association with neurofibromatosis type 2. When present, hemorrhage and cystic degeneration is a more common finding in schwannoma rather than neurofibroma and may suggest toward a specific diagnosis, though these can be seen in both entities. As compared to neurofibroma, schwannomas almost never undergo malignant degeneration. For either lesion, surgical excision is considered curative, though recurrence is more common when these lesions occur in the background of neurofibromatosis type 1/2.\n\nReferences: Abul-Kasim K, Thurnher MM, McKeever P, et al. Intradural spinal tumors: current classification and MRI features. Neuroradiology. 2008;50:301-314. De Verdelhan O, Haegelen C, Carsin-Nicol B, et al. MR imaging features of spinal schwannomas and meningiomas. J Neuroradiol. 2005;32:42-49. Mautner VF, Tatagiba M, Lindenau M, et al. Spinal tumors in patients with neurofibromatosis type 2: MR imaging study of frequency, multiplicity, and variety. AJR Am J Roentgenol. 1995;165:951-955."}, {"number": "6a", "stem": "A 55-year-old man presents with lower back pain. What imaging finding is seen in this case that suggests a specific diagnosis?", "options": [{"letter": "A", "text": "Cap sign"}, {"letter": "B", "text": "Flow voids"}, {"letter": "C", "text": "Target sign"}, {"letter": "D", "text": "Curtain sign"}], "images": ["assets/q6a_6b_p006_01.jpg"], "explanationImages": ["assets/a6a_6b_p033_01.jpg"], "answer": "B", "explanation": "Answer B. Flow voids. Scattered flow voids are seen especially on the sagittal T2 sequence, which is suggestive of paraganglioma. Cap sign refers to a rim of T2 hypointensity or susceptibility artifact denoting hemorrhage, which is nonspecific and can be seen in both ependymoma and paraganglioma. The target sign refers to a targetoid appearance of neurofibroma on T2 imaging with a bright rim and dark core. Curtain sign refers to the appearance of a vertebral body lesion with anterior epidural extension, which causes a bilobed uplifting of the posterior longitudinal ligament."}, {"number": "6b", "stem": "A 55-year-old man presents with lower back pain. Given the imaging findings, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Lymphoma"}, {"letter": "B", "text": "Hematoma"}, {"letter": "C", "text": "Meningioma"}, {"letter": "D", "text": "Paraganglioma"}], "images": ["assets/q6a_6b_p006_01.jpg"], "explanationImages": ["assets/a6a_6b_p033_01.jpg"], "answer": "D", "explanation": "Answer D. Paraganglioma. The presence of flow voids in this case is most suggestive of paraganglioma. Imaging Findings: Images demonstrate a relatively well-defined, homogeneously enhancing, extramedullary, intradural mass centered at the level of L5. Axial T2 images demonstrate scattered, punctate areas of low signal suggestive of flow voids (arrow in D and E). Discussion: Spinal paraganglioma is a neuroendocrine tumor, which is histologically identical to paraganglioma at any other site, and can occur at any location where there are paraganglion cells such as the adrenal gland (pheochromocytoma), paravertebral station, and head and neck (glomus tumors). Spinal paraganglioma is rare, with most cases of paraganglioma being adrenal in origin and the majority of extra-adrenal cases being located in the head and neck. Despite its rarity, paraganglioma should be considered in the differential along with the more common entities of schwannoma or ependymoma as outcomes are dependent on totality of surgical resection and as these tumors are considered insensitive to radiation therapy. However, complete surgical resection is usually curative, and recurrence after resection is uncommon (<5%). Differential Diagnosis: Includes schwannoma, neurofibroma, ependymoma, and meningioma.\n\nReferences: Mishra T, Goel NA, Goel AH. Primary paraganglioma of the spine: a clinicopathological study of eight cases. J Craniovertebr Junction Spine. 2014;5:20-24. Sahdev A, Sohaib A, Monson JP, et al. CT and MR imaging of unusual locations of extra-adrenal paragangliomas (pheochromocytomas). Eur Radiol. 2005;15:85-92. Sundgren P, Annertz M, Englund E, et al. Paragangliomas of the spinal canal. Neuroradiology. 1999;41:788 -794."}, {"number": "7a", "stem": "A 15-year-old male presents with back pain. Key images are shown below: What is the most likely etiology of this lesion?", "options": [{"letter": "A", "text": "Traumatic"}, {"letter": "B", "text": "Infectious"}, {"letter": "C", "text": "Benign tumor"}, {"letter": "D", "text": "Malignant tumor"}], "images": ["assets/q7a_7b_p007_01.jpg"], "explanationImages": ["assets/a7a_7b_p034_01.jpg"], "answer": "C", "explanation": "Answer C. Benign tumor. Nidus with surrounding edema is classic appearance of osteoid osteoma, a benign tumor."}, {"number": "7b", "stem": "A 15-year-old male presents with back pain. Key images are shown below: Which of the following is a typical clinical presentation seen with this entity?", "options": [{"letter": "A", "text": "Sports injury"}, {"letter": "B", "text": "Night pain relieved with aspirin"}, {"letter": "C", "text": "Intravenous drug use"}, {"letter": "D", "text": "Known primary malignancy"}], "images": ["assets/q7a_7b_p007_01.jpg"], "explanationImages": ["assets/a7a_7b_p034_01.jpg"], "answer": "B", "explanation": "Answer B. Night pain relieved with aspirin. Patients with osteoid osteoma present with night pain relieved by aspirin or NSAIDs. Some patients have scoliosis related to muscle spasm. Imaging Findings: Axial and sagittal CT images at L5 demonstrate a central nidus with variable amount of ossification. The nidus measures <1.5 cm. There is dense sclerosis around the tumor (A and B). Axial T2 (C) and postcontrast T1 axial (D) images demonstrate a rounded T2 hypointense nidus with surrounding T2 hyperintense edema and enhancing reactive zone. Discussion: Osteoid osteoma is a benign osteoid-producing tumor. It is an important cause of painful scoliosis in a child or young adult. The most common symptom is night pain relieved by aspirin or other NSAIDs. The majority of the lesions are found in the lumbar spine. The best diagnostic feature is a small radiolucent tumor nidus with surrounding sclerosis. The nidus is typically <1.5 cm; the larger lesions are called osteoblastoma. The surrounding sclerosis represents reactive edema because of prostaglandin release and can be hyperintense on T2 with contrast enhancement. The nidus can show variable T2 signal but typically demonstrates avid and rapid enhancement. Complete resection of the nidus is curative in most cases. Other treatment options include thermo-/photocoagulation. Differential Diagnoses: Osteoblastoma (similar to osteoid osteoma, but larger than 1.5 cm and expansile) and stress fracture (fracture line rather than a rounded nidus, and pain related to activity). Osteomyelitis (sequestrum or focal abscess can mimic nidus but tends to be irregular shape; usually adjacent osseous erosion or destruction is present). Ewing sarcoma (no nidus, centered in the vertebral body, with diffuse surrounding edema).\n\nReferences: Assoun J, Richardi G, Railhac JJ, et al. Osteoid osteoma: MR imaging versus CT. Radiology. 1994;191(1): 217-223. Chai JW, Hong SH, Choi J-Y, et al. Radiologic diagnosis of osteoid osteoma: from simple to challenging findings. Radiographics. 2010;30(3):737-749. Erratum in: Radiographics. 2010;30(4):1156. Greenspan A. Benign bone-forming lesions: osteoma, osteoid osteoma, and osteoblastoma. Clinical, imaging, pathologic, and differential considerations. Skeletal Radiol. 1993;22(7):485-500. Woods ER, Martel W, Mandell SH, Crabbe JP. Reactive soft-tissue mass associated with osteoid osteoma: correlation of MR imaging features with pathologic findings. Radiology. 1993;186(1):221-225."}, {"number": "8a", "stem": "A 67-year-old male presents with severe lower extremity weakness and urinary incontinence. Key images from an MRI are shown below: What is the salient imaging finding seen in this patient?", "options": [{"letter": "A", "text": "Nerve root enhancement and thickening"}, {"letter": "B", "text": "Phlegmon and inflammation"}, {"letter": "C", "text": "Endplate cortical erosion"}, {"letter": "D", "text": "Vertical fracture of the vertebral body"}], "images": ["assets/q8a_8b_p008_01.jpg"], "explanationImages": ["assets/a8a_8b_p036_01.jpg"], "answer": "A", "explanation": "Answer A. Nerve root enhancement and thickening."}, {"number": "8b", "stem": "A 67-year-old male presents with severe lower extremity weakness and urinary incontinence. Key images from an MRI are shown below: What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Campylobacter viral infection with GI symptoms"}, {"letter": "B", "text": "Leptomeningeal metastasis"}, {"letter": "C", "text": "Demyelinating disease"}, {"letter": "D", "text": "Arachnoiditis"}], "images": ["assets/q8a_8b_p008_01.jpg"], "explanationImages": ["assets/a8a_8b_p036_01.jpg"], "answer": "B", "explanation": "Answer B. Leptomeningeal metastasis. This should be the most likely diagnosis given the nodular enhancing and thickened appearance of nerve roots. Imaging Findings: T1 sagittal and axial postcontrast images demonstrate thickening and diffuse enhancement of the cauda equine nerve roots with nodular enhancing foci (A and B). Note diffusely abnormal marrow signal compatible with osseous metastatic disease. Discussion: Metastases from central nervous system malignancies generally occur at a younger age and include medulloblastoma, choroid plexus neoplasms, glioblastoma, and ependymoma, among other entities. In adults, the most common non-CNS solid tumors to present with leptomeningeal metastasis are lung and breast cancer, although lymphoma can also have such presentation. MRI with contrast is the imaging modality of choice, demonstrating thickened nerve roots with enhancing nodules on the spinal cord, nerve roots, or cauda equina, with a \"sugarcoating\" appearance of the spinal cord. Cord edema may be seen if there is an intramedullary component. Differential Diagnosis: Differential diagnosis for diffuse nodular enhancement (sugarcoating) include arachnoiditis and Guillain-Barré syndrome. Arachnoiditis will demonstrate clumping of nerve roots, \"empty sac sign,\" and often history of prior surgery. Guillain-Barré syndrome tends to show smooth pial enhancement of the cauda equina and conus medullaris in a patient with a history of recent viral illness.\n\nReferences: Brant WE, Helms CA. Fundamentals of Diagnostic Radiology. Lippincott Williams & Wilkins; 2006. Grossman RI, Yousem DM. Neuroradiology, the Requisites. Mosby Inc.; 2003. Soderlund KA, Smith AB, Rushing EJ, et al. Radiologic-pathologic correlation of pediatric and adolescent spinal neoplasms: Part 2, Intradural extramedullary spinal neoplasms. AJR Am J Roentgenol. 2012;198(1): 44-51."}, {"number": "9a", "stem": "Key images from an MRI performed for evaluation of a spinal mass are shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Hemangioblastoma"}, {"letter": "B", "text": "Meningioma"}, {"letter": "C", "text": "Metastasis"}, {"letter": "D", "text": "Astrocytoma"}], "images": ["assets/q9a_9b_p009_01.jpg"], "explanationImages": ["assets/a9a_9b_p037_01.jpg"], "answer": "D", "explanation": "Answer D. Astrocytoma. There is a mass with adjacent cysts and demonstrating strong enhancement, compatible with infiltrative astrocytoma."}, {"number": "9b", "stem": "Key images from an MRI performed for evaluation of a spinal mass are shown below. Which of the following imaging features is characteristically associated with this entity?", "options": [{"letter": "A", "text": "Cyst with a nodule"}, {"letter": "B", "text": "Syringohydromyelia"}, {"letter": "C", "text": "Infiltrative and enhancing mass"}, {"letter": "D", "text": "Marginal cysts and peripheral hemorrhage"}], "images": ["assets/q9a_9b_p009_01.jpg"], "explanationImages": ["assets/a9a_9b_p037_01.jpg"], "answer": "C", "explanation": "Answer C. Infiltrative and enhancing mass. This feature strongly supports the diagnosis of an infiltrative astrocytoma. Imaging Findings: T2 and T1 postcontrast sagittal images demonstrate a long-segment infiltrative mass with cord expansion and adjacent cysts (A and B). Postcontrast images demonstrate strong enhancement of the solid mass with nonenhancing cystic component (B). There is small amount of intratumoral hemorrhage (A, low T2 signal). Discussion: Infiltrative astrocytomas of the spinal cord are the second most common spinal cord tumor in adults and most common spinal cord tumor in children. Astrocytomas are typically long multisegment intramedullary masses approximately 4 to 7 vertebral body segments in length. The most common location is the thoracic cord. Occasionally, there can be involvement of the entire spinal cord (holocord). In contrast to cord ependymomas, a cleavage plane is not present in most spinal astrocytomas. There is diffuse cord expansion, with eccentric location of the tumor within the spinal cord. There is extensive peritumoral edema. Intratumoral and peritumoral cysts are less common. Hemorrhage is uncommon and is more commonly seen with ependymomas. Differential Diagnosis: The main differential diagnosis is spinal ependymoma. Ependymomas are more common in adults, are typically central in location, and occasionally demonstrate a hemorrhagic cap and larger polar and intratumoral cysts.\n\nReferences: Brant WE, Helms CA. Fundamentals of Diagnostic Radiology. Lippincott Williams & Wilkins; 2007. Koeller KK, Rosenblum RS, Morrison AL. Neoplasms of the spinal cord and filum terminale: radiologic-pathologic correlation. Radiographics. 2000;20(6):1721-1749. Smith AB, Soderlund KA, Rushing EJ, et al. Radiologic-pathologic correlation of pediatric and adolescent spinal neoplasms: Part 1, intramedullary spinal neoplasms. AJR Am J Roentgenol. 2012;198(1):34-43."}, {"number": "10a", "stem": "A 30-year-old male presents with gait ataxia and upper extremity motor weakness. Key images from an MRI are shown below: What is the most likely cause for the brain findings?", "options": [{"letter": "A", "text": "Congenital"}, {"letter": "B", "text": "Inherited"}, {"letter": "C", "text": "Acquired"}, {"letter": "D", "text": "Cannot be determined"}], "images": ["assets/q10a_10b_p010_01.jpg"], "explanationImages": ["assets/a10a_10b_p039_01.jpg"], "answer": "B", "explanation": "Answer B. Inherited. Multiple tumors are seen demonstrating cyst and a nodule, compatible with hemangioblastomas. These are associated with von Hippel-Lindau, an inherited syndrome."}, {"number": "10b", "stem": "A 30-year-old male presents with gait ataxia and upper extremity motor weakness. Key images from an MRI are shown below: What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Pilocytic astrocytoma"}, {"letter": "B", "text": "Medulloblastoma"}, {"letter": "C", "text": "Hemangioblastoma"}, {"letter": "D", "text": "Ependymoma"}], "images": ["assets/q10a_10b_p010_01.jpg"], "explanationImages": ["assets/a10a_10b_p039_01.jpg"], "answer": "C", "explanation": "Answer C. Hemangioblastoma. This typically demonstrates a cyst and a mural nodule. Additional feature not seen on these images includes flow voids."}, {"number": "10c", "stem": "A 30-year-old male presents with gait ataxia and upper extremity motor weakness. Key images from an MRI are shown below: Based on additional findings shown above, what is the associated syndrome?", "options": [{"letter": "A", "text": "Tuberous sclerosis"}, {"letter": "B", "text": "Sturge-Weber"}, {"letter": "C", "text": "von Hippel-Lindau syndrome"}, {"letter": "D", "text": "Neurofibromatosis 2"}], "images": ["assets/q10c_p011_01.jpg"], "explanationImages": ["assets/a10c_p040_01.jpg"], "answer": "C", "explanation": "Answer C. von Hippel-Lindau syndrome. Both intracranial and spinal involvement of hemangioblastomas are seen with VHL. Imaging Findings: A-D show axial T2 and T1 postcontrast images demonstrate multiple cysts with mural nodules within the posterior fossa (A, B). T2w (C) and T1 postcontrast (D) images demonstrate a C4-C5 cystic lesion with a peripherally located mural nodule. There is adjacent peritumoral edema. An additional small enhancing nodule is seen posterior to C2 spinal cord. Image (E) shows axial T2 of the pancreas demonstrates numerous pancreatic cysts. Note another small cystic focus in the spinal cord seen on the same image (dotted arrow), suggestive of hemangioblastoma. Discussion: Hemangioblastomas are WHO grade 1 highly vascular tumors. Approximately 25% to 40% of hemangioblastomas occur in patients with von Hippel-Lindau (VHL), an autosomal dominant disease caused by chromosome 3p mutation. Patients with VHL have 2 or more CNS hemangioblastomas or 1 hemangioblastoma in addition to visceral lesion or retinal hemorrhage. Hemangioblastomas typically occur in young to middle-aged adults but earlier in patients with VHL. Spinal hemangioblastoma accounts for 3% to 13% of spinal cord tumors. The tumor usually demonstrates a cyst with a highly vascular mural nodule. Cysts are presumably part of the tumor and should be resected. Differential Diagnosis: Differential diagnoses include metastasis (usually solid, rather than cyst and nodule), ependymoma (usually contain hemosiderin caps and peritumoral cysts along the cranial and caudal aspect), infiltrative astrocytoma (eccentric lesions that are long segments), and, for the posterior fossa, pilocystic astrocytoma (cyst with nodule but in children) and medulloblastoma (solid and restricted diffusion).\n\nReferences: Grossman RI, Yousem DM. Neuroradiology, the Requisites. Mosby Inc.; 2003. Ho VB, Smirniotopoulos JG, Murphy FM, et al. Radiologic-pathologic correlation: hemangioblastoma. AJNR Am J Neuroradiol. 1992;13(5):1343-1352. Slater A, Moore NR, Huson SM. The natural history of cerebellar hemangioblastomas in von Hippel-Lindau disease. AJNR Am J Neuroradiol. 2003;24(8):1570-1574."}, {"number": "11a", "stem": "A 30-year-old female presents with carotidynia. Key image is shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Kawasaki syndrome"}, {"letter": "B", "text": "Deep venous thrombosis"}, {"letter": "C", "text": "Septic thrombophlebitis"}, {"letter": "D", "text": "Takayasu arteritis"}], "images": ["assets/q11a_11b_p012_01.jpg"], "explanationImages": ["assets/a11a_11b_p042_01.jpg"], "answer": "D", "explanation": "Answer D. Takayasu arteritis. There is a soft tissue collar surrounding the left carotid artery and near complete occlusion of the right carotid artery with marked circumferential soft tissue thickening. This is most compatible with Takayasu arteritis (TA)."}, {"number": "11b", "stem": "A 30-year-old female presents with carotidynia. Key image is shown below. Which of the following vessel wall layers are typically involved with this entity?", "options": [{"letter": "A", "text": "Intima"}, {"letter": "B", "text": "Media"}, {"letter": "C", "text": "Adventitia"}, {"letter": "D", "text": "Panarteritis"}], "images": ["assets/q11a_11b_p012_01.jpg"], "explanationImages": ["assets/a11a_11b_p042_01.jpg"], "answer": "D", "explanation": "Answer D. Panarteritis. TA is a panarteritis involving all three layers of vessel wall, typically beginning with adventitia with subsequent extension into media and intima. Imaging Findings: There is thick soft tissue collar circumferentially present around the left internal carotid artery (solid arrow). Note string-like narrowing of the right ICA (dotted arrow). Discussion: Takayasu arteritis is a chronic vascular inflammation characterized by panarteritis involvement spanning all three layers of the vessel wall, involving aorta and its major branches. Pulmonary artery involvement may also be seen. The disease can affect a wide age range from adolescents to older adults; however, it is more common in younger females. Clinically, these patients can present with carotid tenderness and neurologic symptoms such as transient ischemic attacks and hypertension. There may be constitutional symptoms of chronic inflammation such as fever, weight loss, and fatigue. CTA, MRA, and catheter angiogram can be performed for diagnosis. The typical imaging features include vessel wall thickening, calcification, luminal narrowing/stenosis, and occlusion or aneurysmal dilation. Management relies upon steroid, immunosuppression, surgical bypass, and angioplasty.\n\nReferences: Khandelwal N, Kalra N, Garg MK, et al. Multidetector CT angiography in Takayasu arteritis. Eur J Radiol. 2011;77(2):369-374. Sueyoshi E, Sakamoto I, Uetani M. MRI of Takayasu's arteritis: typical appearances and complications. AJR Am J Roentgenol. 2006;187(6):W569-W575."}, {"number": "12a", "stem": "A 40-year-old male presents with neck pain, gait disturbances, and paresthesias. An MRI with contrast was performed. Key images are shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Hemangioblastoma"}, {"letter": "B", "text": "Meningioma"}, {"letter": "C", "text": "Astrocytoma"}, {"letter": "D", "text": "Ependymoma"}], "images": ["assets/q12a_12b_p013_01.jpg"], "explanationImages": ["assets/a12a_12b_p043_01.jpg"], "answer": "D", "explanation": "Answer D. Ependymoma. Hemangioblastoma usually shows cyst with an enhancing nodule and flow voids. Astrocytoma is eccentric in location and is more infiltrative with cord expansion. Meningioma tends to occur more commonly in the extramedullary compartment."}, {"number": "12b", "stem": "A 40-year-old male presents with neck pain, gait disturbances, and paresthesias. An MRI with contrast was performed. Key images are shown below. Which of the following imaging findings is a characteristic feature of this entity?", "options": [{"letter": "A", "text": "Cyst with a nodule"}, {"letter": "B", "text": "Marginal cysts and peripheral hemorrhage"}, {"letter": "C", "text": "Enhancing mass"}, {"letter": "D", "text": "Syringohydromyelia"}], "images": ["assets/q12a_12b_p013_01.jpg"], "explanationImages": ["assets/a12a_12b_p043_01.jpg"], "answer": "B", "explanation": "Answer B. Marginal cysts and peripheral hemorrhage. The latter is also known as the hemosiderin cap; both are strongly associated with an ependymoma. Imaging Findings: Sagittal T2 (A), T1 pre- (B), and T1 post- (C) and axial T2 (D) images demonstrate an intramedullary mass with intratumoral cyst (solid arrow, A) and peripheral hemosiderin rim (dotted arrow, A). There is peripheral cord edema with cord expansion and mild peripheral enhancement (C). Findings are most compatible with an ependymoma. Discussion: Spinal ependymomas are the most common intramedullary neoplasm in adults and typically present within fourth decade of life. Ependymomas arise from central canal or cell rests along the filum. Most intramedullary ependymomas are WHO grade II or III (anaplastic), whereas myxopapillary ependymomas are typically grade I lesions. The cervical cord is the most common site of involvement, although it could occur anywhere along the spinal cord. The common features seen with ependymomas include central location within the spinal cord with symmetric cord expansion, marginal and nontumoral cysts, and peritumoral edema. Peripheral hemorrhage is commonly associated with this lesion, leading to the \"cap sign,\" which is a hypointense T2 rim seen with ependymoma and some other tumors such as hemangioblastoma and paraganglioma. These tumors can have intense, uniform to heterogenous enhancement on post contrast sequences. Differential Diagnosis: The main differential diagnosis is an infiltrative astrocytoma, more common in children, usually eccentric in location and spanning a longer cord segment. Hemorrhage is uncommon with astrocytoma, although can be seen occasionally.\n\nReferences: Kahan H, Sklar EM, Post MJ, et al. MR characteristics of histopathologic subtypes of spinal ependymoma. AJNR Am J Neuroradiol. 1996;17(1):143-150. Koeller KK, Rosenblum RS, Morrison AL. Neoplasms of the spinal cord and filum terminale: radiologic-pathologic correlation. Radiographics. 2000;20(6):1721-1749. Smith AB, Soderlund KA, Rushing EJ, et al. Radiologic-pathologic correlation of pediatric and adolescent spinal neoplasms: part 1, intramedullary spinal neoplasms. AJR Am J Roentgenol. 2012;198(1):34-43."}, {"number": "13a", "stem": "A 62-year-old female presents with a history of chronic back pain, exacerbated after fall. A CT, followed by an MRI of the spine, was performed. Key images are shown below: Which of the following imaging features are characteristically seen with this entity?", "options": [{"letter": "A", "text": "Rugger jersey spine"}, {"letter": "B", "text": "Bullet-shaped vertebra"}, {"letter": "C", "text": "Polka-dot appearance"}, {"letter": "D", "text": "Picture frame vertebra"}], "images": ["assets/q13a_13b_p014_01.jpg"], "explanationImages": ["assets/a13a_13b_p045_01.jpg"], "answer": "C", "explanation": "Answer C. Polka-dot appearance. This is an appearance seen with intraosseous venous malformations, (previously commonly referred to as hemangioma)."}, {"number": "13b", "stem": "A 62-year-old female presents with a history of chronic back pain, exacerbated after fall. A CT, followed by an MRI of the spine, was performed. Key images are shown below: What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Typical intra-osseous venous malformation"}, {"letter": "B", "text": "Aggressive vertebral venous malformation"}, {"letter": "C", "text": "Osteopoikilosis"}, {"letter": "D", "text": "Multiple myeloma"}], "images": ["assets/q13a_13b_p014_01.jpg"], "explanationImages": ["assets/a13a_13b_p045_01.jpg"], "answer": "B", "explanation": "Answer B. Aggressive vertebral venous malformation. This case shows a vertebral venous malformation with aggressive features due to patients pain and sliver of epidural extension. This was treated with transarterial embolization. Imaging Findings: Axial CT and MRI (D and E), demonstrate the typical polka-dot appearance. Sagittal CT (C) demonstrates coarse vertical trabeculae with edema shown on STIR sequence (A) and avid enhancement on T1 postcontrast images (B). In addition, expansion and extension into the epidural spaces are seen, narrowing the spinal canal. Discussion: Aggressive vertebral venous malformations, (previously commonly referred to as hemangioma). Radiologically, these are classified as typical, atypical, and aggressive. The typical contain fat and mild hyperintense signal on STIR (because of the vascular component of the lesion) and variable degrees of postcontrast enhancement. The higher intensity of the latter two features suggestive of a more active behavior, with predominant vascular component of the lesion, could potentially evolve to aggressive behavior. Typical are commonly incidentally found and asymptomatic, characterized by the presence of fat and typical \"spotted,\" \"polka-dot\" or coarse vertical trabeculae on CT. On MRI, the presence of fat and a striate pattern is typically seen, with less fat and more edema and postcontrast enhancement on atypical lesions. Features of aggressiveness include extension beyond the vertebral body, collapse, destruction of the cortex, and invasion of the epidural and paravertebral spaces. Differential Diagnosis: focal fat replacement, Modic type II changes, and postradiation changes. These may mimic plasmacytoma, metastases, chordoma, lymphoma, and epithelioid hemangioendothelioma. Typical angiography and biopsy may be necessary. Treatment may be necessary for symptomatic or aggressive lesions, including vertebroplasty, transarterial embolization, ethanol injection, radiotherapy, surgery, or a combination of those.\n\nReferences: Gaudino S, Martucci M, Colantonio R, et al. A systematic approach to vertebral hemangioma. Skeletal Radiol. 2015;44:25-36."}, {"number": "14", "stem": "A 50-year-old male presents with severe upper thoracic pain. Key images from an MRI are shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Diskitis/osteomyelitis with abscess"}, {"letter": "B", "text": "Aortitis with reactive osseous sclerosis"}, {"letter": "C", "text": "Lymphoma with soft tissue component"}, {"letter": "D", "text": "Aggressive hemangioma with soft tissue component"}], "images": ["assets/q14_p015_01.jpg"], "explanationImages": ["assets/a14_p046_01.jpg"], "answer": "C", "explanation": "Answer C. Lymphoma with soft tissue component. Imaging Findings: There is T1 hypointense marrow infiltration (A) with enhancement on postcontrast T1 sagittal image (B). Note sliver of ventral epidural soft tissue density (dotted arrow) on sagittal postcontrast image (B) and paravertebral soft tissue on axial postcontrast image (C). Discussion: Vertebral column lymphoma of the vertebral column is a rare manifestation of lymphoma; however, it is one of the three most common malignancies of the vertebral column (with the most common being metastasis, followed by multiple myeloma). It is commonly seen in older individuals, with a slight male preponderance. Clinically, this can present as severe back pain and pathologic compression fractures, which may be severe leading to vertebra plana and neurologic deficits because of spinal canal extension. Pathologically, most commonly, these are due to diffuse large B-cell lymphoma. On imaging, it is characterized by infiltrative T1 hypointense and T2 hyperintense enhancing marrow abnormality that may have associated soft tissue components. CT and radiograph can show permeative bone destruction or sclerosis. Similar to infection, lymphoma can also cross the disk space and have presence of a sequestrum. The solid enhancing soft tissue component in the perivertebral space as shown in this case is highly unlikely with infectious causes. Management primarily relies upon chemotherapy and radiation therapy. In severe spinal canal extension and cord compression, surgical decompression may be warranted.\n\nReferences: Koeller KK, Shih RY. Extranodal lymphoma of the central nervous system and spine. Radiol Clin North Am. 2016;54(4):649-671."}, {"number": "15a", "stem": "A 36-year-old male presents with a genetic syndrome and increasing neck pain. Key images from CT and MRI are shown below. Which of the following processes would you favor in the bone?", "options": [{"letter": "A", "text": "Neoplastic"}, {"letter": "B", "text": "Congenital with segmentation anomaly"}, {"letter": "C", "text": "Long-standing process with bone remodeling"}, {"letter": "D", "text": "Postsurgical changes"}], "images": ["assets/q15a_15b_p016_01.jpg"], "explanationImages": ["assets/a15a_15b_p047_01.jpg"], "answer": "C", "explanation": "Answer C. Long-standing process with bone remodeling. Note smooth undulating osseous remodeling with prominent dural ectasia seen on T2w MRI."}, {"number": "15b", "stem": "A 36-year-old male presents with a genetic syndrome and increasing neck pain. Key images from CT and MRI are shown below. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Butterfly vertebrae"}, {"letter": "B", "text": "Dural ectasia"}, {"letter": "C", "text": "Diastematomyelia"}, {"letter": "D", "text": "Arachnoid cyst"}], "images": ["assets/q15a_15b_p016_01.jpg"], "explanationImages": ["assets/a15a_15b_p047_01.jpg"], "answer": "B", "explanation": "Answer B. Dural ectasia. In this, there is prominent dural ectasia in this patient with neurofibromatosis type 1. Imaging Findings: Sagittal STIR, sagittal reconstruction of CT in bone window, sagittal postcontrast fat-saturated T1 images are shown. There is enlargement of the CSF spaces along the midcervical spine with scalloping of the adjacent bone and enlargement of the neuroforamen with a left anterolateral meningocele (A, B). No bone destruction is seen. No abnormal postcontrast enhancement (C). Discussion: Failure to confer resistance to the physiologic spinal CSF pulsation because of mesoderm dysplasia resulting in bone weakness and dural dysplasia (NF1) or connective tissue disorders (Marfan disease, Ehlers-Danlos) results in enlargement of the spinal CSF spaces, scalloping of the vertebral bodies, and widening of the foramina. There may be associated development of lateral meningocele, a dural diverticulum, extending through the widened foramen. As opposed to the meningocele, in dural ectasia, the dural enlargement is confined to the intraspinal compartment. The most common location is in the thoracolumbar spine, possibly because of contribution of relatively feeble muscles and negative pressure from the chest. Posterior vertebral bone scalloping refers to the depth of the scalloping >3 mm in the thoracic and 4 mm in the lumbar segment. It can be associated with spinal instability and angular deformity. Differential Diagnosis: The differential diagnosis for vertebral body scalloping includes spinal tumors, ankylosing spondylitis, achondroplasia, syringomyelia, mucopolysaccharidosis, Ehlers-Danlos syndrome, and Marfan syndrome.\n\nReferences: Patel NB, Stacy GS. Musculoskeletal manifestations of neurofibromatosis type 1. AJR Am J Roentgenol. 2012;199(1):W99-W106. doi: 10.2214/AJR.11.7811 Tortori-Donati P, Rossi A, Biancheri R, et al. Phakomatoses. In: Tortori-Donati P, Rossi A, eds. Pediatric Neuroradiology. Vol. 1 Springer; 2005:775-776."}, {"number": "16a", "stem": "A 60-year-old male presents with gait imbalance and progressive motor weakness. An MRI was performed, and key images are shown below: What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Leptomeningeal metastasis"}, {"letter": "B", "text": "Dural AV fistula"}, {"letter": "C", "text": "Intramedullary AVM"}, {"letter": "D", "text": "Diffuse arachnoiditis"}], "images": ["assets/q16a_16b_p017_01.jpg"], "explanationImages": ["assets/a16a_16b_p048_01.jpg"], "answer": "B", "explanation": "Answer B. Dural AV fistula. Note the innumerable T2 flow voids seen primarily along the dorsal surface of the spinal cord. No nidus is visualized. The most likely diagnosis is a dural AV fistula."}, {"number": "16b", "stem": "A 60-year-old male presents with gait imbalance and progressive motor weakness. An MRI was performed, and key images are shown below: Which of the following conditions may result from the above abnormality?", "options": [{"letter": "A", "text": "Intraspinal arachnoid cysts because of adhesions"}, {"letter": "B", "text": "Intracranial CSF dissemination of metastasis"}, {"letter": "C", "text": "Myelopathy secondary to venous congestion"}, {"letter": "D", "text": "Cord infarction because of radiculomedullary artery thrombosis"}], "images": ["assets/q16a_16b_p017_01.jpg"], "explanationImages": ["assets/a16a_16b_p048_01.jpg"], "answer": "C", "explanation": "Answer C. Myelopathy secondary to venous congestion. Also named \"Foix-Alajouanine\" syndrome, because of congestive ischemia in the cord resulting from venous hypertension arising from reflux into the perimedullary veins. Imaging Findings: There are innumerable T2 flow voids along the surface of the cord (A) with flow-related enhancement seen on MRA and sagittal postcontrast T1w (B and C). These findings are most compatible with spinal dural AV fistula. Discussion: Spinal dural AV fistula (DAVF) is an intradural abnormal AV shunt involving the radiculomeningeal arteries and radicular veins usually near the spinal nerve root. Also called a type 1 malformation, it is the most common type of spinal vascular malformation, accounting for nearly 70% of cases. The exact etiology is unclear, but it is commonly an acquired condition seen in 50 to 60 years age group, clinically presenting with nonspecific symptoms such as back pain or neurologic deficits associated with myelopathy. On imaging, these patients have numerous flow voids on T2 because of dilation of the perimedullary veins. MR angiogram with contrast can enhance the sensitivity of detection particularly in the low-flow shunts. There may be cord edema and ischemia from venous congestion because of reflux in the perimedullary veins. Selective catheter angiogram may aid in detection of the site fistulous communication, which can be targeted for surgical removal or transarterial embolization. Differential Diagnosis: Type 2 malformations, also known as glomus AVM, are the most commonly seen intramedullary vascular malformations, accounting for 20% of all spinal vascular malformations. These lesions usually present in younger patients with acute neurologic deterioration secondary to hemorrhage usually in the cervicomedullary region. In contrast to type 1, there is a nidus within the cord in type 2 malformations.\n\nReferences: Krings T, Geibprasert S. Spinal dural arteriovenous fistulas. AJNR Am J Neuroradiol. 2009;30(4):639-648. Saliou G, Krings T. Vascular diseases of the spine. Handb Clin Neurol. 2016;136:707-716."}, {"number": "17", "stem": "Key images from an MRA neck performed for evaluation of dizziness are shown below. There is reported history of an abnormal neck Doppler evaluation. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Vertebral artery dissection"}, {"letter": "B", "text": "Severe atherosclerotic vertebral stenosis"}, {"letter": "C", "text": "Fibromuscular dysplasia"}, {"letter": "D", "text": "Subclavian steal syndrome"}], "images": ["assets/q17_p018_01.jpg"], "explanationImages": ["assets/a17_p050_01.jpg"], "answer": "D", "explanation": "Answer D. Subclavian steal syndrome. There is evidence of subclavian steal with occluded proximal left subclavian artery and flow in the postvertebral segment via a patent left vertebral artery. Note that this will result in retrograde flow in the ipsilateral vertebral artery on US. The vertebral artery itself is patent without evidence of dissection or severe stenosis. Imaging Findings: There is absence of flow-related signal in the proximal left subclavian artery (solid arrow in A and B) with flow in the left vertebral artery (dotted arrow in A and B) and subsequent reconstitution of the postvertebral subclavian artery. Discussion: Subclavian steal syndrome is a hemodynamic abnormality resulting from retrograde flow from the vertebral artery to the subclavian artery in the setting of ipsilateral prevertebral subclavian or innominate stenosis or occlusion. This leads to diversion of blood from the posterior circulation resulting in symptoms of vertebrobasilar insufficiency such as syncope, ataxia, and vertigo and may be exacerbated by exertion, transient ischemic attack, or stroke. These patients often have concomitant upper extremity claudication, because the retrograde flow may not be sufficient for adequate tissue perfusion. The occlusion or stenosis of subclavian/innominate may be due to underlying atherosclerotic disease, extrinsic compression, giant cell or Takayasu arteritis, etc. On imaging, US shows reversal of flow in the ipsilateral vertebral artery and CTA/MRA define the site of proximal occlusion or stenosis along with confirming patency of the vertebral artery. Management of the underlying stenosis is required to address the reversal of flow in the vertebral artery.\n\nReferences: Kargiotis O, Siahos S, Safouris A, et al. Subclavian steal syndrome with or without arterial stenosis: a review. J Neuroimaging. 2016;26(5):473-480. Saha T, Naqvi SY, Ayah OA, et al. Subclavian artery disease: diagnosis and therapy. Am J Med. 2017;130( 4):409-416."}, {"number": "18a", "stem": "A 55-year-old diabetic patient develops acute-onset sensory deficits in the postoperative period following surgery for toe amputation. What is the most likely diagnosis in the current clinical scenario?", "options": [{"letter": "A", "text": "Central cord infarction because of severe hypotension"}, {"letter": "B", "text": "Anterior cord infarction secondary to embolic event"}, {"letter": "C", "text": "Nitrous oxide-induced myelopathy"}, {"letter": "D", "text": "Demyelinating disease"}], "images": ["assets/q18a_p019_01.jpg"], "explanationImages": ["assets/a18a_p052_01.jpg"], "answer": "A", "explanation": "Answer A. Central cord infarction because of severe hypotension. Note there is central cord involvement typically seen with severe hypotension that may occur in the intraoperative or immediate postoperative course. Toxicity from nitrous oxide (anesthetic gas) can result in myelopathy; however, typically, dorsal column involvement is seen. The distribution is unusual for anterior spinal artery infarction that supplies the anterior two-thirds of the spinal cord."}, {"number": "18b", "stem": "A 55-year-old diabetic patient develops acute-onset sensory deficits in the postoperative period following surgery for toe amputation. This is a different patient with acute-onset deficit in vibration and proprioception. MRI key images are shown above. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Central cord infarction"}, {"letter": "B", "text": "Anterior cord infarction"}, {"letter": "C", "text": "Posterior cord infarction"}, {"letter": "D", "text": "Vascular malformation"}], "images": ["assets/q18b_p020_01.jpg"], "explanationImages": ["assets/a18b_p053_01.jpg"], "answer": "C", "explanation": "Answer C. Posterior cord infarction. The images show loss of ADC (C) in the posterior cord most compatible with posterior cord infarction in the current clinical setting of acute-onset myelopathy. Contrast can be used to definitively evaluate this finding, because inflammatory, neoplastic, infectious, or demyelinating conditions typically enhance, particularly in the acute phase for the nonneoplastic conditions. Imaging Findings: (A) shows there is intrinsic T2 hyperintensity in the central cord predominantly affecting the gray matter. Although on imaging along in the absence of DWI, this is a highly nonspecific finding. In the clinical setting of acute onset, in the perioperative course, central cord infarct is the most likely diagnosis. B to D shows there is intrinsic T2 hyperintensity in the dorsal cord (A and B) with corresponding loss of signal on ADC map (C), compatible with cord acute infarction. Discussion: Spinal cord infarction is a rare condition; however, it is associated with significant morbidity and mortality. Clinically, these patients present acutely with symptoms depending on the site of infarction ranging from autonomic dysfunction to paraplegia to minor weakness. Etiologic factors are diverse such as trauma, atherosclerosis, dissection, emboli, severe hypotension, underlying spinal vascular malformations, etc. Most commonly seen is anterior spinal artery infarct, which supplies the anterior two-thirds of the spinal cord, characterized by loss of motor function, pain and temperature sensation, and sparing of dorsal column function of vibration and proprioception. This is a single artery formed by fusion of vessels arising from the V4 segment of vertebral arteries with multiple contributions from other arteries, such as vertebral, intercostal, lumbar, inferior thyroid, and lateral sacral arteries and iliolumbar arteries and artery of Adamkiewicz. Artery of Adamkiewicz or arteria radicularis anterior magna is critical, given it supplies the lower two-thirds of the spinal cord/conus. It has a variable origin from lumbar or intercostal arteries, typically on the left between T8 and L1, with a characteristic hairpin loop to anastomose with the anterior spinal artery. Posterior spinal artery infarction is typically unilateral because this is a paired artery arising from the PICA. This leads to posterior roots, dorsal horn, and dorsal column involvement with loss of vibration and proprioception. Rarely, central cord infarction can occur in the setting of severe hypotension resulting in spinothalamic sensory deficits. MRI is the modality of choice for imaging cord infarction. On MRI, cord infarction can present with T2 hyperintensity, T1 hypointensity, and restricted diffusion on DWI. In the acute phase, enhancement is absent differentiating it from other inflammatory or neoplastic entities that tend to enhance in the acute phase.\n\nReferences: Vargas MI, Gariani J, Sztajzel R, et al. Spinal cord ischemia: practical imaging tips, pearls, and pitfalls. AJNR Am J Neuroradiol. 2015;36(5):825-830. White ML, El-Khoury GY. Neurovascular injuries of the spinal cord. Eur J Radiol. 2002;42(2):117-126."}, {"number": "19a", "stem": "A 50-year-old man presents with 3 months of new low back pain that worsens with flexion. He denies trauma, bowel or bladder incontinence or retention, or changes in his baseline bilateral lower extremity weakness. On physical examination, there is tenderness over the mid-thoracic spine with limited range of motion of spine flexion, extension, and rotation. Labs reveal normocytic anemia, significant serum gamma gap, and hypercalcemia. CT thoracic spine shows a T9 lytic lesion that extends into bilateral pedicles. MRI of the T spine was performed and key images are shown below. What is the SINS (spinal instability neoplastic score) for this patient's pathologic vertebral fracture?", "options": [{"letter": "A", "text": "Stable (score 0 to 6)"}, {"letter": "B", "text": "Potentially unstable (score 7 to 12)"}, {"letter": "C", "text": "Unstable (score 13 to 18)"}], "images": ["assets/q19a_19b_p021_01.jpg", "assets/q19a_19b_p022_01.jpg", "assets/q19a_19b_p023_01.jpg", "assets/q19a_19b_p024_01.jpg"], "explanationImages": ["assets/a19a_19b_p054_01.jpg", "assets/a19a_19b_p055_01.jpg", "assets/a19a_19b_p056_01.jpg", "assets/a19a_19b_p057_01.jpg", "assets/a19a_19b_p059_01.jpg"], "answer": "B", "explanation": "Answer B. Potentially unstable (score 12 to 18). Based on the detailed score provided below, the SINS."}, {"number": "19b", "stem": "A 50-year-old man presents with 3 months of new low back pain that worsens with flexion. He denies trauma, bowel or bladder incontinence or retention, or changes in his baseline bilateral lower extremity weakness. On physical examination, there is tenderness over the mid-thoracic spine with limited range of motion of spine flexion, extension, and rotation. Labs reveal normocytic anemia, significant serum gamma gap, and hypercalcemia. CT thoracic spine shows a T9 lytic lesion that extends into bilateral pedicles. MRI of the T spine was performed and key images are shown below. What is the Bilsky grade for this patient's cord compression?", "options": [{"letter": "A", "text": "Grade 0"}, {"letter": "B", "text": "Grade 1A"}, {"letter": "C", "text": "Grade 1B"}, {"letter": "D", "text": "Grade 3"}], "images": ["assets/q19a_19b_p021_01.jpg", "assets/q19a_19b_p022_01.jpg", "assets/q19a_19b_p023_01.jpg", "assets/q19a_19b_p024_01.jpg"], "explanationImages": ["assets/a19a_19b_p054_01.jpg", "assets/a19a_19b_p055_01.jpg", "assets/a19a_19b_p056_01.jpg", "assets/a19a_19b_p057_01.jpg", "assets/a19a_19b_p059_01.jpg"], "answer": "D", "explanation": "Answer D. Grade 3, spinal cord compression without CSF visible surrounding the cord. Imaging Findings: Axial T2-weighted MRI of the T9 vertebral level (A). White arrow points to the spinal cord compressed by the pathologic compression fracture with retropulsed dorsal cortex. Sagittal T2-weighted MRI of the spine showing thoracic cord hyperintensity (C) (black arrow). Note the bilateral posterolateral involvement and nearly complete marrow replacement on postcontrast T1w image, (D). Spinal Instability Neoplastic Score System (SINS) Discussion: SINS is an objective method of evaluating vertebral column instability due to neoplastic involvement. It was developed by the spine oncology study group, to identify patients who may benefit from surgical intervention in an objective and standardized manner. The score relies on six variables, location of lesion, type of lesion, alignment, pain, degree of vertebral body height loss, and involvement of posterior elements. Score 0 to 6 is considered stable, score 7 to 12 is potentially unstable, and score 13 to 18 is unstable. Spine surgical consultation is recommended for a score of 7 or more. The score is based on six metrics as detailed below: 1. Location: Junctional (O-C2; C7-T2; T11-L1; L5-S1): Score 3; Mobile spine (C3-6; L2-4): Score 2; Semirigid (T3-10): Score 1; Rigid (S2-S5): Score 0. 2. Mechanical pain: Yes: Score 3, No: Score 2 (pain but not mechanical); Painless lesion: 0 points. 3. Lesion type: Lytic: Score 2; Mixed Lytic and Blastic: Score 1; Blastic: Score 0. 4. Radiographic spinal alignment: Subluxation/translation present: Score 4; Deformity (kyphosis/scoliosis): Score 2; Normal Score 0. 5. Vertebral Body Collapse: >50% collapse: Score 3; <50% collapse: Score 2; No collapse with >50% body involved: Score 1; None of the above: Score 0. 6. Posterolateral spinal element involvement: Bilateral: Score 3; Unilateral: Score 1; None of the above: Score 0. The imaging features of this case are typical for vertebral body neoplastic lesions. This patient has a SINS of 12, which falls into the \"potentially unstable\" category. The patient's score breakdown is as follows: • The fractured vertebral body is T9, one of the semirigid vertebrae. (+1) • The patient's history is notable for mechanical pain. (+3) • CT shows lytic lesion. (+2) • The patient's spinal alignment is normal. (+0) • The involved vertebral body shows >50% height loss. (+3) • On the axial view and based on CT findings provided, the lesion involves the posterior elements bilaterally. (+3) Bilsky Grade, Epidural Spinal Cord Compression Scale This is used to assess the degree of spinal canal encroachment and cord compression by a vertebral body metastasis. The following schematic shows scenarios with varying degree of spinal canal involvement by tumor soft tissue. Grade 0 (not shown) is bone disease only. The grade is best assessed on axial T2-weighted images at the level with the highest stenosis. The patient's image shows spinal cord compression without CSF visible surrounding the cord, corresponding to a grade 3. The results of these scoring systems help to guide further management. A SINS score of 7 or greater is potentially unstable and should receive surgical consultation to assess for instability prior to any further treatment. The Bilsky grading aids in the decision between pursuing surgery, radiation, and stereotactic radiosurgery. For a Bilsky grade 2 or 3, surgical consultation prior to radiation therapy is recommended. Key Points: Validated grading systems, such as SINS and Bilsky scoring, serve as a useful guide for surgical and oncologic management. Application of grading systems to clinical decision making should be done upon critical appraisal of their validity, feasibility of implementation, and proven clinical impact.\n\nReferences: Fisher CG, Versteeg AL, Schouten R, Boriani S, et al. Reliability of the spinal instability neoplastic scale among radiologists: an assessment of instability secondary to spinal metastases. AJR Am J Roentgenol. 2014;203(4):869-874. doi: 10.2214/AJR.13.12269 Bilsky MH, Laufer I, Fourney DR, et al. Reliability analysis of the epidural spinal cord compression scale. J Neurosurg Spine. 2010;13(3):324-328. doi: 10.3171/2010.3.SPINE09459 Rodallec MH, Feydy A, Larousserie F, et al. Diagnostic imaging of solitary tumors of the spine: what to do and say. Radiographics. 2008;28(4):1019-1041. doi: 10.1148/rg.284075156"}];
+    const APP_ID = "neuroradiology-spine-neoplasms-vascular-diseases-quiz-ch11";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
