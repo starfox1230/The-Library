@@ -26,6 +26,7 @@ The generated module has 24 scored entries because source questions 1, 2, 4, 6, 
 - The source PDF continues answer-choice lettering across subparts on some pages. The generator normalizes each subquestion back to `A-D` so answer keys from the explanation section match the quiz choices.
 - Image alignment uses explicit `(page, image)` mappings. Do not replace this with nearest-question page assignment.
 - Before future edits, regenerate a contact sheet of all page images. In this chapter, PDF page 3 extracts q4's MRI before q3's radiograph, and PDF page 5 contains separate images for q6 and q7.
+- q6a/q6b and q7a/q7b are adjacent image pairs and are easy to invert. q6 is the bilateral C2 pedicle/Hangman injury and q7 is the C1/Jefferson burst injury; verify both question and answer images against those diagnoses.
 - Answer-side figures also use explicit mappings. Check captions against the following answer header; captions often appear immediately before the next answer.
 
 ## Required UI Behavior

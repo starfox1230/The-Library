@@ -22,6 +22,8 @@ apps/temporary-apps/library/core-review/<book-slug>/<YYYY-MM-DD-chapter-slug>/
 
 For these Core Review quiz apps, the same change must also update `apps/temporary-apps/library/core-review/index.html` so the chapter appears in the grouped Core Review Quiz Library. Register the organized `library/core-review/.../index.html` path in `apps/temporary-apps/index.html`, not a root-level duplicate.
 
+Before generating or fixing any Core Review quiz, read and follow `apps/temporary-apps/library/RADIOLOGY_QUIZ_BUILD_WORKFLOW.md`. That workflow includes required image-alignment QA steps learned from prior PDF/EPUB conversions.
+
 ## Why this exists
 A previous change added a temporary app folder but forgot to update the landing-page registration path. These instructions and the verifier prevent that regression.
 
