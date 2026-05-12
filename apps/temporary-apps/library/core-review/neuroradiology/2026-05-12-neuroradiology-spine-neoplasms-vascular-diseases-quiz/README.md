@@ -26,6 +26,7 @@ The generated module has 35 scored entries because many source questions have le
 - Image alignment is explicit by `(page, image)`. Do not replace it with nearest-question assignment.
 - q19 has several image-only pages before its answer choices; all q19 images are shared by q19a and q19b.
 - q2 is text-only and intentionally has no question image.
+- q3 has a transition sentence after q3a option D (`An MRI with contrast was performed...`) that belongs with q3b, not q3a's answer choices. Keep the explicit cleanup in `normalize_options`.
 - Answer-side figures are also explicitly mapped. Keep checking captions against neighboring answer headers because explanation images frequently appear on pages after the answer text begins.
 
 ## Required UI Behavior

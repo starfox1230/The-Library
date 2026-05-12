@@ -150,6 +150,7 @@ def parse_answers(reader: PdfReader, questions: list[dict]) -> None:
 def normalize_options(questions: list[dict]) -> None:
     parent_stems = {q["number"]: q["stem"] for q in questions if re.fullmatch(r"\d{1,2}", q["number"]) and not q["options"]}
     parent_stems["10"] = "A 30-year-old male presents with gait ataxia and upper extremity motor weakness. Key images from an MRI are shown below:"
+    q3b_transition = "An MRI with contrast was performed. Key images are shown below:"
     collapsed: list[dict] = []
     for q in questions:
         if re.fullmatch(r"\d{1,2}", q["number"]) and not q["options"]:
@@ -161,8 +162,12 @@ def normalize_options(questions: list[dict]) -> None:
         for index, option in enumerate(q["options"]):
             if index >= 4:
                 break
+            if q["number"] == "3a" and option["letter"] == "D":
+                option["text"] = option["text"].split(q3b_transition, 1)[0].strip()
             normalized.append({"letter": LETTERS[index], "text": option["text"]})
         q["options"] = normalized
+        if q["number"] == "3b" and q3b_transition not in q["stem"]:
+            q["stem"] = clean_text(parent_stems.get("3", "") + " " + q3b_transition + " What is the most likely diagnosis?")
         collapsed.append(q)
     questions[:] = collapsed
 

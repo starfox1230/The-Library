@@ -71,6 +71,7 @@ After extraction, scan for:
 - random page numbers inserted into stems or explanations;
 - option counts under four for normal multiple-choice questions;
 - false question starts caused by labels, captions, or measurements.
+- transition sentences after the last answer choice, such as `An MRI was performed...`, `Key images are shown below`, or `This is a different patient...`; these often belong to the next subquestion's stem and must not remain inside the previous question's option text.
 
 Fix these in the generator so rebuilding is repeatable.
 
