@@ -23,6 +23,13 @@ from aqt.qt import (
 
 from .ai_tools import is_ai_tools_enabled, open_ai_settings_dialog, show_ai_key_source
 from .auto_scroll import is_auto_scroll_enabled, set_auto_scroll_enabled
+from .card_tracker import (
+    ensure_tracker_visible,
+    is_floating_card_tracker_enabled,
+    open_tracker_start_dialog,
+    reset_tracker_from_now,
+    set_floating_card_tracker_enabled,
+)
 from .clipboard_json_cards import (
     ACTION_LABEL as CLIPBOARD_JSON_ACTION_LABEL,
     import_cards_from_clipboard_json,
@@ -114,6 +121,7 @@ _add_cards_tab_cycles_clozes_action: QAction | None = None
 _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
 _ai_tools_action: QAction | None = None
+_floating_card_tracker_action: QAction | None = None
 
 
 def _shortcut_taken(shortcut_text: str) -> bool:
@@ -466,6 +474,15 @@ class PocketKnifeLauncherDialog(QDialog):
         self.tts_audio_checkbox = QCheckBox("Play audio from TTS-enabled cards")
         self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
         review_layout.addWidget(self.tts_audio_checkbox)
+        self.floating_card_tracker_checkbox = QCheckBox("Show floating card tracker")
+        self.floating_card_tracker_checkbox.setChecked(is_floating_card_tracker_enabled())
+        review_layout.addWidget(self.floating_card_tracker_checkbox)
+        card_tracker_row = QHBoxLayout()
+        self.card_tracker_reset_button = QPushButton("Reset Tracker From Now")
+        self.card_tracker_edit_button = QPushButton("Edit Tracker Start Time")
+        card_tracker_row.addWidget(self.card_tracker_reset_button)
+        card_tracker_row.addWidget(self.card_tracker_edit_button)
+        review_layout.addLayout(card_tracker_row)
         layout.addWidget(review_box)
 
         layout.addStretch(1)
@@ -525,6 +542,11 @@ class PocketKnifeLauncherDialog(QDialog):
             self._set_review_image_overlay_remember_position_enabled
         )
         self.tts_audio_checkbox.toggled.connect(self._set_tts_audio_enabled)
+        self.floating_card_tracker_checkbox.toggled.connect(
+            self._set_floating_card_tracker_enabled
+        )
+        self.card_tracker_reset_button.clicked.connect(lambda *_args: reset_tracker_from_now())
+        self.card_tracker_edit_button.clicked.connect(lambda *_args: open_tracker_start_dialog(self))
         self.close_button.clicked.connect(self.close)
 
         self.refresh_missed_today_summary()
@@ -565,6 +587,10 @@ class PocketKnifeLauncherDialog(QDialog):
             self.tts_audio_checkbox.blockSignals(True)
             self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
             self.tts_audio_checkbox.blockSignals(False)
+        if hasattr(self, "floating_card_tracker_checkbox"):
+            self.floating_card_tracker_checkbox.blockSignals(True)
+            self.floating_card_tracker_checkbox.setChecked(is_floating_card_tracker_enabled())
+            self.floating_card_tracker_checkbox.blockSignals(False)
         if hasattr(self, "disable_f3_checkbox"):
             self.disable_f3_checkbox.blockSignals(True)
             self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
@@ -646,6 +672,10 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_tts_audio_enabled(self, checked: bool) -> None:
         set_tts_audio_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_floating_card_tracker_enabled(self, checked: bool) -> None:
+        set_floating_card_tracker_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_disable_f3_enabled(self, checked: bool) -> None:
@@ -733,6 +763,7 @@ def sync_settings_ui() -> None:
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
     global _ai_tools_action
+    global _floating_card_tracker_action
 
     auto_scroll_enabled = is_auto_scroll_enabled()
     if _auto_scroll_action is not None:
@@ -831,6 +862,15 @@ def sync_settings_ui() -> None:
         _dialog.tts_audio_checkbox.blockSignals(True)
         _dialog.tts_audio_checkbox.setChecked(tts_audio_enabled)
         _dialog.tts_audio_checkbox.blockSignals(False)
+    floating_card_tracker_enabled = is_floating_card_tracker_enabled()
+    if _floating_card_tracker_action is not None:
+        _floating_card_tracker_action.blockSignals(True)
+        _floating_card_tracker_action.setChecked(floating_card_tracker_enabled)
+        _floating_card_tracker_action.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "floating_card_tracker_checkbox"):
+        _dialog.floating_card_tracker_checkbox.blockSignals(True)
+        _dialog.floating_card_tracker_checkbox.setChecked(floating_card_tracker_enabled)
+        _dialog.floating_card_tracker_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "recent_leech_banner_checkbox"):
         _dialog.recent_leech_banner_checkbox.blockSignals(True)
         _dialog.recent_leech_banner_checkbox.setChecked(recent_leech_banner_enabled)
@@ -908,6 +948,11 @@ def _toggle_tts_audio(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_floating_card_tracker(checked: bool) -> None:
+    set_floating_card_tracker_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_disable_f3(checked: bool) -> None:
     set_default_f3_shortcut_disabled(bool(checked))
     sync_settings_ui()
@@ -973,6 +1018,7 @@ def _register_menu() -> None:
     global _add_cards_tab_cycles_clozes_action
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
+    global _floating_card_tracker_action
     if getattr(mw, _MENU_REGISTERED_FLAG, False):
         return
 
@@ -1164,6 +1210,24 @@ def _register_menu() -> None:
     _tts_audio_action.setChecked(is_tts_audio_enabled())
     _tts_audio_action.triggered.connect(_toggle_tts_audio)
     pocket_menu.addAction(_tts_audio_action)
+
+    _floating_card_tracker_action = QAction("Floating Card Tracker", mw)
+    _floating_card_tracker_action.setCheckable(True)
+    _floating_card_tracker_action.setChecked(is_floating_card_tracker_enabled())
+    _floating_card_tracker_action.triggered.connect(_toggle_floating_card_tracker)
+    pocket_menu.addAction(_floating_card_tracker_action)
+
+    tracker_show_action = QAction("Show Floating Card Tracker Now", mw)
+    tracker_show_action.triggered.connect(lambda *_args: ensure_tracker_visible())
+    pocket_menu.addAction(tracker_show_action)
+
+    tracker_reset_action = QAction("Reset Floating Card Tracker From Now", mw)
+    tracker_reset_action.triggered.connect(lambda *_args: reset_tracker_from_now())
+    pocket_menu.addAction(tracker_reset_action)
+
+    tracker_start_action = QAction("Edit Floating Card Tracker Start Time", mw)
+    tracker_start_action.triggered.connect(lambda *_args: open_tracker_start_dialog())
+    pocket_menu.addAction(tracker_start_action)
 
     sync_settings_ui()
 

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radioisotope Safety Numbers Quiz</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --ink: #1c2526;
+      --muted: #607072;
+      --panel: #ffffff;
+      --line: #d7e0df;
+      --teal: #087c7f;
+      --coral: #c94f3d;
+      --gold: #b47b12;
+      --green: #2f7d4f;
+      --blue: #3569a8;
+      --shadow: 0 16px 38px rgba(31, 50, 52, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(180deg, rgba(8, 124, 127, 0.09), transparent 310px),
+        var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 24px clamp(14px, 4vw, 42px) 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.76);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .topbar {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: end;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 3.6vw, 2.75rem);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 850px;
+      line-height: 1.45;
+    }
+
+    .scorebox {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-width: 170px;
+      box-shadow: var(--shadow);
+    }
+
+    .scorebox strong {
+      display: block;
+      font-size: 1.8rem;
+      line-height: 1;
+      color: var(--teal);
+    }
+
+    .scorebox span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    main {
+      width: min(1180px, 94vw);
+      margin: 22px auto 42px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .tabs, .filters, .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    .tab, .chip, .action {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .tab.active, .chip.active {
+      border-color: var(--teal);
+      background: #e2f4f2;
+      color: #075f61;
+      font-weight: 700;
+    }
+
+    .action.primary {
+      background: var(--teal);
+      color: white;
+      border-color: var(--teal);
+      font-weight: 700;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: clamp(14px, 2.5vw, 24px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .question h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.25rem, 2.3vw, 1.9rem);
+      line-height: 1.16;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 0.78rem;
+      color: #244042;
+      background: #edf2f2;
+      border: 1px solid var(--line);
+    }
+
+    .choices {
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfc;
+      padding: 13px 14px;
+      min-height: 52px;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .choice b {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: #e9eeee;
+      color: var(--muted);
+    }
+
+    .choice.correct {
+      border-color: var(--green);
+      background: #e9f6ee;
+    }
+
+    .choice.wrong {
+      border-color: var(--coral);
+      background: #fff0ee;
+    }
+
+    .explanation {
+      margin-top: 14px;
+      border-left: 4px solid var(--teal);
+      padding: 10px 12px;
+      background: #f2fbfa;
+      color: #274246;
+      line-height: 1.48;
+      display: none;
+    }
+
+    .explanation.visible { display: block; }
+
+    .side h3, .unit-card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .side dl {
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .side dt {
+      font-weight: 800;
+      color: var(--teal);
+    }
+
+    .side dd {
+      margin: 2px 0 0;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+
+    .unit-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfc;
+    }
+
+    .unit-card .unit {
+      color: white;
+      background: var(--teal);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 0.78rem;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: white;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+
+    th {
+      background: #edf4f4;
+      font-size: 0.82rem;
+      color: #385557;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .chapter-title {
+      margin: 22px 0 10px;
+      font-size: 1.12rem;
+      color: #163b3e;
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 800px) {
+      header { position: static; }
+      .topbar, .layout { grid-template-columns: 1fr; }
+      .scorebox { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div>
+        <h1>Radioisotope Safety Numbers Quiz</h1>
+        <p class="subtitle">A chapter-organized drill deck for the numbers, units, limits, and conversions in the 2026 RISC study text. Paired conventional and SI units are kept together.</p>
+      </div>
+      <div class="scorebox" aria-live="polite">
+        <strong id="score">0/0</strong>
+        <span id="streak">Current streak: 0</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <nav class="tabs" aria-label="Views">
+      <button class="tab active" data-view="quiz">Quiz</button>
+      <button class="tab" data-view="guide">Unit Guide</button>
+      <button class="tab" data-view="table">All Numbers</button>
+    </nav>
+
+    <section id="quizView" class="panel">
+      <div class="filters" aria-label="Quiz filters">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="dose">Dose</button>
+        <button class="chip" data-filter="activity">Activity</button>
+        <button class="chip" data-filter="time">Time</button>
+        <button class="chip" data-filter="transport">Transport</button>
+        <button class="chip" data-filter="training">Training</button>
+      </div>
+      <div class="layout" style="margin-top:16px">
+        <div class="question">
+          <div class="meta" id="questionMeta"></div>
+          <h2 id="questionText"></h2>
+          <div class="choices" id="choices"></div>
+          <div id="explanation" class="explanation"></div>
+          <div class="actions" style="margin-top:14px">
+            <button id="nextBtn" class="action primary">Next Question</button>
+            <button id="shuffleBtn" class="action">Shuffle</button>
+            <button id="resetBtn" class="action">Reset Score</button>
+          </div>
+        </div>
+        <aside class="side panel" style="box-shadow:none">
+          <h3>Unit Pattern</h3>
+          <dl>
+            <div><dt>Activity</dt><dd>Use Ci/mCi/uCi or Bq/MBq/GBq for how much radioactive material is present.</dd></div>
+            <div><dt>Dose Equivalent</dt><dd>Use rem/mrem or Sv/mSv for biologic risk, dose limits, public release, and reporting.</dd></div>
+            <div><dt>Absorbed Dose</dt><dd>Use rad or Gy for energy deposited in tissue, deterministic effects, and ARS thresholds.</dd></div>
+            <div><dt>Exposure Rate</dt><dd>Use mR/hr or mrem/hr for measured external fields around packages, patients, rooms, and sources.</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    <section id="guideView" class="panel hidden">
+      <div class="grid">
+        <article class="unit-card">
+          <span class="unit">Ci, mCi, uCi, Bq, MBq, GBq</span>
+          <h3>Radioactivity</h3>
+          <p>These describe the source strength or administered activity. Think generators, patient-release activity tables, sewer disposal limits, leak tests, and breakthrough contamination.</p>
+          <p><strong>Anchor:</strong> 1 mCi = 37 MBq. 0.005 uCi = 185 Bq.</p>
+        </article>
+        <article class="unit-card">
+          <span class="unit">rem, mrem, Sv, mSv</span>
+          <h3>Dose Equivalent / Effective Dose</h3>
+          <p>These are the regulatory safety units for people: occupational limits, public limits, embryo/fetus limits, breastfeeding instructions, and reportable medical events.</p>
+          <p><strong>Anchor:</strong> 1 rem = 10 mSv. 100 mrem = 1 mSv. 0.5 rem = 5 mSv.</p>
+        </article>
+        <article class="unit-card">
+          <span class="unit">rad, Gy</span>
+          <h3>Absorbed Dose</h3>
+          <p>These show tissue energy deposition. Use them for deterministic effects, very high radiation areas, ARS, LD values in Gy, and skin/lens thresholds.</p>
+          <p><strong>Anchor:</strong> 100 rad = 1 Gy. Very high radiation area: 500 rad (5 Gy) in 1 hour at 1 m.</p>
+        </article>
+        <article class="unit-card">
+          <span class="unit">mrem/hr, mSv/hr, distance</span>
+          <h3>External Fields</h3>
+          <p>Use rate plus distance for package labels, room surveys, patient discharge readings, and radiation-area postings.</p>
+          <p><strong>Anchor:</strong> unrestricted area is less than 2 mrem in any 1 hour; I-131 discharge is often 7 mrem/hr at 1 m.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="tableView" class="panel hidden">
+      <div class="filters" style="margin-bottom:14px">
+        <select id="chapterSelect" aria-label="Chapter filter"></select>
+      </div>
+      <div id="numberTables"></div>
+    </section>
+  </main>
+
+  <script>
+    const facts = [
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"Average annual effective dose to the U.S. population from all radiation sources", answer:"620 mrem (6.2 mSv)", context:"Annual average, all sources including background", note:"The document also lists natural background as about 3.1 mSv plus 2.2 mSv man-made in chapter 2." },
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"Maximum public dose from licensed operation", answer:"100 mrem/year (1 mSv/year)", context:"Radiation protection program and unrestricted/public area annual limit", note:"This is dose equivalent/effective dose language, so use mrem/mSv." },
+      { chapter:"1. Introduction and Radiation protection", family:"time", prompt:"RSC dosimetry record review interval", answer:"Every 3 months", context:"Personnel dosimetry records", note:"Same idea as quarterly RSO review." },
+      { chapter:"1. Introduction and Radiation protection", family:"time", prompt:"Radiation protection audit frequency", answer:"At least every 12 months", context:"Periodic planned audits", note:"Annual compliance audit." },
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"Radiation area posting threshold", answer:"More than 5 mrem (0.05 mSv) in 1 hour at 30 cm", context:"Radiation area", note:"Rate-like field condition at a specified distance." },
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"High radiation area threshold", answer:"Up to 100 mrem (1 mSv) in 1 hour at 30 cm", context:"High radiation area", note:"The document pairs this with required visible or audible access control." },
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"Very high radiation area threshold", answer:"Could exceed 500 rad (5 Gy) in 1 hour at 1 m", context:"Very high radiation area", note:"This uses absorbed dose units: rad/Gy." },
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"Unrestricted area hourly dose-rate criterion", answer:"Less than 2 mrem in any 1 hour (20 uSv/h)", context:"Public/unrestricted areas", note:"Also must be less than 100 mrem/year (1 mSv/year)." },
+      { chapter:"1. Introduction and Radiation protection", family:"dose", prompt:"Sealed-source area does not need a caution sign if radiation level at 30 cm does not exceed", answer:"5 mrem/hr (0.05 mSv/hr)", context:"Caution-sign exception", note:"Distance is part of the fact: 30 cm from source surface, container, or housing." },
+
+      { chapter:"2. Radiation Biology", family:"activity", prompt:"Activity conversion", answer:"1 mCi = 37 MBq", context:"Radioactivity units", note:"Ci/Bq describe activity, not biologic dose." },
+      { chapter:"2. Radiation Biology", family:"distance", prompt:"Average alpha-particle tissue travel distance", answer:"10-100 um", context:"Alpha particles", note:"High LET, short range." },
+      { chapter:"2. Radiation Biology", family:"distance", prompt:"I-131 beta-minus particle travel range", answer:"0.5-3.0 mm", context:"Beta particles", note:"Stopped by a few millimeters of plastic." },
+      { chapter:"2. Radiation Biology", family:"energy", prompt:"PET annihilation photon energy", answer:"Two 511 keV gamma rays", context:"Beta-plus annihilation", note:"Opposite directions." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Absorbed dose conversion", answer:"100 rad = 1 Gy", context:"Absorbed dose", note:"Gy is the SI absorbed dose unit." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Cancer risk too small to observe below roughly", answer:"100 mSv", context:"Effective dose risk discussion", note:"Effective dose is risk-scaled dose, not activity." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Average annual natural background dose", answer:"About 3.1 mSv/year", context:"Collective dose/background", note:"Natural background component." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Additional average man-made annual dose", answer:"About 2.2 mSv/year", context:"Collective dose/background", note:"Mostly medical procedures." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Typical LD 50/30 range", answer:"400-450 rem (4-5 Sv)", context:"Lethal dose", note:"Dose expected to kill 50% of exposed population within 30 days." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Transient erythema/epilation deterministic threshold", answer:"2 Gy, about 24 hours", context:"Deterministic skin effects", note:"Gy is the threshold absorbed dose unit." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Dry desquamation deterministic threshold", answer:"8 Gy, about 4 weeks", context:"Deterministic skin effects", note:"Absorbed dose threshold." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Moist desquamation deterministic threshold", answer:"15 Gy, about 4 weeks", context:"Deterministic skin effects", note:"Absorbed dose threshold." },
+      { chapter:"2. Radiation Biology", family:"dose", prompt:"Lens opacification/cataract threshold listed", answer:"0.5-2 Gy acute; 0.5 Gy fractionated or cataract acute", context:"Deterministic lens effects", note:"The table lists multiple 0.5 Gy lens-related thresholds." },
+
+      { chapter:"3. Transport and management of radioactive materials", family:"transport", prompt:"Transport index definition", answer:"Highest radiation level at 1 m from package surface in mrem/hr", context:"Radioactive package labeling", note:"White I has no transport index." },
+      { chapter:"3. Transport and management of radioactive materials", family:"transport", prompt:"White I package label limits", answer:"Surface <=0.5 mrem/hr and 1 m <=0.5 mrem/hr", context:"Transportation labels", note:"Lowest common label category." },
+      { chapter:"3. Transport and management of radioactive materials", family:"transport", prompt:"Yellow II package label limits", answer:"Surface >0.5 and <=50 mrem/hr; 1 m <=1 mrem/hr", context:"Transportation labels", note:"Yellow II TI is no greater than 1." },
+      { chapter:"3. Transport and management of radioactive materials", family:"transport", prompt:"Yellow III package label limits", answer:"Surface >50 and <=200 mrem/hr, or 1 m >1 and <=10 mrem/hr", context:"Transportation labels", note:"Yellow III TI can be greater than 1 but not more than 10." },
+      { chapter:"3. Transport and management of radioactive materials", family:"transport", prompt:"Maximum TI for nonexclusive or open exclusive-use vehicles", answer:"10", context:"Transportation", note:"A package can exceed 10 mrem/hr at 1 m only in exclusive-use closed vehicle transport." },
+      { chapter:"3. Transport and management of radioactive materials", family:"time", prompt:"Labeled radioactive package monitoring deadline", answer:"Within 3 hours of receipt, or within 3 hours of next working day", context:"Receipt of shipments", note:"Applies depending on whether receipt occurs during working hours." },
+      { chapter:"3. Transport and management of radioactive materials", family:"time", prompt:"Sealed-source leak-test interval", answer:"Not to exceed 6 months", context:"Sealed sources", note:"A transferor certificate within the prior 6 months can satisfy the requirement." },
+      { chapter:"3. Transport and management of radioactive materials", family:"activity", prompt:"Reportable removable contamination on sealed-source leak test", answer:"185 Bq (0.005 uCi) or more", context:"Sealed-source leak report", note:"Report within 5 days." },
+      { chapter:"3. Transport and management of radioactive materials", family:"training", prompt:"Training for diagnostic sealed source/device AU alternative pathway", answer:"8 hours classroom and laboratory training", context:"Sealed source/device use", note:"Specific to device/radionuclide handling." },
+      { chapter:"3. Transport and management of radioactive materials", family:"activity", prompt:"Carbon-14 urea exempt diagnostic capsule activity", answer:"1 uCi each", context:"Exempt quantities", note:"For in vivo diagnostic use for humans." },
+      { chapter:"3. Transport and management of radioactive materials", family:"time", prompt:"General use-record retention", answer:"3 years", context:"Use records and surveys", note:"Many records in this document use a 3-year retention rule." },
+      { chapter:"3. Transport and management of radioactive materials", family:"activity", prompt:"Annual sanitary sewer release limits", answer:"5 Ci (185 GBq) H-3; 1 Ci (37 GBq) C-14; 1 Ci (37 GBq) all others combined", context:"Waste disposal", note:"Activity units because this is released radioactive material." },
+      { chapter:"3. Transport and management of radioactive materials", family:"time", prompt:"Decay-in-storage half-life criterion", answer:"Physical half-life <=120 days", context:"Waste disposal", note:"May be held for decay-in-storage before disposal if survey/background criteria are met." },
+
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Worker training/right-to-know threshold", answer:"More than 100 mrem (1 mSv)/year", context:"Occupational dose limits", note:"People likely to receive more than this must receive training." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Adult occupational whole-body annual limit", answer:"5 rem (0.05 Sv)", context:"Radiation workers", note:"Adult annual limit." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Minor occupational whole-body annual limit", answer:"0.5 rem (0.005 Sv)", context:"Minors", note:"Minors are 10% of adult limits." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Adult organ annual limit", answer:"50 rem (0.5 Sv)", context:"Radiation workers", note:"Individual organ." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Minor organ annual limit", answer:"5 rem (0.05 Sv)", context:"Minors", note:"10% of adult organ limit." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Adult skin/extremity annual limit", answer:"50 rem (0.5 Sv)", context:"Radiation workers", note:"Extremity is distal to knee or elbow." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Adult eye lens annual limit", answer:"15 rem (0.15 Sv)", context:"Radiation workers", note:"Lens-dose equivalent." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Minor eye lens annual limit", answer:"1.5 rem (0.015 Sv)", context:"Minors", note:"10% of adult lens limit." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Declared pregnant worker embryo/fetus dose limit", answer:"0.5 rem (5 mSv) for entire gestation", context:"Pregnant workers", note:"Applies after voluntary written declaration." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Embryo/fetus remaining-pregnancy compliance increment", answer:"0.05 rem (0.5 mSv)", context:"Pregnant workers", note:"If already near or above limit at declaration, remaining dose must not exceed this." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Member of public annual limit", answer:"0.1 rem (1 mSv)/year", context:"Public", note:"A patient is not a member of the public." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Visitor/caregiver/family member dose for duration of contact", answer:"0.5 rem (5 mSv)", context:"Public including family/caregivers", note:"Used for visitors to patients who cannot be released." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Unrestricted area external source limit", answer:"2 mrem (0.02 mSv)/hour and 50 mrem (0.5 mSv)/year", context:"Unrestricted areas", note:"This chapter lists a 50 mrem/year external-source criterion." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Minor individual-monitoring trigger", answer:">100 mrem (1 mSv) whole body, >150 mrem (1.5 mSv) lens, or >500 mrem (5 mSv) skin/extremity in 1 year", context:"Individual monitoring", note:"These are monitoring thresholds, not annual dose limits." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"Declared pregnant worker individual-monitoring trigger", answer:">100 mrem (1 mSv) during pregnancy", context:"Individual monitoring", note:"External radiation sources." },
+      { chapter:"4. Regulatory exposure limits", family:"dose", prompt:"RSO investigates when worker exceeds this quarterly occupational exposure fraction", answer:"10% in a quarter", context:"ALARA monitoring", note:"Investigation includes ALARA and badge placement." },
+
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"Diagnostic dispensing patient-name exemption", answer:"72 hours", context:"Labeling", note:"Patient name must be associated with prescription no later than 72 hours after dispensing and retained 3 years." },
+      { chapter:"5. Radiopharmaceutical administration", family:"dose", prompt:"Diagnostic/therapeutic administered dosage may vary from prescribed dosage by", answer:"+/-20%", context:"Dosage range", note:"More than 20% outside the prescription can be cited unless the AU revises/directs it." },
+      { chapter:"5. Radiopharmaceutical administration", family:"dose", prompt:"Embryo/fetus or nursing child dose requiring next-day NRC phone notification", answer:">5 rem (50 mSv)", context:"Fetal/nursing-child report", note:"Also written report within 15 days." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"Mother/referring-provider notification deadline for reportable fetal/nursing-child event", answer:"No later than 24 hours after discovery", context:"Patient notification", note:"Written NRC report is due within 15 days." },
+      { chapter:"5. Radiopharmaceutical administration", family:"dose", prompt:"Breastfeeding mother release dose-to-others criterion", answer:"500 mrem (5 mSv)", context:"Breastfeeding/lactation", note:"Written instructions if nursing-child exposure could exceed 100 mrem (1 mSv)." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"Before radioiodine therapy, breastfeeding should stop at least", answer:"6 weeks prior", context:"Radioiodine therapy", note:"Permanent cessation for current child after I-131 NaI or I-124 NaI." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"F-18 breastfeeding interruption", answer:"4 hours", context:"Breastfeeding recommendations", note:"Radiopharmaceutical-specific interruption." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"Ga-67 breastfeeding interruption", answer:"28 days", context:"Breastfeeding recommendations", note:"Long interruption." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"I-123 NaI breastfeeding interruption", answer:"3 days", context:"Breastfeeding recommendations", note:"NaI form." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"In-111 labeled WBC breastfeeding interruption", answer:"6 days", context:"Breastfeeding recommendations", note:"Radiopharmaceutical-specific interruption." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"Tc-99m labeled radiopharmaceutical breastfeeding interruption", answer:"24 hours", context:"Breastfeeding recommendations", note:"All Tc-99m labeled radiopharmaceuticals." },
+      { chapter:"5. Radiopharmaceutical administration", family:"time", prompt:"Tl-201 chloride breastfeeding interruption", answer:"4 days", context:"Breastfeeding recommendations", note:"Radiopharmaceutical-specific interruption." },
+      { chapter:"5. Radiopharmaceutical administration", family:"activity", prompt:"Bioassay may be needed for volatile I-131 work above", answer:">10 mCi", context:"Safe handling", note:"Applies to workers involved in administering volatile I-131 radiopharmaceuticals." },
+
+      { chapter:"6. Administrative/practice regulations", family:"training", prompt:"Agreement States count listed in the document", answer:"39 states", context:"NRC authority/Agreement States", note:"Current in source text; always follow actual jurisdiction in practice." },
+      { chapter:"6. Administrative/practice regulations", family:"training", prompt:"RSO board pathway experience requirement", answer:"5 or more years health physics, including at least 3 years applied health physics", context:"Radiation Safety Officer", note:"Also bachelor's degree and recognized board exam." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"NRC copy of AS license submission deadline for AU under most licenses", answer:"Within 30 days", context:"Authorized user", note:"For licensees other than Type A specific broad scope." },
+      { chapter:"6. Administrative/practice regulations", family:"training", prompt:"Uptake/dilution/excretion AU training", answer:"60 hours total, including at least 8 hours classroom/lab", context:"Written directive not required", note:"Basic radionuclide handling and radiation safety." },
+      { chapter:"6. Administrative/practice regulations", family:"training", prompt:"Imaging/localization AU training", answer:"700 hours total, including at least 80 hours classroom/lab", context:"Written directive not required", note:"Basic radionuclide handling and radiation safety." },
+      { chapter:"6. Administrative/practice regulations", family:"training", prompt:"Unsealed byproduct material requiring written directive training", answer:"700 hours total, including 200 classroom hours", context:"Written directive required", note:"For relevant residency/training pathway." },
+      { chapter:"6. Administrative/practice regulations", family:"training", prompt:"Minimum work experience cases per requested written-directive category", answer:"3 cases", context:"AU status", note:"For I-131 categories and parenteral category." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"I-131 oral administration category cutoff", answer:"1.22 GBq (33 mCi)", context:"Written directive categories", note:"Less/equal versus greater than this value." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"I-131 quantity above which written directive is required", answer:">1.11 MBq (30 uCi)", context:"Oral I-131 NaI", note:"Source text shows microcurie threshold." },
+      { chapter:"6. Administrative/practice regulations", family:"energy", prompt:"Parenteral written-directive photon energy criterion", answer:"Photon energy less than 150 keV", context:"Written directive category", note:"Also includes electron, beta, or alpha characteristics." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"Therapy pregnancy-test timing for potentially childbearing individuals under 50", answer:"Within 1 week of sodium iodide I-131 therapy", context:"Radiopharmaceutical therapy", note:"Negative serum beta-hCG documented." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"Typical inpatient I-131 visitor limit", answer:"30 minutes, at least 6 feet away; no pregnant visitors or visitors under 18", context:"Inpatient I-131 safety", note:"Local policy may vary." },
+      { chapter:"6. Administrative/practice regulations", family:"dose", prompt:"General I-131 discharge survey criterion", answer:"7 mrem/hr or less at 1 m from patient's chest", context:"Inpatient I-131 release", note:"Criteria can vary by state/facility." },
+      { chapter:"6. Administrative/practice regulations", family:"dose", prompt:"Outpatient release dose-to-others criterion", answer:"500 mrem (5 mSv)", context:"I-131 outpatient release", note:"Same as 5 mSv to any other individual." },
+      { chapter:"6. Administrative/practice regulations", family:"dose", prompt:"Written release instructions threshold", answer:"Likely to exceed 1 mSv (0.1 rem) to another individual", context:"Patient release", note:"Instructions to keep dose ALARA." },
+      { chapter:"6. Administrative/practice regulations", family:"dose", prompt:"I-131 patient release activity and dose-rate table value", answer:"1.2 GBq (33 mCi) or 0.07 mSv/hr (7 mrem/hr) at 1 m", context:"Release criteria table", note:"This mirrors the common 33 mCi / 7 mrem/hr pair." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"Tc-99m patient release activity and dose-rate table value", answer:"28 GBq (760 mCi) or 0.58 mSv/hr (58 mrem/hr) at 1 m", context:"Release criteria table", note:"Activity units for source amount, dose-rate units for measured field." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"Mo-99 breakthrough limit", answer:"0.15 kBq Mo-99 per MBq Tc-99m (0.15 uCi per mCi)", context:"Generator QC", note:"Measured in each generator eluate." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"Sr-82 breakthrough limit", answer:"0.02 kBq Sr-82 per MBq Rb-82 (0.02 uCi per mCi)", context:"Generator QC", note:"Measured before the first patient of the day for Sr/Rb generators." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"Sr-85 breakthrough limit", answer:"0.2 kBq Sr-85 per MBq Rb-82 (0.2 uCi per mCi)", context:"Generator QC", note:"Measured before first patient of the day for Sr/Rb generators." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"Phone report deadline for excess generator eluate concentration", answer:"Within 7 calendar days", context:"Generator QC reporting", note:"Written report is within 30 calendar days." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"Mo-99 half-life listed", answer:"66 hours", context:"Generator QC", note:"High-energy gamma photons and beta particles." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"RSO/radiation program change record retention", answer:"5 years", context:"Recordkeeping", note:"Most other records listed here are 3 years." },
+      { chapter:"6. Administrative/practice regulations", family:"time", prompt:"Written directives, calibrations, dosage determinations, leak tests, surveys, release records retention", answer:"3 years", context:"Recordkeeping", note:"A recurring exam-friendly retention interval." },
+      { chapter:"6. Administrative/practice regulations", family:"activity", prompt:"Dosage record may note total activity less than", answer:"1.1 MBq (30 uCi)", context:"Dosage determinations", note:"Record must include determined dosage unless total activity is below this." },
+
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"Medical event dose-difference threshold", answer:">5 rem (0.05 Sv) effective dose equivalent, >50 rem (0.5 Sv) organ/tissue, or >50 rem (0.5 Sv) shallow skin dose", context:"Medical event definition", note:"This must combine with a qualifying wrong-dose/wrong-drug/wrong-route/wrong-patient/etc. event." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"Medical event wrong dosage threshold", answer:"At least 20% from prescribed dosage", context:"Medical event definition", note:"Too high or too low." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"Medical event wrong body part threshold", answer:"Exceeds intended part dose by 50% or more", context:"Medical event definition", note:"One of the qualifying incidents." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Major spill threshold for I-131 or Y-90", answer:"1 mCi", context:"Spill levels", note:"Below is minor; at or above is major." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Major spill threshold for Lu-177", answer:"2 mCi", context:"Spill levels", note:"No evacuation level listed." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Major spill threshold for Cu-64, Ga-67, In-111, I-123, Rb-82", answer:"10 mCi", context:"Spill levels", note:"Cu-64 and Rb-82 evacuation level is 50 mCi; I-123 evacuation level is 15 mCi." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Major spill threshold for Ga-68", answer:"20 mCi", context:"Spill levels", note:"Evacuation level is 100 mCi." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Major spill threshold for F-18, Tc-99m, Tl-201", answer:"100 mCi", context:"Spill levels", note:"Evacuation: F-18 250 mCi; Tc-99m 400 mCi; Tl-201 none listed." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Surface contamination limit for all alpha emitters", answer:"200 dpm/100 cm2", context:"Restricted area surface contamination", note:"Wipe 100 cm2 with filter/absorbent paper." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Surface contamination limit for In-111, I-123, I-131, Lu-177, Y-90", answer:"2,000 dpm/100 cm2", context:"Restricted area surface contamination", note:"Intermediate listed group." },
+      { chapter:"7. Emergencies and incidents", family:"activity", prompt:"Surface contamination limit for Ga-67, Tc-99m, Tl-201", answer:"20,000 dpm/100 cm2", context:"Restricted area surface contamination", note:"Highest listed group." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"ARS exposure threshold", answer:">0.7 Gy acute high-dose exposure", context:"Acute radiation syndrome", note:"Also high dose rate, external penetrating radiation, and >70% body exposure." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"ARS whole-body exposure fraction", answer:">70% of body exposed", context:"Acute radiation syndrome", note:"Whole-body exposure condition." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"LD50/60 without medical intervention", answer:"3.5-4.0 Gy", context:"Acute whole-body low-LET irradiation", note:"Supportive care raises survivability." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"LD50/60 with antibiotics/supportive treatment", answer:"4.5-7 Gy", context:"ARS intervention", note:"Intensive care/transplant may increase to 7-9 Gy." },
+      { chapter:"7. Emergencies and incidents", family:"dose", prompt:"LD50/60 with intensive care/reverse isolation/transplant", answer:"7-9 Gy", context:"ARS intervention", note:"Potentially increased survival threshold." },
+
+      { chapter:"8. Instrumentation and QC", family:"time", prompt:"Geiger counter count-rate interval example", answer:"Counts per minute: ion pairs every 60 seconds", context:"GM counter", note:"GM counter indicates events, not radiation type or energy." },
+      { chapter:"8. Instrumentation and QC", family:"activity", prompt:"Well counter reliable upper activity range", answer:"Up to about 37 kBq (0.001 mCi)", context:"Well counters", note:"Higher activities cause dead-time losses and inaccurate counts." }
+    ];
+
+    const unitGuideRows = facts.map((fact, index) => ({ id: index + 1, ...fact }));
+    let filter = "all";
+    let pool = [];
+    let index = 0;
+    let answered = false;
+    let correct = 0;
+    let attempted = 0;
+    let streak = 0;
+
+    const $ = (id) => document.getElementById(id);
+
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function makeChoices(fact) {
+      const candidates = facts
+        .filter(item => item.answer !== fact.answer && item.family === fact.family)
+        .map(item => item.answer);
+      const fallback = facts.filter(item => item.answer !== fact.answer).map(item => item.answer);
+      const wrong = shuffle([...new Set(candidates.length >= 3 ? candidates : fallback)]).slice(0, 3);
+      return shuffle([fact.answer, ...wrong]);
+    }
+
+    function setPool() {
+      const filtered = filter === "all" ? facts : facts.filter(item => item.family === filter);
+      pool = shuffle(filtered);
+      index = 0;
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const fact = pool[index % pool.length];
+      answered = false;
+      $("questionMeta").innerHTML = `
+        <span class="pill">${fact.chapter}</span>
+        <span class="pill">${fact.family}</span>
+        <span class="pill">${index + 1} of ${pool.length}</span>
+      `;
+      $("questionText").textContent = fact.prompt;
+      $("choices").innerHTML = "";
+      makeChoices(fact).forEach((choice, i) => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.innerHTML = `<b>${String.fromCharCode(65 + i)}</b><span>${choice}</span>`;
+        btn.addEventListener("click", () => answer(btn, choice, fact));
+        $("choices").appendChild(btn);
+      });
+      $("explanation").classList.remove("visible");
+      $("explanation").textContent = "";
+    }
+
+    function answer(btn, choice, fact) {
+      if (answered) return;
+      answered = true;
+      attempted += 1;
+      const isCorrect = choice === fact.answer;
+      if (isCorrect) {
+        correct += 1;
+        streak += 1;
+      } else {
+        streak = 0;
+      }
+      document.querySelectorAll(".choice").forEach(node => {
+        const value = node.querySelector("span").textContent;
+        if (value === fact.answer) node.classList.add("correct");
+      });
+      if (!isCorrect) btn.classList.add("wrong");
+      $("explanation").innerHTML = `<strong>${fact.context}:</strong> ${fact.note}`;
+      $("explanation").classList.add("visible");
+      updateScore();
+    }
+
+    function updateScore() {
+      $("score").textContent = `${correct}/${attempted}`;
+      $("streak").textContent = `Current streak: ${streak}`;
+    }
+
+    function renderTables() {
+      const chapters = ["All chapters", ...new Set(facts.map(f => f.chapter))];
+      $("chapterSelect").innerHTML = chapters.map(ch => `<option>${ch}</option>`).join("");
+      drawTables();
+    }
+
+    function drawTables() {
+      const selected = $("chapterSelect").value || "All chapters";
+      const rows = selected === "All chapters" ? unitGuideRows : unitGuideRows.filter(f => f.chapter === selected);
+      const grouped = rows.reduce((acc, row) => {
+        acc[row.chapter] ||= [];
+        acc[row.chapter].push(row);
+        return acc;
+      }, {});
+      $("numberTables").innerHTML = Object.entries(grouped).map(([chapter, items]) => `
+        <h2 class="chapter-title">${chapter}</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>What to Know</th><th>Number and Units</th><th>Unit Family</th><th>Where It Applies</th></tr>
+            </thead>
+            <tbody>
+              ${items.map(item => `<tr><td>${item.prompt}</td><td><strong>${item.answer}</strong></td><td>${item.family}</td><td>${item.context}. ${item.note}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      `).join("");
+    }
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        ["quiz", "guide", "table"].forEach(view => $(view + "View").classList.toggle("hidden", view !== tab.dataset.view));
+      });
+    });
+
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        filter = chip.dataset.filter;
+        setPool();
+      });
+    });
+
+    $("nextBtn").addEventListener("click", () => {
+      index = (index + 1) % pool.length;
+      renderQuestion();
+    });
+    $("shuffleBtn").addEventListener("click", setPool);
+    $("resetBtn").addEventListener("click", () => {
+      correct = 0; attempted = 0; streak = 0; updateScore();
+    });
+    $("chapterSelect").addEventListener("change", drawTables);
+
+    setPool();
+    renderTables();
+  </script>
+</body>
+</html>

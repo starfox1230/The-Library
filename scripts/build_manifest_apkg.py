@@ -58,7 +58,7 @@ a {
 
 TEXT_MODEL = genanki.Model(
     1065123401,
-    "Codex Radiology saCloze+",
+    "saCloze+",
     fields=[
         {"name": "Text"},
         {"name": "Extra"},
@@ -77,7 +77,7 @@ TEXT_MODEL = genanki.Model(
 
 VISUAL_MODEL = genanki.Model(
     1065123402,
-    "Codex Radiology saCloze++",
+    "saCloze++",
     fields=[
         {"name": "Text"},
         {"name": "Extra"},
@@ -97,7 +97,7 @@ VISUAL_MODEL = genanki.Model(
 MODEL_BY_STYLE = {
     "sacloze+": TEXT_MODEL,
     "sacloze++": VISUAL_MODEL,
-    "cloze": VISUAL_MODEL,
+    "cloze": TEXT_MODEL,
 }
 
 
@@ -147,10 +147,10 @@ def _normalize_tags(raw_tags: object) -> list[str]:
 
 def _normalize_style(raw_style: object) -> str:
     if raw_style is None:
-        return "saCloze++"
+        return "saCloze+"
     style = str(raw_style).strip()
     if not style:
-        return "saCloze++"
+        return "saCloze+"
     key = style.casefold()
     if key not in MODEL_BY_STYLE:
         raise ValueError(

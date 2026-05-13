@@ -1,5 +1,6 @@
 from .auto_scroll import install as install_auto_scroll
 from .ai_tools import install as install_ai_tools
+from .card_tracker import install as install_card_tracker
 from .clipboard_json_cards import install as install_clipboard_json_cards
 from .draw_on_image import install as install_draw_on_image
 from .f3_blocker import install as install_f3_blocker
@@ -22,6 +23,7 @@ from .visual_card_multitude import install as install_visual_card_multitude
 
 install_auto_scroll()
 install_ai_tools()
+install_card_tracker()
 install_clipboard_json_cards()
 install_draw_on_image()
 install_f3_blocker()

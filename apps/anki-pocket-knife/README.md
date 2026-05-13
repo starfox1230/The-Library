@@ -26,6 +26,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Add Cards -> Live Multi-Image Counter`: optional setting that adds a `1/N` label above the first image in a cloze note's `Text` field when more than one image is present, keeps it updated as images are added, strips it during cloze-to-visual conversion, and recreates it when converting back to cloze.
 - `Add Cards -> Tab Cycles Clozes`: default-on setting that changes `Tab` in the cloze note `Text` field so it cycles through cloze deletions instead of jumping to the next field. `Shift+Tab` cycles backward.
 - `Auto-Scroll On Answer Reveal`: optional toggle that jumps the reviewer back to the top of the card whenever you reveal the answer.
+- `Floating Card Tracker`: default-on always-on-top tracker that counts review answers since a configurable start time, grouped as Again/Hard/Good/Easy with speed stats. Right-click it to reset from now, edit the start time, toggle resize handles, toggle the night-mode background, refresh, or hide it.
 - `Reviewer Image Overlay Shortcuts`: default-on setting that lets `Ctrl+Shift+5` open a fullscreen contained-image overlay and move forward through the current card's images, lets `Ctrl+Shift+4` move backward while the overlay is open, lets `Ctrl+2` close the overlay without firing Anki's normal `Ctrl+2` flag action, and also shows a top-left `X Close` button for mouse or touch exit. On the question side it cycles front images only; after reveal it cycles front plus back images.
 - `Reviewer Image Overlay Remember Position`: default-off setting that controls whether closing the overlay reopens on the same image or restarts from the first image next time.
 - `TTS Card Audio Playback`: default-off toggle that lets you allow or suppress audio playback from TTS-enabled cards without muting normal non-TTS audio.
@@ -51,6 +52,10 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Pink Picture-Frame Button In Add Cards`
 - `Tools -> Anki Pocket Knife -> Auto-Switch Visual_Card_Multitude To .New::Visual`
 - `Tools -> Anki Pocket Knife -> Auto-Scroll To Top On Answer Reveal`
+- `Tools -> Anki Pocket Knife -> Floating Card Tracker`
+- `Tools -> Anki Pocket Knife -> Show Floating Card Tracker Now`
+- `Tools -> Anki Pocket Knife -> Reset Floating Card Tracker From Now`
+- `Tools -> Anki Pocket Knife -> Edit Floating Card Tracker Start Time`
 - `Tools -> Anki Pocket Knife -> Reviewer Image Overlay Shortcuts (Ctrl+Shift+5 / Ctrl+Shift+4 / Ctrl+2)`
 - `Tools -> Anki Pocket Knife -> Remember Reviewer Image Position On Close`
 - `Tools -> Anki Pocket Knife -> Play Audio From TTS-Enabled Cards`

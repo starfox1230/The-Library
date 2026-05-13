@@ -8,6 +8,17 @@ C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\radiographics-review
 
 This project checks for recently published `RadioGraphics` articles, generates a phone-friendly static site under this app folder, and keeps the authenticated RSNA browser profile outside the repo.
 
+## Card Style Source
+
+For Anki card-writing and APKG/media conventions, use the canonical helper docs:
+
+```text
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+```
+
+If card taste changes, update those files first, then adjust this app's generators/tests to match.
+
 ## What it does
 
 - Uses the Crossref API to detect recent `RadioGraphics` articles.

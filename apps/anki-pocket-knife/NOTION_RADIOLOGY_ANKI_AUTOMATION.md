@@ -2,6 +2,19 @@
 
 Last updated: 2026-04-20
 
+## Canonical Card Instructions
+
+This file preserves the Notion-specific workflow and historical observations from the first automation design. It is no longer the source of truth for card style or APKG packaging rules.
+
+Before generating cards, read the canonical files:
+
+```text
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+```
+
+If card-writing taste changes, edit `CARD_STYLE_GUIDE.md`. If packaging/media behavior changes, edit `APKG_PACKAGING.md`.
+
 ## Goal
 
 Create a daily Codex automation that:
@@ -83,56 +96,15 @@ Confirmed field behavior:
 - Some cards place additional supporting images or reasoning in `Extra`
 - The visual-card style often uses prompts like `Most likely diagnosis?`
 
-## Observed card-style rules
+## Observed Card-Style Rules
 
-These are not guesses. They are based on the recent backup sample.
+The detailed observed rules from the 2026-04-20 backup sample have been promoted into the canonical style guide:
 
-### Text-first cards
+```text
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+```
 
-Use `saCloze+` when the source is mostly conceptual or factual and does not need images.
-
-Observed characteristics:
-
-- Usually one sentence or one short prompt
-- Usually one to two clozes
-- Sometimes three clozes when the fact naturally bundles name, timing, and disease state
-- Often highly atomic
-- Often split into separate cards rather than one overloaded comparison card
-
-Observed examples:
-
-- `A left ventricular {{c1::pseudo}} aneurysm classically has a {{c2::narrow}} neck.`
-- `{{c1::An acute peripancreatic fluid collection, or APFC::What collection}} occurs {{c2::within 4 weeks of::when in}} {{c3::interstitial edematous pancreatitis}}.`
-
-### Visual diagnosis cards
-
-Use `saCloze++` when images are important.
-
-Observed characteristics:
-
-- Prompt often starts with `Most likely diagnosis?`
-- Sometimes adds anatomical or clinical context:
-  - `Most likely diagnosis in the pancreas?`
-  - `59-year-old woman with post cholecystectomy pain. Most likely diagnosis?`
-- Usually one diagnosis cloze
-- Images are appended below the prompt and answer block
-- `Extra` is used for discriminators or short reasoning, not for a full explanation
-- Multi-image cards are common
-
-Observed examples:
-
-- `Most likely diagnosis?<br><br>{{c1::Hepatic steatosis...}}<br><br><img src="...">`
-- `Most likely diagnosis in the pancreas?<br><br>{{c1::MCN}}`
-
-### General style constraints
-
-- Default to cloze notes, not basic cards.
-- Prefer one idea per note.
-- Avoid padding or textbook phrasing.
-- Use abbreviations when they are standard in radiology study language.
-- Preserve clinical stems only when they help identify the diagnosis.
-- Use `Extra` only when it adds a discriminator, pitfall, or short rationale.
-- If a comparison naturally splits into two cards, split it.
+Keep the verified observations above as historical evidence, but do not add new card-style rules here.
 
 ## Recommended automation design
 
@@ -228,9 +200,15 @@ Only after the `.apkg` is built successfully:
 
 If package generation fails, do not update the page status.
 
-## Package contract
+## Package Contract
 
-The run should produce a machine-readable card manifest before building the package.
+The canonical packaging rules live in:
+
+```text
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+```
+
+For this Notion workflow, the run should still produce a machine-readable card manifest before building the package.
 
 Builder script now available in this repo:
 
@@ -311,22 +289,15 @@ For the radiology Notion workflow, card text must be rewritten into the user's a
 
 ## Daily automation prompt
 
-Use this as the durable Codex automation prompt.
+Use this as the durable Codex automation prompt. It intentionally points to the canonical files instead of duplicating card-writing rules.
 
 ```md
 Build today's radiology Anki package from the Notion Radiology Notes Database.
 
-Use the actual user style reflected in recent Anki cards:
+Before generating cards, read:
 
-- Default to cloze cards.
-- Prefer atomic cards.
-- Use short, direct wording.
-- Use `saCloze+` style for text-only facts.
-- Use `saCloze++` style for visual diagnosis cards.
-- Visual cards usually use prompts like `Most likely diagnosis?`, `Most likely diagnosis in the pancreas?`, or a short clinical stem plus `Most likely diagnosis?`.
-- Put short discriminators in `Extra` only when they add value.
-- Do not write long explanations.
-- Split overloaded facts into multiple notes when needed.
+- C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+- C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
 
 Select candidate pages from the user's Notion Radiology Notes Database where:
 
@@ -339,9 +310,9 @@ When a page is selected:
 1. Retrieve the page content and any relevant images.
 2. Download relevant Notion images immediately during the same run.
 3. Distill the page into high-yield candidate cards.
-4. Generate cards that match the user's actual style.
+4. Generate cards that follow the canonical card style guide.
 5. Include images inside cards when they are diagnostically important.
-6. Build a real `.apkg` package with working media references.
+6. Build a real `.apkg` package with working media references using the canonical packaging guide.
 7. Write a run report that lists:
    - processed pages
    - skipped pages
@@ -356,16 +327,7 @@ Required outputs:
 - `run-report.md`
 - downloaded media files
 
-Quality rules:
-
-- No filler cards.
-- No cards that merely restate the page title.
-- No giant multi-fact cards.
-- Keep most text cards to one sentence or one short prompt.
-- Usually use one to two clozes, only using three when the structure naturally calls for it.
-- For visual cards, use one diagnosis cloze plus image support.
-- If the distinction between two entities is important, prefer separate cards.
-- If a card is weak or ambiguous, skip it and mention the skip in the report.
+Quality rules are governed by `CARD_STYLE_GUIDE.md`. If a card is weak or ambiguous, skip it and mention the skip in the report.
 
 State updates:
 

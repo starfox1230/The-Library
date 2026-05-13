@@ -31,6 +31,12 @@ DEFAULT_SETTINGS = {
     "lightning_mode_card_limit": 100,
     "lightning_mode_question_seconds": 10,
     "lightning_mode_answer_seconds": 5,
+    "floating_card_tracker_enabled": True,
+    "floating_card_tracker_start_ms": 0,
+    "floating_card_tracker_x": 80,
+    "floating_card_tracker_y": 120,
+    "floating_card_tracker_width": 190,
+    "floating_card_tracker_night_background": False,
 }
 
 
