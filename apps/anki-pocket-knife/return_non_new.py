@@ -22,6 +22,7 @@ from aqt.qt import (
 )
 from aqt.utils import showInfo, showWarning
 
+from .card_safety import log_card_safety_event
 from .restore_tracker import exclude_restored_cards_for_target_deck
 
 
@@ -196,6 +197,12 @@ def _move_cards_home_preserving_schedule(deck_id: int, card_ids: list[int]) -> i
         return 0
 
     exclude_restored_cards_for_target_deck(target_deck_id=int(deck_id), card_ids=unique_card_ids)
+    log_card_safety_event(
+        "return_non_new_home_before",
+        card_ids=unique_card_ids,
+        deck_id=int(deck_id),
+        details={"source_filtered_deck_id": int(deck_id)},
+    )
 
     usn_value = 0
     usn = getattr(mw.col, "usn", None)
@@ -230,6 +237,12 @@ def _move_cards_home_preserving_schedule(deck_id: int, card_ids: list[int]) -> i
         )
 
     mw.reset()
+    log_card_safety_event(
+        "return_non_new_home_after",
+        card_ids=unique_card_ids,
+        deck_id=int(deck_id),
+        details={"source_filtered_deck_id": int(deck_id), "moved_count": len(unique_card_ids)},
+    )
     return len(unique_card_ids)
 
 

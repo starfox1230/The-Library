@@ -44,7 +44,15 @@ The README should include:
 
 ## Note Type And Fields
 
-Use the user's existing `saCloze+` style by default for all generated packaged cards. Do not switch to `saCloze++` unless the user explicitly asks for it or a specific existing workflow requires it.
+Use the user's existing `saCloze++` note type exactly for all generated packaged cards. Do not create a new note type, do not rename it, and do not approximate its templates or styling.
+
+The canonical implementation to reuse is:
+
+```text
+apps\radiographics-review\scripts\build_anki_package.py
+```
+
+Use that builder's `MODEL` definition directly or copy it byte-for-byte if importing is not practical. The model name, model id, fields, templates, and CSS must remain exactly aligned with the user's current `saCloze++` template so Anki does not create a look-alike note type.
 
 Put all generated cards into:
 
@@ -60,6 +68,10 @@ Fields:
 - `Extra`: source context, page screenshot, short discriminator, pitfall, or brief rationale.
 
 Do not put long explanations in `Extra`.
+Do not put source provenance in front-side `Text`. Source names, app names, article titles, quiz names, question numbers, and batch identifiers belong in `Extra`, `README.md`, or `manifest.json`, not in the repeated study prompt.
+Do not include multiple-choice answer letters in `Text`; package the actual tested answer only.
+For image cards, use concise task-specific prompts rather than generic catch-all prompts. If more than one image appears on the front of a card, add `1/N` immediately above the first image.
+For quiz review packages, include one additional misconception note for each missed question. This note should be derived from the user's selected wrong answer and should test the key term, definition, discriminator, or false association behind that miss.
 
 ## Media Rules
 
@@ -69,6 +81,8 @@ Do not put long explanations in `Extra`.
 - Include every local image file referenced by card HTML in the package media list.
 - If multiple images belong on one note, include all of them in order.
 - If an image belongs only as answer-side support, put it in `Extra`.
+- If a source question or item contains images that are not already present on the front of a generated card, append all of those images after the text in `Extra`.
+- For quiz-derived cards, begin `Extra` with the source question number in the format `Q<number>`.
 - Include a full source-page screenshot in `Extra` whenever feasible.
 - Front-side diagnosis images must include the complete diagnostic figure or all relevant panels, while excluding figure captions.
 - Do not crop front-side diagnosis images so tightly that distribution, multiplicity, anatomy, or comparison information is lost.
@@ -96,4 +110,4 @@ The Radiographics builder:
 
 Those ideas should be reused for Core Radiology and other future card-generation workflows.
 
-For this helper, preserve the manifest and media practices from Radiographics, but prefer `saCloze+` and `Saved Cards` unless the user says otherwise.
+For this helper, preserve the manifest and media practices from Radiographics, and use `saCloze++` and `Saved Cards` unless the user says otherwise.

@@ -116,3 +116,13 @@ Steam Controller 2026 PC haptics compatibility pass.
 - Improved Windows rumble dispatch by detecting connected XInput controller slots instead of assuming slot 0.
 - Sends haptic patterns to every connected XInput slot so Steam Input virtual Xbox controllers continue to receive rumble when Steam assigns them to a nonzero slot.
 - Added an optional, UI-free Steamworks flat-API bridge that can use `steam_api64.dll` if supplied later for native Steam Input haptics.
+
+## `speed-streak-addon-v1.22`
+
+Haptics testing workbench release.
+
+- Created from `speed-streak-addon-v1.21`.
+- Added nested Audio and Haptics panels inside the Haptic/Audio Feedback settings section so haptics can be tuned without scrolling past every audio control.
+- Added a saved controller type selector for Standard/Xbox-style and Steam Controller/Steam Input tuning.
+- Added a Haptics Lab with grouped one-click test patterns, including timeout-focused and Steam Controller-focused experiments.
+- Made the Steam Controller profile default `Again` to `Sync Tap` and `Timeout` to a repeated `Rising Alarm`.

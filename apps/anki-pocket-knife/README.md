@@ -14,6 +14,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `No-Image Today Deck`: lets you choose one or more exact deck levels, looks at the cards Anki is surfacing there today, filters to cards with no question-side image, and builds a `resched = true` filtered deck named `No image cards YYYY-MM-DD HH-MM-SS`. The same action is also available from the deck gear menu for a single deck. If the cards came from another filtered deck, Pocket Knife can move them out first and then rebuild the prior filtered deck automatically after the no-image deck is deleted.
 - `Recent New Cards Deck`: builds a `resched = true` filtered deck from still-new cards created today or in the past few days, with a day-range prompt and both launcher/menu access plus a deck gear-menu entry for normal decks.
 - `Saved Cards -> Send To .NEW::Audio`: on the exact `Saved Cards` deck gear menu, moves every card in that deck to `.NEW::Audio`, builds a `resched = true` filtered deck from the cards that were still new, names it `New cards from Saved Cards Deck (YYYY-MM-DD HH-MM-SS)`, and then deletes the emptied `Saved Cards` deck.
+- `Deck Gear -> Send Non-New Media Cards`: on any normal deck gear menu, sends non-new cards from that deck tree to the main media deck. Cards with an image in their `Text` field are visual cards and go to `.NEW::Visual`; cards without a `Text` image are audio cards and go to `.NEW::Audio`.
 - `Recent Leeches Banner`: default-on deck-browser banner that appears above the main deck list whenever leeches from the last 48 hours are available, shows the count, and opens those cards in the Browser when clicked.
 - `Open Suspended Cards In Browser`: opens all currently suspended cards in the Browser and orders them from most recently suspended to least recently suspended.
 - `Filtered Deck -> Send Non-New Cards Home`: shows only filtered decks in a searchable picker, sends the selected deck's current non-new cards back to their original deck while keeping their current schedule, leaves still-new cards in place, and also appears in the deck gear menu for filtered decks.
@@ -22,7 +23,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Add Cards -> Pink Picture-Frame Converter`: default-on button on the normal Add Cards screen that converts the current cloze note into `Visual_Card_Multitude`, sending cloze text to `English`, non-cloze text to `Question`, inline images to `Images`, and `Extra` to `More Info`. If you are already on `Visual_Card_Multitude`, the same button converts back to `saCloze++`, sending `Question` plus a clozed `English` block and `Images` into `Text`, and `More Info` back into `Extra`.
 - `Add Cards -> Sticky Fields Default On`: default-on setting that initializes Add Cards note types with every field thumbtack turned on when they do not already have saved sticky-pin choices, then leaves later thumbtack changes as that note type's saved default.
 - `Add Cards -> Dx Diagnosis Template`: default-on `Dx` button beside the picture-frame button that is only enabled for cloze note types and rewrites the `Text` field to `Diagnosis?<br><br>{{c1::}}<br><br>` above any existing images, then places the cursor inside the empty cloze.
-- `Add Cards -> Auto Deck Toggle`: toolbar toggle that can automatically switch cloze notes between `.NEW::Audio` and `.New::Visual` based on whether the `Text` field contains an image, and can also auto-switch `Visual_Card_Multitude` notes to `.New::Visual`.
+- `Add Cards -> Auto Deck Toggle`: toolbar toggle that can automatically switch cloze notes between `.NEW::Audio` and `.NEW::Visual` based on whether the `Text` field contains an image, and can also auto-switch `Visual_Card_Multitude` notes to `.NEW::Visual`.
 - `Add Cards -> Live Multi-Image Counter`: optional setting that adds a `1/N` label above the first image in a cloze note's `Text` field when more than one image is present, keeps it updated as images are added, strips it during cloze-to-visual conversion, and recreates it when converting back to cloze.
 - `Add Cards -> Tab Cycles Clozes`: default-on setting that changes `Tab` in the cloze note `Text` field so it cycles through cloze deletions instead of jumping to the next field. `Shift+Tab` cycles backward.
 - `Auto-Scroll On Answer Reveal`: optional toggle that jumps the reviewer back to the top of the card whenever you reveal the answer.
@@ -50,7 +51,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Live Multi-Image Counter In Add Cards`
 - `Tools -> Anki Pocket Knife -> Tab Cycles Clozes In Add Cards`
 - `Tools -> Anki Pocket Knife -> Pink Picture-Frame Button In Add Cards`
-- `Tools -> Anki Pocket Knife -> Auto-Switch Visual_Card_Multitude To .New::Visual`
+- `Tools -> Anki Pocket Knife -> Auto-Switch Visual_Card_Multitude To .NEW::Visual`
 - `Tools -> Anki Pocket Knife -> Auto-Scroll To Top On Answer Reveal`
 - `Tools -> Anki Pocket Knife -> Floating Card Tracker`
 - `Tools -> Anki Pocket Knife -> Show Floating Card Tracker Now`

@@ -41,7 +41,7 @@ AUTO_DECK_BUTTON_COMMAND = "pocket_knife_toggle_add_cards_auto_deck"
 AUTO_DECK_BUTTON_ID = "pocket-knife-auto-deck-toggle"
 STICKY_FIELDS_STATE_PATH = user_files_dir() / "sticky_fields_state.json"
 AUTO_DECK_AUDIO_NAME = ".NEW::Audio"
-AUTO_DECK_VISUAL_NAME = ".New::Visual"
+AUTO_DECK_VISUAL_NAME = ".NEW::Visual"
 _HOOK_REGISTERED = False
 _BRIDGE_PATCHED = False
 _TAB_CLOZE_FILTER: "_AddCardsTabClozeAppFilter | None" = None
@@ -503,7 +503,7 @@ def _sync_auto_deck_toggle_button(editor: Editor) -> None:
     diagnosis_enabled = _note_is_cloze(note)
     button_text = "AD"
     button_title = (
-        "Automatically switch cloze notes between .NEW::Audio and .New::Visual based on images in Text"
+        "Automatically switch cloze notes between .NEW::Audio and .NEW::Visual based on images in Text"
     )
     if night_mode:
         background = "rgba(244, 114, 182, 0.24)" if enabled else "rgba(71, 85, 105, 0.38)"
@@ -858,6 +858,8 @@ def _target_deck_name_for_note(note) -> str | None:
 
 
 def _deck_id_for_name(deck_name: str) -> int | None:
+    if not deck_name:
+        return None
     decks = mw.col.decks
     by_name = getattr(decks, "by_name", None)
     if callable(by_name):
@@ -898,6 +900,52 @@ def _deck_id_for_name(deck_name: str) -> int | None:
     return None
 
 
+def _created_deck_id(raw_result) -> int | None:
+    if raw_result is None:
+        return None
+    if isinstance(raw_result, int):
+        return int(raw_result)
+    deck_id = getattr(raw_result, "id", None)
+    if deck_id is not None:
+        try:
+            return int(deck_id)
+        except Exception:
+            return None
+    if isinstance(raw_result, dict) and raw_result.get("id") is not None:
+        try:
+            return int(raw_result["id"])
+        except Exception:
+            return None
+    return None
+
+
+def _ensure_normal_deck_id(deck_name: str) -> int | None:
+    deck_id = _deck_id_for_name(deck_name)
+    if deck_id is not None:
+        return int(deck_id)
+
+    decks = mw.col.decks
+    create_method = getattr(decks, "add_normal_deck_with_name", None)
+    if callable(create_method):
+        try:
+            deck_id = _created_deck_id(create_method(str(deck_name)))
+        except Exception:
+            deck_id = None
+        if deck_id is not None:
+            return int(deck_id)
+
+    legacy_id = getattr(decks, "id", None)
+    if callable(legacy_id):
+        try:
+            deck_id = _created_deck_id(legacy_id(str(deck_name)))
+        except Exception:
+            deck_id = None
+        if deck_id is not None:
+            return int(deck_id)
+
+    return _deck_id_for_name(deck_name)
+
+
 def _set_selected_deck_id(add_cards: AddCards, deck_id: int) -> bool:
     chooser = _deck_chooser(add_cards)
     if chooser is None:
@@ -924,8 +972,9 @@ def _apply_auto_deck_rules(editor: Editor) -> None:
     desired_deck_name = _target_deck_name_for_note(note)
     if not desired_deck_name:
         return
-    desired_deck_id = _deck_id_for_name(desired_deck_name)
+    desired_deck_id = _ensure_normal_deck_id(desired_deck_name)
     if desired_deck_id is None:
+        tooltip(f"Pocket Knife could not find or create deck: {desired_deck_name}")
         return
     _set_selected_deck_id(editor.parentWindow, desired_deck_id)
 
@@ -1369,7 +1418,7 @@ def _build_reverse_cloze_target_note(source_note) -> Note | None:
 
 def _set_add_cards_note(add_cards: AddCards, target_note: Note) -> None:
     desired_deck_name = _target_deck_name_for_note(target_note)
-    deck_id = _deck_id_for_name(desired_deck_name) if desired_deck_name else _selected_deck_id(add_cards)
+    deck_id = _ensure_normal_deck_id(desired_deck_name) if desired_deck_name else _selected_deck_id(add_cards)
     if deck_id is None:
         deck_id = _selected_deck_id(add_cards)
     try:
@@ -1431,7 +1480,7 @@ def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
         None,
         AUTO_DECK_BUTTON_COMMAND,
         _toggle_add_cards_auto_deck,
-        tip="Toggle automatic .NEW::Audio / .New::Visual deck switching for cloze notes",
+        tip="Toggle automatic .NEW::Audio / .NEW::Visual deck switching for cloze notes",
         label="AD",
         id=AUTO_DECK_BUTTON_ID,
         disables=False,

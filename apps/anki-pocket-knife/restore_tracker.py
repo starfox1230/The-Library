@@ -8,10 +8,12 @@ from typing import Any
 from aqt import gui_hooks, mw
 from aqt.qt import QTimer
 
-from .common import rebuild_filtered_deck, user_files_dir
+from .card_safety import log_card_safety_event
+from .common import card_id_search, create_or_update_filtered_deck, rebuild_filtered_deck, user_files_dir
 
 
 RESTORE_BATCHES_PATH = user_files_dir() / "no_image_restore_batches.json"
+RECOVERY_DECK_NAME_PREFIX = "Recovered Pocket Knife Filtered Cards "
 _HOOK_REGISTERED = False
 _restore_timer: QTimer | None = None
 _MAX_CARDS_PER_TERM = 250
@@ -111,8 +113,18 @@ def _restore_cards_to_filtered_deck(deck_id: int, card_ids: list[int]) -> bool:
         return False
 
     cleaned_card_ids = _clean_card_ids(card_ids)
+    log_card_safety_event(
+        "restore_tracker_restore_to_filtered_deck_before",
+        card_ids=cleaned_card_ids,
+        deck_id=int(deck_id),
+    )
     if not cleaned_card_ids:
         rebuild_filtered_deck(int(deck_id))
+        log_card_safety_event(
+            "restore_tracker_rebuild_filtered_deck",
+            deck_id=int(deck_id),
+            details={"reason": "empty_card_restore_list"},
+        )
         return True
 
     original_terms = deepcopy(deck.get("terms"))
@@ -130,6 +142,63 @@ def _restore_cards_to_filtered_deck(deck_id: int, card_ids: list[int]) -> bool:
         except Exception:
             pass
 
+    log_card_safety_event(
+        "restore_tracker_restore_to_filtered_deck_after",
+        card_ids=cleaned_card_ids,
+        deck_id=int(deck_id),
+    )
+    return True
+
+
+def _recovery_deck_name(batch: dict[str, Any], source_deck_id: int) -> str:
+    created_at = str(batch.get("created_at", "") or "").strip()
+    date_part = created_at[:10] if len(created_at) >= 10 else datetime.now().strftime("%Y-%m-%d")
+    target_name = str(batch.get("target_deck_name", "") or "").strip()
+    if target_name:
+        return f"{RECOVERY_DECK_NAME_PREFIX}{date_part}::{target_name}::Source {int(source_deck_id)}"
+    return f"{RECOVERY_DECK_NAME_PREFIX}{date_part}::Source {int(source_deck_id)}"
+
+
+def _restore_cards_to_recovery_deck(
+    *,
+    batch: dict[str, Any],
+    source_deck_id: int,
+    card_ids: list[int],
+) -> bool:
+    cleaned_card_ids = _clean_card_ids(card_ids)
+    if not cleaned_card_ids:
+        return False
+    deck_name = _recovery_deck_name(batch, int(source_deck_id))
+    try:
+        recovery_deck_id = create_or_update_filtered_deck(
+            deck_name,
+            search=card_id_search(cleaned_card_ids, exclude_suspended=False),
+            limit=len(cleaned_card_ids),
+            resched=False,
+        )
+    except Exception as exc:
+        log_card_safety_event(
+            "restore_tracker_recovery_deck_failed",
+            card_ids=cleaned_card_ids,
+            details={
+                "missing_source_deck_id": int(source_deck_id),
+                "recovery_deck_name": deck_name,
+                "error": str(exc),
+            },
+        )
+        return False
+
+    log_card_safety_event(
+        "restore_tracker_recovery_deck_created",
+        card_ids=cleaned_card_ids,
+        deck_id=int(recovery_deck_id),
+        deck_name=deck_name,
+        details={
+            "missing_source_deck_id": int(source_deck_id),
+            "target_deck_id": int(batch.get("target_deck_id", 0) or 0),
+            "target_deck_name": str(batch.get("target_deck_name", "") or ""),
+        },
+    )
     return True
 
 
@@ -176,6 +245,22 @@ def register_restore_batch(
     source_ids = sorted(normalized_source_cards.keys())
     if not source_ids:
         return
+
+    all_card_ids: list[int] = []
+    for card_ids in normalized_source_cards.values():
+        all_card_ids.extend(card_ids)
+    log_card_safety_event(
+        "restore_batch_registered",
+        card_ids=all_card_ids,
+        deck_id=int(target_deck_id),
+        deck_name=str(target_deck_name),
+        details={
+            "target_deck_id": int(target_deck_id),
+            "target_deck_name": str(target_deck_name),
+            "source_filtered_deck_ids": source_ids,
+            "source_filtered_cards": normalized_source_cards,
+        },
+    )
 
     batches = [
         batch
@@ -250,10 +335,16 @@ def _restore_batch(batch: dict[str, Any]) -> None:
     source_filtered_cards = _normalize_source_filtered_cards(batch.get("source_filtered_cards"))
     if source_filtered_cards:
         for source_deck_id, card_ids in source_filtered_cards.items():
-            if not _filtered_deck_exists(source_deck_id):
-                continue
             try:
-                if _restore_cards_to_filtered_deck(source_deck_id, card_ids):
+                if _filtered_deck_exists(source_deck_id):
+                    did_restore = _restore_cards_to_filtered_deck(source_deck_id, card_ids)
+                else:
+                    did_restore = _restore_cards_to_recovery_deck(
+                        batch=batch,
+                        source_deck_id=source_deck_id,
+                        card_ids=card_ids,
+                    )
+                if did_restore:
                     restored_any = True
             except Exception:
                 continue

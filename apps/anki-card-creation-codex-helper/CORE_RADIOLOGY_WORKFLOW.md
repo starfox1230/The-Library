@@ -31,7 +31,7 @@ C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-cod
 3. Draft atomic cloze notes using `CARD_STYLE_GUIDE.md`.
 4. Capture the full source page into an `assets\` folder for `Extra` context whenever feasible.
 5. Capture or extract relevant diagnosis images into `assets\` only when a clean image crop can be made without the caption.
-6. Build `notes.json` and `manifest.json` targeting the `Saved Cards` deck and `saCloze+`.
+6. Build `notes.json` and `manifest.json` targeting the `Saved Cards` deck and the user's existing `saCloze++` note type exactly.
 7. Build a downloadable `.apkg` using `APKG_PACKAGING.md`.
 8. Report the APKG path, note count, source section, and any skipped ambiguous material.
 

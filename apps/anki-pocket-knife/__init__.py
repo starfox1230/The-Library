@@ -1,5 +1,6 @@
 from .auto_scroll import install as install_auto_scroll
 from .ai_tools import install as install_ai_tools
+from .card_safety import install as install_card_safety
 from .card_tracker import install as install_card_tracker
 from .clipboard_json_cards import install as install_clipboard_json_cards
 from .draw_on_image import install as install_draw_on_image
@@ -14,6 +15,7 @@ from .review_image_overlay import install as install_review_image_overlay
 from .return_non_new import install as install_return_non_new
 from .restore_tracker import install as install_restore_tracker
 from .saved_cards_audio import install as install_saved_cards_audio
+from .send_non_new_media import install as install_send_non_new_media
 from .suspended_browser import install as install_suspended_browser
 from .tts_audio import install as install_tts_audio
 from .underline_trailing_spaces import install as install_underline_trailing_spaces
@@ -23,6 +25,7 @@ from .visual_card_multitude import install as install_visual_card_multitude
 
 install_auto_scroll()
 install_ai_tools()
+install_card_safety()
 install_card_tracker()
 install_clipboard_json_cards()
 install_draw_on_image()
@@ -36,6 +39,7 @@ install_review_image_overlay()
 install_return_non_new()
 install_restore_tracker()
 install_saved_cards_audio()
+install_send_non_new_media()
 install_suspended_browser()
 install_tts_audio()
 install_underline_trailing_spaces()

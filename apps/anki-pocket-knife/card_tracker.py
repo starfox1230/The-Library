@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import sys
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,12 +34,15 @@ POS_X_SETTING = "floating_card_tracker_x"
 POS_Y_SETTING = "floating_card_tracker_y"
 WIDTH_SETTING = "floating_card_tracker_width"
 NIGHT_BACKGROUND_SETTING = "floating_card_tracker_night_background"
+FOLLOW_SPEED_STREAK_WINDOW_SETTING = "floating_card_tracker_follow_speed_streak_window"
+ONLY_WHEN_SPEED_STREAK_PAUSED_SETTING = "floating_card_tracker_only_when_speed_streak_paused"
 BASE_WIDTH = 190
 BASE_HEIGHT = 188
 MIN_WIDTH = 155
 MAX_WIDTH = 420
 _HOOK_REGISTERED = False
 _WIDGET: "FloatingCardTracker | None" = None
+_VISIBILITY_TIMER: QTimer | None = None
 
 
 @dataclass(frozen=True)
@@ -73,10 +77,27 @@ def is_floating_card_tracker_enabled() -> bool:
 
 def set_floating_card_tracker_enabled(enabled: bool) -> bool:
     value = bool(set_setting(ENABLED_SETTING, bool(enabled)))
-    if value:
-        ensure_tracker_visible()
-    else:
-        hide_tracker()
+    sync_tracker_visibility()
+    return value
+
+
+def is_tracker_follow_speed_streak_window_enabled() -> bool:
+    return bool(get_setting(FOLLOW_SPEED_STREAK_WINDOW_SETTING))
+
+
+def set_tracker_follow_speed_streak_window_enabled(enabled: bool) -> bool:
+    value = bool(set_setting(FOLLOW_SPEED_STREAK_WINDOW_SETTING, bool(enabled)))
+    sync_tracker_visibility()
+    return value
+
+
+def is_tracker_only_when_speed_streak_paused_enabled() -> bool:
+    return bool(get_setting(ONLY_WHEN_SPEED_STREAK_PAUSED_SETTING))
+
+
+def set_tracker_only_when_speed_streak_paused_enabled(enabled: bool) -> bool:
+    value = bool(set_setting(ONLY_WHEN_SPEED_STREAK_PAUSED_SETTING, bool(enabled)))
+    sync_tracker_visibility()
     return value
 
 
@@ -89,6 +110,60 @@ def set_tracker_night_background_enabled(enabled: bool) -> bool:
     if _WIDGET is not None:
         _WIDGET.apply_visual_style()
     return value
+
+
+def _find_speed_streak_controller() -> Any | None:
+    for module_name, module in list(sys.modules.items()):
+        if not module_name or not module_name.endswith("reviewer_overlay"):
+            continue
+        if module is None:
+            continue
+        package_name = str(getattr(module, "ADDON_PACKAGE", "") or "")
+        display_name = str(getattr(module, "ADDON_DISPLAY_NAME", "") or "")
+        haystack = f"{module_name} {package_name} {display_name}".casefold()
+        if "speed_streak" not in haystack and "speed streak" not in haystack:
+            continue
+        controller = getattr(module, "controller", None)
+        if controller is not None:
+            return controller
+    return None
+
+
+def _speed_streak_external_window_visible() -> bool:
+    controller = _find_speed_streak_controller()
+    if controller is None:
+        return False
+    window = getattr(controller, "_floating_window", None)
+    if window is None:
+        return False
+    is_visible = getattr(window, "isVisible", None)
+    try:
+        return bool(is_visible()) if callable(is_visible) else bool(window)
+    except Exception:
+        return False
+
+
+def _speed_streak_paused() -> bool:
+    controller = _find_speed_streak_controller()
+    if controller is None:
+        return False
+    state = getattr(getattr(controller, "engine", None), "state", None)
+    if state is None:
+        return False
+    try:
+        return bool(getattr(state, "paused", False))
+    except Exception:
+        return False
+
+
+def _tracker_should_be_visible() -> bool:
+    if not is_floating_card_tracker_enabled():
+        return False
+    if is_tracker_follow_speed_streak_window_enabled() and not _speed_streak_external_window_visible():
+        return False
+    if is_tracker_only_when_speed_streak_paused_enabled() and not _speed_streak_paused():
+        return False
+    return True
 
 
 def tracker_start_ms() -> int:
@@ -108,6 +183,85 @@ def set_tracker_start_ms(value: int) -> int:
 
 def reset_tracker_from_now() -> None:
     set_tracker_start_ms(int(time.time() * 1000))
+
+
+def _available_screen_geometry() -> Any | None:
+    try:
+        screen = mw.screen()
+    except Exception:
+        screen = None
+    if screen is None and _WIDGET is not None:
+        try:
+            screen = _WIDGET.screen()
+        except Exception:
+            screen = None
+    if screen is None:
+        return None
+    available = getattr(screen, "availableGeometry", None)
+    if not callable(available):
+        return None
+    try:
+        return available()
+    except Exception:
+        return None
+
+
+def _default_tracker_position(width: int, height: int) -> tuple[int, int]:
+    try:
+        main_geometry = mw.frameGeometry()
+    except Exception:
+        main_geometry = None
+    if main_geometry is not None:
+        x = int(main_geometry.x()) + 24
+        y = int(main_geometry.y()) + 90
+    else:
+        x, y = 80, 120
+
+    available = _available_screen_geometry()
+    if available is None:
+        return x, y
+    max_x = int(available.right()) - int(width) + 1
+    max_y = int(available.bottom()) - int(height) + 1
+    return (
+        max(int(available.left()), min(max_x, x)),
+        max(int(available.top()), min(max_y, y)),
+    )
+
+
+def _position_is_on_available_screen(x: int, y: int, width: int, height: int) -> bool:
+    available = _available_screen_geometry()
+    if available is None:
+        return True
+    visible_width = min(int(x) + int(width), int(available.right()) + 1) - max(int(x), int(available.left()))
+    visible_height = min(int(y) + int(height), int(available.bottom()) + 1) - max(int(y), int(available.top()))
+    return visible_width >= min(48, int(width)) and visible_height >= min(48, int(height))
+
+
+def _clamped_tracker_position(x: int, y: int, width: int, height: int) -> tuple[int, int]:
+    available = _available_screen_geometry()
+    if available is None:
+        return int(x), int(y)
+    max_x = int(available.right()) - int(width) + 1
+    max_y = int(available.bottom()) - int(height) + 1
+    if max_x < int(available.left()) or max_y < int(available.top()):
+        return _default_tracker_position(width, height)
+    return (
+        max(int(available.left()), min(max_x, int(x))),
+        max(int(available.top()), min(max_y, int(y))),
+    )
+
+
+def reset_tracker_position() -> None:
+    width = int(get_setting(WIDTH_SETTING) or BASE_WIDTH)
+    height = int(round(width * BASE_HEIGHT / BASE_WIDTH))
+    x, y = _default_tracker_position(width, height)
+    set_setting(POS_X_SETTING, int(x))
+    set_setting(POS_Y_SETTING, int(y))
+    if _WIDGET is not None:
+        _WIDGET.move(int(x), int(y))
+        if _tracker_should_be_visible():
+            _WIDGET.show()
+            _WIDGET.raise_()
 
 
 def _qt_window_type(name: str, fallback: Any = None) -> Any:
@@ -527,9 +681,15 @@ class FloatingCardTracker(QWidget):
         set_setting(POS_Y_SETTING, int(self.y()))
 
     def contextMenuEvent(self, event) -> None:
-        menu = QMenu(self)
+        menu = QMenu(None)
+        menu.setWindowFlags(
+            menu.windowFlags()
+            | _qt_window_type("Tool")
+            | _qt_window_type("WindowStaysOnTopHint")
+        )
         reset_action = QAction("Reset From Now", self)
         edit_action = QAction("Edit Start Time...", self)
+        reset_position_action = QAction("Reset Position To This Screen", self)
         resize_action = QAction("Resize", self)
         resize_action.setCheckable(True)
         resize_action.setChecked(self._resize_mode)
@@ -540,18 +700,31 @@ class FloatingCardTracker(QWidget):
         hide_action = QAction("Hide Tracker", self)
         reset_action.triggered.connect(reset_tracker_from_now)
         edit_action.triggered.connect(lambda *_args: open_tracker_start_dialog(self))
+        reset_position_action.triggered.connect(reset_tracker_position)
         resize_action.triggered.connect(lambda checked: self.set_resize_mode(bool(checked)))
         night_action.triggered.connect(lambda checked: set_tracker_night_background_enabled(bool(checked)))
         refresh_action.triggered.connect(self.refresh)
         hide_action.triggered.connect(lambda *_args: set_floating_card_tracker_enabled(False))
         menu.addAction(reset_action)
         menu.addAction(edit_action)
+        menu.addAction(reset_position_action)
         menu.addAction(resize_action)
         menu.addAction(night_action)
         menu.addAction(refresh_action)
         menu.addSeparator()
         menu.addAction(hide_action)
-        menu.exec(QCursor.pos())
+        menu.aboutToShow.connect(menu.raise_)
+        was_visible = self.isVisible()
+        self.setWindowFlag(_qt_window_type("WindowStaysOnTopHint"), False)
+        if was_visible:
+            self.show()
+        try:
+            menu.exec(QCursor.pos())
+        finally:
+            self._apply_window_flags()
+            if was_visible and _tracker_should_be_visible():
+                self.show()
+                self.raise_()
 
     def mousePressEvent(self, event) -> None:
         if event.button() == _qt_mouse_button("LeftButton", None):
@@ -585,11 +758,26 @@ def open_tracker_start_dialog(parent: QWidget | None = None) -> None:
 
 def ensure_tracker_visible() -> None:
     global _WIDGET
-    if not is_floating_card_tracker_enabled():
+    if not _tracker_should_be_visible():
+        hide_tracker()
         return
     if _WIDGET is None:
         _WIDGET = FloatingCardTracker()
-        _WIDGET.move(int(get_setting(POS_X_SETTING) or 80), int(get_setting(POS_Y_SETTING) or 120))
+        x = int(get_setting(POS_X_SETTING) or 80)
+        y = int(get_setting(POS_Y_SETTING) or 120)
+        if not _position_is_on_available_screen(x, y, _WIDGET.width(), _WIDGET.height()):
+            x, y = _default_tracker_position(_WIDGET.width(), _WIDGET.height())
+            set_setting(POS_X_SETTING, int(x))
+            set_setting(POS_Y_SETTING, int(y))
+        else:
+            x, y = _clamped_tracker_position(x, y, _WIDGET.width(), _WIDGET.height())
+        _WIDGET.move(int(x), int(y))
+    else:
+        x, y = _clamped_tracker_position(_WIDGET.x(), _WIDGET.y(), _WIDGET.width(), _WIDGET.height())
+        if x != _WIDGET.x() or y != _WIDGET.y():
+            _WIDGET.move(int(x), int(y))
+            set_setting(POS_X_SETTING, int(x))
+            set_setting(POS_Y_SETTING, int(y))
     _WIDGET.refresh()
     _WIDGET.show()
     _WIDGET.raise_()
@@ -600,6 +788,13 @@ def hide_tracker() -> None:
         _WIDGET.hide()
 
 
+def sync_tracker_visibility() -> None:
+    if _tracker_should_be_visible():
+        ensure_tracker_visible()
+    else:
+        hide_tracker()
+
+
 def refresh_tracker() -> None:
     if _WIDGET is not None:
         _WIDGET.refresh()
@@ -607,8 +802,10 @@ def refresh_tracker() -> None:
 
 def _refresh_tracker_soon(*_args: Any) -> None:
     refresh_tracker()
+    sync_tracker_visibility()
     if mw is not None:
         QTimer.singleShot(250, refresh_tracker)
+        QTimer.singleShot(250, sync_tracker_visibility)
 
 
 def _on_reviewer_did_answer_card(_reviewer: Any, _card: Any, _ease: int) -> None:
@@ -625,8 +822,14 @@ def _on_operation_did_execute(changes: Any, _handler: object | None) -> None:
 
 
 def _on_main_window_did_init() -> None:
+    global _VISIBILITY_TIMER
     tracker_start_ms()
-    ensure_tracker_visible()
+    sync_tracker_visibility()
+    if _VISIBILITY_TIMER is None:
+        _VISIBILITY_TIMER = QTimer(mw)
+        _VISIBILITY_TIMER.setInterval(750)
+        _VISIBILITY_TIMER.timeout.connect(sync_tracker_visibility)
+        _VISIBILITY_TIMER.start()
 
 
 def install() -> None:

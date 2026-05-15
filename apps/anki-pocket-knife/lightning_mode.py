@@ -12,6 +12,7 @@ from aqt.qt import QAction, QMenu, QTimer
 from aqt.utils import showInfo, showWarning
 
 from .common import card_id_search, create_or_update_filtered_deck, get_card, rebuild_filtered_deck
+from .card_safety import log_card_safety_event
 from .settings import get_setting, set_setting
 
 
@@ -21,6 +22,7 @@ LIGHTNING_MODE_CARD_LIMIT_SETTING = "lightning_mode_card_limit"
 LIGHTNING_MODE_QUESTION_SECONDS_SETTING = "lightning_mode_question_seconds"
 LIGHTNING_MODE_ANSWER_SECONDS_SETTING = "lightning_mode_answer_seconds"
 FILTERED_LIGHTNING_SESSIONS_CONFIG_KEY = "anki_pocket_knife_lightning_sessions"
+RECOVERED_LIGHTNING_DECK_NAME_PREFIX = "Recovered Lightning Cards "
 QUESTION_ACTION_SHOW_ANSWER = 0
 ANSWER_ACTION_BURY_CARD = 0
 LIGHTNING_MODE_PAUSE_SHORTCUT = "P"
@@ -282,6 +284,12 @@ def _remove_cards_from_filtered_decks(card_ids: list[int]) -> list[int]:
     if not filtered_ids:
         return []
 
+    log_card_safety_event(
+        "lightning_remove_from_filtered_decks_before",
+        card_ids=filtered_ids,
+        details={"reason": "prepare selected filtered-deck cards for Lightning Mode"},
+    )
+
     scheduler = mw.col.sched
     method_attempts = [
         ("remove_from_filtered_deck", ((filtered_ids,), {})),
@@ -295,6 +303,11 @@ def _remove_cards_from_filtered_decks(card_ids: list[int]) -> list[int]:
             continue
         try:
             method(*args, **kwargs)
+            log_card_safety_event(
+                "lightning_remove_from_filtered_decks_after",
+                card_ids=filtered_ids,
+                details={"method": method_name},
+            )
             return filtered_ids
         except TypeError:
             continue
@@ -319,6 +332,11 @@ def _remove_cards_from_filtered_decks(card_ids: list[int]) -> list[int]:
             int(usn_value),
             *chunk,
         )
+    log_card_safety_event(
+        "lightning_remove_from_filtered_decks_after",
+        card_ids=filtered_ids,
+        details={"method": "manual_sql_restore_home"},
+    )
     return filtered_ids
 
 
@@ -648,6 +666,69 @@ def _source_filtered_deck_for_session(session: dict[str, Any]) -> dict[str, Any]
     )
 
 
+def _safe_recovery_filtered_deck_name(session: dict[str, Any]) -> str:
+    source_name = str(session.get("source_filtered_deck_name", "") or "").strip()
+    if source_name:
+        return source_name
+    created_at = str(session.get("created_at", "") or "").strip()
+    date_part = created_at[:10] if len(created_at) >= 10 else datetime.now().strftime("%Y-%m-%d")
+    return f"{RECOVERED_LIGHTNING_DECK_NAME_PREFIX}{date_part}"
+
+
+def _create_recovery_filtered_deck_for_session(
+    session: dict[str, Any],
+    *,
+    card_ids: list[int],
+) -> dict[str, Any] | None:
+    restore_ids = _clean_card_ids(card_ids)
+    if not restore_ids:
+        return None
+
+    base_name = _safe_recovery_filtered_deck_name(session)
+    candidate_names = [
+        base_name,
+        f"{base_name}::Recovered Lightning Cards",
+        datetime.now().strftime(f"{RECOVERED_LIGHTNING_DECK_NAME_PREFIX}%Y-%m-%d %H-%M-%S"),
+    ]
+    search = card_id_search(restore_ids, exclude_suspended=False)
+    last_error: Exception | None = None
+    for candidate_name in candidate_names:
+        try:
+            deck_id = create_or_update_filtered_deck(
+                candidate_name,
+                search=search,
+                limit=len(restore_ids),
+                resched=False,
+            )
+            deck = _deck_for_id(int(deck_id))
+            if deck and deck.get("dyn"):
+                log_card_safety_event(
+                    "lightning_recreated_missing_source_filtered_deck",
+                    card_ids=restore_ids,
+                    deck_id=int(deck_id),
+                    deck_name=str(deck.get("name", candidate_name)),
+                    details={
+                        "original_source_deck_id": int(session.get("source_filtered_deck_id", 0) or 0),
+                        "original_source_deck_name": str(session.get("source_filtered_deck_name", "") or ""),
+                    },
+                )
+                return deck
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    log_card_safety_event(
+        "lightning_recreate_missing_source_filtered_deck_failed",
+        card_ids=restore_ids,
+        details={
+            "source_deck_id": int(session.get("source_filtered_deck_id", 0) or 0),
+            "source_deck_name": str(session.get("source_filtered_deck_name", "") or ""),
+            "error": str(last_error) if last_error else "",
+        },
+    )
+    return None
+
+
 def _upsert_filtered_lightning_session(session: dict[str, Any]) -> None:
     normalized_session = _normalize_lightning_session(session)
     if normalized_session is None:
@@ -775,6 +856,13 @@ def _move_cards_to_filtered_deck_preserving_schedule(
     if int(deck_id) <= 0 or not unique_ids:
         return 0
 
+    log_card_safety_event(
+        "lightning_move_to_filtered_deck_before",
+        card_ids=unique_ids,
+        deck_id=int(deck_id),
+        details={"target_deck_id": int(deck_id)},
+    )
+
     moved_count = 0
     mod_value = int(time.time())
     usn_value = _usn_value()
@@ -822,6 +910,12 @@ def _move_cards_to_filtered_deck_preserving_schedule(
         )
         moved_count += before_count
 
+    log_card_safety_event(
+        "lightning_move_to_filtered_deck_after",
+        card_ids=unique_ids,
+        deck_id=int(deck_id),
+        details={"target_deck_id": int(deck_id), "moved_count": int(moved_count)},
+    )
     return moved_count
 
 
@@ -877,7 +971,15 @@ def _rebury_card_ids(*, user_buried_ids: list[int], sched_buried_ids: list[int])
 
 
 def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
+    leftover_ids = _clean_card_ids(session.get("leftover_source_card_ids"))
+    pending_ids = _clean_card_ids(session.get("pending_lightning_card_ids"))
+    restore_ids = _clean_card_ids(leftover_ids + pending_ids)
+    if not restore_ids:
+        return True
+
     source_deck = _source_filtered_deck_for_session(session)
+    if not source_deck:
+        source_deck = _create_recovery_filtered_deck_for_session(session, card_ids=restore_ids)
     if not source_deck:
         return False
 
@@ -885,15 +987,30 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
     if source_deck_id <= 0:
         return False
 
-    leftover_ids = _clean_card_ids(session.get("leftover_source_card_ids"))
-    pending_ids = _clean_card_ids(session.get("pending_lightning_card_ids"))
-    restore_ids = _clean_card_ids(leftover_ids + pending_ids)
+    log_card_safety_event(
+        "lightning_restore_session_start",
+        card_ids=restore_ids,
+        deck_id=int(source_deck_id),
+        deck_name=str(source_deck.get("name", "")),
+        details={
+            "leftover_source_card_ids": leftover_ids,
+            "pending_lightning_card_ids": pending_ids,
+            "target_deck_id": int(session.get("target_deck_id", 0) or 0),
+            "target_deck_name": str(session.get("target_deck_name", "") or ""),
+        },
+    )
     user_buried_ids, sched_buried_ids = _buried_card_ids_by_type(restore_ids)
     buried_restore_ids = _clean_card_ids(user_buried_ids + sched_buried_ids)
     unburied_for_restore = False
 
     if buried_restore_ids:
         if not _unbury_card_ids(buried_restore_ids):
+            log_card_safety_event(
+                "lightning_restore_session_failed",
+                card_ids=restore_ids,
+                deck_id=int(source_deck_id),
+                details={"reason": "could_not_unbury_for_restore"},
+            )
             return False
         unburied_for_restore = True
 
@@ -909,6 +1026,12 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
                 user_buried_ids=user_buried_ids,
                 sched_buried_ids=sched_buried_ids,
             )
+        log_card_safety_event(
+            "lightning_restore_session_failed",
+            card_ids=restore_ids,
+            deck_id=int(source_deck_id),
+            details={"reason": "move_to_filtered_deck_failed"},
+        )
         return False
 
     if restored and unburied_for_restore:
@@ -916,8 +1039,21 @@ def _restore_filtered_lightning_session(session: dict[str, Any]) -> bool:
             user_buried_ids=user_buried_ids,
             sched_buried_ids=sched_buried_ids,
         ):
+            log_card_safety_event(
+                "lightning_restore_session_failed",
+                card_ids=restore_ids,
+                deck_id=int(source_deck_id),
+                details={"reason": "could_not_rebury_after_restore"},
+            )
             return False
 
+    log_card_safety_event(
+        "lightning_restore_session_complete",
+        card_ids=restore_ids,
+        deck_id=int(source_deck_id),
+        deck_name=str(source_deck.get("name", "")),
+        details={"restored": bool(restored)},
+    )
     return bool(restored)
 
 
@@ -937,11 +1073,6 @@ def check_pending_filtered_lightning_sessions() -> None:
             if updated_session != session:
                 changed = True
             remaining_sessions.append(updated_session)
-            continue
-
-        source_deck = _source_filtered_deck_for_session(session)
-        if source_deck is None:
-            changed = True
             continue
 
         if _restore_filtered_lightning_session(session):

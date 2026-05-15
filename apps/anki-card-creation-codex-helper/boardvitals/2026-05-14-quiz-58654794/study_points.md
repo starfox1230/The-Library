@@ -1,0 +1,72 @@
+# BoardVitals Quiz 58654794 Key Testable Points
+
+## Missed Questions
+- Q1: Prior iodinated contrast reaction increases risk of a subsequent allergic-like contrast reaction by about {{c1::five-fold}}. Misconception card: Low-osmolality iodinated contrast has osmolality about {{c1::twice}} human serum; iso-osmolar contrast is approximately equal to serum. Correct answer: Having a contrast reaction is associated with a five-times increased risk of subsequent reaction.
+- Q2: A cortisol-secreting adrenal adenoma suppresses {{c1::ACTH}}, which can cause contralateral adrenal {{c2::atrophy}}. Misconception card: An adrenal nodule with low ACTH and contralateral adrenal atrophy most strongly indicates excess {{c1::cortisol}}, not catecholamine or aldosterone. Correct answer: Cortisol.
+- Q4: Catheter angiography can detect GI bleeding at about {{c1::0.5 to 1 mL/min}}. Misconception card: Tagged RBC scintigraphy detects slower GI bleeding than catheter angiography, down to about {{c1::0.05 to 0.1 mL/min}}. Correct answer: 0.5 mL/min.
+- Q5: Decreasing kVp lowers the x-ray beam's {{c1::maximum energy}} and average energy. Misconception card: Changing mAs changes x-ray beam {{c1::quantity/output}}, not maximum photon energy. Correct answer: This is a result of decreased kVp..
+- Q6: Kienbock disease is osteonecrosis of the {{c1::lunate}} and is associated with {{c2::negative ulnar variance}}. Misconception card: Positive ulnar variance predisposes to {{c1::ulnar impaction}}, while negative ulnar variance predisposes to Kienbock disease. Correct answer: Negative ulnar variance.
+- Q9: A parallel lead bar phantom is used {{c1::weekly}} to check gamma camera linearity and spatial resolution. Misconception card: Gamma camera linearity and spatial resolution with a parallel lead bar phantom are checked {{c1::weekly}}, not daily. Correct answer: Weekly.
+- Q14: Traumatic hepatic arterial extravasation or pseudoaneurysm is treated with {{c1::angiographic embolization}}. Misconception card: In hemodynamically stable penetrating liver trauma with arterial extravasation, the next step is {{c1::embolization}}, not observation alone. Correct answer: Coil embolization of the right hepatic artery branch..
+- Q15: Crossed fused renal ectopia predisposes to {{c1::UTI, stones, and reflux}} and can be associated with VACTERL. Misconception card: Crossed fused renal ectopia can occur with {{c1::VACTERL}} and has generally good prognosis. Correct answer: These findings can be part of an association, such as VACTERL.
+- Q19: Organoaxial gastric volvulus rotates the stomach along the {{c1::cardia-to-pylorus long axis}}. Misconception card: Mesenteroaxial gastric volvulus is more common in {{c1::children}}; organoaxial volvulus is more common in adults. Correct answer: Organo-axial volvulus.
+- Q25: Scintillation well counters and thyroid uptake probes are {{c1::scintillation spectrometers}}, not gas-filled detectors. Misconception card: A dose calibrator is a {{c1::gas-filled}} radiation detector used to measure radiopharmaceutical dose before administration. Correct answer: Picture D.
+- Q28: Peripheral part-solid lung adenocarcinoma has both {{c1::ground-glass}} and solid components. Misconception card: Squamous cell lung cancer is classically {{c1::central}} and may cavitate; peripheral part-solid ground-glass lesions suggest adenocarcinoma. Correct answer: Invasive adenocarcinoma.
+- Q30: A 1.5D ultrasound transducer improves {{c1::elevational resolution}} using multiple rows of elements. Misconception card: Ultrasound bandwidth primarily affects {{c1::axial}} resolution, not elevational resolution. Correct answer: 1.5D transducer.
+- Q35: FDG PET is less sensitive for tumors with low FDG uptake, including prostate cancer, RCC, carcinoid, and {{c1::adenocarcinoma in situ}}. Misconception card: Well-differentiated carcinoid and several mucinous/low-grade tumors may have {{c1::low FDG uptake}}. Correct answer: Pulmonary small cell carcinoma.
+- Q37: A hemodynamically stable child with isolated splenic laceration and no active bleeding is managed with {{c1::observation and support}}. Misconception card: Splenic injury with active extravasation, pseudoaneurysm, hilar extension, or instability pushes management toward {{c1::intervention}}. Correct answer: Hemodynamic observation and support and close follow-up.
+- Q39: DNET typically presents in young patients with {{c1::medically refractory epilepsy}}. Misconception card: Ganglioglioma often has calcification or enhancement; DNET is classically {{c1::cortical and nonenhancing}} in a child with refractory epilepsy. Correct answer: Dysembroplastic neuroepithelial tumor (DNET).
+- Q43: Discoid menisci are much more common {{c1::laterally}} and are prone to horizontal cleavage tears. Misconception card: The medial meniscus is normally triangular; a {{c1::discoid lateral meniscus}} is enlarged and extends beyond the lateral femoral condyle. Correct answer: There is a discoid lateral meniscus.
+- Q48: Delayed breast cellulitis after surgery/radiation is treated with {{c1::oral antibiotics}} and clinical follow-up when no abscess is present. Misconception card: Delayed breast cellulitis can complicate {{c1::radiation or recent breast surgery}} and may have negative cultures. Correct answer: Delayed breast cellulitis.
+
+## All Key Facts
+- Q1: Prior iodinated contrast reaction increases risk of a subsequent allergic-like contrast reaction by about {{c1::five-fold}}.
+- Q2: A cortisol-secreting adrenal adenoma suppresses {{c1::ACTH}}, which can cause contralateral adrenal {{c2::atrophy}}.
+- Q3: Twinkle artifact on color Doppler is sensitive for small {{c1::stones}}.
+- Q4: Catheter angiography can detect GI bleeding at about {{c1::0.5 to 1 mL/min}}.
+- Q5: Decreasing kVp lowers the x-ray beam's {{c1::maximum energy}} and average energy.
+- Q6: Kienbock disease is osteonecrosis of the {{c1::lunate}} and is associated with {{c2::negative ulnar variance}}.
+- Q7: Just culture balances no-blame safety reporting with {{c1::accountability}} for reckless behavior.
+- Q8: A classic breast hamartoma needs {{c1::no further work-up}} when imaging is diagnostic.
+- Q9: A parallel lead bar phantom is used {{c1::weekly}} to check gamma camera linearity and spatial resolution.
+- Q10: Gardner syndrome is a variant of {{c1::familial adenomatous polyposis}} with osteomas, desmoids, and near-certain colorectal cancer risk.
+- Q11: Retroperitoneal fibrosis forms periaortic soft tissue that typically {{c1::does not elevate vessels from the spine}}, unlike many malignant causes.
+- Q12: A cirrhotic liver with a suspicious mass should be worked up for {{c1::hepatocellular carcinoma}}.
+- Q13: A hyperechoic breast mass that correlates with a fat-containing mammographic mass is diagnostic for benign {{c1::lipoma}}.
+- Q14: Traumatic hepatic arterial extravasation or pseudoaneurysm is treated with {{c1::angiographic embolization}}.
+- Q15: Crossed fused renal ectopia predisposes to {{c1::UTI, stones, and reflux}} and can be associated with VACTERL.
+- Q16: The key MRI discriminator of posterior fossa arachnoid cyst from mega cisterna magna is lack of {{c1::communication with the subarachnoid space}}.
+- Q17: A pediatric metaphyseal bone lesion with aggressive periosteal reaction, bone destruction, and soft-tissue mass suggests {{c1::osteosarcoma}}.
+- Q18: Hooked osteophytes at the second and third MCPs with cardiomyopathy should suggest {{c1::hemochromatosis arthropathy}}.
+- Q19: Organoaxial gastric volvulus rotates the stomach along the {{c1::cardia-to-pylorus long axis}}.
+- Q20: Rectal cancer invading adjacent organs such as prostate or seminal vesicles is T stage {{c1::T4}}.
+- Q21: The Mullerian duct anomaly most commonly associated with recurrent miscarriage is {{c1::septate uterus}}.
+- Q22: Rod-like breast calcifications are associated with {{c1::ductal ectasia}}.
+- Q23: In children, vertebra plana is most commonly caused by {{c1::eosinophilic granuloma}}.
+- Q24: DISH requires flowing bulky anterolateral ossification across at least {{c1::four}} vertebral levels with preserved disc spaces.
+- Q25: Scintillation well counters and thyroid uptake probes are {{c1::scintillation spectrometers}}, not gas-filled detectors.
+- Q26: Adult ileocecal intussusception often has a lead point; a fatty lead point suggests {{c1::lipoma}}.
+- Q27: Mural thrombus in an abdominal aortic aneurysm can mimic debris, but Doppler confirms the lesion is {{c1::vascular}}.
+- Q28: Peripheral part-solid lung adenocarcinoma has both {{c1::ground-glass}} and solid components.
+- Q29: Rhombencephalosynapsis is congenital lack of division of the {{c1::cerebellar hemispheres}}.
+- Q30: A 1.5D ultrasound transducer improves {{c1::elevational resolution}} using multiple rows of elements.
+- Q31: A missed stress fracture on radiograph is primarily an error of {{c1::detection or visual perception}}.
+- Q32: A vascular exophytic renal mass in an older patient with hematuria is concerning for {{c1::renal cell carcinoma}} and needs CT.
+- Q33: On Tc-99m-tagged RBC scan, extravascular tracer accumulating in the descending colon indicates active {{c1::lower GI bleeding}}.
+- Q34: Sacrococcygeal teratoma is the most common {{c1::extragonadal tumor}} in neonates.
+- Q35: FDG PET is less sensitive for tumors with low FDG uptake, including prostate cancer, RCC, carcinoid, and {{c1::adenocarcinoma in situ}}.
+- Q36: Brain death scans generally use Tc-DTPA, Tc-HMPAO, or Tc-ECD; {{c1::Tc-99m sestamibi}} is least appropriate.
+- Q37: A hemodynamically stable child with isolated splenic laceration and no active bleeding is managed with {{c1::observation and support}}.
+- Q38: Coccidioidomycosis CNS infection is treated with {{c1::amphotericin B}}.
+- Q39: DNET typically presents in young patients with {{c1::medically refractory epilepsy}}.
+- Q40: T2 shading in endometriomas is due to concentrated {{c1::protein and iron}} from recurrent hemorrhage.
+- Q41: Diffuse gastric and renal uptake on bone scan from metastatic calcification is associated with {{c1::hypercalcemia}}.
+- Q42: The BI-RADS calcification distribution with highest malignancy probability is {{c1::segmental}}.
+- Q43: Discoid menisci are much more common {{c1::laterally}} and are prone to horizontal cleavage tears.
+- Q44: Milk of calcium cysts contain dependent {{c1::calcium-rich sediment}} and can mimic stones.
+- Q45: Tc-99m RBC bleeding scan detects bleeding at about {{c1::0.05 to 0.1 mL/min}}.
+- Q46: Suspected neonatal adrenal hemorrhage is initially managed with {{c1::follow-up ultrasound in about 4 weeks}} to document evolution/resolution.
+- Q47: Radiology-pathology discordance means the imaging suspicion and pathology result {{c1::do not agree}}.
+- Q48: Delayed breast cellulitis after surgery/radiation is treated with {{c1::oral antibiotics}} and clinical follow-up when no abscess is present.
+- Q49: Microvascular obstruction on cardiac MRI supports {{c1::acute}} myocardial infarction.
+- Q50: Prompt turnaround time reflects the professional responsibility to improve {{c1::quality of care}} through collaboration.

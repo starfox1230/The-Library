@@ -37,6 +37,8 @@ DEFAULT_SETTINGS = {
     "floating_card_tracker_y": 120,
     "floating_card_tracker_width": 190,
     "floating_card_tracker_night_background": False,
+    "floating_card_tracker_follow_speed_streak_window": False,
+    "floating_card_tracker_only_when_speed_streak_paused": False,
 }
 
 

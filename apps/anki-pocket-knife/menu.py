@@ -26,9 +26,17 @@ from .auto_scroll import is_auto_scroll_enabled, set_auto_scroll_enabled
 from .card_tracker import (
     ensure_tracker_visible,
     is_floating_card_tracker_enabled,
+    is_tracker_follow_speed_streak_window_enabled,
+    is_tracker_only_when_speed_streak_paused_enabled,
     open_tracker_start_dialog,
+    reset_tracker_position,
     reset_tracker_from_now,
     set_floating_card_tracker_enabled,
+    set_tracker_follow_speed_streak_window_enabled,
+    set_tracker_only_when_speed_streak_paused_enabled,
+)
+from .card_safety import (
+    open_card_safety_log_dialog,
 )
 from .clipboard_json_cards import (
     ACTION_LABEL as CLIPBOARD_JSON_ACTION_LABEL,
@@ -122,6 +130,8 @@ _visual_card_multitude_action: QAction | None = None
 _visual_card_multitude_auto_visual_deck_action: QAction | None = None
 _ai_tools_action: QAction | None = None
 _floating_card_tracker_action: QAction | None = None
+_tracker_follow_speed_streak_action: QAction | None = None
+_tracker_only_paused_action: QAction | None = None
 
 
 def _shortcut_taken(shortcut_text: str) -> bool:
@@ -372,6 +382,17 @@ class PocketKnifeLauncherDialog(QDialog):
         filtered_cleanup_layout.addWidget(self.return_non_new_button)
         layout.addWidget(filtered_cleanup_box)
 
+        card_safety_box = QGroupBox("Card Safety")
+        card_safety_layout = QVBoxLayout(card_safety_box)
+        card_safety_copy = QLabel(
+            "Keep a Pocket Knife log of high-risk filtered-deck card moves, restore attempts, and recovery-deck events."
+        )
+        card_safety_copy.setWordWrap(True)
+        card_safety_layout.addWidget(card_safety_copy)
+        self.card_safety_log_button = QPushButton("View Card Safety Log")
+        card_safety_layout.addWidget(self.card_safety_log_button)
+        layout.addWidget(card_safety_box)
+
         add_cards_box = QGroupBox("Add Cards")
         add_cards_layout = QVBoxLayout(add_cards_box)
         add_cards_copy = QLabel(
@@ -394,7 +415,7 @@ class PocketKnifeLauncherDialog(QDialog):
         )
         add_cards_layout.addWidget(self.add_cards_sticky_fields_checkbox)
         self.add_cards_auto_deck_checkbox = QCheckBox(
-            "Auto-switch cloze notes between .NEW::Audio and .New::Visual based on Text images"
+            "Auto-switch cloze notes between .NEW::Audio and .NEW::Visual based on Text images"
         )
         self.add_cards_auto_deck_checkbox.setChecked(is_add_cards_auto_deck_enabled())
         add_cards_layout.addWidget(self.add_cards_auto_deck_checkbox)
@@ -418,7 +439,7 @@ class PocketKnifeLauncherDialog(QDialog):
         )
         add_cards_layout.addWidget(self.add_cards_tab_cycles_clozes_checkbox)
         self.visual_card_multitude_auto_visual_deck_checkbox = QCheckBox(
-            "Auto-switch Visual_Card_Multitude notes to .New::Visual"
+            "Auto-switch Visual_Card_Multitude notes to .NEW::Visual"
         )
         self.visual_card_multitude_auto_visual_deck_checkbox.setChecked(
             is_visual_card_multitude_auto_visual_deck_enabled()
@@ -477,10 +498,26 @@ class PocketKnifeLauncherDialog(QDialog):
         self.floating_card_tracker_checkbox = QCheckBox("Show floating card tracker")
         self.floating_card_tracker_checkbox.setChecked(is_floating_card_tracker_enabled())
         review_layout.addWidget(self.floating_card_tracker_checkbox)
+        self.tracker_follow_speed_streak_checkbox = QCheckBox(
+            "Only show tracker while Speed Streak external window is visible"
+        )
+        self.tracker_follow_speed_streak_checkbox.setChecked(
+            is_tracker_follow_speed_streak_window_enabled()
+        )
+        review_layout.addWidget(self.tracker_follow_speed_streak_checkbox)
+        self.tracker_only_paused_checkbox = QCheckBox(
+            "Only show tracker while Speed Streak is paused"
+        )
+        self.tracker_only_paused_checkbox.setChecked(
+            is_tracker_only_when_speed_streak_paused_enabled()
+        )
+        review_layout.addWidget(self.tracker_only_paused_checkbox)
         card_tracker_row = QHBoxLayout()
         self.card_tracker_reset_button = QPushButton("Reset Tracker From Now")
+        self.card_tracker_position_button = QPushButton("Reset Tracker Position")
         self.card_tracker_edit_button = QPushButton("Edit Tracker Start Time")
         card_tracker_row.addWidget(self.card_tracker_reset_button)
+        card_tracker_row.addWidget(self.card_tracker_position_button)
         card_tracker_row.addWidget(self.card_tracker_edit_button)
         review_layout.addLayout(card_tracker_row)
         layout.addWidget(review_box)
@@ -509,6 +546,7 @@ class PocketKnifeLauncherDialog(QDialog):
         self.recent_leeches_button.clicked.connect(lambda *_args: open_recent_leeches_browser())
         self.suspended_browser_button.clicked.connect(lambda *_args: open_suspended_cards_browser())
         self.return_non_new_button.clicked.connect(lambda *_args: open_return_non_new_dialog())
+        self.card_safety_log_button.clicked.connect(lambda *_args: open_card_safety_log_dialog())
         self.refresh_button.clicked.connect(self.refresh_missed_today_summary)
         self.lightning_card_limit_spin.valueChanged.connect(self._set_lightning_card_limit)
         self.lightning_question_seconds_spin.valueChanged.connect(self._set_lightning_question_seconds)
@@ -545,7 +583,14 @@ class PocketKnifeLauncherDialog(QDialog):
         self.floating_card_tracker_checkbox.toggled.connect(
             self._set_floating_card_tracker_enabled
         )
+        self.tracker_follow_speed_streak_checkbox.toggled.connect(
+            self._set_tracker_follow_speed_streak_enabled
+        )
+        self.tracker_only_paused_checkbox.toggled.connect(
+            self._set_tracker_only_paused_enabled
+        )
         self.card_tracker_reset_button.clicked.connect(lambda *_args: reset_tracker_from_now())
+        self.card_tracker_position_button.clicked.connect(lambda *_args: reset_tracker_position())
         self.card_tracker_edit_button.clicked.connect(lambda *_args: open_tracker_start_dialog(self))
         self.close_button.clicked.connect(self.close)
 
@@ -591,6 +636,18 @@ class PocketKnifeLauncherDialog(QDialog):
             self.floating_card_tracker_checkbox.blockSignals(True)
             self.floating_card_tracker_checkbox.setChecked(is_floating_card_tracker_enabled())
             self.floating_card_tracker_checkbox.blockSignals(False)
+        if hasattr(self, "tracker_follow_speed_streak_checkbox"):
+            self.tracker_follow_speed_streak_checkbox.blockSignals(True)
+            self.tracker_follow_speed_streak_checkbox.setChecked(
+                is_tracker_follow_speed_streak_window_enabled()
+            )
+            self.tracker_follow_speed_streak_checkbox.blockSignals(False)
+        if hasattr(self, "tracker_only_paused_checkbox"):
+            self.tracker_only_paused_checkbox.blockSignals(True)
+            self.tracker_only_paused_checkbox.setChecked(
+                is_tracker_only_when_speed_streak_paused_enabled()
+            )
+            self.tracker_only_paused_checkbox.blockSignals(False)
         if hasattr(self, "disable_f3_checkbox"):
             self.disable_f3_checkbox.blockSignals(True)
             self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
@@ -676,6 +733,14 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_floating_card_tracker_enabled(self, checked: bool) -> None:
         set_floating_card_tracker_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_tracker_follow_speed_streak_enabled(self, checked: bool) -> None:
+        set_tracker_follow_speed_streak_window_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_tracker_only_paused_enabled(self, checked: bool) -> None:
+        set_tracker_only_when_speed_streak_paused_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_disable_f3_enabled(self, checked: bool) -> None:
@@ -764,6 +829,8 @@ def sync_settings_ui() -> None:
     global _visual_card_multitude_auto_visual_deck_action
     global _ai_tools_action
     global _floating_card_tracker_action
+    global _tracker_follow_speed_streak_action
+    global _tracker_only_paused_action
 
     auto_scroll_enabled = is_auto_scroll_enabled()
     if _auto_scroll_action is not None:
@@ -867,10 +934,28 @@ def sync_settings_ui() -> None:
         _floating_card_tracker_action.blockSignals(True)
         _floating_card_tracker_action.setChecked(floating_card_tracker_enabled)
         _floating_card_tracker_action.blockSignals(False)
+    tracker_follow_speed_streak_enabled = is_tracker_follow_speed_streak_window_enabled()
+    if _tracker_follow_speed_streak_action is not None:
+        _tracker_follow_speed_streak_action.blockSignals(True)
+        _tracker_follow_speed_streak_action.setChecked(tracker_follow_speed_streak_enabled)
+        _tracker_follow_speed_streak_action.blockSignals(False)
+    tracker_only_paused_enabled = is_tracker_only_when_speed_streak_paused_enabled()
+    if _tracker_only_paused_action is not None:
+        _tracker_only_paused_action.blockSignals(True)
+        _tracker_only_paused_action.setChecked(tracker_only_paused_enabled)
+        _tracker_only_paused_action.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "floating_card_tracker_checkbox"):
         _dialog.floating_card_tracker_checkbox.blockSignals(True)
         _dialog.floating_card_tracker_checkbox.setChecked(floating_card_tracker_enabled)
         _dialog.floating_card_tracker_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "tracker_follow_speed_streak_checkbox"):
+        _dialog.tracker_follow_speed_streak_checkbox.blockSignals(True)
+        _dialog.tracker_follow_speed_streak_checkbox.setChecked(tracker_follow_speed_streak_enabled)
+        _dialog.tracker_follow_speed_streak_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "tracker_only_paused_checkbox"):
+        _dialog.tracker_only_paused_checkbox.blockSignals(True)
+        _dialog.tracker_only_paused_checkbox.setChecked(tracker_only_paused_enabled)
+        _dialog.tracker_only_paused_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "recent_leech_banner_checkbox"):
         _dialog.recent_leech_banner_checkbox.blockSignals(True)
         _dialog.recent_leech_banner_checkbox.setChecked(recent_leech_banner_enabled)
@@ -953,6 +1038,16 @@ def _toggle_floating_card_tracker(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_tracker_follow_speed_streak(checked: bool) -> None:
+    set_tracker_follow_speed_streak_window_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_tracker_only_paused(checked: bool) -> None:
+    set_tracker_only_when_speed_streak_paused_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_disable_f3(checked: bool) -> None:
     set_default_f3_shortcut_disabled(bool(checked))
     sync_settings_ui()
@@ -1019,6 +1114,8 @@ def _register_menu() -> None:
     global _visual_card_multitude_action
     global _visual_card_multitude_auto_visual_deck_action
     global _floating_card_tracker_action
+    global _tracker_follow_speed_streak_action
+    global _tracker_only_paused_action
     if getattr(mw, _MENU_REGISTERED_FLAG, False):
         return
 
@@ -1094,6 +1191,10 @@ def _register_menu() -> None:
     return_non_new_action.triggered.connect(lambda *_args: open_return_non_new_dialog())
     pocket_menu.addAction(return_non_new_action)
 
+    card_safety_log_action = QAction("View Card Safety Log", mw)
+    card_safety_log_action.triggered.connect(lambda *_args: open_card_safety_log_dialog())
+    pocket_menu.addAction(card_safety_log_action)
+
     pocket_menu.addSeparator()
 
     _disable_f3_action = QAction("Disable Anki's Default F3 Shortcut", mw)
@@ -1151,7 +1252,7 @@ def _register_menu() -> None:
     pocket_menu.addAction(_visual_card_multitude_action)
 
     _visual_card_multitude_auto_visual_deck_action = QAction(
-        "Auto-Switch Visual_Card_Multitude To .New::Visual",
+        "Auto-Switch Visual_Card_Multitude To .NEW::Visual",
         mw,
     )
     _visual_card_multitude_auto_visual_deck_action.setCheckable(True)
@@ -1217,6 +1318,20 @@ def _register_menu() -> None:
     _floating_card_tracker_action.triggered.connect(_toggle_floating_card_tracker)
     pocket_menu.addAction(_floating_card_tracker_action)
 
+    _tracker_follow_speed_streak_action = QAction(
+        "Tracker Follows Speed Streak External Window", mw
+    )
+    _tracker_follow_speed_streak_action.setCheckable(True)
+    _tracker_follow_speed_streak_action.setChecked(is_tracker_follow_speed_streak_window_enabled())
+    _tracker_follow_speed_streak_action.triggered.connect(_toggle_tracker_follow_speed_streak)
+    pocket_menu.addAction(_tracker_follow_speed_streak_action)
+
+    _tracker_only_paused_action = QAction("Tracker Only While Speed Streak Is Paused", mw)
+    _tracker_only_paused_action.setCheckable(True)
+    _tracker_only_paused_action.setChecked(is_tracker_only_when_speed_streak_paused_enabled())
+    _tracker_only_paused_action.triggered.connect(_toggle_tracker_only_paused)
+    pocket_menu.addAction(_tracker_only_paused_action)
+
     tracker_show_action = QAction("Show Floating Card Tracker Now", mw)
     tracker_show_action.triggered.connect(lambda *_args: ensure_tracker_visible())
     pocket_menu.addAction(tracker_show_action)
@@ -1224,6 +1339,10 @@ def _register_menu() -> None:
     tracker_reset_action = QAction("Reset Floating Card Tracker From Now", mw)
     tracker_reset_action.triggered.connect(lambda *_args: reset_tracker_from_now())
     pocket_menu.addAction(tracker_reset_action)
+
+    tracker_position_action = QAction("Reset Floating Card Tracker Position", mw)
+    tracker_position_action.triggered.connect(lambda *_args: reset_tracker_position())
+    pocket_menu.addAction(tracker_position_action)
 
     tracker_start_action = QAction("Edit Floating Card Tracker Start Time", mw)
     tracker_start_action.triggered.connect(lambda *_args: open_tracker_start_dialog())

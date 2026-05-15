@@ -204,6 +204,40 @@ def test_restore_moves_cards_back_without_rebuilding_or_changing_schedule(monkey
     }
 
 
+def test_restore_recreates_missing_source_filtered_deck(monkeypatch):
+    recovery_deck_id = 123
+    cards = {
+        1: {"type": 0, "queue": 0, "did": 11, "odid": 0, "odue": 0, "due": 100},
+        2: {"type": 0, "queue": 0, "did": 12, "odid": 0, "odue": 0, "due": 101},
+    }
+    module = _load_module(cards)
+    created_with: list[list[int]] = []
+
+    monkeypatch.setattr(module, "_source_filtered_deck_for_session", lambda session: None)
+
+    def fake_create_recovery(session, *, card_ids):
+        created_with.append(list(card_ids))
+        return {"id": recovery_deck_id, "dyn": 1, "name": "Recovered Lightning Cards"}
+
+    monkeypatch.setattr(module, "_create_recovery_filtered_deck_for_session", fake_create_recovery)
+
+    restored = module._restore_filtered_lightning_session(
+        {
+            "leftover_source_card_ids": [1],
+            "pending_lightning_card_ids": [2],
+            "source_filtered_deck_id": 99,
+            "source_filtered_deck_name": "Deleted Saved Cards",
+            "target_deck_id": 77,
+            "target_deck_name": "Lightning mode deleted",
+        }
+    )
+
+    assert restored is True
+    assert created_with == [[1, 2]]
+    assert cards[1]["did"] == recovery_deck_id
+    assert cards[2]["did"] == recovery_deck_id
+
+
 def test_recent_new_candidates_exclude_existing_lightning_decks(monkeypatch):
     cards: dict[int, dict[str, int]] = {}
     module = _load_module(cards)
