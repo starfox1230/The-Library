@@ -67,6 +67,7 @@ function normalizePair(pair) {
     labelB: slugify(pair.labelB),
     displayLabelA: pair.displayLabelA || pair.labelA || "",
     displayLabelB: pair.displayLabelB || pair.labelB || "",
+    includedInGame: pair.includedInGame === true,
     teachingPoint: pair.teachingPoint || "",
     distinguishingCharacteristics: Array.isArray(pair.distinguishingCharacteristics) ? pair.distinguishingCharacteristics : [],
     imagesA: Array.isArray(pair.imagesA) ? pair.imagesA : [],
@@ -123,6 +124,7 @@ async function pairStatus(pair) {
     displayName: `${normalized.displayLabelA} vs ${normalized.displayLabelB}`,
     imageCountA: normalized.imagesA.length,
     imageCountB: normalized.imagesB.length,
+    includedInGame: normalized.includedInGame,
     teachingText: hasTeaching,
     distinguishingCharacteristics: hasCharacteristics,
     audio,
@@ -235,6 +237,7 @@ app.put("/api/pairs/:id/content", async (req, res) => {
   if (!pair) return res.status(404).json({ error: "Pair not found." });
   pair.displayLabelA = req.body.displayLabelA ?? pair.displayLabelA;
   pair.displayLabelB = req.body.displayLabelB ?? pair.displayLabelB;
+  pair.includedInGame = typeof req.body.includedInGame === "boolean" ? req.body.includedInGame : pair.includedInGame;
   pair.teachingPoint = req.body.teachingPoint ?? pair.teachingPoint;
   pair.distinguishingCharacteristics = Array.isArray(req.body.distinguishingCharacteristics) ? req.body.distinguishingCharacteristics : pair.distinguishingCharacteristics;
   await writePairs(pairs);

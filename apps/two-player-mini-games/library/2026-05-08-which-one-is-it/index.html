@@ -315,6 +315,7 @@
     const state = {
       pairs: [],
       playablePairs: [],
+      pairQueue: [],
       current: null,
       lastPairId: null,
       phase: "question",
@@ -330,11 +331,16 @@
     }
 
     function shuffle(list) {
-      return [...list].sort(() => Math.random() - 0.5);
+      const shuffled = [...list];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+      }
+      return shuffled;
     }
 
     function isPlayablePair(pair) {
-      return pair && Array.isArray(pair.imagesA) && Array.isArray(pair.imagesB) && pair.imagesA.length && pair.imagesB.length;
+      return pair && pair.includedInGame === true && Array.isArray(pair.imagesA) && Array.isArray(pair.imagesB) && pair.imagesA.length && pair.imagesB.length;
     }
 
     function normalizePair(pair) {
@@ -342,6 +348,7 @@
         ...pair,
         displayLabelA: pair.displayLabelA || pair.labelA,
         displayLabelB: pair.displayLabelB || pair.labelB,
+        includedInGame: pair.includedInGame === true,
         distinguishingCharacteristics: Array.isArray(pair.distinguishingCharacteristics) ? pair.distinguishingCharacteristics : [],
         audio: pair.audio || {},
       };
@@ -355,6 +362,7 @@
         if (!Array.isArray(raw)) throw new Error("pairs.json must contain a JSON array.");
         state.pairs = raw.map(normalizePair);
         state.playablePairs = state.pairs.filter(isPlayablePair);
+        state.pairQueue = [];
         if (!state.playablePairs.length) throw new Error("No playable pairs found. Each pair needs at least one image on both sides.");
         nextQuestion();
       } catch (error) {
@@ -366,11 +374,27 @@
       return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
     }
 
+    function refillPairQueue() {
+      state.pairQueue = shuffle(state.playablePairs);
+      if (state.pairQueue.length > 1 && state.pairQueue[0].id === state.lastPairId) {
+        const swapIndex = state.pairQueue.findIndex((pair) => pair.id !== state.lastPairId);
+        [state.pairQueue[0], state.pairQueue[swapIndex]] = [state.pairQueue[swapIndex], state.pairQueue[0]];
+      }
+    }
+
+    function takeNextPair() {
+      if (!state.pairQueue.length) refillPairQueue();
+      let pair = state.pairQueue.shift();
+      if (pair && pair.id === state.lastPairId && state.pairQueue.length) {
+        const nextPair = state.pairQueue.shift();
+        state.pairQueue.push(pair);
+        pair = nextPair;
+      }
+      return pair || sample(state.playablePairs);
+    }
+
     function buildQuestion() {
-      const candidates = state.playablePairs.length > 1
-        ? state.playablePairs.filter((pair) => pair.id !== state.lastPairId)
-        : state.playablePairs;
-      const pair = sample(candidates);
+      const pair = takeNextPair();
       const targetKey = Math.random() < 0.5 ? "A" : "B";
       const sideA = {
         key: "A",
