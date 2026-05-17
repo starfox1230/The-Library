@@ -1,0 +1,2554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Radiology Physics Playlist Tracker</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #101823;
+    --card-2: #0e1520;
+    --card-3: #111d2b;
+    --text: #e6f1ff;
+    --muted: #9fb3c8;
+    --accent: #37e3ff;
+    --accent-2: #6df2ff;
+    --danger: #ff6b6b;
+    --warn: #ffe08a;
+    --good: #2fe6a5;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
+
+  header { display: grid; gap: 12px; margin-bottom: 12px; }
+  .titlebar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .titlebar h1 { margin:0; font-size: 20px; letter-spacing:.3px; }
+  .titlebar .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .controls { display:flex; gap:8px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    cursor:pointer;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    -webkit-tap-highlight-color: transparent;
+    font: inherit;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; border-color: rgba(255,255,255,.14); box-shadow: none; }
+  .btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+  .btn.full { width: 100%; justify-content: space-between; }
+  .btn.danger { border-color: rgba(255,107,107,.35); color: #ffd5d5; }
+
+  .progress {
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 12px;
+    background: var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .progress-bar { flex:1; height: 10px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
+  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width .25s ease; }
+  .pct { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 94px; text-align: right; }
+
+  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .nextup .thumb { position: relative; aspect-ratio: 16/9; background: #06111a; overflow: hidden; }
+  .nextup img { width:100%; height:100%; object-fit:cover; display:block; }
+  .chip { display:inline-flex; align-items:center; gap:6px; background: rgba(0,0,0,.48); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
+  .nextup .chip { position:absolute; left:10px; top:10px; }
+  .nextup .duration-chip { position:absolute; right:10px; bottom:10px; }
+  .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .nextup .meta .t { font-size: 18px; font-weight: 700; }
+  .nextup .meta .m { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .sticky-nav { position: sticky; top: 0; z-index: 30; margin: 0 0 12px; padding-top: 6px; }
+  .sticky-nav-inner { padding: 8px 0 4px; background: linear-gradient(180deg, rgba(11,15,20,.96), rgba(11,15,20,.90)); backdrop-filter: blur(10px); }
+  .filters { display: grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin: 10px 0 12px; }
+  .seg { padding: 10px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; }
+  .seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
+
+  .panel[hidden] { display: none !important; }
+  .panel { display: grid; gap: 10px; padding: 10px; margin-top: 8px; background: var(--card); border: 1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .series-actions { display:flex; flex-wrap: wrap; gap:8px; }
+  .series-list { display: grid; gap:8px; }
+  .series-row {
+    display:grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items:center;
+    gap:8px;
+    padding: 10px;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    background: var(--card-2);
+  }
+  .series-row.dragging { opacity: .45; }
+  .series-row.drag-over { border-color: rgba(55,227,255,.65); box-shadow: 0 0 0 2px rgba(55,227,255,.14) inset; }
+  .handle { cursor: grab; color: var(--muted); user-select:none; font-size: 20px; line-height: 1; padding: 4px 6px; }
+  .series-title { font-weight: 700; }
+  .series-meta { color: var(--muted); font-size: 13px; }
+  .series-row input { width:18px; height:18px; accent-color: var(--accent); }
+  .movebtns { display:flex; gap:4px; }
+  .mini { background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.10); border-radius: 9px; min-width: 30px; height: 30px; cursor:pointer; }
+
+  .list { display: grid; gap:10px; }
+  .row {
+    display: grid;
+    grid-template-columns: clamp(110px, 18vw, 160px) 1fr;
+    grid-template-areas: "thumb main" "actions actions";
+    gap:12px;
+    align-items: stretch;
+    padding: 10px;
+    background: var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+  }
+  .thumb-sm { grid-area: thumb; border-radius: 10px; overflow: hidden; background: #06111a; aspect-ratio: 16/9; align-self: start; cursor: pointer; position:relative; }
+  .thumb-sm img { width:100%; height:100%; object-fit: cover; display:block; }
+  .thumb-sm .time { position:absolute; right:6px; bottom:6px; background: rgba(0,0,0,.72); color:#fff; border-radius:6px; padding:2px 5px; font-size:12px; }
+  .row-main { grid-area: main; display: grid; grid-template-rows: auto auto auto; row-gap: 5px; min-width: 0; }
+  .row-title { font-weight: 700; font-size: 16px; letter-spacing:.2px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-title button { all: unset; color: var(--text); cursor: pointer; }
+  .row-title button:hover { text-decoration: underline; }
+  .row-speaker, .row-meta { color: var(--muted); font-size: 14px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
+  .iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); font: inherit; }
+  .iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
+  .star { font-size:18px; line-height:1; color:#bcd; }
+  .star.fav { color: var(--warn); text-shadow: 0 0 10px rgba(255,224,138,.35); }
+  .check { width:22px; height:22px; border-radius:6px; display:inline-grid; place-items:center; border:1px solid rgba(255,255,255,.18); background: #0a0f18; color:#88ffd1; cursor:pointer; }
+  .check.on { background: rgba(47,230,165,.12); border-color: rgba(47,230,165,.55); }
+  .countpill { display:flex; align-items:center; gap:6px; background: #0a121b; border:1px solid rgba(255,255,255,.08); border-radius: 999px; padding: 6px 8px; }
+  .countpill input { width: 40px; background: transparent; border: none; color:var(--text); text-align:center; font-variant-numeric: tabular-nums; outline:none; }
+  .countpill button { background:transparent; border:none; color:var(--text); width:24px; height:24px; border-radius:8px; cursor:pointer; }
+
+  .settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
+  .empty { padding: 18px; color: var(--muted); text-align: center; border:1px dashed rgba(255,255,255,.14); border-radius: var(--radius); background: rgba(255,255,255,.02); }
+
+  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(760px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
+  .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .modal-body { padding: 12px; }
+  .modal-copy { white-space: pre-wrap; line-height: 1.55; color: var(--text); max-height: 70vh; overflow: auto; background: #0a121b; border:1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 12px; }
+  .modal-subtle { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .settings-actions { display:flex; flex-wrap:wrap; gap:10px; }
+  textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
+  .codebox { width:100%; min-height: 120px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.76); color: #dbf7ff; padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.15); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; z-index: 999; max-width: 92vw; }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+  @media (max-width: 620px) {
+    .titlebar { align-items:flex-start; flex-direction: column; }
+    .controls { justify-content:flex-start; }
+    .filters { grid-template-columns: repeat(2, 1fr); }
+    .row { grid-template-columns: 118px 1fr; }
+    .series-row { grid-template-columns: auto 1fr auto; }
+    .movebtns { grid-column: 1 / -1; justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="titlebar">
+        <div>
+          <h1>Radiology Physics Playlist Tracker</h1>
+          <div class="sub" id="subtitle">Radiology Tutorials playlist</div>
+        </div>
+        <div class="controls">
+          <button class="btn small ghost" id="btnSettings">Settings</button>
+        </div>
+      </div>
+      <div class="progress" aria-label="Overall progress">
+        <div class="progress-bar" aria-hidden="true"><span id="progFill"></span></div>
+        <div class="pct" id="progPct">0%</div>
+      </div>
+    </header>
+
+    <section class="nextup" id="nextUp" hidden>
+      <div class="thumb">
+        <img id="nextThumb" alt="Next up thumbnail" />
+        <div class="chip" id="nextSeries">Next Up</div>
+        <div class="chip duration-chip" id="nextDuration"></div>
+      </div>
+      <div class="meta">
+        <div>
+          <div class="t" id="nextTitle">&nbsp;</div>
+          <div class="m" id="nextMeta">&nbsp;</div>
+        </div>
+        <button class="btn" id="btnPlayNext">Open</button>
+      </div>
+    </section>
+
+    <div class="sticky-nav">
+      <div class="sticky-nav-inner">
+        <div class="filters" role="tablist" aria-label="View">
+          <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+          <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+          <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+          <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+        </div>
+
+        <button class="btn full" id="btnSeriesToggle" type="button" aria-expanded="true" aria-controls="seriesPanel">
+          <span>Series / Order</span><span aria-hidden="true">&#9662;</span>
+        </button>
+        <div id="seriesPanel" class="panel">
+          <div class="series-actions">
+            <button class="btn small" id="btnAllSeries">All</button>
+            <button class="btn small ghost" id="btnNoSeries">None</button>
+            <button class="btn small ghost" id="btnResetOrder">Reset Order</button>
+          </div>
+          <div class="modal-subtle">Check the series you want. Drag rows, or use arrows, to choose the order they appear in the tracker.</div>
+          <div class="series-list" id="seriesList"></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="list" id="list"></section>
+
+    <section class="settings">
+      <button class="btn small" id="btnDownload">Download Backup</button>
+      <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
+      <input id="fileRestore" type="file" accept="application/json" hidden />
+      <button class="btn small" id="btnEmail">Email Export</button>
+      <button class="btn small" id="btnNotesDownload">Notes -> File</button>
+      <button class="btn small" id="btnNotesCopy">Notes -> Clipboard</button>
+      <button class="btn small" id="btnTranscriptManifest">Transcript Manifest</button>
+    </section>
+  </div>
+
+  <dialog id="notesModal">
+    <div class="modal-head">
+      <div id="notesTitle" style="font-weight:600;">Notes</div>
+      <button class="btn small ghost" id="closeNotes">Close</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="notes" id="notesArea" placeholder="Quick thoughts..."></textarea>
+    </div>
+  </dialog>
+
+  <dialog id="transcriptModal">
+    <div class="modal-head">
+      <div>
+        <div id="transcriptTitle" style="font-weight:600;">Transcript</div>
+        <div id="transcriptMeta" class="modal-subtle"></div>
+      </div>
+      <button class="btn small ghost" id="closeTranscript">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-actions" style="margin-bottom:10px;">
+        <button class="btn small" id="copyTranscriptBtn">Copy Transcript</button>
+        <button class="btn small ghost" id="copyTranscriptPathBtn">Copy Expected Path</button>
+      </div>
+      <div class="modal-copy" id="transcriptBody"></div>
+    </div>
+  </dialog>
+
+  <dialog id="settingsModal">
+    <div class="modal-head">
+      <div style="font-weight:600;">Settings</div>
+      <button class="btn small ghost" id="closeSettings">Close</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-subtle">Transcript support is built in. Put text files beside this HTML file using one of the expected paths below. The most reliable naming pattern is:</p>
+      <textarea class="codebox" readonly id="settingsTranscriptExample"></textarea>
+      <div class="settings-actions" style="margin-top:10px;">
+        <button class="btn small" id="copyAllTranscriptPathsBtn">Copy All Transcript Paths</button>
+        <button class="btn small ghost" id="resetAllBtn">Reset All Progress</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+// -----------------------------
+// Data: Radiology Tutorials playlist
+// -----------------------------
+const videos = [
+  {
+    "number": 1,
+    "playlistIndex": 1,
+    "title": "Basic Atomic Structure | Radiology Physics Course #1",
+    "shortTitle": "Basic Atomic Structure",
+    "channel": "Radiology Tutorials",
+    "duration": "5:08",
+    "videoId": "3esx20XioMc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3esx20XioMc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=1&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/001 - 3esx20XioMc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/001 - Basic Atomic Structure.txt"
+  },
+  {
+    "number": 2,
+    "playlistIndex": 2,
+    "title": "Electron Orbitals, Principle Quantum Number and Hund's Rule | Radiology Physics Course #2",
+    "shortTitle": "Electron Orbitals, Principle Quantum Number and Hund's Rule",
+    "channel": "Radiology Tutorials",
+    "duration": "10:32",
+    "videoId": "gKznTKdjOPA",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=gKznTKdjOPA&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=2&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/002 - gKznTKdjOPA.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/002 - Electron Orbitals Principle Quantum Number and Hund s Rule.txt"
+  },
+  {
+    "number": 3,
+    "playlistIndex": 3,
+    "title": "Subatomic Particles | Radiology Physics Course #3",
+    "shortTitle": "Subatomic Particles",
+    "channel": "Radiology Tutorials",
+    "duration": "3:19",
+    "videoId": "4yha1h58bHg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=4yha1h58bHg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=3&pp=iAQB",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/003 - 4yha1h58bHg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/003 - Subatomic Particles.txt"
+  },
+  {
+    "number": 4,
+    "playlistIndex": 4,
+    "title": "The Strong Force and the Nuclear Force | Radiology Physics Course #4",
+    "shortTitle": "The Strong Force and the Nuclear Force",
+    "channel": "Radiology Tutorials",
+    "duration": "5:32",
+    "videoId": "REaiHgMQJMY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=REaiHgMQJMY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=4&pp=iAQB",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/004 - REaiHgMQJMY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/004 - The Strong Force and the Nuclear Force.txt"
+  },
+  {
+    "number": 5,
+    "playlistIndex": 5,
+    "title": "The Weak Force | Radiology Physics Course #5",
+    "shortTitle": "The Weak Force",
+    "channel": "Radiology Tutorials",
+    "duration": "3:26",
+    "videoId": "AeV1tTxJCJ4",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=AeV1tTxJCJ4&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=5&pp=iAQB",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/005 - AeV1tTxJCJ4.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/005 - The Weak Force.txt"
+  },
+  {
+    "number": 6,
+    "playlistIndex": 6,
+    "title": "The Electromagnetic Force | Radiology Physics Course #6",
+    "shortTitle": "The Electromagnetic Force",
+    "channel": "Radiology Tutorials",
+    "duration": "4:20",
+    "videoId": "_1x4_pqn7v8",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=_1x4_pqn7v8&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=6&pp=iAQB",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/006 - _1x4_pqn7v8.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/006 - The Electromagnetic Force.txt"
+  },
+  {
+    "number": 7,
+    "playlistIndex": 7,
+    "title": "Electromagnetic Radiation and Electromagnetic Spectrum | X-ray physics | Radiology Physics Course #7",
+    "shortTitle": "Electromagnetic Radiation and Electromagnetic Spectrum",
+    "channel": "Radiology Tutorials",
+    "duration": "8:58",
+    "videoId": "qokg3JEV4hg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=qokg3JEV4hg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=7&pp=iAQB",
+    "series": "Atomic and Radiation Basics",
+    "transcriptPath": "Radiology_Physics_Transcripts/007 - qokg3JEV4hg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/007 - Electromagnetic Radiation and Electromagnetic Spectrum.txt"
+  },
+  {
+    "number": 8,
+    "playlistIndex": 8,
+    "title": "X-ray Physics Introduction | X-ray physics #|1 Radiology Physics Course #8",
+    "shortTitle": "X-ray Physics Introduction",
+    "channel": "Radiology Tutorials",
+    "duration": "6:39",
+    "videoId": "7LBkmoOuMXY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=7LBkmoOuMXY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=8&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/008 - 7LBkmoOuMXY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/008 - X ray Physics Introduction.txt"
+  },
+  {
+    "number": 9,
+    "playlistIndex": 9,
+    "title": "Cathode and Focusing Cup | X-ray Machine | X-ray physics #2 | Radiology Physics Course #9",
+    "shortTitle": "Cathode and Focusing Cup",
+    "channel": "Radiology Tutorials",
+    "duration": "6:44",
+    "videoId": "EVhfIljk4EE",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=EVhfIljk4EE&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=9&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/009 - EVhfIljk4EE.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/009 - Cathode and Focusing Cup.txt"
+  },
+  {
+    "number": 10,
+    "playlistIndex": 10,
+    "title": "The Anode | X-ray Machine | X-ray physics #3 | Radiology Physics Course #10",
+    "shortTitle": "The Anode",
+    "channel": "Radiology Tutorials",
+    "duration": "8:10",
+    "videoId": "b-TKoCiHSVg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=b-TKoCiHSVg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=10&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/010 - b-TKoCiHSVg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/010 - The Anode.txt"
+  },
+  {
+    "number": 11,
+    "playlistIndex": 11,
+    "title": "Other X-ray Machine Components | X-ray physics #4 | Radiology Physics Course #11",
+    "shortTitle": "Other X-ray Machine Components",
+    "channel": "Radiology Tutorials",
+    "duration": "3:38",
+    "videoId": "lJ7DLzTWei0",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=lJ7DLzTWei0&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=11&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/011 - lJ7DLzTWei0.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/011 - Other X ray Machine Components.txt"
+  },
+  {
+    "number": 12,
+    "playlistIndex": 12,
+    "title": "Focal Spot (Actual & Effective), Field Size and Line Focus Principle | Radiology Physics Course #12",
+    "shortTitle": "Focal Spot (Actual & Effective), Field Size and Line Focus Principle",
+    "channel": "Radiology Tutorials",
+    "duration": "8:23",
+    "videoId": "dHFjFIgk5Tw",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=dHFjFIgk5Tw&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=12&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/012 - dHFjFIgk5Tw.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/012 - Focal Spot Actual Effective Field Size and Line Focus Principle.txt"
+  },
+  {
+    "number": 13,
+    "playlistIndex": 13,
+    "title": "Anode Heel Effect | X-ray physics #6 | Radiology Physics Course #13",
+    "shortTitle": "Anode Heel Effect",
+    "channel": "Radiology Tutorials",
+    "duration": "7:39",
+    "videoId": "Hxrogqt8E0w",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Hxrogqt8E0w&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=13&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/013 - Hxrogqt8E0w.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/013 - Anode Heel Effect.txt"
+  },
+  {
+    "number": 14,
+    "playlistIndex": 14,
+    "title": "X-ray Beam Filtration (Added and Inherent Filtration) | X-ray physics | Radiology Physics Course #14",
+    "shortTitle": "X-ray Beam Filtration (Added and Inherent Filtration)",
+    "channel": "Radiology Tutorials",
+    "duration": "12:05",
+    "videoId": "Hg7mVrxHvCU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Hg7mVrxHvCU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=14&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/014 - Hg7mVrxHvCU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/014 - X ray Beam Filtration Added and Inherent Filtration.txt"
+  },
+  {
+    "number": 15,
+    "playlistIndex": 15,
+    "title": "Collimation of the X-ray Beam | X-ray physics #8 | Radiology Physics Course #15",
+    "shortTitle": "Collimation of the X-ray Beam",
+    "channel": "Radiology Tutorials",
+    "duration": "6:14",
+    "videoId": "x7QUZU7v2fk",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=x7QUZU7v2fk&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=15&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/015 - x7QUZU7v2fk.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/015 - Collimation of the X ray Beam.txt"
+  },
+  {
+    "number": 16,
+    "playlistIndex": 16,
+    "title": "Primary X-ray Circuit | X-ray physics | Radiology Physics Course #16",
+    "shortTitle": "Primary X-ray Circuit",
+    "channel": "Radiology Tutorials",
+    "duration": "9:04",
+    "videoId": "uWfx1KZPTp8",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=uWfx1KZPTp8&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=16&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/016 - uWfx1KZPTp8.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/016 - Primary X ray Circuit.txt"
+  },
+  {
+    "number": 17,
+    "playlistIndex": 17,
+    "title": "Secondary X-ray Circuit | X-ray physics | Radiology Physics Course #17",
+    "shortTitle": "Secondary X-ray Circuit",
+    "channel": "Radiology Tutorials",
+    "duration": "11:46",
+    "videoId": "Mkl9tQlycbc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Mkl9tQlycbc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=17&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/017 - Mkl9tQlycbc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/017 - Secondary X ray Circuit.txt"
+  },
+  {
+    "number": 18,
+    "playlistIndex": 18,
+    "title": "Filament X-ray Circuit | X-ray physics | Radiology Physics Course #18",
+    "shortTitle": "Filament X-ray Circuit",
+    "channel": "Radiology Tutorials",
+    "duration": "6:29",
+    "videoId": "OGm8KCW9_w4",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=OGm8KCW9_w4&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=18&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/018 - OGm8KCW9_w4.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/018 - Filament X ray Circuit.txt"
+  },
+  {
+    "number": 19,
+    "playlistIndex": 19,
+    "title": "Bremsstrahlung Radiation | X-ray production | X-ray physics | Radiology Physics Course #19",
+    "shortTitle": "Bremsstrahlung Radiation",
+    "channel": "Radiology Tutorials",
+    "duration": "10:36",
+    "videoId": "BWbr3LDunv8",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=BWbr3LDunv8&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=19&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/019 - BWbr3LDunv8.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/019 - Bremsstrahlung Radiation.txt"
+  },
+  {
+    "number": 20,
+    "playlistIndex": 20,
+    "title": "Characteristic Radiation | X-ray production | X-ray physics | Radiology Physics Course #20",
+    "shortTitle": "Characteristic Radiation",
+    "channel": "Radiology Tutorials",
+    "duration": "8:36",
+    "videoId": "IDy-aHRJq2c",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=IDy-aHRJq2c&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=20&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/020 - IDy-aHRJq2c.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/020 - Characteristic Radiation.txt"
+  },
+  {
+    "number": 21,
+    "playlistIndex": 21,
+    "title": "X-ray Spectrum Quality vs Quantity | X-ray physics | Radiology Physics Course #21",
+    "shortTitle": "X-ray Spectrum Quality vs Quantity",
+    "channel": "Radiology Tutorials",
+    "duration": "4:46",
+    "videoId": "iASmT_h9o5k",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=iASmT_h9o5k&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=21&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/021 - iASmT_h9o5k.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/021 - X ray Spectrum Quality vs Quantity.txt"
+  },
+  {
+    "number": 22,
+    "playlistIndex": 22,
+    "title": "Altering the X-ray Spectrum | X-ray physics | Radiology Physics Course #22",
+    "shortTitle": "Altering the X-ray Spectrum",
+    "channel": "Radiology Tutorials",
+    "duration": "15:18",
+    "videoId": "9-9SKTrOWEQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=9-9SKTrOWEQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=22&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/022 - 9-9SKTrOWEQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/022 - Altering the X ray Spectrum.txt"
+  },
+  {
+    "number": 23,
+    "playlistIndex": 23,
+    "title": "Photoelectric Effect | X-ray interaction with matter | X-ray physics | Radiology Physics Course #23",
+    "shortTitle": "Photoelectric Effect",
+    "channel": "Radiology Tutorials",
+    "duration": "10:46",
+    "videoId": "A-ztje-y3Rs",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=A-ztje-y3Rs&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=23&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/023 - A-ztje-y3Rs.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/023 - Photoelectric Effect.txt"
+  },
+  {
+    "number": 24,
+    "playlistIndex": 24,
+    "title": "Compton Scatter | X-ray interaction with matter | X-ray physics | Radiology Physics Course #24",
+    "shortTitle": "Compton Scatter",
+    "channel": "Radiology Tutorials",
+    "duration": "5:51",
+    "videoId": "MgfB6VKFYbo",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=MgfB6VKFYbo&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=24&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/024 - MgfB6VKFYbo.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/024 - Compton Scatter.txt"
+  },
+  {
+    "number": 25,
+    "playlistIndex": 25,
+    "title": "Raleigh Scatter | X-ray interaction with matter | X-ray physics | Radiology Physics Course #25",
+    "shortTitle": "Raleigh Scatter",
+    "channel": "Radiology Tutorials",
+    "duration": "5:03",
+    "videoId": "-uOYthgEIBo",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=-uOYthgEIBo&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=25&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/025 - -uOYthgEIBo.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/025 - Raleigh Scatter.txt"
+  },
+  {
+    "number": 26,
+    "playlistIndex": 26,
+    "title": "Linear Energy Transfer (LET) | X-ray Physics | Radiology Physics Course #26",
+    "shortTitle": "Linear Energy Transfer (LET)",
+    "channel": "Radiology Tutorials",
+    "duration": "7:34",
+    "videoId": "ozAdKI3XKPs",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=ozAdKI3XKPs&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=26&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/026 - ozAdKI3XKPs.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/026 - Linear Energy Transfer LET.txt"
+  },
+  {
+    "number": 27,
+    "playlistIndex": 27,
+    "title": "Linear Attenuation Coefficient (LAC) and Mass Attenuation Coefficient | Radiology Physics Course #27",
+    "shortTitle": "Linear Attenuation Coefficient (LAC) and Mass Attenuation Coefficient",
+    "channel": "Radiology Tutorials",
+    "duration": "15:50",
+    "videoId": "880AzMv0DGk",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=880AzMv0DGk&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=27&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/027 - 880AzMv0DGk.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/027 - Linear Attenuation Coefficient LAC and Mass Attenuation Coefficient.txt"
+  },
+  {
+    "number": 28,
+    "playlistIndex": 28,
+    "title": "Half Value Layer (HVL) | X-ray physics | Radiology Physics Course #28",
+    "shortTitle": "Half Value Layer (HVL)",
+    "channel": "Radiology Tutorials",
+    "duration": "9:00",
+    "videoId": "KoF-pP7b1Pc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=KoF-pP7b1Pc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=28&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/028 - KoF-pP7b1Pc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/028 - Half Value Layer HVL.txt"
+  },
+  {
+    "number": 29,
+    "playlistIndex": 29,
+    "title": "X-ray Detector Overview | X-ray physics | Radiology Physics Course #29",
+    "shortTitle": "X-ray Detector Overview",
+    "channel": "Radiology Tutorials",
+    "duration": "5:00",
+    "videoId": "G7XnKeS_0OA",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=G7XnKeS_0OA&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=29&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/029 - G7XnKeS_0OA.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/029 - X ray Detector Overview.txt"
+  },
+  {
+    "number": 30,
+    "playlistIndex": 30,
+    "title": "Screen Film Radiography | X-ray Physics | Radiology Physics Course #30",
+    "shortTitle": "Screen Film Radiography",
+    "channel": "Radiology Tutorials",
+    "duration": "9:54",
+    "videoId": "JN83kw3hZ4g",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=JN83kw3hZ4g&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=30&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/030 - JN83kw3hZ4g.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/030 - Screen Film Radiography.txt"
+  },
+  {
+    "number": 31,
+    "playlistIndex": 31,
+    "title": "The Characteristic Curve | X-ray Physics | Radiology Physics Course #31",
+    "shortTitle": "The Characteristic Curve",
+    "channel": "Radiology Tutorials",
+    "duration": "9:22",
+    "videoId": "Rr2WBYcT2PE",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Rr2WBYcT2PE&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=31&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/031 - Rr2WBYcT2PE.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/031 - The Characteristic Curve.txt"
+  },
+  {
+    "number": 32,
+    "playlistIndex": 32,
+    "title": "Computed Radiography (Digital Radiography) | X-ray Physics | Radiology Physics Course #32",
+    "shortTitle": "Computed Radiography (Digital Radiography)",
+    "channel": "Radiology Tutorials",
+    "duration": "11:07",
+    "videoId": "qgc8eGdVp9g",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=qgc8eGdVp9g&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=32&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/032 - qgc8eGdVp9g.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/032 - Computed Radiography Digital Radiography.txt"
+  },
+  {
+    "number": 33,
+    "playlistIndex": 33,
+    "title": "Digital Radiography Overview and Scintillation | X-ray Physics | Radiology Physics Course #33",
+    "shortTitle": "Digital Radiography Overview and Scintillation",
+    "channel": "Radiology Tutorials",
+    "duration": "4:19",
+    "videoId": "YKCaDyIEuq0",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=YKCaDyIEuq0&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=33&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/033 - YKCaDyIEuq0.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/033 - Digital Radiography Overview and Scintillation.txt"
+  },
+  {
+    "number": 34,
+    "playlistIndex": 34,
+    "title": "Charge Coupled Device (CCD chip) | X-ray Physics | Radiology Physics Course #34",
+    "shortTitle": "Charge Coupled Device (CCD chip)",
+    "channel": "Radiology Tutorials",
+    "duration": "6:19",
+    "videoId": "E58CFlXhSUQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=E58CFlXhSUQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=34&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/034 - E58CFlXhSUQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/034 - Charge Coupled Device CCD chip.txt"
+  },
+  {
+    "number": 35,
+    "playlistIndex": 35,
+    "title": "Indirect Thin Film Transistor Array (Flat Panel) | X-ray Physics | Radiology Physics Course #35",
+    "shortTitle": "Indirect Thin Film Transistor Array (Flat Panel)",
+    "channel": "Radiology Tutorials",
+    "duration": "6:37",
+    "videoId": "_eKOSEzBFwg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=_eKOSEzBFwg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=35&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/035 - _eKOSEzBFwg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/035 - Indirect Thin Film Transistor Array Flat Panel.txt"
+  },
+  {
+    "number": 36,
+    "playlistIndex": 36,
+    "title": "Direct Thin Film Transistor Array (Flat Panel) | X-ray Physics | Radiology Physics Course #36",
+    "shortTitle": "Direct Thin Film Transistor Array (Flat Panel)",
+    "channel": "Radiology Tutorials",
+    "duration": "6:51",
+    "videoId": "y1tyi9s9FOQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=y1tyi9s9FOQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=36&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/036 - y1tyi9s9FOQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/036 - Direct Thin Film Transistor Array Flat Panel.txt"
+  },
+  {
+    "number": 37,
+    "playlistIndex": 37,
+    "title": "Scatter radiation and factors that influence scatter | X-ray Physics | Radiology Physics Course #37",
+    "shortTitle": "Scatter radiation and factors that influence scatter",
+    "channel": "Radiology Tutorials",
+    "duration": "12:41",
+    "videoId": "NduzeuKXY_0",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=NduzeuKXY_0&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=37&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/037 - NduzeuKXY_0.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/037 - Scatter radiation and factors that influence scatter.txt"
+  },
+  {
+    "number": 38,
+    "playlistIndex": 38,
+    "title": "Scatter Reduction | X-ray Physics | Radiology Physics Course #38",
+    "shortTitle": "Scatter Reduction",
+    "channel": "Radiology Tutorials",
+    "duration": "9:36",
+    "videoId": "5u8Ax2Ni58M",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=5u8Ax2Ni58M&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=38&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/038 - 5u8Ax2Ni58M.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/038 - Scatter Reduction.txt"
+  },
+  {
+    "number": 39,
+    "playlistIndex": 39,
+    "title": "Anti-scatter grids | X-ray Physics | Radiology Physics Course #39",
+    "shortTitle": "Anti-scatter grids",
+    "channel": "Radiology Tutorials",
+    "duration": "11:03",
+    "videoId": "vZ9dcesc3e4",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=vZ9dcesc3e4&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=39&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/039 - vZ9dcesc3e4.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/039 - Anti scatter grids.txt"
+  },
+  {
+    "number": 40,
+    "playlistIndex": 40,
+    "title": "Geometric Blurring, Magnification and Unsharpness | X-ray Physics | Radiology Physics Course #33",
+    "shortTitle": "Geometric Blurring, Magnification and Unsharpness",
+    "channel": "Radiology Tutorials",
+    "duration": "7:21",
+    "videoId": "_ss8Hm-tQK4",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=_ss8Hm-tQK4&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=40&pp=iAQB",
+    "series": "X-ray Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/040 - _ss8Hm-tQK4.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/040 - Geometric Blurring Magnification and Unsharpness.txt"
+  },
+  {
+    "number": 41,
+    "playlistIndex": 41,
+    "title": "Sound Waves and the Acoustic Spectrum | Ultrasound Physics | Radiology Physics Course #1",
+    "shortTitle": "Sound Waves and the Acoustic Spectrum",
+    "channel": "Radiology Tutorials",
+    "duration": "9:08",
+    "videoId": "xtdfCGz6e1Y",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=xtdfCGz6e1Y&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=41&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/041 - xtdfCGz6e1Y.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/041 - Sound Waves and the Acoustic Spectrum.txt"
+  },
+  {
+    "number": 42,
+    "playlistIndex": 42,
+    "title": "Wavelength, Frequency, Period and Speed of Sound | Ultrasound Physics | Radiology Physics Course #2",
+    "shortTitle": "Wavelength, Frequency, Period and Speed of Sound",
+    "channel": "Radiology Tutorials",
+    "duration": "10:47",
+    "videoId": "KGy7wJwIP5A",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=KGy7wJwIP5A&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=42&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/042 - KGy7wJwIP5A.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/042 - Wavelength Frequency Period and Speed of Sound.txt"
+  },
+  {
+    "number": 43,
+    "playlistIndex": 43,
+    "title": "Pressure, Intensity and the Decibel (dB) Scale | Ultrasound Physics | Radiology Physics Course #3",
+    "shortTitle": "Pressure, Intensity and the Decibel (dB) Scale",
+    "channel": "Radiology Tutorials",
+    "duration": "14:29",
+    "videoId": "mGTep01--LQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=mGTep01--LQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=43&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/043 - mGTep01--LQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/043 - Pressure Intensity and the Decibel dB Scale.txt"
+  },
+  {
+    "number": 44,
+    "playlistIndex": 44,
+    "title": "Pulse Echo Ultrasound Parameters | Ultrasound Physics | Radiology Physics Course #4",
+    "shortTitle": "Pulse Echo Ultrasound Parameters",
+    "channel": "Radiology Tutorials",
+    "duration": "17:43",
+    "videoId": "-jhRhhA62Mo",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=-jhRhhA62Mo&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=44&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/044 - -jhRhhA62Mo.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/044 - Pulse Echo Ultrasound Parameters.txt"
+  },
+  {
+    "number": 45,
+    "playlistIndex": 45,
+    "title": "Acoustic Impedance | Ultrasound Physics | Radiology Physics Course #5",
+    "shortTitle": "Acoustic Impedance",
+    "channel": "Radiology Tutorials",
+    "duration": "7:28",
+    "videoId": "kxNxB-XZUR0",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=kxNxB-XZUR0&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=45&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/045 - kxNxB-XZUR0.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/045 - Acoustic Impedance.txt"
+  },
+  {
+    "number": 46,
+    "playlistIndex": 46,
+    "title": "Reflection, Ultrasound Interaction with Matter | Ultrasound Physics | Radiology Physics Course #6",
+    "shortTitle": "Reflection, Ultrasound Interaction with Matter",
+    "channel": "Radiology Tutorials",
+    "duration": "9:35",
+    "videoId": "uO8IRocr9gA",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=uO8IRocr9gA&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=46&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/046 - uO8IRocr9gA.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/046 - Reflection Ultrasound Interaction with Matter.txt"
+  },
+  {
+    "number": 47,
+    "playlistIndex": 47,
+    "title": "Refraction, Ultrasound Interaction with Matter | Ultrasound Physics | Radiology Physics Course #7",
+    "shortTitle": "Refraction, Ultrasound Interaction with Matter",
+    "channel": "Radiology Tutorials",
+    "duration": "7:24",
+    "videoId": "3H8-FxnT3Is",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3H8-FxnT3Is&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=47&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/047 - 3H8-FxnT3Is.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/047 - Refraction Ultrasound Interaction with Matter.txt"
+  },
+  {
+    "number": 48,
+    "playlistIndex": 48,
+    "title": "Ultrasound Scatter and Attenuation | Ultrasound Physics | Radiology Physics Course #8",
+    "shortTitle": "Ultrasound Scatter and Attenuation",
+    "channel": "Radiology Tutorials",
+    "duration": "16:36",
+    "videoId": "XmDObxlhn60",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=XmDObxlhn60&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=48&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/048 - XmDObxlhn60.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/048 - Ultrasound Scatter and Attenuation.txt"
+  },
+  {
+    "number": 49,
+    "playlistIndex": 49,
+    "title": "Ultrasound Transducer (Part 1) Piezoelectric Material and Matching Layer | Ultrasound Physics #9",
+    "shortTitle": "Ultrasound Transducer (Part 1) Piezoelectric Material and Matching Layer",
+    "channel": "Radiology Tutorials",
+    "duration": "13:46",
+    "videoId": "3oVf0r51Fzw",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3oVf0r51Fzw&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=49&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/049 - 3oVf0r51Fzw.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/049 - Ultrasound Transducer Part 1 Piezoelectric Material and Matching Layer.txt"
+  },
+  {
+    "number": 50,
+    "playlistIndex": 50,
+    "title": "Ultrasound Transducer (Part 2) Damping Block and Transducer Wiring | Ultrasound Physics #10",
+    "shortTitle": "Ultrasound Transducer (Part 2) Damping Block and Transducer Wiring",
+    "channel": "Radiology Tutorials",
+    "duration": "10:43",
+    "videoId": "KCusXtFF5Qw",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=KCusXtFF5Qw&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=50&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/050 - KCusXtFF5Qw.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/050 - Ultrasound Transducer Part 2 Damping Block and Transducer Wiring.txt"
+  },
+  {
+    "number": 51,
+    "playlistIndex": 51,
+    "title": "Piezoelectric Effect and Reverse Piezoelectric Effect | Ultrasound Physics Course #11",
+    "shortTitle": "Piezoelectric Effect and Reverse Piezoelectric Effect",
+    "channel": "Radiology Tutorials",
+    "duration": "10:54",
+    "videoId": "N1ALRmT4s9I",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=N1ALRmT4s9I&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=51&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/051 - N1ALRmT4s9I.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/051 - Piezoelectric Effect and Reverse Piezoelectric Effect.txt"
+  },
+  {
+    "number": 52,
+    "playlistIndex": 52,
+    "title": "Ultrasound Modes, A, B and M Mode| Ultrasound Physics | Radiology Physics Course #12",
+    "shortTitle": "Ultrasound Modes, A, B and M Mode",
+    "channel": "Radiology Tutorials",
+    "duration": "15:14",
+    "videoId": "wVdt4-cA0A4",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=wVdt4-cA0A4&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=52&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/052 - wVdt4-cA0A4.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/052 - Ultrasound Modes A B and M Mode.txt"
+  },
+  {
+    "number": 53,
+    "playlistIndex": 53,
+    "title": "Time Gain Compensation | Ultrasound Physics | Radiology Physics Course #13",
+    "shortTitle": "Time Gain Compensation",
+    "channel": "Radiology Tutorials",
+    "duration": "6:36",
+    "videoId": "gFzvAajSk4U",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=gFzvAajSk4U&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=53&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/053 - gFzvAajSk4U.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/053 - Time Gain Compensation.txt"
+  },
+  {
+    "number": 54,
+    "playlistIndex": 54,
+    "title": "Ultrasound Probes and Transducer Types | Ultrasound Physics | Radiology Physics Course #14",
+    "shortTitle": "Ultrasound Probes and Transducer Types",
+    "channel": "Radiology Tutorials",
+    "duration": "10:33",
+    "videoId": "uX99KIb5J0M",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=uX99KIb5J0M&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=54&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/054 - uX99KIb5J0M.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/054 - Ultrasound Probes and Transducer Types.txt"
+  },
+  {
+    "number": 55,
+    "playlistIndex": 55,
+    "title": "Ultrasound Beam | Ultrasound Physics | Radiology Physics Course #15",
+    "shortTitle": "Ultrasound Beam",
+    "channel": "Radiology Tutorials",
+    "duration": "15:54",
+    "videoId": "h1LIu1dl-k8",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=h1LIu1dl-k8&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=55&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/055 - h1LIu1dl-k8.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/055 - Ultrasound Beam.txt"
+  },
+  {
+    "number": 56,
+    "playlistIndex": 56,
+    "title": "Beam Focusing, Steering and Spatial Compounding | Ultrasound Physics | Radiology Physics Course #16",
+    "shortTitle": "Beam Focusing, Steering and Spatial Compounding",
+    "channel": "Radiology Tutorials",
+    "duration": "10:14",
+    "videoId": "1_-BmMrxUjA",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=1_-BmMrxUjA&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=56&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/056 - 1_-BmMrxUjA.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/056 - Beam Focusing Steering and Spatial Compounding.txt"
+  },
+  {
+    "number": 57,
+    "playlistIndex": 57,
+    "title": "Axial Resolution | Ultrasound Physics | Radiology Physics Course #17",
+    "shortTitle": "Axial Resolution",
+    "channel": "Radiology Tutorials",
+    "duration": "11:17",
+    "videoId": "ZGbTpI0UZMw",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=ZGbTpI0UZMw&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=57&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/057 - ZGbTpI0UZMw.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/057 - Axial Resolution.txt"
+  },
+  {
+    "number": 58,
+    "playlistIndex": 58,
+    "title": "Lateral and Elevational Resolution | Ultrasound Physics | Radiology Physics Course #18",
+    "shortTitle": "Lateral and Elevational Resolution",
+    "channel": "Radiology Tutorials",
+    "duration": "12:16",
+    "videoId": "c_b7VZrUmkQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=c_b7VZrUmkQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=58&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/058 - c_b7VZrUmkQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/058 - Lateral and Elevational Resolution.txt"
+  },
+  {
+    "number": 59,
+    "playlistIndex": 59,
+    "title": "Temporal Resolution | Ultrasound Physics | Radiology Physics Course #19",
+    "shortTitle": "Temporal Resolution",
+    "channel": "Radiology Tutorials",
+    "duration": "10:55",
+    "videoId": "-8XCyNCks1w",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=-8XCyNCks1w&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=59&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/059 - -8XCyNCks1w.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/059 - Temporal Resolution.txt"
+  },
+  {
+    "number": 60,
+    "playlistIndex": 60,
+    "title": "Doppler Effect, Doppler Equation and Angle Correction | Ultrasound | Radiology Physics Course #20",
+    "shortTitle": "Doppler Effect, Doppler Equation and Angle Correction",
+    "channel": "Radiology Tutorials",
+    "duration": "16:01",
+    "videoId": "TkjyyzsNpaU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=TkjyyzsNpaU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=60&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/060 - TkjyyzsNpaU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/060 - Doppler Effect Doppler Equation and Angle Correction.txt"
+  },
+  {
+    "number": 61,
+    "playlistIndex": 61,
+    "title": "Continuous vs Pulsed Wave Doppler Ultrasound | Ultrasound Course | Radiology Physics Course #21",
+    "shortTitle": "Continuous vs Pulsed Wave Doppler Ultrasound",
+    "channel": "Radiology Tutorials",
+    "duration": "24:47",
+    "videoId": "W0bPJQHWFCc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=W0bPJQHWFCc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=61&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/061 - W0bPJQHWFCc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/061 - Continuous vs Pulsed Wave Doppler Ultrasound.txt"
+  },
+  {
+    "number": 62,
+    "playlistIndex": 62,
+    "title": "Spectral Doppler Ultrasound | Ultrasound Physics Course | Radiology Physics Course #22",
+    "shortTitle": "Spectral Doppler Ultrasound",
+    "channel": "Radiology Tutorials",
+    "duration": "23:08",
+    "videoId": "zn65tsm48FM",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=zn65tsm48FM&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=62&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/062 - zn65tsm48FM.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/062 - Spectral Doppler Ultrasound.txt"
+  },
+  {
+    "number": 63,
+    "playlistIndex": 63,
+    "title": "Aliasing Artifact | Ultrasound Physics Course | Radiology Physics Course #23",
+    "shortTitle": "Aliasing Artifact",
+    "channel": "Radiology Tutorials",
+    "duration": "15:12",
+    "videoId": "auG2nND0e7w",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=auG2nND0e7w&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=63&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/063 - auG2nND0e7w.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/063 - Aliasing Artifact.txt"
+  },
+  {
+    "number": 64,
+    "playlistIndex": 64,
+    "title": "Tissue Harmonic Ultrasound Imaging | Ultrasound Physics Course | Radiology Physics Course #24",
+    "shortTitle": "Tissue Harmonic Ultrasound Imaging",
+    "channel": "Radiology Tutorials",
+    "duration": "24:39",
+    "videoId": "LvkXFwBlAOc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=LvkXFwBlAOc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=64&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/064 - LvkXFwBlAOc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/064 - Tissue Harmonic Ultrasound Imaging.txt"
+  },
+  {
+    "number": 65,
+    "playlistIndex": 65,
+    "title": "Ultrasound Artifacts | Ultrasound Physics Course | Radiology Physics Course #25",
+    "shortTitle": "Ultrasound Artifacts",
+    "channel": "Radiology Tutorials",
+    "duration": "17:38",
+    "videoId": "GOWlzuMziUU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=GOWlzuMziUU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=65&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/065 - GOWlzuMziUU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/065 - Ultrasound Artifacts.txt"
+  },
+  {
+    "number": 66,
+    "playlistIndex": 66,
+    "title": "Thermal and Mechanical Index (Bioeffects) | Ultrasound Physics Course | Radiology Physics Course #26",
+    "shortTitle": "Thermal and Mechanical Index (Bioeffects)",
+    "channel": "Radiology Tutorials",
+    "duration": "26:01",
+    "videoId": "JV6_iCs7rVg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=JV6_iCs7rVg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=66&pp=iAQB",
+    "series": "Ultrasound Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/066 - JV6_iCs7rVg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/066 - Thermal and Mechanical Index Bioeffects.txt"
+  },
+  {
+    "number": 67,
+    "playlistIndex": 67,
+    "title": "MRI physics overview | MRI Physics Course | Radiology Physics Course #1",
+    "shortTitle": "MRI physics overview",
+    "channel": "Radiology Tutorials",
+    "duration": "23:13",
+    "videoId": "gtnOlotFgUY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=gtnOlotFgUY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=67&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/067 - gtnOlotFgUY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/067 - MRI physics overview.txt"
+  },
+  {
+    "number": 68,
+    "playlistIndex": 68,
+    "title": "MRI Machine - Main, Gradient and RF Coils/ Magnets | MRI Physics Course | Radiology Physics Course#2",
+    "shortTitle": "MRI Machine - Main, Gradient and RF Coils/ Magnets",
+    "channel": "Radiology Tutorials",
+    "duration": "15:13",
+    "videoId": "EMeAC50zjFg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=EMeAC50zjFg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=68&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/068 - EMeAC50zjFg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/068 - MRI Machine Main Gradient and RF Coils Magnets.txt"
+  },
+  {
+    "number": 69,
+    "playlistIndex": 69,
+    "title": "Spin, Precession, Resonance and Flip Angle | MRI Physics Course | Radiology Physics Course #3",
+    "shortTitle": "Spin, Precession, Resonance and Flip Angle",
+    "channel": "Radiology Tutorials",
+    "duration": "18:58",
+    "videoId": "uySdo9cFuVc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=uySdo9cFuVc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=69&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/069 - uySdo9cFuVc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/069 - Spin Precession Resonance and Flip Angle.txt"
+  },
+  {
+    "number": 70,
+    "playlistIndex": 70,
+    "title": "T2 Relaxation, Spin-spin Relaxation, Free Induction Decay, Transverse Decay | MRI Physics Course #4",
+    "shortTitle": "T2 Relaxation, Spin-spin Relaxation, Free Induction Decay, Transverse Decay",
+    "channel": "Radiology Tutorials",
+    "duration": "16:56",
+    "videoId": "T5y0d7yPlNE",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=T5y0d7yPlNE&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=70&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/070 - T5y0d7yPlNE.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/070 - T2 Relaxation Spin spin Relaxation Free Induction Decay Transverse Decay.txt"
+  },
+  {
+    "number": 71,
+    "playlistIndex": 71,
+    "title": "T1 Relaxation, Spin-lattice Relaxation, Longitudinal Recovery | MRI Physics Course #5",
+    "shortTitle": "T1 Relaxation, Spin-lattice Relaxation, Longitudinal Recovery",
+    "channel": "Radiology Tutorials",
+    "duration": "18:21",
+    "videoId": "9s510zUTW7Y",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=9s510zUTW7Y&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=71&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/071 - 9s510zUTW7Y.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/071 - T1 Relaxation Spin lattice Relaxation Longitudinal Recovery.txt"
+  },
+  {
+    "number": 72,
+    "playlistIndex": 72,
+    "title": "T1, T2 and Proton Density Weighting | MRI Weighting and Contrast | MRI Physics Course #6",
+    "shortTitle": "T1, T2 and Proton Density Weighting",
+    "channel": "Radiology Tutorials",
+    "duration": "19:14",
+    "videoId": "gGIycwtFOBk",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=gGIycwtFOBk&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=72&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/072 - gGIycwtFOBk.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/072 - T1 T2 and Proton Density Weighting.txt"
+  },
+  {
+    "number": 73,
+    "playlistIndex": 73,
+    "title": "MRI Slice Selection | Signal Localisation | MRI Physics Course #7",
+    "shortTitle": "MRI Slice Selection",
+    "channel": "Radiology Tutorials",
+    "duration": "21:49",
+    "videoId": "r3LHXIzCXAY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=r3LHXIzCXAY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=73&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/073 - r3LHXIzCXAY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/073 - MRI Slice Selection.txt"
+  },
+  {
+    "number": 74,
+    "playlistIndex": 74,
+    "title": "Frequency Encoding Gradient | MRI Signal Localisation | MRI Physics Course #8",
+    "shortTitle": "Frequency Encoding Gradient",
+    "channel": "Radiology Tutorials",
+    "duration": "25:20",
+    "videoId": "MblNNwQv3nY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=MblNNwQv3nY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=74&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/074 - MblNNwQv3nY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/074 - Frequency Encoding Gradient.txt"
+  },
+  {
+    "number": 75,
+    "playlistIndex": 75,
+    "title": "Phase Encoding Gradient MRI | MRI Signal Localisation | MRI Physics Course #9",
+    "shortTitle": "Phase Encoding Gradient MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "38:01",
+    "videoId": "znAuKFfOGPU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=znAuKFfOGPU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=75&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/075 - znAuKFfOGPU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/075 - Phase Encoding Gradient MRI.txt"
+  },
+  {
+    "number": 76,
+    "playlistIndex": 76,
+    "title": "K-space MRI Explained | MRI Signal Localisation | MRI Physics Course #10",
+    "shortTitle": "K-space MRI Explained",
+    "channel": "Radiology Tutorials",
+    "duration": "22:14",
+    "videoId": "hlTWxwYNmwY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=hlTWxwYNmwY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=76&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/076 - hlTWxwYNmwY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/076 - K space MRI Explained.txt"
+  },
+  {
+    "number": 77,
+    "playlistIndex": 77,
+    "title": "MRI Field of View (FOV), Matrix Size, Receiver Bandwidth, Dwell Time | MRI Physics Course #11",
+    "shortTitle": "MRI Field of View (FOV), Matrix Size, Receiver Bandwidth, Dwell Time",
+    "channel": "Radiology Tutorials",
+    "duration": "27:30",
+    "videoId": "TENUK01boyM",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=TENUK01boyM&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=77&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/077 - TENUK01boyM.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/077 - MRI Field of View FOV Matrix Size Receiver Bandwidth Dwell Time.txt"
+  },
+  {
+    "number": 78,
+    "playlistIndex": 78,
+    "title": "How Bandwidth Affects Signal to Noise Ratio (SNR) in MRI | MRI Physics Course #12",
+    "shortTitle": "How Bandwidth Affects Signal to Noise Ratio (SNR) in MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "21:55",
+    "videoId": "dJ0eLUNRD-g",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=dJ0eLUNRD-g&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=78&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/078 - dJ0eLUNRD-g.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/078 - How Bandwidth Affects Signal to Noise Ratio SNR in MRI.txt"
+  },
+  {
+    "number": 79,
+    "playlistIndex": 79,
+    "title": "Aliasing (Wraparound) Artifact and Parallel Imaging in MRI | MRI Physics Course #13",
+    "shortTitle": "Aliasing (Wraparound) Artifact and Parallel Imaging in MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "34:15",
+    "videoId": "bxgPdu3ZPjk",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=bxgPdu3ZPjk&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=79&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/079 - bxgPdu3ZPjk.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/079 - Aliasing Wraparound Artifact and Parallel Imaging in MRI.txt"
+  },
+  {
+    "number": 80,
+    "playlistIndex": 80,
+    "title": "Chemical Shift Artifact MRI | MRI Physics Course #14",
+    "shortTitle": "Chemical Shift Artifact MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "21:21",
+    "videoId": "QsKpK1AvYRs",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=QsKpK1AvYRs&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=80&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/080 - QsKpK1AvYRs.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/080 - Chemical Shift Artifact MRI.txt"
+  },
+  {
+    "number": 81,
+    "playlistIndex": 81,
+    "title": "Spin Echo MRI Pulse Sequences, Multiecho, Multislice and Fast Spin Echo | MRI Physics Course #15",
+    "shortTitle": "Spin Echo MRI Pulse Sequences, Multiecho, Multislice and Fast Spin Echo",
+    "channel": "Radiology Tutorials",
+    "duration": "33:33",
+    "videoId": "mULI6URoe88",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=mULI6URoe88&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=81&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/081 - mULI6URoe88.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/081 - Spin Echo MRI Pulse Sequences Multiecho Multislice and Fast Spin Echo.txt"
+  },
+  {
+    "number": 82,
+    "playlistIndex": 82,
+    "title": "Gradient Echo MRI | MRI Physics Course #16",
+    "shortTitle": "Gradient Echo MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "15:39",
+    "videoId": "0obUDGqzjqo",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=0obUDGqzjqo&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=82&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/082 - 0obUDGqzjqo.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/082 - Gradient Echo MRI.txt"
+  },
+  {
+    "number": 83,
+    "playlistIndex": 83,
+    "title": "Flip Angle and Ernst Angle in Gradient Echo MRI | MRI Physics Course #17",
+    "shortTitle": "Flip Angle and Ernst Angle in Gradient Echo MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "23:29",
+    "videoId": "48__G2JBGJY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=48__G2JBGJY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=83&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/083 - 48__G2JBGJY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/083 - Flip Angle and Ernst Angle in Gradient Echo MRI.txt"
+  },
+  {
+    "number": 84,
+    "playlistIndex": 84,
+    "title": "Coherent, Incoherent \"Spoiled\" and SSFP Gradient Echo | Stimulated Echo | MRI Physics Course #18",
+    "shortTitle": "Coherent, Incoherent \"Spoiled\" and SSFP Gradient Echo",
+    "channel": "Radiology Tutorials",
+    "duration": "18:29",
+    "videoId": "5scFUIcobOw",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=5scFUIcobOw&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=84&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/084 - 5scFUIcobOw.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/084 - Coherent Incoherent Spoiled and SSFP Gradient Echo.txt"
+  },
+  {
+    "number": 85,
+    "playlistIndex": 85,
+    "title": "Inversion Recovery Pulse Sequences MRI | STIR and FLAIR | MRI Physics Course #19",
+    "shortTitle": "Inversion Recovery Pulse Sequences MRI",
+    "channel": "Radiology Tutorials",
+    "duration": "20:45",
+    "videoId": "Iln6_J3V514",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Iln6_J3V514&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=85&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/085 - Iln6_J3V514.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/085 - Inversion Recovery Pulse Sequences MRI.txt"
+  },
+  {
+    "number": 86,
+    "playlistIndex": 86,
+    "title": "Partial Saturation and Saturation Techniques | CHESS Fat Saturation | MRI Physics Course #20",
+    "shortTitle": "Partial Saturation and Saturation Techniques",
+    "channel": "Radiology Tutorials",
+    "duration": "22:45",
+    "videoId": "dDizHrSfSyI",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=dDizHrSfSyI&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=86&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/086 - dDizHrSfSyI.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/086 - Partial Saturation and Saturation Techniques.txt"
+  },
+  {
+    "number": 87,
+    "playlistIndex": 87,
+    "title": "Echo Planar Imaging (EPI), Fast Spin Echo (FSE) | Fast Pulse Sequences | MRI Physics Course #21",
+    "shortTitle": "Echo Planar Imaging (EPI), Fast Spin Echo (FSE)",
+    "channel": "Radiology Tutorials",
+    "duration": "21:52",
+    "videoId": "j0yE63LPB0I",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=j0yE63LPB0I&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=87&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/087 - j0yE63LPB0I.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/087 - Echo Planar Imaging EPI Fast Spin Echo FSE.txt"
+  },
+  {
+    "number": 88,
+    "playlistIndex": 88,
+    "title": "Diffusion Weighted Imaging (DWI) and Apparent Diffusion Coefficient (ADC) | MRI Physics Course #22",
+    "shortTitle": "Diffusion Weighted Imaging (DWI) and Apparent Diffusion Coefficient (ADC)",
+    "channel": "Radiology Tutorials",
+    "duration": "27:41",
+    "videoId": "ZDQDPTmyivU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=ZDQDPTmyivU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=88&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/088 - ZDQDPTmyivU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/088 - Diffusion Weighted Imaging DWI and Apparent Diffusion Coefficient ADC.txt"
+  },
+  {
+    "number": 89,
+    "playlistIndex": 89,
+    "title": "High Velocity Signal Loss (HVSL), Time of Flight Effect and Turbulence | MRI Physics Course #23",
+    "shortTitle": "High Velocity Signal Loss (HVSL), Time of Flight Effect and Turbulence",
+    "channel": "Radiology Tutorials",
+    "duration": "16:04",
+    "videoId": "P5VW6T5DCMc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=P5VW6T5DCMc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=89&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/089 - P5VW6T5DCMc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/089 - High Velocity Signal Loss HVSL Time of Flight Effect and Turbulence.txt"
+  },
+  {
+    "number": 90,
+    "playlistIndex": 90,
+    "title": "Time-of-Flight Angiography, Flow Related Enhancement and Saturation Bands | MRI Physics Course #24",
+    "shortTitle": "Time-of-Flight Angiography, Flow Related Enhancement and Saturation Bands",
+    "channel": "Radiology Tutorials",
+    "duration": "19:51",
+    "videoId": "haax8yadse8",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=haax8yadse8&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=90&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/090 - haax8yadse8.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/090 - Time of Flight Angiography Flow Related Enhancement and Saturation Bands.txt"
+  },
+  {
+    "number": 91,
+    "playlistIndex": 91,
+    "title": "Spin Phase Effects and Gradient Moment Nulling, MRA | MR angiography | MRI Physics Course #25",
+    "shortTitle": "Spin Phase Effects and Gradient Moment Nulling, MRA",
+    "channel": "Radiology Tutorials",
+    "duration": "18:17",
+    "videoId": "C9RtyxxonaU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=C9RtyxxonaU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=91&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/091 - C9RtyxxonaU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/091 - Spin Phase Effects and Gradient Moment Nulling MRA.txt"
+  },
+  {
+    "number": 92,
+    "playlistIndex": 92,
+    "title": "Phase Contrast MRA and Velocity Encoding (VENC) | MR angiography | MRI Physics Course #26",
+    "shortTitle": "Phase Contrast MRA and Velocity Encoding (VENC)",
+    "channel": "Radiology Tutorials",
+    "duration": "19:25",
+    "videoId": "9TqCQ6vurd8",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=9TqCQ6vurd8&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=92&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/092 - 9TqCQ6vurd8.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/092 - Phase Contrast MRA and Velocity Encoding VENC.txt"
+  },
+  {
+    "number": 93,
+    "playlistIndex": 93,
+    "title": "Contrast Enhanced MRA, Gadolinium Based Contrast Agents | MR angiography | MRI Physics Course #27",
+    "shortTitle": "Contrast Enhanced MRA, Gadolinium Based Contrast Agents",
+    "channel": "Radiology Tutorials",
+    "duration": "13:42",
+    "videoId": "QRnMgEnvI7Q",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=QRnMgEnvI7Q&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=93&pp=iAQB",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/093 - QRnMgEnvI7Q.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/093 - Contrast Enhanced MRA Gadolinium Based Contrast Agents.txt"
+  },
+  {
+    "number": 94,
+    "playlistIndex": 94,
+    "title": "Magnetic Resonance Spectroscopy - MRS | Point Resolved Spectroscopy - PRESS | MRI Physics Course #28",
+    "shortTitle": "Magnetic Resonance Spectroscopy - MRS",
+    "channel": "Radiology Tutorials",
+    "duration": "20:47",
+    "videoId": "bZzmdJVEh1c",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=bZzmdJVEh1c&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=94&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "MRI Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/094 - bZzmdJVEh1c.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/094 - Magnetic Resonance Spectroscopy MRS.txt"
+  },
+  {
+    "number": 95,
+    "playlistIndex": 95,
+    "title": "CT physics overview | Computed Tomography Physics Course | Radiology Physics Course Lesson #1",
+    "shortTitle": "CT physics overview",
+    "channel": "Radiology Tutorials",
+    "duration": "19:35",
+    "videoId": "mvMO7CsU2To",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=mvMO7CsU2To&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=95&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/095 - mvMO7CsU2To.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/095 - CT physics overview.txt"
+  },
+  {
+    "number": 96,
+    "playlistIndex": 96,
+    "title": "CT Machine: X-ray Tube, Detector, Filter, Collimator, Slip Ring. Computed Tomography Physics #2",
+    "shortTitle": "CT Machine: X-ray Tube, Detector, Filter, Collimator, Slip Ring. Computed Tomography Physics #2",
+    "channel": "Radiology Tutorials",
+    "duration": "36:03",
+    "videoId": "3CRS3K8--L4",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3CRS3K8--L4&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=96&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/096 - 3CRS3K8--L4.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/096 - CT Machine X ray Tube Detector Filter Collimator Slip Ring Computed Tomography P.txt"
+  },
+  {
+    "number": 97,
+    "playlistIndex": 97,
+    "title": "Generations of CT Machines | Computed Tomography Physics Course | Radiology Physics Course Lesson #3",
+    "shortTitle": "Generations of CT Machines",
+    "channel": "Radiology Tutorials",
+    "duration": "22:44",
+    "videoId": "2ktJXFhXdXI",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=2ktJXFhXdXI&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=97&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/097 - 2ktJXFhXdXI.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/097 - Generations of CT Machines.txt"
+  },
+  {
+    "number": 98,
+    "playlistIndex": 98,
+    "title": "CT Beam Geometry, Fan and Cone Angle, FOV, Anode Heel Effect | Computed Tomography Physics Course #4",
+    "shortTitle": "CT Beam Geometry, Fan and Cone Angle, FOV, Anode Heel Effect",
+    "channel": "Radiology Tutorials",
+    "duration": "15:12",
+    "videoId": "_Fi8p6pkw8I",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=_Fi8p6pkw8I&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=98&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/098 - _Fi8p6pkw8I.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/098 - CT Beam Geometry Fan and Cone Angle FOV Anode Heel Effect.txt"
+  },
+  {
+    "number": 99,
+    "playlistIndex": 99,
+    "title": "Axial vs Helical CT Acquisition Modes | Computed Tomography Physics Course | Radiology Physics #5",
+    "shortTitle": "Axial vs Helical CT Acquisition Modes",
+    "channel": "Radiology Tutorials",
+    "duration": "15:05",
+    "videoId": "KTzJsotXVSg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=KTzJsotXVSg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=99&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/099 - KTzJsotXVSg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/099 - Axial vs Helical CT Acquisition Modes.txt"
+  },
+  {
+    "number": 100,
+    "playlistIndex": 100,
+    "title": "How to calculate Hounsfield Units and CT Windowing | Computed Tomography Radiology Physics Course #6",
+    "shortTitle": "How to calculate Hounsfield Units and CT Windowing",
+    "channel": "Radiology Tutorials",
+    "duration": "25:26",
+    "videoId": "E9AFfgcjPjo",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=E9AFfgcjPjo&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=100&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/100 - E9AFfgcjPjo.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/100 - How to calculate Hounsfield Units and CT Windowing.txt"
+  },
+  {
+    "number": 101,
+    "playlistIndex": 101,
+    "title": "Simple Back Projection | CT Image Reconstruction | Computed Tomography Radiology Physics Course #7",
+    "shortTitle": "Simple Back Projection",
+    "channel": "Radiology Tutorials",
+    "duration": "13:39",
+    "videoId": "ahpFGvyM0Ak",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=ahpFGvyM0Ak&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=101&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/101 - ahpFGvyM0Ak.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/101 - Simple Back Projection.txt"
+  },
+  {
+    "number": 102,
+    "playlistIndex": 102,
+    "title": "Filtered Back Projection, CT Image Reconstruction | Computed Tomography Radiology Physics Course #8",
+    "shortTitle": "Filtered Back Projection, CT Image Reconstruction",
+    "channel": "Radiology Tutorials",
+    "duration": "25:00",
+    "videoId": "3lqYMn1PYIE",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3lqYMn1PYIE&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=102&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/102 - 3lqYMn1PYIE.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/102 - Filtered Back Projection CT Image Reconstruction.txt"
+  },
+  {
+    "number": 103,
+    "playlistIndex": 103,
+    "title": "Iterative Reconstruction, CT Image Reconstruction | Computed Tomography Radiology Physics Course #9",
+    "shortTitle": "Iterative Reconstruction, CT Image Reconstruction",
+    "channel": "Radiology Tutorials",
+    "duration": "28:18",
+    "videoId": "KPoYnCVA8Rg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=KPoYnCVA8Rg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=103&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/103 - KPoYnCVA8Rg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/103 - Iterative Reconstruction CT Image Reconstruction.txt"
+  },
+  {
+    "number": 104,
+    "playlistIndex": 104,
+    "title": "CT Dose Introduction - Absorbed, Equivalent and Effective Dose | CT Radiology Physics Course #10",
+    "shortTitle": "CT Dose Introduction - Absorbed, Equivalent and Effective Dose",
+    "channel": "Radiology Tutorials",
+    "duration": "19:52",
+    "videoId": "3gL7j8HS7ZQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3gL7j8HS7ZQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=104&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/104 - 3gL7j8HS7ZQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/104 - CT Dose Introduction Absorbed Equivalent and Effective Dose.txt"
+  },
+  {
+    "number": 105,
+    "playlistIndex": 105,
+    "title": "CT Dose Part 2 - CTDI, Dose Length Product (DLP), k factors | CT Radiology Physics Course #11",
+    "shortTitle": "CT Dose Part 2 - CTDI, Dose Length Product (DLP), k factors",
+    "channel": "Radiology Tutorials",
+    "duration": "19:04",
+    "videoId": "HhTlh0CU2jg",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=HhTlh0CU2jg&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=105&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/105 - HhTlh0CU2jg.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/105 - CT Dose Part 2 CTDI Dose Length Product DLP k factors.txt"
+  },
+  {
+    "number": 106,
+    "playlistIndex": 106,
+    "title": "CT Dose Part 3 - Factors influencing dose, ALARA, Tube current modulation | CT Physics Course #12",
+    "shortTitle": "CT Dose Part 3 - Factors influencing dose, ALARA, Tube current modulation",
+    "channel": "Radiology Tutorials",
+    "duration": "19:21",
+    "videoId": "pmGWHQq2FvY",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=pmGWHQq2FvY&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=106&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/106 - pmGWHQq2FvY.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/106 - CT Dose Part 3 Factors influencing dose ALARA Tube current modulation.txt"
+  },
+  {
+    "number": 107,
+    "playlistIndex": 107,
+    "title": "Dual Energy CT Explained, DECT physics | Computed Tomography Radiology Physics Course #13",
+    "shortTitle": "Dual Energy CT Explained, DECT physics",
+    "channel": "Radiology Tutorials",
+    "duration": "21:50",
+    "videoId": "sDwK8g_bkkQ",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=sDwK8g_bkkQ&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=107&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/107 - sDwK8g_bkkQ.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/107 - Dual Energy CT Explained DECT physics.txt"
+  },
+  {
+    "number": 108,
+    "playlistIndex": 108,
+    "title": "Common CT Artifacts | Computed Tomography Radiology Physics Course #14",
+    "shortTitle": "Common CT Artifacts",
+    "channel": "Radiology Tutorials",
+    "duration": "24:51",
+    "videoId": "rmrfIqakGPo",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=rmrfIqakGPo&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=108&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/108 - rmrfIqakGPo.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/108 - Common CT Artifacts.txt"
+  },
+  {
+    "number": 109,
+    "playlistIndex": 109,
+    "title": "CT Image Quality, Spatial Resolution, Image Contrast, CT Noise | CT Radiology Physics Course #15",
+    "shortTitle": "CT Image Quality, Spatial Resolution, Image Contrast, CT Noise",
+    "channel": "Radiology Tutorials",
+    "duration": "32:17",
+    "videoId": "2YHXJeHhutc",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=2YHXJeHhutc&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=109&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/109 - 2YHXJeHhutc.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/109 - CT Image Quality Spatial Resolution Image Contrast CT Noise.txt"
+  },
+  {
+    "number": 110,
+    "playlistIndex": 110,
+    "title": "CT Perfusion Imaging Explained | TTP, CBV, CBF, MTT, Tmax | CT Radiology Physics Course #16",
+    "shortTitle": "CT Perfusion Imaging Explained",
+    "channel": "Radiology Tutorials",
+    "duration": "28:24",
+    "videoId": "Tr3mGBxVMhU",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=Tr3mGBxVMhU&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=110&pp=iAQB0gcJCQQLAYcqIYzv",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/110 - Tr3mGBxVMhU.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/110 - CT Perfusion Imaging Explained.txt"
+  },
+  {
+    "number": 111,
+    "playlistIndex": 111,
+    "title": "Photon Counting CT Explained Introduction to PCCT | Computed Tomography Radiology Physics Course #17",
+    "shortTitle": "Photon Counting CT Explained Introduction to PCCT",
+    "channel": "Radiology Tutorials",
+    "duration": "32:53",
+    "videoId": "ynCR07Y37Zs",
+    "playlistId": "PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-",
+    "youtubeUrl": "https://www.youtube.com/watch?v=ynCR07Y37Zs&list=PLWfaNqiSdtzXdcwPwLtdUb_QnzfU5UIh-&index=111&pp=iAQB",
+    "series": "CT Physics",
+    "transcriptPath": "Radiology_Physics_Transcripts/111 - ynCR07Y37Zs.txt",
+    "transcriptTitlePath": "Radiology_Physics_Transcripts/111 - Photon Counting CT Explained Introduction to PCCT.txt"
+  }
+];
+
+const DEFAULT_SERIES_ORDER = [
+  "Atomic and Radiation Basics",
+  "X-ray Physics",
+  "Ultrasound Physics",
+  "MRI Physics",
+  "CT Physics"
+];
+const transcriptCache = {};
+let currentTranscriptVid = null;
+
+// -----------------------------
+// State & Persistence
+// -----------------------------
+const STORAGE_KEY = "radiology-physics-playlist-tracker:v1";
+const DEFAULT_STATE = {
+  version: 1,
+  playlistId: videos[0] ? videos[0].playlistId : "",
+  watched: [],
+  favorites: [],
+  notes: {},
+  watchCounts: {},
+  round: 1,
+  seenAt: {},
+  seenSeq: 0,
+  ui: {
+    filter: "need",
+    seriesOpen: true,
+    enabledSeries: [...DEFAULT_SERIES_ORDER],
+    seriesOrder: [...DEFAULT_SERIES_ORDER]
+  }
+};
+
+function cloneDefaultState() {
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+function normalizeState(obj) {
+  const base = cloneDefaultState();
+  const next = Object.assign(base, obj || {});
+  next.ui = Object.assign(base.ui, (obj && obj.ui) || {});
+  next.watched = Array.isArray(next.watched) ? next.watched : [];
+  next.favorites = Array.isArray(next.favorites) ? next.favorites : [];
+  next.notes = next.notes && typeof next.notes === "object" ? next.notes : {};
+  next.watchCounts = next.watchCounts && typeof next.watchCounts === "object" ? next.watchCounts : {};
+  next.seenAt = next.seenAt && typeof next.seenAt === "object" ? next.seenAt : {};
+  next.ui.enabledSeries = Array.isArray(next.ui.enabledSeries) ? next.ui.enabledSeries.filter(s => DEFAULT_SERIES_ORDER.includes(s)) : [...DEFAULT_SERIES_ORDER];
+  next.ui.seriesOrder = Array.isArray(next.ui.seriesOrder) ? next.ui.seriesOrder.filter(s => DEFAULT_SERIES_ORDER.includes(s)) : [...DEFAULT_SERIES_ORDER];
+  for (const s of DEFAULT_SERIES_ORDER) {
+    if (!next.ui.seriesOrder.includes(s)) next.ui.seriesOrder.push(s);
+  }
+  if (!next.ui.enabledSeries.length) next.ui.enabledSeries = [...DEFAULT_SERIES_ORDER];
+  if (!["need", "all", "seen", "faves"].includes(next.ui.filter)) next.ui.filter = "need";
+  if (typeof next.ui.seriesOpen !== "boolean") next.ui.seriesOpen = true;
+  return next;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return cloneDefaultState();
+    return normalizeState(JSON.parse(raw));
+  } catch (e) {
+    console.warn("Failed to parse state", e);
+    return cloneDefaultState();
+  }
+}
+
+function saveState(next) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
+let state = loadState();
+
+// -----------------------------
+// Helpers
+// -----------------------------
+const byId = new Map(videos.map(v => [v.videoId, v]));
+const isWatched = id => state.watched.includes(id);
+const isFav = id => state.favorites.includes(id);
+const thumbnail = id => `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+const selectedSeriesSet = () => new Set(state.ui.enabledSeries || []);
+
+function durationToSeconds(text) {
+  if (!text) return 0;
+  const parts = String(text).trim().split(":").map(x => parseInt(x, 10));
+  if (parts.some(Number.isNaN)) return 0;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+function formatDuration(seconds) {
+  seconds = Math.max(0, Math.round(seconds || 0));
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h) return `${h}h ${String(m).padStart(2,"0")}m`;
+  return `${m}m ${String(s).padStart(2,"0")}s`;
+}
+
+function escapeHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[ch]));
+}
+
+function sortBySeriesOrder(list) {
+  const order = state.ui.seriesOrder || DEFAULT_SERIES_ORDER;
+  return [...list].sort((a, b) => {
+    const ai = order.indexOf(a.series);
+    const bi = order.indexOf(b.series);
+    const ar = ai === -1 ? 999 : ai;
+    const br = bi === -1 ? 999 : bi;
+    return ar - br || a.playlistIndex - b.playlistIndex;
+  });
+}
+
+function selectedVideos() {
+  const enabled = selectedSeriesSet();
+  return sortBySeriesOrder(videos.filter(v => enabled.has(v.series)));
+}
+
+function visibleVideos() {
+  const list = selectedVideos();
+  const filter = state.ui.filter || "need";
+  if (filter === "need") return list.filter(v => !isWatched(v.videoId));
+  if (filter === "seen") return list.filter(v => isWatched(v.videoId));
+  if (filter === "faves") return list.filter(v => isFav(v.videoId));
+  return list;
+}
+
+function nextUnwatched() {
+  return selectedVideos().find(v => !isWatched(v.videoId)) || null;
+}
+
+function seriesStats(series) {
+  const items = videos.filter(v => v.series === series);
+  const watched = items.filter(v => isWatched(v.videoId)).length;
+  const totalSeconds = items.reduce((sum, v) => sum + durationToSeconds(v.duration), 0);
+  return { total: items.length, watched, totalSeconds };
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("show"), 1800);
+}
+
+// -----------------------------
+// Progress and next up
+// -----------------------------
+const listEl = document.getElementById("list");
+const progFill = document.getElementById("progFill");
+const progPct = document.getElementById("progPct");
+const nextUp = document.getElementById("nextUp");
+const nextThumb = document.getElementById("nextThumb");
+const nextTitle = document.getElementById("nextTitle");
+const nextMeta = document.getElementById("nextMeta");
+const nextSeries = document.getElementById("nextSeries");
+const nextDuration = document.getElementById("nextDuration");
+const btnPlayNext = document.getElementById("btnPlayNext");
+const subtitle = document.getElementById("subtitle");
+
+function renderProgress() {
+  const selected = selectedVideos();
+  const seen = selected.filter(v => isWatched(v.videoId)).length;
+  const pct = selected.length ? Math.round((seen / selected.length) * 100) : 0;
+  progFill.style.width = pct + "%";
+  progPct.textContent = `${seen}/${selected.length} • ${pct}%`;
+  const totalSeconds = selected.reduce((sum, v) => sum + durationToSeconds(v.duration), 0);
+  subtitle.textContent = `${videos.length} videos total • ${selected.length} selected • ${formatDuration(totalSeconds)} selected runtime`;
+}
+
+function renderNextUp() {
+  const next = nextUnwatched();
+  if (!next) {
+    nextUp.hidden = true;
+    return;
+  }
+  nextUp.hidden = false;
+  nextThumb.src = thumbnail(next.videoId);
+  nextTitle.textContent = next.shortTitle || next.title;
+  nextMeta.textContent = `${next.series} • #${next.playlistIndex} • ${next.channel}`;
+  nextSeries.textContent = "Next Up • " + next.series;
+  nextDuration.textContent = next.duration;
+  btnPlayNext.onclick = () => openVideo(next.videoId, { markSeen: true });
+}
+
+// -----------------------------
+// Series panel
+// -----------------------------
+const btnSeriesToggle = document.getElementById("btnSeriesToggle");
+const seriesPanel = document.getElementById("seriesPanel");
+const seriesList = document.getElementById("seriesList");
+let draggedSeries = null;
+
+function renderSeriesPanel() {
+  seriesPanel.hidden = !state.ui.seriesOpen;
+  btnSeriesToggle.setAttribute("aria-expanded", String(state.ui.seriesOpen));
+  btnSeriesToggle.querySelector("span:last-child").innerHTML = state.ui.seriesOpen ? "&#9652;" : "&#9662;";
+  const order = state.ui.seriesOrder || DEFAULT_SERIES_ORDER;
+  const enabled = selectedSeriesSet();
+  seriesList.innerHTML = "";
+  order.forEach((series, idx) => {
+    const stats = seriesStats(series);
+    const row = document.createElement("div");
+    row.className = "series-row";
+    row.draggable = true;
+    row.dataset.series = series;
+    row.innerHTML = `
+      <span class="handle" title="Drag to reorder">☰</span>
+      <label style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
+        <input type="checkbox" ${enabled.has(series) ? "checked" : ""} />
+        <span style="min-width:0;">
+          <span class="series-title">${escapeHtml(series)}</span><br>
+          <span class="series-meta">${stats.watched}/${stats.total} watched • ${formatDuration(stats.totalSeconds)}</span>
+        </span>
+      </label>
+      <span class="chip">${idx + 1}</span>
+      <span class="movebtns">
+        <button class="mini" data-move="up" title="Move up">↑</button>
+        <button class="mini" data-move="down" title="Move down">↓</button>
+      </span>
+    `;
+    row.querySelector("input").onchange = e => {
+      if (e.target.checked) {
+        if (!state.ui.enabledSeries.includes(series)) state.ui.enabledSeries.push(series);
+      } else {
+        state.ui.enabledSeries = state.ui.enabledSeries.filter(s => s !== series);
+      }
+      saveState(state);
+      renderAll();
+    };
+    row.querySelector('[data-move="up"]').onclick = () => moveSeries(series, -1);
+    row.querySelector('[data-move="down"]').onclick = () => moveSeries(series, 1);
+    row.addEventListener("dragstart", e => {
+      draggedSeries = series;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", series);
+    });
+    row.addEventListener("dragend", () => {
+      draggedSeries = null;
+      row.classList.remove("dragging");
+      document.querySelectorAll(".series-row.drag-over").forEach(x => x.classList.remove("drag-over"));
+    });
+    row.addEventListener("dragover", e => {
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      const from = draggedSeries || e.dataTransfer.getData("text/plain");
+      const to = series;
+      if (!from || from === to) return;
+      reorderSeries(from, to);
+    });
+    seriesList.appendChild(row);
+  });
+}
+
+function moveSeries(series, delta) {
+  const order = state.ui.seriesOrder;
+  const i = order.indexOf(series);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  saveState(state);
+  renderAll();
+}
+
+function reorderSeries(from, to) {
+  const order = state.ui.seriesOrder.filter(s => s !== from);
+  const idx = order.indexOf(to);
+  order.splice(idx, 0, from);
+  state.ui.seriesOrder = order;
+  saveState(state);
+  renderAll();
+}
+
+btnSeriesToggle.onclick = () => {
+  state.ui.seriesOpen = !state.ui.seriesOpen;
+  saveState(state);
+  renderSeriesPanel();
+};
+
+document.getElementById("btnAllSeries").onclick = () => {
+  state.ui.enabledSeries = [...DEFAULT_SERIES_ORDER];
+  saveState(state);
+  renderAll();
+};
+
+document.getElementById("btnNoSeries").onclick = () => {
+  state.ui.enabledSeries = [];
+  saveState(state);
+  renderAll();
+};
+
+document.getElementById("btnResetOrder").onclick = () => {
+  state.ui.seriesOrder = [...DEFAULT_SERIES_ORDER];
+  saveState(state);
+  renderAll();
+};
+
+// -----------------------------
+// Video list
+// -----------------------------
+function renderList() {
+  const list = visibleVideos();
+  listEl.innerHTML = "";
+  if (!list.length) {
+    listEl.innerHTML = `<div class="empty">No videos match the current view. Try changing the view filter or selecting another series.</div>`;
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const v of list) {
+    const row = document.createElement("article");
+    row.className = "row";
+    const watched = isWatched(v.videoId);
+    const fav = isFav(v.videoId);
+    const count = state.watchCounts[v.videoId] || 0;
+    row.innerHTML = `
+      <div class="thumb-sm" title="Open video">
+        <img src="${thumbnail(v.videoId)}" alt="Thumbnail for ${escapeHtml(v.title)}" loading="lazy" />
+        <span class="time">${escapeHtml(v.duration)}</span>
+      </div>
+      <div class="row-main">
+        <div class="row-title"><button type="button" class="open-title">${escapeHtml(v.shortTitle || v.title)}</button></div>
+        <div class="row-speaker">${escapeHtml(v.series)} • ${escapeHtml(v.channel)}</div>
+        <div class="row-meta">Playlist #${v.playlistIndex} • Video ID: ${escapeHtml(v.videoId)}</div>
+      </div>
+      <div class="row-actions">
+        <button class="iconbtn mark" title="Mark watched"><span class="check ${watched ? "on" : ""}">${watched ? "✓" : ""}</span>Watched</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav ? "fav" : ""}">★</span>Fav</button>
+        <button class="iconbtn open">Open</button>
+        <button class="iconbtn transcript">Transcript</button>
+        <button class="iconbtn notes">Notes</button>
+        <span class="countpill" title="Manual watch count">
+          <button class="minus">−</button>
+          <input value="${count}" inputmode="numeric" aria-label="Watch count" />
+          <button class="plus">+</button>
+        </span>
+      </div>
+    `;
+    row.querySelector(".thumb-sm").onclick = () => openVideo(v.videoId, { markSeen: true });
+    row.querySelector(".open-title").onclick = () => openVideo(v.videoId, { markSeen: true });
+    row.querySelector(".open").onclick = () => openVideo(v.videoId, { markSeen: true });
+    row.querySelector(".mark").onclick = () => setWatched(v.videoId, !isWatched(v.videoId), { countDelta: isWatched(v.videoId) ? -1 : 1 });
+    row.querySelector(".fav").onclick = () => toggleFav(v.videoId);
+    row.querySelector(".transcript").onclick = () => openTranscript(v.videoId);
+    row.querySelector(".notes").onclick = () => openNotes(v.videoId);
+    row.querySelector(".minus").onclick = () => adjustCount(v.videoId, -1);
+    row.querySelector(".plus").onclick = () => adjustCount(v.videoId, 1);
+    row.querySelector(".countpill input").onchange = e => {
+      const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+      state.watchCounts[v.videoId] = val;
+      if (val > 0 && !isWatched(v.videoId)) markSeenOnly(v.videoId);
+      saveState(state);
+      renderAll();
+    };
+    frag.appendChild(row);
+  }
+  listEl.appendChild(frag);
+}
+
+function setWatched(id, val, { countDelta = 0 } = {}) {
+  const was = isWatched(id);
+  if (val && !was) {
+    state.watched.push(id);
+    markSeenOnly(id);
+  }
+  if (!val && was) {
+    state.watched = state.watched.filter(x => x !== id);
+    delete state.seenAt[id];
+  }
+  if (countDelta) {
+    state.watchCounts[id] = Math.max(0, (state.watchCounts[id] || 0) + countDelta);
+  }
+  if (state.watched.length === videos.length) {
+    state.round += 1;
+    state.watched = [];
+    state.seenAt = {};
+    toast(`Round ${state.round - 1} complete. Starting round ${state.round}.`);
+  }
+  saveState(state);
+  renderAll();
+}
+
+function markSeenOnly(id) {
+  state.seenSeq = (state.seenSeq || 0) + 1;
+  state.seenAt[id] = state.seenSeq;
+}
+
+function adjustCount(id, delta) {
+  state.watchCounts[id] = Math.max(0, (state.watchCounts[id] || 0) + delta);
+  if (state.watchCounts[id] > 0 && !isWatched(id)) {
+    state.watched.push(id);
+    markSeenOnly(id);
+  }
+  if (state.watchCounts[id] === 0 && isWatched(id)) {
+    state.watched = state.watched.filter(x => x !== id);
+    delete state.seenAt[id];
+  }
+  saveState(state);
+  renderAll();
+}
+
+function toggleFav(id) {
+  state.favorites = isFav(id) ? state.favorites.filter(x => x !== id) : [...state.favorites, id];
+  saveState(state);
+  renderAll();
+}
+
+function openVideo(id, { markSeen = false } = {}) {
+  const v = byId.get(id);
+  if (!v) return;
+  window.open(v.youtubeUrl || `https://www.youtube.com/watch?v=${id}`, "_blank", "noopener");
+  if (markSeen && !isWatched(id)) {
+    setWatched(id, true, { countDelta: 1 });
+  }
+}
+
+// View tabs
+document.querySelectorAll(".seg").forEach(seg => {
+  seg.addEventListener("click", () => {
+    state.ui.filter = seg.dataset.filter;
+    saveState(state);
+    renderAll();
+  });
+});
+
+function renderTabs() {
+  document.querySelectorAll(".seg").forEach(seg => {
+    const active = seg.dataset.filter === state.ui.filter;
+    seg.classList.toggle("active", active);
+    seg.setAttribute("aria-selected", String(active));
+  });
+}
+
+// -----------------------------
+// Transcript modal
+// -----------------------------
+const transcriptModal = document.getElementById("transcriptModal");
+const transcriptTitle = document.getElementById("transcriptTitle");
+const transcriptMeta = document.getElementById("transcriptMeta");
+const transcriptBody = document.getElementById("transcriptBody");
+const closeTranscriptBtn = document.getElementById("closeTranscript");
+const copyTranscriptBtn = document.getElementById("copyTranscriptBtn");
+const copyTranscriptPathBtn = document.getElementById("copyTranscriptPathBtn");
+
+function transcriptCandidates(v) {
+  const pad = String(v.playlistIndex).padStart(3, "0");
+  return [
+    v.transcriptPath,
+    v.transcriptTitlePath,
+    `Radiology_Physics_Transcripts/${v.videoId}.txt`,
+    `Radiology_Physics_Transcripts/${pad}.txt`,
+    `transcripts/${pad} - ${v.videoId}.txt`,
+    `transcripts/${v.videoId}.txt`,
+    `transcripts/${pad}.txt`
+  ];
+}
+
+async function loadTranscript(v) {
+  if (transcriptCache[v.videoId]) return transcriptCache[v.videoId];
+  const candidates = transcriptCandidates(v);
+  for (const path of candidates) {
+    try {
+      const res = await fetch(encodeURI(path), { cache: "no-store" });
+      if (res.ok) {
+        const text = await res.text();
+        const result = { text, path };
+        transcriptCache[v.videoId] = result;
+        return result;
+      }
+    } catch (e) {
+      // Local file fetch may fail under file:// in Chrome. The expected path is still shown below.
+    }
+  }
+  return null;
+}
+
+async function openTranscript(id) {
+  const v = byId.get(id);
+  if (!v) return;
+  currentTranscriptVid = id;
+  transcriptTitle.textContent = (v.shortTitle || v.title) + " - Transcript";
+  transcriptMeta.textContent = `${v.series} • #${v.playlistIndex} • ${v.duration}`;
+  transcriptBody.textContent = "Loading transcript...";
+  transcriptModal.showModal();
+  const loaded = await loadTranscript(v);
+  if (!loaded) {
+    transcriptBody.textContent = `Transcript not found yet.
+
+Expected primary path:
+${v.transcriptPath}
+
+Other paths this app will also try:
+${transcriptCandidates(v).slice(1).join("\n")}
+
+When you add transcript files later, put them beside this HTML file using one of these paths. If you open this HTML directly as a file in Chrome and transcripts do not load, run it from a tiny local server instead.`;
+    return;
+  }
+  transcriptMeta.textContent = `${v.series} • #${v.playlistIndex} • loaded from ${loaded.path}`;
+  transcriptBody.textContent = loaded.text;
+}
+
+closeTranscriptBtn.onclick = () => transcriptModal.close();
+transcriptModal.addEventListener("close", () => { currentTranscriptVid = null; });
+
+copyTranscriptBtn.onclick = async () => {
+  if (!currentTranscriptVid) return;
+  const v = byId.get(currentTranscriptVid);
+  const loaded = await loadTranscript(v);
+  if (!loaded) {
+    copyText(transcriptCandidates(v).join("\n"));
+    toast("Transcript missing. Expected paths copied.");
+    return;
+  }
+  copyText(loaded.text);
+  toast("Transcript copied.");
+};
+
+copyTranscriptPathBtn.onclick = () => {
+  if (!currentTranscriptVid) return;
+  const v = byId.get(currentTranscriptVid);
+  copyText(transcriptCandidates(v).join("\n"));
+  toast("Expected transcript paths copied.");
+};
+
+// -----------------------------
+// Notes modal
+// -----------------------------
+const notesModal = document.getElementById("notesModal");
+const notesTitle = document.getElementById("notesTitle");
+const notesArea = document.getElementById("notesArea");
+const closeNotesBtn = document.getElementById("closeNotes");
+let currentNotesVid = null;
+let notesTimer = null;
+
+function openNotes(videoId) {
+  const v = byId.get(videoId);
+  currentNotesVid = videoId;
+  notesTitle.textContent = (v.shortTitle || v.title) + " - Notes";
+  notesArea.value = state.notes[videoId] || "";
+  notesModal.showModal();
+}
+
+closeNotesBtn.onclick = () => notesModal.close();
+notesModal.addEventListener("close", () => { currentNotesVid = null; });
+notesArea.addEventListener("input", () => {
+  if (!currentNotesVid) return;
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(() => {
+    state.notes[currentNotesVid] = notesArea.value;
+    saveState(state);
+  }, 250);
+});
+
+// -----------------------------
+// Exports / Restore
+// -----------------------------
+function getFullState() {
+  return {
+    ...state,
+    exportedAt: new Date().toISOString(),
+    selectedSeries: state.ui.enabledSeries,
+    seriesOrder: state.ui.seriesOrder,
+    videos: videos.map(v => ({
+      playlistIndex: v.playlistIndex,
+      title: v.title,
+      series: v.series,
+      duration: v.duration,
+      videoId: v.videoId,
+      url: v.youtubeUrl,
+      watched: isWatched(v.videoId),
+      favorite: isFav(v.videoId),
+      watchCount: state.watchCounts[v.videoId] || 0,
+      notes: state.notes[v.videoId] || ""
+    }))
+  };
+}
+
+function downloadText(filename, text, type = "text/plain") {
+  const blob = new Blob([text], { type });
+  const a = document.createElement("a");
+  a.download = filename;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadAll() {
+  downloadText("radiology-physics-tracker-backup.json", JSON.stringify(getFullState(), null, 2), "application/json");
+}
+
+async function emailExport() {
+  const body = encodeURIComponent(JSON.stringify(getFullState(), null, 2));
+  window.location.href = `mailto:?subject=Radiology%20Physics%20Tracker%20Backup&body=${body}`;
+}
+
+function restoreFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      state = normalizeState(data);
+      saveState(state);
+      renderAll();
+      toast("Restored.");
+    } catch (e) {
+      console.error(e);
+      toast("Could not restore file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function notesText() {
+  return sortBySeriesOrder(videos).map(v => {
+    const note = state.notes[v.videoId] || "";
+    if (!note.trim()) return "";
+    return `#${v.playlistIndex} - ${v.shortTitle || v.title}
+${v.series} • ${v.youtubeUrl}
+
+${note}`;
+  }).filter(Boolean).join("\n\n---\n\n");
+}
+
+function transcriptManifest() {
+  return sortBySeriesOrder(videos).map(v => `${String(v.playlistIndex).padStart(3, "0")}	${v.series}	${v.shortTitle || v.title}	${v.videoId}	${v.transcriptPath}`).join("\n");
+}
+
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  document.execCommand("copy");
+  ta.remove();
+}
+
+document.getElementById("btnDownload").onclick = downloadAll;
+document.getElementById("btnEmail").onclick = emailExport;
+document.getElementById("fileRestore").onchange = e => {
+  const file = e.target.files && e.target.files[0];
+  if (file) restoreFromFile(file);
+  e.target.value = "";
+};
+document.getElementById("btnNotesDownload").onclick = () => downloadText("radiology-physics-notes.txt", notesText() || "No notes yet.");
+document.getElementById("btnNotesCopy").onclick = () => { copyText(notesText() || "No notes yet."); toast("Notes copied."); };
+document.getElementById("btnTranscriptManifest").onclick = () => { copyText(transcriptManifest()); toast("Transcript manifest copied."); };
+
+// -----------------------------
+// Settings
+// -----------------------------
+const settingsModal = document.getElementById("settingsModal");
+const settingsTranscriptExample = document.getElementById("settingsTranscriptExample");
+document.getElementById("btnSettings").onclick = () => {
+  settingsTranscriptExample.value = videos.slice(0, 12).map(v => v.transcriptPath).join("\n") + "
+...";
+  settingsModal.showModal();
+};
+document.getElementById("closeSettings").onclick = () => settingsModal.close();
+document.getElementById("copyAllTranscriptPathsBtn").onclick = () => { copyText(transcriptManifest()); toast("Transcript manifest copied."); };
+document.getElementById("resetAllBtn").onclick = () => {
+  if (!confirm("Reset all progress, favorites, notes, and series choices?")) return;
+  state = cloneDefaultState();
+  saveState(state);
+  renderAll();
+  settingsModal.close();
+  toast("Reset complete.");
+};
+
+// -----------------------------
+// Main render
+// -----------------------------
+function renderAll() {
+  renderTabs();
+  renderSeriesPanel();
+  renderProgress();
+  renderNextUp();
+  renderList();
+}
+
+renderAll();
+</script>
+</body>
+</html>
