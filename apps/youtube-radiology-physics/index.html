@@ -73,13 +73,14 @@
   .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width .25s ease; }
   .pct { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 94px; text-align: right; }
 
-  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); cursor: pointer; }
+  .nextup:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .nextup .thumb { position: relative; aspect-ratio: 16/9; background: #06111a; overflow: hidden; }
   .nextup img { width:100%; height:100%; object-fit:cover; display:block; }
   .chip { display:inline-flex; align-items:center; gap:6px; background: rgba(0,0,0,.48); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
   .nextup .chip { position:absolute; left:10px; top:10px; }
   .nextup .duration-chip { position:absolute; right:10px; bottom:10px; }
-  .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .nextup .meta { padding: 12px; display:block; }
   .nextup .meta .t { font-size: 18px; font-weight: 700; }
   .nextup .meta .m { color: var(--muted); font-size: 13px; margin-top: 2px; }
 
@@ -187,7 +188,7 @@
       </div>
     </header>
 
-    <section class="nextup" id="nextUp" hidden>
+    <section class="nextup" id="nextUp" role="link" tabindex="0" hidden>
       <div class="thumb">
         <img id="nextThumb" alt="Next up thumbnail" />
         <div class="chip" id="nextSeries">Next Up</div>
@@ -198,7 +199,6 @@
           <div class="t" id="nextTitle">&nbsp;</div>
           <div class="m" id="nextMeta">&nbsp;</div>
         </div>
-        <button class="btn" id="btnPlayNext">Open</button>
       </div>
     </section>
 
@@ -2010,7 +2010,6 @@ const nextTitle = document.getElementById("nextTitle");
 const nextMeta = document.getElementById("nextMeta");
 const nextSeries = document.getElementById("nextSeries");
 const nextDuration = document.getElementById("nextDuration");
-const btnPlayNext = document.getElementById("btnPlayNext");
 const subtitle = document.getElementById("subtitle");
 
 function renderProgress() {
@@ -2035,8 +2034,16 @@ function renderNextUp() {
   nextMeta.textContent = `${next.series} - #${next.playlistIndex} - ${next.channel}`;
   nextSeries.textContent = "Next Up - " + next.series;
   nextDuration.textContent = next.duration;
-  btnPlayNext.onclick = () => openVideo(next.videoId, { markSeen: true });
+  nextUp.setAttribute("aria-label", `Open next video: ${next.shortTitle || next.title}`);
+  nextUp.onclick = () => openVideo(next.videoId, { markSeen: true });
 }
+
+nextUp.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  const next = nextUnwatched();
+  if (next) openVideo(next.videoId, { markSeen: true });
+});
 
 // -----------------------------
 // Series panel
