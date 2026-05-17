@@ -47,7 +47,12 @@ from .early_review import (
     EARLY_REVIEW_SHORTCUT,
     build_early_review_filtered_deck,
 )
-from .f3_blocker import is_default_f3_shortcut_disabled, set_default_f3_shortcut_disabled
+from .f3_blocker import (
+    is_ctrl_shift_p_shortcut_blocked,
+    is_default_f3_shortcut_disabled,
+    set_ctrl_shift_p_shortcut_blocked,
+    set_default_f3_shortcut_disabled,
+)
 from .hard_cards import open_hard_cards_dialog
 from .lightning_mode import (
     build_lightning_mode_filtered_deck_for_current_deck,
@@ -120,6 +125,7 @@ _review_image_overlay_remember_position_action: QAction | None = None
 _recent_leech_banner_action: QAction | None = None
 _tts_audio_action: QAction | None = None
 _disable_f3_action: QAction | None = None
+_block_ctrl_shift_p_action: QAction | None = None
 _underline_trailing_spaces_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
 _add_cards_diagnosis_action: QAction | None = None
@@ -344,13 +350,18 @@ class PocketKnifeLauncherDialog(QDialog):
         keyboard_box = QGroupBox("Keyboard Overrides")
         keyboard_layout = QVBoxLayout(keyboard_box)
         keyboard_copy = QLabel(
-            "Optional shortcut override: disable Anki's built-in plain F3 shortcut so that key is left unused."
+            "Optional shortcut overrides: leave selected Anki shortcuts unused for your own workflow."
         )
         keyboard_copy.setWordWrap(True)
         keyboard_layout.addWidget(keyboard_copy)
         self.disable_f3_checkbox = QCheckBox("Disable Anki's default F3 shortcut")
         self.disable_f3_checkbox.setChecked(is_default_f3_shortcut_disabled())
         keyboard_layout.addWidget(self.disable_f3_checkbox)
+        self.block_ctrl_shift_p_checkbox = QCheckBox(
+            "Block Ctrl+Shift+P from opening Anki preferences"
+        )
+        self.block_ctrl_shift_p_checkbox.setChecked(is_ctrl_shift_p_shortcut_blocked())
+        keyboard_layout.addWidget(self.block_ctrl_shift_p_checkbox)
         layout.addWidget(keyboard_box)
 
         editor_formatting_box = QGroupBox("Editor Formatting")
@@ -553,6 +564,9 @@ class PocketKnifeLauncherDialog(QDialog):
         self.lightning_answer_seconds_spin.valueChanged.connect(self._set_lightning_answer_seconds)
         self.recent_leech_banner_checkbox.toggled.connect(self._set_recent_leech_banner_enabled)
         self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
+        self.block_ctrl_shift_p_checkbox.toggled.connect(
+            self._set_block_ctrl_shift_p_enabled
+        )
         self.underline_trailing_spaces_checkbox.toggled.connect(
             self._set_underline_trailing_spaces_enabled
         )
@@ -747,6 +761,10 @@ class PocketKnifeLauncherDialog(QDialog):
         set_default_f3_shortcut_disabled(bool(checked))
         sync_settings_ui()
 
+    def _set_block_ctrl_shift_p_enabled(self, checked: bool) -> None:
+        set_ctrl_shift_p_shortcut_blocked(bool(checked))
+        sync_settings_ui()
+
     def _set_underline_trailing_spaces_enabled(self, checked: bool) -> None:
         set_underline_trailing_spaces_fix_enabled(bool(checked))
         sync_settings_ui()
@@ -819,6 +837,7 @@ def sync_settings_ui() -> None:
     global _recent_leech_banner_action
     global _tts_audio_action
     global _disable_f3_action
+    global _block_ctrl_shift_p_action
     global _underline_trailing_spaces_action
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
@@ -866,6 +885,11 @@ def sync_settings_ui() -> None:
         _disable_f3_action.blockSignals(True)
         _disable_f3_action.setChecked(disable_f3_enabled)
         _disable_f3_action.blockSignals(False)
+    block_ctrl_shift_p_enabled = is_ctrl_shift_p_shortcut_blocked()
+    if _block_ctrl_shift_p_action is not None:
+        _block_ctrl_shift_p_action.blockSignals(True)
+        _block_ctrl_shift_p_action.setChecked(block_ctrl_shift_p_enabled)
+        _block_ctrl_shift_p_action.blockSignals(False)
     underline_trailing_spaces_enabled = is_underline_trailing_spaces_fix_enabled()
     if _underline_trailing_spaces_action is not None:
         _underline_trailing_spaces_action.blockSignals(True)
@@ -966,6 +990,10 @@ def sync_settings_ui() -> None:
         _dialog.disable_f3_checkbox.blockSignals(True)
         _dialog.disable_f3_checkbox.setChecked(disable_f3_enabled)
         _dialog.disable_f3_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "block_ctrl_shift_p_checkbox"):
+        _dialog.block_ctrl_shift_p_checkbox.blockSignals(True)
+        _dialog.block_ctrl_shift_p_checkbox.setChecked(block_ctrl_shift_p_enabled)
+        _dialog.block_ctrl_shift_p_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "underline_trailing_spaces_checkbox"):
         _dialog.underline_trailing_spaces_checkbox.blockSignals(True)
         _dialog.underline_trailing_spaces_checkbox.setChecked(underline_trailing_spaces_enabled)
@@ -1050,6 +1078,11 @@ def _toggle_tracker_only_paused(checked: bool) -> None:
 
 def _toggle_disable_f3(checked: bool) -> None:
     set_default_f3_shortcut_disabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_block_ctrl_shift_p(checked: bool) -> None:
+    set_ctrl_shift_p_shortcut_blocked(bool(checked))
     sync_settings_ui()
 
 
@@ -1202,6 +1235,12 @@ def _register_menu() -> None:
     _disable_f3_action.setChecked(is_default_f3_shortcut_disabled())
     _disable_f3_action.triggered.connect(_toggle_disable_f3)
     pocket_menu.addAction(_disable_f3_action)
+
+    _block_ctrl_shift_p_action = QAction("Block Ctrl+Shift+P Preferences Shortcut", mw)
+    _block_ctrl_shift_p_action.setCheckable(True)
+    _block_ctrl_shift_p_action.setChecked(is_ctrl_shift_p_shortcut_blocked())
+    _block_ctrl_shift_p_action.triggered.connect(_toggle_block_ctrl_shift_p)
+    pocket_menu.addAction(_block_ctrl_shift_p_action)
 
     _underline_trailing_spaces_action = QAction("Keep Trailing Spaces Out Of Underline", mw)
     _underline_trailing_spaces_action.setCheckable(True)

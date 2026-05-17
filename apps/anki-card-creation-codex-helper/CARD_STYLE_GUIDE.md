@@ -2,6 +2,8 @@
 
 Use this as the source of truth for writing Anki cards for this user. If card quality needs to change, edit this file first and make other workflows point here.
 
+For BoardVitals-specific quiz capture, Anki generation, and local HTML quiz review behavior, use `BOARDVITALS_WORKFLOW.md` together with this guide.
+
 ## Default Style
 
 - Default to cloze notes, not basic cards.
@@ -67,7 +69,9 @@ Rules:
 - Never prefix image-front cards with source provenance such as a quiz name, source name, article name, question number, or batch label. Put source information in `Extra`, `README.md`, or `manifest.json` only.
 - Put short discriminators, pitfalls, or a brief rationale in `Extra` when useful. Do not write long explanations in `Extra`.
 - If a source question or source item has images that are not already shown on the front of a given card, append all of those images after the text in `Extra`. This is required for fact-only cards derived from image-containing questions.
-- For quiz-derived cards, start `Extra` with the source question number in the format `Q<number>` before result, difficulty, rationale, or images.
+- For quiz-derived cards, start `Extra` with the source question number in the format `Q<number>`. It is acceptable to include whether the user got the question correct/incorrect and the difficulty, but do not include peer-comparison percentages such as `correct answer chosen by X%` or `selected answer chosen by Y%`; those are low-yield review noise.
+- For every quiz-derived card, include at least one concise teaching sentence in `Extra` after the question number/result metadata. This sentence should explain the specific tested point or discriminator in plain language. It should identify the device, structure, diagnosis clue, threshold, mechanism, or management rule being tested when that context is not already obvious from the front. Example: `Q3. Incorrect; difficulty: hard. This is a radiation survey meter; accuracy is tested yearly, while constancy is checked daily and linearity quarterly.`
+- If a quiz question includes a `Vital Concept` or similarly labeled key concept, include that concept word-for-word in `Extra` whenever technically possible. Place it after the question number/result metadata and before any appended images. Do not paraphrase, shorten, or convert it into peer-style metadata; preserve the source wording so the reviewer can see the official tested concept.
 - Include a screenshot of the full source page in `Extra` whenever feasible so the reviewer can see the source context.
 - A `Most likely diagnosis?` card must include an image.
 - Do not create image-front cards for labels, arrows, or caption trivia unless the user explicitly asks for that style.
@@ -150,6 +154,10 @@ For every missed quiz question, also create one additional misconception card ba
 When converting a quiz question into a fact card, identify what the question was actually testing before writing the cloze. Do not make tautological cards where the answer is essentially restated in the prompt, such as testing that a septate uterus has a septum. Prefer the highest-yield tested discriminator or association, such as which Mullerian duct anomaly is most associated with miscarriage. If the image diagnosis card already tests the visual diagnosis, the separate fact card should usually test the nonvisual concept or board association that made the question hard.
 
 If a reviewer flags one card for testing the wrong concept, review the rest of the same generated batch for analogous mistakes before rebuilding. Fix the batch, not just the single reported card.
+
+For saved quiz capture/review workflows, also create a standalone local HTML review page as the final artifact after the card package and review docs. Build it from saved local captures and media rather than revisiting the source website. Use a dark-mode visual style by default. It should show the quiz top-to-bottom with local images, selected answer, correct answer, result/difficulty metadata, explanation text, and any Vital Concept text. Show peer percentages for each answer choice as right-aligned parenthetical badges. Include a question-number prefix filter, a separate word-search filter, and a result/sort control with `All`, `Incorrect`, and `Hardest` modes. `Hardest` sorts by the percentage of peers who chose the correct answer, ascending from lowest correct-answer percentage to highest. Strip DOM/accessibility artifacts from visible text, including `Radio Selected`, `Radio Unselected`, `img`, checkbox state text, and heading level markers.
+
+When extracting quiz stems for review pages or card-writing context, preserve all stem paragraphs before the answer choices. Do not stop after the first long paragraph. Keep short follow-up context such as lab values and the final question line because those are often the exact details needed to understand the tested concept.
 
 Skip:
 

@@ -6,7 +6,7 @@ A small Electron Pomodoro timer designed to live as a polished floating desktop 
 
 - Frameless translucent floating window
 - Lightweight WebGL night-mode background
-- Global `Ctrl+Shift+P` show/hide shortcut
+- Global `Ctrl+Shift+T` show/hide shortcut
 - Tray menu with show, start/pause, reset, always-on-top, launch-at-login, and quit
 - Always-on-top toggle
 - Mini mode

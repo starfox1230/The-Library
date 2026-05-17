@@ -7,6 +7,7 @@ When card behavior needs to change, edit the smallest relevant canonical file he
 - `CARD_STYLE_GUIDE.md` for how cards should be written.
 - `APKG_PACKAGING.md` for package, media, manifest, and build rules.
 - `CORE_RADIOLOGY_WORKFLOW.md` for Core Radiology textbook-specific behavior.
+- `BOARDVITALS_WORKFLOW.md` for BoardVitals quiz capture, card generation, and local HTML quiz review behavior.
 
 Other automations, apps, and workflow notes should point here instead of duplicating the rules.
 
@@ -16,6 +17,7 @@ Other automations, apps, and workflow notes should point here instead of duplica
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CORE_RADIOLOGY_WORKFLOW.md
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\BOARDVITALS_WORKFLOW.md
 ```
 
 ## Prior Art
@@ -27,4 +29,3 @@ C:\Users\sterl\.codex\automations\anki-cards-needed-daily-roundup\automation.tom
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-pocket-knife\NOTION_RADIOLOGY_ANKI_AUTOMATION.md
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\radiographics-review
 ```
-

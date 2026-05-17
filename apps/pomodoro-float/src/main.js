@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, globalShortcut, nativeImage, Notification, screen } = require('electron');
 const path = require('path');
 
-const HOTKEY = 'CommandOrControl+Shift+P';
+const HOTKEY = 'CommandOrControl+Shift+T';
 
 let mainWindow;
 let tray;

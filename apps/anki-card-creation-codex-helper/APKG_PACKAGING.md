@@ -2,6 +2,8 @@
 
 Use this as the source of truth for APKG, media, manifest, and build behavior.
 
+For BoardVitals-specific quiz capture, card generation, and local HTML quiz review artifacts, use `BOARDVITALS_WORKFLOW.md` together with this guide.
+
 ## Working Reference
 
 The strongest existing implementation is:
@@ -68,10 +70,15 @@ Fields:
 - `Extra`: source context, page screenshot, short discriminator, pitfall, or brief rationale.
 
 Do not put long explanations in `Extra`.
+For quiz-derived cards, `Extra` must include a short one-sentence explanation of the tested point after the question number/result metadata. Keep it useful for immediate review: identify what the image/device/finding is and why the answer follows when that context is not obvious.
+If the source quiz provides a `Vital Concept` or similarly labeled key concept, copy it word-for-word into `Extra` whenever technically possible. Put it after the question number/result metadata and before appended images.
+Do not fill `Extra` with peer-comparison percentages. Avoid lines such as `correct answer chosen by X% of peers` or `selected answer chosen by Y% of peers`; these do not teach the tested concept.
 Do not put source provenance in front-side `Text`. Source names, app names, article titles, quiz names, question numbers, and batch identifiers belong in `Extra`, `README.md`, or `manifest.json`, not in the repeated study prompt.
 Do not include multiple-choice answer letters in `Text`; package the actual tested answer only.
 For image cards, use concise task-specific prompts rather than generic catch-all prompts. If more than one image appears on the front of a card, add `1/N` immediately above the first image.
 For quiz review packages, include one additional misconception note for each missed question. This note should be derived from the user's selected wrong answer and should test the key term, definition, discriminator, or false association behind that miss.
+For every saved quiz capture/review workflow, the last artifact should be a standalone local HTML quiz-review page rebuilt from the saved local data. Do not revisit the source website just to make this page. The page should use a dark-mode visual style by default. The page should show all questions top-to-bottom with local images, selected answer, correct answer, result/difficulty metadata, explanations, and any Vital Concept text. Show the peer percentage for each answer choice as a small right-aligned parenthetical badge inside that answer choice row. Include a question-number prefix filter, a separate word-search filter, and a result/sort control with `All`, `Incorrect`, and `Hardest` modes. `Hardest` should sort questions by the percentage of peers who chose the correct answer, ascending from lowest correct-answer percentage to highest. Clean the source snapshot so accessibility/DOM noise such as `Radio Selected`, `Radio Unselected`, `img`, checkbox state, and heading level markers never appears in the visible quiz text.
+When extracting or rebuilding quiz stems, preserve every stem paragraph before the answer choices. Do not stop at the first long paragraph. Join short follow-up lines, lab values, and final question lines into the visible stem so clinical context such as age, symptoms, lab values, and the actual asked task is not silently dropped.
 
 ## Media Rules
 
