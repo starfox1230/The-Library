@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import aqt
 from aqt import gui_hooks
-from aqt.qt import QApplication, QEvent, QKeyEvent, QObject, Qt
+from aqt.qt import QAction, QApplication, QEvent, QKeyEvent, QKeySequence, QObject, QTimer, Qt
 
 from .settings import get_setting, set_setting
 
@@ -33,6 +34,7 @@ def set_ctrl_shift_p_shortcut_blocked(blocked: bool) -> bool:
     global _CTRL_SHIFT_P_BLOCKED
     value = bool(set_setting(CTRL_SHIFT_P_BLOCK_SETTING, bool(blocked)))
     _CTRL_SHIFT_P_BLOCKED = value
+    _sync_ctrl_shift_p_action_shortcuts()
     return value
 
 
@@ -70,12 +72,70 @@ def _is_ctrl_shift_p_key_event(event: QEvent) -> bool:
 
     try:
         modifiers = event.modifiers()
-        wanted_modifiers = (
-            Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier
+        return (
+            event.key() == Qt.Key.Key_P
+            and bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+            and bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+            and not bool(modifiers & Qt.KeyboardModifier.AltModifier)
+            and not bool(modifiers & Qt.KeyboardModifier.MetaModifier)
         )
-        return event.key() == Qt.Key.Key_P and modifiers == wanted_modifiers
     except Exception:
         return False
+
+
+def _shortcut_text(sequence: QKeySequence) -> str:
+    try:
+        return sequence.toString(QKeySequence.SequenceFormat.PortableText).strip()
+    except Exception:
+        try:
+            return sequence.toString().strip()
+        except Exception:
+            return ""
+
+
+def _is_ctrl_shift_p_sequence(sequence: QKeySequence) -> bool:
+    text = _shortcut_text(sequence)
+    return text.casefold() in {"ctrl+shift+p", "control+shift+p"}
+
+
+def _sync_ctrl_shift_p_action_shortcuts() -> None:
+    main_window = getattr(aqt, "mw", None)
+    if main_window is None:
+        return
+
+    try:
+        actions = list(main_window.findChildren(QAction))
+    except Exception:
+        return
+
+    for action in actions:
+        if not _CTRL_SHIFT_P_BLOCKED:
+            continue
+
+        try:
+            shortcuts = list(action.shortcuts())
+        except Exception:
+            shortcuts = []
+
+        if shortcuts:
+            kept = [shortcut for shortcut in shortcuts if not _is_ctrl_shift_p_sequence(shortcut)]
+            if len(kept) != len(shortcuts):
+                try:
+                    action.setShortcuts(kept)
+                except Exception:
+                    pass
+                continue
+
+        try:
+            shortcut = action.shortcut()
+        except Exception:
+            shortcut = QKeySequence()
+
+        if _is_ctrl_shift_p_sequence(shortcut):
+            try:
+                action.setShortcut(QKeySequence())
+            except Exception:
+                pass
 
 
 class _ShortcutBlockerEventFilter(QObject):
@@ -104,6 +164,12 @@ def install() -> None:
     if _HOOK_REGISTERED:
         return
 
+    def on_main_window_did_init() -> None:
+        _ensure_event_filter()
+        _sync_ctrl_shift_p_action_shortcuts()
+        QTimer.singleShot(1000, _sync_ctrl_shift_p_action_shortcuts)
+
     _ensure_event_filter()
-    gui_hooks.main_window_did_init.append(lambda: _ensure_event_filter())
+    _sync_ctrl_shift_p_action_shortcuts()
+    gui_hooks.main_window_did_init.append(on_main_window_did_init)
     _HOOK_REGISTERED = True
