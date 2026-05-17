@@ -2018,9 +2018,9 @@ function renderProgress() {
   const seen = selected.filter(v => isWatched(v.videoId)).length;
   const pct = selected.length ? Math.round((seen / selected.length) * 100) : 0;
   progFill.style.width = pct + "%";
-  progPct.textContent = `${seen}/${selected.length} • ${pct}%`;
+  progPct.textContent = `${seen}/${selected.length} - ${pct}%`;
   const totalSeconds = selected.reduce((sum, v) => sum + durationToSeconds(v.duration), 0);
-  subtitle.textContent = `${videos.length} videos total • ${selected.length} selected • ${formatDuration(totalSeconds)} selected runtime`;
+  subtitle.textContent = `${videos.length} videos total - ${selected.length} selected - ${formatDuration(totalSeconds)} selected runtime`;
 }
 
 function renderNextUp() {
@@ -2032,8 +2032,8 @@ function renderNextUp() {
   nextUp.hidden = false;
   nextThumb.src = thumbnail(next.videoId);
   nextTitle.textContent = next.shortTitle || next.title;
-  nextMeta.textContent = `${next.series} • #${next.playlistIndex} • ${next.channel}`;
-  nextSeries.textContent = "Next Up • " + next.series;
+  nextMeta.textContent = `${next.series} - #${next.playlistIndex} - ${next.channel}`;
+  nextSeries.textContent = "Next Up - " + next.series;
   nextDuration.textContent = next.duration;
   btnPlayNext.onclick = () => openVideo(next.videoId, { markSeen: true });
 }
@@ -2060,18 +2060,18 @@ function renderSeriesPanel() {
     row.draggable = true;
     row.dataset.series = series;
     row.innerHTML = `
-      <span class="handle" title="Drag to reorder">☰</span>
+      <span class="handle" title="Drag to reorder">&#9776;</span>
       <label style="display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer;">
         <input type="checkbox" ${enabled.has(series) ? "checked" : ""} />
         <span style="min-width:0;">
           <span class="series-title">${escapeHtml(series)}</span><br>
-          <span class="series-meta">${stats.watched}/${stats.total} watched • ${formatDuration(stats.totalSeconds)}</span>
+          <span class="series-meta">${stats.watched}/${stats.total} watched - ${formatDuration(stats.totalSeconds)}</span>
         </span>
       </label>
       <span class="chip">${idx + 1}</span>
       <span class="movebtns">
-        <button class="mini" data-move="up" title="Move up">↑</button>
-        <button class="mini" data-move="down" title="Move down">↓</button>
+        <button class="mini" data-move="up" title="Move up">&uarr;</button>
+        <button class="mini" data-move="down" title="Move down">&darr;</button>
       </span>
     `;
     row.querySelector("input").onchange = e => {
@@ -2180,17 +2180,17 @@ function renderList() {
       </div>
       <div class="row-main">
         <div class="row-title"><button type="button" class="open-title">${escapeHtml(v.shortTitle || v.title)}</button></div>
-        <div class="row-speaker">${escapeHtml(v.series)} • ${escapeHtml(v.channel)}</div>
-        <div class="row-meta">Playlist #${v.playlistIndex} • Video ID: ${escapeHtml(v.videoId)}</div>
+        <div class="row-speaker">${escapeHtml(v.series)} - ${escapeHtml(v.channel)}</div>
+        <div class="row-meta">Playlist #${v.playlistIndex} - Video ID: ${escapeHtml(v.videoId)}</div>
       </div>
       <div class="row-actions">
-        <button class="iconbtn mark" title="Mark watched"><span class="check ${watched ? "on" : ""}">${watched ? "✓" : ""}</span>Watched</button>
-        <button class="iconbtn fav" title="Favorite"><span class="star ${fav ? "fav" : ""}">★</span>Fav</button>
+        <button class="iconbtn mark" title="Mark watched"><span class="check ${watched ? "on" : ""}">${watched ? "&#10003;" : ""}</span>Watched</button>
+        <button class="iconbtn fav" title="Favorite"><span class="star ${fav ? "fav" : ""}">&#9733;</span>Fav</button>
         <button class="iconbtn open">Open</button>
         <button class="iconbtn transcript">Transcript</button>
         <button class="iconbtn notes">Notes</button>
         <span class="countpill" title="Manual watch count">
-          <button class="minus">−</button>
+          <button class="minus">&minus;</button>
           <input value="${count}" inputmode="numeric" aria-label="Watch count" />
           <button class="plus">+</button>
         </span>
@@ -2339,7 +2339,7 @@ async function openTranscript(id) {
   if (!v) return;
   currentTranscriptVid = id;
   transcriptTitle.textContent = (v.shortTitle || v.title) + " - Transcript";
-  transcriptMeta.textContent = `${v.series} • #${v.playlistIndex} • ${v.duration}`;
+  transcriptMeta.textContent = `${v.series} - #${v.playlistIndex} - ${v.duration}`;
   transcriptBody.textContent = "Loading transcript...";
   transcriptModal.showModal();
   const loaded = await loadTranscript(v);
@@ -2355,7 +2355,7 @@ ${transcriptCandidates(v).slice(1).join("\n")}
 When you add transcript files later, put them beside this HTML file using one of these paths. If you open this HTML directly as a file in Chrome and transcripts do not load, run it from a tiny local server instead.`;
     return;
   }
-  transcriptMeta.textContent = `${v.series} • #${v.playlistIndex} • loaded from ${loaded.path}`;
+  transcriptMeta.textContent = `${v.series} - #${v.playlistIndex} - loaded from ${loaded.path}`;
   transcriptBody.textContent = loaded.text;
 }
 
@@ -2475,7 +2475,7 @@ function notesText() {
     const note = state.notes[v.videoId] || "";
     if (!note.trim()) return "";
     return `#${v.playlistIndex} - ${v.shortTitle || v.title}
-${v.series} • ${v.youtubeUrl}
+${v.series} - ${v.youtubeUrl}
 
 ${note}`;
   }).filter(Boolean).join("\n\n---\n\n");
@@ -2522,8 +2522,7 @@ document.getElementById("btnTranscriptManifest").onclick = () => { copyText(tran
 const settingsModal = document.getElementById("settingsModal");
 const settingsTranscriptExample = document.getElementById("settingsTranscriptExample");
 document.getElementById("btnSettings").onclick = () => {
-  settingsTranscriptExample.value = videos.slice(0, 12).map(v => v.transcriptPath).join("\n") + "
-...";
+  settingsTranscriptExample.value = videos.slice(0, 12).map(v => v.transcriptPath).join("\n") + "\n...";
   settingsModal.showModal();
 };
 document.getElementById("closeSettings").onclick = () => settingsModal.close();
