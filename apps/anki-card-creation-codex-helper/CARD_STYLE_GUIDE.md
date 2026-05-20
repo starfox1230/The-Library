@@ -15,9 +15,12 @@ For BoardVitals-specific quiz capture, Anki generation, and local HTML quiz revi
 - Use natural prose that still sounds clean if read aloud with the cloze mentally blanked.
 - Use standard radiology abbreviations when they are common study language.
 - Preserve clinical stems only when they help identify or lock the diagnosis.
+- Keep the minimum context needed to answer accurately. Preserve key modifiers such as recent chemotherapy, relevant age, symptom, modality, lab, or timing; remove boilerplate such as `a radiologist is reading`, routine source workflow text, and irrelevant demographics.
+- Do not make cards by mechanically truncating a long source stem and adding a question mark. Rewrite the front as a complete, grammatical, short prompt. No generated card front may end mid-sentence.
 - Do not put source labels, app names, article names, quiz names, question numbers, or batch identifiers in the front-side card substance. Card fronts should stand on their own as study facts or image prompts without making the reviewer read provenance text every time.
 - Do not include answer-choice letters such as `A.`, `B.`, `C.`, `D.`, or `E.` in the card answer. Test the actual diagnosis, structure, device, threshold, management step, or fact.
 - Do not use generic lazy prompts such as `What is the key answer or diagnosis?` when the source gives enough information to write a targeted prompt. Write the shortest prompt that gives enough context to answer accurately.
+- Do not use `Answer:` or `Key answer:` as a fallback card pattern. If a card cannot be written as a real cloze fact or a direct image prompt, skip it or rewrite it after identifying the tested concept.
 - Split overloaded comparisons into separate cards unless the comparison itself is the tested concept.
 - Do not create cards just because text exists. Skip low-yield filler.
 
@@ -59,6 +62,8 @@ Rules:
 - Add anatomical or clinical locking context when needed.
 - Convert long quiz stems into brief test-style prompts. Keep only the minimal age, symptom, modality, lab, or clinical clue needed to make the image answer unambiguous.
 - Match the prompt to the task: `Most likely diagnosis?`, `What structure is indicated?`, `What device is shown?`, `What artifact is shown?`, `What BI-RADS kinetic curve is shown?`, or similarly specific wording.
+- Image-front cards should almost always test visual diagnosis, device/artifact recognition, or labeled structure identification. Do not use image-front cards for multi-step next-best-management questions. If a quiz asks for management after recognizing an image, make the image card test the diagnosis and make a separate text cloze only if the management rule itself is worth memorizing.
+- `Most likely diagnosis?` is the preferred fallback image prompt. Use a more specific wording only when it is clearly better, such as `What named fracture is shown?`.
 - Use one diagnosis cloze.
 - Append the image or images below the prompt and answer.
 - Include the complete diagnostic image or panel set needed to make the diagnosis. Do not crop so tightly that only one small finding remains when the intended diagnosis depends on distribution, multiplicity, anatomy, or comparison.
@@ -153,6 +158,10 @@ For every missed quiz question, also create one additional misconception card ba
 
 When converting a quiz question into a fact card, identify what the question was actually testing before writing the cloze. Do not make tautological cards where the answer is essentially restated in the prompt, such as testing that a septate uterus has a septum. Prefer the highest-yield tested discriminator or association, such as which Mullerian duct anomaly is most associated with miscarriage. If the image diagnosis card already tests the visual diagnosis, the separate fact card should usually test the nonvisual concept or board association that made the question hard.
 
+Do not paste a Vital Concept, explanation sentence, or source stem and then append `Key answer: {{c1::...}}`. That is a failed card. Convert the concept into a direct cloze sentence where the blank is the tested discriminator, association, diagnosis, threshold, mechanism, or rule.
+
+For BoardVitals-style work, prefer a two-pass workflow: first capture and organize the quiz into review artifacts, then generate Anki cards only when explicitly requested as a separate card-writing pass. This keeps card writing from being treated as a mechanical tail step.
+
 If a reviewer flags one card for testing the wrong concept, review the rest of the same generated batch for analogous mistakes before rebuilding. Fix the batch, not just the single reported card.
 
 For saved quiz capture/review workflows, also create a standalone local HTML review page as the final artifact after the card package and review docs. Build it from saved local captures and media rather than revisiting the source website. Use a dark-mode visual style by default. It should show the quiz top-to-bottom with local images, selected answer, correct answer, result/difficulty metadata, explanation text, and any Vital Concept text. Show peer percentages for each answer choice as right-aligned parenthetical badges. Include a question-number prefix filter, a separate word-search filter, and a result/sort control with `All`, `Incorrect`, and `Hardest` modes. `Hardest` sorts by the percentage of peers who chose the correct answer, ascending from lowest correct-answer percentage to highest. Strip DOM/accessibility artifacts from visible text, including `Radio Selected`, `Radio Unselected`, `img`, checkbox state text, and heading level markers.
@@ -169,6 +178,8 @@ Skip:
 - Cards that merely restate a section title
 - Cards requiring the reviewer to guess what attribute is being tested
 - Cards based on figures that are not visible or not diagnostically useful
+- Prompt fragments that are cut off mid-sentence
+- `Answer:` or `Key answer:` cards created from copied quiz stems or copied Vital Concepts
 
 ## Quality Gate
 

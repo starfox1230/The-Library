@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interventional Radiology Fundamentals Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Interventional Radiology Fundamentals Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"ir-fundamentals-quiz-ch1",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "During an endovascular procedure, the access sheath is upsized to 10 Fr. What is the approximate diameter of the hole that the sheath will create in the vessel wall?", "options": [{"letter": "A", "text": "1 mm"}, {"letter": "B", "text": "4 mm"}, {"letter": "C", "text": "10 mm"}, {"letter": "D", "text": "12 mm"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Understanding device sizes is important basic knowledge for the interventional radiologist. Many devices have the diameter reported in \"French\" (Fr); 1 Fr = 0.33 mm, 3 Fr = 1 mm. In addition, sheaths are described by their inner diameter (ID), ie, what size device they can accept. The outer diameter (OD) of a sheath, which defines the size of the hole created, is roughly 1.5 to 2 Fr larger than the reported ID. In this example, a standard 10 Fr sheath produces a hole that is about 12 Fr; 12 Fr × 1 mm/3 Fr = 4 mm. Unlike sheaths, the reported diameter of a catheter is the OD. Reference: Kaufman JA. Invasive vascular diagnosis. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:39-61."}, {"number": "2", "stem": "A noncompliant 8 mm angioplasty balloon is inflated to the nominal pressure, 6 atm. Subsequently, the balloon is deflated and reinflated to 12 atm. How has the hoop stress (T) of the balloon changed when comparing the first to the second inflation?", "options": [{"letter": "A", "text": "T increases by 2-fold"}, {"letter": "B", "text": "T decreases by 2-fold"}, {"letter": "C", "text": "T increases by 8-fold"}, {"letter": "D", "text": "T decreases by 4-fold"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The dilating force or hoop stress (T) of a balloon is directly proportional to the diameter (D) multiplied by the pressure (P). In this example, the balloon is first inflated to the nominal pressure, which is the pressure whereby the balloon reaches its stated diameter. Noncompliant balloons by definition do not dilate significantly beyond their stated diameter, even at pressures much greater than nominal. On the second inflation, the pressure doubles; however, you can assume that the balloon diameter stays the same. T = P × D; this is the law of Laplace. Reference: Sarin S, Turba U, Angle F, et al. Balloon catheters. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:75-84."}, {"number": "3", "stem": "A patient is transferred emergently to the interventional radiology (IR) suite for hemorrhagic shock from extensive pelvic fractures. After the embolization, the patient remains hypotensive and the treating physician would like to increase the rate at which fluid is infused into the patient via the access sheath. Assuming the same pressure and fluid type are administered, by doubling the internal diameter of the access sheath, what change in flow will occur?", "options": [{"letter": "A", "text": "Increase 2-fold"}, {"letter": "B", "text": "Decrease 2-fold"}, {"letter": "C", "text": "Increase 16-fold"}, {"letter": "D", "text": "Decrease 16-fold"}], "images": [], "explanationImages": ["assets/a3_p002_02.jpg"], "answer": "C", "explanation": "Answer C. This question relates to the properties that govern simple flow in a tube. This is Poiseuille's law. Of all the variables in the equation, the radius (r) has the greatest impact on the flow. Doubling the internal diameter of the sheath will obviously double its radius. If 1 is the initial diameter, 14 = 1; when doubled, 24 = 16. Q, flow; P, pressure; r, radius;, viscosity; l, tubing length. Reference: Bakal C. Diagnostic catheters and guidewires. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:65-73."}, {"number": "4", "stem": "During a lower extremity arterial intervention, the patient is systemically heparinized with 8000 units intravenously. The case concludes 60 minutes later, and the physician is preparing to pull the access sheath and achieve hemostasis with manual pressure. To reverse the remaining active heparin, what dose of protamine sulfate should be administered?", "options": [{"letter": "A", "text": "1 mg"}, {"letter": "B", "text": "4 mg"}, {"letter": "C", "text": "40 mg"}, {"letter": "D", "text": "800 mg"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Intravenous heparin is commonly used in endovascular procedures for periprocedural anticoagulation. Heparin binds and activates the enzyme antithrombin III, causing a conformational change and subsequent binding and inactivation of thrombin and factor Xa. The plasma half-life is between 60 and 90 minutes, sometimes longer, depending on the initial dose. Heparin is reversed by the drug protamine sulfate. For use in heparin reversal, 1 mg of protamine sulfate will inactivate approximately 100 units of active heparin. In the current case, after 1 hour, there is approximately 4000 to 5000 units of active heparin remaining in the patient. A 40 mg dose of protamine sulfate would be appropriate for reversal. Notably, protamine sulfate should be administered slowly to avoid hypotension and anaphylactoid-like reactions. Reference: Cook BW. Anticoagulation management. Semin Intervent Radiol. 2010;27(4):360-367."}, {"number": "5", "stem": "For the vessel selected by the catheter, what is an appropriate rate of power injection to study this arterial distribution?", "options": [{"letter": "A", "text": "0.5 mL/s"}, {"letter": "B", "text": "1 mL/s"}, {"letter": "C", "text": "5 mL/s"}, {"letter": "D", "text": "15 mL/s"}], "images": ["assets/q5_p003_01.jpg"], "explanationImages": ["assets/a5_p003_01.jpg"], "answer": "C", "explanation": "Answer C. The vessel selected by the catheter is the celiac artery, which is a medium-sized vessel typically around 6 to 8 mm in diameter. From a size standpoint, it is analogous to a common femoral artery. When describing angiographic power injections, it is commonly stated \"x for y,\" where x is the rate of injection in mL/s and y is total volume of the injection. \"Five for fifteen\" is an injection of 5 mL/s for a total volume of 15 mL. Naturally, the injection duration is 3 seconds. Common injection rates that one should be familiar with include Thoracic aorta 20 mL/s Abdominal aorta 15 mL/s Abdominal aortic bifurcation/iliac arteries 5 to 10 mL/s Femoropopliteal arteries 4 to 6 mL/s Celiac/SMA 4 to 6 mL/s Main pulmonary artery 20 mL/s Selective right or left pulmonary artery 10 mL/s Inferior vena cava 10 to 20 mL/s These injections are reasonable reference rates that should be adjusted based on the individual patient and goal of the angiographic study. Most injections using a power injector will be carried out for a duration of 2 to 3 seconds. It can be useful to carry out the injection for several additional seconds when trying to opacify a large vascular bed, to detect a small or peripheral bleed, or to study the venous outflow of an organ. For instance, one can inject the celiac or splenic artery with 5 for 25, and obtain fairly good images of the portal venous system after the arterial and parenchymal phases have been imaged. Reference: Farsad K, Keller FS, Kandarpa K. Vascular access and catheter-directed angiography. In: Kandarpa K, Machan L, Durham J. Handbook of Interventional Radiologic Procedures. Lippincott Williams & Wilkins; 2016:1-26."}, {"number": "6", "stem": "Which vessel is identified by the arrow?", "options": [{"letter": "A", "text": "Left hepatic artery"}, {"letter": "B", "text": "Left gastric artery"}, {"letter": "C", "text": "Right gastric artery"}, {"letter": "D", "text": "Left inferior phrenic artery"}], "images": ["assets/q6_p004_01.jpg"], "explanationImages": ["assets/a6_p005_01.jpg", "assets/a6_p005_02.jpg", "assets/a6_p006_01.jpg", "assets/a6_p006_02.jpg"], "answer": "B", "explanation": "Answer B. The angiogram depicts classic celiac artery anatomy with three terminal branches: the left gastric artery (coursing leftward and cephalad), splenic artery (coursing leftward), and common hepatic artery (coursing rightward). Many variants of the celiac artery, SMA, and their respective branches exist and are of considerable significance to interventional radiologists and surgeons. A few common hepatic arterial variants are shown below. Figure 6-1 Image from celiac angiography with conventional arterial anatomy. CA, celiac artery; CHA, common hepatic artery; CPA, caudal pancreatic artery; GPA, greater pancreatic artery; GA, gastroepiploic artery; GDA, gastroduodenal artery; LGA, left gastric artery; LHA, left hepatic artery; PHA, proper hepatic artery; SPDA, superior pancreaticoduodenal artery; RGA, right gastric artery; RHA, right hepatic artery; RIPA, right inferior phrenic artery; SA, splenic artery. Figure 6-2 Images from celiac (left) and superior mesenteric artery (SMA) (right) angiography. There is variant anatomy with a replaced left hepatic artery off the left gastric artery and a replaced right hepatic artery off the proximal SMA. Note the presence of a middle hepatic artery (MHA) that perfuses segment 4 only of the left hepatic lobe. Ga, gastric branches. Figure 6-3 Images from celiac (left) and superior mesenteric artery (SMA) (right) angiography. There is variant anatomy with an accessory right hepatic artery (ARHA) off the proximal SMA. Note that it perfuses a hypervascular tumor (arrow) at the caudal tip of the right lobe that would have been missed if the variant went unrecognized. The accessory right or left hepatic artery often perfuses different segments of the lobe than its \"normal\" arterial companion. Figure 6-4 Images from celiac (left) and superior mesenteric artery (SMA) (right) angiography. There is variant anatomy with a completely replaced common hepatic artery off the proximal SMA. References: Covey AM, Brody LA, Maluccio MA, Getrajdman GI, Brown KT. Variant hepatic arterial anatomy revisited: digital subtraction angiography performed in 600 patients. Radiology. 2002;224(2):542-547. Uflacker R. Atlas of Vascular Anatomy: An Angiographic Approach. Lippincott Williams & Wilkins; 2007:457-654. Wang Y, Cheng C, Wang L, Li R, Chen JH, Gong SG. Anatomical variations in the origins of the celiac axis and the superior mesenteric artery: MDCT angiographic findings and their probable embryological mechanisms. Eur Radiol. 2014;24 (8):1777-1784. White RD, Weir-mccall JR, Sullivan CM, et al. The celiac axis revisited: anatomic variants, pathologic features, and implications for modern endovascular management. Radiographics. 2015;35(3):879-898."}, {"number": "7", "stem": "As part of a declot procedure to open a thrombosed upper arm arteriovenous graft, the operator needs to anticoagulate the patient with intravenous heparin. What is an appropriate initial dose of heparin to administer? The patient weighs 65 kg.", "options": [{"letter": "A", "text": "100 units"}, {"letter": "B", "text": "500 units"}, {"letter": "C", "text": "1000 units"}, {"letter": "D", "text": "5000 units"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "Answer D. For procedural anticoagulation in an adult patient, the initial dose of intravenous heparin can be given empirically or weight based. A reasonable empiric dose is 5000 units with additional 1000 units given after each additional hour for longer procedures. Weight-based dosing is typically 50 to 100 units/kg. Notably, there are no firm evidence-based guidelines for anticoagulation dosing or use during endovascular procedures, hence the range of options. Reference: Cook BW. Anticoagulation management. Semin Intervent Radiol. 2010;27(4):360-367."}, {"number": "8", "stem": "A hemodialysis access declot procedure takes longer than expected, and after several hours, it is unclear whether or not the patient is adequately anticoagulated. The nurse suggests obtaining the activated clotting time or ACT. The ACT comes back at 257 seconds. Which is the correct management with this information?", "options": [{"letter": "A", "text": "The anticoagulation is subtherapeutic; give 1000 units intravenous heparin"}, {"letter": "B", "text": "The anticoagulation is therapeutic; continue with the procedure"}, {"letter": "C", "text": "The anticoagulation is supratherapeutic; give 25 mg intravenous protamine sulfate"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. An ACT is ideally established in the patient immediately before administering anticoagulation such as heparin. This level serves as the baseline or pre-anticoagulation measurement. If unavailable, one can assume the baseline ACT to be <150 seconds. During the procedure, an ACT of 1.5 to 2.5 times baseline is the goal for therapeutic anticoagulation. If no baseline is available, an ACT >200 seconds is often used to define therapeutic anticoagulation. Reference: Cook BW. Anticoagulation management. Semin Intervent Radiol. 2010;27(4):360-367."}, {"number": "9", "stem": "Which of the following is the smallest needle that will accommodate a 0.035″ guidewire?", "options": [{"letter": "A", "text": "14 gauge"}, {"letter": "B", "text": "18 gauge"}, {"letter": "C", "text": "21 gauge"}, {"letter": "D", "text": "25 gauge"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The most commonly used wire calibers for interventional procedures are 0.038″, 0.035″, 0.018″, and 0.014″. Knowing which needles will accommodate the different sized wires helps with procedural planning and efficiency. Typical needles used for access are 21 gauge, which will accept a 0.018″ to 0.021″ wire, and 18 gauge, which will accept a 0.035″ to 0.038″ wire. Reference: Bakal C. Diagnostic catheters and guidewires. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:65-73."}, {"number": "10", "stem": "Regarding large-volume paracentesis (>5 L) for cirrhotic ascites, which of the following is recommended?", "options": [{"letter": "A", "text": "Strict maximum of 10 L removed per procedure"}, {"letter": "B", "text": "If removing >5 L, replete with albumin 6 to 8 g/L removed"}, {"letter": "C", "text": "Albumin repletion is not recommended, not supported by evidence"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. A meta-analysis from 2012 demonstrated that for patients undergoing large-volume paracentesis (>5 L), albumin repletion improved survival (odds ratio for death of 0.64). The mechanism of injury during large-volume paracentesis is not well understood, with several theories describing the complex interplay of third spacing, altered abdominal pressure and cardiac blood return as well as decreased peripheral vascular resistance. Given the meta-analysis data, the AASLD (American Association for the Study of Liver Diseases) recommends an infusion of albumin of 6 to 8 g/L of ascites removed for large-volume paracentesis (choice B). Reference: Bernardi M, Carceni P, Navickis RJ, Wilkes MM. Albumin infusion in patients undergoing large-volume paracentesis: a meta-analysis of randomized trials. Hepatology. 2012;55:1172-1181. AASLD Practice Guidelines: Management of Adult Patients With Ascites due to Cirrhosis: Update 2012."}, {"number": "11", "stem": "Which condition is most appropriate for the percutaneous placement of a long-term external drainage catheter?", "options": [{"letter": "A", "text": "Malignant ascites"}, {"letter": "B", "text": "Cirrhotic ascites"}, {"letter": "C", "text": "Hepatic hydrothorax"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Leaving a drain in a chronic, recurring sterile fluid collection carries a significant risk of infection, especially when the life expectancy of the patient is greater than 3 months. Studies have shown good catheter patency for tunneled drains in both cirrhotic ascites and hepatic hydrothorax; however, adoption of the practice has been thwarted by a realistic fear of infectious complications. Medical management, serial large-volume paracentesis/thoracentesis, portosystemic shunt creation, and peritoneovenous shunt (Denver shunt) creation are more favored options in this patient population. Patients with advanced cancer can develop malignant ascites, and when this occurs, the life expectancy is typically short (<3 mo). Placing an external drainage catheter (often tunneled) in these patients has been found to be relatively safe and acceptable for palliation. References: Kathpalia P, Bhatia A, Robertazzi S, et al. Indwelling peritoneal catheters in patients with cirrhosis and refractory ascites. Intern Med J. 2015;45(10):1026-1031. Orman ES, Lok AS. Outcomes of patients with chest tube insertion for hepatic hydrothorax. Hepatol Int. 2009;3(4):582-586. Reinglas J, Amjadi K, Petrcich B, Momoli F, Shaw-stiffel T. The palliative management of refractory cirrhotic ascites using the PleurX (©) Catheter. Can J Gastroenterol Hepatol. 2016;2016:4680543."}, {"number": "12", "stem": "A lower extremity arteriogram is performed to evaluate for traumatic vascular injury. Which is the correct etiology for the appearance of the left popliteal artery?", "options": [{"letter": "A", "text": "Incorrect contrast agent used"}, {"letter": "B", "text": "Traumatic dissection"}, {"letter": "C", "text": "Standing waves"}, {"letter": "D", "text": "Fibromuscular dysplasia"}], "images": ["assets/q12_p009_01.jpg"], "explanationImages": ["assets/a12_p009_01.jpg", "assets/a12_p010_01.jpg"], "answer": "C", "explanation": "Answer C. The image depicts standing or stationary waves, an occasionally seen angiographic phenomenon in which the arterial wall has a beaded appearance similar to a crinkle-cut French fry. The exact mechanism is unknown, and it is generally considered a benign artifact with no clinical significance. Although fibromuscular dysplasia (discussed elsewhere in this book) can have a similar appearance, standing waves can involve long segments of arteries with a more symmetric and uniform beading pattern. Standing waves are also more often found in the arteries of the extremities. Figure 12-1 Companion case of lower extremity angiogram demonstrating standing waves involving multiple different arteries of the same limb. References: Lehrer H. The physiology of angiographic arterial waves. Radiology. 1967;89(1):11-19. Sharma AM, Gornik HL. Standing arterial waves is NOT fibromuscular dysplasia. Circ Cardiovasc Interv. 2012;5(1):e9-e11."}, {"number": "13", "stem": "Which contrast agent has the lowest viscosity?", "options": [{"letter": "A", "text": "Iodixanol (Visipaque)"}, {"letter": "B", "text": "Iohexol (Omnipaque)"}, {"letter": "C", "text": "Gadolinium"}, {"letter": "D", "text": "Carbon dioxide gas"}, {"letter": "E", "text": "Lipiodol"}], "images": [], "explanationImages": ["assets/a13_p011_01.jpg"], "answer": "D", "explanation": "Answer D. Of all the contrast agents listed, carbon dioxide gas has the lowest viscosity by far. It is approximately 400× less viscous than water-soluble contrast mediums (choices A through C). Lipiodol, the first iodinated contrast agent, is several times more viscous than water-soluble contrast. The ultralow viscosity of CO2 gas translates to rapid diffusion, which can elucidate subtle findings such as small hemorrhages, endoleaks, or collateral vessels. It can also be used with a wedged catheter to retrograde opacify vascular structures across a capillary or sinusoidal bed (see Figure 31-1, wedged portography during TIPS planning). Figure 13-1 Example of CO2 arteriography. References: Cho KJ. Carbon dioxide angiography: scientific principles and practice. Vasc Specialist Int. 2015;31(3):67-80. Nadolski GJ, Stavropoulos SW. Contrast alternatives for iodinated contrast allergy and renal dysfunction: options and limitations. J Vasc Surg. 2013;57(2):593-598."}, {"number": "14", "stem": "Given the appearance of this vessel (arrow), which of the following is the most likely indication for the IR procedure?", "options": [{"letter": "A", "text": "Nonhealing foot ulcer"}, {"letter": "B", "text": "Large bowel ischemia"}, {"letter": "C", "text": "Postpartum hemorrhage"}, {"letter": "D", "text": "Abdominal wall hematoma after paracentesis"}], "images": ["assets/q14_p012_02.jpg"], "explanationImages": ["assets/a14_p012_02.jpg", "assets/a14_p013_01.jpg", "assets/a14_p013_02.jpg"], "answer": "C", "explanation": "Answer C. This case is worth showing, as it is not seen everyday. The images demonstrate angiography of the right internal iliac artery distribution. The vessel of interest is actually the uterine artery, which is extending far cephalad and off the field of view. Normally, the uterine artery arises from the internal iliac artery anterior division, courses medially, and has a characteristic appearance with an initial descending segment, transverse segment, and finally an ascending segment terminating in the periuterine arterial plexus in the midpelvis (see Figure 14-1). In a gravid or postpartum uterus, the organ is enlarged and the arteries cover a much larger territory as seen in this case. The case example angiogram was performed in a woman with uncontrolled postpartum hemorrhage. This can be treated with catheter-directed particle or gelfoam embolization, often avoiding the morbidity of a hysterectomy. Figure 14-1 Angiography from the right internal iliac artery in a nulligravid woman demonstrating the uterine artery (arrows). Figure 14-2 Companion case of postpartum hemorrhage in a 34-year-old female. digital subtraction angiography (DSA) image from pelvic angiogram (left) demonstrates massive enlargement of the uterine arteries (arrows). The right uterine artery is selected with a microcatheter (right), and angiography highlights the abnormal course and caliber of the vessel. Bilateral uterine artery embolization is subsequently performed with cessation of bleeding. References: Kirby JM, Kachura JR, Rajan DK, et al. Arterial embolization for primary postpartum hemorrhage. J Vasc Interv Radiol. 2009;20(8):1036-1045. Newsome J, Martin JG, Bercu Z, Shah J, Shekhani H, Peters G. Postpartum hemorrhage. Tech Vasc Interv Radiol. 2017;20 (4):266-273."}, {"number": "15", "stem": "Angiography from the origin of the inferior mesenteric artery is performed to evaluate ongoing colonic bleeding. Which of the following is the next best step after making this observation (arrows)?", "options": [{"letter": "A", "text": "No intervention required"}, {"letter": "B", "text": "Subselective microcoil embolization"}, {"letter": "C", "text": "Subselective gelfoam particle embolization"}, {"letter": "D", "text": "Subselective glue embolization"}], "images": ["assets/q15_p014_01.jpg", "assets/q15_p014_02.jpg"], "explanationImages": ["assets/a15_p014_01.jpg", "assets/a15_p014_02.jpg"], "answer": "A", "explanation": "Answer A. Presented are sequential DSA images of the inferior mesenteric artery and its branches. In the arterial phase, there is a \"ghost\" of something in the region of the left colon. Over the next 2 images, the ghost separates into a white oval and a more cranial dark oval. This is an example of registration artifact that can occur with DSA technique. The unsubtracted image confirms that the finding is due to retained barium in the colon (see Figure 15-1) and not active bleeding with extravasated contrast. DSA technique begins with a preinjection mask image, which is produced by subtracting out all preexisting densities (such as bone, bowel, retained contrast) resulting in an initial homogeneous light gray image. From this point forward, only changes in attenuation will be shown as they occur over time. With arteriography, crystal clear images of the injected vessels can be produced without the background noise of nonvascular structures. In real life, however, some degree of artifact is unavoidable (from bowel motility, beating heart) even if the patient does a good job of holding their breath. More than just academic knowledge, registration artifact can result in some truly confusing images and false positives, especially when looking for subtle bleeds in the gastrointestinal (GI) tract. To avoid this error, the unsubtracted images should be reviewed to appreciate preexisting densities. Figure 15-1 Unsubtracted images from inferior mesenteric artery (IMA) (left) and superior mesenteric artery (SMA) (right) angiography show the retained barium (arrows) in the left colon producing the registration artifact seen in the case example. Reference: Pooley RA, Mckinney JM, Miller DA. The AAPM/RSNA physics tutorial for residents: digital fluoroscopy. Radiographics. 2001;21(2):521-534."}, {"number": "16", "stem": "Which of the following arteries would be the most likely to require this device (arrows) during an intervention?", "options": [{"letter": "A", "text": "Splenic"}, {"letter": "B", "text": "Hepatic"}, {"letter": "C", "text": "Carotid"}, {"letter": "D", "text": "Brachial"}], "images": ["assets/q16_p015_01.jpg"], "explanationImages": ["assets/a16_p015_01.jpg", "assets/a16_p016_01.jpg"], "answer": "C", "explanation": "Answer C. The images show an embolic protection device. The device is essentially a working wire with a fine mesh metal filter basket at its terminus. The operator can perform interventions over the wire and then remove the wire and filter at the conclusion of the intervention. The filter is designed to catch debris, whether clot or atheroma, that can embolize during arterial interventions. The most common locations to use such a device are the carotid and lower extremity arteries, as embolized plaque or clot in these territories can cause significant end organ damage. Figure 16-1 Magnified image demonstrating a filling defect (arrow) within the filter of the embolic protection device following balloon angioplasty of the superficial femoral artery. The embolized plaque was subsequently removed by withdrawing the filter into a larger catheter. Reference: Metzger DC. Embolic protection in carotid artery stenting: new options. Tech Vasc Interv Radiol. 2011;14(2):86-94."}, {"number": "17", "stem": "A patient with a chronic right ureteral obstruction presents to the emergency department (ED) Friday afternoon with a cracked and leaking right nephrostomy tube. She has had the tube for several years, and the tract is well formed. She has normal kidney function, but unfortunately has a history of anaphylactoid reaction to iodinated contrast and has not been premedicated. What is the best management plan for this patient?", "options": [{"letter": "A", "text": "Perform exchange with iodinated contrast as the procedure is nonvascular"}, {"letter": "B", "text": "Perform exchange with gadolinium"}, {"letter": "C", "text": "Perform exchange with no contrast agent"}, {"letter": "D", "text": "Perform exchange on Monday after appropriate contrast reaction premedication"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The best strategy for this patient will allow safe and timely exchange of the damaged nephrostomy catheter. The two safety components to the procedure are avoiding a reaction to iodinated contrast agents and ensuring accurate positioning of the new tube. In general, when a patient reports an anaphylactoid reaction to iodinated contrast, we avoid using it entirely unless there is truly no alternative. Premedication with steroids and histamine blockers can reduce the severity of contrast reactions but will not prevent a life-threatening anaphylactoid reaction. Interestingly, both vascular and nonvascular (GI, urinary collecting system) contrast administration can result in an adverse reaction. Alternative agents should be entertained, with gadolinium and air/gas being the obvious choices. Gadolinium attenuates X-rays, giving a similar appearance to traditional iodinated agents during fluoroscopic procedures. A nephrostomy catheter exchange can easily be performed with this agent. Gentle injection of CO2 gas or room air could also be used as a negative contrast agent. Reference: Davis PL. Anaphylactoid reactions to the nonvascular administration of water-soluble iodinated contrast media. AJR Am J Roentgenol. 2015;204(6):1140-1145."}, {"number": "18", "stem": "In preparation for placement of an implantable port for chemotherapy, the nurse asks for moderate sedation orders. Which of the following is a reasonable starting dose?", "options": [{"letter": "A", "text": "Fentanyl 1 mg; Midazolam 50 mg"}, {"letter": "B", "text": "Fentanyl 50 mcg; Midazolam 1 mg"}, {"letter": "C", "text": "Fentanyl 50 mcg; Dilaudid 1 mg"}, {"letter": "D", "text": "Dilaudid 50 mg; Midazolam 1 mg"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Intravenous sedation in the IR suite most often consists of giving an opiate for pain relief as well as a benzodiazepine for anxiolysis. If the goal is moderate sedation, the dosing should be such that the patient will protect their airway without intervention, will maintain adequate ventilation, and will respond purposefully to physical and verbal stimuli. Fentanyl, a short-acting opiate, is typically given in intravenous bolus doses of 25 to 100 mcg. Midazolam, a short-acting benzodiazepine, is typically given in intravenous bolus doses of 0.5 to 2 mg. Both have a fairly rapid onset of action and work well for procedures lasting 30 to 60 minutes. Although these are good starting doses to know, each patient's medication needs will be different depending on multiple factors including underlying comorbidities, chronic pain medication use, and procedure type among others. Reference: Johnson S. Sedation and analgesia in the performance of interventional procedures. Semin Intervent Radiol. 2010;27 (4):368-373."}, {"number": "19", "stem": "What is the best projection for fluoroscopic evaluation of the great vessel origins off the thoracic aortic arch?", "options": [{"letter": "A", "text": "Left anterior oblique (LAO)"}, {"letter": "B", "text": "Right anterior oblique (RAO)"}, {"letter": "C", "text": "Anteroposterior (AP)"}, {"letter": "D", "text": "Lateral"}], "images": [], "explanationImages": ["assets/a19_p018_01.jpg"], "answer": "A", "explanation": "Answer A. High-quality angiographic evaluation of the vasculature relies on comprehensive knowledge of anatomy and how different fluoroscopic projections will depict the anatomy. Evaluation of the aortic arch and its branch vessels is best accomplished with certain projections. Practically, these projections are termed for the position of the image intensifier/detector, but classic radiologic nomenclature uses the position of the patient in relation to the radiation source. The best projection for evaluation of the thoracic aortic arch is a steep LAO (patient is RPO to the source). On the RAO and AP comparison images below, note the difficulty in distinguishing the great vessel origins. While not a great projection for the great vessel origins, RAO splays out the brachiocephalic bifurcation nicely. A few additional projections to know include (1) using the contralateral oblique to evaluate the common iliac artery bifurcation and (2) using the ipsilateral oblique to evaluate the common femoral artery bifurcation. Figure 19-1 Thoracic aortography in the left anterior oblique (LAO) (left), anteroposterior (AP) (middle), and right anterior oblique (RAO) (right) projections. Reference: Heng R, Soon KH, Ang SG, et al. Vascular anatomy of the thorax, including the heart. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:351-364."}, {"number": "20", "stem": "Which artery has a \"standard\" (most common anatomy) origin from the thoracic aorta on this LAO image?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q20_p019_01.jpg"], "explanationImages": ["assets/a20_p019_01.jpg", "assets/a20_p020_01.jpg", "assets/a20_p021_01.jpg", "assets/a20_p022_02.jpg"], "answer": "D", "explanation": "Answer D. The typical left aortic arch with 3 great vessel origins occurs 70% to 80% of the time. The first artery is the brachiocephalic trunk, followed by the left common carotid artery, and finally the left subclavian artery. There are several variations in the populace. The most common variation is a common trunk of the brachiocephalic and left common carotid artery (see Figure 20-1), occurring 21% to 27% of the time. Figure 20-1 Left anterior oblique (LAO) thoracic aortography with a common trunk of the brachiocephalic and left common carotid artery. In the case example, there are 2 arch variations present. First, there is a common origin of the right common carotid and left common carotid artery. There is also an aberrant right subclavian artery arising distal to the left subclavian artery (see Figure 20-2, single white arrowhead). The aberrant right subclavian artery is present in 0.5% to 2% of the population and is an important variant to recognize, as it is associated with congenital vascular anomalies including patent ductus arteriosus, aortic coarctation, ventricular septal defect, and carotid/vertebral anomalies. Because of its typically retroesophageal course, it can cause esophageal compression, and when symptomatic, the condition is known as \"dysphagia lusoria.\" Also worth knowing is that the vessel origin can become aneurysmal, termed a Kommerell diverticulum (see Figure 20-3). Figure 20-2 Left anterior oblique (LAO) thoracic aortography with common trunk of the right and left common carotid arteries (double white arrowhead), followed by the left subclavian artery in normal position (black arrowhead), and finally the aberrant right subclavian artery (single white arrowhead). Figure 20-3 Computed tomography angiography (CTA) images showing Kommerell diverticulum (arrowheads) at the origin of an aberrant subclavian artery. On the top, the patient has a left arch with an aberrant right subclavian artery. On the bottom, the patient has a right arch with an aberrant left subclavian artery. Although asymptomatic in most patients, a Kommerell diverticulum has been associated with dissection and rupture. Figure 20-4 Left anterior oblique (LAO) thoracic aortography depicting another variation worth knowing: the \"4-vessel arch\" where the left vertebral artery arises directly from the arch proximal to the left subclavian artery. References: Hanneman K, Newman B, Chan F. Congenital variants and anomalies of the aortic arch. Radiographics. 2017;37 (1):32-51. Heng R, Soon KH, Ang SG, et al. Vascular anatomy of the thorax, including the heart. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:351-364."}, {"number": "21", "stem": "What type of aortic arch is this?", "options": [{"letter": "A", "text": "Type 1"}, {"letter": "B", "text": "Type 2"}, {"letter": "C", "text": "Type 3"}, {"letter": "D", "text": "Type 4"}], "images": ["assets/q21_p023_01.jpg"], "explanationImages": ["assets/a21_p023_01.jpg", "assets/a21_p024_01.jpg", "assets/a21_p025_01.jpg"], "answer": "C", "explanation": "Answer C. Even with standard branch anatomy, not all aortic arches are equal. Increasing age and longstanding hypertension can produce elongation or unfolding of the arch, often with increased steepness. These changes in arch geometry directly affect the operator's ability to perform selective catheterizations and interventions, particularly from a groin approach. There are a few different methods that classify the arch as type 1, 2, or 3, with type 3 providing the greatest degree of difficulty. The type can be defined by measuring the distance (D) between the brachiocephalic artery origin to the cephalad margin of the arch. The left common carotid artery or the brachiocephalic trunk diameter is used as a reference unit distance. When D < 1 reference vessel diameter, it is a type 1. When D is between 1 and 2 reference vessel diameters, it is a type 2. When D is >2 reference vessel diameters, it is a type 3. Figure 21-1 Aortic arch types 1 through 3. References: Madhwal S, Rajagopal V, Bhatt DL, Bajzer CT, Whitlow P, Kapadia SR. Predictors of difficult carotid stenting as determined by aortic arch angiography. J Invasive Cardiol. 2008;20(5):200-204. Uflacker R. Thoracic aorta and arteries of the trunk. In: Atlas of Vascular Anatomy: An Angiographic Approach. Lippincott Williams & Wilkins; 2007:133-193."}, {"number": "22", "stem": "Which part of this chest tube drainage system will help determine the presence of an air leak?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q22_p026_01.jpg"], "explanationImages": ["assets/a22_p026_01.jpg", "assets/a22_p027_01.jpg"], "answer": "C", "explanation": "Answer C. The chest tube output (from the patient) drains into the collection chamber labeled D. As fluid fills the chamber, it falls dependently allowing output quantification. The collection chamber also communicates with the water seal section labeled C. The connection between C and D exists at the cephalad aspect of the device; therefore fluid will fall dependently, but gas can transfer into and through the water seal. If there is a continued flow of gas into the system (air leak), it will suction through the blue water chamber creating bubbles. Examining the water seal during exhalation or a cough helps detect an ongoing air leak. When present, it indicates an ongoing source of air, such as a leak in the tubing or from inside the patient, such as due to a pneumothorax or bronchopleural fistula. Figure 22-1 Chest tube drainage system. The output tube connects to the upper right. Fluid fills the collection chambers (D). Air leak (if present) escapes through communications at the top and can be detected in the water seal section (C). Letter A delineates the suction strength in centimeters of H2O. Letter B points to an indicator as to whether suction is on or off. Reference: Cerfolio RJ, Bryant AS, Singh S, Bass CS, Bartolucci AA. The management of chest tubes in patients with a pneumothorax and an air leak after pulmonary resection. Chest. 2005;128(2):816-820."}, {"number": "23", "stem": "Which of the following is considered a contraindication for vertebroplasty/kyphoplasty?", "options": [{"letter": "A", "text": "Duration of pain < 1 week"}, {"letter": "B", "text": "Retropulsed bone fragment resulting in myelopathy"}, {"letter": "C", "text": "Treating two vertebral levels in the same setting"}, {"letter": "D", "text": "50% vertebral body height loss"}], "images": ["assets/q23_p028_01.jpg"], "explanationImages": ["assets/a23_p028_01.jpg"], "answer": "B", "explanation": "Answer B. Vertebral augmentation includes both vertebroplasty and kyphoplasty procedures. Vertebroplasty is percutaneous injection of cement (polymethyl methacrylate) into the vertebral body. Kyphoplasty includes adjunctive balloon inflation within the vertebral body with the intention of creating a cavity for additional cement injection, and possibly restoring vertebral body height. Both techniques are effective. The typical indication is a symptomatic compression fracture(s) from underlying osteoporosis or neoplasm. As discussed elsewhere, preprocedure imaging evaluation is critical (whether MRI, nuclear scan, or CT) to evaluate the proposed level of treatment as well as other conditions, which may be causing the patient's pain. The goal of the procedure is pain relief, which will quickly improve the patient's functional status and avoid the morbidity associated with prolonged immobility and chronic pain medication usage. Therefore, treating with <1 week of pain is acceptable and arguably preferable. Regarding technique, access into the vertebral body is often a trans- or parapedicular and treating more than one level at a time is not unusual. Some have suggested a limit on the number of levels treated in a single setting as marrow displacement during the procedure can result in fat emboli syndrome. If there is bony retropulsion from the fracture, the addition of cement to the vertebral body may further displace the fragment posteriorly and worsen the spinal canal compromise. If the retropulsion is so severe that it is causing myelopathy, vertebral augmentation should be avoided (choice B correct). Figure 23-1 Sagittal T2 (left) and STIR (short-TI inversion recovery) (right) magnetic resonance (MR) images in a patient with an acute compression fracture of T10. There is significant height loss, high signal intensity within the vertebral body, and bony retropulsion causing canal compromise. There is corresponding high signal in the spinal cord. The patient was symptomatic with lower extremity weakness. Vertebral augmentation was not offered to the patient. References: Baerlocher MO, Saad WE, Dariushnia S, et al. Quality improvement guidelines for percutaneous vertebroplasty. J Vasc Interv Radiol. 2014;25(2):165-170. Nussbaum DA, Gailloud P, Murphy K. A review of complications associated with vertebroplasty and kyphoplasty as reported to the Food and Drug Administration medical device related website. J Vasc Interv Radiol. 2004;15(11):1185-1192."}, {"number": "24", "stem": "What is the indication for the procedure demonstrated on these images?", "options": [{"letter": "A", "text": "Superior vena cava obstruction"}, {"letter": "B", "text": "Massive hemoptysis"}, {"letter": "C", "text": "High-output chylothorax"}, {"letter": "D", "text": "Laceration to the internal thoracic artery"}], "images": ["assets/q24_p029_01.jpg"], "explanationImages": ["assets/a24_p029_01.jpg", "assets/a24_p030_01.jpg"], "answer": "C", "explanation": "Answer C. The image on the left demonstrates recent surgery in the left hemithorax with clips overlying the left clavicle, a left chest tube, and a left neck drain. The image on the right demonstrates a new contrast-filled tubular structure extending from the abdomen just right of midline, which ascends in the thorax just left of midline. At the most superior extent, there is a coil pack and an adjacent pool of extravasated contrast. While the caliber and location of this structure could be confused for an internal mammary artery, the path does not quite fit as it crosses midline and has no visible branches. The images are from a lymphangiogram with thoracic duct embolization using coils and an nBCA glue:lipiodol mixture. The thoracic duct normally arises from the cisterna chyli at the thoracolumbar junction, just right of midline, ascends in the thorax just left of midline, and empties into left internal jugular vein as it joins the subclavian vein. The most common setting for this procedure is traumatic or iatrogenic thoracic duct injury with resultant chylothorax. Initial conservative management for chyle leak includes low-fat diet or total parenteral nutrition, octreotide infusion, and tube drainage of the leak. If the leak is of high output or refractory to conservative measures, traditionally surgical ligation of the thoracic duct was performed. More recently, percutaneous transcatheter embolization of the thoracic duct (and other chyle leaks) has gained popularity because of its reasonable clinical success, low morbidity, and minimal recovery time. References: Itkin M, Chen EH. Thoracic duct embolization. Semin Intervent Radiol. 2011;28(2):261-266. Itkin M, Kucharczuk JC, Kwak A, Trerotola SO, Kaiser LR. Nonoperative thoracic duct embolization for traumatic thoracic duct leak: experience in 109 patients. J Thorac Cardiovasc Surg. 2010;139(3):584-589."}, {"number": "25", "stem": "What modality is most often used to access the cisterna chyli for potential thoracic duct embolization?", "options": [{"letter": "A", "text": "Fluoroscopy"}, {"letter": "B", "text": "Ultrasound"}, {"letter": "C", "text": "Magnetic resonance imaging (MRI)"}, {"letter": "D", "text": "Computed tomography (CT)"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Although the cisterna chyli can often be seen with transabdominal ultrasound, CT, and MRI, fluoroscopy is used most commonly for image-guided needle access. The procedure begins with lymphangiography. Traditionally, this was performed with a dorsal foot cut down onto delicate pedal lymphatics. Contemporary practice largely uses ultrasound-guided percutaneous access to the inguinal lymph nodes, with direct injection of lipiodol into the node. The lipiodol is infused slowly with gradual opacification of the iliolumbar lymphatics, which coalesce into the cisterna chyli near the thoracolumbar junction (see Figure 25-1 ). In adults, we typically inject 5 cc of lipiodol per side, followed by a 5 cc saline flush. Once a dominant lumbar lymphatic channel, or better yet the cisterna chyli, becomes opacified, a 21- or 22-gauge needle is then advanced from a right of midline subxiphoid approach into the target (see Figure 25-2). After careful wire manipulation, a microcatheter is advanced into the thoracic duct and direct ductography is performed with either additional lipiodol or water-soluble contrast. Subsequent embolization is then performed if indicated. In some cases, the operator may not be able to catheterize the thoracic duct. Lipiodol lymphangiography alone may seal the leak in many of these cases. If not, thoracic duct needle disruption can be performed. Other techniques for thoracic duct access include a transvenous retrograde catheterization of the duct as it empties into the venous system and direct ultrasound-guided access into the duct in the lower cervical region. Figure 25-1 Fluoroscopic images from percutaneous intranodal lymphangiogram. Magnified image in the left groin (left) shows a 25 g needle infusing lipiodol into a lymph node with drainage into small lymphatic channels. After 5 cc of lipiodol is administered to each groin, there is excellent opacification of the iliolumbar lymphatics (middle) with the ducts coalescing into the cisterna chyli (arrow) near the thoracolumbar junction. Figure 25-2 Companion case of a patient undergoing study with lymphangiogram for refractory chylothorax. A combination of anteroposterior (AP) (left) and steep oblique (right) fluoroscopy is used to guide a 22 g needle transabdominally into the cisterna chyli (arrowheads). A wire is then finessed cephalad, over which a catheter can be passed to perform additional ductography and intervention. References: Binkert CA, Yucel EK, Davison BD, Sugarbaker DJ, Baum RA. Percutaneous treatment of high-output chylothorax with embolization or needle disruption technique. J Vasc Interv Radiol. 2005;16(9):1257-1262. Guevara CJ, Rialon KL, Ramaswamy RS, Kim SK, Darcy MD. US-guided, direct puncture retrograde thoracic duct access, lymphangiography, and embolization: feasibility and efficacy. J Vasc Interv Radiol. 2016;27(12):1890-1896. Itkin M, Kucharczuk JC, Kwak A, Trerotola SO, Kaiser LR. Nonoperative thoracic duct embolization for traumatic thoracic duct leak: experience in 109 patients. J Thorac Cardiovasc Surg. 2010;139(3):584-589. Nadolski GJ, Itkin M. Feasibility of ultrasound-guided intranodal lymphangiogram for thoracic duct embolization. J Vasc Interv Radiol. 2012;23(5):613-616."}, {"number": "26", "stem": "A patient with normal body habitus requires left groin arterial access for a right lower extremity arterial intervention. What would be the best approach in this patient?", "options": [{"letter": "A", "text": "Skin entry 1; arteriotomy 2"}, {"letter": "B", "text": "Skin entry 6; arteriotomy 5"}, {"letter": "C", "text": "Skin entry 5; arteriotomy 4"}, {"letter": "D", "text": "Skin entry 3; arteriotomy 2"}], "images": ["assets/q26_p032_01.jpg"], "explanationImages": ["assets/a26_p031_01.jpg", "assets/a26_p032_01.jpg"], "answer": "D", "explanation": "Answer D. Arrowhead 1 points to the left external iliac artery. Arrowhead 2 points to the common femoral artery directly over the middle third of the left femoral head. Arrowhead 3 points to the common femoral artery at the inferior margin of the femoral head. Arrowhead 4 points to the common femoral bifurcation. Arrowheads 5 and 6 point to the proximal superficial femoral artery. For lower extremity arterial interventions, the access is commonly obtained in retrograde fashion on the contralateral side. The operator works up and over the aortic bifurcation, allowing himself or herself to be positioned alongside the lower extremities of the patient. Ideally, the arteriotomy is located directly over the midportion or middle third of the femoral head, in a healthy segment of artery. The femoral head serves as a backstop for manual compression if needed. Access more proximal can result in retroperitoneal hemorrhage with inadvertent puncture through the back wall of the artery. Manual compression may also be less successful in this proximal segment, as the artery dives deep into the pelvis. Access more distal can result in injury or access to branches such as the profunda femoris and superficial femoral arteries. For this patient, the skin puncture should occur at arrowhead 3 with needle entry into the artery at arrowhead 2. With obese patients, the skin puncture may begin closer to arrowhead 4 to accommodate for a longer subcutaneous tract to the artery. Reference: Farsad K, Keller FS, Kandarpa K. Vascular access and catheter-directed angiography. In: Kandarpa K, Machan L, Durham J. Handbook of Interventional Radiologic Procedures. Lippincott Williams & Wilkins; 2016:1-26."}, {"number": "27", "stem": "Which artery represents the right colic artery?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q27_p033_02.jpg"], "explanationImages": ["assets/a27_p033_02.jpg", "assets/a27_p034_01.jpg"], "answer": "C", "explanation": "Answer C. In the case example, the diagnostic catheter has selected the SMA, with the catheter tip just beyond the pancreaticoduodenal branches. As with all arteriograms, it is helpful to picture the underlying organ anatomy (see Figure 27-1) to help identify the various branches. Artery branch A is the middle colic artery, which classically extends for a few centimeters and then branches in a \"T\" configuration giving rise to right and left (artery branch B) branches that extend out along the transverse colon. The right and left branches anastomose with the right colic and left colic arteries, respectively, forming the marginal artery of the colon. The artery marked C is the right colic artery and D is the ileocolic artery. The smaller artery branches coming off the SMA left of midline are termed jejunal and ileal branches. Figure 27-1 Superior mesenteric artery (SMA) angiography with arterial phase (top left), parenchymal phase (top right), and venous phase (bottom). Reference: Uflacker R. Atlas of Vascular Anatomy: An Angiographic Approach. Lippincott Williams & Wilkins; 2007:457-654."}, {"number": "28", "stem": "What is the course of the microcatheter in this angiogram demonstrating active extravasation (catheter tip marked with arrows)?", "options": [{"letter": "A", "text": "Inferior mesenteric artery → superior hemorrhoidal artery"}, {"letter": "B", "text": "Left internal iliac artery → cystic artery"}, {"letter": "C", "text": "Aortic bifurcation → median sacral artery"}, {"letter": "D", "text": "Left internal iliac artery → uterine artery"}], "images": ["assets/q28_p034_02.jpg"], "explanationImages": ["assets/a28_p034_02.jpg", "assets/a28_p035_01.jpg"], "answer": "A", "explanation": "Answer A. The subtracted and native images from this arteriogram demonstrate an artery bifurcation at the tip of the catheter with right and left branches draping down over a pelvic structure with active extravasation and contrast pouring out to the bottom field of view. The native image confirms the bleeding organ is not the bladder (note the Foley catheter). The only arterial branch pattern that makes sense in this scenario is the superior hemorrhoidal artery (superior rectal), which is the terminal branch of the inferior mesenteric artery. The extravasation occurs into the rectal lumen and is spilling out the anus. The cystic and uterine arteries are paired with each side supplying approximately half of the respective organ, and not crossing midline. The median sacral artery is a reasonable choice for a midline artery but largely supplies the sacrum and coccyx. Figure 28-1 Digital subtraction angiography (DSA) from selective inferior mesenteric artery (IMA) catheterization demonstrating the main arterial branches. Light gray arrow, left colic artery ascending branch; dark gray arrow, left colic artery descending branch; bracket, sigmoid branches; open arrowheads, superior hemorrhoidal artery. Reference: Uflacker R. Atlas of Vascular Anatomy: An Angiographic Approach. Lippincott Williams & Wilkins; 2007:457-654."}, {"number": "29", "stem": "Where is the catheter positioned to create this image?", "options": [{"letter": "A", "text": "Superior mesenteric artery (SMA)"}, {"letter": "B", "text": "Superior mesenteric vein"}, {"letter": "C", "text": "Main portal vein"}, {"letter": "D", "text": "Inferior vena cava"}], "images": ["assets/q29_p036_01.jpg"], "explanationImages": ["assets/a29_p036_01.jpg", "assets/a29_p037_01.jpg"], "answer": "A", "explanation": "Answer A. This is a DSA image of the portal venous system. Figure 29-1 delineates the anatomy present. To opacify the draining branches to the superior mesenteric vein and subsequently the main portal vein, a delayed image from a SMA injection was obtained. A prolonged SMA injection will fill the artery bed, perfuse the jejunum through the transverse colon, and ultimately fill the venous bed. Although direct (transhepatic, transsplenic, or transjugular intrahepatic) and indirect (wedged hepatic vein) portal venography can also be performed, it is not possible to opacify the entire venous bed against the direction of flow. Figure 29-1 Left image shows a diagnostic catheter in the superior mesenteric artery (SMA) with arteriogram. A prolonged injection is performed to obtain the image on the right depicting the venous drainage of the SMA distribution. A, main portal vein; B, superior mesenteric vein; C, right colic vein; D, jejunal veins; E, ileal veins. Reference: Uflacker R. Atlas of Vascular Anatomy: An Angiographic Approach. Lippincott Williams & Wilkins; 2007:457-654."}, {"number": "30", "stem": "After wire and catheter manipulation into a right hepatic artery branch, angiography shows spasm (arrow) at the catheter tip. Which of the following is the most appropriate next step?", "options": [{"letter": "A", "text": "Fentanyl 50 mcg intra-arterial"}, {"letter": "B", "text": "Nitroglycerin 50 mcg intra-arterial"}, {"letter": "C", "text": "Nitrous oxide 50 mg inhaled"}, {"letter": "D", "text": "Vasopressin 0.2 units/min intravenous"}], "images": ["assets/q30_p038_01.jpg"], "explanationImages": ["assets/a30_p037_02.jpg", "assets/a30_p038_01.jpg"], "answer": "B", "explanation": "Answer B. With catheter- or wire-induced vasospasm, the operator can inject nitroglycerin directly through the catheter for acute treatment. The onset of action is nearly immediate. Typical bolus doses range between 50 and 300 μg. It is uncommon to see any significant drop in blood pressure, although caution should be taken in patients actively taking phosphodiesterase 5 inhibitors such as sildenafil or tadalafil, as concomitant administration is considered contraindicated for 24 to 48 hours depending on the drug. Intra-arterial nitroglycerin can also be given preemptively, just before vessel interrogation or intervention. The plasma half- life is 1 to 4 minutes. Time is also a reasonable alternative, as spasm often subsides once the inciting or aggravating agent has been removed. Another common vasodilator used in practice is intra-arterial verapamil (calcium channel blocker, 2.5-5 mg bolus dose). The onset of action is a few minutes, with duration of action lasting up to 20 minutes. Papaverine and tolazoline are additional alternatives if available. Nitrous oxide, a vascular smooth muscle-relaxing agent, mainly affects the pulmonary vasculature when inhaled. Vasopressin causes vasoconstriction and is used intravenously for the treatment of shock. Its current role in IR is mainly in the treatment of GI bleeding. With a catheter positioned in the culprit mesenteric artery, an infusion is begun at 0.2 units/min. After 20 minutes, repeat angiography is performed. If the bleeding has stopped, the infusion is continued for 12 to 24 hours, followed by a gradual dose reduction over 6 to 12 hours. If bleeding persists, the dose can be increased up to 0.4 units/min. This technique has largely been replaced by superselective embolization, but in cases of diffuse mucosal bleeding or inability to perform superselective catheterization, it remains a useful treatment strategy. References: Cherian MP, Mehta P, Kalyanpur TM, Hedgire SS, Narsinghpura KS. Arterial interventions in gastrointestinal bleeding. Semin Intervent Radiol. 2009;26(3):184-196. Oppenheimer J, Ray CE, Kondo KL. Miscellaneous pharmaceutical agents in interventional radiology. Semin Intervent Radiol. 2010;27(4):422-430."}, {"number": "31", "stem": "During a transjugular intrahepatic portosystemic shunt (TIPS) procedure, the operator makes a needle throw from the right hepatic vein toward the right portal vein. Blood is then easily aspirated confirming intraluminal needle tip position. Based on these sequential digital subtraction angiography (DSA) images obtained by injecting the needle with contrast, which of the following \"next steps\" is correct?", "options": [{"letter": "A", "text": "Right portal vein access is too central; make a more peripheral throw"}, {"letter": "B", "text": "Advance wire and then dilate the parenchymal tract for subsequent stent placement"}, {"letter": "C", "text": "Incorrect vessel accessed; reposition needle or make a new throw"}], "images": ["assets/q31_p039_01.jpg", "assets/q31_p039_02.jpg"], "explanationImages": ["assets/a31_p039_01.jpg", "assets/a31_p039_02.jpg"], "answer": "C", "explanation": "Answer C. There are multiple branching tubular structures in the liver, and sometimes distinguishing them from one another can be difficult. In the case example, the operator has accessed the right hepatic artery rather than the right portal vein. Typically, hepatic arteries are smaller in caliber and more tortuous as they branch peripherally. Named branches such as the cystic artery can often be identified (see Figure 31-1). Real time angiography demonstrates pulsatile forward flow, rather than a continuous slow flow. Conversely, the portal vessels tend to be straighter and larger, and other clues such as the presence of a periumbilical vein or varix may be seen (see Figure 31-1). Figure 31-1 Left image from the case example demonstrates the operator has accessed the right hepatic artery. In addition to the overall appearance, the cystic artery is seen (black arrow) confirming arterial entry. Right image is a wedged CO2 portogram obtained in the same patient depicting the portal venous system. Note the large periumbilical vein (white arrow), which came off the left portal vein. In addition to the arteries and portal veins of the liver, the operator may access the hepatic veins or the biliary tree. The former is easy to identify, as contrast will flow centrally toward the right atrium in large straight veins and empty into the inferior vena cava. Cholangiography can initially look similar to hepatic arterial or portal venous angiograms; however, with time and additional injection of contrast, slow hepatofugal flow will progress toward the hilum and will not immediately wash out. Dependent biliary branches will fill first, with nondependent (left lobe) branches often filling later on. In the absence of obstruction, the contrast will eventually drain into the bowel. Figure 31-2 Percutaneous biliary access with cholangiogram demonstrating the typical appearance of the nondilated biliary tree. Note the branches are straight, similar to portal veins, but smaller in caliber with limited peripheral arborization. Contrast drains into the bowel. Also in this example is a common variant with the right posterior duct draining into the left main duct. Reference: Ripamonti R, Ferral H, Alonzo M, Patel NH. Transjugular intrahepatic portosystemic shunt-related complications and practical solutions. Semin Intervent Radiol. 2006;23(2):165-176."}, {"number": "32", "stem": "Which of the following is considered a temporary embolic agent?", "options": [{"letter": "A", "text": "Amplatzer vascular plug"}, {"letter": "B", "text": "Gelatin foam slurry"}, {"letter": "C", "text": "Polyvinyl alcohol particles"}, {"letter": "D", "text": "N-butyl cyanoacrylate glue"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Autologous clot was the first agent used for transcatheter embolization but was limited in application because of clot lysis over time. In contemporary practice, gelatin is the most common temporary agent used and comes in several forms (powder, foam block, beads). The duration of occlusion is typically days to weeks, and its most common application is embolization of traumatic hemorrhage. Numerous permanent embolic agents exist, and their application is wide ranging and dependent on the pathology being treated, location of embolization, risk of nontarget embolization, operator experience, and patient coagulation among others. A combination of agents can be used, most commonly in situations where both proximal and distal vascular occlusion is desired (think portal vein embolization with particles and coils) or to augment control over an embolic agent (think coils and glue in AVM embolization). Embolic agents of IR Temporary Autologous clot Percutaneous biopsy tract Gelatin Traumatic hemorrhage Percutaneous biopsy tract Thrombin Percutaneous injection of pseudoaneurysm Permanent Metallic coils (pushable, detachable), vascular plugs (covered or uncovered) Traumatic vessel injury, GI bleeding, aneurysm and pseudoaneurysm occlusion, arteriovenous fistula closure, pulmonary AVM embolization, small and large vessel occlusion, portal vein embolization Particles Benign and malignant tumor embolization, bronchial and GI hemorrhage, portal vein embolization, partial splenic embolization Liquid (nBCA glue, Onyx) Vascular malformations, thoracic duct embolization, portal vein embolization, small vessel hemorrhage, eg, GI/bronchial/inferior epigastric, partial splenic embolization, aneurysm endoleak embolization References: Ray CE, Bauer JR. Embolization agents. In: Mauro MA, Murphy KP, Thomson KR, et al. Image-Guided Interventions. Saunders; 2008:131-139. Vaidya S, Tozer KR, Chen J. An overview of embolic agents. Semin Intervent Radiol. 2008;25(3):204-215."}, {"number": "33", "stem": "Which of the following is true regarding pulmonary artery catheter angiography?", "options": [{"letter": "A", "text": "Power injection for right pulmonary artery is 5 cc/s for 10 cc total"}, {"letter": "B", "text": "Right common femoral artery access is preferred"}, {"letter": "C", "text": "Inject and image on inspiratory hold"}, {"letter": "D", "text": "Right bundle branch block is a contraindication"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Although catheter angiography has largely been replaced by computed tomography angiography (CTA) for the diagnosis of acute pulmonary embolism, it remains an important diagnostic and therapeutic technique that carries some unique risks and challenges. Venous access via the internal jugular or common femoral veins is preferred. To perform the catheterization, we use an angled pigtail catheter or flow-directed balloon catheter to quickly negotiate into the right ventricular (RV) outflow tract, thereby minimizing contact and irritation with the right atrium and ventricle. Before catheterization, a baseline electrocardiogram should be obtained to evaluate for an underlying heart block. The catheter or sheath when placed through right atrium, right ventricle, and outflow tract can induce a right bundle branch block. If the patient has an underlying left bundle branch block, complete heart block can ensue. If known, patients with a left bundle branch block undergoing a pulmonary artery catheterization should have immediate access to pacing equipment. In additional to right bundle branch block, traversing the right- sided heart often results in arrhythmias, and sustained ventricular tachycardia can occur necessitating treatment. Once the catheter is maneuvered into the main pulmonary artery, the intravascular pressure is measured. Normal main pulmonary artery pressure (PAP) is roughly 25/10 mmHg with a mean around 15 mmHg. Pulmonary hypertension is defined as resting mean PAP >25 mmHg. To study the pulmonary artery distribution, power injection of the catheter is appropriate. Over the years, there has been some controversy regarding power injection in the setting of elevated pressures (RV end diastolic pressure >20 mmHg or systolic PAP >80 mmHg), as fatal complications have occurred. Modern experience with low-osmolar nonionic contrast agents indicates that power injection is safe; however, operators may choose to tailor their injection parameters depending on the clinical scenario and observed hemodynamics. The volume of blood in the pulmonary vasculature is massive requiring large-volume power injections to adequately study the distribution. Appropriate injections for the main pulmonary artery are 15 to 30 mL/s; right or left pulmonary artery 10 to 20 mL/s. If the patient is able, imaging should be performed on full inspiration to expand the lung, which will spread out and optimize visualization of the vessels and underlying pathology. References: Mills SR, Jackson DC, Older RA, Heaston DK, Moore AV. The incidence, etiologies, and avoidance of complications of pulmonary angiography in a large series. Radiology. 1980;136(2):295-299. Nicod P, Peterson K, Levine M, et al. Pulmonary angiography in severe chronic pulmonary hypertension. Ann Intern Med. 1987; 107(4):565-568. Nilsson T, Carlsson A, Mâre K. Pulmonary angiography: a safe procedure with modern contrast media and technique. Eur Radiol. 1998;8(1):86-89. Smith TP, Lee VS, Hudson ER, et al. Prospective evaluation of pulmonary artery pressures during pulmonary angiography performed with low-osmolar nonionic contrast media. J Vasc Interv Radiol. 1996;7(2):207-212."}, {"number": "34", "stem": "Which of the following conditions is most likely to benefit from systemic beta blocker therapy?", "options": [{"letter": "A", "text": "Infantile hemangioma"}, {"letter": "B", "text": "Venous malformation"}, {"letter": "C", "text": "Lymphatic malformation"}, {"letter": "D", "text": "Arteriovenous malformation (AVM)"}], "images": ["assets/q34_p042_01.jpg"], "explanationImages": ["assets/a34_p042_01.jpg", "assets/a34_p043_01.jpg", "assets/a34_p043_03.jpg"], "answer": "A", "explanation": "Answer A. Hemangiomas are the most common vascular tumors and may present fully grown at birth (congenital type) or may appear after birth (infantile type). They can be superficial or deep and solitary or multifocal. The overwhelming majority (about 90%) will involute on their own over time and leave the patient with normal to mildly blemished skin. When hemangiomas cause complications, therapy is indicated. Therapies include resection and reconstruction, topical or locally directed treatments, and systemic treatments. For years, systemic treatment was dominated by corticosteroids; however, in the past decade, beta blocker therapy with propranolol has emerged as a promising treatment with significant regression occurring in the majority of patients treated. On ultrasound, hemangiomas are usually well circumscribed with heterogeneous echogenicity and intense low-resistance perilesional and internal vascularity. On MRI, they are often well defined, iso- to hyperintense on T1/hyperintense on T2 relative to muscle, with high flow vascularity characterized by flow voids, early homogenous enhancement, and lack of early venous drainage. Radiologists should be familiar with the modern classification of vascular anomalies, as described by the International Society for the Study of Vascular Anomalies (ISSVA), which can be accessed for free online. This classification scheme breaks down anomalies into two major groups, vascular tumors and vascular malformations, and provides a universal descriptive terminology that accurately reflects current understanding of vascular anomalies. A few entities are worth showing in greater detail (see Figures 34-1, 34-2, 34-3 and 34-4). Figure 34-1 Infantile hemangioma. A 2-year-old with growing forehead mass. Ultrasound shows a circumscribed heterogeneously hypoechoic mass with internal vascularity. Magnetic resonance imaging (MRI) performed 6 months later shows enlargement of the mass which is T2 hyperintense with internal flow voids (bottom left), T1 isointense (top right), and diffusely enhancing with gadolinium (bottom right). Figure 34-2 Arteriovenous malformation (AVM). A 13-year-old with throbbing scalp mass that demonstrates a palpable thrill on physical examination. Axial T2 MR images (top) show a superficial mass comprised entirely of flow voids. Axial time-of-flight (TOF) MR images (bottom) highlight the enlarged feeding arteries and draining veins in the surrounding soft tissue of the scalp. Digital subtraction angiography (DSA) images obtained after selecting out the superficial temporal artery demonstrate hypertrophied arterial feeders (solid arrowheads), the palpable mass (open arrowheads), and early filling of enlarged draining veins (arrows). AVMs are characterized by an abnormal connection (s) between an artery and vein without an intervening capillary bed. Figure 34-3 Venous malformation (VM). A 10-year-old with enlarging mass in the left upper arm. T2 FS MRI images show a high signal intensity mass with cystic spaces and thin septations centered in the posterior muscle compartment. There is a low signal intensity filling defect (white arrowhead) consistent with a phlebolith as well as a fluid-fluid level (open arrowhead). T1 FS pre (top right) and post (bottom right) contrast images show near homogenous enhancement of the mass. VMs typically display progressive intralesional enhancement over time. Figure 34-4 Lymphatic malformation (LM). A 7-year-old with a right groin mass evaluated with MRI. Coronal and axial T2 (left images) show high signal intensity mass with large cystic spaces and thin internal septations extending from the mid-thigh, crossing the inguinal ligament, and extending cephalad with intrapelvic component. Axial T1 FS GRE pre (top) and post (bottom) contrast images show peripheral enhancement and thin enhancing septations. References: Jarrett DY, Ali M, Chaudry G. Imaging of vascular anomalies. Dermatol Clin. 2013;31(2):251-266. Tekes A, Koshy J, Kalayci TO, et al. S.E. Mitchell Vascular Anomalies Flow Chart (SEMVAFC): a visual pathway combining clinical and imaging findings for classification of soft-tissue vascular anomalies. Clin Radiol. 2014;69(5):443-457."}];
+    const APP_ID = "ir-fundamentals-quiz-ch1";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

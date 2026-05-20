@@ -71,6 +71,10 @@ Fields:
 
 Do not put long explanations in `Extra`.
 For quiz-derived cards, `Extra` must include a short one-sentence explanation of the tested point after the question number/result metadata. Keep it useful for immediate review: identify what the image/device/finding is and why the answer follows when that context is not obvious.
+Do not generate quiz-derived APKGs as an automatic tail step of quiz capture unless the user explicitly requests cards, a deck, Anki generation, or an APKG. Capture/review and card-writing are separate passes.
+Do not create card fronts by truncating source stems. Rewrite concise, complete prompts. No prompt should end mid-sentence.
+Do not use `Answer:` or `Key answer:` fallback cards. Convert the tested point into a real cloze fact or a direct image prompt, or skip it.
+Image-front quiz cards should usually test diagnosis, device/artifact recognition, or labeled structure identification. Do not use image fronts for multi-step management questions when the image first requires a diagnosis.
 If the source quiz provides a `Vital Concept` or similarly labeled key concept, copy it word-for-word into `Extra` whenever technically possible. Put it after the question number/result metadata and before appended images.
 Do not fill `Extra` with peer-comparison percentages. Avoid lines such as `correct answer chosen by X% of peers` or `selected answer chosen by Y% of peers`; these do not teach the tested concept.
 Do not put source provenance in front-side `Text`. Source names, app names, article titles, quiz names, question numbers, and batch identifiers belong in `Extra`, `README.md`, or `manifest.json`, not in the repeated study prompt.

@@ -929,6 +929,7 @@ class SettingsDialog(QDialog):
         self.shortcut_bindings = default_shortcut_bindings()
         self.shortcut_inputs: dict[str, QLineEdit] = {}
         self.pause_shortcut_mode_combo: ScrollSafeComboBox | None = None
+        self.developer_mode_check: QCheckBox | None = None
         self.flag_palette = get_anki_flag_palette()
 
         self.setModal(False)
@@ -1192,6 +1193,7 @@ class SettingsDialog(QDialog):
         body_layout.setContentsMargins(2, 2, 8, 2)
         body_layout.setSpacing(12)
 
+        body_layout.addWidget(self._build_developer_mode_section(body))
         body_layout.addWidget(self._build_actions_section(body))
         body_layout.addWidget(self._build_timers_section(body))
         body_layout.addWidget(self._build_flags_section(body))
@@ -1926,6 +1928,15 @@ class SettingsDialog(QDialog):
             return
         self.persist_settings()
 
+    def _on_developer_mode_toggled(self, checked: bool) -> None:
+        if self._syncing:
+            return
+        if checked:
+            self.controller.enable_developer_mode()
+        else:
+            self.controller.disable_developer_mode()
+        self.sync_from_state()
+
     def _build_help_section(self, parent: QWidget) -> QWidget:
         frame, layout = self._build_section_card(parent, "Help", "help")
         help_text = QLabel(
@@ -1946,6 +1957,8 @@ class SettingsDialog(QDialog):
             self.question_spin.setValue(state.question_limit_ms / 1000)
             self.answer_spin.setValue(state.review_limit_ms / 1000)
             self._populate_flag_combos(state.time_drain_flag, state.review_later_flag)
+            if self.developer_mode_check is not None:
+                self.developer_mode_check.setChecked(bool(getattr(self.controller, "developer_mode_enabled", False)))
             self.display_mode_combo.setCurrentIndex(
                 max(0, self.display_mode_combo.findData(getattr(self.controller, "display_mode", DISPLAY_MODE_INLINE)))
             )
@@ -2508,6 +2521,19 @@ class SettingsDialog(QDialog):
             return
         self.controller.reset_game_from_dialog()
         self.sync_from_state()
+
+    def _build_developer_mode_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(parent, "Developer Mode", "developer_mode", collapsible=False, expanded=True)
+        self.developer_mode_check = QCheckBox("Developer mode preset", frame)
+        self.developer_mode_check.toggled.connect(self._on_developer_mode_toggled)
+        layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.developer_mode_check,
+                "When on: Pause / Unpause is 9, Unpause is U, shortcut mode is Separate pause and unpause, controller type is Steam Controller / Steam Input, the Review Later deck-page manager button is on, and Review time-drain cards last is on. Turning it off restores the settings you had before enabling it.",
+            )
+        )
+        return frame
 
 def open_settings_dialog(controller: Any) -> None:
     global _dialog

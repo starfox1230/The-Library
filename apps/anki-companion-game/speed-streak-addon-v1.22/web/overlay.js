@@ -366,7 +366,7 @@
                 <br><br>
                 If either timer expires, the streak is lost, the orb flashes into a failed state, and the orbit collapses. If you bury or hide a card, the next card gets a fresh timer without changing the streak or score.
                 <br><br>
-                Press <strong id="acgHelpPauseShortcut">P</strong> to pause or unpause. Opening Settings also pauses automatically. While paused, the sidebar dims and waits for you to resume. You can change the question and answer timers in Settings, toggle the top-of-card timer, and switch into vibration-only mode. The <strong>Show Stats</strong> screen opens a full-window overlay with your current-round pause time, today's pace, and historical charts.
+                <span id="acgHelpShortcutCopy">Press <strong id="acgHelpPauseShortcut">P</strong> to pause or unpause.</span> Opening Settings also pauses automatically. While paused, the sidebar dims and waits for you to resume. You can change the question and answer timers in Settings, toggle the top-of-card timer, and switch into vibration-only mode. The <strong>Show Stats</strong> screen opens a full-window overlay with your current-round pause time, today's pace, and historical charts.
                 <br><br>
                 The <strong>Time Drain Flag</strong> is a watched flag you choose in Settings. When the current review card has that same flag on its question side, the normal orbit view is temporarily replaced with a warning screen. That warning shows the live countdown in large text and says to press <strong>-</strong> to bury the card if it is becoming a time sink. This is meant for cards you still want to keep, but want the add-on to call out when they are slowing your session down.
                 <br><br>
@@ -817,8 +817,26 @@
   function syncShortcutCopy(data) {
     const pauseShortcut = getPauseShortcut(data);
     const unpauseShortcut = getUnpauseShortcut(data);
+    const split = String(data?.pauseShortcutMode || "combined").trim().toLowerCase() === "split";
     setText("acgPauseShortcutLabel", unpauseShortcut);
     setText("acgHelpPauseShortcut", pauseShortcut);
+    const helpCopy = $("acgHelpShortcutCopy");
+    if (helpCopy) {
+      if (split) {
+        helpCopy.innerHTML = `Press <strong id="acgHelpPauseShortcut">${escapeHtml(pauseShortcut)}</strong> to pause and <strong>${escapeHtml(unpauseShortcut)}</strong> to unpause.`;
+      } else {
+        helpCopy.innerHTML = `Press <strong id="acgHelpPauseShortcut">${escapeHtml(pauseShortcut)}</strong> to pause or unpause.`;
+      }
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   function setStyleProperty(node, property, value) {

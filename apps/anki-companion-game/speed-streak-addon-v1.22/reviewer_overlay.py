@@ -26,8 +26,10 @@ from .feedback_catalog import (
     AUDIO_TRIMMED_DIRECTORY_NAME,
     DEFAULT_AUDIO_ENABLED,
     DEFAULT_AUDIO_FILE,
+    HAPTIC_CONTROLLER_PROFILE_STEAM,
     default_audio_event_files,
     default_haptic_event_patterns,
+    default_haptic_event_patterns_for_profile,
     haptic_pattern_sequences,
     normalize_audio_event_files,
     normalize_haptic_event_patterns,
@@ -296,6 +298,8 @@ class ReviewerOverlayController:
         self._pending_answer_feedback_event = ""
         self.shortcut_bindings = default_shortcut_bindings()
         self.pause_shortcut_mode = PAUSE_SHORTCUT_MODE_COMBINED
+        self.developer_mode_enabled = False
+        self._developer_mode_previous_settings: dict[str, Any] = {}
         self._last_timer_display_signature = ""
         self._last_timer_display_remaining_ms = -1
         self._last_timer_display_anchor_ms = 0
@@ -656,6 +660,72 @@ class ReviewerOverlayController:
         self._request_deck_browser_refresh()
         return next_enabled
 
+    def _developer_mode_snapshot(self) -> dict[str, Any]:
+        state = self.engine.state
+        return {
+            "shortcut_bindings": self.current_shortcut_bindings(),
+            "pause_shortcut_mode": self.pause_shortcut_mode,
+            "haptic_controller_profile": str(state.haptic_controller_profile),
+            "haptic_event_patterns": dict(state.haptic_event_patterns),
+            "review_later_today_deck_button_enabled": bool(self.review_later_today_deck_button_enabled),
+            "time_drain_review_last": bool(state.time_drain_review_last),
+        }
+
+    def enable_developer_mode(self) -> None:
+        if not self.developer_mode_enabled:
+            self._developer_mode_previous_settings = self._developer_mode_snapshot()
+        self.developer_mode_enabled = True
+        self._apply_developer_mode_settings()
+        self._save_persisted_settings()
+        self._request_deck_browser_refresh()
+        self._refresh_review_shortcuts()
+        self._push_state(only_if_changed=False)
+
+    def disable_developer_mode(self) -> None:
+        previous = dict(self._developer_mode_previous_settings or {})
+        self.developer_mode_enabled = False
+        self._developer_mode_previous_settings = {}
+        if previous:
+            self._restore_developer_mode_snapshot(previous)
+        self._save_persisted_settings()
+        self._request_deck_browser_refresh()
+        self._refresh_review_shortcuts()
+        self._push_state(only_if_changed=False)
+
+    def _apply_developer_mode_settings(self) -> None:
+        state = self.engine.state
+        self.shortcut_bindings = normalize_shortcut_bindings({"pause": "9", "unpause": "U"})
+        self.pause_shortcut_mode = PAUSE_SHORTCUT_MODE_SPLIT
+        state.haptic_controller_profile = HAPTIC_CONTROLLER_PROFILE_STEAM
+        state.haptic_event_patterns = default_haptic_event_patterns_for_profile(HAPTIC_CONTROLLER_PROFILE_STEAM)
+        state.time_drain_review_last = True
+        self.review_later_today_deck_button_enabled = True
+        self._normalize_feedback_preferences()
+        self.haptics.set_enabled(state.haptics_enabled)
+
+    def _restore_developer_mode_snapshot(self, snapshot: dict[str, Any]) -> None:
+        state = self.engine.state
+        self.shortcut_bindings = normalize_shortcut_bindings(snapshot.get("shortcut_bindings"))
+        self.pause_shortcut_mode = normalize_pause_shortcut_mode(snapshot.get("pause_shortcut_mode"))
+        state.haptic_controller_profile = str(snapshot.get("haptic_controller_profile", state.haptic_controller_profile))
+        state.haptic_event_patterns = normalize_haptic_event_patterns(snapshot.get("haptic_event_patterns", state.haptic_event_patterns))
+        state.time_drain_review_last = bool(snapshot.get("time_drain_review_last", state.time_drain_review_last))
+        self.review_later_today_deck_button_enabled = bool(
+            snapshot.get("review_later_today_deck_button_enabled", self.review_later_today_deck_button_enabled)
+        )
+        self._normalize_feedback_preferences()
+        self.haptics.set_enabled(state.haptics_enabled)
+
+    def _refresh_review_shortcuts(self) -> None:
+        if getattr(mw, "state", "") != "review":
+            return
+        reset = getattr(mw, "reset", None)
+        if callable(reset):
+            try:
+                reset()
+            except Exception:
+                pass
+
     def on_js_message(self, handled: tuple[bool, Any], message: str, context: Any) -> tuple[bool, Any]:
         if message == "speed-streak:reset":
             self.engine.hard_reset()
@@ -831,9 +901,14 @@ class ReviewerOverlayController:
             self.sphere_mode = SPHERE_MODE_CLASSIC
             self.render_mode = RENDER_MODE_WEBGL
             self.review_later_today_deck_button_enabled = False
+            self.shortcut_bindings = default_shortcut_bindings()
+            self.pause_shortcut_mode = PAUSE_SHORTCUT_MODE_COMBINED
+            self.developer_mode_enabled = False
+            self._developer_mode_previous_settings = {}
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
             self._save_persisted_settings()
             self._request_deck_browser_refresh()
+            self._refresh_review_shortcuts()
             self._apply_sidebar_width()
             self._push_state(only_if_changed=False)
             return (True, None)
@@ -901,6 +976,8 @@ class ReviewerOverlayController:
         )
         self.shortcut_bindings = normalize_shortcut_bindings(shortcut_bindings)
         self.pause_shortcut_mode = normalize_pause_shortcut_mode(pause_shortcut_mode)
+        self.developer_mode_enabled = False
+        self._developer_mode_previous_settings = {}
         self._normalize_feedback_preferences()
         display_mode_changed = normalize_display_mode(display_mode) != self.display_mode or self._display_mode_prompt_pending
         self.set_display_mode(display_mode, persist=False, reconfigure=display_mode_changed)
@@ -913,6 +990,7 @@ class ReviewerOverlayController:
         self.haptics.set_enabled(self.engine.state.haptics_enabled)
         self._save_persisted_settings()
         self._request_deck_browser_refresh()
+        self._refresh_review_shortcuts()
         if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
             self._last_reviewer_signature = ""
             self._sync_reviewer_surface()
@@ -934,6 +1012,9 @@ class ReviewerOverlayController:
     def reset_defaults_from_dialog(self) -> None:
         self.engine.reset_settings_to_defaults()
         self.shortcut_bindings = default_shortcut_bindings()
+        self.pause_shortcut_mode = PAUSE_SHORTCUT_MODE_COMBINED
+        self.developer_mode_enabled = False
+        self._developer_mode_previous_settings = {}
         self._normalize_feedback_preferences()
         self.visual_mode = VISUAL_MODE_SPHERE
         self.sphere_mode = SPHERE_MODE_CLASSIC
@@ -942,6 +1023,7 @@ class ReviewerOverlayController:
         self.haptics.set_enabled(self.engine.state.haptics_enabled)
         self._save_persisted_settings()
         self._request_deck_browser_refresh()
+        self._refresh_review_shortcuts()
         self._apply_sidebar_width()
         self._push_state(only_if_changed=False)
 
@@ -1701,6 +1783,11 @@ class ReviewerOverlayController:
                 raw_shortcut_bindings = {"pause": config.get("pause_shortcut")}
             self.shortcut_bindings = normalize_shortcut_bindings(raw_shortcut_bindings)
             self.pause_shortcut_mode = normalize_pause_shortcut_mode(config.get("pause_shortcut_mode"))
+            self.developer_mode_enabled = bool(config.get("developer_mode_enabled", False))
+            raw_developer_snapshot = config.get("developer_mode_previous_settings")
+            self._developer_mode_previous_settings = (
+                dict(raw_developer_snapshot) if isinstance(raw_developer_snapshot, dict) else {}
+            )
             self.review_later_today_deck_button_enabled = bool(
                 config.get("review_later_today_deck_button_enabled", False)
             )
@@ -1739,6 +1826,8 @@ class ReviewerOverlayController:
                 custom_colors=dict(config.get("custom_colors", {}) or {}),
             )
             self._normalize_feedback_preferences()
+            if self.developer_mode_enabled:
+                self._apply_developer_mode_settings()
             self.engine.state.enabled = bool(config.get("enabled", True))
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
         except Exception:
@@ -1752,6 +1841,8 @@ class ReviewerOverlayController:
             self._window_position_presets = []
             self.shortcut_bindings = default_shortcut_bindings()
             self.pause_shortcut_mode = PAUSE_SHORTCUT_MODE_COMBINED
+            self.developer_mode_enabled = False
+            self._developer_mode_previous_settings = {}
             self.review_later_today_deck_button_enabled = False
             self.engine.update_time_limits(
                 question_seconds=12,
@@ -1804,6 +1895,8 @@ class ReviewerOverlayController:
             "window_position_presets": self._window_position_presets,
             "shortcut_bindings": self.current_shortcut_bindings(),
             "pause_shortcut_mode": self.pause_shortcut_mode,
+            "developer_mode_enabled": bool(self.developer_mode_enabled),
+            "developer_mode_previous_settings": dict(self._developer_mode_previous_settings),
             "audio_enabled": bool(state.audio_enabled),
             "selected_audio_file": str(state.selected_audio_file),
             "audio_event_files": dict(state.audio_event_files),
