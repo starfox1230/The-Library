@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interventional Radiology Arterial Interventions Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Interventional Radiology Arterial Interventions Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"ir-arterial-interventions-quiz-ch2",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "An 85-year-old male undergoes endovascular aortic repair (EVAR) for a 6 cm abdominal aortic aneurysm. The 6-month follow-up computed tomography angiography (CTA) with arterial (left) and delayed (right) phase images shows what complication?", "options": [{"letter": "A", "text": "Type 1a endoleak"}, {"letter": "B", "text": "Type 2 endoleak"}, {"letter": "C", "text": "Type 3 endoleak"}, {"letter": "D", "text": "No endoleak"}], "images": ["assets/q1_p001_03.jpg"], "explanationImages": ["assets/a1_p002_01.jpg"], "answer": "B", "explanation": "Answer B. The arterial phase images show a patent endograft and faint increased attenuation within the excluded aneurysm sac in the mid segment, where the graft becomes bifurcated. A left lumbar artery is visible coursing toward the aneurysm sac between the vertebral body and the psoas muscle. The delayed phase images show dense contrast accumulation within the aneurysm sac at the lumbar level with visible left lumbar artery as the feeding artery. This is a type 2 endoleak by definition (endoleak types defined in the following question). Other arteries often responsible for a type 2 endoleak include the IMA and median sacral artery. Figure 1-1 Companion case with computed tomography angiography (CTA) following endovascular aortic repair (EVAR) for abdominal aortic aneurysm (AAA) showing high-attenuation foci in the sac (arrows) suspicious for an endoleak. Careful comparison shows these are present before administration of intravenous contrast (left) and unchanged in the arterial (middle) and delayed (right) phases of imaging. These foci represent calcifications in the thrombosed aneurysm sac. References: Chen J, Stavropoulos SW. Management of endoleaks. Semin Intervent Radiol. 2015;32(3):259-264. O'Mara JE, Bersin RM. Endovascular management of abdominal aortic aneurysms: the year in review. Curr Treat Options Cardiovasc Med. 2016;18(8):54."}, {"number": "2", "stem": "After EVAR for a 5.5 cm abdominal aortic aneurysm, a 6 month follow-up CTA shows a type 2 endoleak and growth of the aneurysm sac by 10 mm. What is the next recommended step for this patient?", "options": [{"letter": "A", "text": "Surgical aneurysm repair"}, {"letter": "B", "text": "Continued surveillance imaging"}, {"letter": "C", "text": "Endoleak embolization"}, {"letter": "D", "text": "Place second bifurcated endograft"}], "images": [], "explanationImages": ["assets/a2_p003_01.jpg"], "answer": "C", "explanation": "Answer C. The most accepted indication for the treatment of a type 2 endoleak is the growth of the aneurysm sac by 5 mm. Additional and perhaps more controversial indications include persistent endoleak on follow-up imaging, large feeding or draining artery, and high flow within the aneurysm sac. Percutaneous embolization techniques are first line in the treatment of type 2 endoleaks, with surgery reserved for refractory endoleaks or cases where embolization is not feasible. Surveillance is not appropriate in this case, as the aneurysm sac has grown by 1 cm in 6 months. A growing aneurysm is at risk for rupture. Placing a second endograft within the original endograft will have no effect on a leak that is not occurring at a seal site. Table 2-1 Endoleak Classification Endoleak Type Pathology Risk Management Failure of the stent graft to Immediate fix with balloon 1a achieve a circumferential seal. Continued systemic remodeling and/or additional This can occur at the proximal pressurization of the aneurysm fixation with extension cuff, 1b attachment site (1a) or distal sac can lead to rupture. stents, or other devices. Rarely attachment sites (1b). aneurysm sac embolization. Retrograde collateral arterial Continued variable Elective fix in cases of flow to the aneurysm sac by pressurization of the aneurysm aneurysm sac growth by 5 mm 2 branch vessels. Most commonly sac can result in aneurysm sac on follow-up imaging. First-line the inferior mesenteric artery or enlargement and, ultimately, treatment is embolization of the a lumbar artery. aneurysm rupture. nidus and/or feeding artery. Leak or separation between Continued systemic 3 stent graft components. Less pressurization of the aneurysm Immediate fix with stent grafts. commonly tear or hole in the sac can lead to rupture. stent graft fabric. Graft porosity. Identified Continued variable Resolves on its own once 4 immediately after stent graft pressurization of the aneurysm procedural anticoagulation deployment. sac. wears off. Unknown. By definition, an Continued variable Not clear. Conversion to an 5 enlarging aneurysm sac without pressurization of the aneurysm open repair or second endograft. a demonstrable endoleak. sac. Figure 2-1 Subtracted (left) and unsubtracted (right) images from embolization of type 2 endoleak arising from left lumbar artery as seen in question 1. The operator uses a transseal technique whereby the catheter is advanced from the arterial access in the groin and passed between the wall of the iliac artery and fabric of the iliac limb of the endograft. The catheter courses cephalad in this plane, ultimately reaching the aneurysm sac and endoleak nidus. Note the morphology of contrast accumulation in the sac mirrors the computed tomography (CT) images from question 1, with a large left lumbar artery seen feeding the endoleak. The artery is subsequently embolized with coils, and the nidus is closed with glue. References: Chen J, Stavropoulos SW. Management of endoleaks. Semin Intervent Radiol. 2015;32(3):259-264. O'Mara JE, Bersin RM. Endovascular management of abdominal aortic aneurysms: the year in review. Curr Treat Options Cardiovasc Med. 2016;18(8):54."}, {"number": "3", "stem": "Diagnostic angiography is performed before left lower extremity peripheral artery intervention. Based on the pathology demonstrated in sequential digital subtraction angiographic (DSA) images from the pelvis through the foot, what is the most likely patient presentation?", "options": [{"letter": "A", "text": "Progressive buttock claudication and impotence"}, {"letter": "B", "text": "Intermittent claudication in the left calf"}, {"letter": "C", "text": "Abrupt-onset painful and pulseless left lower extremity"}, {"letter": "D", "text": "Dry gangrene of the left toes"}], "images": ["assets/q3_p004_01.jpg"], "explanationImages": ["assets/a3_p004_01.jpg"], "answer": "B", "explanation": "Answer B. The images show single-level arterial occlusive disease in the left lower extremity. Specifically, there is a long- segment occlusion, chronic in appearance, involving approximately 20 cm of the SFA with reconstitution distally. There is compensatory hypertrophy of the profunda femoris artery with prominent thigh collaterals that have formed because of the chronicity of the arterial obstruction. There is no flow-limiting inflow (iliac) or tibial artery disease. This patient likely presents with intermittent claudication, with reduced ankle-brachial index (ABI) to the range 0.70 to 0.75 (normal ABI 0.9-1.1). Many clinicians use Rutherford's categorization of chronic peripheral arterial disease in their patient assessment. Category 0: Asymptomatic Category 1: Mild claudication Category 2: Moderate claudication Category 3: Severe claudication Category 4: Rest pain Category 5: Minor tissue loss/ulcer Category 6: Major tissue loss/gangrene Regarding the other answer choices: Severe aortoiliac arterial occlusive disease often produces Leriche syndrome, which presents as diminished or absent common femoral artery pulses, buttock claudication, and impotence. An abrupt onset of pain in a pulseless leg is consistent with acute limb-threatening ischemia (ALI). This can be due to in situ disease with thrombosis or distant embolus occluding otherwise normal arteries in the leg. This is not the case in this question, as the images presented show a chronic arterial occlusion with hypertrophied collaterals. Critical limb ischemia (CLI) is the combination of severely reduced ABI (typically < 0.3-0.4) with concomitant rest pain, tissue loss, and/or gangrene. These patients often have severe multilevel arterial occlusive disease, and there is a high associated rate of limb amputation (30% per year) and mortality (25% per year). Reference: Bailey MA, Griffin KJ, Scott DJ. Clinical assessment of patients with peripheral arterial disease. Semin Intervent Radiol. 2014;31(4):292-299."}, {"number": "4", "stem": "Following successful treatment of a chronic superficial femoral artery (SFA) occlusion with arterial recanalization and stenting, the patient returns 9 months later with recurrent claudication. Angiography demonstrates a severe in-stent stenosis in the mid segment of the SFA. Following balloon angioplasty, there is no residual in-stent stenosis. Six months later the stents abruptly occlude. What is the primary-assisted patency of the original SFA recanalization with stenting?", "options": [{"letter": "A", "text": "6 months"}, {"letter": "B", "text": "9 months"}, {"letter": "C", "text": "15 months"}, {"letter": "D", "text": "Not applicable to this case"}], "images": [], "explanationImages": ["assets/a4_p005_01.jpg"], "answer": "C", "explanation": "Answer C. Primary patency is the time from the original intervention performed to restore vessel patency (SFA recanalization with stenting) until the time that a second intervention is required to treat thrombosis or stenosis. Primary-assisted patency is the time from the original intervention performed to restore vessel patency plus additional time gained from a second intervention to keep the vessel patent, such as balloon angioplasty or atherectomy. Secondary patency is the time from the original intervention performed to restore vessel patency plus additional time gained from an intervention to restore patency once the vessel thromboses or occludes, such as catheter-directed fibrinolysis or thrombectomy. Secondary patency concludes when further intervention to restore patency to the vessel is abandoned. Figure 4-1 Graphic representation of primary, primary-assisted, and secondary patency. SFA, superficial femoral artery; tPA, tissue plasminogen activator. Reference: Stoner MC, Calligaro KD, Chaer RA, et al. Reporting standards of the society for vascular surgery for endovascular treatment of chronic lower extremity peripheral artery disease. J Vasc Surg. 2016;64(1):e1-e21."}, {"number": "5", "stem": "A 55-year-old male presents with 2 days of severe pain in the right lower extremity. On physical examination, the pedal pulses are absent. The leg is cool to the touch, pale, and rigid. Sensation and motor function are absent in the distal extremity. An arterial duplex ultrasound of the extremity demonstrates occlusion of the SFA and popliteal artery. What is the preferred treatment?", "options": [{"letter": "A", "text": "Systemic heparinization with close monitoring for progression of right lower extremity limb-threatening ischemia"}, {"letter": "B", "text": "Angiography with placement of tissue plasminogen activator (tPA) infusion catheter in the thrombosed right lower extremity arteries"}, {"letter": "C", "text": "Operative assessment for tissue viability, possible revascularization, fasciotomy, or amputation"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. This patient is presenting with acute limb-threatening ischemia or ALI. This differs from CLI in that there is often not an insidious course of intermittent claudication or known peripheral arterial disease. The etiology is often embolic, from cardiac or aortic pathology, or even paradoxically from the venous system through a right-to-left cardiac shunt. Extensive in situ thrombosis (thrombus formation at the site of preexisting atherosclerotic disease) can also produce ALI. The presentation is abrupt, with a classic progression that is clinically assessed. We use the Rutherford assessment to classify the patient presentation and help with treatment decisions. As noted below, when the sensory and motor function are absent in the affected extremity, irreversible tissue ischemia is present, and operative assessment is warranted. Class Limb Prognosis Sensory Motor Examination Arterial Doppler Venous Doppler Examination I viable Salvageable with Normal Normal Present Present urgent intervention IIa Salvageable with Diminished Normal Absent Present urgent intervention Salvageable with IIb immediate Diminished Diminished Absent Present intervention III Irreversible tissue Absent Absent Absent Absent damage Adapted from Rutherford RB, Baker JD, Ernst C, et al. Recommended standards for reports dealing with lower extremity ischemia: revised version. J Vasc Surg. 1997;26(3):517-538. For patients with Class I, IIa, or IIb presentation, the choice between endovascular and surgical revascularization is dependent on a number of factors including local expertise, resource availability, and type of reconstruction needed among others. References: Bailey MA, Griffin KJ, Scott DJ. Clinical assessment of patients with peripheral arterial disease. Semin Intervent Radiol. 2014;31(4):292-299. Rutherford RB, Baker JD, Ernst C, et al. Recommended standards for reports dealing with lower extremity ischemia: revised version. J Vasc Surg. 1997;26(3):517-538."}, {"number": "6", "stem": "A 79-year-old female with upper gastrointestinal (GI) bleeding undergoes a diagnostic angiogram with selection of the celiac and superior mesenteric arteries (SMA). A week later, CTA is performed for a continued drop in hemoglobin. The images show a saccular pseudoaneurysm of the celiac artery measuring 1.2 cm in diameter. What is the next step in management?", "options": [{"letter": "A", "text": "Anticoagulation to prevent thrombosis of the celiac artery"}, {"letter": "B", "text": "Surgical ligation of the celiac artery followed by arterial bypass"}, {"letter": "C", "text": "Coil embolization of the celiac artery proximal and distal to the neck of the pseudoaneurysm"}, {"letter": "D", "text": "Close follow-up with CTA"}], "images": ["assets/q6_p007_01.jpg"], "explanationImages": ["assets/a6_p007_01.jpg", "assets/a6_p008_01.jpg", "assets/a6_p008_02.jpg"], "answer": "C", "explanation": "Answer C. This is an iatrogenic injury related to the celiac artery catheterization performed 1 week prior. Mesenteric arterial pseudoaneurysms warrant urgent treatment at any size, as there is no way to compress the injury if there is rupture, the surgical treatment is challenging, and the risk of rupture is unpredictable. Pseudoaneurysms are by definition contained ruptures of the parent vessel, with fewer than 3 layers of vessel wall remaining intact. Choice A is inappropriate in a patient with an unexplained dropping hemoglobin level, and there is virtually no risk to the patient if the celiac artery undergoes thrombosis. The SMA is patent and will provide collateral circulation to all 3 celiac artery branches via the pancreaticoduodenal arcade. Similarly, open major surgery with ligation and arterial bypass is unnecessary with an intact SMA, particularly in a 79-year-old. The celiac artery can be sacrificed with an embolization procedure that occludes the artery proximal and distal to the neck of the pseudoaneurysm, also known as isolation technique. A stent graft would also be appropriate if an adequate seal could be achieved to exclude the pseudoaneurysm and prevent further filling. Figure 6-1 Digital subtraction angiography DSA) images from the embolization procedure. Celiac angiogram shows the saccular pseudoaneurysm (black arrow) arising from the mid segment of the artery. Note the narrow neck (red arrow) on the more delayed phase image on the right. CA, celiac artery; CHA, common hepatic artery; LGA, left gastric artery; SA, splenic artery. Figure 6-2 Computed tomography angiography (CTA) images following embolization show metallic artifact from the coil pack within the celiac artery (left) and patent common hepatic and splenic arteries (right), which are filling via collateral circulation off the superior mesenteric artery. There is no evidence of end-organ ischemia on the remaining images. Reference: Hemp JH, Sabri SS. Endovascular management of visceral arterial aneurysms. Tech Vasc Interv Radiol. 2015;18 (1):14-23."}, {"number": "7", "stem": "A 53-year-old female with a history of left common femoral artery to below knee popliteal artery bypass using saphenous vein graft is seen in clinic for routine surveillance. Arterial duplex ultrasound of the extremity is performed with results below. What should be done next? Segment Peak Systolic Velocity (PSV) Proximal common femoral artery 236 cm/s Proximal profunda femoris artery 171 cm/s Graft, proximal anastomosis 239 cm/s Graft, proximal thigh 441 cm/s Graft, mid thigh 47 cm/s Graft, distal thigh 35 cm/s Graft, mid knee 36 cm/s Graft, distal knee 30 cm/s Distal posterior tibial artery 29 cm/s", "options": [{"letter": "A", "text": "Repeat arterial duplex ultrasound in 6 months"}, {"letter": "B", "text": "Endovascular intervention for bypass stenosis"}, {"letter": "C", "text": "Surgical revision of the proximal bypass anastomosis"}, {"letter": "D", "text": "Surgical revision of the distal bypass anastomosis"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The duplex ultrasound result indicates a flow-limiting stenosis in the proximal segment of the bypass graft (peak systolic velocity, PSV >300 cm/s), with markedly reduced flow beyond the stenosis (graft flow velocity, GFV <45 cm/s). Pursuing surveillance imaging in 6 months (choice A) is too long to wait and may change the intervention from a simple balloon angioplasty of a focal stenosis to a multiday admission to lyse open a thrombosed bypass. Surgical revision at this time is not necessary, as the bypass is still patent and the duplex ultrasound shows a stenosis that certainly warrants attempted endovascular treatment. Table 7-1 Arterial Duplex Ultrasound Surveillance of Lower Extremity Bypass Graft With Guidance-Based Peak Systolic Velocity (PSV) and Graft Flow Velocity (GFV) Risk of Bypass GFV (Avg Over Thrombosis PSV PSV Ratio Consecutive Nonstenotic Management Segments) High >300 cm/s >3.5 <45 cm/s Immediate intervention Intermediate >300 cm/s >3.5 >45 cm/s Elective intervention Low <300 cm/s <2.0 >45 cm/s Continued observation Adapted from Dhanoa D, Baerlocher MO, Benko AJ, et al. Position statement on noninvasive imaging of peripheral arterial disease by the society of interventional radiology and the Canadian Interventional Radiology Association. J Vasc Interv Radiol. 2016;27 (7):947-951. Reference: Dhanoa D, Baerlocher MO, Benko AJ, et al. Position statement on noninvasive imaging of peripheral arterial disease by the society of interventional radiology and the Canadian Interventional Radiology Association. J Vasc Interv Radiol. 2016;27 (7):947-951."}, {"number": "8", "stem": "Which of the following is the most likely diagnosis in this 29-year-old female patient?", "options": [{"letter": "A", "text": "Takayasu arteritis (TA)"}, {"letter": "B", "text": "Atherosclerosis"}, {"letter": "C", "text": "Giant cell arteritis (GCA)"}, {"letter": "D", "text": "Postoperative changes"}], "images": ["assets/q8_p009_01.jpg"], "explanationImages": ["assets/a8_p009_01.jpg", "assets/a8_p010_01.jpg"], "answer": "A", "explanation": "Answer A. The DSA images from selective right and left subclavian arteriography demonstrate symmetric long-segment stenoses of the subclavian, axillary, and visualized brachial artery segments. This appearance is most consistent with a large cell vasculitis. Although there is overlap between TA and GCA, there are some distinguishing features that help narrow down the diagnosis. TA is likely to affect patients under the age of 50 years, whereas GCA often presents after the age of 50 years. TA also has a strong female predominance. The vessels affected can be helpful as well: TA primarily involves the main branches of the aorta whereas GCA often involves the extracranial external carotid arterial branches. Figure 8-1 Three-dimensional volume rendered magnetic resonance angiography (MRA) images in another patient with known Takayasu arteritis (TA). Left anterior oblique (LAO) (left) image demonstrating severe stenosis of the proximal left subclavian artery. Right anterior oblique (RAO) (right) image demonstrating aneurysm formation of the proximal right subclavian artery. Reference: Serra R, Butrico L, Fugetto F, et al. Updates in pathophysiology, diagnosis and management of takayasu arteritis. Ann Vasc Surg. 2016;35:210-225."}, {"number": "9", "stem": "When evaluating a patient with symptomatic arterial blockages from TA, which is the most useful piece of information in determining the next step in treatment?", "options": [{"letter": "A", "text": "Erythrocyte sedimentation rate (ESR)"}, {"letter": "B", "text": "Peak systolic velocity across the arterial stenosis"}, {"letter": "C", "text": "Blood pressure differential between the upper extremities"}, {"letter": "D", "text": "Reversal of flow in the vertebral artery"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. TA is a complex disease process with management including medical, endovascular, and/or surgical treatments. The course of the disease is often phasic with an early or prepulseless phase, a vascular inflammatory phase, and a late quiescent phase. A sequential triphasic pattern is not common, and phases may coexist. Although treatment regimens may vary, a generally agreed upon concept is to avoid any surgical or endovascular treatments during the active inflammatory phase of the disease. Inflammatory activity can be assessed by measuring the ESR. When active inflammation is absent or reduced, invasive treatments can be performed. Reference: Serra R, Butrico L, Fugetto F, et al. Updates in pathophysiology, diagnosis and management of takayasu arteritis. Ann Vasc Surg. 2016;35:210-225."}, {"number": "10", "stem": "A 41-year-old female presents with painful discolored toes in the right lower extremity. Symptoms have been present for approximately 2 weeks. Pedal pulses are present on physical examination. Based on the DSA images, what is the most likely etiology for her condition?", "options": [{"letter": "A", "text": "Vasculitis"}, {"letter": "B", "text": "Vasospasm"}, {"letter": "C", "text": "Thromboangiitis obliterans"}, {"letter": "D", "text": "Atheroemboli"}], "images": ["assets/q10_p011_03.jpg"], "explanationImages": ["assets/a10_p011_03.jpg", "assets/a10_p012_03.jpg", "assets/a10_p013_01.jpg"], "answer": "D", "explanation": "Answer D. This is a classic presentation of blue toe syndrome, for which there are many causes. Embolism is the most common etiology, often from focal shaggy atherosclerotic plaques or underlying aneurysms that thrombose and embolize clot fragments down into the small arteries of toes and feet. As in this case, the pedal pulses can remain palpable as the larger arteries of the leg are unaffected by the emboli. In the first image, there is smooth narrowing of the proximal and mid SFA from early atherosclerotic plaque formation; however, in the distal segment, there is a focal ledge-like filling defect from a bulky eccentric atherosclerotic plaque. Figure 10-1 Magnification image of eccentric plaque (arrow) in the superficial femoral artery (SFA) responsible for distal emboli. Vasculitides can manifest as stenoses, occlusions, and/or aneurysms often affecting more than 1 artery or segment. Vasospasm or vasoconstriction can occur from traumatic injury, shock, medications such as ergots, or exposure to extreme cold. Focal or diffuse smooth narrowing and sometimes occlusion can occur. Thromboangiitis obliterans or Buerger disease typically affects younger patients with a history of heavy smoking and involves the small- to medium-sized arteries and veins of the upper and lower extremities. In the lower extremities, the tibial arteries are often affected with multifocal occlusions and formation of collateral arteries with a characteristic \"corkscrew\" appearance. Figure 10-2 Digital subtraction angiography (DSA) images from upper extremity angiography in a young male with suspected Buerger disease demonstrate occlusion of the distal radial and ulnar arteries, corkscrew collateral formation, and occlusion of the proper digital arteries of the thumb. Reference: Matchett WJ, Mcfarland DR, Eidt JF, Moursi MM. Blue toe syndrome: treatment with intra-arterial stents and review of therapies. J Vasc Interv Radiol. 2000;11(5):585-592."}, {"number": "11", "stem": "A 78-year-old female presents with abdominal pain. Based on the CTA images below, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Retroperitoneal fibrosis"}, {"letter": "B", "text": "Infectious aortitis with abscess formation"}, {"letter": "C", "text": "Abdominal aortic injury with active extravasation"}, {"letter": "D", "text": "Abdominal aortic aneurysm with features of impending rupture"}], "images": ["assets/q11_p014_02.jpg"], "explanationImages": ["assets/a11_p014_02.jpg", "assets/a11_p015_01.jpg", "assets/a11_p015_02.jpg", "assets/a11_p016_01.jpg"], "answer": "D", "explanation": "Answer D. The CTA images demonstrate iodinated contrast filling an irregular infrarenal abdominal aortic lumen. Note the atherosclerotic calcifications displaced both anteriorly and posteriorly in comparison to the aortic lumen, indicating the true aortic diameter is significantly greater than that depicted by the contrast-filled lumen. This appearance is consistent with an abdominal aortic aneurysm with mural thrombus formation. Additionally, on the bottom left image the posterior wall of the aorta is concave and inseparable from the adjacent lumbar vertebral body; a CT sign known as the \"draped aorta sign\" and associated with contained and/or impending rupture of the aneurysm. This high-risk feature should be identified and reported to the referring physician. Two phases of contrast-enhanced imaging are presented, with no periaortic accumulation or change in appearance of the aortic luminal contrast to indicate active extravasation. While retroperitoneal fibrosis often involves the distal abdominal aorta and bifurcation, displaced aortic wall calcifications should not be present. The fibrosis can cause luminal narrowing of the aorta and inferior vena cava and also involve adjacent structures such as the ureters causing medial deviation and obstruction with upstream hydroureteronephrosis. Infectious aortitis is fairly uncommon with the most common offending agents being tuberculosis, syphilis, salmonella, Escherichia coli, and streptococcus. The CT appearance includes aortic wall thickening, periaortic fluid and/or soft tissue, pseudoaneurysm formation (often saccular), and rarely gas formation. Figure 11-1 Companion case of infectious aortitis in 68-year-old female that presented with fevers and back pain. There is ill-defined periaortic low attenuation and stranding. Also note the saccular outpouching of the aortic lumen in the top right image. Figure 11-2 Patient with abdominal aortic aneurysm (AAA) and evidence of rupture. This patient has an AAA with well-seen calcified wall that is surrounded by blood (arrowheads) in the retroperitoneum. Although there is no active bleeding on this 2-phase contrast-enhanced computed tomography (CECT), this is a vascular emergency. Reference: Halliday KE, Al-Kutoubi A. Draped aorta: CT sign of contained leak of aortic aneurysms. Radiology. 1996;199 (1):41-43."}, {"number": "12", "stem": "A 45-year-old female presents for embolization of an intrasplenic arterial pseudoaneurysm due to blunt trauma. The interventional radiology (IR) physician obtains the following angiographic images from the initial selective catheterization. Which is the correct interpretation?", "options": [{"letter": "A", "text": "Celiac artery stenosis"}, {"letter": "B", "text": "SMA stenosis"}, {"letter": "C", "text": "Common origin of the celiac and SMA"}, {"letter": "D", "text": "Arc of Buhler"}], "images": ["assets/q12_p017_01.jpg"], "explanationImages": ["assets/a12_p017_01.jpg"], "answer": "A", "explanation": "Answer A. On the images provided, the catheter has selected the SMA, evidenced by iodinated contrast first filling the SMA. On the subsequent image, the branches of the celiac artery are now filling with contrast. This appearance is classic for underlying celiac artery stenosis with hypertrophy of the pancreaticoduodenal arcade, which retrograde fills the gastroduodenal artery (GDA) and provides inflow to all 3 celiac artery branches. With a common origin, both the celiac and SMA branches will fill simultaneously. The Arc of Buhler is a rare persistent embryonic connection between the celiac and SMA. A visible connecting vessel is seen when this variant is present. Figure 12-1 The celiac artery is subsequently catheterized and digital subtraction angiography (DSA) demonstrates the splenic artery and left gastric artery filling from the injection. There is no opacification of the common hepatic artery due to retrograde flow of nonopacified blood coming from the gastroduodenal artery (GDA). Note the variant anatomy with replaced left hepatic artery off the left gastric artery. Reference: White RD, Weir-Mccall JR, Sullivan CM, et al. The celiac axis revisited: anatomic variants, pathologic features, and implications for modern endovascular management. Radiographics. 2015;35(3):879-898."}, {"number": "13", "stem": "When evaluating a patient with suspected median arcuate ligament syndrome (MALS), which technique will help discern the etiology of the celiac artery stenosis?", "options": [{"letter": "A", "text": "Angiogram with Valsalva"}, {"letter": "B", "text": "Angiogram with carbon dioxide"}, {"letter": "C", "text": "Angiogram in lateral view with separate inspiration and expiration injections"}, {"letter": "D", "text": "Angiogram after eating"}], "images": [], "explanationImages": ["assets/a13_p018_01.jpg"], "answer": "C", "explanation": "Answer C. An intrinsic stenosis of the celiac artery from atherosclerosis should be unaffected on angiography by any provocative maneuver. Median arcuate ligament compression, an extrinsic mass effect on the superior aspect of the celiac artery, can be better demonstrated with inspiration and expiration angiograms in the lateral projection. On inspiration, the diaphragm moves down, displacing the intra-abdominal organs caudally, lessening the effect of the median arcuate ligament on the celiac artery. In expiration, the diaphragm and intra-abdominal organs move cephalad, pulling up on the celiac artery, worsening the effect (and stenosis) of the median arcuate ligament on the celiac artery. Figure 13-1 Digital subtraction angiography (DSA) images from abdominal aortography in the lateral projection. Inspiration image (left) shows widely patent celiac and superior mesenteric arteries. Expiration image (right) shows moderate focal narrowing (arrow) just beyond the origin of the celiac artery due to median arcuate ligament compression. This patient was a healthy 37-year-old female being evaluated as a donor for living donor liver transplantation. Reference: Tracci MC. Median arcuate ligament compression of the mesenteric vasculature. Tech Vasc Interv Radiol. 2015;18 (1):43-50."}, {"number": "14", "stem": "A 60-year-old male presents with bright red blood per rectum. He is hypotensive and placed on pressor support. A CTA is performed to evaluate the source, and active bleeding is identified in the rectum. Surgery and Gastroenterology services decline intervention. The patient is brought to IR for angiography and embolization. A branch of the superior rectal artery is selected with a microcatheter, and active bleeding (arrowhead) is identified and subsequently treated with Gelfoam slurry embolization. Despite a good technical result, the patient continues to have bright red blood per rectum and hypotension in the angiography suite. What should be done next?", "options": [{"letter": "A", "text": "Transfer to the intensive care unit (ICU) as the bleeding will likely stop"}, {"letter": "B", "text": "Refer to surgery for operative intervention"}, {"letter": "C", "text": "Perform additional angiography to evaluate for a bleed at a different location in the bowel"}, {"letter": "D", "text": "Perform additional angiography to evaluate for collateral flow to the rectal bleed"}], "images": ["assets/q14_p018_02.jpg"], "explanationImages": ["assets/a14_p018_02.jpg", "assets/a14_p019_01.jpg"], "answer": "D", "explanation": "Answer D. The angiogram shows selective catheterization of the IMA with subsequent microcatheterization of the superior rectal artery and demonstration of the bleed. Following embolization, the patient continues with overt bleeding from below and hypotension. Following successful embolization at other sites of GI bleeding such as the stomach, small bowel, or colon, patients often continue to have blood and/or melena from below, as they pass residual blood in the bowels. This is an expected finding and not associated with a continued drop in hemoglobin or clinical deterioration (hypotension). In this case, however, as the bleed originated from the rectum, continued blood from below with hypotension is concerning for persistent bleeding despite embolization and warrants further investigation. The rectum receives its blood from the IMA via the superior rectal artery as well as the middle and inferior rectal arteries, which are branches from the anterior division of the internal iliac arteries. Subsequent selection of the left internal iliac artery and anterior division truck demonstrates collateral flow with continued bleeding into the lumen of the rectum (see Figure 14-1). The middle rectal artery is treated with Gelfoam slurry, resulting in immediate cessation of the bleeding and stabilization of the patient. While the majority of GI bleeding is intermittent, the actively bleeding patient with hypotension should be resuscitated and undergo treatment, whether endoscopic, endovascular, or surgical. As the patient was already in the IR suite, transfer back to the ICU or referral to surgery is not appropriate (choices A and B). Multifocal bleeding in the bowel is extremely uncommon, and both the CTA and catheter angiogram confirmed the clinical diagnosis of lower GI bleeding. There is no reason to pursue investigatory angiography in a different segment of bowel (choice C). Figure 14-1 Angiography from the anterior division of the left internal iliac artery demonstrates persistent rectal bleeding (arrowheads) from collateral flow through the middle rectal artery. Reference: Lee JH, Lee KH, Chung WS, Hur J, Won JY, Lee DY. Transcatheter embolization of the middle sacral artery: collateral feeder in recurrent rectal bleeding. AJR Am J Roentgenol. 2004;182(4):1055-1057."}, {"number": "15", "stem": "What is the most likely clinical presentation for this patient?", "options": [{"letter": "A", "text": "Acute abdominal pain and bloody stools"}, {"letter": "B", "text": "Chronic bilateral lower extremity swelling and varicose veins"}, {"letter": "C", "text": "Progressive buttock claudication and impotence"}, {"letter": "D", "text": "Abrupt-onset cold and painful lower extremities"}], "images": ["assets/q15_p020_03.jpg"], "explanationImages": ["assets/a15_p020_03.jpg"], "answer": "C", "explanation": "Answer C. The angiographic images depict occlusion of the distal infrarenal abdominal aorta and bilateral common and external iliac arteries. Note the faint reconstitution of the bilateral common femoral arteries and proximal segments of the profunda femoris artery and SFA on the later phase image. We can confidently state the condition is chronic because of the extensive large and tortuous collaterals that have formed, which circumvent the arterial obstruction and allow for a viable pelvis and lower extremities. Also note the irregular wall of the aorta due to underlying atherosclerotic disease. This is the angiographic picture of Leriche syndrome, which is characterized clinically by diminished common femoral artery pulses, buttock claudication, and impotence. Choices A and D can be excluded based on acuity. Choice B is almost certainly related to venous pathology, which is clearly not depicted here. Reference: Ahmed S, Raman SP, Fishman EK. CT angiography and 3D imaging in aortoiliac occlusive disease: collateral pathways in Leriche syndrome. Abdom Radiol (NY). 2017;42(9):2346-2357."}, {"number": "16", "stem": "What collateral arterial pathway is delineated by the arrowheads?", "options": [{"letter": "A", "text": "Inferior mesenteric artery (IMA) >> superior rectal artery >> middle and inferior rectal arteries >> internal iliac artery"}, {"letter": "B", "text": "Median sacral artery >> iliolumbar artery >> external iliac artery >> internal iliac artery"}, {"letter": "C", "text": "Lumbar artery >> deep circumflex iliac artery >> external iliac artery"}, {"letter": "D", "text": "SMA >> iliocolic artery >> sigmoidal artery >> internal iliac artery"}], "images": ["assets/q16_p021_03.jpg"], "explanationImages": ["assets/a16_p021_03.jpg"], "answer": "A", "explanation": "Answer A. Collateral arterial pathways in aortoiliac occlusive disease are important to recognize and can present diagnostic and therapeutic challenges. A collateral pathway forms to bypass the level of arterial obstruction and provide blood flow to those tissues normally perfused by the involved artery. In the case of aortoiliac occlusive disease or Leriche syndrome, blood flow is compromised to the pelvis and bilateral lower extremities. The DSA image on the left shows the classic appearance of the superior rectal (hemorrhoidal) artery as it descends into the pelvis and gives off right and left lateral branches that appear to drape around the rectum. The DSA image on the right shows tremendous collateral formation in the pelvis near the termination of the superior rectal artery, with filling of internal iliac artery branches (middle and inferior rectal arteries). This pathway brings flow to the retrograde internal iliac artery flow) or via other collaterals (obturator arteries >> upper thigh). Important collateral pathways to be familiar with include the following: 1. Subclavian artery >> internal thoracic artery >> superior epigastric artery >> inferior epigastric artery >> external iliac artery (aka pathway of Winslow) 2. SMA >> IMA >> superior rectal artery >> middle and inferior rectal arteries >> internal iliac artery >> external iliac artery 3. Lumbar, intercostal and subcostal arteries >> deep circumflex iliac artery >> external iliac artery 4. Lumbar, intercostal and subcostal arteries >> lateral sacral and iliolumbar arteries >> internal iliac artery >> external iliac artery Reference: Ahmed S, Raman SP, Fishman EK. CT angiography and 3D imaging in aortoiliac occlusive disease: collateral pathways in Leriche syndrome. Abdom Radiol (NY). 2017;42(9):2346-2357."}, {"number": "17", "stem": "After a diagnostic arteriogram, the common femoral arterial access is closed with manual pressure. Three days later, there is swelling in the right groin. Ultrasound (US) images below. Which of the following is a contraindication to percutaneous thrombin injection?", "options": [{"letter": "A", "text": "Pseudoaneurysm sac diameter <3 cm"}, {"letter": "B", "text": "Pseudoaneurysm with fistula to adjacent deep vein"}, {"letter": "C", "text": "Narrow pseudoaneurysm neck"}, {"letter": "D", "text": "Pseudoaneurysm arising from the common femoral artery"}], "images": ["assets/q17_p022_01.jpg"], "explanationImages": ["assets/a17_p022_01.jpg"], "answer": "B", "explanation": "Answer B. Following arterial access in the groin, complications can occur including pseudoaneurysm formation, hematoma formation, arterial thrombosis, arterial dissection, and arteriovenous fistula (AVF) formation among others. When pseudoaneurysms form, patients most commonly present with a pulsatile groin mass after a recent catheterization procedure. Ultrasound is the modality of choice for evaluation, as it can detect and define virtually all access-related complications. When assessing pseudoaneurysms, it is important to identify the parent artery, arterial patency of the affected extremity, pseudoaneurysm size and neck morphology, and presence or absence of arteriovenous fistula. In the case presented, the color Doppler image demonstrates an oval pseudoaneurysm arising from the common femoral artery measuring approximately 2.5 cm with classic to- and-fro flow (yin-yang sign). On the spectral Doppler image, the common femoral vein is sampled with spectral tracing showing an arterialized vein with continuous diastolic flow, classic for an AVF. Additional images (not shown) demonstrate connection of the adjacent deep vein to the pseudoaneurysm. Once detected, pseudoaneurysms can be observed or treated with ultrasound-guided compression, ultrasound-guided thrombin injection, or surgical repair. Various algorithms for management exist. More complex endovascular interventions can also be used but are beyond the scope of this book. Ultrasound-guided thrombin injection is the most common technique used in current practice. Contraindications to the technique include infection of the overlying skin or tissues, concomitant arteriovenous fistula, inability to visualize the needle, and/or a short wide neck. With an AVF, thrombin can directly enter the systemic venous system leading to venous thromboembolic complications. Pseudoaneurysm size becomes important as many small ones (less than 1 or 2 cm) will spontaneously thrombose without intervention, and operators may choose serial ultrasound over immediate intervention. Notably, thrombin injection of pseudoaneurysms <1 cm increases the risk of parent artery thrombosis. Having a narrow neck and common femoral artery origin are not unfavorable features for thrombin injection. Reference: Stone PA, Campbell JE, Aburahma AF. Femoral pseudoaneurysms after percutaneous access. J Vasc Surg. 2014;60 (5):1359-1366."}, {"number": "18", "stem": "Which arrow denotes the recommended needle tip position for ultrasound-guided thrombin injection of a common femoral artery pseudoaneurysm?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q18_p023_02.jpg"], "explanationImages": ["assets/a18_p023_02.jpg"], "answer": "D", "explanation": "Answer D. When performing ultrasound-guided percutaneous thrombin injection for groin access pseudoaneurysms, the preferred technique is to place the needle tip into the pseudoaneurysm sac, away from the neck or communication with the parent artery. The injection is typically performed with a small syringe (1 mL) containing reconstituted thrombin in a concentration of 1000 U/mL. Live color and grayscale ultrasound during slow injection demonstrates the echogenic clot forming at the needle tip and ultimately filling the volume of the pseudoaneurysm sac. At completion, there should be no demonstrable flow in the pseudoaneurysm and the parent artery remains patent. Injection near the neck (choice A) can result in accidental parent artery injection (leading the thrombosis and limb ischemia) or incomplete pseudoaneurysm thrombosis. Injection into the parent artery upstream or downstream (choices C and B) from the neck will not effectively deliver thrombin to the pseudoaneurysm and will virtually guarantee parent artery thrombosis. Reference: Stone PA, Campbell JE, Aburahma AF. Femoral pseudoaneurysms after percutaneous access. J Vasc Surg. 2014;60 (5):1359-1366."}, {"number": "19", "stem": "An otherwise healthy 25-year-old male undergoes placement of a stent graft to repair a traumatic pseudoaneurysm of the descending thoracic aorta. Which complication is the patient least at risk of developing?", "options": [{"letter": "A", "text": "Myocardial ischemia"}, {"letter": "B", "text": "Cerebral ischemia"}, {"letter": "C", "text": "Left arm ischemia"}, {"letter": "D", "text": "Spinal cord ischemia"}], "images": ["assets/q19_p024_01.jpg"], "explanationImages": ["assets/a19_p024_01.jpg"], "answer": "A", "explanation": "Answer A. The DSA images depict ongoing thoracic endovascular aortic repair or TEVAR, for a traumatic pseudoaneurysm of the descending thoracic aorta. On the predeployment image (left), the constrained endograft has been advanced into position over a stiff wire, and a flush aortogram in a steep left anterior oblique position demonstrates the normal arch anatomy. After stent graft deployment, repeat flush aortogram (right) shows successful exclusion of the pseudoaneurysm; however, there is nonopacification of the left subclavian artery. A carotid to subclavian arterial bypass is not visualized. The risks to the patient in this scenario are actually quite low but include cerebral ischemia via diminished flow to the ipsilateral vertebral artery, left arm ischemia via diminished flow to the subclavian artery, and spinal cord ischemia via diminished flow to the intercostal and spinal arteries. Notably, acute left arm ischemia is rarely seen despite the somewhat unnerving angiographic appearance due to robust collateral pathways in the neck and shoulder region. Chronic arm ischemia or claudication is more likely to occur. The left internal thoracic artery (mammary) also experiences reduced flow, as it is a branch of the subclavian artery; however, in the absence of prior usage as a bypass conduit for coronary artery disease, low flow or occlusion presents no risk to the patient. Reference: Findeiss LK, Cody ME. Endovascular repair of thoracic aortic aneurysms. Semin Intervent Radiol. 2011;28 (1):107-117."}, {"number": "20", "stem": "To further evaluate a young patient with left calf claudication, a bilateral lower extremity angiogram is performed with DSA images below obtained at the popliteal artery level in the neutral position (left image) and with plantar flexion with resistance (right image). What is the most likely pathology?", "options": [{"letter": "A", "text": "Cystic adventitial disease"}, {"letter": "B", "text": "Aneurysm with mural thrombus"}, {"letter": "C", "text": "Arterial entrapment"}, {"letter": "D", "text": "Atherosclerotic plaque"}], "images": ["assets/q20_p025_01.jpg"], "explanationImages": ["assets/a20_p025_01.jpg", "assets/a20_p026_01.jpg"], "answer": "C", "explanation": "Answer C. DSA images centered about the right and left popliteal arteries demonstrate abnormal medial deviation of both arteries at the level of the knee joint with moderate to severe stenosis on the left, which is worse with plantar flexion against resistance. The history, appearance, and provocative effect are classic for popliteal artery entrapment syndrome (PAES). Popliteal artery entrapment typically occurs secondary to one of several anatomic variants involving the musculotendinous structures of the popliteal fossa. The entrapment can occur bilaterally, and result in stenosis, occlusion, or aneurysmal degeneration of the affected popliteal artery. When symptomatic, treatment is typically surgical reconstruction. Although conventional angiography is an excellent tool for evaluation, dynamic ultrasound, CTA, and magnetic resonance angiography (MRA) have become first-line diagnostic tools in modern practice. Other conditions affecting the popliteal artery (choices A, B, and D) can present as a stenosis, but the medial deviation and provocative effect are unique to PAES. It is important to remember that a significant limitation of angiography is its inability to visualize extraluminal pathology. References: Corneloup L, Labanère C, Chevalier L, et al. Presentation, diagnosis, and management of popliteal artery entrapment syndrome: 11 years of experience with 61 legs. Scand J Med Sci Sports. 2017;00:1-7. Liu Y, Sun Y, He X, et al. Imaging diagnosis and surgical treatment of popliteal artery entrapment syndrome: a single-center experience. Ann Vasc Surg. 2014;28(2):330-337."}, {"number": "21", "stem": "Following ejection from a motor vehicle, a middle-aged female is brought to the emergency room (ER) for blunt trauma evaluation. Chest and pelvic radiographs are quickly obtained, demonstrating multiple rib and complex pelvic fractures. The patient is hypotensive and transported directly to the interventional suite for angiography. Which is the correct interpretation of the pelvic angiogram?", "options": [{"letter": "A", "text": "No evidence of vascular injury, study complete"}, {"letter": "B", "text": "No evidence of vascular injury, additional images needed"}, {"letter": "C", "text": "Evidence of vascular injury, study complete"}, {"letter": "D", "text": "Evidence of vascular injury, additional images needed"}], "images": ["assets/q21_p026_02.jpg"], "explanationImages": ["assets/a21_p026_02.jpg", "assets/a21_p027_01.jpg", "assets/a21_p027_02.jpg"], "answer": "D", "explanation": "Answer D. Pelvic angiography and intervention for trauma is one of the most rewarding aspects of IR. Embolization for pelvic bleeding can truly be lifesaving. In this case, the unsubtracted image demonstrates left sacral ala and bilateral superior rami fractures. The subtracted image demonstrates normal appearance of the visualized infrarenal abdominal aorta, bilateral common iliac, bilateral external iliac, and right internal iliac arteries. Although there is no evidence of active bleeding, there is a clear paucity of left hemipelvis arterial branches. Note the normal right superior gluteal artery (largest branch of the internal iliac artery, posterior division) and absent left superior gluteal artery due to proximal injury with occlusion. Although there is no active bleeding from the vessel stump, embolization is warranted, as the stump may be intermittently bleeding and over time can form a pseudoaneurysm. Figure 21-1 Unsubtracted images from left superior gluteal artery stump embolization with coils (arrowheads). Although there is evidence of vascular injury on the initial angiogram in this case, one should not clear the pelvis with nonselective angiography alone. Bilateral selective internal iliac angiography in multiple obliquities should be performed with quality power injections to completely evaluate the vasculature for injury. Subsequent embolization is carried out with various agents such as Gelfoam slurry, coils, or glue depending on the location and type of injury. Figure 21-2 Companion case of a patient with blunt trauma, pelvic fractures, and hypotension evaluated with angiography. Nonselective right anterior oblique (RAO) pelvic arteriogram shows no evidence of injury. Selective interrogation of the right internal iliac artery is then performed (see Figure 21-3). Figure 21-3 Selective left anterior oblique (LAO) angiography from the right internal iliac artery demonstrates an anterior division injury with vessel stump which is not appreciated by the operator (arrowheads). No embolization performed. Approximately 10 days later, the patient experiences a sudden drop in hemoglobin with associated pelvic pain and a computed tomography angiography (CTA) is obtained (see Figure 21-4). Figure 21-4 Pelvic CTA demonstrates interval development of a large pseudoaneurysm (arrowheads) in the region of the right internal iliac artery with adjacent hematoma. The patient returns to IR and undergoes a lengthy complex embolization to occlude the pseudoaneurysm and an associated arteriovenous fistula arising from the injured anterior division branch artery. Reference: Scemama U, Dabadie A, Varoquaux A, et al. Pelvic trauma and vascular emergencies. Diagn Interv Imaging. 2015;96 (7-8):717-729."}, {"number": "22", "stem": "An elderly female with massive hemoptysis from the left lower lobe of the lung presents for bronchial angiography and embolization. Particle embolization from the demonstrated catheter position may result in nontarget embolization to which territory?", "options": [{"letter": "A", "text": "Spinal cord"}, {"letter": "B", "text": "Esophagus"}, {"letter": "C", "text": "Stomach"}, {"letter": "D", "text": "Diaphragm"}], "images": ["assets/q22_p028_04.jpg"], "explanationImages": ["assets/a22_p028_04.jpg", "assets/a22_p029_03.jpg"], "answer": "A", "explanation": "Answer A. The subtracted and unsubstracted images from a selective arterial catheterization in the thorax demonstrate opacification of 2 left-sided intercostal arteries arising from a common trunk. The diaphragm is visible, localizing the artery to the lower thoracic region. Additionally, there is a medially directed branch that ascends over a short segment, makes a hairpin loop, and descends in the midline over the spinal column. This branch has the classic appearance of the great anterior radiculomedullary artery or artery of Adamkiewicz. This artery ultimately anastomoses with the anterior spinal artery, which provides blood supply to the lower thoracic and lumbar spinal cord. The artery most commonly arises from a left intercostal artery in the lower thoracic region. Particle embolization from the demonstrated catheter position can cause permanent spinal cord ischemia. Operators need to be aware of this uncommonly seen branch to avoid a potentially catastrophic complication. Figure 22-1 Companion case of the anterior spinal artery (arrowheads) with communication to the right L2 lumbar artery. Reference: Yoon W, Kim JK, Kim YH, Chung TW, Kang HK. Bronchial and nonbronchial systemic artery embolization for life- threatening hemoptysis: a comprehensive review. Radiographics. 2002;22(6):1395-1409."}, {"number": "23", "stem": "A 37-year-old construction worker presents with numbness, tingling, and discoloration of the third digit in the right hand. Based on the angiographic images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Normal angiogram"}, {"letter": "B", "text": "Vasculitis"}, {"letter": "C", "text": "Posttraumatic aneurysm with distal embolus"}, {"letter": "D", "text": "Raynaud disease"}], "images": ["assets/q23_p030_01.jpg"], "explanationImages": ["assets/a23_p030_01.jpg", "assets/a23_p031_02.jpg"], "answer": "C", "explanation": "Answer C. The image demonstrates fusiform aneurysmal dilatation of the ulnar artery just proximal to the palmar arch. Moving peripherally, there is a short-segment occlusion of the third digit proper digital artery consistent with an embolus. This is hypothenar hammer syndrome, a classic vascular syndrome characterized by repetitive trauma to the hypothenar region of the hand, where the ulnar artery takes a relatively superficial and unprotected course over the hook of the hamate bone. Over time, intimal injury can lead to hyperplasia, fibrosis, and fusiform aneurysmal dilatation. Partial or complete thrombosis can occur with resultant downstream embolization manifested by signs and symptoms of digital ischemia. Obtaining an accurate occupational history is often the most important first step in diagnosing this condition. A similar condition can occur over the thenar aspect of the palm with injury to the radial artery. Vasculitides can certainly affect the medium and small arteries of the hand but would be expected to demonstrate a more global abnormality involving multiple digits with areas of stenosis, occlusion, collateral formation, and distal embolization. Raynaud disease can present similarly, but the predominant pattern is short-segment stenosis and occlusions that may be fixed or responsive to vasodilator injection. Raynaud disease can be primary or secondary to an underlying condition such as connective tissue disease. Figure 23-1 Right-hand angiogram with partial bony overlay demonstrating fusiform aneurysm of the distal ulnar artery (blue arrowheads), with associated short-segment embolic occlusion of the proper digital artery (black arrowhead). Superficial (green line) and deep (blue line) palmar arterial arches. References: Gardiner GA, Tan A. Repetitive blunt trauma and arterial injury in the hand. Cardiovasc Intervent Radiol. 2017;40 (11):1659-1668. Wong VW, Katz RD, Higgins JP. Interpretation of upper extremity arteriography: vascular anatomy and pathology [corrected]. Hand Clin. 2015;31(1):121-134."}, {"number": "24", "stem": "A lower extremity angiogram is performed to evaluate a patient with acute limb ischemia. An embolus is identified in the dorsalis pedis artery at the level of the ankle and successfully aspirated with restoration of flow to the foot (not shown). Pre- and postintervention images of the tibial runoff below show what complication from the procedure?", "options": [{"letter": "A", "text": "Spasm"}, {"letter": "B", "text": "Thrombosis"}, {"letter": "C", "text": "Rupture"}, {"letter": "D", "text": "Atherosclerosis"}], "images": ["assets/q24_p032_01.jpg"], "explanationImages": ["assets/a24_p032_01.jpg", "assets/a24_p033_01.jpg"], "answer": "A", "explanation": "Answer A. When considering a lower extremity arterial intervention, the entire arterial course from the aortic bifurcation through the foot is routinely studied before any intervention has taken place. Following an intervention, the runoff is often restudied to ensure no complication occurs from the procedure itself. In this case, the patient has an intervention performed in the dorsalis pedis artery, which is the continuation of the anterior tibial artery into the foot. To perform that intervention, a wire and catheter are advanced from the groin (contra- or ipsilateral approach) down the leg, through the popliteal and anterior tibial arteries to reach the embolus in the dorsalis pedis artery. The images presented pre and post intervention are centered about the knee where the popliteal artery gives off the anterior tibial artery. In this patient, there is only single vessel runoff via the anterior tibial artery, due to chronic occlusion of the tibioperoneal trunk, posterior tibial, and peroneal arteries. On the preintervention image, the anterior tibial artery is widely patent without stenosis. On the postintervention image, there are smooth-walled segments of moderate to severe narrowing with intervening more normal caliber artery. Note the preserved flow in the side branches. This is the appearance of arteriospasm and occurred from wire and catheter irritation of the vessel. If severe and persistent, it can lead to diminished distal flow and ultimately arterial thrombosis. This patient was treated with intra-arterial nitroglycerin and repeat angiogram demonstrated complete resolution (see Figure 24-1). Other complications operators should be familiar with include dissection, thrombosis, rupture, and distal embolism, which are discussed elsewhere in this book. Figure 24-1 Pre and post administration of 200 μg intra-arterial nitroglycerin to the left anterior tibial artery with complete relief of arteriospasm (arrowheads). References: Razavi MK. Detection and treatment of acute thromboembolic events in the lower extremities. Tech Vasc Interv Radiol. 2011;14(2):80-85."}, {"number": "25", "stem": "An elderly female undergoes seemingly uneventful renal angiography, angioplasty, and stenting for renovascular hypertension due to left renal artery stenosis. Immediately following the procedure, the patient becomes hypotensive and tachycardic. The case images are quickly reviewed for any clue to the patient's change in status while contrast-enhanced computed tomography (CECT) is rapidly performed. Based on the images presented, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Main renal artery rupture"}, {"letter": "B", "text": "Guidewire perforation of the renal capsule"}, {"letter": "C", "text": "Expected post-procedure change following relief of left renal artery stenosis"}, {"letter": "D", "text": "Access site complication"}, {"letter": "E", "text": "Large left renal infarction"}], "images": ["assets/q25_p034_01.jpg"], "explanationImages": ["assets/a25_p034_01.jpg", "assets/a25_p035_01.jpg"], "answer": "B", "explanation": "Answer B. Renal artery intervention for renovascular hypertension can be a relatively simple and straightforward arterial proximal left renal artery stenosis. Note the operator has collimated in such a way that the entire length of the guidewire is not visible during the intervention, particularly the distal intrarenal segment. The wire used has a visible transition point from proximal stiff (less dense) to distal floppy (more dense) that is visible in the upper right image. On the final images after the stent has been deployed, the transition point is no longer visible, suspicious for inadvertent advancement of the wire. There is no evidence of main renal artery rupture. Following the procedure, shock occurs and CECT demonstrates a large subcapsular hematoma involving the left kidney with small jet of extravasating contrast and dependent pooling. This is due to guidewire perforation of the renal capsule. Expected postprocedure changes on imaging include a normal-appearing kidney and occasionally a striated enhancement pattern. If substantial plaque is encountered during the procedure, distal emboli can occur with the development of wedge-shaped peripheral nonenhancing infarctions. Clinically, patients can develop hypotension in the recovery period due to diminished circulating angiotensin II. Access-site complications such as dissection, thrombosis, and pseudoaneurysm formation do not produce shock. A retroperitoneal hematoma from high (above the inguinal ligament) groin access or posterior artery wall needle transgression could present similarly, but the CECT demonstrates subcapsular hematoma, indicating a renal source. References: Carr TM, Sabri SS, Turba UC, et al. Stenting for atherosclerotic renal artery stenosis. Tech Vasc Interv Radiol. 2010; 13(2):134-145. Morris CS, Bonnevie GJ, Najarian KE. Nonsurgical treatment of acute iatrogenic renal artery injuries occurring after renal artery angioplasty and stenting. AJR Am J Roentgenol. 2001;177(6):1353-1357."}, {"number": "26", "stem": "With respect to fibromuscular dysplasia (FMD), what is the most commonly involved artery?", "options": [{"letter": "A", "text": "Vertebral artery"}, {"letter": "B", "text": "Renal artery"}, {"letter": "C", "text": "Common femoral artery"}, {"letter": "D", "text": "SMA"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. FMD is an uncommon disease of unknown etiology affecting medium-sized arteries in 1 or more vascular territories. The most common site of pathology is the renal arteries, followed by the extracranial carotid arteries. Less common involvement of the vertebral arteries, mesenteric arteries, upper and lower extremity arteries, as well as intracranial carotid arteries has been described. Presentation is dictated by the anatomic site of the disease, with renovascular hypertension as the leading symptom. The majority of the patients are female. On radiologic studies, dissection, stenosis, beading, aneurysm, and occlusion may be identified. There are several different types of FMD based on histology, with medial fibroplasia being most common. Figure 26-1 A 50-year-old female with refractory hypertension studied with angiography. Preintervention digital subtraction angiography (DSA) image on the left shows beading of the mid segment right renal artery consistent with fibromuscular dysplasia (FMD). Following angioplasty alone (right image), there is no residual stenosis. Unlike atherosclerotic lesions in the renal arteries, FMD tends to respond well to angioplasty alone with stenting reserved for complications and refractory lesions. References: Sharma AM, Kline B. The United States registry for fibromuscular dysplasia: new findings and breaking myths. Tech Vasc Interv Radiol. 2014;17(4):258-263. Shivapour DM, Erwin P, Kim ESh. Epidemiology of fibromuscular dysplasia: a review of the literature. Vasc Med. 2016;21 (4):376-381."}, {"number": "27", "stem": "Following an ultrasound-guided paracentesis in the left lower abdomen, a patient becomes hypotensive and develops a large ecchymosis near the access site. What artery should have been assessed with ultrasound at the time of paracentesis?", "options": [{"letter": "A", "text": "Left common femoral artery"}, {"letter": "B", "text": "Left inferior epigastric artery"}, {"letter": "C", "text": "Left internal mammary artery"}, {"letter": "D", "text": "Left hypogastric artery"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. When performing paracentesis in the lower abdominal region off midline, the inferior epigastric arteries can be accidentally traversed. They arise from the distal external iliac arteries, often traveling caudally at first then immediately looping cranial and coursing medially between the posterior rectus sheath and the rectus abdominis muscle. The arteries eventually give off multiple branches that perforate the muscle and spread out over the abdominal wall. The inferior epigastric artery should be identified on ultrasound when planning for paracentesis. Of note, when compared with blind paracentesis, ultrasound guidance is associated with fewer adverse events including bleeding complications. Choice A would be an unacceptable location for paracentesis, below the inguinal ligament; choice C is the cephalad communicating artery via the superior epigastric artery in the thorax. Traversing the hypogastric artery (aka internal iliac artery) during paracentesis would be an egregious complication. References: Patel PA, Ernst FR, Gunnarsson CL. Evaluation of hospital complications and costs associated with using ultrasound guidance during abdominal paracentesis procedures. J Med Econ. 2012;15(1):1-7. Sekiguchi H, Suzuki J, Daniels CE. Making paracentesis safer: a proposal for the use of bedside abdominal and vascular ultrasonography to prevent a fatal complication. Chest. 2013;143(4):1136-1139."}, {"number": "28", "stem": "A hypotensive patient is taken to IR for embolization of a left abdominal wall expanding hematoma. From a right common femoral artery access, a catheter is positioned in the left external iliac artery, and an angiogram is obtained. What artery is indicated by the black arrowheads?", "options": [{"letter": "A", "text": "Obturator artery"}, {"letter": "B", "text": "Lateral circumflex femoral artery"}, {"letter": "C", "text": "Deep circumflex iliac artery"}, {"letter": "D", "text": "Inferior epigastric artery"}], "images": ["assets/q28_p037_01.jpg"], "explanationImages": ["assets/a28_p037_01.jpg", "assets/a28_p038_01.jpg"], "answer": "C", "explanation": "Answer C. The deep circumflex iliac artery is another important artery in the lower abdominal wall that can be traversed during percutaneous procedures such as paracentesis or abscess drainage, especially with a more lateral approach. The artery comes off the distal external iliac artery, coursing cephalad and lateral. The artery pierces the transversus abdominis muscle and ascends between it and the overlying internal oblique muscle. It can often be identified on CECT. The inferior epigastric artery is present on the images; however, it is the more medial artery arising opposite from the deep circumflex iliac artery. These 2 arteries are the vascular landmark for the inguinal ligament demarcating intrapelvic external iliac artery from infrainguinal common femoral artery. The obturator artery is deep within the pelvis typically arising from the anterior division of the internal iliac artery. The lateral circumflex femoral artery arises in the proximal thigh. Figure 28-1 Digital subtraction angiography (DSA) from left external iliac artery injection. CFA, common femoral artery; DCIA, deep circumflex iliac artery; EIA, external iliac artery; IEA, inferior epigastric artery; LCFA, lateral circumflex femoral artery; PFA, profunda femoris artery; SFA, superficial femoral artery. References: Park SW, Ko SY, Yoon SY, et al. Transcatheter arterial embolization for hemoperitoneum: unusual manifestation of iatrogenic injury to abdominal muscular arteries. Abdom Imaging. 2011;36(1):74-78. Satija B, Kumar S, Duggal RK, Kohli S. Deep circumflex iliac artery pseudoaneurysm as a complication of paracentesis. J Clin Imaging Sci. 2012;2:10."}, {"number": "29", "stem": "A 29-year-old female is involved in a motor vehicle accident and sustains significant blunt trauma. A multiphase CECT is performed (arterial phase, top images; portal venous phase, middle images; delayed phase, bottom images). What is the diagnosis?", "options": [{"letter": "A", "text": "Splenic laceration with active bleeding"}, {"letter": "B", "text": "Splenic laceration with pseudoaneurysm formation"}, {"letter": "C", "text": "Splenic hemangioma"}, {"letter": "D", "text": "Normal variation in perfusion"}], "images": ["assets/q29_p039_01.jpg"], "explanationImages": ["assets/a29_p039_01.jpg", "assets/a29_p040_03.jpg"], "answer": "B", "explanation": "Answer B. The arterial phase images show abnormal round and linear contrast enhancement within the splenic parenchyma. On the portal venous and delayed phase images, there is gradual washout without pooling or spreading of the abnormal contrast. These findings are consistent with intrasplenic pseudoaneurysm formation. Note the adjacent linear low-attenuation lacerations best seen on the arterial and portal venous phase images. Active bleeding (choice A) within the spleen is uncommon; however, if present, should show increasing accumulation of extravasated contrast into an expanding intrasplenic hematoma. More commonly, active bleeding from splenic trauma is seen when the laceration extends to the capsule and extravasation into the perisplenic space occurs. As in almost all organ traumas, multiphase imaging helps tremendously with the identification and characterization of injuries, particularly vascular injuries. Choice C, a common but benign splenic vascular lesion, is often a well-circumscribed mass (es) with gradual centripetal or homogenous enhancement. Figure 29-1 Companion case. Three-phase contrast-enhanced computed tomography (CECT) demonstrating high-grade splenic injury with perisplenic hematoma. Note the subcentimeter focus of contrast in the spleen (arterial phase, left image) that enlarges and extends beyond the parenchymal edge on the portal venous and delayed phase images consistent with active bleeding. References: Boscak A, Shanmuganathan K. Splenic trauma: what is new? Radiol Clin North Am. 2012;50(1):105-122. Melikian R, Goldberg S, Strife BJ, Halvorsen RA. Comparison of MDCT protocols in trauma patients with suspected splenic injury: superior results with protocol that includes arterial and portal venous phase imaging. Diagn Interv Radiol. 2016;22 (5):395-399."}, {"number": "30", "stem": "Which of the following is an appropriate adjunctive treatment for a hemodynamically stable adult patient with blunt splenic injury and intrasplenic pseudoaneurysm formation?", "options": [{"letter": "A", "text": "Distal main splenic artery covered stent"}, {"letter": "B", "text": "Proximal main splenic artery embolization with coils"}, {"letter": "C", "text": "Proximal main splenic artery embolization with particles"}, {"letter": "D", "text": "Distal main splenic artery thrombin injection"}], "images": [], "explanationImages": ["assets/a30_p041_01.jpg"], "answer": "B", "explanation": "Answer B. Current management of blunt splenic injury in adults consists of operative and nonoperative strategies, with splenic arterial embolization (SAE) frequently used as an adjunctive therapy. The technique uses one of 2 methods: proximal or distal SAE. With proximal SAE, the splenic artery is occluded distal to the dorsal pancreatic artery (often the first downgoing branch) with the use of coils or a vascular plug. Diminished arterial pressure beyond the embolization site promotes hemostasis and healing of splenic injuries, whereas collateral arterial pathways (pancreatic and gastric) reconstitute the distal splenic artery, maintaining viable perfusion to the splenic parenchyma. With distal SAE, a peripheral branch(es) of the splenic artery is occluded, frequently with coils, Gelfoam, or other embolic agents. Collateral arterial pathways do not exist this far peripherally, and the splenic injury is effectively treated through feeding artery thrombosis and focal tissue devascularization (infarct). Occasionally, both methods are used in a single procedure. There is no consensus opinion on the appropriate application of the techniques as both provide a high rate of splenic salvage, often 90% or greater, with a low complication rate. In our practice, we use proximal SAE as long as there is no demonstrable active bleeding on angiography. If there is active bleeding, we perform a distal SAE at that site to achieve immediate hemostasis. Choice A is appropriate for cases of main splenic artery injury, not intrasplenic pseudoaneurysm formation. Choices C and D would likely result in total or near total infarction of the spleen. Particles are flow-directed embolics and will lodge in the distal artery/arteriole depending on their size, producing end-organ ischemia. Thrombin injected into a high-flow artery like the splenic will cause immediate thrombosis of the entire vascular territory. Remember, the goals of SAE for trauma are control of the injury AND preservation of the spleen. Figure 30-1 Sample blunt splenic injury protocol. AAST, American Association for the Surgery of Trauma; AB, active bleeding; CECT, contrast-enhanced computed tomography; ICU,intensive care unit; OR, operating room; SAE, splenic arterial embolization; VI, vascular injury. References: Coccolini F, Montori G, Catena F, et al. Splenic trauma: WSES classification and guidelines for adult and pediatric patients. World J Emerg Surg. 2017;12:40. Imbrogno BF, Ray CE. Splenic artery embolization in blunt trauma. Semin Intervent Radiol. 2012;29(2):147-149. Schnüriger B, Inaba K, Konstantinidis A, Lustenberger T, Chan LS, Demetriades D. Outcomes of proximal versus distal splenic artery embolization after trauma: a systematic review and meta-analysis. J Trauma. 2011;70(1):252-260."}, {"number": "31", "stem": "Following a proximal splenic artery embolization for blunt splenic injury with intrasplenic pseudoaneurysm formation, a CECT is performed to reevaluate the injury. Which is the correct interpretation?", "options": [{"letter": "A", "text": "Expected findings after proximal splenic artery embolization"}, {"letter": "B", "text": "Treatment failure with patent splenic artery branches despite embolization"}, {"letter": "C", "text": "Treatment failure with persistent filling of intrasplenic pseudoaneurysm"}], "images": ["assets/q31_p042_01.jpg"], "explanationImages": ["assets/a31_p042_01.jpg"], "answer": "A", "explanation": "Answer A. With proximal embolization, a coil pack or vascular plug is deployed in the proximal to mid splenic artery, ideally just beyond the dorsal pancreatic artery such that pancreatic and short gastric collaterals will reconstitute the distal main splenic artery. It is an expected finding to see contrast opacification in the main splenic artery proximal and distal to the coil pack or plug, as a result of the collateral arterial filling. Additionally, when the procedure is performed in the setting of intrasplenic pseudoaneurysm, it is common to see persistent pseudoaneurysm filling after embolization, particularly on early follow-up examinations. This warrants no further treatment. Naturally, if there are enlarging pseudoaneurysms or evidence of interval splenic rupture despite proximal embolization, surgical splenectomy should be considered. Figure 31-1 Coronal oblique contrast-enhanced computed tomography (CECT) image after proximal splenic artery embolization with a vascular plug. The plug (arrowhead) is clearly seen in the proximal main splenic artery with expected opacification of the artery distal to the plug from collaterals. Reference: Haan JM, Marmery H, Shanmuganathan K, Mirvis SE, Scalea TM. Experience with splenic main coil embolization and significance of new or persistent pseudoaneurysm: reembolize, operate, or observe. J Trauma. 2007;63(3):615-619."}, {"number": "32", "stem": "A patient presents for radioembolization treatment of the left hepatic lobe. Angiography demonstrates an enlarged gastrohepatic trunk with significant tortuosity (arrowhead). A microcatheter is advanced and after several unsuccessful attempts to cross the tortuous segment, a repeat angiogram is performed with early (middle) and delayed (right) phase images. What is the most likely explanation?", "options": [{"letter": "A", "text": "Arterial thrombosis"}, {"letter": "B", "text": "Arterial rupture"}, {"letter": "C", "text": "Arterial dissection"}], "images": ["assets/q32_p043_01.jpg"], "explanationImages": ["assets/a32_p043_01.jpg"], "answer": "C", "explanation": "Answer C. The images obtained after attempted catheterization of the tortuous artery segment demonstrate a discrete terminus to the normal-looking artery, with an abnormal wire-thin lumen beyond. On the delayed phase image, there is contrast retention in a relatively larger distal artery segment. This appearance is classic for an arterial dissection with dyssynchronous filling of the true (smaller) and false (larger) lumen. The images show no extraluminal contrast to indicate vessel rupture and no filling defect or complete occlusion to suggest thrombosis. With dissection, if the false lumen becomes pressurized and expanded (as in this case), it can compress the true lumen with virtually no downstream passage of contrast (or blood). With a little luck, a wire can be passed through the true lumen beyond the site of pathology and subsequently dilated with balloon angioplasty, restoring normal perfusion and hopefully eliminating flow in the false lumen. Figure 32-1 Companion case of arterial dissection treated with angioplasty. Top left image from celiac angiogram with widely patent branches. Top right image after failed attempt to select the proper hepatic artery with a microcatheter demonstrates occlusive dissection just proximal to the takeoff of the gastroduodenal artery (GDA). A wire is skillfully negotiated into the true lumen, and after balloon dilation (bottom left image), there is restoration of flow in both the GDA and proper hepatic artery. As seen in the presented cases, microcatheter navigation through small arteries can be a delicate work. The arteries can be even more fragile after exposure to certain systemic chemotherapeutic agents such as bevacizumab (Avastin). References: Brown DB. Hepatic artery dissection in a patient on bevacizumab resulting in pseudoaneurysm formation. Semin Intervent Radiol. 2011;28(2):142-146. Jung E, Shin JH, Kim JH, Yoon HK, Ko GY, Sung KB. Arterial dissections during transcatheter arterial chemoembolization for hepatocellular carcinoma: a 19-year clinical experience at a single medical institution. Acta Radiol. 2017;58(7):842-848. Sakamoto I, Aso N, Nagaoki K, et al. Complications associated with transcatheter arterial embolization for hepatic tumors. Radiographics. 1998;18(3):605-619."}, {"number": "33", "stem": "What is the most likely pathology being demonstrated in this angiogram of the liver?", "options": [{"letter": "A", "text": "Traumatic injury"}, {"letter": "B", "text": "Hepatocellular carcinoma"}, {"letter": "C", "text": "Hemangioma"}, {"letter": "D", "text": "Cyst"}], "images": ["assets/q33_p044_01.jpg"], "explanationImages": ["assets/a33_p044_01.jpg"], "answer": "B", "explanation": "Answer B. This is a very typical angiogram for hepatocellular cancer (HCC). One of the hallmarks of HCC is early arterial filling of the tumor. Although this is harder to depict on static images, observe the abnormal tumor vessels, which opacify before the normal liver parenchyma. On the more delayed phase image, the round tumor mass seemingly displaces the normal liver vessels. Hypervascularity, neovascularity, and arteriovenous shunting are features commonly seen with HCC. Traumatic injury may present as heterogeneous parenchymal filling, active extravasation, pseudoaneurysm formation, and/or arterioportal shunting. A cyst may demonstrate mass effect but is, by definition, avascular. Similar to the characteristic imaging features on CECT and MRI, liver hemangiomas display discontinuous peripheral nodular contrast accumulation with slow central fill-in. Figure 33-1 Giant liver hemangioma on coronal contrast-enhanced computed tomography (CECT) with corresponding hepatic arteriogram. Note the early (left) discontinuous peripheral nodular enhancement with gradual fill in on the delayed phase (right). References: Fielding L. Current imaging strategies of primary and secondary neoplasms of the liver. Semin Intervent Radiol. 2006;23(1):3-12. Watson RC, Baltaxe HA. The angiographic appearance of primary and secondary tumors of the liver. Radiology. 1971;101 (3):539-548."}, {"number": "34", "stem": "In this patient with a painful left arm mass about to undergo surgical resection and reconstruction, what is the most likely purpose of this endovascular procedure?", "options": [{"letter": "A", "text": "A diagnostic study to establish pathology"}, {"letter": "B", "text": "A diagnostic study to assist with operative planning"}, {"letter": "C", "text": "An interventional procedure to reduce intraoperative bleeding"}, {"letter": "D", "text": "An interventional procedure to reduce postoperative swelling and pain"}], "images": ["assets/q34_p045_01.jpg"], "explanationImages": ["assets/a34_p045_01.jpg", "assets/a34_p046_01.jpg", "assets/a34_p047_01.jpg"], "answer": "C", "explanation": "Answer C. The angiographic images demonstrate an oval hypervascular mass encompassing and replacing the proximal left humerus. Certain cancers such as renal cell carcinoma have a predilection for the bone and can be quite hypervascular. Resection and reconstruction can be a daunting task for the surgeon in this scenario, with significant operative blood loss at stake. Preoperative angiography and embolization, often with particles and sometimes adjunctive coil occlusion of large feeders, can reduce the vascularity of the tumor and reduce operative blood loss. In many locations, treatment must be performed carefully with subsequent selection of direct tumor feeders to prevent nontarget embolization of healthy tissue. In this case, inadvertent administration of particles and/or coils into the brachial artery would be catastrophic and almost certainly result in limb- threatening ischemia. Figure 34-1 Radiograph following preoperative embolization, resection of bony metastasis, and reconstruction of the humerus. Operative blood loss was only 100 mL. References: Chatziioannou AN, Johnson ME, Pneumaticos SG, Lawrence DD, Carrasco CH. Preoperative embolization of bone metastases from renal cell carcinoma. Eur Radiol. 2000;10(4):593-596. Rilling WS, Chen GW. Preoperative embolization. Semin Intervent Radiol. 2004;21(1):3-9."}, {"number": "35", "stem": "Based on North American Symptomatic Carotid Endarterectomy Trial (NASCET) criteria, what percent stenosis is demonstrated on this carotid angiogram?", "options": [{"letter": "A", "text": "60%"}, {"letter": "B", "text": "75%"}, {"letter": "C", "text": "80%"}, {"letter": "D", "text": "90%"}], "images": ["assets/q35_p048_01.jpg"], "explanationImages": ["assets/a35_p048_01.jpg", "assets/a35_p049_03.jpg"], "answer": "B", "explanation": "Answer B. NASCET demonstrated significant benefit to carotid endarterectomy in symptomatic patients with internal carotid artery stenosis measuring 70% to 99%. In this pivotal trial, a specific measurement of stenosis was used, and the method has been used in several additional key studies. The percent stenosis measured on the angiogram was defined as (1 - [internal carotid artery stenosis diameter/internal carotid artery normal diameter]) × 100. In the provided angiogram centered at the carotid arterial bifurcation, the external carotid artery is easily identified by its multiple side branches, whereas the cervical internal carotid artery has none. Based on the measurements provided, the percent stenosis is (1 - [1/4]) × 100 or 75%. Figure 35-1 Completion angiogram following placement of a self-expanding uncovered stent across a severe stenosis in the proximal internal carotid artery (ICA). Note the embolic protection device in the distal segment of the ICA. The stent covers the ostium of the external carotid artery, which stills fills in antegrade fashion. References: Barnett HJM, Taylor DW, Haynes RB, et al. Beneficial effect of carotid endarterectomy in symptomatic patients with high-grade carotid stenosis. N Engl J Med. 1991;325(7):445-453. Cheng EM, Bravata DM, El-Saden S, et al. Carotid artery stenosis: wide variability in reporting formats-a review of 127 veterans affairs medical centers. Radiology. 2013;266(1):289-294."}, {"number": "36", "stem": "An otherwise healthy 65-year-old male presents with a nonhealing right foot ulcer. A CECT of the affected extremity is performed. Based on the images, which of the following is the best treatment plan for this lesion?", "options": [{"letter": "A", "text": "Angioplasty"}, {"letter": "B", "text": "Bare-metal stent"}, {"letter": "C", "text": "Covered stent"}, {"letter": "D", "text": "Surgical consult"}], "images": ["assets/q36_p050_03.jpg"], "explanationImages": ["assets/a36_p050_03.jpg"], "answer": "D", "explanation": "Answer D. While physicians who practice IR as a specialty pride themselves on problem-solving and creative solutions for patient care, one must know the benefits and indications of alternative methods of treatment. This case demonstrates a densely calcified atherosclerotic plaque throughout the proximal to mid common femoral artery that appears occlusive. The endovascular options here are limited, and surgical endarterectomy is the treatment of choice. Guidelines, such as the Trans-Atlantic inter- Society Consensus (TASC) II, exist to help with management decisions in the realm of peripheral arterial disease. Pathology is graded as level A, B, C, and D. For level A disease, endovascular treatment is strongly preferred; for level D disease, surgical treatment is strongly preferred. Reference: Norgren L, Hiatt WR, Dormandy JA, et al. Inter-society consensus for the management of peripheral arterial disease (TASC II). J Vasc Surg. 2007;45(suppl S):S5-S67."}, {"number": "37", "stem": "A 35-year-old male presents for evaluation of an ulcer at the tip of thumb. For diagnostic evaluation, a catheter is placed in the brachial artery and an arteriogram is obtained. Which of the following best explains the findings?", "options": [{"letter": "A", "text": "Buerger disease"}, {"letter": "B", "text": "Septic emboli"}, {"letter": "C", "text": "Atherosclerosis"}, {"letter": "D", "text": "Primary Raynaud disease"}], "images": ["assets/q37_p051_01.jpg"], "explanationImages": ["assets/a37_p051_01.jpg"], "answer": "A", "explanation": "Answer A. The arteriogram of the wrist and hand shows corkscrew collateral formation in the distribution of the first digit, as well as a distal ulnar artery occlusion. Note the intact deep and superficial palmar arches. These findings in a relatively young male are most characteristic of Buerger disease aka thromboangiitis obliterans. Small- and medium-sized arteries and veins of the extremities are most commonly affected. Tobacco use is ubiquitous in these patients, and cessation is arguably the most important treatment strategy. Although corkscrew collaterals are often associated with Buerger disease, they can be seen with other diseases affecting the small arteries of the extremities and have been demonstrated to represent hypertrophied vasa vasorum or vasa nervorum. The appearance of well-formed collateral vessels points to more chronic pathology, making an acute process such as septic emboli less likely. Atherosclerosis would be rare in a young person, and is uncommon peripheral to the subclavian level. A more central atherosclerotic lesion near a great vessel origin can shower atheroemboli, producing downstream short-segment occlusions, often involving the digital arteries (not seen here). Raynaud disease can be primary (no underlying disease) or secondary (associated with underlying diseases such as scleroderma). Primary Raynaud disease often presents with a history of digital pallor or cyanosis with cold exposure or emotional stress followed by a reperfusion hyperemia. With severe Raynaud disease (often secondary), critical digital ischemia can occur and angiography may demonstrate a variety of findings including stenosis, occlusion, and vasospasm. References: Bozlar U, Ogur T, Khaja MS, All J, Norton PT, Hagspiel KD. CT angiography of the upper extremity arterial system: part 2- clinical applications beyond trauma patients. AJR Am J Roentgenol. 2013;201(4):753-763. Dimmick SJ, Goh AC, Cauzza E, et al. Imaging appearances of Buerger's disease complications in the upper and lower limbs. Clin Radiol. 2012;67(12):1207-1211. Kim YH, Ng SW, Seo HS, Chang Ahn H. Classification of Raynaud's disease based on angiographic features. J Plast Reconstr Aesthet Surg. 2011;64(11):1503-1511. Mcmahan ZH, Wigley FM. Raynaud's phenomenon and digital ischemia: a practical approach to risk stratification, diagnosis and management. Int J Clin Rheumtol. 2010;5(3):355-370."}, {"number": "38", "stem": "A CTA is performed in preparation for EVAR of an infrarenal abdominal aortic aneurysm. Which of the following is true?", "options": [{"letter": "A", "text": "Accessory renal arteries are a contraindication to EVAR"}, {"letter": "B", "text": "IMA occlusion increases endoleak risk after EVAR"}, {"letter": "C", "text": "Increased aneurysm neck length is a favorable characteristic for EVAR"}, {"letter": "D", "text": "Angulation at the aneurysm neck reduces endoleak risk after EVAR"}], "images": ["assets/q38_p053_02.jpg"], "explanationImages": ["assets/a38_p053_02.jpg"], "answer": "C", "explanation": "Answer C. An abdominal aortic aneurysm is most commonly defined as aortic diameter >3.0 cm or diameter 1.5x normal. When considering abdominal aortic aneurysm treatment, cross-sectional imaging can evaluate a number of features that may affect the decision to treat with open or endovascular techniques. Aneurysm neck length, diameter, angulation, and atherosclerotic disease The neck is critical for the attachment of the endograft to the aortic wall. A poor proximal seal can result in immediate or delayed type I endoleak, as well as stent graft migration. Accessory renal arteries Although not a contraindication, coverage may infarct part of the kidney and can also provide a path for future endoleak. Small (<7 mm), diseased, and/or tortuous iliofemoral arterial system Difficulty with access and device passage. Aneurysmal common or external iliac arteries Difficulty with achieving a distal seal that may necessitate stent graft extensions. Occluded internal iliac arteries Increased risk of buttock claudication and impotence after EVAR. Preexisting mesenteric arterial disease Increased risk of mesenteric ischemia as IMA will be covered during EVAR. Figure 38-1 Reconstructed image from computed tomography angiography (CTA) performed to evaluate abdominal aortic aneurysm (AAA) demonstrating measurements for the aortic neck angulation (suprarenal angle, A; infrarenal angle, B). For routine endovascular aneurysm repair (EVAR), angle B is most relevant, with angles above 45° to 60° conferring an increased risk of post-EVAR complications. This case demonstrates severe (>60°) aortic neck angulation at both A and B."}];
+    const APP_ID = "ir-arterial-interventions-quiz-ch2";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+      const paragraphs = String(text).split("\n");
+      paragraphs.forEach(paragraph => {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          y += lineHeight;
+          return;
+        }
+        words.forEach(word => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = word;
+            y += lineHeight;
+          } else {
+            line = test;
+          }
+        });
+        if (line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        }
+        y += Math.round(lineHeight * 0.45);
+      });
+      return y;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 900;
+      const padding = 46;
+      const lineHeight = 34;
+      const measure = document.createElement("canvas").getContext("2d");
+      measure.font = "24px Arial";
+      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
+      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0f1218";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#17202d";
+      ctx.fillRect(18, 18, width - 36, height - 36);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(18, 18, width - 36, height - 36);
+      ctx.fillStyle = "#eef2f7";
+      ctx.font = "700 34px Arial";
+      ctx.fillText(title, padding, 76);
+      ctx.fillStyle = "#dbe5f2";
+      ctx.font = "24px Arial";
+      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

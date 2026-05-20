@@ -75,6 +75,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Include result/sort controls with `All`, `Incorrect`, and `Hardest`.
 - `Incorrect` shows only missed questions.
 - `Hardest` sorts by the percentage of peers who selected the correct answer, ascending from lowest correct-answer percentage to highest.
+- Include per-question `Copy question text` and `Copy screenshot` buttons, matching the core review quiz behavior. `Copy question text` should copy the stem, choices, selected/correct answer, Vital Concept, and explanation. `Copy screenshot` should create a rich clipboard pack with generated text-card images plus the local question images, falling back to copied text if the rich clipboard API is blocked.
 - Clean the rebuilt page so DOM/accessibility artifacts never appear in visible text.
 - Add a small `Hide` / `Show` tab at the bottom of the sticky header so the header and filters can be collapsed while scrolling.
 
@@ -92,4 +93,5 @@ Before calling the workflow done, validate:
 - The HTML page contains the expected number of choices and local image tags.
 - The HTML page has `All`, `Incorrect`, and `Hardest` controls.
 - The HTML page has answer-choice percentage badges.
+- The HTML page has per-question `Copy question text` and `Copy screenshot` buttons.
 - The HTML page has no visible `Radio Selected`, `Radio Unselected`, `img "Radio..."`, `checkbox`, or `[level=...]` artifacts.
