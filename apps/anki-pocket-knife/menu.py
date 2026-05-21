@@ -56,12 +56,14 @@ from .f3_blocker import (
 from .hard_cards import open_hard_cards_dialog
 from .lightning_mode import (
     build_lightning_mode_filtered_deck_for_current_deck,
+    is_speed_streak_bridge_enabled,
     lightning_answer_seconds,
     lightning_card_limit,
     lightning_question_seconds,
     set_lightning_answer_seconds,
     set_lightning_card_limit,
     set_lightning_question_seconds,
+    set_speed_streak_bridge_enabled,
 )
 from .missed_today import (
     copy_missed_today_text,
@@ -138,6 +140,7 @@ _ai_tools_action: QAction | None = None
 _floating_card_tracker_action: QAction | None = None
 _tracker_follow_speed_streak_action: QAction | None = None
 _tracker_only_paused_action: QAction | None = None
+_speed_streak_bridge_action: QAction | None = None
 
 
 def _shortcut_taken(shortcut_text: str) -> bool:
@@ -309,6 +312,12 @@ class PocketKnifeLauncherDialog(QDialog):
         lightning_grid.addWidget(self.lightning_answer_seconds_spin, 2, 1)
         lightning_grid.setColumnStretch(2, 1)
         lightning_layout.addLayout(lightning_grid)
+
+        self.speed_streak_bridge_checkbox = QCheckBox(
+            "Legacy Speed Streak bridge for Lightning Mode (P pauses both)"
+        )
+        self.speed_streak_bridge_checkbox.setChecked(is_speed_streak_bridge_enabled())
+        lightning_layout.addWidget(self.speed_streak_bridge_checkbox)
 
         self.lightning_button = QPushButton("Build Lightning Mode For Current Deck")
         lightning_layout.addWidget(self.lightning_button)
@@ -562,6 +571,7 @@ class PocketKnifeLauncherDialog(QDialog):
         self.lightning_card_limit_spin.valueChanged.connect(self._set_lightning_card_limit)
         self.lightning_question_seconds_spin.valueChanged.connect(self._set_lightning_question_seconds)
         self.lightning_answer_seconds_spin.valueChanged.connect(self._set_lightning_answer_seconds)
+        self.speed_streak_bridge_checkbox.toggled.connect(self._set_speed_streak_bridge_enabled)
         self.recent_leech_banner_checkbox.toggled.connect(self._set_recent_leech_banner_enabled)
         self.disable_f3_checkbox.toggled.connect(self._set_disable_f3_enabled)
         self.block_ctrl_shift_p_checkbox.toggled.connect(
@@ -684,6 +694,10 @@ class PocketKnifeLauncherDialog(QDialog):
             self.lightning_answer_seconds_spin.blockSignals(True)
             self.lightning_answer_seconds_spin.setValue(lightning_answer_seconds())
             self.lightning_answer_seconds_spin.blockSignals(False)
+        if hasattr(self, "speed_streak_bridge_checkbox"):
+            self.speed_streak_bridge_checkbox.blockSignals(True)
+            self.speed_streak_bridge_checkbox.setChecked(is_speed_streak_bridge_enabled())
+            self.speed_streak_bridge_checkbox.blockSignals(False)
         if hasattr(self, "visual_card_multitude_checkbox"):
             self.visual_card_multitude_checkbox.blockSignals(True)
             self.visual_card_multitude_checkbox.setChecked(is_visual_card_multitude_add_button_enabled())
@@ -781,6 +795,10 @@ class PocketKnifeLauncherDialog(QDialog):
         set_lightning_answer_seconds(int(value))
         sync_settings_ui()
 
+    def _set_speed_streak_bridge_enabled(self, checked: bool) -> None:
+        set_speed_streak_bridge_enabled(bool(checked))
+        sync_settings_ui()
+
     def _set_visual_card_multitude_enabled(self, checked: bool) -> None:
         set_visual_card_multitude_add_button_enabled(bool(checked))
         sync_settings_ui()
@@ -850,6 +868,8 @@ def sync_settings_ui() -> None:
     global _floating_card_tracker_action
     global _tracker_follow_speed_streak_action
     global _tracker_only_paused_action
+    global _speed_streak_bridge_action
+    global _speed_streak_bridge_action
 
     auto_scroll_enabled = is_auto_scroll_enabled()
     if _auto_scroll_action is not None:
@@ -935,6 +955,11 @@ def sync_settings_ui() -> None:
         _ai_tools_action.blockSignals(True)
         _ai_tools_action.setChecked(ai_tools_enabled)
         _ai_tools_action.blockSignals(False)
+    speed_streak_bridge_enabled = is_speed_streak_bridge_enabled()
+    if _speed_streak_bridge_action is not None:
+        _speed_streak_bridge_action.blockSignals(True)
+        _speed_streak_bridge_action.setChecked(speed_streak_bridge_enabled)
+        _speed_streak_bridge_action.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "auto_scroll_checkbox"):
         _dialog.auto_scroll_checkbox.blockSignals(True)
         _dialog.auto_scroll_checkbox.setChecked(auto_scroll_enabled)
@@ -980,6 +1005,10 @@ def sync_settings_ui() -> None:
         _dialog.tracker_only_paused_checkbox.blockSignals(True)
         _dialog.tracker_only_paused_checkbox.setChecked(tracker_only_paused_enabled)
         _dialog.tracker_only_paused_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "speed_streak_bridge_checkbox"):
+        _dialog.speed_streak_bridge_checkbox.blockSignals(True)
+        _dialog.speed_streak_bridge_checkbox.setChecked(speed_streak_bridge_enabled)
+        _dialog.speed_streak_bridge_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "recent_leech_banner_checkbox"):
         _dialog.recent_leech_banner_checkbox.blockSignals(True)
         _dialog.recent_leech_banner_checkbox.setChecked(recent_leech_banner_enabled)
@@ -1073,6 +1102,11 @@ def _toggle_tracker_follow_speed_streak(checked: bool) -> None:
 
 def _toggle_tracker_only_paused(checked: bool) -> None:
     set_tracker_only_when_speed_streak_paused_enabled(bool(checked))
+    sync_settings_ui()
+
+
+def _toggle_speed_streak_bridge(checked: bool) -> None:
+    set_speed_streak_bridge_enabled(bool(checked))
     sync_settings_ui()
 
 
@@ -1203,6 +1237,12 @@ def _register_menu() -> None:
         lambda *_args: build_lightning_mode_filtered_deck_for_current_deck()
     )
     pocket_menu.addAction(lightning_action)
+
+    _speed_streak_bridge_action = QAction("Legacy Lightning Mode Speed Streak Bridge", mw)
+    _speed_streak_bridge_action.setCheckable(True)
+    _speed_streak_bridge_action.setChecked(is_speed_streak_bridge_enabled())
+    _speed_streak_bridge_action.triggered.connect(_toggle_speed_streak_bridge)
+    pocket_menu.addAction(_speed_streak_bridge_action)
 
     recent_new_action = QAction("Build Recent New Cards Deck", mw)
     recent_new_action.triggered.connect(lambda *_args: open_recent_new_cards_dialog())

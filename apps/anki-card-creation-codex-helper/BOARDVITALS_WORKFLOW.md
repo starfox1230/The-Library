@@ -15,8 +15,11 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Use the user's Chrome extension workflow for BoardVitals quiz pages unless the user explicitly says otherwise.
 - Do not use the Codex in-app browser for BoardVitals quiz extraction.
 - Save every question page locally as raw JSON, preserving the DOM snapshot and image URLs.
+- When saving image records, include a `section` field on each image: `stem` for images that appear before the answer choices / graded response / correct-answer explanation, and `explanation` for images that appear inside or after the explanation/correct-answer section. Prefer DOM containment when available; otherwise use DOM order relative to the answer-choice list and `Correct Answer:` block.
 - Create `source-pages.json` containing all captured questions.
 - Create `parsed-questions.json` with question number, QID, result, difficulty, selected answer, correct answer, answer text, peer percentages, full stem, explanation, Vital Concept when present, and image records.
+- Separate images into `stem_images` and `explanation_images` whenever the capture data identifies where the image appeared. Preserve a backward-compatible flat `images` list only as a combined legacy field.
+- Quizzes captured on or before 2026-05-19 used a legacy flat image workflow and may display all images with the question stem because the saved image records did not reliably distinguish stem images from explanation images.
 - When extracting stems, preserve every stem paragraph before the answer choices. Do not stop at the first long paragraph. Join short follow-up lines, lab values, and the final asked question so clinical context and the actual task are not silently dropped.
 - Do not assume answer choices stop at `E`; support additional choices such as `F` when present.
 - For questions without a `Figure/Media` marker, still extract the stem from the main review area before the answer-choice list.
@@ -67,6 +70,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Use dark-mode styling by default.
 - Show all questions top-to-bottom.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
+- Display stem images directly under the question stem. Display explanation images inside the explanation section, not with the question stem.
 - Preserve the full multi-paragraph stem.
 - Show peer percentages for every answer choice as small right-aligned parenthetical badges inside each answer-choice row.
 - Include a question-number prefix filter, where typing `8` shows Q8 only and typing `5` shows Q5 and Q50.

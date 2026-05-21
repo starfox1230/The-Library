@@ -1,6 +1,18 @@
 param(
     [string]$AddonFolderName = "speed_streak_v1_22",
-    [string[]]$PreviousAddonFolderNames = @("speed_streak_v1_21", "speed_streak_v1_20")
+    [string[]]$PreviousAddonFolderNames = @(
+        "speed_streak",
+        "speed_streak_v1_1",
+        "speed_streak_v1_11",
+        "speed_streak_v1_12",
+        "speed_streak_v1_13",
+        "speed_streak_v1_14",
+        "speed_streak_v1_15",
+        "speed_streak_v1_16",
+        "speed_streak_v1_17",
+        "speed_streak_v1_20",
+        "speed_streak_v1_21"
+    )
 )
 
 $source = Split-Path -Parent $MyInvocation.MyCommand.Path

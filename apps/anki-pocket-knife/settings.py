@@ -32,7 +32,8 @@ DEFAULT_SETTINGS = {
     "lightning_mode_card_limit": 100,
     "lightning_mode_question_seconds": 10,
     "lightning_mode_answer_seconds": 5,
-    "floating_card_tracker_enabled": True,
+    "lightning_mode_speed_streak_bridge_enabled": False,
+    "floating_card_tracker_enabled": False,
     "floating_card_tracker_start_ms": 0,
     "floating_card_tracker_x": 80,
     "floating_card_tracker_y": 120,
@@ -40,6 +41,7 @@ DEFAULT_SETTINGS = {
     "floating_card_tracker_night_background": False,
     "floating_card_tracker_follow_speed_streak_window": False,
     "floating_card_tracker_only_when_speed_streak_paused": False,
+    "speed_streak_native_overview_migration_v1": False,
 }
 
 
@@ -81,6 +83,12 @@ def load_settings() -> dict[str, Any]:
     for key, default_value in DEFAULT_SETTINGS.items():
         raw_value = data.get(key, default_value)
         settings[key] = _coerce_setting_value(raw_value, default_value)
+    if not bool(settings.get("speed_streak_native_overview_migration_v1", False)):
+        settings["floating_card_tracker_enabled"] = False
+        settings["floating_card_tracker_follow_speed_streak_window"] = False
+        settings["floating_card_tracker_only_when_speed_streak_paused"] = False
+        settings["lightning_mode_speed_streak_bridge_enabled"] = False
+        settings["speed_streak_native_overview_migration_v1"] = True
     return settings
 
 

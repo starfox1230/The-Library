@@ -21,6 +21,7 @@ GEAR_ACTION_LABEL = "Build Lightning Mode Deck"
 LIGHTNING_MODE_CARD_LIMIT_SETTING = "lightning_mode_card_limit"
 LIGHTNING_MODE_QUESTION_SECONDS_SETTING = "lightning_mode_question_seconds"
 LIGHTNING_MODE_ANSWER_SECONDS_SETTING = "lightning_mode_answer_seconds"
+SPEED_STREAK_BRIDGE_SETTING = "lightning_mode_speed_streak_bridge_enabled"
 FILTERED_LIGHTNING_SESSIONS_CONFIG_KEY = "anki_pocket_knife_lightning_sessions"
 RECOVERED_LIGHTNING_DECK_NAME_PREFIX = "Recovered Lightning Cards "
 QUESTION_ACTION_SHOW_ANSWER = 0
@@ -105,6 +106,19 @@ def set_lightning_answer_seconds(value: int) -> int:
     safe_value = max(1, min(60, int(value)))
     set_setting(LIGHTNING_MODE_ANSWER_SECONDS_SETTING, safe_value)
     return safe_value
+
+
+def is_speed_streak_bridge_enabled() -> bool:
+    return bool(get_setting(SPEED_STREAK_BRIDGE_SETTING))
+
+
+def set_speed_streak_bridge_enabled(enabled: bool) -> bool:
+    value = bool(set_setting(SPEED_STREAK_BRIDGE_SETTING, bool(enabled)))
+    if not value:
+        _restore_speed_streak_pause_bridge()
+        _restore_speed_streak_override()
+    _refresh_review_state_shortcuts()
+    return value
 
 
 def _db_rows(sql: str, *args: Any) -> list[tuple[Any, ...]]:
@@ -1738,6 +1752,9 @@ def _toggle_lightning_timer_pause() -> bool:
 
 
 def _ensure_speed_streak_pause_bridge() -> Any | None:
+    if not is_speed_streak_bridge_enabled():
+        return None
+
     found = _find_speed_streak_controller()
     if found is None:
         return None
@@ -1760,16 +1777,40 @@ def _ensure_speed_streak_pause_bridge() -> Any | None:
     return controller
 
 
+def _restore_speed_streak_pause_bridge() -> None:
+    found = _find_speed_streak_controller()
+    if found is None:
+        return
+    _module_name, controller = found
+    if not getattr(controller, "_anki_pocket_knife_lightning_pause_bridge_installed", False):
+        return
+    original = getattr(controller, "_anki_pocket_knife_original_pause_shortcut", None)
+    if callable(original):
+        try:
+            setattr(controller, "_on_pause_shortcut", original)
+        except Exception:
+            pass
+    try:
+        delattr(controller, "_anki_pocket_knife_original_pause_shortcut")
+    except Exception:
+        pass
+    try:
+        setattr(controller, "_anki_pocket_knife_lightning_pause_bridge_installed", False)
+    except Exception:
+        pass
+
+
 def _on_lightning_pause_shortcut() -> None:
-    controller = _ensure_speed_streak_pause_bridge()
-    if controller is not None:
-        pause_shortcut = getattr(controller, "_on_pause_shortcut", None)
-        if callable(pause_shortcut):
-            try:
-                pause_shortcut()
-                return
-            except Exception:
-                pass
+    if is_speed_streak_bridge_enabled():
+        controller = _ensure_speed_streak_pause_bridge()
+        if controller is not None:
+            pause_shortcut = getattr(controller, "_on_pause_shortcut", None)
+            if callable(pause_shortcut):
+                try:
+                    pause_shortcut()
+                    return
+                except Exception:
+                    pass
     _toggle_lightning_timer_pause()
 
 
@@ -1807,6 +1848,10 @@ def _push_speed_streak_state(controller: Any) -> None:
 
 def _apply_speed_streak_override() -> None:
     global _speed_streak_override
+
+    if not is_speed_streak_bridge_enabled():
+        _restore_speed_streak_override()
+        return
 
     found = _find_speed_streak_controller()
     if found is None:
@@ -1958,6 +2003,8 @@ def _on_state_did_change(new_state: str, old_state: str) -> None:
 
 def _on_state_shortcuts_will_change(state: Any, shortcuts: list[tuple[str, Any]]) -> None:
     if str(state or "") != "review":
+        return
+    if not is_speed_streak_bridge_enabled():
         return
     shortcuts.append((LIGHTNING_MODE_PAUSE_SHORTCUT, _on_lightning_pause_shortcut))
 

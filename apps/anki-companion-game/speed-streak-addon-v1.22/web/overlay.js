@@ -26,9 +26,13 @@
     lastSidebarBackground: "",
     lastFilterValue: "",
     lastCoreSize: "",
+    pauseOverview: null,
+    lastPauseOverviewStartSent: -1,
     webgl: null,
     timerWebgl: null,
   };
+
+  const PAUSE_OVERVIEW_STORAGE_KEY = "speed-streak-pause-overview-v1";
 
   const DEFAULT_CUSTOM_COLORS = {
     core: "#566ed4",
@@ -110,6 +114,206 @@
         </span>
       </label>
     `;
+  }
+
+  function defaultPauseOverview(data = {}) {
+    const now = Date.now();
+    return {
+      visible: false,
+      startMs: now,
+      baseAnsweredCards: Number(data.answeredCards || 0),
+      lastEventNonce: Number(data.eventNonce || -1),
+      again: 0,
+      hard: 0,
+      good: 0,
+      easy: 0,
+    };
+  }
+
+  function normalizePauseOverview(raw, data = {}) {
+    const fallback = defaultPauseOverview(data);
+    if (!raw || typeof raw !== "object") {
+      return fallback;
+    }
+    return {
+      visible: Boolean(raw.visible),
+      startMs: Math.max(1, Number(raw.startMs || fallback.startMs)),
+      baseAnsweredCards: Math.max(0, Number(raw.baseAnsweredCards || 0)),
+      lastEventNonce: Number(raw.lastEventNonce ?? fallback.lastEventNonce),
+      again: Math.max(0, Number(raw.again || 0)),
+      hard: Math.max(0, Number(raw.hard || 0)),
+      good: Math.max(0, Number(raw.good || 0)),
+      easy: Math.max(0, Number(raw.easy || 0)),
+    };
+  }
+
+  function loadPauseOverview(data = {}) {
+    if (state.pauseOverview) {
+      return state.pauseOverview;
+    }
+    try {
+      state.pauseOverview = normalizePauseOverview(JSON.parse(window.localStorage.getItem(PAUSE_OVERVIEW_STORAGE_KEY) || "null"), data);
+    } catch (_error) {
+      state.pauseOverview = defaultPauseOverview(data);
+    }
+    return state.pauseOverview;
+  }
+
+  function savePauseOverview() {
+    if (!state.pauseOverview) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(PAUSE_OVERVIEW_STORAGE_KEY, JSON.stringify(state.pauseOverview));
+    } catch (_error) {
+      // Ignore storage failures; the overview still works for the current page.
+    }
+  }
+
+  function syncPauseOverviewStartToBackend() {
+    const overview = loadPauseOverview(state.data || {});
+    const startMs = overview.visible ? Math.max(0, Math.round(Number(overview.startMs || 0))) : 0;
+    if (startMs === state.lastPauseOverviewStartSent) {
+      return;
+    }
+    state.lastPauseOverviewStartSent = startMs;
+    if (typeof pycmd === "function") {
+      pycmd(`speed-streak:pause-overview-start:${startMs}`);
+    }
+  }
+
+  function resetPauseOverview(data = {}) {
+    state.pauseOverview = defaultPauseOverview(data);
+    state.pauseOverview.visible = true;
+    savePauseOverview();
+    syncPauseOverviewStartToBackend();
+  }
+
+  function formatOverviewStart(ms) {
+    try {
+      return new Date(ms).toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch (_error) {
+      return "--";
+    }
+  }
+
+  function formatOverviewDuration(totalSeconds) {
+    const seconds = Math.max(0, Math.floor(Number(totalSeconds || 0)));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remSeconds = seconds % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${remSeconds}s`;
+    }
+    if (minutes > 0) {
+      return `${minutes}m ${remSeconds}s`;
+    }
+    return `${remSeconds}s`;
+  }
+
+  function renderPauseOverview(data) {
+    const overview = loadPauseOverview(data);
+    const node = $("acgPauseOverview");
+    if (!node) {
+      return;
+    }
+    node.classList.toggle("hidden", !overview.visible);
+    if (!overview.visible) {
+      return;
+    }
+    syncPauseOverviewStartToBackend();
+    const stats = data && typeof data.pauseOverviewStats === "object" && data.pauseOverviewStats
+      ? data.pauseOverviewStats
+      : {};
+    const statsStartMs = Number(stats.startMs || 0);
+    const useBackendStats = statsStartMs > 0 && Math.abs(statsStartMs - Number(overview.startMs || 0)) < 1000;
+    const cards = Math.max(0, Number(useBackendStats ? stats.total : 0) || 0);
+    const again = Math.max(0, Number(useBackendStats ? stats.again : 0) || 0);
+    const hard = Math.max(0, Number(useBackendStats ? stats.hard : 0) || 0);
+    const good = Math.max(0, Number(useBackendStats ? stats.good : 0) || 0);
+    const easy = Math.max(0, Number(useBackendStats ? stats.easy : 0) || 0);
+    const elapsedSeconds = Math.max(1, Number(useBackendStats ? stats.elapsedSeconds : 0) || ((Date.now() - Number(overview.startMs || Date.now())) / 1000));
+    const cardsPerMinute = cards ? (cards / (elapsedSeconds / 60)) : 0;
+    const secondsPerCard = cards ? (elapsedSeconds / cards) : 0;
+    const right = Math.max(0, hard + good + easy);
+    const wrong = Math.max(0, again);
+
+    setText("acgPauseOverviewSince", `Since ${formatOverviewStart(overview.startMs)}`);
+    setText("acgPauseOverviewElapsed", formatOverviewDuration(elapsedSeconds));
+    setText("acgPauseOverviewTotal", String(Math.round(cards)));
+    const rateNode = $("acgPauseOverviewRate");
+    const secondsNode = $("acgPauseOverviewSeconds");
+    if (rateNode) {
+      rateNode.innerHTML = `<strong>${cardsPerMinute.toFixed(1)}</strong> / min`;
+    }
+    if (secondsNode) {
+      secondsNode.innerHTML = `<strong>${Math.round(secondsPerCard)}</strong> sec / card`;
+    }
+    setText("acgPauseOverviewAgain", String(Math.round(again)));
+    setText("acgPauseOverviewHard", String(Math.round(hard)));
+    setText("acgPauseOverviewGood", String(Math.round(good)));
+    setText("acgPauseOverviewEasy", String(Math.round(easy)));
+    setText("acgPauseOverviewAccuracy", `${right} right / ${wrong} wrong`);
+  }
+
+  function hidePauseOverviewMenu() {
+    const menu = $("acgPauseOverviewMenu");
+    if (menu) {
+      menu.classList.add("hidden");
+    }
+  }
+
+  function showPauseOverviewMenu(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const overview = loadPauseOverview(state.data || {});
+    const menu = $("acgPauseOverviewMenu");
+    const overlay = $("acgPauseOverlay");
+    if (!menu || !overlay) {
+      return;
+    }
+    const toggle = $("acgPauseOverviewToggle");
+    if (toggle) {
+      setText(toggle, overview.visible ? "Hide" : "Show");
+      toggle.setAttribute("data-pause-overview-action", overview.visible ? "hide" : "show");
+    }
+    const bounds = overlay.getBoundingClientRect();
+    const x = clamp(Number(event.clientX || bounds.left + bounds.width - 10) - bounds.left, 8, Math.max(8, bounds.width - 118));
+    const y = clamp(Number(event.clientY || bounds.top + 10) - bounds.top, 8, Math.max(8, bounds.height - 96));
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.classList.remove("hidden");
+  }
+
+  function applyPauseOverviewAction(action) {
+    const overview = loadPauseOverview(state.data || {});
+    if (action === "hide") {
+      overview.visible = false;
+      savePauseOverview();
+      syncPauseOverviewStartToBackend();
+    } else if (action === "show") {
+      resetPauseOverview(state.data || {});
+    } else if (action === "edit") {
+      const current = new Date(overview.startMs).toLocaleString();
+      const value = window.prompt("Start date/time", current);
+      if (value) {
+        const parsed = Date.parse(value);
+        if (Number.isFinite(parsed)) {
+          overview.startMs = parsed;
+          savePauseOverview();
+          syncPauseOverviewStartToBackend();
+        }
+      }
+    } else {
+      resetPauseOverview(state.data || {});
+    }
+    hidePauseOverviewMenu();
+    renderPauseOverview(state.data || {});
   }
 
   const template = `
@@ -228,6 +432,35 @@
         <div id="acgDim" class="acg-dim"></div>
         <div id="acgPauseOverlay" class="acg-pause-overlay">
           <div class="acg-pause-copy">Press <span id="acgPauseShortcutLabel">P</span> to Unpause</div>
+          <div id="acgPauseOverview" class="acg-pause-overview hidden">
+            <div class="acg-pause-overview-head">
+              <span id="acgPauseOverviewSince">Since --</span>
+              <span id="acgPauseOverviewElapsed">--</span>
+            </div>
+            <div class="acg-pause-overview-total-row">
+              <div class="acg-pause-overview-total">
+                <span id="acgPauseOverviewTotal">0</span>
+                <span>cards seen</span>
+              </div>
+              <div class="acg-pause-overview-rate-stack">
+                <span id="acgPauseOverviewRate">0.0 per minute</span>
+                <span id="acgPauseOverviewSeconds">0 seconds per card</span>
+              </div>
+            </div>
+            <div class="acg-pause-overview-grid">
+              <div class="acg-pause-overview-chip acg-pause-overview-again"><span id="acgPauseOverviewAgain">0</span></div>
+              <div class="acg-pause-overview-chip acg-pause-overview-hard"><span id="acgPauseOverviewHard">0</span></div>
+              <div class="acg-pause-overview-chip acg-pause-overview-good"><span id="acgPauseOverviewGood">0</span></div>
+              <div class="acg-pause-overview-chip acg-pause-overview-easy"><span id="acgPauseOverviewEasy">0</span></div>
+            </div>
+            <div id="acgPauseOverviewAccuracy" class="acg-pause-overview-foot">0 right / 0 wrong</div>
+          </div>
+          <div id="acgPauseOverviewMenu" class="acg-pause-overview-menu hidden">
+            <button id="acgPauseOverviewToggle" type="button" data-pause-overview-action="show">Show</button>
+            <button type="button" data-pause-overview-action="reset">Reset from now</button>
+            <button type="button" data-pause-overview-action="edit">Edit start time</button>
+            <button type="button" data-pause-overview-action="hide">Hide</button>
+          </div>
         </div>
         <div id="acgOffOverlay" class="acg-off-overlay">
           <div class="acg-off-copy">Speed Streak is Off</div>
@@ -588,6 +821,41 @@
       });
     }
 
+    const pauseOverlay = document.getElementById("acgPauseOverlay");
+    if (pauseOverlay) {
+      pauseOverlay.addEventListener("contextmenu", showPauseOverviewMenu);
+      pauseOverlay.addEventListener("pointerdown", (event) => {
+        if (event.button === 2) {
+          showPauseOverviewMenu(event);
+        }
+      });
+      pauseOverlay.addEventListener("mousedown", (event) => {
+        if (event.button === 2) {
+          showPauseOverviewMenu(event);
+        }
+      });
+    }
+
+    const pauseOverviewMenu = document.getElementById("acgPauseOverviewMenu");
+    if (pauseOverviewMenu) {
+      pauseOverviewMenu.addEventListener("click", (event) => {
+        const button = event.target?.closest?.("[data-pause-overview-action]");
+        if (!button) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        applyPauseOverviewAction(String(button.getAttribute("data-pause-overview-action") || "reset"));
+      });
+    }
+
+    document.addEventListener("click", hidePauseOverviewMenu);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        hidePauseOverviewMenu();
+      }
+    });
+
     const appearanceButton = document.getElementById("acgAppearanceButton");
     if (appearanceButton) {
       appearanceButton.addEventListener("click", () => togglePanel("acgAppearancePanel"));
@@ -810,8 +1078,8 @@
     const rawBindings = data && typeof data.shortcutBindings === "object" && data.shortcutBindings
       ? data.shortcutBindings
       : {};
-    const rawValue = String((data && data.unpauseShortcut) || rawBindings.unpause || getPauseShortcut(data)).trim();
-    return rawValue || getPauseShortcut(data);
+    const rawValue = String(rawBindings.unpause || (data && data.unpauseShortcut) || "U").trim();
+    return rawValue || "U";
   }
 
   function syncShortcutCopy(data) {
@@ -2898,6 +3166,7 @@
     if (pauseOverlay) {
       pauseOverlay.classList.toggle("visible", Boolean(data.paused) && !state.settingsOpen);
     }
+    renderPauseOverview(data);
     if (offOverlay) {
       offOverlay.classList.toggle("visible", !enabled && !state.settingsOpen);
     }

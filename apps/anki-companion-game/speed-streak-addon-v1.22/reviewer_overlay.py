@@ -291,6 +291,7 @@ class ReviewerOverlayController:
         self._display_mode_prompt_open = False
         self._pending_review_later_sync: Optional[dict[str, int]] = None
         self._last_reduced_live_update_bucket: Optional[int] = None
+        self._pause_overview_start_ms = 0
         self._card_timer_bootstrap = self._build_card_timer_bootstrap()
         self._sidebar_background = self._default_sidebar_background()
         self._last_audio_feedback_started_at = 0.0
@@ -843,6 +844,16 @@ class ReviewerOverlayController:
             if previous_visuals_enabled != self.engine.state.visuals_enabled and getattr(mw, "state", "") == "review":
                 self._last_reviewer_signature = ""
                 self._sync_reviewer_surface()
+            self._push_state(only_if_changed=False)
+            return (True, None)
+        if message.startswith("speed-streak:pause-overview-start:"):
+            try:
+                self._pause_overview_start_ms = max(
+                    0,
+                    int(float(message.split("speed-streak:pause-overview-start:", 1)[1] or 0)),
+                )
+            except Exception:
+                self._pause_overview_start_ms = 0
             self._push_state(only_if_changed=False)
             return (True, None)
         if message == "speed-streak:toggle-collapsed":
@@ -1441,6 +1452,7 @@ class ReviewerOverlayController:
                 "pauseShortcut": self.pause_shortcut_display(),
                 "unpauseShortcut": self.unpause_shortcut_display(),
                 "pauseShortcutMode": self.pause_shortcut_mode,
+                "pauseOverviewStats": self._pause_overview_stats(),
                 **timer_display,
             }
         )
@@ -1451,6 +1463,42 @@ class ReviewerOverlayController:
             self._last_reduced_live_update_bucket = self._current_reduced_live_update_bucket()
         else:
             self._last_reduced_live_update_bucket = None
+
+    def _pause_overview_stats(self) -> dict[str, Any]:
+        start_ms = int(self._pause_overview_start_ms or 0)
+        if start_ms <= 0:
+            return {"startMs": 0, "total": 0, "again": 0, "hard": 0, "good": 0, "easy": 0, "elapsedSeconds": 0}
+        elapsed_seconds = max(0.0, (time.time() * 1000.0 - float(start_ms)) / 1000.0)
+        db = getattr(getattr(mw, "col", None), "db", None)
+        if db is None:
+            return {"startMs": start_ms, "total": 0, "again": 0, "hard": 0, "good": 0, "easy": 0, "elapsedSeconds": elapsed_seconds}
+        try:
+            rows = db.all("select ease from revlog where id >= ?", start_ms)
+        except Exception:
+            return {"startMs": start_ms, "total": 0, "again": 0, "hard": 0, "good": 0, "easy": 0, "elapsedSeconds": elapsed_seconds}
+        again = hard = good = easy = 0
+        for row in rows or []:
+            try:
+                ease = int(row[0] if isinstance(row, (tuple, list)) else row)
+            except Exception:
+                continue
+            if ease == 1:
+                again += 1
+            elif ease == 2:
+                hard += 1
+            elif ease == 3:
+                good += 1
+            elif ease == 4:
+                easy += 1
+        return {
+            "startMs": start_ms,
+            "total": again + hard + good + easy,
+            "again": again,
+            "hard": hard,
+            "good": good,
+            "easy": easy,
+            "elapsedSeconds": elapsed_seconds,
+        }
 
     def _uses_reduced_render_timing(self) -> bool:
         return self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS or self.render_mode == RENDER_MODE_ULTRA_LOW_RESOURCE

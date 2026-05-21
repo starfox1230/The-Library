@@ -49,6 +49,8 @@ REMEMBER_POSITION_SETTING = "review_image_overlay_remember_position"
 NEXT_SHORTCUT = "Ctrl+Shift+5"
 PREVIOUS_SHORTCUT = "Ctrl+Shift+4"
 EXIT_SHORTCUT = "Ctrl+2"
+ALTERNATE_EXIT_SHORTCUT = "Ctrl+Shift+/"
+ALTERNATE_EXIT_SHORTCUT_SHIFTED = "Ctrl+?"
 OVERLAY_ROOT_ID = "pocket-knife-review-image-overlay"
 _HOOK_REGISTERED = False
 _CONTROLLER: "_ReviewerImageOverlayController | None" = None
@@ -471,6 +473,25 @@ def _shortcut_definition_matches(value: Any, shortcut_text: str) -> bool:
     return bool(left and right and left.casefold() == right.casefold())
 
 
+def _is_alternate_exit_event(event: Any) -> bool:
+    key_getter = getattr(event, "key", None)
+    modifiers_getter = getattr(event, "modifiers", None)
+    text_getter = getattr(event, "text", None)
+    if not callable(key_getter) or not callable(modifiers_getter):
+        return False
+    try:
+        modifiers = modifiers_getter()
+        ctrl = bool(modifiers & Qt.KeyboardModifier.ControlModifier)
+        shift = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+        if not ctrl or not shift:
+            return False
+        key = key_getter()
+        text = str(text_getter() or "") if callable(text_getter) else ""
+        return key in (Qt.Key.Key_Slash, Qt.Key.Key_Question) or text == "?"
+    except Exception:
+        return False
+
+
 def _patch_reviewer_shortcuts() -> None:
     global _REVIEWER_SHORTCUTS_PATCHED
 
@@ -518,6 +539,8 @@ def _patch_reviewer_shortcuts() -> None:
         if not replaced_exit_shortcut:
             return shortcuts
 
+        patched.append((ALTERNATE_EXIT_SHORTCUT, lambda: _controller().close_overlay_if_visible()))
+        patched.append((ALTERNATE_EXIT_SHORTCUT_SHIFTED, lambda: _controller().close_overlay_if_visible()))
         return patched
 
     Reviewer._shortcutKeys = wrapped
@@ -786,6 +809,12 @@ class _ReviewerImageOverlayWidget(QWidget):
             return "close"
         if self._event_matches_shortcut(event, EXIT_SHORTCUT):
             return "close"
+        if self._event_matches_shortcut(event, ALTERNATE_EXIT_SHORTCUT):
+            return "close"
+        if self._event_matches_shortcut(event, ALTERNATE_EXIT_SHORTCUT_SHIFTED):
+            return "close"
+        if _is_alternate_exit_event(event):
+            return "close"
         if self._event_matches_shortcut(event, PREVIOUS_SHORTCUT):
             return "previous"
         if self._event_matches_shortcut(event, NEXT_SHORTCUT):
@@ -877,6 +906,8 @@ class _ReviewerImageOverlayController:
     def __init__(self) -> None:
         self._cycle_shortcut: QShortcut | None = None
         self._previous_shortcut: QShortcut | None = None
+        self._alternate_exit_shortcut: QShortcut | None = None
+        self._alternate_exit_shifted_shortcut: QShortcut | None = None
         self._question_entries: list[dict[str, Any]] = []
         self._active_entries: list[dict[str, Any]] = []
         self._current_card_id = 0
@@ -892,6 +923,16 @@ class _ReviewerImageOverlayController:
             self._previous_shortcut = QShortcut(QKeySequence(PREVIOUS_SHORTCUT), mw)
             self._previous_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
             self._previous_shortcut.activated.connect(self.on_previous_shortcut)
+
+        if self._alternate_exit_shortcut is None:
+            self._alternate_exit_shortcut = QShortcut(QKeySequence(ALTERNATE_EXIT_SHORTCUT), mw)
+            self._alternate_exit_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+            self._alternate_exit_shortcut.activated.connect(self.close_overlay_if_visible)
+
+        if self._alternate_exit_shifted_shortcut is None:
+            self._alternate_exit_shifted_shortcut = QShortcut(QKeySequence(ALTERNATE_EXIT_SHORTCUT_SHIFTED), mw)
+            self._alternate_exit_shifted_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+            self._alternate_exit_shifted_shortcut.activated.connect(self.close_overlay_if_visible)
 
         self._overlay()
 
