@@ -823,13 +823,11 @@
 
     const pauseOverlay = document.getElementById("acgPauseOverlay");
     if (pauseOverlay) {
-      pauseOverlay.addEventListener("contextmenu", showPauseOverviewMenu);
-      pauseOverlay.addEventListener("pointerdown", (event) => {
-        if (event.button === 2) {
-          showPauseOverviewMenu(event);
-        }
+      pauseOverlay.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
       });
-      pauseOverlay.addEventListener("mousedown", (event) => {
+      pauseOverlay.addEventListener("pointerup", (event) => {
         if (event.button === 2) {
           showPauseOverviewMenu(event);
         }
