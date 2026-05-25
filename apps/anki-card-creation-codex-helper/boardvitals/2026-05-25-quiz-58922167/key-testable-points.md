@@ -56,5 +56,5 @@
 - Q41: Correct answer: Systems-based practice. Vital Concept: Six core competencies of maintenance of certification (MOC) are patient care, medical knowledge, interpersonal and communication skills, professionalism, systems-based practice, practice-based learning and improvement.
 - Q43: Correct answer: Professional competence. The radiologist’s failure to stay abreast of the most recent innovations in medical imaging signifies a violation of professional competence.
 - Q44: Correct answer: Myxopapillary ependymoma. The images show a heterogeneously enhancing mass arising from the region of the conus, which fills the canal.
-- Q45: Correct answer: Trauma. The calcifications shown are classical for rim or eggshell calcifications (yellow arrows).
+- Q45: Correct answer: Trauma. Vital Concept: Oil cysts are round radiolucent masses on mammography indicating benign fat necrosis, but irregular rim calcification or collapse can contribute to suspicious appearances requiring biopsy.
 - Q48: Correct answer: BIRADS 2. Vital Concept: Epidermal inclusion cysts appear as well-circumscribed hypoechoic masses in subcutaneous tissue with posterior acoustic enhancement, internal echogenic debris from keratin contents, and characteristic connection to skin surface (punctum), remaining avascular on Doppler imaging.

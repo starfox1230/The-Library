@@ -16,6 +16,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Use the user's Chrome extension workflow for BoardVitals quiz pages unless the user explicitly says otherwise.
 - Do not use the Codex in-app browser for BoardVitals quiz extraction.
 - Save every question page locally as raw JSON, preserving the DOM snapshot and image URLs.
+- Preserve explanation list structure during capture as `explanation_lists`: save each top-level list as `{"type": "ul"|"ol", "items": [{"text": "...", "children": [...] }]}` using the page DOM. The accessibility snapshot preserves some nesting but does not reliably distinguish bullets from numbering, so it is only a fallback for older captures.
 - When saving image records, include a `section` field on each image: `stem` for images that appear before the answer choices / graded response / correct-answer explanation, and `explanation` for images that appear inside or after the explanation/correct-answer section. Prefer DOM containment when available; otherwise use DOM order relative to the answer-choice list and `Correct Answer:` block.
 - Create `source-pages.json` containing all captured questions.
 - Create `parsed-questions.json` with question number, QID, result, difficulty, selected answer, correct answer, answer text, peer percentages, full stem, explanation, Vital Concept when present, and image records.
@@ -26,6 +27,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - For questions without a `Figure/Media` marker, still extract the stem from the main review area before the answer-choice list.
 - Clean DOM/accessibility artifacts during parsing. Visible text and review artifacts must not contain `Radio Selected`, `Radio Unselected`, `img`, checkbox state text, or heading level markers such as `[level=5]`.
 - Treat snapshot structural roles such as `listitem:` as markup, not explanation text. Preserve their actual content as readable prose/list entries, and rejoin inline fragments split by nested links or superscript/subscript markup so rendered explanations do not display broken phrases such as `click` / `here` or `> 1/3` / `of transthoracic diameter`.
+- For legacy captures lacking saved list types, render detectable explanation list blocks as bulleted lists with retained nested indentation rather than flattening them into paragraphs or exposing structural labels.
 - When parsing answer choices, prefer the clean answer text paragraph after the letter marker over checkbox label text. Ignore truncated checkbox-label lines that end with a bare backslash from escaped quotation marks.
 
 ## Card Package
@@ -51,6 +53,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - For fact cards derived from image-containing questions, append all source images in `Extra` if they are not already on the front of that card.
 - For BoardVitals cards, use the same content set exposed by the local review page's `Copy screenshot` workflow as extra-side support: include generated question/explanation screenshot cards plus any local source images from that question that are not already used on the front of the Anki card. Do not duplicate front-side images in `Extra`; include the remaining review-page screenshot pack after the teaching sentence/Vital Concept.
 - Render those generated question/explanation screenshot cards in the same compact dark framed format used by the local review page: calculate height from the actual wrapped lines, with only a small minimum canvas height, rather than adding long unused blank space. The review page and APKG should produce the same readable crop behavior.
+- Render list structure in Anki explanation screenshot cards the same way as the HTML review page: use `-` bullets or numbered markers with retained indentation from captured list metadata, and fall back to nested bullets for legacy captures without ordered/unordered type.
 
 ## Extra Field
 
@@ -78,6 +81,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Show all questions top-to-bottom.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
 - Display stem images directly under the question stem. Display explanation images inside the explanation section, not with the question stem.
+- Render captured explanation lists in their original ordered or unordered form with nesting preserved. For legacy captures where ordered/unordered type was not saved, render retained list hierarchy as bullet lists rather than presenting it as plain paragraphs.
 - Preserve the full multi-paragraph stem.
 - Show peer percentages for every answer choice as small right-aligned parenthetical badges inside each answer-choice row.
 - Include a question-number prefix filter, where typing `8` shows Q8 only and typing `5` shows Q5 and Q50.
