@@ -1522,56 +1522,56 @@
       const explanation = cleanText(clone.querySelector('details')?.innerText || '');
       return cleanText(`Q${q}\n${stem}\n\n${choices}\n\n${answer}${vital ? '\n\n' + vital : ''}${explanation ? '\n\n' + explanation : ''}`);
     }
-    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
       for (const paragraph of String(text || '').split('\n')) {
         const words = paragraph.split(/\s+/).filter(Boolean);
         let line = '';
         if (!words.length) {
-          y += lineHeight;
+          lines.push('');
           continue;
         }
         for (const word of words) {
           const test = line ? `${line} ${word}` : word;
           if (ctx.measureText(test).width > maxWidth && line) {
-            ctx.fillText(line, x, y);
+            lines.push(line);
             line = word;
-            y += lineHeight;
           } else {
             line = test;
           }
         }
-        if (line) {
-          ctx.fillText(line, x, y);
-          y += lineHeight;
-        }
-        y += Math.round(lineHeight * 0.45);
+        if (line) lines.push(line);
       }
-      return y;
+      return lines;
     }
     function textCardDataUrl(title, body) {
-      const width = 980;
-      const padding = 48;
-      const lineHeight = 32;
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
       const canvas = document.createElement('canvas');
       const measure = canvas.getContext('2d');
-      measure.font = '23px Arial';
-      const estimatedLines = Math.max(10, Math.ceil(String(body).length / 64) + String(body).split('\n').length * 2);
+      measure.font = '24px Arial';
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
       canvas.width = width;
-      canvas.height = Math.min(3200, Math.max(720, 160 + estimatedLines * lineHeight));
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#0f1218';
+      ctx.fillStyle = '#11151c';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#17202d';
+      ctx.fillStyle = '#18202b';
       ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
-      ctx.strokeStyle = '#7ab7ff';
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#6ea8ff';
+      ctx.lineWidth = 3;
       ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
-      ctx.fillStyle = '#eef3fb';
-      ctx.font = '700 34px Arial';
-      ctx.fillText(title, padding, 76);
-      ctx.fillStyle = '#dbe5f2';
-      ctx.font = '23px Arial';
-      wrapCanvasText(ctx, body, padding, 128, width - padding * 2, lineHeight);
+      ctx.fillStyle = '#f1f6ff';
+      ctx.font = '700 36px Arial';
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = '#dce6f5';
+      ctx.font = '24px Arial';
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
       return canvas.toDataURL('image/png');
     }
     async function imageToDataUrl(src) {

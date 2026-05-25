@@ -471,59 +471,57 @@
       return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
     }
 
-    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
-      const paragraphs = String(text).split("\n");
-      paragraphs.forEach(paragraph => {
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
         const words = paragraph.split(/\s+/).filter(Boolean);
         let line = "";
         if (!words.length) {
-          y += lineHeight;
-          return;
+          lines.push("");
+          continue;
         }
-        words.forEach(word => {
+        for (const word of words) {
           const test = line ? `${line} ${word}` : word;
           if (ctx.measureText(test).width > maxWidth && line) {
-            ctx.fillText(line, x, y);
+            lines.push(line);
             line = word;
-            y += lineHeight;
           } else {
             line = test;
           }
-        });
-        if (line) {
-          ctx.fillText(line, x, y);
-          y += lineHeight;
         }
-        y += Math.round(lineHeight * 0.45);
-      });
-      return y;
+        if (line) lines.push(line);
+      }
+      return lines;
     }
 
     function textCardDataUrl(title, body) {
-      const width = 900;
-      const padding = 46;
+      const width = 1200;
+      const padding = 52;
       const lineHeight = 34;
-      const measure = document.createElement("canvas").getContext("2d");
-      measure.font = "24px Arial";
-      const estimateLines = Math.max(8, Math.ceil(String(body).length / 52) + String(body).split("\n").length * 2);
-      const height = Math.min(2600, Math.max(900, 170 + estimateLines * lineHeight));
       const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
       canvas.width = width;
-      canvas.height = height;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
       const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#0f1218";
-      ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = "#17202d";
-      ctx.fillRect(18, 18, width - 36, height - 36);
-      ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 4;
-      ctx.strokeRect(18, 18, width - 36, height - 36);
-      ctx.fillStyle = "#eef2f7";
-      ctx.font = "700 34px Arial";
-      ctx.fillText(title, padding, 76);
-      ctx.fillStyle = "#dbe5f2";
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
       ctx.font = "24px Arial";
-      wrapCanvasText(ctx, body, padding, 130, width - padding * 2, lineHeight);
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
       return canvas.toDataURL("image/png");
     }
 

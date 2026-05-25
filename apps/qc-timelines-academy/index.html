@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QC Orbit Academy | Radiology QC Timeline Trainer</title>
+<style>
+:root {
+  --bg: #060c18; --bg-2: #0b1530; --panel: rgba(12, 22, 43, .9); --panel-2: #101d38;
+  --line: rgba(132, 169, 223, .2); --text: #f1f6ff; --muted: #9aaece;
+  --cyan: #42e4de; --violet: #a879ff; --amber: #ffc857; --good: #45db9a; --bad: #ff6683;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; color: var(--text); font-family: "Segoe UI", Inter, Arial, sans-serif;
+  background: radial-gradient(circle at 14% 0%, rgba(66, 228, 222, .15), transparent 34rem),
+    radial-gradient(circle at 90% 5%, rgba(168, 121, 255, .2), transparent 30rem),
+    linear-gradient(150deg, var(--bg), var(--bg-2));
+}
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; opacity: .32;
+  background-image: radial-gradient(#bcd8ff 1px, transparent 1px); background-size: 45px 45px;
+  mask-image: linear-gradient(to bottom, #000, transparent 72%);
+}
+a { color: inherit; }
+button, select { color: var(--text); font: inherit; }
+button {
+  cursor: pointer; border: 1px solid var(--line); background: var(--panel-2); border-radius: 14px;
+  padding: 11px 14px; font-weight: 700; transition: border-color .15s, transform .15s, background .15s;
+}
+button:hover, button:focus-visible { border-color: var(--cyan); transform: translateY(-1px); outline: none; }
+button:disabled { opacity: .55; cursor: default; transform: none; }
+.shell { max-width: 1240px; margin: 0 auto; padding: 22px 16px 44px; }
+.topbar { display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 16px; }
+.brand { display: flex; gap: 13px; align-items: center; }
+.badge {
+  display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; color: #081622;
+  font-size: 26px; font-weight: 900; background: linear-gradient(135deg, var(--cyan), var(--amber));
+  box-shadow: 0 0 28px rgba(66, 228, 222, .3);
+}
+h1 { margin: 0; font-size: clamp(1.42rem, 3vw, 2rem); letter-spacing: -.04em; }
+.eyebrow { color: var(--cyan); text-transform: uppercase; font-weight: 800; font-size: .7rem; letter-spacing: .18em; }
+.source-link {
+  color: var(--muted); text-decoration: none; border: 1px solid var(--line); padding: 10px 13px;
+  border-radius: 999px; font-size: .9rem; white-space: nowrap;
+}
+.source-link:hover { color: var(--text); border-color: var(--violet); }
+.hero {
+  border: 1px solid var(--line); background: linear-gradient(120deg, rgba(16, 29, 56, .94), rgba(7, 16, 32, .9));
+  box-shadow: 0 20px 52px rgba(0,0,0,.38); border-radius: 25px; padding: clamp(18px, 4vw, 29px);
+  display: grid; grid-template-columns: 1.22fr .9fr; gap: 22px;
+}
+.hero h2 { margin: 5px 0 9px; font-size: clamp(1.7rem, 4vw, 2.8rem); line-height: 1.05; letter-spacing: -.055em; }
+.hero p { max-width: 570px; color: var(--muted); line-height: 1.5; margin: 0 0 20px; }
+.modes { display: flex; flex-wrap: wrap; gap: 9px; }
+.mode { background: rgba(66, 228, 222, .07); }
+.mode.active { color: #061421; border-color: transparent; background: linear-gradient(110deg, var(--cyan), #72aaff); }
+.hud { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: center; }
+.stat, .meter {
+  background: rgba(5, 13, 27, .58); border: 1px solid var(--line); padding: 13px; border-radius: 16px;
+}
+.stat span { display: block; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .1em; }
+.stat strong { display: block; margin-top: 5px; font-size: 1.42rem; }
+.meter { grid-column: 1 / -1; padding: 11px 13px; }
+.meter-line { height: 8px; background: rgba(154, 174, 206, .16); border-radius: 999px; overflow: hidden; margin-top: 7px; }
+#xpBar { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--violet)); transition: width .35s ease; }
+.workbench { margin-top: 17px; display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+.panel {
+  border-radius: 23px; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: 0 16px 40px rgba(0,0,0,.2); padding: clamp(16px, 3vw, 23px); min-height: 428px;
+}
+.screen { display: none; }
+.screen.active { display: block; animation: appear .18s ease; }
+@keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+.screen-head { display: flex; gap: 14px; align-items: start; justify-content: space-between; margin-bottom: 16px; }
+.screen h3 { margin: 0; font-size: 1.25rem; }
+.sub { margin: 5px 0 0; color: var(--muted); }
+select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; }
+.lesson-card {
+  border: 1px solid rgba(168, 121, 255, .35);
+  background: linear-gradient(125deg, rgba(168, 121, 255, .12), rgba(66, 228, 222, .06));
+  border-radius: 20px; padding: clamp(17px, 3vw, 25px);
+}
+.chapter { color: var(--amber); font-size: .75rem; text-transform: uppercase; font-weight: 800; letter-spacing: .14em; }
+.lesson-card h4 { margin: 9px 0 10px; font-size: clamp(1.3rem, 3vw, 1.75rem); }
+.lesson-card p { line-height: 1.55; color: #dce8ff; }
+.memory { margin-top: 16px; border-left: 3px solid var(--cyan); padding: 10px 13px; background: rgba(66,228,222,.07); border-radius: 0 12px 12px 0; }
+.memory span { display: block; color: var(--cyan); text-transform: uppercase; font-size: .7rem; font-weight: 800; letter-spacing: .12em; }
+.lesson-nav { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.primary { color: #07141f; border-color: transparent; background: var(--cyan); }
+.question { border: 1px solid var(--line); background: rgba(5,13,27,.5); border-radius: 18px; padding: 21px; }
+.question .tag {
+  display: inline-block; padding: 5px 10px; border-radius: 999px; color: var(--cyan);
+  background: rgba(66,228,222,.1); font-size: .76rem; font-weight: 800;
+}
+.question h4 { margin: 16px 0 7px; font-size: clamp(1.22rem, 3vw, 1.55rem); line-height: 1.32; }
+.clue { color: var(--muted); margin: 0 0 19px; }
+.bins, .answers { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 9px; }
+.answer { min-height: 58px; text-align: left; padding: 12px; }
+.answer span { display: block; margin-top: 4px; color: var(--muted); font-size: .8rem; font-weight: 500; }
+.answer.correct { border-color: var(--good); background: rgba(69,219,154,.14); }
+.answer.wrong { border-color: var(--bad); background: rgba(255,102,131,.12); }
+.feedback {
+  min-height: 60px; margin-top: 16px; padding: 12px 14px; border-radius: 13px;
+  background: rgba(154,174,206,.06); color: var(--muted); line-height: 1.45;
+}
+.feedback.good { border: 1px solid rgba(69,219,154,.35); color: #c6ffe6; }
+.feedback.bad { border: 1px solid rgba(255,102,131,.35); color: #ffd7df; }
+.round-controls { display: flex; gap: 10px; margin-top: 14px; }
+.map h3 { margin: 0 0 4px; }
+.map p { margin: 0 0 16px; color: var(--muted); font-size: .88rem; }
+.station { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.station-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--muted); }
+.station.done .station-dot { background: var(--good); border-color: var(--good); }
+.station.active .station-dot { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+.station label { font-size: .9rem; }
+.mastery { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+.mastery strong { font-size: 1.1rem; color: var(--amber); }
+.reset { width: 100%; margin-top: 18px; color: var(--muted); background: transparent; }
+.hidden { display: none !important; }
+@media (max-width: 900px) { .hero, .workbench { grid-template-columns: 1fr; } .map { min-height: 0; } }
+@media (max-width: 650px) { .topbar, .screen-head { flex-direction: column; } .bins, .answers { grid-template-columns: 1fr 1fr; } .source-link { white-space: normal; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="badge">QC</div>
+      <div><div class="eyebrow">Radiology physics training deck</div><h1>QC Orbit Academy</h1></div>
+    </div>
+    <a class="source-link" href="../qc-timelines/index.html">Open visual search guide &rarr;</a>
+  </header>
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Mission: keep every scanner cleared for launch</div>
+      <h2>Learn the tests.<br>Own the timeline.</h2>
+      <p>Turn QC intervals into an instinct. Start with compact lessons, dispatch tests onto the correct calendar, then run lightning rounds until the daily-weekly-monthly pattern is automatic.</p>
+      <nav class="modes" aria-label="Training mode">
+        <button class="mode active" data-mode="learn">Briefing Deck</button>
+        <button class="mode" data-mode="dispatch">Calendar Dispatch</button>
+        <button class="mode" data-mode="lightning">Lightning Recall</button>
+      </nav>
+    </div>
+    <section class="hud" aria-label="Progress dashboard">
+      <div class="stat"><span>Level</span><strong id="level">1</strong></div>
+      <div class="stat"><span>XP</span><strong id="xp">0</strong></div>
+      <div class="stat"><span>Best streak</span><strong id="bestStreak">0</strong></div>
+      <div class="stat"><span>Accuracy</span><strong id="accuracy">--</strong></div>
+      <div class="meter"><span class="eyebrow">Next clearance</span><div class="meter-line"><span id="xpBar"></span></div></div>
+    </section>
+  </section>
+  <section class="workbench">
+    <section class="panel">
+      <section class="screen active" id="learnScreen">
+        <header class="screen-head"><div><h3>Briefing Deck</h3><p class="sub">Ten high-yield patterns before you enter the control room.</p></div><span id="lessonProgress" class="eyebrow"></span></header>
+        <article class="lesson-card">
+          <div class="chapter" id="lessonChapter"></div><h4 id="lessonTitle"></h4><p id="lessonBody"></p>
+          <div class="memory"><span>Memory signal</span><strong id="lessonMemory"></strong></div>
+          <div class="lesson-nav"><button id="prevLesson">Previous</button><button class="primary" id="masterLesson">Mark Learned + XP</button><button id="nextLesson">Next</button></div>
+        </article>
+      </section>
+      <section class="screen" id="dispatchScreen">
+        <header class="screen-head"><div><h3>Calendar Dispatch</h3><p class="sub">Send each QC test to its board-style interval.</p></div><select id="dispatchModality" aria-label="Choose modality focus"></select></header>
+        <article class="question">
+          <span class="tag" id="dispatchTag"></span><h4 id="dispatchPrompt"></h4><p class="clue" id="dispatchClue"></p>
+          <div class="bins" id="dispatchAnswers"></div><div class="feedback" id="dispatchFeedback">Choose an interval to begin a dispatch streak.</div>
+          <div class="round-controls"><button class="primary hidden" id="nextDispatch">Next dispatch</button></div>
+        </article>
+      </section>
+      <section class="screen" id="lightningScreen">
+        <header class="screen-head"><div><h3>Lightning Recall</h3><p class="sub">Given an interval and clue, identify the correct test.</p></div><span class="eyebrow"><span id="lightningRound">1</span> / 10</span></header>
+        <article class="question">
+          <span class="tag" id="lightningTag"></span><h4 id="lightningPrompt"></h4><p class="clue">One answer matches the schedule and board clue.</p>
+          <div class="answers" id="lightningAnswers"></div><div class="feedback" id="lightningFeedback">Make ten calls. Correct streaks build extra XP.</div>
+          <div class="round-controls"><button class="primary hidden" id="nextLightning">Next call</button><button class="hidden" id="restartLightning">Run another 10</button></div>
+        </article>
+      </section>
+    </section>
+    <aside class="panel map">
+      <h3>Station Map</h3><p>Completed briefings persist on this device.</p><div id="stationMap"></div>
+      <div class="mastery"><div class="eyebrow">Mastery readout</div><p><strong id="mastered">0</strong> / 10 lessons cleared</p><p><strong id="currentStreak">0</strong> current answer streak</p></div>
+      <button class="reset" id="resetProgress">Reset academy progress</button>
+    </aside>
+  </section>
+</main>
+<script>
+const LESSONS = [
+  { chapter: "01 / Daily launch checks", title: "Daily means stability before patients", body: "The daily bucket asks: did the detector, activity meter, or CT baseline change overnight? Gamma camera flood uniformity, CT water number/noise, PET detector checks, and dose calibrator constancy live here.", memory: "DAILY = detectors and doses are steady today." },
+  { chapter: "02 / Weekly patterns", title: "The two famous weekly phantoms", body: "Mammography phantom evaluation and the MRI ACR phantom battery are weekly classics. MRI weekly QC includes geometric accuracy, spatial resolution, low contrast detection, SNR, and artifact analysis.", memory: "WEEKLY = breasts and magnets meet their phantoms." },
+  { chapter: "03 / Monthly tune-up", title: "SPECT rotation and CT display get a month", body: "SPECT center-of-rotation is monthly in current ACR wording; the signature failure is a tuning-fork artifact. CT visual checklist and display monitor QC are also commonly placed monthly.", memory: "MONTHLY = rotate SPECT, review CT." },
+  { chapter: "04 / Quarterly checks", title: "Linearity needs a range, not one reading", body: "Dose calibrator linearity is quarterly: it confirms accuracy across activity levels, commonly with a decay method. Mammography repeat analysis is another classic quarterly entry.", memory: "QUARTERLY = linearity and repeats." },
+  { chapter: "05 / Six-month orbit", title: "Performance phantoms and leakage", body: "Overall SPECT performance and ACR PET phantom testing are semiannual in current language, with quarterly often recommended. Sealed-source leak tests and several legacy mammography checks also land every six months.", memory: "SEMIANNUAL = systems and sealed sources." },
+  { chapter: "06 / Annual oversight", title: "The physicist owns the annual deep dive", body: "Annual surveys appear in CT, mammography, and MRI. Ultrasound's major phantom performance checks are also annual: penetration, uniformity, display, resolution, and measurement accuracy.", memory: "ANNUAL = physicist and ultrasound festival." },
+  { chapter: "07 / Hot lab trio", title: "Constancy, linearity, accuracy", body: "For a dose calibrator: constancy is daily, linearity is quarterly, and accuracy is annual. Geometry is special: test at installation, repair, or relocation.", memory: "C-L-A: Calendar says Daily, Quarterly, Annual." },
+  { chapter: "08 / Artifact recognition", title: "Match the picture to the broken test", body: "A SPECT tuning-fork artifact implicates center of rotation. Concentric rings point toward flood/uniformity correction. A uniform CT water phantom is the daily HU/noise workhorse.", memory: "Fork = rotation; rings = flood; water = CT daily." },
+  { chapter: "09 / Old versus current wording", title: "Respect the interval caveats", body: "Older board handouts may state weekly SPECT center-of-rotation or quarterly SPECT/PET performance. The companion uses current-oriented buckets while feedback preserves those board-review caveats.", memory: "Know the tested image; state the current interval." },
+  { chapter: "10 / Final clearance", title: "Compress the schedule into one line", body: "Daily: baseline stability. Weekly: MRI and mammography phantoms. Monthly: SPECT rotation and CT review. Quarterly: linearity and mammography repeats. Six-month: system phantoms and leakage. Annual: oversight.", memory: "D W M Q 6 A = Stable, Phantoms, Rotate, Range, Systems, Survey." }
+];
+const QC = [
+  ["Gamma / SPECT","Gamma camera flood field uniformity","Daily","Uniform flood image; intrinsic or extrinsic flood."],
+  ["Gamma / SPECT","Tc-99m photopeak / energy window peaking","Daily","20% window centered on 140 keV."],
+  ["Gamma / SPECT","Gamma camera spatial resolution","Monthly","Monthly current ACR; older teaching may say weekly."],
+  ["Gamma / SPECT","SPECT center-of-rotation test","Monthly","Classic tuning-fork artifact; older boards may say weekly."],
+  ["Gamma / SPECT","Overall SPECT system performance phantom","Semiannual","Semiannual; quarterly often recommended."],
+  ["Gamma / SPECT","SPECT flood / ring artifact evaluation","Semiannual","Concentric rings suggest flood correction; program-dependent."],
+  ["Gamma / SPECT","SPECT/CT image alignment","Semiannual","Part of hybrid system performance."],
+  ["CT","Water CT number and noise","Daily","Water phantom with HU and standard deviation."],
+  ["CT","CT artifact evaluation","Daily","Water phantom with rings or streaks."],
+  ["CT","CT air calibration / detector zeroing","Daily","Often daily or manufacturer-directed."],
+  ["CT","CT visual checklist","Monthly","Periodic visual QC."],
+  ["CT","CT display monitor QC","Monthly","Display performance review."],
+  ["CT","CT resolution phantom","Monthly","Older board-style monthly; may be annual in a program."],
+  ["CT","CT number uniformity","Monthly","Overlaps the daily water test in some programs."],
+  ["CT","CT physicist / QMP survey","Annual","Current ACR annual oversight language."],
+  ["Hot Lab / PET","Dose calibrator constancy","Daily","Stability of activity readings."],
+  ["Hot Lab / PET","Dose calibrator linearity","Quarterly","Decay method or multiple activity levels."],
+  ["Hot Lab / PET","Dose calibrator accuracy","Annual","NIST-traceable sources."],
+  ["Hot Lab / PET","Dose calibrator geometry","Situational","Installation, repair, or relocation."],
+  ["Hot Lab / PET","PET detector check","Daily","Each day of use."],
+  ["Hot Lab / PET","PET blank / normalization scan","Daily","Older scanner-specific daily wording."],
+  ["Hot Lab / PET","PET/CT daily CT check","Daily","Each day of use when CT is present."],
+  ["Hot Lab / PET","ACR PET phantom testing","Semiannual","Semiannual; quarterly strongly recommended."],
+  ["Hot Lab / PET","NaI well counter constancy","Daily","Routine / each day of use."],
+  ["Hot Lab / PET","Thyroid uptake probe QC","Daily","Routine or daily when used."],
+  ["Hot Lab / PET","Well counter efficiency","Annual","Annual board-style testing."],
+  ["Hot Lab / PET","Well counter chi-square","Annual","Counting-statistics check."],
+  ["Hot Lab / PET","Well counter energy linearity","Annual","Cs-137 photopeak is 662 keV."],
+  ["Radiation Safety","Survey meter battery / constancy","Daily","Daily or before use."],
+  ["Radiation Safety","Wipe test / contamination survey","Weekly","Common weekly radiation-safety workflow."],
+  ["Radiation Safety","Sealed source leak test","Semiannual","Commonly every six months."],
+  ["Radiation Safety","Survey meter calibration","Annual","First use, annually, and after repair."],
+  ["Mammography","Screen-film processor QC","Daily","Historical screen-film board topic."],
+  ["Mammography","Darkroom cleanliness","Daily","Historical screen-film workflow."],
+  ["Mammography","Mammography phantom test","Weekly","Fibers, specks, masses: 4 / 3 / 3."],
+  ["Mammography","Monitor / viewbox check","Weekly","Classic board-review list."],
+  ["Mammography","Digital flat-field / detector uniformity","Weekly","Often weekly by QC manual."],
+  ["Mammography","Repeat analysis","Quarterly","Classic MQSA board language."],
+  ["Mammography","Compression force test","Semiannual","Power-drive maximum initial force 25-45 lb."],
+  ["Mammography","Darkroom fog test","Semiannual","Historical screen-film workflow."],
+  ["Mammography","Screen-film contact / contrast","Semiannual","Historical screen-film workflow."],
+  ["Mammography","Medical physicist survey","Annual","Annual survey."],
+  ["Ultrasound","Uniformity / artifact survey","Annual","In-air alone is not a full annual survey."],
+  ["Ultrasound","Sensitivity / depth of penetration","Annual","Annual performance check."],
+  ["Ultrasound","Display performance","Annual","Annual."],
+  ["Ultrasound","Spatial resolution phantom","Annual","Optional/recommended annual current ACR item."],
+  ["Ultrasound","Contrast resolution phantom","Annual","Optional/recommended annual current ACR item."],
+  ["Ultrasound","Geometric / measurement accuracy","Annual","Optional/recommended annual current ACR item."],
+  ["MRI","ACR phantom QC","Weekly","The central weekly MRI check."],
+  ["MRI","Center frequency / transmitter gain","Weekly","Weekly."],
+  ["MRI","Table position accuracy","Weekly","Weekly."],
+  ["MRI","Geometric accuracy","Weekly","Weekly."],
+  ["MRI","High-contrast spatial resolution","Weekly","Weekly."],
+  ["MRI","Low-contrast detectability / SNR","Weekly","Weekly."],
+  ["MRI","Artifact analysis","Weekly","Weekly."],
+  ["MRI","Physicist / MR scientist survey","Annual","Includes field, coils, display, QC, and safety."],
+  ["MRI","Slice thickness / position accuracy","Annual","Some overlap with weekly phantom QC."],
+  ["MRI","B0 homogeneity","Annual","Annual physicist testing."],
+  ["MRI","RF coil testing","Annual","Annual physicist testing."]
+].map(([modality,test,interval,clue]) => ({ modality,test,interval,clue }));
+const LIGHTNING = QC.filter((item) => !/^(Weekly\.|Annual\.|Annual survey\.|Annual physicist testing\.|Annual board-style testing\.|Each day of use\.|Periodic visual QC\.|Display performance review\.|Routine|Historical screen-film workflow\.|Optional\/recommended)/.test(item.clue));
+const INTERVALS = ["Daily","Weekly","Monthly","Quarterly","Semiannual","Annual","Situational"];
+const SAVE_KEY = "qcOrbitAcademyProgress";
+const state = { mode: "learn", lesson: 0, learned: [], xp: 0, right: 0, answered: 0, streak: 0, bestStreak: 0, dispatch: null, dispatchLocked: false, lightning: null, lightningRound: 1, lightningLocked: false };
+const $ = (id) => document.getElementById(id);
+function load() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved) return; ["learned","xp","right","answered","bestStreak"].forEach((key) => { if (saved[key] !== undefined) state[key] = saved[key]; }); } catch (error) { localStorage.removeItem(SAVE_KEY); } }
+function save() { localStorage.setItem(SAVE_KEY, JSON.stringify({ learned: state.learned, xp: state.xp, right: state.right, answered: state.answered, bestStreak: state.bestStreak })); }
+function updateHud() {
+  $("level").textContent = Math.floor(state.xp / 100) + 1; $("xp").textContent = state.xp; $("bestStreak").textContent = state.bestStreak;
+  $("accuracy").textContent = state.answered ? `${Math.round(state.right / state.answered * 100)}%` : "--";
+  $("xpBar").style.width = `${state.xp % 100}%`; $("mastered").textContent = state.learned.length; $("currentStreak").textContent = state.streak;
+}
+function reward(amount) { state.xp += amount; updateHud(); save(); }
+function setMode(mode) {
+  state.mode = mode; document.querySelectorAll(".mode").forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
+  document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active")); $(`${mode}Screen`).classList.add("active");
+  if (mode === "dispatch") newDispatch(); if (mode === "lightning") restartLightning();
+}
+function renderLesson() {
+  const lesson = LESSONS[state.lesson]; $("lessonProgress").textContent = `${state.lesson + 1} / ${LESSONS.length}`; $("lessonChapter").textContent = lesson.chapter;
+  $("lessonTitle").textContent = lesson.title; $("lessonBody").textContent = lesson.body; $("lessonMemory").textContent = lesson.memory;
+  $("masterLesson").textContent = state.learned.includes(state.lesson) ? "Learned" : "Mark Learned + XP"; $("masterLesson").disabled = state.learned.includes(state.lesson);
+  $("prevLesson").disabled = state.lesson === 0; $("nextLesson").textContent = state.lesson === LESSONS.length - 1 ? "Try Dispatch" : "Next"; renderMap();
+}
+function renderMap() {
+  $("stationMap").innerHTML = LESSONS.map((lesson, index) => `<div class="station ${state.learned.includes(index) ? "done" : index === state.lesson ? "active" : ""}"><span class="station-dot"></span><label>${lesson.title}</label></div>`).join("");
+}
+function randomItem(items) { return items[Math.floor(Math.random() * items.length)]; }
+function shuffled(items) { return [...items].sort(() => Math.random() - .5); }
+function dispatchPool() { const chosen = $("dispatchModality").value; return chosen === "All modalities" ? QC : QC.filter((item) => item.modality === chosen); }
+function newDispatch() {
+  state.dispatch = randomItem(dispatchPool()); state.dispatchLocked = false; $("dispatchTag").textContent = state.dispatch.modality; $("dispatchPrompt").textContent = state.dispatch.test;
+  $("dispatchClue").textContent = `Board clue: ${state.dispatch.clue}`; $("dispatchFeedback").className = "feedback"; $("dispatchFeedback").textContent = "Select the interval bucket for this test."; $("nextDispatch").classList.add("hidden");
+  $("dispatchAnswers").innerHTML = INTERVALS.map((interval) => `<button class="answer" data-interval="${interval}">${interval}</button>`).join("");
+}
+function registerAnswer(correct, explanation) {
+  state.answered += 1; if (correct) { state.right += 1; state.streak += 1; state.bestStreak = Math.max(state.bestStreak, state.streak); reward(10 + Math.min(state.streak, 5) * 2); }
+  else { state.streak = 0; updateHud(); save(); }
+  return `${correct ? "Correct." : "Not this time."} ${explanation}`;
+}
+function answerDispatch(interval) {
+  if (state.dispatchLocked) return; state.dispatchLocked = true; const correct = interval === state.dispatch.interval;
+  document.querySelectorAll("#dispatchAnswers .answer").forEach((button) => { if (button.dataset.interval === state.dispatch.interval) button.classList.add("correct"); if (button.dataset.interval === interval && !correct) button.classList.add("wrong"); });
+  $("dispatchFeedback").className = `feedback ${correct ? "good" : "bad"}`; $("dispatchFeedback").textContent = registerAnswer(correct, `${state.dispatch.test} belongs in ${state.dispatch.interval}. ${state.dispatch.clue}`); $("nextDispatch").classList.remove("hidden");
+}
+function lightningChoices(target) {
+  const options = [...shuffled(QC.filter((item) => item.test !== target.test && item.modality === target.modality)), ...shuffled(QC.filter((item) => item.test !== target.test))];
+  return shuffled([target, ...options.filter((item, index, all) => all.findIndex((candidate) => candidate.test === item.test) === index).slice(0, 3)]);
+}
+function nextLightning() {
+  state.lightning = randomItem(LIGHTNING); state.lightningLocked = false; $("lightningTag").textContent = `${state.lightning.modality} | ${state.lightning.interval}`;
+  $("lightningPrompt").textContent = state.lightning.clue; $("lightningFeedback").className = "feedback"; $("lightningFeedback").textContent = "Which QC test fits this call?";
+  $("lightningRound").textContent = state.lightningRound; $("nextLightning").classList.add("hidden");
+  $("lightningAnswers").innerHTML = lightningChoices(state.lightning).map((choice) => `<button class="answer" data-test="${choice.test}">${choice.test}<span>${choice.modality}</span></button>`).join("");
+}
+function answerLightning(test) {
+  if (state.lightningLocked) return; state.lightningLocked = true; const correct = test === state.lightning.test;
+  document.querySelectorAll("#lightningAnswers .answer").forEach((button) => { if (button.dataset.test === state.lightning.test) button.classList.add("correct"); if (button.dataset.test === test && !correct) button.classList.add("wrong"); });
+  $("lightningFeedback").className = `feedback ${correct ? "good" : "bad"}`; $("lightningFeedback").textContent = registerAnswer(correct, `Answer: ${state.lightning.test} (${state.lightning.interval}).`);
+  if (state.lightningRound === 10) { $("restartLightning").classList.remove("hidden"); $("lightningFeedback").textContent += " Mission complete."; } else $("nextLightning").classList.remove("hidden");
+}
+function restartLightning() { state.lightningRound = 1; $("restartLightning").classList.add("hidden"); nextLightning(); }
+load();
+$("dispatchModality").innerHTML = ["All modalities", ...new Set(QC.map((item) => item.modality))].map((modality) => `<option>${modality}</option>`).join("");
+document.querySelectorAll(".mode").forEach((button) => button.addEventListener("click", () => setMode(button.dataset.mode)));
+$("prevLesson").addEventListener("click", () => { state.lesson -= 1; renderLesson(); });
+$("nextLesson").addEventListener("click", () => { if (state.lesson === LESSONS.length - 1) setMode("dispatch"); else { state.lesson += 1; renderLesson(); } });
+$("masterLesson").addEventListener("click", () => { if (!state.learned.includes(state.lesson)) { state.learned.push(state.lesson); reward(20); renderLesson(); } });
+$("dispatchModality").addEventListener("change", newDispatch);
+$("dispatchAnswers").addEventListener("click", (event) => { const answer = event.target.closest("[data-interval]"); if (answer) answerDispatch(answer.dataset.interval); });
+$("nextDispatch").addEventListener("click", newDispatch);
+$("lightningAnswers").addEventListener("click", (event) => { const answer = event.target.closest("[data-test]"); if (answer) answerLightning(answer.dataset.test); });
+$("nextLightning").addEventListener("click", () => { state.lightningRound += 1; nextLightning(); });
+$("restartLightning").addEventListener("click", restartLightning);
+$("resetProgress").addEventListener("click", () => { localStorage.removeItem(SAVE_KEY); Object.assign(state, { learned: [], xp: 0, right: 0, answered: 0, streak: 0, bestStreak: 0, lesson: 0 }); updateHud(); renderLesson(); });
+updateHud(); renderLesson();
+</script>
+</body>
+</html>

@@ -89,6 +89,7 @@ Unless the user says otherwise, keep the existing quiz behavior:
 - one-question-at-a-time quiz review;
 - `Copy Question Text` including stem, answer choices, answer, explanation, and image references;
 - `Copy Screenshot` using Anki-oriented portrait-readable image blocks.
+- The `Copy Screenshot` text-card blocks must use the compact dark framed Anki screenshot layout: determine image height from the actual wrapped text lines, retain only a small minimum height, and do not leave long blank tails from rough character-count estimates or tall fixed canvases. Apply the same layout when those screenshot blocks are later included in Anki card extras.
 
 ## Saved Defaults
 

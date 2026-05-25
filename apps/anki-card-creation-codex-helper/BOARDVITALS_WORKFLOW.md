@@ -9,6 +9,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Do not generate an APKG or new Anki cards unless the user explicitly asks for cards, a deck, Anki generation, or an APKG in that same request.
 - After finishing the capture/review workflow, ask whether the user wants a deck generated only if that is the natural next step. Do not silently roll deck generation into the capture task.
 - If deck generation is requested, do it as a focused second pass from the completed local quiz review data and card-writing rules below.
+- During deck generation, it is acceptable and preferred to draft cards in type-based passes for consistency: image-front cards, then focused fact cards, then missed-question misconception cards. Before writing the APKG, reorder the completed notes by source question so all cards from Q1 are adjacent, then all cards from Q2, and so on.
 
 ## Capture
 
@@ -35,7 +36,10 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Make one focused fact card for each worthwhile tested concept, targeting the key fact needed to answer correctly. Skip a fact card if it cannot be made into a clean, self-contained cloze without copying the quiz stem or creating a vague `Answer:` card.
 - Make one image-front card for every question with meaningful diagnostic images. Include all images from that question on the front. If more than one image appears on the front, put `1/N` immediately above the first image.
 - Make one additional misconception card for every missed question based on the user's selected wrong answer and the concept that would have prevented the miss.
-- For image cards, default to a direct diagnosis-style prompt: `Most likely diagnosis?`, `What named fracture is shown?`, `What device is shown?`, `What artifact is shown?`, or `What structure is indicated?`.
+- The final APKG note insertion order must be grouped by question number rather than drafting pass. Within each question, use the consistent order: image-front card first when present, then focused fact card, then misconception card when present. This makes initial Anki Browser review follow the source quiz.
+- For image cards, default to natural, direct wording. When clinical information is needed, give a brief patient/context sentence followed by the task, usually `Most likely diagnosis?` for diagnosis cards. Avoid stilted label fragments such as `CT abdomen: rim-enhancing lesion. Diagnosis?` when a normal sentence would read better.
+- Good image prompt pattern: `16-year-old male with persistent hip pain. Most likely diagnosis?`
+- Other acceptable direct prompts include `What named fracture is shown?`, `What device is shown?`, `What artifact is shown?`, or `What structure is indicated?`.
 - Image-front cards should almost always test visual diagnosis, device/artifact recognition, or labeled structure identification. Do not turn image cards into multi-step management or next-best-step questions. If the source question asks for treatment after a visual diagnosis, make the image card test the diagnosis and make a separate text cloze only if the treatment rule is worth testing.
 - For image cards, include only the minimum clinical context needed to make the image answer unambiguous. Keep high-yield modifiers such as recent chemotherapy, relevant age, symptoms, lab values, or modality. Remove boilerplate such as `a radiologist is reading`, spelled-out common acronyms, and irrelevant demographics.
 - Use common radiology acronyms naturally, such as PET/CT, MRI, CT, US, ED, RUQ, FDG, and HCC. Do not spell out common acronyms unless ambiguity would result.
@@ -44,6 +48,8 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Do not create cards that read as `... Answer: {{c1::...}}` or `... Key answer: {{c1::...}}`. Rewrite the card as a real cloze fact or a direct image prompt.
 - Do not paste a Vital Concept or explanation sentence and append `Key answer:`. First identify what the question was actually testing, then write a clean cloze around that tested point.
 - For fact cards derived from image-containing questions, append all source images in `Extra` if they are not already on the front of that card.
+- For BoardVitals cards, use the same content set exposed by the local review page's `Copy screenshot` workflow as extra-side support: include generated question/explanation screenshot cards plus any local source images from that question that are not already used on the front of the Anki card. Do not duplicate front-side images in `Extra`; include the remaining review-page screenshot pack after the teaching sentence/Vital Concept.
+- Render those generated question/explanation screenshot cards in the same compact dark framed format used by the local review page: calculate height from the actual wrapped lines, with only a small minimum canvas height, rather than adding long unused blank space. The review page and APKG should produce the same readable crop behavior.
 
 ## Extra Field
 
@@ -80,6 +86,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - `Incorrect` shows only missed questions.
 - `Hardest` sorts by the percentage of peers who selected the correct answer, ascending from lowest correct-answer percentage to highest.
 - Include per-question `Copy question text` and `Copy screenshot` buttons, matching the core review quiz behavior. `Copy question text` should copy the stem, choices, selected/correct answer, Vital Concept, and explanation. `Copy screenshot` should create a rich clipboard pack with generated text-card images plus the local question images, falling back to copied text if the rich clipboard API is blocked.
+- For `Copy screenshot`, generate compact dark framed text-card images whose height is measured from the wrapped visible content. Match the Anki screenshot-card layout; do not use character-count estimates or tall fixed minimums that leave large blank areas below short text.
 - Clean the rebuilt page so DOM/accessibility artifacts never appear in visible text.
 - Add a small `Hide` / `Show` tab at the bottom of the sticky header so the header and filters can be collapsed while scrolling.
 
