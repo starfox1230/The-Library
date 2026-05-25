@@ -25,6 +25,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Do not assume answer choices stop at `E`; support additional choices such as `F` when present.
 - For questions without a `Figure/Media` marker, still extract the stem from the main review area before the answer-choice list.
 - Clean DOM/accessibility artifacts during parsing. Visible text and review artifacts must not contain `Radio Selected`, `Radio Unselected`, `img`, checkbox state text, or heading level markers such as `[level=5]`.
+- Treat snapshot structural roles such as `listitem:` as markup, not explanation text. Preserve their actual content as readable prose/list entries, and rejoin inline fragments split by nested links or superscript/subscript markup so rendered explanations do not display broken phrases such as `click` / `here` or `> 1/3` / `of transthoracic diameter`.
 - When parsing answer choices, prefer the clean answer text paragraph after the letter marker over checkbox label text. Ignore truncated checkbox-label lines that end with a bare backslash from escaped quotation marks.
 
 ## Card Package
