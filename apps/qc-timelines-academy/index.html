@@ -106,6 +106,23 @@ select { background: var(--panel-2); border: 1px solid var(--line); border-radiu
 }
 .feedback.good { border: 1px solid rgba(69,219,154,.35); color: #c6ffe6; }
 .feedback.bad { border: 1px solid rgba(255,102,131,.35); color: #ffd7df; }
+.teaching {
+  margin-top: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 16px;
+  background: rgba(16,29,56,.52); line-height: 1.5;
+}
+.teaching h5 { margin: 0 0 7px; font-size: 1rem; color: var(--text); }
+.teaching p { margin: 7px 0; color: #d8e4fa; }
+.teaching strong { color: var(--amber); }
+.pattern {
+  margin-top: 12px; padding: 12px; border-radius: 12px; border-left: 3px solid var(--violet);
+  background: rgba(168,121,255,.08); color: #e6dcff;
+}
+.visual-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.visual-links a {
+  text-decoration: none; color: #051622; background: var(--cyan); border-radius: 999px;
+  padding: 7px 11px; font-size: .84rem; font-weight: 750;
+}
+.visual-links a.secondary { color: var(--text); background: rgba(168,121,255,.17); border: 1px solid rgba(168,121,255,.38); }
 .round-controls { display: flex; gap: 10px; margin-top: 14px; }
 .map h3 { margin: 0 0 4px; }
 .map p { margin: 0 0 16px; color: var(--muted); font-size: .88rem; }
@@ -136,11 +153,11 @@ select { background: var(--panel-2); border: 1px solid var(--line); border-radiu
     <div>
       <div class="eyebrow">Mission: keep every scanner cleared for launch</div>
       <h2>Learn the tests.<br>Own the timeline.</h2>
-      <p>Turn QC intervals into an instinct. Start with compact lessons, dispatch tests onto the correct calendar, then run lightning rounds until the daily-weekly-monthly pattern is automatic.</p>
+      <p>Turn QC intervals into an instinct. Start with compact lessons, assign individual tests to the calendar, then practice the shortcuts that collapse dozens of facts into a few rules.</p>
       <nav class="modes" aria-label="Training mode">
         <button class="mode active" data-mode="learn">Briefing Deck</button>
         <button class="mode" data-mode="dispatch">Calendar Dispatch</button>
-        <button class="mode" data-mode="lightning">Lightning Recall</button>
+        <button class="mode" data-mode="patterns">High-Yield Rules</button>
       </nav>
     </div>
     <section class="hud" aria-label="Progress dashboard">
@@ -164,17 +181,19 @@ select { background: var(--panel-2); border: 1px solid var(--line); border-radiu
       <section class="screen" id="dispatchScreen">
         <header class="screen-head"><div><h3>Calendar Dispatch</h3><p class="sub">Send each QC test to its board-style interval.</p></div><select id="dispatchModality" aria-label="Choose modality focus"></select></header>
         <article class="question">
-          <span class="tag" id="dispatchTag"></span><h4 id="dispatchPrompt"></h4><p class="clue" id="dispatchClue"></p>
+          <span class="tag" id="dispatchTag"></span><h4 id="dispatchPrompt"></h4><p class="clue">When is this quality-control test performed?</p>
           <div class="bins" id="dispatchAnswers"></div><div class="feedback" id="dispatchFeedback">Choose an interval to begin a dispatch streak.</div>
+          <div class="teaching hidden" id="dispatchTeaching"></div>
           <div class="round-controls"><button class="primary hidden" id="nextDispatch">Next dispatch</button></div>
         </article>
       </section>
-      <section class="screen" id="lightningScreen">
-        <header class="screen-head"><div><h3>Lightning Recall</h3><p class="sub">Given an interval and clue, identify the correct test.</p></div><span class="eyebrow"><span id="lightningRound">1</span> / 10</span></header>
+      <section class="screen" id="patternsScreen">
+        <header class="screen-head"><div><h3>High-Yield Rules</h3><p class="sub">Practice shortcuts that remove unnecessary memorization.</p></div><span class="eyebrow"><span id="patternsRound">1</span> / 10</span></header>
         <article class="question">
-          <span class="tag" id="lightningTag"></span><h4 id="lightningPrompt"></h4><p class="clue">One answer matches the schedule and board clue.</p>
-          <div class="answers" id="lightningAnswers"></div><div class="feedback" id="lightningFeedback">Make ten calls. Correct streaks build extra XP.</div>
-          <div class="round-controls"><button class="primary hidden" id="nextLightning">Next call</button><button class="hidden" id="restartLightning">Run another 10</button></div>
+          <span class="tag" id="patternsTag">Schedule shortcut</span><h4 id="patternsPrompt"></h4><p class="clue">Choose the rule you would want available under board pressure.</p>
+          <div class="answers" id="patternsAnswers"></div><div class="feedback" id="patternsFeedback">Complete ten rule checks. Each explanation tells you why the shortcut works.</div>
+          <div class="teaching hidden" id="patternsTeaching"></div>
+          <div class="round-controls"><button class="primary hidden" id="nextPatterns">Next rule</button><button class="hidden" id="restartPatterns">Run another 10</button></div>
         </article>
       </section>
     </section>
@@ -199,70 +218,81 @@ const LESSONS = [
   { chapter: "10 / Final clearance", title: "Compress the schedule into one line", body: "Daily: baseline stability. Weekly: MRI and mammography phantoms. Monthly: SPECT rotation and CT review. Quarterly: linearity and mammography repeats. Six-month: system phantoms and leakage. Annual: oversight.", memory: "D W M Q 6 A = Stable, Phantoms, Rotate, Range, Systems, Survey." }
 ];
 const QC = [
-  ["Gamma / SPECT","Gamma camera flood field uniformity","Daily","Uniform flood image; intrinsic or extrinsic flood."],
-  ["Gamma / SPECT","Tc-99m photopeak / energy window peaking","Daily","20% window centered on 140 keV."],
-  ["Gamma / SPECT","Gamma camera spatial resolution","Monthly","Monthly current ACR; older teaching may say weekly."],
-  ["Gamma / SPECT","SPECT center-of-rotation test","Monthly","Classic tuning-fork artifact; older boards may say weekly."],
-  ["Gamma / SPECT","Overall SPECT system performance phantom","Semiannual","Semiannual; quarterly often recommended."],
-  ["Gamma / SPECT","SPECT flood / ring artifact evaluation","Semiannual","Concentric rings suggest flood correction; program-dependent."],
-  ["Gamma / SPECT","SPECT/CT image alignment","Semiannual","Part of hybrid system performance."],
-  ["CT","Water CT number and noise","Daily","Water phantom with HU and standard deviation."],
-  ["CT","CT artifact evaluation","Daily","Water phantom with rings or streaks."],
-  ["CT","CT air calibration / detector zeroing","Daily","Often daily or manufacturer-directed."],
-  ["CT","CT visual checklist","Monthly","Periodic visual QC."],
-  ["CT","CT display monitor QC","Monthly","Display performance review."],
-  ["CT","CT resolution phantom","Monthly","Older board-style monthly; may be annual in a program."],
-  ["CT","CT number uniformity","Monthly","Overlaps the daily water test in some programs."],
-  ["CT","CT physicist / QMP survey","Annual","Current ACR annual oversight language."],
-  ["Hot Lab / PET","Dose calibrator constancy","Daily","Stability of activity readings."],
-  ["Hot Lab / PET","Dose calibrator linearity","Quarterly","Decay method or multiple activity levels."],
-  ["Hot Lab / PET","Dose calibrator accuracy","Annual","NIST-traceable sources."],
-  ["Hot Lab / PET","Dose calibrator geometry","Situational","Installation, repair, or relocation."],
-  ["Hot Lab / PET","PET detector check","Daily","Each day of use."],
-  ["Hot Lab / PET","PET blank / normalization scan","Daily","Older scanner-specific daily wording."],
-  ["Hot Lab / PET","PET/CT daily CT check","Daily","Each day of use when CT is present."],
-  ["Hot Lab / PET","ACR PET phantom testing","Semiannual","Semiannual; quarterly strongly recommended."],
-  ["Hot Lab / PET","NaI well counter constancy","Daily","Routine / each day of use."],
-  ["Hot Lab / PET","Thyroid uptake probe QC","Daily","Routine or daily when used."],
-  ["Hot Lab / PET","Well counter efficiency","Annual","Annual board-style testing."],
-  ["Hot Lab / PET","Well counter chi-square","Annual","Counting-statistics check."],
-  ["Hot Lab / PET","Well counter energy linearity","Annual","Cs-137 photopeak is 662 keV."],
-  ["Radiation Safety","Survey meter battery / constancy","Daily","Daily or before use."],
-  ["Radiation Safety","Wipe test / contamination survey","Weekly","Common weekly radiation-safety workflow."],
-  ["Radiation Safety","Sealed source leak test","Semiannual","Commonly every six months."],
-  ["Radiation Safety","Survey meter calibration","Annual","First use, annually, and after repair."],
-  ["Mammography","Screen-film processor QC","Daily","Historical screen-film board topic."],
-  ["Mammography","Darkroom cleanliness","Daily","Historical screen-film workflow."],
-  ["Mammography","Mammography phantom test","Weekly","Fibers, specks, masses: 4 / 3 / 3."],
-  ["Mammography","Monitor / viewbox check","Weekly","Classic board-review list."],
-  ["Mammography","Digital flat-field / detector uniformity","Weekly","Often weekly by QC manual."],
-  ["Mammography","Repeat analysis","Quarterly","Classic MQSA board language."],
-  ["Mammography","Compression force test","Semiannual","Power-drive maximum initial force 25-45 lb."],
-  ["Mammography","Darkroom fog test","Semiannual","Historical screen-film workflow."],
-  ["Mammography","Screen-film contact / contrast","Semiannual","Historical screen-film workflow."],
-  ["Mammography","Medical physicist survey","Annual","Annual survey."],
-  ["Ultrasound","Uniformity / artifact survey","Annual","In-air alone is not a full annual survey."],
-  ["Ultrasound","Sensitivity / depth of penetration","Annual","Annual performance check."],
-  ["Ultrasound","Display performance","Annual","Annual."],
-  ["Ultrasound","Spatial resolution phantom","Annual","Optional/recommended annual current ACR item."],
-  ["Ultrasound","Contrast resolution phantom","Annual","Optional/recommended annual current ACR item."],
-  ["Ultrasound","Geometric / measurement accuracy","Annual","Optional/recommended annual current ACR item."],
-  ["MRI","ACR phantom QC","Weekly","The central weekly MRI check."],
-  ["MRI","Center frequency / transmitter gain","Weekly","Weekly."],
-  ["MRI","Table position accuracy","Weekly","Weekly."],
-  ["MRI","Geometric accuracy","Weekly","Weekly."],
-  ["MRI","High-contrast spatial resolution","Weekly","Weekly."],
-  ["MRI","Low-contrast detectability / SNR","Weekly","Weekly."],
-  ["MRI","Artifact analysis","Weekly","Weekly."],
-  ["MRI","Physicist / MR scientist survey","Annual","Includes field, coils, display, QC, and safety."],
-  ["MRI","Slice thickness / position accuracy","Annual","Some overlap with weekly phantom QC."],
-  ["MRI","B0 homogeneity","Annual","Annual physicist testing."],
-  ["MRI","RF coil testing","Annual","Annual physicist testing."]
-].map(([modality,test,interval,clue]) => ({ modality,test,interval,clue }));
-const LIGHTNING = QC.filter((item) => !/^(Weekly\.|Annual\.|Annual survey\.|Annual physicist testing\.|Annual board-style testing\.|Each day of use\.|Periodic visual QC\.|Display performance review\.|Routine|Historical screen-film workflow\.|Optional\/recommended)/.test(item.clue));
+  ["Gamma / SPECT","Gamma camera flood field uniformity","Daily","Current ACR: each day of use.","Checks whether a uniform radioactive field produces an even image across the detector; nonuniform response can create false hot or cold areas.","gamma camera flood field uniformity QC images","gamma camera intrinsic flood extrinsic flood"],
+  ["Gamma / SPECT","Tc-99m photopeak / energy window peaking","Daily","Tc-99m uses a 20% window centered on 140 keV.","Confirms the camera is accepting photons at the intended energy so scatter or electronic drift does not degrade contrast.","Tc-99m photopeak 140 keV energy window gamma camera","gamma camera energy peaking error artifact"],
+  ["Gamma / SPECT","Gamma camera spatial resolution","Monthly","Current ACR: monthly; older teaching may say weekly.","Assesses the detector's ability to separate nearby small structures, commonly with a bar phantom.","gamma camera spatial resolution bar phantom QC","gamma camera resolution loss bar phantom"],
+  ["Gamma / SPECT","SPECT center-of-rotation test","Monthly","Current ACR: monthly; older board sheets may say weekly.","Verifies that projections rotate around the true reconstruction center; misalignment produces characteristic reconstruction distortion.","SPECT center of rotation QC test","SPECT center of rotation tuning fork artifact"],
+  ["Gamma / SPECT","Overall SPECT system performance phantom","Semiannual","Semiannual; quarterly is often recommended.","Tests reconstructed tomographic performance as a whole, including uniformity, contrast and resolution, often using a Jaszczak-type phantom.","SPECT phantom quality control images","Jaszczak phantom SPECT QC"],
+  ["Gamma / SPECT","SPECT flood / ring artifact evaluation","Semiannual","Often paired with system-performance or high-count flood correction; protocol-dependent.","Evaluates whether detector nonuniformity propagates through reconstruction into ring artifacts.","SPECT ring artifact flood correction","SPECT concentric ring artifact"],
+  ["Gamma / SPECT","SPECT/CT image alignment","Semiannual","Tested as part of hybrid-system performance.","Confirms emission findings and CT anatomy register in the same location for accurate localization and attenuation correction.","SPECT CT registration phantom quality control","SPECT CT misregistration artifact"],
+  ["CT","Water CT number and noise","Daily","Daily water-phantom baseline check.","Measures whether water remains near 0 HU and whether random noise stays controlled, identifying calibration or detector instability early.","CT water phantom quality control HU standard deviation","CT daily water phantom QC noise"],
+  ["CT","CT artifact evaluation","Daily","Daily image review.","Looks for new rings, streaks or nonuniformity in a simple uniform phantom before those artifacts appear in patients.","CT quality control artifact evaluation water phantom","CT ring artifact water phantom"],
+  ["CT","CT air calibration / detector zeroing","Daily","Often daily or manufacturer-directed.","Resets detector baseline response using air so attenuation measurements and HU values start from a stable reference.","CT air calibration detector calibration quality control","CT detector calibration artifact"],
+  ["CT","CT visual checklist","Monthly","Board-style monthly operational review.","Confirms visible scanner, table, laser, safety and accessory conditions that quantitative phantom tests may not catch.","CT quality control visual checklist","CT laser alignment quality control"],
+  ["CT","CT display monitor QC","Monthly","Monthly display performance check.","Assures subtle grayscale and contrast differences can be seen on the viewing monitor, rather than hidden by a bad display.","CT display monitor quality control TG18 test pattern","TG18 QC display test pattern artifacts"],
+  ["CT","CT resolution phantom","Monthly","Older board-style monthly; annual physicist programs may cover it.","Measures ability to depict small high-contrast objects and subtle low-contrast differences.","CT low contrast resolution phantom quality control","CT high contrast resolution phantom line pairs"],
+  ["CT","CT number uniformity","Monthly","Periodic/monthly wording; overlaps the daily water test concept.","Checks that identical water measures similarly from center to edge of the field, detecting shading or calibration issues.","CT number uniformity phantom QC center edge","CT cupping artifact uniformity"],
+  ["CT","CT physicist / QMP survey","Annual","Current ACR language uses annual physicist oversight.","A comprehensive independent evaluation of dose, image quality and the facility QC program.","ACR CT accreditation phantom quality control","CT dose index phantom quality control"],
+  ["Hot Lab / PET","Dose calibrator constancy","Daily","Daily.","Checks that a long-lived reference source gives reproducible activity readings from day to day.","dose calibrator constancy test QC","dose calibrator constancy source measurement"],
+  ["Hot Lab / PET","Dose calibrator linearity","Quarterly","Quarterly.","Checks that the calibrator remains accurate across high and low activities, often while one source decays over time.","dose calibrator linearity test decay method","dose calibrator linearity error"],
+  ["Hot Lab / PET","Dose calibrator accuracy","Annual","Annual.","Checks the reported activity against traceable standard sources to establish closeness to the true value.","dose calibrator accuracy test NIST traceable sources","dose calibrator standard source QC"],
+  ["Hot Lab / PET","Dose calibrator geometry","Situational","At installation and after repair or relocation.","Determines whether container type, volume or geometry changes the activity reading enough to require correction.","dose calibrator geometry test different volumes syringes vials","dose calibrator geometry correction"],
+  ["Hot Lab / PET","PET detector check","Daily","Each day of use.","Confirms detector elements and electronics respond normally before clinical PET acquisitions.","PET detector daily quality control scan","PET detector failure artifact"],
+  ["Hot Lab / PET","PET blank / normalization scan","Daily","Older scanner-specific daily wording.","Characterizes detector sensitivity differences so the scanner can correct uneven count response.","PET blank scan quality control","PET normalization scan artifact"],
+  ["Hot Lab / PET","PET/CT daily CT check","Daily","Each day of use when CT is part of the system.","Ensures the CT component used for localization and attenuation correction has a reliable daily baseline.","PET CT daily QC CT check","PET CT attenuation correction misregistration"],
+  ["Hot Lab / PET","ACR PET phantom testing","Semiannual","Semiannual; quarterly strongly recommended.","Uses known spheres/background activity to evaluate image quality, calibration and lesion-contrast recovery.","ACR PET phantom quality control images","PET NEMA image quality phantom spheres"],
+  ["Hot Lab / PET","NaI well counter constancy","Daily","Routine/daily or each day of use.","Confirms the well counter remains sensitive and reproducible for specimen counting.","NaI well counter constancy quality control","well counter sensitivity drift"],
+  ["Hot Lab / PET","Thyroid uptake probe QC","Daily","Routine/daily when used.","Verifies stable probe response before measuring patient thyroid uptake.","thyroid uptake probe quality control phantom","thyroid uptake probe standard source"],
+  ["Hot Lab / PET","Well counter efficiency","Annual","Annual board-style teaching.","Measures how efficiently the instrument counts known activity, needed to convert counts into meaningful results.","well counter efficiency determination quality control","well counter calibration source"],
+  ["Hot Lab / PET","Well counter chi-square","Annual","Annual board-style teaching.","Tests whether repeated counts fluctuate as expected statistically; excess variation suggests unstable equipment.","well counter chi square test nuclear medicine quality control","chi square counting statistics QC"],
+  ["Hot Lab / PET","Well counter energy linearity","Annual","Remember: Cs-137 photopeak is 662 keV.","Confirms energy calibration remains correct across the spectrum so radionuclide peaks are identified correctly.","Cs-137 662 keV photopeak gamma spectrum","well counter energy spectrum calibration"],
+  ["Radiation Safety","Survey meter battery / constancy","Daily","Daily or before use.","Confirms a contamination/exposure meter powers on and responds predictably before it is relied on for safety decisions.","Geiger counter survey meter battery check quality control","ion chamber survey meter constancy check source"],
+  ["Radiation Safety","Wipe test / contamination survey","Weekly","Common weekly radiation-safety workflow.","Samples surfaces for removable radioactive contamination that may not be obvious visually.","nuclear medicine wipe test contamination survey","radioactive contamination wipe test counter"],
+  ["Radiation Safety","Sealed source leak test","Semiannual","Commonly every six months.","Checks whether radioactive material has escaped from a source intended to remain sealed.","sealed source leak test nuclear medicine wipe","sealed source contamination leak"],
+  ["Radiation Safety","Survey meter calibration","Annual","Before first use, annually and after relevant repair.","Relates the meter's reading to known radiation fields so reported exposure values are trustworthy.","survey meter calibration radiation safety quality control","ion chamber calibration source"],
+  ["Mammography","Screen-film processor QC","Daily","Historical screen-film board topic.","Uses sensitometry/densitometry to detect processing changes that alter mammographic contrast or density.","mammography processor quality control sensitometry densitometry","mammography processor artifact"],
+  ["Mammography","Darkroom cleanliness","Daily","Historical screen-film workflow.","Prevents dust or debris in film handling from appearing as artifacts that could simulate findings.","mammography darkroom cleanliness quality control","mammography dust artifact film"],
+  ["Mammography","Mammography phantom test","Weekly","Classic MQSA/ACR memory target: 4 fibers, 3 speck groups, 3 masses.","Uses a standardized breast phantom to confirm adequate visualization of fibers, calcification-like specks and masses.","ACR mammography phantom fibers specks masses","mammography phantom failure artifact"],
+  ["Mammography","Monitor / viewbox check","Weekly","Classic board-review interval.","Confirms interpretation displays or historical viewboxes permit detection of subtle mammographic detail.","mammography monitor quality control TG18 test pattern","mammography viewbox quality control"],
+  ["Mammography","Digital flat-field / detector uniformity","Weekly","Frequency can follow manufacturer QC manual.","Looks for detector nonuniformity or defective elements before they create structured image artifacts.","digital mammography flat field detector uniformity QC","digital mammography detector artifact"],
+  ["Mammography","Repeat analysis","Quarterly","Classic MQSA/screen-film board language.","Reviews repeated examinations and their reasons to identify preventable positioning, exposure or equipment problems.","mammography repeat analysis quality control","mammography positioning repeat analysis"],
+  ["Mammography","Compression force test","Semiannual","Power-drive maximum initial force memory: 25-45 lb.","Verifies compression delivers adequate, controlled force for image quality and dose while avoiding excessive pressure.","mammography compression force test scale QC","mammography inadequate compression image quality"],
+  ["Mammography","Darkroom fog test","Semiannual","Historical screen-film workflow.","Detects unwanted film exposure from light leaks or safelight problems that reduces contrast.","mammography darkroom fog test quality control","darkroom fog test film artifact"],
+  ["Mammography","Screen-film contact / contrast","Semiannual","Historical screen-film workflow.","Detects poor cassette contact or contrast loss that blurs fine mammographic detail.","mammography screen film contact test mesh","screen film contact artifact mesh"],
+  ["Mammography","Medical physicist survey","Annual","Annual.","Performs comprehensive mammography equipment, image-quality and dose evaluation for regulatory compliance.","mammography annual physicist survey quality control phantom","mammography dose phantom QC"],
+  ["Ultrasound","Uniformity / artifact survey","Annual","Annual; in-air images alone do not complete the annual survey.","Detects nonuniform brightness, dead elements or artifacts across an otherwise uniform field.","ultrasound uniformity artifact survey phantom QC","ultrasound transducer dropout artifact"],
+  ["Ultrasound","Sensitivity / depth of penetration","Annual","Annual.","Checks the greatest depth at which useful echo information remains visible, indicating sensitivity degradation.","ultrasound depth of penetration system sensitivity phantom QC","ultrasound loss of penetration transducer"],
+  ["Ultrasound","Display performance","Annual","Annual.","Checks that the ultrasound display preserves grayscale information required to see subtle echo differences.","ultrasound display performance quality control test pattern","ultrasound monitor grayscale QC"],
+  ["Ultrasound","Spatial resolution phantom","Annual","Optional/recommended annual current ACR item.","Assesses ability to distinguish closely spaced targets in axial and lateral directions.","ultrasound spatial resolution phantom pins QC","ultrasound axial lateral resolution phantom"],
+  ["Ultrasound","Contrast resolution phantom","Annual","Optional/recommended annual current ACR item.","Assesses whether low-contrast targets can be distinguished from surrounding material.","ultrasound contrast resolution phantom quality control","ultrasound low contrast lesion phantom"],
+  ["Ultrasound","Geometric / measurement accuracy","Annual","Optional/recommended annual current ACR item.","Confirms displayed distance measurements agree with known phantom distances.","ultrasound geometric accuracy measurement accuracy phantom QC","ultrasound distance measurement error"],
+  ["MRI","ACR phantom QC","Weekly","Weekly technologist QC.","Uses a standard phantom to track multiple MRI performance parameters consistently over time.","ACR MRI phantom weekly quality control images","ACR MRI phantom artifact"],
+  ["MRI","Center frequency / transmitter gain","Weekly","Weekly.","Monitors resonance frequency and RF transmit settings for drift affecting signal and image consistency.","MRI center frequency transmitter gain QC","MRI transmitter gain drift artifact"],
+  ["MRI","Table position accuracy","Weekly","Weekly.","Checks that table movement places the prescribed anatomy or phantom slice where the scanner expects it.","MRI table position accuracy quality control","MRI table positioning error"],
+  ["MRI","Geometric accuracy","Weekly","Weekly.","Measures whether known phantom dimensions are reproduced without unacceptable distortion.","MRI geometric accuracy ACR phantom QC","MRI geometric distortion artifact"],
+  ["MRI","High-contrast spatial resolution","Weekly","Weekly.","Tests ability to resolve small, sharply different structures, typically using hole arrays in the phantom.","MRI high contrast spatial resolution ACR phantom","MRI resolution phantom failure"],
+  ["MRI","Low-contrast detectability / SNR","Weekly","Weekly.","Assesses detectability of subtle signal differences and adequate signal-to-noise performance.","MRI low contrast detectability ACR phantom QC","MRI low SNR artifact phantom"],
+  ["MRI","Artifact analysis","Weekly","Weekly.","Reviews phantom images for ghosting or other unexpected signal patterns indicating scanner problems.","MRI artifact analysis ACR phantom QC","MRI ghosting artifact phantom"],
+  ["MRI","Physicist / MR scientist survey","Annual","Annual.","Provides a deeper independent review of magnet, coils, display, QC program and MR safety performance.","annual MRI physicist survey ACR phantom QC","MRI safety QC physicist survey"],
+  ["MRI","Slice thickness / position accuracy","Annual","Some phantom-related measurements overlap weekly QC.","Checks that slices are located correctly and match the prescribed thickness, avoiding misregistration or volume error.","MRI slice thickness accuracy ACR phantom QC","MRI slice position accuracy artifact"],
+  ["MRI","B0 homogeneity","Annual","Annual physicist testing.","Evaluates uniformity of the main magnetic field; poor homogeneity can degrade fat suppression and distort signal.","MRI B0 homogeneity quality control phantom","MRI inhomogeneous fat suppression artifact"],
+  ["MRI","RF coil testing","Annual","Annual physicist testing.","Confirms coils provide acceptable signal and uniformity without failed elements or connections.","MRI RF coil quality control test phantom","MRI coil failure shading artifact"]
+].map(([modality, test, interval, note, definition, visual, related]) => ({ modality, test, interval, note, definition, visual, related }));
+const RULES = [
+  { prompt: "What is the safest single shortcut for the routine ultrasound QC checks in this deck?", choices: ["All are annual", "All are weekly", "Only penetration is annual", "They are daily before scanning"], answer: "All are annual", explanation: "Uniformity, penetration, display, spatial resolution, contrast resolution and measurement accuracy are all placed in the annual bucket here.", links: ["ultrasound quality control phantom annual testing"] },
+  { prompt: "Dose calibrator constancy, linearity and accuracy map to which schedule?", choices: ["Daily, quarterly, annual", "Weekly, monthly, annual", "Daily, daily, quarterly", "Quarterly, annual, annual"], answer: "Daily, quarterly, annual", explanation: "Constancy tracks day-to-day stability; linearity spans activity levels quarterly; accuracy checks truth against standards annually.", links: ["dose calibrator constancy linearity accuracy QC"] },
+  { prompt: "Which two modalities have famous weekly phantom-centered QC patterns?", choices: ["MRI and mammography", "CT and ultrasound", "PET and CT", "SPECT and ultrasound"], answer: "MRI and mammography", explanation: "The ACR MRI phantom battery is weekly, and the classic mammography phantom test is weekly.", links: ["ACR MRI phantom weekly quality control images", "ACR mammography phantom fibers specks masses"] },
+  { prompt: "A SPECT tuning-fork artifact should make you remember which schedule pairing?", choices: ["Center of rotation - monthly", "Flood uniformity - annual", "PET phantom - daily", "Alignment - weekly"], answer: "Center of rotation - monthly", explanation: "Current ACR-oriented wording places SPECT center-of-rotation monthly; older review material may say weekly.", links: ["SPECT center of rotation tuning fork artifact"] },
+  { prompt: "What is the daily CT core idea?", choices: ["Water HU/noise and artifact baseline", "Annual dose survey only", "Monitor test pattern only", "Low-contrast survey only"], answer: "Water HU/noise and artifact baseline", explanation: "Daily CT QC is about detecting overnight baseline shifts using a uniform water phantom and artifact review.", links: ["CT water phantom quality control HU standard deviation", "CT ring artifact water phantom"] },
+  { prompt: "Which phrase best summarizes annual QC?", choices: ["Physicist surveys and broad performance oversight", "Only daily detector warm-up", "Only radiation wipe tests", "Only repeat analysis"], answer: "Physicist surveys and broad performance oversight", explanation: "Annual work includes CT, mammography and MRI physicist surveys plus the routine ultrasound performance battery.", links: ["medical physicist quality control phantom radiology"] },
+  { prompt: "Which group is the semiannual memory cluster?", choices: ["SPECT/PET performance and sealed-source leakage", "Daily CT water and PET detectors", "MRI weekly phantom and mammography weekly phantom", "Dose calibrator constancy and survey-meter battery"], answer: "SPECT/PET performance and sealed-source leakage", explanation: "System performance phantoms and sealed source leak testing anchor the six-month bucket.", links: ["ACR PET phantom quality control images", "sealed source leak test nuclear medicine wipe"] },
+  { prompt: "Which mammography item belongs in the quarterly bucket?", choices: ["Repeat analysis", "Phantom test", "Medical physicist survey", "Compression force test"], answer: "Repeat analysis", explanation: "Classic mammography memory: phantom weekly, repeats quarterly, compression semiannual, physicist survey annual.", links: ["mammography repeat analysis quality control"] },
+  { prompt: "Which is the exception to a regular calendar schedule for the dose calibrator?", choices: ["Geometry after installation/repair/relocation", "Constancy", "Linearity", "Accuracy"], answer: "Geometry after installation/repair/relocation", explanation: "Geometry depends on setup changes, container/volume and equipment events rather than a routine interval in this deck.", links: ["dose calibrator geometry test different volumes syringes vials"] },
+  { prompt: "A practical weekly radiation-safety association is:", choices: ["Wipe test / contamination survey", "Survey-meter calibration", "Sealed-source leak test", "Survey-meter battery check"], answer: "Wipe test / contamination survey", explanation: "In this board-review scheme, survey-meter readiness is daily/before use, wipe testing is weekly, leak testing is semiannual and calibration is annual.", links: ["nuclear medicine wipe test contamination survey"] }
+];
 const INTERVALS = ["Daily","Weekly","Monthly","Quarterly","Semiannual","Annual","Situational"];
 const SAVE_KEY = "qcOrbitAcademyProgress";
-const state = { mode: "learn", lesson: 0, learned: [], xp: 0, right: 0, answered: 0, streak: 0, bestStreak: 0, dispatch: null, dispatchLocked: false, lightning: null, lightningRound: 1, lightningLocked: false };
+const state = { mode: "learn", lesson: 0, learned: [], xp: 0, right: 0, answered: 0, streak: 0, bestStreak: 0, dispatch: null, dispatchLocked: false, pattern: null, patternIndex: 0, patternLocked: false };
 const $ = (id) => document.getElementById(id);
 function load() { try { const saved = JSON.parse(localStorage.getItem(SAVE_KEY)); if (!saved) return; ["learned","xp","right","answered","bestStreak"].forEach((key) => { if (saved[key] !== undefined) state[key] = saved[key]; }); } catch (error) { localStorage.removeItem(SAVE_KEY); } }
 function save() { localStorage.setItem(SAVE_KEY, JSON.stringify({ learned: state.learned, xp: state.xp, right: state.right, answered: state.answered, bestStreak: state.bestStreak })); }
@@ -275,7 +305,7 @@ function reward(amount) { state.xp += amount; updateHud(); save(); }
 function setMode(mode) {
   state.mode = mode; document.querySelectorAll(".mode").forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
   document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active")); $(`${mode}Screen`).classList.add("active");
-  if (mode === "dispatch") newDispatch(); if (mode === "lightning") restartLightning();
+  if (mode === "dispatch") newDispatch(); if (mode === "patterns") restartPatterns();
 }
 function renderLesson() {
   const lesson = LESSONS[state.lesson]; $("lessonProgress").textContent = `${state.lesson + 1} / ${LESSONS.length}`; $("lessonChapter").textContent = lesson.chapter;
@@ -288,10 +318,14 @@ function renderMap() {
 }
 function randomItem(items) { return items[Math.floor(Math.random() * items.length)]; }
 function shuffled(items) { return [...items].sort(() => Math.random() - .5); }
+function imageSearch(query) { return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`; }
+function visualLinks(queries) {
+  return `<div class="visual-links">${queries.map((query, index) => `<a ${index ? 'class="secondary"' : ""} href="${imageSearch(query)}" target="_blank" rel="noopener noreferrer">${index ? "Related visual" : "See what this test looks like"}</a>`).join("")}</div>`;
+}
 function dispatchPool() { const chosen = $("dispatchModality").value; return chosen === "All modalities" ? QC : QC.filter((item) => item.modality === chosen); }
 function newDispatch() {
   state.dispatch = randomItem(dispatchPool()); state.dispatchLocked = false; $("dispatchTag").textContent = state.dispatch.modality; $("dispatchPrompt").textContent = state.dispatch.test;
-  $("dispatchClue").textContent = `Board clue: ${state.dispatch.clue}`; $("dispatchFeedback").className = "feedback"; $("dispatchFeedback").textContent = "Select the interval bucket for this test."; $("nextDispatch").classList.add("hidden");
+  $("dispatchFeedback").className = "feedback"; $("dispatchFeedback").textContent = "Select the interval bucket for this test."; $("dispatchTeaching").classList.add("hidden"); $("dispatchTeaching").innerHTML = ""; $("nextDispatch").classList.add("hidden");
   $("dispatchAnswers").innerHTML = INTERVALS.map((interval) => `<button class="answer" data-interval="${interval}">${interval}</button>`).join("");
 }
 function registerAnswer(correct, explanation) {
@@ -302,25 +336,41 @@ function registerAnswer(correct, explanation) {
 function answerDispatch(interval) {
   if (state.dispatchLocked) return; state.dispatchLocked = true; const correct = interval === state.dispatch.interval;
   document.querySelectorAll("#dispatchAnswers .answer").forEach((button) => { if (button.dataset.interval === state.dispatch.interval) button.classList.add("correct"); if (button.dataset.interval === interval && !correct) button.classList.add("wrong"); });
-  $("dispatchFeedback").className = `feedback ${correct ? "good" : "bad"}`; $("dispatchFeedback").textContent = registerAnswer(correct, `${state.dispatch.test} belongs in ${state.dispatch.interval}. ${state.dispatch.clue}`); $("nextDispatch").classList.remove("hidden");
+  const chosenBucket = QC.filter((item) => item.modality === state.dispatch.modality && item.interval === interval).map((item) => item.test);
+  const bucketStatement = chosenBucket.length
+    ? `${interval} ${state.dispatch.modality} items in this deck include: ${chosenBucket.join("; ")}.`
+    : `There are no ${state.dispatch.modality} tests in the ${interval.toLowerCase()} bucket in this deck.`;
+  $("dispatchFeedback").className = `feedback ${correct ? "good" : "bad"}`;
+  $("dispatchFeedback").textContent = registerAnswer(correct, correct
+    ? `Yes. The answer is ${state.dispatch.interval}.`
+    : `No, this is not ${interval}. The answer is ${state.dispatch.interval}.`);
+  $("dispatchTeaching").classList.remove("hidden");
+  $("dispatchTeaching").innerHTML = `
+    <h5>What the test accomplishes</h5>
+    <p>${state.dispatch.definition}</p>
+    <p><strong>Schedule detail:</strong> ${state.dispatch.note}</p>
+    <div class="pattern"><strong>Your chosen bucket, by modality:</strong> ${bucketStatement}</div>
+    ${visualLinks([state.dispatch.visual, state.dispatch.related])}
+  `;
+  $("nextDispatch").classList.remove("hidden");
 }
-function lightningChoices(target) {
-  const options = [...shuffled(QC.filter((item) => item.test !== target.test && item.modality === target.modality)), ...shuffled(QC.filter((item) => item.test !== target.test))];
-  return shuffled([target, ...options.filter((item, index, all) => all.findIndex((candidate) => candidate.test === item.test) === index).slice(0, 3)]);
+function nextPattern() {
+  state.pattern = RULES[state.patternIndex]; state.patternLocked = false;
+  $("patternsPrompt").textContent = state.pattern.prompt; $("patternsRound").textContent = state.patternIndex + 1;
+  $("patternsFeedback").className = "feedback"; $("patternsFeedback").textContent = "Choose the high-yield rule.";
+  $("patternsTeaching").classList.add("hidden"); $("patternsTeaching").innerHTML = ""; $("nextPatterns").classList.add("hidden");
+  $("patternsAnswers").innerHTML = shuffled(state.pattern.choices).map((choice) => `<button class="answer" data-choice="${choice}">${choice}</button>`).join("");
 }
-function nextLightning() {
-  state.lightning = randomItem(LIGHTNING); state.lightningLocked = false; $("lightningTag").textContent = `${state.lightning.modality} | ${state.lightning.interval}`;
-  $("lightningPrompt").textContent = state.lightning.clue; $("lightningFeedback").className = "feedback"; $("lightningFeedback").textContent = "Which QC test fits this call?";
-  $("lightningRound").textContent = state.lightningRound; $("nextLightning").classList.add("hidden");
-  $("lightningAnswers").innerHTML = lightningChoices(state.lightning).map((choice) => `<button class="answer" data-test="${choice.test}">${choice.test}<span>${choice.modality}</span></button>`).join("");
+function answerPattern(choice) {
+  if (state.patternLocked) return; state.patternLocked = true; const correct = choice === state.pattern.answer;
+  document.querySelectorAll("#patternsAnswers .answer").forEach((button) => { if (button.dataset.choice === state.pattern.answer) button.classList.add("correct"); if (button.dataset.choice === choice && !correct) button.classList.add("wrong"); });
+  $("patternsFeedback").className = `feedback ${correct ? "good" : "bad"}`;
+  $("patternsFeedback").textContent = registerAnswer(correct, correct ? "That shortcut is correct." : `The useful shortcut is: ${state.pattern.answer}.`);
+  $("patternsTeaching").classList.remove("hidden");
+  $("patternsTeaching").innerHTML = `<h5>Why this saves memory</h5><p>${state.pattern.explanation}</p>${visualLinks(state.pattern.links)}`;
+  if (state.patternIndex === RULES.length - 1) $("restartPatterns").classList.remove("hidden"); else $("nextPatterns").classList.remove("hidden");
 }
-function answerLightning(test) {
-  if (state.lightningLocked) return; state.lightningLocked = true; const correct = test === state.lightning.test;
-  document.querySelectorAll("#lightningAnswers .answer").forEach((button) => { if (button.dataset.test === state.lightning.test) button.classList.add("correct"); if (button.dataset.test === test && !correct) button.classList.add("wrong"); });
-  $("lightningFeedback").className = `feedback ${correct ? "good" : "bad"}`; $("lightningFeedback").textContent = registerAnswer(correct, `Answer: ${state.lightning.test} (${state.lightning.interval}).`);
-  if (state.lightningRound === 10) { $("restartLightning").classList.remove("hidden"); $("lightningFeedback").textContent += " Mission complete."; } else $("nextLightning").classList.remove("hidden");
-}
-function restartLightning() { state.lightningRound = 1; $("restartLightning").classList.add("hidden"); nextLightning(); }
+function restartPatterns() { state.patternIndex = 0; $("restartPatterns").classList.add("hidden"); nextPattern(); }
 load();
 $("dispatchModality").innerHTML = ["All modalities", ...new Set(QC.map((item) => item.modality))].map((modality) => `<option>${modality}</option>`).join("");
 document.querySelectorAll(".mode").forEach((button) => button.addEventListener("click", () => setMode(button.dataset.mode)));
@@ -330,9 +380,9 @@ $("masterLesson").addEventListener("click", () => { if (!state.learned.includes(
 $("dispatchModality").addEventListener("change", newDispatch);
 $("dispatchAnswers").addEventListener("click", (event) => { const answer = event.target.closest("[data-interval]"); if (answer) answerDispatch(answer.dataset.interval); });
 $("nextDispatch").addEventListener("click", newDispatch);
-$("lightningAnswers").addEventListener("click", (event) => { const answer = event.target.closest("[data-test]"); if (answer) answerLightning(answer.dataset.test); });
-$("nextLightning").addEventListener("click", () => { state.lightningRound += 1; nextLightning(); });
-$("restartLightning").addEventListener("click", restartLightning);
+$("patternsAnswers").addEventListener("click", (event) => { const answer = event.target.closest("[data-choice]"); if (answer) answerPattern(answer.dataset.choice); });
+$("nextPatterns").addEventListener("click", () => { state.patternIndex += 1; nextPattern(); });
+$("restartPatterns").addEventListener("click", restartPatterns);
 $("resetProgress").addEventListener("click", () => { localStorage.removeItem(SAVE_KEY); Object.assign(state, { learned: [], xp: 0, right: 0, answered: 0, streak: 0, bestStreak: 0, lesson: 0 }); updateHud(); renderLesson(); });
 updateHud(); renderLesson();
 </script>
