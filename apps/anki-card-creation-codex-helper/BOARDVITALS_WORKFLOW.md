@@ -77,6 +77,8 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 Create a standalone local HTML quiz-review page as the final artifact for every BoardVitals quiz workflow.
 
 - Build it only from saved local captures and local media. Do not revisit BoardVitals just to make this page.
+- Save review pages in the permanent Library repository under `apps/anki-card-creation-codex-helper/boardvitals/<date>-quiz-<quiz-id>/`, not in a temporary-app library.
+- After creating or updating a review page, update the permanent BoardVitals Reviews index by running `python scripts/build_boardvitals_reviews_index.py` from the root of `The-Library`. The resulting `apps/boardvitals-reviews/reviews.js` must include the completed review before finishing.
 - Use dark-mode styling by default.
 - Show all questions top-to-bottom.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
@@ -87,6 +89,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Include a question-number prefix filter, where typing `8` shows Q8 only and typing `5` shows Q5 and Q50.
 - Include a separate word-search filter across stem, choices, answer, explanation, and Vital Concept.
 - Make the two text filters mutually exclusive. If the user starts typing in the question-number filter, automatically clear the word-search filter; if the user starts typing in the word-search filter, automatically clear the question-number filter.
+- When the user clears a non-empty question-number or word-search filter, preserve the on-screen position of the currently displayed question while restoring the complete question list. This should let the user search for Q37, clear the filter, and continue scrolling from Q37 to Q38 without being returned to the top.
 - Include result/sort controls with `All`, `Incorrect`, and `Hardest`.
 - `Incorrect` shows only missed questions.
 - `Hardest` sorts by the percentage of peers who selected the correct answer, ascending from lowest correct-answer percentage to highest.
@@ -111,3 +114,4 @@ Before calling the workflow done, validate:
 - The HTML page has answer-choice percentage badges.
 - The HTML page has per-question `Copy question text` and `Copy screenshot` buttons.
 - The HTML page has no visible `Radio Selected`, `Radio Unselected`, `img "Radio..."`, `checkbox`, or `[level=...]` artifacts.
+- The permanent `apps/boardvitals-reviews/index.html` landing page lists the newly generated review after rebuilding `reviews.js`.

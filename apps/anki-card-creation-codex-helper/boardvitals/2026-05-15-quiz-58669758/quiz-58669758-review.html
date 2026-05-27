@@ -2142,6 +2142,8 @@ Vital Concept: Autosomal dominant polycystic kidney disease diagnosis on ultraso
     const questions = document.getElementById('questions');
     const cards = [...document.querySelectorAll('.question')];
     let resultMode = 'all';
+    let previousQFilter = '';
+    let previousWordFilter = '';
     function flashButton(button, text) {
       const original = button.textContent;
       button.textContent = text;
@@ -2292,7 +2294,18 @@ Vital Concept: Autosomal dominant polycystic kidney disease diagnosis on ultraso
       }
       for (const card of ordered) questions.appendChild(card);
     }
-    function applyFilters() {
+    function currentQuestionAnchor() {
+      const visibleCards = cards.filter(card => !card.classList.contains('hidden'));
+      if (!visibleCards.length) return null;
+      const top = header.getBoundingClientRect().bottom + 10;
+      const card = visibleCards.reduce((best, candidate) => {
+        const candidateDistance = Math.abs(candidate.getBoundingClientRect().top - top);
+        const bestDistance = Math.abs(best.getBoundingClientRect().top - top);
+        return candidateDistance < bestDistance ? candidate : best;
+      }, visibleCards[0]);
+      return { card, top: card.getBoundingClientRect().top };
+    }
+    function applyFilters(anchor = null) {
       sortCards();
       const q = qInput.value.trim();
       const words = wordInput.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -2307,14 +2320,23 @@ Vital Concept: Autosomal dominant polycystic kidney disease diagnosis on ultraso
         if (visible) shown++;
       }
       count.textContent = `${shown} / ${cards.length} shown`;
+      if (anchor && !anchor.card.classList.contains('hidden')) {
+        window.scrollBy(0, anchor.card.getBoundingClientRect().top - anchor.top);
+      }
     }
     qInput.addEventListener('input', () => {
+      const anchor = previousQFilter.trim() && !qInput.value.trim() && !wordInput.value.trim() ? currentQuestionAnchor() : null;
       if (qInput.value && wordInput.value) wordInput.value = '';
-      applyFilters();
+      applyFilters(anchor);
+      previousQFilter = qInput.value;
+      if (qInput.value) previousWordFilter = '';
     });
     wordInput.addEventListener('input', () => {
+      const anchor = previousWordFilter.trim() && !wordInput.value.trim() && !qInput.value.trim() ? currentQuestionAnchor() : null;
       if (wordInput.value && qInput.value) qInput.value = '';
-      applyFilters();
+      applyFilters(anchor);
+      previousWordFilter = wordInput.value;
+      if (wordInput.value) previousQFilter = '';
     });
     showAll.addEventListener('click', () => {
       resultMode = 'all';

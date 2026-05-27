@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>BoardVitals Reviews | The Library</title>
+  <style>
+    :root {
+      --bg: #0f1319;
+      --panel: #161d26;
+      --panel-2: #1d2631;
+      --line: #303b48;
+      --text: #eef3fa;
+      --muted: #9ca9ba;
+      --accent: #65b8c6;
+      --accent-2: #bfdc7a;
+      --incorrect: #ef827b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    }
+    .shell { max-width: 1060px; margin: 0 auto; padding: 26px 20px 48px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0 0 5px; font-size: 27px; font-weight: 650; letter-spacing: 0; }
+    .subtle { color: var(--muted); margin: 0; }
+    .back { color: var(--muted); text-decoration: none; border: 1px solid var(--line); border-radius: 7px; padding: 9px 12px; white-space: nowrap; }
+    .back:hover { border-color: var(--accent); color: var(--text); }
+    .controls { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin: 22px 0; }
+    input { width: 100%; padding: 12px 14px; border-radius: 7px; border: 1px solid var(--line); color: var(--text); background: var(--panel); font: inherit; }
+    input:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .segmented { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--panel); }
+    button { padding: 11px 13px; color: var(--muted); background: transparent; border: 0; border-left: 1px solid var(--line); font: inherit; cursor: pointer; }
+    button:first-child { border-left: 0; }
+    button.active { color: var(--bg); background: var(--accent); }
+    .summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 18px; }
+    .stat { display: flex; align-items: baseline; gap: 7px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); }
+    .stat strong { font-size: 20px; font-weight: 650; }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .table { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+    .row { display: grid; grid-template-columns: 135px minmax(155px, 1fr) 95px 95px 120px 96px; gap: 12px; align-items: center; min-height: 66px; padding: 0 16px; border-top: 1px solid var(--line); }
+    .row:first-child { border-top: 0; }
+    .head { min-height: 43px; color: var(--muted); background: var(--panel-2); text-transform: uppercase; font-size: 11px; font-weight: 700; }
+    .date { font-variant-numeric: tabular-nums; color: var(--muted); }
+    .quiz { font-size: 17px; font-weight: 600; }
+    .wrong { color: var(--incorrect); font-variant-numeric: tabular-nums; }
+    .media { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .tag { display: inline-flex; width: fit-content; border-radius: 4px; padding: 4px 7px; font-size: 12px; color: var(--accent-2); border: 1px solid #526437; background: #202917; }
+    .tag.none { color: var(--muted); border-color: var(--line); background: transparent; }
+    .open { justify-self: end; color: var(--bg); background: var(--accent); border-radius: 6px; text-decoration: none; padding: 8px 13px; font-weight: 650; }
+    .open:hover { background: #7cc8d5; }
+    .empty { display: none; padding: 28px 16px; color: var(--muted); }
+    footer { color: var(--muted); margin-top: 18px; font-size: 13px; }
+    @media (max-width: 760px) {
+      .shell { padding: 18px 12px 36px; }
+      header { flex-direction: column-reverse; }
+      .controls { grid-template-columns: 1fr; }
+      .table { border: 0; background: transparent; display: grid; gap: 10px; }
+      .head { display: none; }
+      .row.review { grid-template-columns: 1fr auto; gap: 5px 12px; padding: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; }
+      .quiz { grid-column: 1; grid-row: 1; }
+      .open { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+      .date { grid-column: 1; grid-row: 2; }
+      .mobile-meta { grid-column: 1; grid-row: 3; display: flex; align-items: center; gap: 10px; }
+      .review > .wrong, .review > .media, .review > .deck { display: none; }
+    }
+    @media (min-width: 761px) { .mobile-meta { display: none; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div><h1>BoardVitals Reviews</h1><p class="subtle">Saved review sessions</p></div>
+      <a class="back" href="../../index.html">Back to Library</a>
+    </header>
+    <section class="controls" aria-label="Review filters">
+      <input id="search" type="search" placeholder="Search date or quiz number" aria-label="Search reviews">
+      <div class="segmented" aria-label="Deck filter"><button type="button" class="active" data-filter="all">All</button><button type="button" data-filter="deck">Deck made</button></div>
+    </section>
+    <section class="summary" aria-label="Review totals">
+      <div class="stat"><strong id="reviewCount">0</strong><span>reviews</span></div>
+      <div class="stat"><strong id="questionCount">0</strong><span>questions</span></div>
+      <div class="stat"><strong id="missedCount">0</strong><span>missed</span></div>
+    </section>
+    <section class="table" aria-label="Available review sessions">
+      <div class="row head"><span>Date</span><span>Quiz</span><span>Missed</span><span>Images</span><span>Anki</span><span></span></div>
+      <div id="rows"></div>
+      <p class="empty" id="empty">No reviews match this filter.</p>
+    </section>
+    <footer id="updated"></footer>
+  </main>
+  <script src="reviews.js"></script>
+  <script>
+    const data = window.BOARDVITALS_REVIEWS || { generatedOn: "", reviews: [] };
+    const rows = document.getElementById("rows");
+    const empty = document.getElementById("empty");
+    const search = document.getElementById("search");
+    const filters = [...document.querySelectorAll("[data-filter]")];
+    let mode = "all";
+    function displayDate(value) {
+      const parts = value.split("-").map(Number);
+      return new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    }
+    function visibleReviews() {
+      const term = search.value.toLowerCase().trim();
+      return data.reviews.filter(review => {
+        const matchesTerm = !term || review.quizId.includes(term) || review.date.includes(term) || displayDate(review.date).toLowerCase().includes(term);
+        return matchesTerm && (mode === "all" || review.hasDeck);
+      });
+    }
+    function render() {
+      const visible = visibleReviews();
+      rows.innerHTML = visible.map(review => {
+        const imageCount = (review.stemImages || 0) + (review.explanationImages || 0);
+        const deck = review.hasDeck ? '<span class="tag">APKG</span>' : '<span class="tag none">None</span>';
+        return `<article class="row review"><span class="date">${displayDate(review.date)}</span><span class="quiz">Quiz ${review.quizId}</span><span class="wrong">${review.missed.length}</span><span class="media">${imageCount || "-"}</span><span class="deck">${deck}</span><a class="open" href="${review.href}">Open</a><span class="mobile-meta"><span class="wrong">${review.missed.length} missed</span><span class="media">${imageCount || "-"} images</span>${deck}</span></article>`;
+      }).join("");
+      empty.style.display = visible.length ? "none" : "block";
+      document.getElementById("reviewCount").textContent = visible.length;
+      document.getElementById("questionCount").textContent = visible.reduce((sum, review) => sum + review.questions, 0);
+      document.getElementById("missedCount").textContent = visible.reduce((sum, review) => sum + review.missed.length, 0);
+    }
+    search.addEventListener("input", render);
+    filters.forEach(button => button.addEventListener("click", () => {
+      mode = button.dataset.filter;
+      filters.forEach(control => control.classList.toggle("active", control === button));
+      render();
+    }));
+    document.getElementById("updated").textContent = data.generatedOn ? `Index updated ${displayDate(data.generatedOn)}` : "";
+    render();
+  </script>
+</body>
+</html>
