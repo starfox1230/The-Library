@@ -249,8 +249,7 @@
       font-size: 0.9rem;
       color: #cfd3d6;
     }
-    .filter-group select,
-    .filter-group input[type="range"] {
+    .filter-group select {
       width: 100%;
       padding: 0.6rem;
       background: rgba(0,0,0,0.3);
@@ -258,9 +257,79 @@
       border-radius: var(--border-radius-sm);
       color: #e0e0e0;
     }
-    .filter-group input[type="range"] {
-      padding: 0;
-      accent-color: var(--primary-color);
+    .dual-range {
+      --range-start: 0%;
+      --range-end: 100%;
+      position: relative;
+      height: 26px;
+      margin-top: 0.15rem;
+    }
+    .dual-range::before {
+      content: "";
+      position: absolute;
+      top: 11px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: 999px;
+      background:
+        linear-gradient(
+          to right,
+          rgba(127, 127, 154, 0.45) 0 var(--range-start),
+          var(--primary-color) var(--range-start) var(--range-end),
+          rgba(127, 127, 154, 0.45) var(--range-end) 100%
+        );
+      box-shadow: 0 0 7px rgba(0, 255, 156, 0.18);
+    }
+    .dual-range input[type="range"] {
+      appearance: none;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 26px;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      pointer-events: none;
+      outline: none;
+    }
+    .dual-range input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      background: transparent;
+    }
+    .dual-range input[type="range"]::-moz-range-track {
+      height: 4px;
+      background: transparent;
+    }
+    .dual-range input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      margin-top: -7px;
+      border: 1px solid var(--primary-color);
+      border-radius: 50%;
+      background: var(--bg-color);
+      box-shadow: 0 0 10px var(--glow-color);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .dual-range input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--primary-color);
+      border-radius: 50%;
+      background: var(--bg-color);
+      box-shadow: 0 0 10px var(--glow-color);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .dual-range input[type="range"]:focus-visible::-webkit-slider-thumb {
+      background: var(--primary-color);
+      box-shadow: 0 0 18px var(--glow-color);
+    }
+    .dual-range input[type="range"]:focus-visible::-moz-range-thumb {
+      background: var(--primary-color);
+      box-shadow: 0 0 18px var(--glow-color);
     }
     .filter-value {
       font-size: 0.85rem;
@@ -315,16 +384,22 @@
         </select>
       </div>
       <div class="filter-group">
-        <label for="photon-filter">Photon energy</label>
-        <input type="range" id="photon-filter" min="0" max="0" step="1" value="0" list="photon-filter-options" />
+        <label for="photon-filter-min">Photon energy</label>
+        <div class="dual-range" id="photon-range">
+          <input type="range" id="photon-filter-min" min="0" max="0" step="1" value="0" list="photon-filter-options" aria-label="Minimum photon energy" />
+          <input type="range" id="photon-filter-max" min="0" max="0" step="1" value="0" list="photon-filter-options" aria-label="Maximum photon energy" />
+        </div>
         <datalist id="photon-filter-options"></datalist>
-        <div class="filter-value" id="photon-filter-value">Any</div>
+        <div class="filter-value" id="photon-filter-value"></div>
       </div>
       <div class="filter-group">
-        <label for="half-life-filter">Half-life</label>
-        <input type="range" id="half-life-filter" min="0" max="0" step="1" value="0" list="half-life-filter-options" />
+        <label for="half-life-filter-min">Half-life</label>
+        <div class="dual-range" id="half-life-range">
+          <input type="range" id="half-life-filter-min" min="0" max="0" step="1" value="0" list="half-life-filter-options" aria-label="Minimum half-life" />
+          <input type="range" id="half-life-filter-max" min="0" max="0" step="1" value="0" list="half-life-filter-options" aria-label="Maximum half-life" />
+        </div>
         <datalist id="half-life-filter-options"></datalist>
-        <div class="filter-value" id="half-life-filter-value">Any</div>
+        <div class="filter-value" id="half-life-filter-value"></div>
       </div>
     </div>
     <div id="search-results"></div>
@@ -420,10 +495,14 @@
     const additionalFilesCache = new Map();
 
     const decayFilterEl = document.getElementById("decay-filter");
-    const photonFilterEl = document.getElementById("photon-filter");
+    const photonRangeEl = document.getElementById("photon-range");
+    const photonFilterMinEl = document.getElementById("photon-filter-min");
+    const photonFilterMaxEl = document.getElementById("photon-filter-max");
     const photonFilterOptionsEl = document.getElementById("photon-filter-options");
     const photonFilterValueEl = document.getElementById("photon-filter-value");
-    const halfLifeFilterEl = document.getElementById("half-life-filter");
+    const halfLifeRangeEl = document.getElementById("half-life-range");
+    const halfLifeFilterMinEl = document.getElementById("half-life-filter-min");
+    const halfLifeFilterMaxEl = document.getElementById("half-life-filter-max");
     const halfLifeFilterOptionsEl = document.getElementById("half-life-filter-options");
     const halfLifeFilterValueEl = document.getElementById("half-life-filter-value");
 
@@ -563,8 +642,10 @@
     // Live filtering
     document.getElementById('search-input').addEventListener('input', filterRadionuclides);
     decayFilterEl.addEventListener('change', filterRadionuclides);
-    photonFilterEl.addEventListener('input', handlePhotonFilterInput);
-    halfLifeFilterEl.addEventListener('input', handleHalfLifeFilterInput);
+    photonFilterMinEl.addEventListener('input', () => handleRangeInput(photonFilterMinEl, photonFilterMaxEl, photonOptions, photonRangeEl, photonFilterValueEl, formatPhotonValue));
+    photonFilterMaxEl.addEventListener('input', () => handleRangeInput(photonFilterMaxEl, photonFilterMinEl, photonOptions, photonRangeEl, photonFilterValueEl, formatPhotonValue));
+    halfLifeFilterMinEl.addEventListener('input', () => handleRangeInput(halfLifeFilterMinEl, halfLifeFilterMaxEl, halfLifeOptions, halfLifeRangeEl, halfLifeFilterValueEl));
+    halfLifeFilterMaxEl.addEventListener('input', () => handleRangeInput(halfLifeFilterMaxEl, halfLifeFilterMinEl, halfLifeOptions, halfLifeRangeEl, halfLifeFilterValueEl));
 
     function setupSearchFilters() {
       decayOptions.forEach(option => {
@@ -574,47 +655,81 @@
         decayFilterEl.appendChild(item);
       });
 
-      configureSlider({
-        sliderEl: photonFilterEl,
+      configureRangeFilter({
+        minSliderEl: photonFilterMinEl,
+        maxSliderEl: photonFilterMaxEl,
+        rangeEl: photonRangeEl,
         datalistEl: photonFilterOptionsEl,
         valueEl: photonFilterValueEl,
         options: photonOptions,
-        formatLabel: value => `${value} keV`
+        formatValue: formatPhotonValue
       });
 
-      configureSlider({
-        sliderEl: halfLifeFilterEl,
+      configureRangeFilter({
+        minSliderEl: halfLifeFilterMinEl,
+        maxSliderEl: halfLifeFilterMaxEl,
+        rangeEl: halfLifeRangeEl,
         datalistEl: halfLifeFilterOptionsEl,
         valueEl: halfLifeFilterValueEl,
         options: halfLifeOptions
       });
     }
 
-    function configureSlider({ sliderEl, datalistEl, valueEl, options, formatLabel = value => value }) {
-      sliderEl.min = 0;
-      sliderEl.max = options.length;
-      sliderEl.step = 1;
-      sliderEl.value = 0;
+    function configureRangeFilter({ minSliderEl, maxSliderEl, rangeEl, datalistEl, valueEl, options, formatValue = value => value }) {
+      const maxIndex = Math.max(0, options.length - 1);
+      [minSliderEl, maxSliderEl].forEach(sliderEl => {
+        sliderEl.min = 0;
+        sliderEl.max = maxIndex;
+        sliderEl.step = 1;
+      });
+      minSliderEl.value = 0;
+      maxSliderEl.value = maxIndex;
       datalistEl.innerHTML = options
-        .map((option, index) => `<option value="${index + 1}" label="${formatLabel(option)}"></option>`)
+        .map((option, index) => `<option value="${index}" label="${formatValue(option)}"></option>`)
         .join('');
-      valueEl.textContent = "Any";
+      updateRangeDisplay(minSliderEl, maxSliderEl, options, rangeEl, valueEl, formatValue);
     }
 
-    function handlePhotonFilterInput() {
-      const selection = getSliderSelection(photonFilterEl, photonOptions);
-      photonFilterValueEl.textContent = selection === "Any" ? "Any" : `${selection} keV`;
+    function formatPhotonValue(value) {
+      return `${value} keV`;
+    }
+
+    function handleRangeInput(changedEl, pairedEl, options, rangeEl, valueEl, formatValue = value => value) {
+      const changedValue = Number(changedEl.value);
+      const pairedValue = Number(pairedEl.value);
+      if (changedEl.id.endsWith("-min") && changedValue > pairedValue) {
+        pairedEl.value = changedValue;
+      } else if (changedEl.id.endsWith("-max") && changedValue < pairedValue) {
+        pairedEl.value = changedValue;
+      }
+      updateRangeDisplay(
+        changedEl.id.endsWith("-min") ? changedEl : pairedEl,
+        changedEl.id.endsWith("-max") ? changedEl : pairedEl,
+        options,
+        rangeEl,
+        valueEl,
+        formatValue
+      );
       filterRadionuclides();
     }
 
-    function handleHalfLifeFilterInput() {
-      halfLifeFilterValueEl.textContent = getSliderSelection(halfLifeFilterEl, halfLifeOptions);
-      filterRadionuclides();
+    function updateRangeDisplay(minSliderEl, maxSliderEl, options, rangeEl, valueEl, formatValue) {
+      const minIndex = Number(minSliderEl.value);
+      const maxIndex = Number(maxSliderEl.value);
+      const denominator = Math.max(1, options.length - 1);
+      rangeEl.style.setProperty("--range-start", `${(minIndex / denominator) * 100}%`);
+      rangeEl.style.setProperty("--range-end", `${(maxIndex / denominator) * 100}%`);
+      valueEl.textContent = `${formatValue(options[minIndex])} - ${formatValue(options[maxIndex])}`;
     }
 
-    function getSliderSelection(sliderEl, options) {
-      const value = Number(sliderEl.value);
-      return value === 0 ? "Any" : options[value - 1];
+    function getSelectedRange(minSliderEl, maxSliderEl, options) {
+      const minIndex = Number(minSliderEl.value);
+      const maxIndex = Number(maxSliderEl.value);
+      return {
+        min: options[minIndex],
+        max: options[maxIndex],
+        isFullRange: minIndex === 0 && maxIndex === options.length - 1
+      };
     }
 
     function buildUniqueOptions(values) {
@@ -706,14 +821,18 @@
       const q   = document.getElementById('search-input').value.toLowerCase();
       const out = document.getElementById('search-results');
       const decayFilter = decayFilterEl.value;
-      const photonFilter = getSliderSelection(photonFilterEl, photonOptions);
-      const halfLifeFilter = getSliderSelection(halfLifeFilterEl, halfLifeOptions);
+      const photonFilter = getSelectedRange(photonFilterMinEl, photonFilterMaxEl, photonOptions);
+      const halfLifeFilter = getSelectedRange(halfLifeFilterMinEl, halfLifeFilterMaxEl, halfLifeOptions);
+      const minHalfLife = getHalfLifeSortValue(halfLifeFilter.min);
+      const maxHalfLife = getHalfLifeSortValue(halfLifeFilter.max);
       out.innerHTML = '';
       data.filter(item => {
             const matchesName = item.name.toLowerCase().includes(q);
             const matchesDecay = decayFilter === "any" || getPredominantDecay(item.decay) === decayFilter;
-            const matchesPhoton = photonFilter === "Any" || extractPhotonEnergies(item.photons).includes(photonFilter);
-            const matchesHalfLife = halfLifeFilter === "Any" || item.halfLife === halfLifeFilter;
+            const energies = extractPhotonEnergies(item.photons);
+            const matchesPhoton = photonFilter.isFullRange || energies.some(energy => energy >= photonFilter.min && energy <= photonFilter.max);
+            const halfLife = getHalfLifeSortValue(item.halfLife);
+            const matchesHalfLife = halfLife >= minHalfLife && halfLife <= maxHalfLife;
             return matchesName && matchesDecay && matchesPhoton && matchesHalfLife;
           })
           .sort((a, b) => a.name.localeCompare(b.name))
