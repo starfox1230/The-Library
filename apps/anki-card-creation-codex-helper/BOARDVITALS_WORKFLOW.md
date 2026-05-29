@@ -52,6 +52,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Do not paste a Vital Concept or explanation sentence and append `Key answer:`. First identify what the question was actually testing, then write a clean cloze around that tested point.
 - For fact cards derived from image-containing questions, append all source images in `Extra` if they are not already on the front of that card.
 - For BoardVitals cards, use the same content set exposed by the local review page's `Copy screenshot` workflow as extra-side support: include generated question/explanation screenshot cards plus any local source images from that question that are not already used on the front of the Anki card. Do not duplicate front-side images in `Extra`; include the remaining review-page screenshot pack after the teaching sentence/Vital Concept.
+- In the generated question-context screenshot used as Anki support, include the answer-choice percentages next to each answer choice, along with selected/correct labels. This mirrors the local review page. The ban on peer percentages applies to repetitive prose in the `Extra` text field, not to the compact screenshot of the original question context.
 - Render those generated question/explanation screenshot cards in the same compact dark framed format used by the local review page: calculate height from the actual wrapped lines, with only a small minimum canvas height, rather than adding long unused blank space. The review page and APKG should produce the same readable crop behavior.
 - Render list structure in Anki explanation screenshot cards the same way as the HTML review page: use `-` bullets or numbered markers with retained indentation from captured list metadata, and fall back to nested bullets for legacy captures without ordered/unordered type.
 
@@ -59,7 +60,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 
 - Start `Extra` with `Q<number>`.
 - It is acceptable to include result and difficulty after the question number.
-- Do not include peer-comparison percentages in Anki `Extra`; those are not useful repeated-review content.
+- Do not include peer-comparison percentages as prose in Anki `Extra`; avoid lines such as `correct answer chosen by X% of peers` or `selected answer chosen by Y% of peers`. Keep per-choice percentages in the generated question-context screenshot support image.
 - Include at least one short teaching sentence explaining the tested point or discriminator.
 - If the question includes `Vital Concept` or a similarly labeled concept, copy it word-for-word into `Extra` whenever technically possible. Put it after the question number/result metadata and before appended images.
 - Include all unused question images after the Extra text.

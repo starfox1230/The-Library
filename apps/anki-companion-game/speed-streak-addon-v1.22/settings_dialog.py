@@ -930,6 +930,7 @@ class SettingsDialog(QDialog):
         self.shortcut_inputs: dict[str, QLineEdit] = {}
         self.pause_shortcut_mode_combo: ScrollSafeComboBox | None = None
         self.developer_mode_check: QCheckBox | None = None
+        self.resume_run_after_restart_check: QCheckBox | None = None
         self.flag_palette = get_anki_flag_palette()
 
         self.setModal(False)
@@ -1438,6 +1439,15 @@ class SettingsDialog(QDialog):
                 "How long the answer side stays on its timer once the card is revealed.",
                 self.answer_spin,
                 control_width=148,
+            )
+        )
+        self.resume_run_after_restart_check = QCheckBox("Resume run after restarting Anki", frame)
+        self.resume_run_after_restart_check.toggled.connect(self.persist_settings)
+        layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.resume_run_after_restart_check,
+                "Default: Off. Restores the active Speed Streak run, streak, score, and timer state after closing and reopening Anki.",
             )
         )
         return frame
@@ -1959,6 +1969,10 @@ class SettingsDialog(QDialog):
             self._populate_flag_combos(state.time_drain_flag, state.review_later_flag)
             if self.developer_mode_check is not None:
                 self.developer_mode_check.setChecked(bool(getattr(self.controller, "developer_mode_enabled", False)))
+            if self.resume_run_after_restart_check is not None:
+                self.resume_run_after_restart_check.setChecked(
+                    bool(getattr(self.controller, "resume_run_after_restart_enabled", False))
+                )
             self.display_mode_combo.setCurrentIndex(
                 max(0, self.display_mode_combo.findData(getattr(self.controller, "display_mode", DISPLAY_MODE_INLINE)))
             )
@@ -2381,6 +2395,11 @@ class SettingsDialog(QDialog):
             haptic_controller_profile=haptic_controller_profile,
             haptic_event_patterns=haptic_event_patterns,
             show_card_timer=bool(self.show_card_timer_check.isChecked()),
+            resume_run_after_restart=bool(
+                self.resume_run_after_restart_check.isChecked()
+                if self.resume_run_after_restart_check is not None
+                else False
+            ),
             display_mode=str(self.display_mode_combo.currentData() or DISPLAY_MODE_INLINE),
             visual_mode=visual_mode,
             sphere_mode=str(self.sphere_mode_combo.currentData() or SPHERE_MODE_CLASSIC),

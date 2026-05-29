@@ -306,6 +306,8 @@ class ReviewerOverlayController:
         self._last_timer_display_anchor_ms = 0
         self._non_review_surface_applied = False
         self._deferred_time_drain_card_ids: list[int] = []
+        self._pause_overview_visible = False
+        self.resume_run_after_restart_enabled = False
         self.review_later_today_deck_button_enabled = False
         self._deck_browser_refresh_pending = False
         self._persist_settings_timer = QTimer(mw)
@@ -791,6 +793,9 @@ class ReviewerOverlayController:
                 )
                 visuals_enabled = bool(data.get("visualsEnabled", True))
                 show_card_timer = bool(data.get("showCardTimer", True))
+                resume_run_after_restart = bool(
+                    data.get("resumeRunAfterRestart", self.resume_run_after_restart_enabled)
+                )
                 orbit_animation_enabled = bool(data.get("orbitAnimationEnabled", True))
                 reduced_motion_enabled = bool(data.get("reducedMotion", self.engine.state.reduced_motion_enabled))
                 custom_timer_colors = bool(data.get("customTimerColors", False))
@@ -833,6 +838,7 @@ class ReviewerOverlayController:
             self.visual_mode = visual_mode
             self.sphere_mode = sphere_mode
             self.render_mode = render_mode
+            self.resume_run_after_restart_enabled = resume_run_after_restart
             if (
                 previous_time_drain_flag != int(self.engine.state.time_drain_flag or 0)
                 or previous_time_drain_review_last != bool(self.engine.state.time_drain_review_last)
@@ -852,8 +858,22 @@ class ReviewerOverlayController:
                     0,
                     int(float(message.split("speed-streak:pause-overview-start:", 1)[1] or 0)),
                 )
+                self._pause_overview_visible = self._pause_overview_start_ms > 0
             except Exception:
                 self._pause_overview_start_ms = 0
+                self._pause_overview_visible = False
+            self._save_persisted_settings()
+            self._push_state(only_if_changed=False)
+            return (True, None)
+        if message.startswith("speed-streak:pause-overview:"):
+            payload = message.split("speed-streak:pause-overview:", 1)[1]
+            try:
+                data = json.loads(unquote(payload))
+                self._pause_overview_visible = bool(data.get("visible", False))
+                self._pause_overview_start_ms = max(0, int(float(data.get("startMs", 0) or 0)))
+            except Exception:
+                return (True, None)
+            self._save_persisted_settings()
             self._push_state(only_if_changed=False)
             return (True, None)
         if message == "speed-streak:toggle-collapsed":
@@ -949,6 +969,7 @@ class ReviewerOverlayController:
         haptic_controller_profile: str,
         haptic_event_patterns: dict[str, str],
         show_card_timer: bool,
+        resume_run_after_restart: bool,
         display_mode: str,
         visual_mode: str,
         sphere_mode: str,
@@ -985,6 +1006,7 @@ class ReviewerOverlayController:
             appearance_mode=appearance_mode,
             custom_colors=custom_colors,
         )
+        self.resume_run_after_restart_enabled = bool(resume_run_after_restart)
         self.shortcut_bindings = normalize_shortcut_bindings(shortcut_bindings)
         self.pause_shortcut_mode = normalize_pause_shortcut_mode(pause_shortcut_mode)
         self.developer_mode_enabled = False
@@ -1031,6 +1053,7 @@ class ReviewerOverlayController:
         self.sphere_mode = SPHERE_MODE_CLASSIC
         self.render_mode = RENDER_MODE_WEBGL
         self.review_later_today_deck_button_enabled = False
+        self.resume_run_after_restart_enabled = False
         self.haptics.set_enabled(self.engine.state.haptics_enabled)
         self._save_persisted_settings()
         self._request_deck_browser_refresh()
@@ -1452,6 +1475,8 @@ class ReviewerOverlayController:
                 "pauseShortcut": self.pause_shortcut_display(),
                 "unpauseShortcut": self.unpause_shortcut_display(),
                 "pauseShortcutMode": self.pause_shortcut_mode,
+                "pauseOverviewState": self._pause_overview_state(),
+                "resumeRunAfterRestart": int(self.resume_run_after_restart_enabled),
                 "pauseOverviewStats": self._pause_overview_stats(),
                 **timer_display,
             }
@@ -1459,13 +1484,14 @@ class ReviewerOverlayController:
         if self._sidebar_web is not None:
             self._sidebar_web.eval(f"window.SpeedStreak && window.SpeedStreak.receiveState({payload});")
         self._push_card_timer_state(payload)
+        self._save_persisted_settings()
         if self._uses_reduced_render_timing():
             self._last_reduced_live_update_bucket = self._current_reduced_live_update_bucket()
         else:
             self._last_reduced_live_update_bucket = None
 
     def _pause_overview_stats(self) -> dict[str, Any]:
-        start_ms = int(self._pause_overview_start_ms or 0)
+        start_ms = int(self._pause_overview_start_ms or 0) if self._pause_overview_visible else 0
         if start_ms <= 0:
             return {"startMs": 0, "total": 0, "again": 0, "hard": 0, "good": 0, "easy": 0, "elapsedSeconds": 0}
         elapsed_seconds = max(0.0, (time.time() * 1000.0 - float(start_ms)) / 1000.0)
@@ -1498,6 +1524,12 @@ class ReviewerOverlayController:
             "good": good,
             "easy": easy,
             "elapsedSeconds": elapsed_seconds,
+        }
+
+    def _pause_overview_state(self) -> dict[str, Any]:
+        return {
+            "visible": bool(self._pause_overview_visible),
+            "startMs": int(self._pause_overview_start_ms or 0),
         }
 
     def _uses_reduced_render_timing(self) -> bool:
@@ -1839,6 +1871,10 @@ class ReviewerOverlayController:
             self.review_later_today_deck_button_enabled = bool(
                 config.get("review_later_today_deck_button_enabled", False)
             )
+            self.resume_run_after_restart_enabled = bool(config.get("resume_run_after_restart", False))
+            pause_overview_state = dict(config.get("pause_overview_state", {}) or {})
+            self._pause_overview_visible = bool(pause_overview_state.get("visible", False))
+            self._pause_overview_start_ms = max(0, int(float(pause_overview_state.get("startMs", 0) or 0)))
             reduced_motion_enabled = config.get("reduced_motion")
             if reduced_motion_enabled is None:
                 reduced_motion_enabled = self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS
@@ -1877,6 +1913,8 @@ class ReviewerOverlayController:
             if self.developer_mode_enabled:
                 self._apply_developer_mode_settings()
             self.engine.state.enabled = bool(config.get("enabled", True))
+            if self.resume_run_after_restart_enabled:
+                self.engine.restore_runtime(dict(config.get("runtime_state", {}) or {}))
             self.haptics.set_enabled(self.engine.state.haptics_enabled)
         except Exception:
             self.display_mode = DISPLAY_MODE_INLINE
@@ -1892,6 +1930,9 @@ class ReviewerOverlayController:
             self.developer_mode_enabled = False
             self._developer_mode_previous_settings = {}
             self.review_later_today_deck_button_enabled = False
+            self.resume_run_after_restart_enabled = False
+            self._pause_overview_visible = False
+            self._pause_overview_start_ms = 0
             self.engine.update_time_limits(
                 question_seconds=12,
                 answer_seconds=8,
@@ -1932,6 +1973,8 @@ class ReviewerOverlayController:
             self._floating_geometry = self._floating_window.export_geometry() or self._floating_geometry
         return {
             "enabled": bool(state.enabled),
+            "runtime_state": self.engine.export_runtime() if self.resume_run_after_restart_enabled else {},
+            "resume_run_after_restart": bool(self.resume_run_after_restart_enabled),
             "display_mode": self.display_mode,
             "visual_mode": self.visual_mode,
             "sphere_mode": self.sphere_mode,
@@ -1966,6 +2009,7 @@ class ReviewerOverlayController:
             "time_drain_review_last": bool(state.time_drain_review_last),
             "review_later_flag": state.review_later_flag,
             "review_later_today_deck_button_enabled": bool(self.review_later_today_deck_button_enabled),
+            "pause_overview_state": self._pause_overview_state(),
         }
 
     def _normalize_window_position_presets(self, raw: object) -> list[dict[str, str]]:

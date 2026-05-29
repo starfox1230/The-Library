@@ -26,7 +26,7 @@ FILTERED_LIGHTNING_SESSIONS_CONFIG_KEY = "anki_pocket_knife_lightning_sessions"
 RECOVERED_LIGHTNING_DECK_NAME_PREFIX = "Recovered Lightning Cards "
 QUESTION_ACTION_SHOW_ANSWER = 0
 ANSWER_ACTION_BURY_CARD = 0
-LIGHTNING_MODE_PAUSE_SHORTCUT = "P"
+LIGHTNING_MODE_FALLBACK_PAUSE_SHORTCUT = "P"
 _HOOK_REGISTERED = False
 _MAX_CARDS_PER_TERM = 250
 _SESSION_TIMER_INTERVAL_MS = 2500
@@ -1832,6 +1832,45 @@ def _find_speed_streak_controller() -> tuple[str, Any] | None:
     return None
 
 
+def _speed_streak_pause_shortcut_label(controller: Any | None = None) -> str:
+    if controller is None:
+        found = _find_speed_streak_controller()
+        if found is not None:
+            _module_name, controller = found
+
+    if controller is not None:
+        pause_display = getattr(controller, "pause_shortcut_display", None)
+        if callable(pause_display):
+            try:
+                value = str(pause_display() or "").strip()
+                if value:
+                    return value
+            except Exception:
+                pass
+
+        shortcut_label = getattr(controller, "shortcut_label", None)
+        if callable(shortcut_label):
+            try:
+                value = str(shortcut_label("pause") or "").strip()
+                if value:
+                    return value
+            except Exception:
+                pass
+
+        current_bindings = getattr(controller, "current_shortcut_bindings", None)
+        if callable(current_bindings):
+            try:
+                bindings = current_bindings()
+                if isinstance(bindings, dict):
+                    value = str(bindings.get("pause", "") or "").strip()
+                    if value:
+                        return value
+            except Exception:
+                pass
+
+    return LIGHTNING_MODE_FALLBACK_PAUSE_SHORTCUT
+
+
 def _push_speed_streak_state(controller: Any) -> None:
     push_state = getattr(controller, "_push_state", None)
     if callable(push_state):
@@ -2006,7 +2045,7 @@ def _on_state_shortcuts_will_change(state: Any, shortcuts: list[tuple[str, Any]]
         return
     if not is_speed_streak_bridge_enabled():
         return
-    shortcuts.append((LIGHTNING_MODE_PAUSE_SHORTCUT, _on_lightning_pause_shortcut))
+    shortcuts.append((_speed_streak_pause_shortcut_label(), _on_lightning_pause_shortcut))
 
 
 def install() -> None:

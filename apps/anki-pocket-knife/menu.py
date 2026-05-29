@@ -314,7 +314,7 @@ class PocketKnifeLauncherDialog(QDialog):
         lightning_layout.addLayout(lightning_grid)
 
         self.speed_streak_bridge_checkbox = QCheckBox(
-            "Legacy Speed Streak bridge for Lightning Mode (P pauses both)"
+            "Legacy Speed Streak bridge for Lightning Mode (uses Speed Streak pause shortcut)"
         )
         self.speed_streak_bridge_checkbox.setChecked(is_speed_streak_bridge_enabled())
         lightning_layout.addWidget(self.speed_streak_bridge_checkbox)

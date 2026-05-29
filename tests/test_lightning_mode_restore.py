@@ -274,3 +274,37 @@ def test_existing_lightning_deck_ids_accept_anki_name_id_objects():
     )
 
     assert module._existing_lightning_deck_ids() == [20]
+
+
+def test_speed_streak_pause_shortcut_label_uses_controller_display():
+    cards: dict[int, dict[str, int]] = {}
+    module = _load_module(cards)
+
+    controller = types.SimpleNamespace(pause_shortcut_display=lambda: "Ctrl+9")
+
+    assert module._speed_streak_pause_shortcut_label(controller) == "Ctrl+9"
+
+
+def test_speed_streak_pause_shortcut_label_falls_back_to_bindings():
+    cards: dict[int, dict[str, int]] = {}
+    module = _load_module(cards)
+
+    controller = types.SimpleNamespace(
+        pause_shortcut_display=lambda: "",
+        current_shortcut_bindings=lambda: {"pause": "Alt+P"},
+    )
+
+    assert module._speed_streak_pause_shortcut_label(controller) == "Alt+P"
+
+
+def test_review_shortcut_bridge_uses_speed_streak_shortcut(monkeypatch):
+    cards: dict[int, dict[str, int]] = {}
+    module = _load_module(cards)
+    shortcuts: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(module, "is_speed_streak_bridge_enabled", lambda: True)
+    monkeypatch.setattr(module, "_speed_streak_pause_shortcut_label", lambda: "Ctrl+9")
+
+    module._on_state_shortcuts_will_change("review", shortcuts)
+
+    assert shortcuts == [("Ctrl+9", module._on_lightning_pause_shortcut)]

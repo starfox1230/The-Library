@@ -151,6 +151,11 @@
     if (state.pauseOverview) {
       return state.pauseOverview;
     }
+    if (data.pauseOverviewState && typeof data.pauseOverviewState === "object") {
+      state.pauseOverview = normalizePauseOverview(data.pauseOverviewState, data);
+      savePauseOverview({ syncBackend: false });
+      return state.pauseOverview;
+    }
     try {
       state.pauseOverview = normalizePauseOverview(JSON.parse(window.localStorage.getItem(PAUSE_OVERVIEW_STORAGE_KEY) || "null"), data);
     } catch (_error) {
@@ -159,7 +164,7 @@
     return state.pauseOverview;
   }
 
-  function savePauseOverview() {
+  function savePauseOverview(options = {}) {
     if (!state.pauseOverview) {
       return;
     }
@@ -168,25 +173,35 @@
     } catch (_error) {
       // Ignore storage failures; the overview still works for the current page.
     }
+    if (options.syncBackend !== false) {
+      syncPauseOverviewToBackend();
+    }
+  }
+
+  function syncPauseOverviewToBackend() {
+    const overview = loadPauseOverview(state.data || {});
+    const payload = {
+      visible: Boolean(overview.visible),
+      startMs: Math.max(0, Math.round(Number(overview.startMs || 0))),
+    };
+    const signature = JSON.stringify(payload);
+    if (signature === state.lastPauseOverviewStartSent) {
+      return;
+    }
+    state.lastPauseOverviewStartSent = signature;
+    if (typeof pycmd === "function") {
+      pycmd(`speed-streak:pause-overview:${encodeURIComponent(signature)}`);
+    }
   }
 
   function syncPauseOverviewStartToBackend() {
-    const overview = loadPauseOverview(state.data || {});
-    const startMs = overview.visible ? Math.max(0, Math.round(Number(overview.startMs || 0))) : 0;
-    if (startMs === state.lastPauseOverviewStartSent) {
-      return;
-    }
-    state.lastPauseOverviewStartSent = startMs;
-    if (typeof pycmd === "function") {
-      pycmd(`speed-streak:pause-overview-start:${startMs}`);
-    }
+    syncPauseOverviewToBackend();
   }
 
   function resetPauseOverview(data = {}) {
     state.pauseOverview = defaultPauseOverview(data);
     state.pauseOverview.visible = true;
     savePauseOverview();
-    syncPauseOverviewStartToBackend();
   }
 
   function formatOverviewStart(ms) {
@@ -279,8 +294,16 @@
     }
     const toggle = $("acgPauseOverviewToggle");
     if (toggle) {
-      setText(toggle, overview.visible ? "Hide" : "Show");
+      setText(toggle, overview.visible ? "Hide Timer" : "Show Timer");
       toggle.setAttribute("data-pause-overview-action", overview.visible ? "hide" : "show");
+    }
+    const reset = $("acgPauseOverviewReset");
+    const edit = $("acgPauseOverviewEdit");
+    if (reset) {
+      reset.hidden = !overview.visible;
+    }
+    if (edit) {
+      edit.hidden = !overview.visible;
     }
     const bounds = overlay.getBoundingClientRect();
     const x = clamp(Number(event.clientX || bounds.left + bounds.width - 10) - bounds.left, 8, Math.max(8, bounds.width - 118));
@@ -295,7 +318,6 @@
     if (action === "hide") {
       overview.visible = false;
       savePauseOverview();
-      syncPauseOverviewStartToBackend();
     } else if (action === "show") {
       resetPauseOverview(state.data || {});
     } else if (action === "edit") {
@@ -306,7 +328,6 @@
         if (Number.isFinite(parsed)) {
           overview.startMs = parsed;
           savePauseOverview();
-          syncPauseOverviewStartToBackend();
         }
       }
     } else {
@@ -456,10 +477,9 @@
             <div id="acgPauseOverviewAccuracy" class="acg-pause-overview-foot">0 right / 0 wrong</div>
           </div>
           <div id="acgPauseOverviewMenu" class="acg-pause-overview-menu hidden">
-            <button id="acgPauseOverviewToggle" type="button" data-pause-overview-action="show">Show</button>
-            <button type="button" data-pause-overview-action="reset">Reset from now</button>
-            <button type="button" data-pause-overview-action="edit">Edit start time</button>
-            <button type="button" data-pause-overview-action="hide">Hide</button>
+            <button id="acgPauseOverviewToggle" type="button" data-pause-overview-action="show">Show Timer</button>
+            <button id="acgPauseOverviewReset" type="button" data-pause-overview-action="reset">Reset from now</button>
+            <button id="acgPauseOverviewEdit" type="button" data-pause-overview-action="edit">Edit start time</button>
           </div>
         </div>
         <div id="acgOffOverlay" class="acg-off-overlay">
@@ -491,6 +511,13 @@
                 <label class="acg-form-label" for="acgAnswerSeconds">Answer Time</label>
                 <input id="acgAnswerSeconds" class="acg-input" type="number" min="1" step="0.5" />
               </div>
+              <label class="acg-switch-row" for="acgResumeRunAfterRestart">
+                <span class="acg-switch-copy-wrap">
+                  <span class="acg-form-label">Resume Run After Restart</span>
+                  <span class="acg-switch-copy">Restore the active run, streak, score, and timer after closing and reopening Anki.</span>
+                </span>
+                <input id="acgResumeRunAfterRestart" class="acg-switch" type="checkbox" />
+              </label>
             </div>
             <div class="acg-settings-section" data-section="flags">
               <div class="acg-section-title">Flags</div>
@@ -787,6 +814,11 @@
     if (answerInput) {
       answerInput.addEventListener("change", () => saveSettings());
       answerInput.addEventListener("blur", () => saveSettings());
+    }
+
+    const resumeRunInput = document.getElementById("acgResumeRunAfterRestart");
+    if (resumeRunInput) {
+      resumeRunInput.addEventListener("change", () => saveSettings());
     }
 
     const showCardTimerInput = document.getElementById("acgShowCardTimer");
@@ -1338,6 +1370,7 @@
     const timeDrainReviewLast = Boolean($("acgTimeDrainReviewLast")?.checked);
     const rl = Number($("acgReviewLaterFlag")?.value || 0);
     const showCardTimer = Boolean($("acgShowCardTimer")?.checked);
+    const resumeRunAfterRestart = Boolean($("acgResumeRunAfterRestart")?.checked);
     const orbitAnimationEnabled = Boolean($("acgOrbitAnimation")?.checked);
     const visualsEnabled = !Boolean($("acgVibrationOnlyMode")?.checked || $("acgVibrationOnlyModePerf")?.checked);
     const visualMode = Object.prototype.hasOwnProperty.call(overrides, "visualMode")
@@ -1380,6 +1413,7 @@
           audioEnabled,
           hapticsEnabled,
           showCardTimer,
+          resumeRunAfterRestart,
           orbitAnimationEnabled,
           visualMode,
           sphereMode,
@@ -1406,6 +1440,7 @@
       question: Number(data.questionLimitMs || 12000),
       answer: Number(data.reviewLimitMs || 8000),
       showCardTimer: Boolean(data.showCardTimer),
+      resumeRunAfterRestart: Boolean(data.resumeRunAfterRestart),
       orbitAnimationEnabled: Boolean(data.orbitAnimationEnabled ?? true),
       visualsEnabled: Boolean(data.visualsEnabled),
       appearanceMode: state.appearanceModeDraft,
@@ -1433,6 +1468,10 @@
     const showCardTimerInput = $("acgShowCardTimer");
     if (showCardTimerInput && document.activeElement !== showCardTimerInput) {
       showCardTimerInput.checked = Boolean(data.showCardTimer);
+    }
+    const resumeRunInput = $("acgResumeRunAfterRestart");
+    if (resumeRunInput && document.activeElement !== resumeRunInput) {
+      resumeRunInput.checked = Boolean(data.resumeRunAfterRestart);
     }
     const orbitAnimationInput = $("acgOrbitAnimation");
     if (orbitAnimationInput && document.activeElement !== orbitAnimationInput) {

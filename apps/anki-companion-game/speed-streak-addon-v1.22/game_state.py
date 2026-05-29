@@ -238,6 +238,94 @@ class CompanionGameEngine:
             "reviewLaterFlag": s.review_later_flag,
         }
 
+    def export_runtime(self) -> Dict[str, Any]:
+        s = self.state
+        return {
+            "synced": bool(s.synced),
+            "session_active": bool(s.session_active),
+            "first_card_free": bool(s.first_card_free),
+            "phase": str(s.phase),
+            "phase_start_epoch_ms": int(s.phase_start_epoch_ms),
+            "phase_limit_ms": int(s.phase_limit_ms),
+            "answer_shown": bool(s.answer_shown),
+            "current_card_index": int(s.current_card_index),
+            "current_card_id": str(s.current_card_id),
+            "deck_name": str(s.deck_name),
+            "current_card_flag": int(s.current_card_flag),
+            "previous_card_flag": int(s.previous_card_flag),
+            "answered_cards": int(s.answered_cards),
+            "skipped_cards": int(s.skipped_cards),
+            "score": int(s.score),
+            "streak": int(s.streak),
+            "streak_multiplier": float(s.streak_multiplier),
+            "paused": bool(s.paused),
+            "paused_remaining_ms": int(s.paused_remaining_ms),
+            "failure_visual_active": bool(s.failure_visual_active),
+            "last_satellite_color": str(s.last_satellite_color),
+            "satellite_colors": list(s.satellite_colors),
+            "timeout_phase_latch": str(s.timeout_phase_latch),
+            "skip_pending": bool(s.skip_pending),
+            "total_pause_ms": int(s.total_pause_ms),
+            "pause_started_epoch_ms": int(s.pause_started_epoch_ms),
+            "pause_count_started_epoch_ms": int(s.pause_count_started_epoch_ms),
+            "pause_origin": str(s.pause_origin),
+            "card": {
+                "question_elapsed_ms": int(self.card.question_elapsed_ms),
+                "question_free": bool(self.card.question_free),
+                "answer_elapsed_ms": int(self.card.answer_elapsed_ms),
+            },
+        }
+
+    def restore_runtime(self, runtime: Dict[str, Any]) -> None:
+        if not isinstance(runtime, dict):
+            return
+        s = self.state
+        phase = str(runtime.get("phase", "idle") or "idle")
+        if phase not in {"idle", "question", "answer"}:
+            phase = "idle"
+        s.synced = bool(runtime.get("synced", False))
+        s.session_active = bool(runtime.get("session_active", False))
+        s.first_card_free = bool(runtime.get("first_card_free", False))
+        s.phase = phase
+        s.phase_start_epoch_ms = max(0, int(runtime.get("phase_start_epoch_ms", 0) or 0))
+        s.phase_limit_ms = max(0, int(runtime.get("phase_limit_ms", 0) or 0))
+        s.answer_shown = bool(runtime.get("answer_shown", False))
+        s.current_card_index = max(0, int(runtime.get("current_card_index", 0) or 0))
+        s.current_card_id = str(runtime.get("current_card_id", "") or "")
+        s.deck_name = str(runtime.get("deck_name", "") or "")
+        s.current_card_flag = max(0, int(runtime.get("current_card_flag", 0) or 0))
+        s.previous_card_flag = max(0, int(runtime.get("previous_card_flag", 0) or 0))
+        s.answered_cards = max(0, int(runtime.get("answered_cards", 0) or 0))
+        s.skipped_cards = max(0, int(runtime.get("skipped_cards", 0) or 0))
+        s.score = max(0, int(runtime.get("score", 0) or 0))
+        s.streak = max(0, int(runtime.get("streak", 0) or 0))
+        s.streak_multiplier = max(1.0, float(runtime.get("streak_multiplier", 1.0) or 1.0))
+        s.paused = bool(runtime.get("paused", False))
+        s.paused_remaining_ms = max(0, int(runtime.get("paused_remaining_ms", 0) or 0))
+        s.failure_visual_active = bool(runtime.get("failure_visual_active", False))
+        s.last_satellite_color = str(runtime.get("last_satellite_color", "green") or "green")
+        raw_colors = runtime.get("satellite_colors", [])
+        s.satellite_colors = [str(color) for color in raw_colors] if isinstance(raw_colors, list) else []
+        s.timeout_phase_latch = str(runtime.get("timeout_phase_latch", "") or "")
+        s.skip_pending = bool(runtime.get("skip_pending", False))
+        s.total_pause_ms = max(0, int(runtime.get("total_pause_ms", 0) or 0))
+        s.pause_started_epoch_ms = max(0, int(runtime.get("pause_started_epoch_ms", 0) or 0))
+        s.pause_count_started_epoch_ms = max(0, int(runtime.get("pause_count_started_epoch_ms", 0) or 0))
+        s.pause_origin = str(runtime.get("pause_origin", "") or "")
+        raw_card = runtime.get("card", {})
+        if isinstance(raw_card, dict):
+            self.card = CardRuntime(
+                question_elapsed_ms=max(0, int(raw_card.get("question_elapsed_ms", 0) or 0)),
+                question_free=bool(raw_card.get("question_free", False)),
+                answer_elapsed_ms=max(0, int(raw_card.get("answer_elapsed_ms", 0) or 0)),
+            )
+        if s.phase == "idle" or not s.current_card_id:
+            s.phase = "idle"
+            s.phase_start_epoch_ms = 0
+            s.phase_limit_ms = 0
+            s.paused = False
+            s.paused_remaining_ms = 0
+
     def hard_reset(self) -> None:
         preferences = self._capture_user_preferences()
         self.state = CompanionState()
@@ -351,6 +439,10 @@ class CompanionGameEngine:
         elif previous_card_id and previous_card_id != card_id:
             s.current_card_index += 1
 
+        if previous_card_id == card_id and s.phase == "question" and not s.answer_shown:
+            self._publish("question", "Question surface re-synced.")
+            return "question"
+
         self.begin_question_phase(is_free=False)
         self._publish("question", "Question surface synced.")
         return "question"
@@ -363,6 +455,7 @@ class CompanionGameEngine:
             if s.current_card_index < 1:
                 s.current_card_index = 1
 
+        previous_card_id = str(s.current_card_id or "")
         s.previous_card_flag = s.current_card_flag
         s.current_card_id = card_id
         s.deck_name = deck_name
@@ -381,6 +474,10 @@ class CompanionGameEngine:
             self.card = CardRuntime()
             self._publish("answer-idle", "Answer surface synced while off.")
             return "answer-idle"
+
+        if previous_card_id == str(card_id) and s.phase == "answer":
+            self._publish("show-answer", "Answer surface re-synced.")
+            return "reveal"
 
         question_elapsed_ms = 0
         if s.phase == "question" and s.phase_start_epoch_ms > 0:
