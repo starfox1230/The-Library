@@ -377,7 +377,7 @@ def _sync_editor_js(editor: Editor) -> None:
 def _build_editor_script() -> str:
     return r"""
 const globalKey = "__ankiPocketKnifeDrawOnImage";
-const state = window[globalKey] || (window[globalKey] = { targets: new Map(), nextId: 1, lastImage: null });
+const state = window[globalKey] || (window[globalKey] = { targets: new Map(), nextId: 1, lastImage: null, installed: false });
 
 function removeMenu() {
   const existing = document.getElementById("pocket-knife-draw-image-menu");
@@ -410,29 +410,10 @@ function imageFromEvent(event) {
 }
 
 function rememberImage(event) {
-  const path = typeof event.composedPath === "function" ? event.composedPath() : [];
-  for (const node of path) {
-    if (node instanceof HTMLImageElement) {
-      state.lastImage = node;
-      return;
-    }
-    if (node instanceof Element) {
-      const image = node.closest("img");
-      if (image) {
-        state.lastImage = image;
-        return;
-      }
-    }
-  }
+  state.lastImage = imageFromEvent(event);
 }
 
-document.addEventListener("click", removeMenu, true);
-document.addEventListener("scroll", removeMenu, true);
-document.addEventListener("pointerdown", rememberImage, true);
-document.addEventListener("mousedown", rememberImage, true);
-document.addEventListener("mouseover", rememberImage, true);
-
-document.addEventListener("contextmenu", (event) => {
+function showDrawMenu(event) {
   const image = imageFromEvent(event);
   if (!image) {
     return;
@@ -464,6 +445,14 @@ document.addEventListener("contextmenu", (event) => {
   menu.style.boxShadow = "0 4px 18px rgba(0,0,0,.22)";
   menu.style.font = "13px system-ui, sans-serif";
   menu.style.cursor = "default";
+  menu.addEventListener("pointerdown", (pointerEvent) => {
+    pointerEvent.preventDefault();
+    pointerEvent.stopPropagation();
+  }, true);
+  menu.addEventListener("mousedown", (mouseEvent) => {
+    mouseEvent.preventDefault();
+    mouseEvent.stopPropagation();
+  }, true);
   menu.addEventListener("click", (clickEvent) => {
     clickEvent.preventDefault();
     clickEvent.stopPropagation();
@@ -477,9 +466,18 @@ document.addEventListener("contextmenu", (event) => {
   });
   document.body.appendChild(menu);
   scheduleRemoveMenu();
-}, true);
-"""
+}
 
+if (!state.installed) {
+  document.addEventListener("click", removeMenu, true);
+  document.addEventListener("scroll", removeMenu, true);
+  document.addEventListener("pointerdown", rememberImage, true);
+  document.addEventListener("mousedown", rememberImage, true);
+  document.addEventListener("mouseover", rememberImage, true);
+  document.addEventListener("contextmenu", showDrawMenu, true);
+  state.installed = true;
+}
+"""
 
 def _handle_draw_command(editor: Editor, cmd: str) -> bool:
     if not cmd.startswith(COMMAND_PREFIX):
