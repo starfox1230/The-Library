@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACLS Megacode Simulator</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #191d24;
+      --panel-2: #222832;
+      --line: #303845;
+      --text: #eef2f7;
+      --muted: #9aa6b2;
+      --blue: #4aa3ff;
+      --green: #3ddc84;
+      --red: #ff5c6c;
+      --amber: #ffca5c;
+      --cyan: #4ad7d1;
+      --purple: #b28cff;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 0.66rem 0.75rem;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    button:hover { transform: translateY(-1px); border-color: var(--blue); }
+    button:active { transform: translateY(0); }
+    button.primary { background: #0d4f93; border-color: #2878c9; }
+    button.danger { background: #64202a; border-color: #b83d4b; }
+    button.good { background: #145336; border-color: #2e9a68; }
+    button.warn { background: #5f4216; border-color: #b98224; }
+    button.ghost { background: transparent; }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1rem clamp(1rem, 2vw, 1.5rem);
+      border-bottom: 1px solid var(--line);
+      background: #11151b;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.25rem, 2vw, 1.9rem);
+      letter-spacing: 0;
+    }
+
+    .subhead {
+      margin-top: 0.2rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .top-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(330px, 0.95fr) minmax(460px, 1.35fr) minmax(320px, 0.9fr);
+      gap: 1rem;
+      padding: 1rem;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 14px 36px var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.8rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      background: #151922;
+    }
+
+    .panel-body { padding: 0.9rem; }
+
+    .monitor {
+      background: #050708;
+      border: 1px solid #1f2f2f;
+      border-radius: var(--radius);
+      padding: 0.8rem;
+      min-height: 285px;
+    }
+
+    .monitor-top {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.55rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .vital {
+      border: 1px solid #162929;
+      border-radius: 6px;
+      padding: 0.55rem;
+      background: #071011;
+      min-width: 0;
+    }
+
+    .vital label {
+      display: block;
+      color: #719596;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .vital strong {
+      display: block;
+      color: var(--green);
+      font-size: clamp(1.15rem, 2.6vw, 1.75rem);
+      line-height: 1.1;
+      margin-top: 0.2rem;
+      white-space: nowrap;
+    }
+
+    .rhythm-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      color: var(--cyan);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .rhythm-strip {
+      width: 100%;
+      height: 112px;
+      background:
+        linear-gradient(rgba(53, 255, 121, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(53, 255, 121, 0.08) 1px, transparent 1px),
+        #020403;
+      background-size: 18px 18px;
+      border: 1px solid #1b3929;
+      border-radius: 6px;
+    }
+
+    .rhythm-path {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 5px rgba(61, 220, 132, 0.7));
+    }
+
+    .status-line {
+      margin-top: 0.75rem;
+      color: #c8f7d8;
+      font-size: 0.95rem;
+      min-height: 2.7rem;
+    }
+
+    .scenario-card {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    select {
+      width: 100%;
+      color: var(--text);
+      background: #10151c;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.65rem;
+    }
+
+    .brief {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.28rem 0.48rem;
+      color: #cbd5df;
+      background: #121820;
+      font-size: 0.78rem;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .actions button {
+      min-height: 3.1rem;
+      text-align: left;
+    }
+
+    .team-grid,
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+
+    .metric {
+      background: #121820;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.65rem;
+      min-height: 4.1rem;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 0.28rem;
+      font-size: 1.25rem;
+    }
+
+    .event-log {
+      max-height: 320px;
+      overflow: auto;
+      display: grid;
+      gap: 0.5rem;
+      padding-right: 0.2rem;
+    }
+
+    .event {
+      border-left: 3px solid var(--line);
+      background: #121820;
+      padding: 0.55rem 0.65rem;
+      border-radius: 0 6px 6px 0;
+      color: #dbe3ec;
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    .event.good { border-color: var(--green); }
+    .event.warn { border-color: var(--amber); }
+    .event.bad { border-color: var(--red); }
+    .event.info { border-color: var(--blue); }
+
+    .reference-tabs {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.65rem;
+    }
+
+    .reference-tabs button {
+      padding: 0.45rem 0.55rem;
+      font-size: 0.82rem;
+    }
+
+    .reference-tabs button.active {
+      border-color: var(--blue);
+      background: #123354;
+    }
+
+    .reference-image {
+      display: block;
+      width: 100%;
+      max-height: 430px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 6px;
+    }
+
+    .debrief {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 10, 0.84);
+      z-index: 20;
+      padding: 1rem;
+      overflow: auto;
+    }
+
+    .debrief.open { display: block; }
+
+    .debrief-card {
+      width: min(1040px, 96vw);
+      margin: 1rem auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+    }
+
+    .debrief-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      padding: 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .debrief-head h2 {
+      margin: 0 0 0.2rem;
+      color: var(--text);
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 1.4rem;
+      border: 0;
+      background: none;
+      padding: 0;
+    }
+
+    .debrief-body {
+      display: grid;
+      grid-template-columns: 0.75fr 1.25fr;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .check {
+      padding: 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #121820;
+    }
+
+    .check.pass { border-color: rgba(61, 220, 132, 0.7); }
+    .check.fail { border-color: rgba(255, 92, 108, 0.75); }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 1fr 1fr; }
+      .right-column { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 760px) {
+      header { grid-template-columns: 1fr; }
+      .top-controls { justify-content: flex-start; }
+      .workspace,
+      .debrief-body { grid-template-columns: 1fr; }
+      .monitor-top,
+      .team-grid,
+      .score-grid,
+      .actions { grid-template-columns: 1fr 1fr; }
+      .actions button { font-size: 0.88rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>ACLS Megacode Simulator</h1>
+        <div class="subhead">Run arrest, bradycardia, tachycardia, and post-ROSC cases with timed actions, instructor controls, and debrief scoring.</div>
+      </div>
+      <div class="top-controls">
+        <button class="ghost" id="learnerModeBtn">Learner</button>
+        <button class="ghost" id="testModeBtn">Test</button>
+        <button class="ghost" id="instructorModeBtn">Instructor</button>
+        <button class="primary" id="newCaseBtn">New Case</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel">
+        <h2>Case Setup</h2>
+        <div class="panel-body scenario-card">
+          <select id="scenarioSelect" aria-label="Scenario"></select>
+          <div class="brief" id="caseBrief"></div>
+          <div class="badges" id="caseBadges"></div>
+          <button class="good" id="startBtn">Start Code</button>
+          <button class="ghost" id="dailyBtn">Daily Challenge</button>
+        </div>
+
+        <h2>Team Roles</h2>
+        <div class="panel-body team-grid">
+          <button data-role="leader">Leader</button>
+          <button data-role="compressor">Compressor</button>
+          <button data-role="airway">Airway</button>
+          <button data-role="monitor">Monitor/Defib</button>
+          <button data-role="meds">Meds</button>
+          <button data-role="recorder">Recorder</button>
+        </div>
+
+        <h2>Scoreboard</h2>
+        <div class="panel-body score-grid">
+          <div class="metric"><span>Score</span><strong id="score">100</strong></div>
+          <div class="metric"><span>Code Time</span><strong id="clock">00:00</strong></div>
+          <div class="metric"><span>Longest Pause</span><strong id="pauseMetric">0s</strong></div>
+          <div class="metric"><span>CPR Fraction</span><strong id="fractionMetric">100%</strong></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Patient Monitor</h2>
+        <div class="panel-body">
+          <div class="monitor">
+            <div class="monitor-top">
+              <div class="vital"><label>HR</label><strong id="hr">--</strong></div>
+              <div class="vital"><label>BP</label><strong id="bp">--</strong></div>
+              <div class="vital"><label>SpO2</label><strong id="spo2">--</strong></div>
+              <div class="vital"><label>EtCO2</label><strong id="etco2">--</strong></div>
+            </div>
+            <div class="rhythm-title">
+              <span id="rhythmName">Standby</span>
+              <span id="pulseLabel">No pulse data</span>
+            </div>
+            <svg class="rhythm-strip" viewBox="0 0 760 112" preserveAspectRatio="none" aria-label="ECG rhythm strip">
+              <path id="rhythmPath" class="rhythm-path" d=""></path>
+            </svg>
+            <div class="status-line" id="statusLine">Select a case, assign roles, then start the code.</div>
+          </div>
+        </div>
+
+        <h2>Actions</h2>
+        <div class="panel-body actions" id="actionGrid">
+          <button data-action="checkResponsiveness">Assess responsiveness and breathing</button>
+          <button data-action="startCPR">Start high-quality CPR</button>
+          <button data-action="attachMonitor">Attach monitor/defib pads</button>
+          <button data-action="rhythmCheck">Rhythm and pulse check</button>
+          <button class="danger" data-action="shock">Defibrillate / cardiovert</button>
+          <button data-action="resumeCPR">Resume CPR immediately</button>
+          <button data-action="epi">Give epinephrine</button>
+          <button data-action="amio">Give antiarrhythmic</button>
+          <button data-action="airway">Manage airway / oxygen</button>
+          <button data-action="access">Establish IV/IO access</button>
+          <button data-action="hts">Evaluate reversible causes</button>
+          <button data-action="treatCause">Treat likely cause</button>
+          <button data-action="pacing">Start transcutaneous pacing</button>
+          <button data-action="atropine">Give atropine</button>
+          <button data-action="adenosine">Give adenosine</button>
+          <button data-action="rosc">Transition to post-ROSC care</button>
+        </div>
+      </section>
+
+      <section class="right-column panel">
+        <h2>Instructor Controls</h2>
+        <div class="panel-body actions">
+          <button data-instructor="vf">Set VF/pVT</button>
+          <button data-instructor="pea">Set PEA</button>
+          <button data-instructor="asystole">Set Asystole</button>
+          <button data-instructor="brady">Set Bradycardia</button>
+          <button data-instructor="tachy">Set Tachycardia</button>
+          <button data-instructor="rosc">Grant ROSC</button>
+          <button data-instructor="deteriorate">Deteriorate</button>
+          <button data-instructor="noise">Add distraction</button>
+        </div>
+
+        <h2>Event Log</h2>
+        <div class="panel-body">
+          <div class="event-log" id="eventLog"></div>
+        </div>
+
+        <h2>Reference Drawer</h2>
+        <div class="panel-body">
+          <div class="reference-tabs" id="referenceTabs"></div>
+          <img class="reference-image" id="referenceImage" alt="ACLS reference image" />
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="debrief" id="debrief">
+    <div class="debrief-card">
+      <div class="debrief-head">
+        <div>
+          <h2 id="debriefTitle">Debrief</h2>
+          <div class="brief" id="debriefSummary"></div>
+        </div>
+        <div class="top-controls">
+          <button id="closeDebrief">Close</button>
+          <button class="primary" id="retryCase">Retry Case</button>
+        </div>
+      </div>
+      <div class="debrief-body">
+        <div>
+          <h2>Checklist</h2>
+          <div class="checklist" id="debriefChecklist"></div>
+        </div>
+        <div>
+          <h2>Timeline</h2>
+          <div class="event-log" id="debriefTimeline"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const scenarios = [
+      {
+        id: "vf-arrest",
+        name: "Witnessed VF Arrest",
+        type: "Cardiac arrest",
+        rhythm: "VF/pVT",
+        pulse: false,
+        cause: "acute coronary syndrome",
+        vitals: { hr: "VF", bp: "--", spo2: "82", etco2: "14" },
+        brief: "A 58-year-old collapses in the ED. Monitor shows a chaotic wide-complex rhythm. No pulse is felt.",
+        required: ["checkResponsiveness", "startCPR", "attachMonitor", "rhythmCheck", "shock", "resumeCPR", "epi", "amio", "hts"],
+        preferredReference: "VF/pVT"
+      },
+      {
+        id: "pea-hypovolemia",
+        name: "PEA After GI Bleed",
+        type: "Cardiac arrest",
+        rhythm: "PEA",
+        pulse: false,
+        cause: "hypovolemia",
+        vitals: { hr: "38", bp: "--", spo2: "78", etco2: "9" },
+        brief: "A 71-year-old with hematemesis becomes unresponsive. Organized electrical activity is present but no pulse is detected.",
+        required: ["checkResponsiveness", "startCPR", "attachMonitor", "rhythmCheck", "resumeCPR", "epi", "access", "hts", "treatCause"],
+        preferredReference: "PEA"
+      },
+      {
+        id: "hyperkalemia-pea",
+        name: "Dialysis Patient PEA",
+        type: "Cardiac arrest",
+        rhythm: "PEA",
+        pulse: false,
+        cause: "hyperkalemia",
+        vitals: { hr: "24", bp: "--", spo2: "80", etco2: "10" },
+        brief: "A dialysis patient missed two sessions and arrests. The monitor shows a slow wide rhythm without a palpable pulse.",
+        required: ["checkResponsiveness", "startCPR", "attachMonitor", "rhythmCheck", "resumeCPR", "epi", "hts", "treatCause"],
+        preferredReference: "PEA"
+      },
+      {
+        id: "unstable-brady",
+        name: "Unstable Bradycardia",
+        type: "Peri-arrest",
+        rhythm: "Bradycardia",
+        pulse: true,
+        cause: "high-grade AV block",
+        vitals: { hr: "32", bp: "72/38", spo2: "91", etco2: "--" },
+        brief: "A 76-year-old is pale, confused, and hypotensive with a very slow regular rhythm.",
+        required: ["checkResponsiveness", "attachMonitor", "airway", "access", "atropine", "pacing"],
+        preferredReference: "Brady"
+      },
+      {
+        id: "unstable-tachy",
+        name: "Unstable Wide Tachycardia",
+        type: "Peri-arrest",
+        rhythm: "Tachycardia",
+        pulse: true,
+        cause: "monomorphic VT with pulse",
+        vitals: { hr: "186", bp: "74/42", spo2: "90", etco2: "--" },
+        brief: "A 64-year-old has crushing chest pain, diaphoresis, hypotension, and a regular wide-complex tachycardia.",
+        required: ["checkResponsiveness", "attachMonitor", "airway", "access", "shock"],
+        preferredReference: "Tachy"
+      },
+      {
+        id: "stable-svt",
+        name: "Stable Narrow Tachycardia",
+        type: "Tachycardia",
+        rhythm: "SVT",
+        pulse: true,
+        cause: "reentry SVT",
+        vitals: { hr: "174", bp: "126/76", spo2: "97", etco2: "--" },
+        brief: "A stable patient reports palpitations. Narrow regular tachycardia is present with preserved blood pressure.",
+        required: ["checkResponsiveness", "attachMonitor", "access", "adenosine"],
+        preferredReference: "Tachy"
+      },
+      {
+        id: "post-rosc",
+        name: "Post-ROSC Hypotension",
+        type: "Post arrest",
+        rhythm: "Sinus rhythm",
+        pulse: true,
+        cause: "post-cardiac arrest syndrome",
+        vitals: { hr: "104", bp: "82/46", spo2: "88", etco2: "31" },
+        brief: "A patient has ROSC after VF arrest. They are hypotensive and hypoxic with an advanced airway in place.",
+        required: ["airway", "access", "treatCause", "rosc"],
+        preferredReference: "ROSC"
+      }
+    ];
+
+    const references = [
+      ["Arrest", "assets/Algorithm-ACLS_LSC_CA_wNos.png"],
+      ["VF/pVT", "assets/Algorithm-ACLS_LSC_CA_VF-pVT_wNos.png"],
+      ["PEA", "assets/Algorithm-ACLS_LSC_CA_Asys-PEA_wNos.png"],
+      ["Brady", "assets/Algorithm-ACLS_LSC_Bradycardia_wNos.png"],
+      ["Tachy", "assets/Algorithm-ACLS_LSC_Tachycardia_wNos.png"],
+      ["ROSC", "assets/Algorithm-ACLS_LSC_PCAC_wNos.png"],
+      ["Team", "assets/Diagram-High_Performance_Teams.png"],
+      ["Megacode 1", "assets/Checklist-ACLS_Megacode_1-3-8.png"],
+      ["Megacode 2", "assets/Checklist-ACLS_Megacode_2-5.png"],
+      ["Megacode 3", "assets/Checklist-ACLS_Megacode_4-7-10.png"]
+    ];
+
+    const actionLabels = {
+      checkResponsiveness: "Assessment",
+      startCPR: "High-quality CPR",
+      attachMonitor: "Monitor/defib attached",
+      rhythmCheck: "Rhythm and pulse check",
+      shock: "Shock/cardioversion",
+      resumeCPR: "Immediate CPR resumption",
+      epi: "Epinephrine",
+      amio: "Antiarrhythmic",
+      airway: "Airway/oxygenation",
+      access: "IV/IO access",
+      hts: "Reversible causes",
+      treatCause: "Cause-specific treatment",
+      pacing: "Transcutaneous pacing",
+      atropine: "Atropine",
+      adenosine: "Adenosine",
+      rosc: "Post-ROSC care"
+    };
+
+    const state = {
+      mode: "learner",
+      scenario: scenarios[0],
+      started: false,
+      elapsed: 0,
+      timer: null,
+      score: 100,
+      rhythm: "Standby",
+      pulse: null,
+      vitals: {},
+      roles: new Set(),
+      actions: [],
+      events: [],
+      lastCPR: null,
+      pauseStart: null,
+      longestPause: 0,
+      cprSeconds: 0,
+      lastTick: Date.now(),
+      rosc: false
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function pad(num) {
+      return String(num).padStart(2, "0");
+    }
+
+    function timeLabel(seconds = state.elapsed) {
+      return `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
+    }
+
+    function seedDailyIndex() {
+      const d = new Date();
+      const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      return seed % scenarios.length;
+    }
+
+    function init() {
+      scenarios.forEach((s) => {
+        const option = document.createElement("option");
+        option.value = s.id;
+        option.textContent = s.name;
+        $("scenarioSelect").appendChild(option);
+      });
+
+      references.forEach(([label, src], index) => {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        btn.addEventListener("click", () => setReference(label));
+        if (index === 0) btn.classList.add("active");
+        $("referenceTabs").appendChild(btn);
+      });
+
+      document.querySelectorAll("[data-action]").forEach((btn) => {
+        btn.addEventListener("click", () => performAction(btn.dataset.action));
+      });
+
+      document.querySelectorAll("[data-role]").forEach((btn) => {
+        btn.addEventListener("click", () => toggleRole(btn.dataset.role, btn));
+      });
+
+      document.querySelectorAll("[data-instructor]").forEach((btn) => {
+        btn.addEventListener("click", () => instructor(btn.dataset.instructor));
+      });
+
+      $("scenarioSelect").addEventListener("change", () => selectScenario($("scenarioSelect").value));
+      $("startBtn").addEventListener("click", startCase);
+      $("newCaseBtn").addEventListener("click", randomCase);
+      $("dailyBtn").addEventListener("click", dailyCase);
+      $("learnerModeBtn").addEventListener("click", () => setMode("learner"));
+      $("testModeBtn").addEventListener("click", () => setMode("test"));
+      $("instructorModeBtn").addEventListener("click", () => setMode("instructor"));
+      $("closeDebrief").addEventListener("click", () => $("debrief").classList.remove("open"));
+      $("retryCase").addEventListener("click", () => {
+        $("debrief").classList.remove("open");
+        resetCase(state.scenario);
+        startCase();
+      });
+
+      setMode("learner");
+      selectScenario(state.scenario.id);
+      setReference("Arrest");
+      drawRhythm("Standby");
+      render();
+    }
+
+    function selectScenario(id) {
+      const scenario = scenarios.find((s) => s.id === id) || scenarios[0];
+      resetCase(scenario);
+    }
+
+    function randomCase() {
+      const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+      $("scenarioSelect").value = scenario.id;
+      resetCase(scenario);
+    }
+
+    function dailyCase() {
+      const scenario = scenarios[seedDailyIndex()];
+      $("scenarioSelect").value = scenario.id;
+      resetCase(scenario);
+      log("Daily challenge loaded. Test mode enabled for a clean score.", "info");
+      setMode("test");
+    }
+
+    function resetCase(scenario) {
+      clearInterval(state.timer);
+      Object.assign(state, {
+        scenario,
+        started: false,
+        elapsed: 0,
+        timer: null,
+        score: 100,
+        rhythm: scenario.rhythm,
+        pulse: scenario.pulse,
+        vitals: { ...scenario.vitals },
+        roles: new Set(),
+        actions: [],
+        events: [],
+        lastCPR: null,
+        pauseStart: null,
+        longestPause: 0,
+        cprSeconds: 0,
+        lastTick: Date.now(),
+        rosc: scenario.id === "post-rosc"
+      });
+      document.querySelectorAll("[data-role]").forEach((btn) => btn.classList.remove("good"));
+      $("caseBrief").textContent = scenario.brief;
+      $("caseBadges").innerHTML = [scenario.type, scenario.rhythm, scenario.cause].map((b) => `<span class="badge">${b}</span>`).join("");
+      $("statusLine").textContent = "Case ready. Assign roles and start the code.";
+      setReference(scenario.preferredReference);
+      drawRhythm(state.rhythm);
+      render();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      ["learnerModeBtn", "testModeBtn", "instructorModeBtn"].forEach((id) => $(id).classList.remove("primary"));
+      $(`${mode}ModeBtn`).classList.add("primary");
+      const isInstructor = mode === "instructor";
+      document.querySelectorAll("[data-instructor]").forEach((btn) => btn.disabled = !isInstructor);
+      log(`Mode set to ${mode}.`, "info");
+    }
+
+    function setReference(label) {
+      const ref = references.find(([name]) => name === label) || references[0];
+      $("referenceImage").src = ref[1];
+      $("referenceImage").alt = `${ref[0]} reference`;
+      [...$("referenceTabs").children].forEach((btn) => btn.classList.toggle("active", btn.textContent === ref[0]));
+    }
+
+    function startCase() {
+      if (state.started) return;
+      state.started = true;
+      state.lastTick = Date.now();
+      $("statusLine").textContent = "Code started. Prioritize high-quality CPR, rhythm identification, and closed-loop communication.";
+      log("Code started.", "info");
+      if (state.roles.size < 4) penalize(4, "Start with defined team roles for cleaner leadership scoring.");
+      state.timer = setInterval(tick, 1000);
+      render();
+    }
+
+    function tick() {
+      const now = Date.now();
+      const delta = Math.max(1, Math.round((now - state.lastTick) / 1000));
+      state.lastTick = now;
+      state.elapsed += delta;
+      if (state.lastCPR && !state.rosc && !state.pulse) state.cprSeconds += delta;
+      if (state.pauseStart !== null) state.longestPause = Math.max(state.longestPause, state.elapsed - state.pauseStart);
+
+      if (state.started && !state.rosc && !state.pulse && state.elapsed > 20 && !has("startCPR")) {
+        penalize(2, "CPR is delayed in a pulseless patient.");
+      }
+
+      if (state.elapsed > 600) finishCase("Time expired");
+      render();
+    }
+
+    function has(action) {
+      return state.actions.some((item) => item.action === action);
+    }
+
+    function log(text, kind = "info") {
+      const entry = { time: state.elapsed, text, kind };
+      state.events.unshift(entry);
+      $("statusLine").textContent = text;
+      renderLog();
+    }
+
+    function penalize(points, reason) {
+      state.score = Math.max(0, state.score - points);
+      if (state.mode !== "test") log(`Penalty -${points}: ${reason}`, "warn");
+    }
+
+    function performAction(action) {
+      if (!state.started && action !== "checkResponsiveness") startCase();
+      const repeated = has(action);
+      state.actions.push({ action, time: state.elapsed });
+
+      if (action === "startCPR" || action === "resumeCPR") {
+        state.lastCPR = state.elapsed;
+        state.pauseStart = null;
+      }
+
+      if (["rhythmCheck", "shock", "atropine", "adenosine", "pacing"].includes(action)) {
+        state.pauseStart = state.elapsed;
+      }
+
+      const handler = actionHandlers[action] || (() => log(actionLabels[action], "info"));
+      handler(repeated);
+      maybeProgress(action);
+      render();
+    }
+
+    const actionHandlers = {
+      checkResponsiveness: () => log("Assessed responsiveness, breathing, and pulse.", "good"),
+      startCPR: () => log("High-quality CPR started. Compressor switch timer running.", "good"),
+      attachMonitor: () => log("Monitor/defibrillator pads attached.", "good"),
+      rhythmCheck: () => {
+        if (!has("startCPR") && !state.pulse) penalize(6, "Rhythm check before CPR in arrest.");
+        log(`Rhythm check: ${state.rhythm}; pulse ${state.pulse ? "present" : "absent"}.`, "info");
+      },
+      shock: () => {
+        if (state.rhythm === "VF/pVT" || (state.rhythm === "Tachycardia" && state.pulse)) {
+          log(state.pulse ? "Synchronized cardioversion delivered." : "Defibrillation delivered.", "good");
+          state.vitals.etco2 = String(Math.min(22, Number(state.vitals.etco2 || 10) + 4));
+        } else {
+          penalize(10, "Shock delivered for a non-shockable rhythm.");
+          log("Shock attempted when it was not indicated.", "bad");
+        }
+      },
+      resumeCPR: () => log("CPR resumed immediately after intervention.", "good"),
+      epi: () => {
+        if (state.pulse) penalize(5, "Epinephrine is not first-line for this perfusing rhythm scenario.");
+        log("Epinephrine administered and recorded.", state.pulse ? "warn" : "good");
+      },
+      amio: () => {
+        if (state.rhythm !== "VF/pVT") penalize(5, "Antiarrhythmic used outside refractory VF/pVT context.");
+        log("Antiarrhythmic given for refractory shockable rhythm.", state.rhythm === "VF/pVT" ? "good" : "warn");
+      },
+      airway: () => {
+        state.vitals.spo2 = String(Math.min(99, Number(state.vitals.spo2 || 88) + 5));
+        log("Airway positioning, oxygenation, and ventilation addressed.", "good");
+      },
+      access: () => log("IV/IO access established.", "good"),
+      hts: () => log(`Team reviewed Hs and Ts. Leading cause: ${state.scenario.cause}.`, "good"),
+      treatCause: () => {
+        log(`Treatment directed at ${state.scenario.cause}.`, "good");
+        if (state.rhythm === "PEA" && has("epi") && has("startCPR")) convertToRosc("ROSC after cause-specific treatment.");
+      },
+      pacing: () => {
+        if (state.rhythm === "Bradycardia") {
+          state.vitals.hr = "70";
+          state.vitals.bp = "104/62";
+          log("Transcutaneous pacing started with improved perfusion.", "good");
+          finishCase("Bradycardia stabilized");
+        } else {
+          penalize(6, "Pacing was not indicated for this rhythm.");
+          log("Pacing started without an indication.", "bad");
+        }
+      },
+      atropine: () => {
+        if (state.rhythm === "Bradycardia") {
+          state.vitals.hr = "48";
+          state.vitals.bp = "88/52";
+          log("Atropine given; patient remains unstable, prepare pacing.", "good");
+        } else {
+          penalize(5, "Atropine was not indicated.");
+          log("Atropine given without bradycardia indication.", "bad");
+        }
+      },
+      adenosine: () => {
+        if (state.rhythm === "SVT") {
+          state.rhythm = "Sinus rhythm";
+          state.vitals.hr = "88";
+          state.vitals.bp = "124/78";
+          log("Adenosine administered with conversion to sinus rhythm.", "good");
+          finishCase("SVT converted");
+        } else {
+          penalize(7, "Adenosine is not appropriate for this scenario.");
+          log("Adenosine given in the wrong scenario.", "bad");
+        }
+      },
+      rosc: () => {
+        if (state.rosc || state.scenario.id === "post-rosc") {
+          log("Post-ROSC oxygenation, ventilation, blood pressure, ECG, and temperature priorities addressed.", "good");
+          finishCase("Post-ROSC care completed");
+        } else {
+          penalize(5, "ROSC transition before ROSC.");
+          log("Post-ROSC pathway selected before ROSC.", "warn");
+        }
+      }
+    };
+
+    function maybeProgress(action) {
+      if (state.rhythm === "VF/pVT" && has("shock") && has("resumeCPR") && has("epi") && has("amio") && state.actions.filter((a) => a.action === "shock").length >= 2) {
+        convertToRosc("ROSC after refractory VF/pVT sequence.");
+      }
+      if (state.rhythm === "Tachycardia" && action === "shock" && state.pulse) {
+        state.rhythm = "Sinus rhythm";
+        state.vitals.hr = "96";
+        state.vitals.bp = "108/66";
+        log("Patient cardioverted to sinus rhythm with improved blood pressure.", "good");
+        finishCase("Unstable tachycardia stabilized");
+      }
+    }
+
+    function convertToRosc(message) {
+      state.rosc = true;
+      state.pulse = true;
+      state.rhythm = "Sinus rhythm";
+      state.vitals = { hr: "96", bp: "92/54", spo2: "93", etco2: "34" };
+      log(message, "good");
+      $("statusLine").textContent = "ROSC achieved. Move to post-cardiac arrest care.";
+      setReference("ROSC");
+    }
+
+    function instructor(command) {
+      if (state.mode !== "instructor") return;
+      const map = {
+        vf: ["VF/pVT", false, { hr: "VF", bp: "--", spo2: "84", etco2: "12" }],
+        pea: ["PEA", false, { hr: "42", bp: "--", spo2: "80", etco2: "9" }],
+        asystole: ["Asystole", false, { hr: "0", bp: "--", spo2: "76", etco2: "7" }],
+        brady: ["Bradycardia", true, { hr: "34", bp: "78/40", spo2: "91", etco2: "--" }],
+        tachy: ["Tachycardia", true, { hr: "190", bp: "82/48", spo2: "90", etco2: "--" }]
+      };
+      if (map[command]) {
+        const [rhythm, pulse, vitals] = map[command];
+        state.rhythm = rhythm;
+        state.pulse = pulse;
+        state.vitals = vitals;
+        state.rosc = false;
+        log(`Instructor set rhythm to ${rhythm}.`, "info");
+      }
+      if (command === "rosc") convertToRosc("Instructor granted ROSC.");
+      if (command === "deteriorate") {
+        state.score = Math.max(0, state.score - 3);
+        state.vitals.spo2 = String(Math.max(72, Number(state.vitals.spo2 || 90) - 7));
+        log("Patient deteriorated: oxygenation and perfusion worsened.", "warn");
+      }
+      if (command === "noise") {
+        log("Distraction: medication drawer delay and unclear pulse report. Leader should clarify and close the loop.", "warn");
+      }
+      render();
+    }
+
+    function toggleRole(role, btn) {
+      if (state.roles.has(role)) {
+        state.roles.delete(role);
+        btn.classList.remove("good");
+      } else {
+        state.roles.add(role);
+        btn.classList.add("good");
+        log(`${role.replace(/^\w/, (c) => c.toUpperCase())} role assigned.`, "info");
+      }
+      render();
+    }
+
+    function finishCase(reason) {
+      clearInterval(state.timer);
+      state.timer = null;
+      state.started = false;
+      scoreRequiredActions();
+      showDebrief(reason);
+      render();
+    }
+
+    function scoreRequiredActions() {
+      state.scenario.required.forEach((action) => {
+        if (!has(action)) penalize(8, `Missed ${actionLabels[action]}.`);
+      });
+      if (!state.pulse && state.longestPause > 10) penalize(8, "Pause exceeded 10 seconds.");
+    }
+
+    function showDebrief(reason) {
+      const required = state.scenario.required.map((action) => {
+        const passed = has(action);
+        return `<div class="check ${passed ? "pass" : "fail"}">${passed ? "Pass" : "Missed"}: ${actionLabels[action]}</div>`;
+      }).join("");
+      $("debriefTitle").textContent = `${state.scenario.name}: ${reason}`;
+      $("debriefSummary").textContent = `Score ${state.score}/100. Time ${timeLabel()}. Longest pause ${state.longestPause}s. CPR fraction ${cprFraction()}%.`;
+      $("debriefChecklist").innerHTML = required;
+      $("debriefTimeline").innerHTML = [...state.events].reverse().map(eventHtml).join("");
+      $("debrief").classList.add("open");
+    }
+
+    function cprFraction() {
+      if (!state.elapsed) return 100;
+      return Math.min(100, Math.round((state.cprSeconds / state.elapsed) * 100));
+    }
+
+    function renderLog() {
+      $("eventLog").innerHTML = state.events.slice(0, 60).map(eventHtml).join("");
+    }
+
+    function eventHtml(event) {
+      return `<div class="event ${event.kind}"><strong>${timeLabel(event.time)}</strong> ${event.text}</div>`;
+    }
+
+    function render() {
+      $("hr").textContent = state.vitals.hr || "--";
+      $("bp").textContent = state.vitals.bp || "--";
+      $("spo2").textContent = state.vitals.spo2 ? `${state.vitals.spo2}%` : "--";
+      $("etco2").textContent = state.vitals.etco2 || "--";
+      $("rhythmName").textContent = state.rhythm;
+      $("pulseLabel").textContent = state.pulse === null ? "No pulse data" : state.pulse ? "Pulse present" : "Pulseless";
+      $("score").textContent = state.score;
+      $("clock").textContent = timeLabel();
+      $("pauseMetric").textContent = `${state.longestPause}s`;
+      $("fractionMetric").textContent = `${cprFraction()}%`;
+      drawRhythm(state.rhythm);
+    }
+
+    function drawRhythm(rhythm) {
+      const points = [];
+      const width = 760;
+      const mid = 56;
+      for (let x = 0; x <= width; x += 8) {
+        let y = mid;
+        if (rhythm === "VF/pVT") y = mid + Math.sin(x / 8) * 22 + Math.sin(x / 2.7) * 10;
+        else if (rhythm === "PEA" || rhythm === "Bradycardia") y = mid + ((x % 120 < 10) ? -28 : (x % 120 < 22 ? 20 : 0));
+        else if (rhythm === "Asystole") y = mid + Math.sin(x / 28) * 2;
+        else if (rhythm === "Tachycardia" || rhythm === "SVT") y = mid + ((x % 48 < 8) ? -32 : (x % 48 < 17 ? 24 : 0));
+        else if (rhythm === "Sinus rhythm") y = mid + ((x % 88 < 6) ? -26 : (x % 88 < 15 ? 22 : Math.sin(x / 12) * 2));
+        else y = mid + Math.sin(x / 30) * 3;
+        points.push(`${x},${Math.max(6, Math.min(106, y))}`);
+      }
+      $("rhythmPath").setAttribute("d", `M ${points.join(" L ")}`);
+    }
+
+    init();
+  </script>
+</body>
+</html>

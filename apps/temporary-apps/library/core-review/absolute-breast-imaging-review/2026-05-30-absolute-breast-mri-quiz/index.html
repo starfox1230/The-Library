@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Absolute Breast Imaging Review Breast MRI Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Absolute Breast Imaging Review Breast MRI Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"absolute-breast-imaging-review-breast-mri-quiz-ch5",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1a", "stem": "Based on the MR images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Fibroadenoma."}, {"letter": "B", "text": "Mucinous Carcinoma."}, {"letter": "C", "text": "Lipoma."}, {"letter": "D", "text": "Fat necrosis."}], "images": ["assets/q1a_1b_p202_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Mucinous carcinoma."}, {"number": "1b", "stem": "Where is the finding located within the breast in the image above?", "options": [{"letter": "A", "text": "Medial breast at anterior depth."}, {"letter": "B", "text": "Medial breast at posterior depth."}, {"letter": "C", "text": "Lateral breast at anterior depth."}, {"letter": "D", "text": "Lateral breast at posterior depth."}], "images": ["assets/q1a_1b_p202_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Lateral breast at anterior depth."}, {"number": "2", "stem": "What is usually associated with mucinous carcinoma?", "options": [{"letter": "A", "text": "Seen more frequently in women older than 65 years of age."}, {"letter": "B", "text": "Hypointense on STIR imaging."}, {"letter": "C", "text": "Strongly associated with BRCA2 mutation."}, {"letter": "D", "text": "Worse prognosis than the \"not otherwise specified\" subtype."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. Seen more frequently in women older than 65 years. Mucinous carcinoma of the breast, also known as colloid carcinoma, is a subtype of invasive ductal carcinoma. It tends to occur in women older than 65 years. Malignant cells in mucinous carcinoma secrete large quantities of extracellular mucin-producing high-signal intensity on T2-weighted images on MRI. The masses can be lobulated, oval, or round with circumscribed or irregular margins. They may also present with a thickened, enhancing, or irregular rim [1]."}, {"number": "3", "stem": "Based on the MR images, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Invasive ductal carcinoma."}, {"letter": "B", "text": "Complicated cyst."}, {"letter": "C", "text": "Hamartoma."}, {"letter": "D", "text": "Implant rupture."}], "images": ["assets/q3_p203_01.jpg"], "explanationImages": ["assets/a3_p226_01.jpg"], "answer": "C", "explanation": "c. Hamartoma. Breast hamartomas are benign lesions composed of fibrous, glandular, and fatty tissue surrounded by a thin capsule. Their appearance is frequently described as a \"breast within a breast.\" Breast hamartomas are commonly asymptomatic or they may present as a painful mass. The MRI demonstrates a fat-containing mass with intermixed areas of fat and heterogeneous enhancement in the left lateral breast. The fat-containing components follow fat signal intensity on all MR sequences. Mammogram demonstrates a circumscribed mass (circled) with areas of internal lucency reflective of the inherent fat component. Ultrasound demonstrates a heterogeneous mass (arrows) with mixed hypoechoic and hyperechoic areas reflective of the fat and fibroglandular tissue."}, {"number": "4", "stem": "What is the most likely diagnosis in this subtracted enhanced axial image in an asymptomatic patient without history of prior surgery in the right breast?", "options": [{"letter": "A", "text": "Abscess."}, {"letter": "B", "text": "Seroma."}, {"letter": "C", "text": "Necrotic breast cancer."}, {"letter": "D", "text": "Calcified fibroadenoma."}], "images": ["assets/q4_p204_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Necrotic breast cancer. Irregular thick rim enhancement with central necrosis is suspicious for necrotic breast cancer. Choice a is incorrect because the patient is asymptomatic. Choice b is incorrect because there is no history of surgery in the right breast. A breast seroma does not present with thick irregular rim enhancement and usually has a smooth wall with thin peripheral enhancement. Choice d is incorrect. A calcified fibroadenoma does not demonstrate enhancement."}, {"number": "5", "stem": "The left internal mammary lymph node located at the level of the arrow is in what space?", "options": [{"letter": "A", "text": "First intercostal space."}, {"letter": "B", "text": "Supraclavicular space."}, {"letter": "C", "text": "Prevascular space."}, {"letter": "D", "text": "Second intercostal space."}], "images": ["assets/q5_p204_02.jpg"], "explanationImages": ["assets/a5_p227_01.jpg"], "answer": "D", "explanation": "d. Second intercostal space. The \"sternal angle of Louis\" also known as the sternal angle is located at the sternomanubrial junction. It demarcates where the costal cartilages of the second rib articulates with the sternum. Internal mammary lymph nodes located at this level are therefore located in the second intercostal space. Manubrium Sternal angle of Louis Sternal body Second intercostal space"}, {"number": "6", "stem": "A 52-year-old woman with biopsy-proven DCIS in the right breast undergoes MRI to evaluate for extent of disease. What does the MRI show?", "options": [{"letter": "A", "text": "Cyst."}, {"letter": "B", "text": "Lipoma."}, {"letter": "C", "text": "Hematoma."}, {"letter": "D", "text": "Fibroadenoma."}], "images": ["assets/q6_p205_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Hematoma. The images demonstrate a round, intrinsically T1 hyperintense lesion with associated STIR hyperintensity and fluid-fluid layer in the right breast. In the context of recent stereotactic biopsy, this lesion represents a post-biopsy hematoma. Mild uniform thin rim enhancement seen on the post-contrast subtraction sequence is likely reflective of post-biopsy changes."}, {"number": "7", "stem": "Which entity is least associated with the imaging appearance below?", "options": [{"letter": "A", "text": "Post-radiation change."}, {"letter": "B", "text": "Congestive heart failure."}, {"letter": "C", "text": "Mastitis."}, {"letter": "D", "text": "Inflammatory breast carcinoma."}], "images": ["assets/q7_p206_01.jpg"], "explanationImages": ["assets/a7_p228_01.jpg"], "answer": "B", "explanation": "b. Congestive heart failure. The image demonstrates diffuse parenchymal edema with associated skin thickening in the right breast. These findings are nonspecific and may be seen in the setting of post-radiation change, mastitis, lymphedema, and inflammatory breast cancer. This may also occur with SVC syndrome or upper extremity DVT. Although congestive heart failure may produce similar imaging findings, it would be expected to occur bilaterally."}, {"number": "8", "stem": "Given the two images of the right breast from the same patient with known malignancy, what is the accurate description of disease distribution?", "options": [{"letter": "A", "text": "Multicentric."}, {"letter": "B", "text": "Multifocal."}, {"letter": "C", "text": "Multisegmental."}, {"letter": "D", "text": "Focal."}], "images": ["assets/q8_p206_02.jpg"], "explanationImages": ["assets/a8_p228_02.jpg"], "answer": "A", "explanation": "a. Multicentric. Multicentric breast cancer is defined as two or more foci of cancer in different quadrants of the breast. Multicentric Multifocal breast cancer refers to two or more foci of cancer within the same breast quadrant [2]. Multifocal"}, {"number": "9a", "stem": "Which of the following MR artifacts is circled in yellow?", "options": [{"letter": "A", "text": "Chemical shift."}, {"letter": "B", "text": "Aliasing."}, {"letter": "C", "text": "Susceptibility."}, {"letter": "D", "text": "Zipper."}], "images": ["assets/q9a_9b_p207_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Susceptibility. MR images demonstrate magnetic susceptibility artifact from a BioZorb implantable marker embedded with titanium clips. This artifact is the result of signal change due to local magnetic field inhomogeneities introduced by the metallic object into the otherwise homogenous external magnetic field. This artifact is useful for localization of metal within the breast."}, {"number": "9b", "stem": "What imaging parameters would minimize the artifact in the above image?", "options": [{"letter": "A", "text": "Narrow bandwidth."}, {"letter": "B", "text": "Increased field strength."}, {"letter": "C", "text": "Short TE."}, {"letter": "D", "text": "Long TR."}], "images": ["assets/q9a_9b_p207_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Short TE. Susceptibility artifact may be reduced by decreasing the field strength, decreasing the TE, increasing the receiver bandwidth, and employing spin echo and fast spin echo rather than gradient echo imaging."}, {"number": "10a", "stem": "55 year old woman with history of IDC status post mastectomy over 5 years ago. Based on the MR images, what type of reconstruction did this patient have?", "options": [{"letter": "A", "text": "Deep Inferior Epigastric Perforator (DIEP) flap."}, {"letter": "B", "text": "Implant."}, {"letter": "C", "text": "Transverse Rectus Abdominus Myocutaneous (TRAM) flap."}, {"letter": "D", "text": "Superior Inferior Epigastric Artery (SIEA) flap."}], "images": ["assets/q10a_p207_02.jpg"], "explanationImages": ["assets/a10a_p229_01.jpg"], "answer": "C", "explanation": "c. Transverse Rectus Abdominus Myocutaneous (TRAM) flap. MR images demonstrate a transverse rectus abdominis mycocutaneous (TRAM) flap reconstruction status post-mastectomy. The rectus abdominis muscle has a dual blood supply provided by the superior and inferior epigastric vessels. MRI demonstrates replacement of the native breast glandular tissue by adipose tissue and the presence of a line of intermediate signal intensity that separates the native tissue from the flap reconstruction. A key feature that distinguishes the TRAM flap from other reconstructive surgeries (i.e., muscle sparing-free TRAM flap, DIEP flap) is the presence of an atrophied rectus abdominal muscle along the anterior chest wall. The T1-weighted image below of the TRAM flap shows the atrophied rectus abdominus muscle anterior to the chest wall (arrow)."}, {"number": "10b", "stem": "The below finding (arrow) is compatible with:", "options": [{"letter": "A", "text": "Seroma."}, {"letter": "B", "text": "Fat necrosis."}, {"letter": "C", "text": "Recurrence."}, {"letter": "D", "text": "Hematoma."}], "images": ["assets/q10b_p208_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Recurrence. Axial T1 non-fat saturated images show a T1 isotense irregular mass. There is suspicious enhancement of the mass on post-contrast images. There is no fat signal in the mass. Therefore, this finding is most likely a recurrence out of the choices. Fat necrosis is unlikely given the lack of fat signal within the mass [3, 4]."}, {"number": "11", "stem": "A 65-year-old woman with a history of IDC status post-mastectomy. Based on the MR images what type of reconstruction did this patient have?", "options": [{"letter": "A", "text": "DIEP flap."}, {"letter": "B", "text": "Implant."}, {"letter": "C", "text": "TRAM flap."}, {"letter": "D", "text": "No reconstruction was performed."}], "images": ["assets/q11_p209_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "a. DIEP flap. MR images demonstrate deep inferior epigastric perforator (DIEP) flap reconstruction, which involves removal and transfer of a portion of the patient's lower abdominal skin and subcutaneous soft tissue along with perforating vessels originating from the inferior epigastric artery. DIEP flap can be differentiated from a TRAM flap by the absence of the atrophied rectus abdominis muscle and its vascular pedicle in the reconstructed breast and the characteristic removal of a segment of costal cartilage of the ipsilateral third or fourth rib, which is performed to expose the internal mammary vessels required for anastomosis [5]."}, {"number": "12", "stem": "A 60-year-old woman with a history of silicone implants. The below findings suggest a prior history of:", "options": [{"letter": "A", "text": "Subcutaneous fat injections."}, {"letter": "B", "text": "Intracapsular rupture."}, {"letter": "C", "text": "Gold therapy."}, {"letter": "D", "text": "Extracapsular rupture."}], "images": ["assets/q12_p209_02.jpg"], "explanationImages": ["assets/a12_p230_01.jpg"], "answer": "D", "explanation": "d. Extracapsular rupture. Sagittal silicone-selective MR images of the breast are presented. Siliconeselective sequences result in the purposeful suppression of water and fat so that only hyperintense silicone-containing structures remain visible. This case demonstrates hyperintense, silicone-laden lymph nodes, which may be seen in the context of extracapsular implant rupture or gel bleed. This patient had a prior history of extracapsular rupture. The current implant is intact. Circled are silicone laden axillary lymph nodes."}, {"number": "13", "stem": "A 42-year-old woman who is 8 weeks post-partum. The below findings are consistent with:", "options": [{"letter": "A", "text": "Mastitis."}, {"letter": "B", "text": "Lactation changes."}, {"letter": "C", "text": "Inflammatory breast cancer."}, {"letter": "D", "text": "Multicentric IDC."}], "images": ["assets/q13_p210_01.jpg"], "explanationImages": ["assets/a13_p231_01.jpg"], "answer": "B", "explanation": "b. Lactational changes. MR images demonstrate increased glandular density, increased T2-weighted signal, duct ectasia, and rapid glandular contrast enhancement in the bilateral breasts consistent with lactation changes. Increased enhancement from hypervascularity in the bilateral breasts may limit evaluation for breast cancer in lactating patients. Women undergoing MRI should be instructed to nurse or pump immediately before imaging or imaging may be postponed until after cessation of lactation, depending upon the patient's underlying risk for breast cancer."}, {"number": "14", "stem": "Identify the level of the axillary lymph node circled in red:", "options": [{"letter": "A", "text": "Level I."}, {"letter": "B", "text": "Level II."}, {"letter": "C", "text": "Level III."}, {"letter": "D", "text": "Level IV."}], "images": ["assets/q14_p211_01.jpg"], "explanationImages": ["assets/a14_p231_02.jpg", "assets/a14_p231_03.jpg"], "answer": "B", "explanation": "b. Level II. The pectoralis minor muscle serves as a landmark separating the axilla into three levels. Level I is located inferolateral to the pectoralis minor. Level II is located posterior to the pectoralis minor. Level III is located superomedial to the pectoralis minor. MR images demonstrate a Rotter node, otherwise known as an interpectoral lymph node, which is located in the level II axillary space [6]. Level Ill Level II Level I Supraclavicular Pectoralis minor muscle Internal Axillary mammary vein Note: Supraclavicular and internal mammary lymph nodes are not considered axillary and simply shown for reference"}, {"number": "15", "stem": "Post-contrast MR images are obtained on a 65-year-old woman. Which of the following BI-RADS distribution descriptor for the non-mass enhancement in the right breast is most accurate?", "options": [{"letter": "A", "text": "Regional."}, {"letter": "B", "text": "Focal."}, {"letter": "C", "text": "Linear."}, {"letter": "D", "text": "Segmental."}, {"letter": "E", "text": "Diffuse."}], "images": ["assets/q15_p211_02.jpg"], "explanationImages": ["assets/a15_p232_01.jpg"], "answer": "C", "explanation": "c. Linear. Non-mass enhancement is defined in the BI-RADS lexicon as an area of enhancement that does not meet criteria for a mass. Non-mass enhancement lacks convex borders and has intervening fat or fibroglandular tissue between the enhancing areas. This case features non-mass enhancement in the right breast in a linear distribution. Linear non-mass enhancement is described as along a line in a ductal or non-ductal distribution. The linear enhancement may branch, as in this case. The distribution of non-mass enhancement may be described as diffuse, regional, multiple regions, segmental, linear, or focal. The positive predictive value (PPV) for malignancy with linear enhancement is 30%. The linear non-mass enhancement in this case was biopsied as ductal carcinoma in situ (DCIS) [7]. Multiple Regions Segmental NME Focal NME Linear NME Regional NME"}, {"number": "16", "stem": "Which of the following is NOT a descriptor used when describing background parenchymal enhancement on breast MRI?", "options": [{"letter": "A", "text": "Moderate."}, {"letter": "B", "text": "Extreme."}, {"letter": "C", "text": "Minimal."}, {"letter": "D", "text": "Mild."}, {"letter": "E", "text": "Marked."}], "images": ["assets/q16_p212_01.jpg"], "explanationImages": ["assets/a16_p232_02.jpg"], "answer": "B", "explanation": "b. Extreme. Normal parenchymal enhancement at breast MR imaging is termed background parenchymal enhancement (BPE). The BI-RADS lexicon contains 4 categories of BPE: minimal, mild, moderate, and marked. BPE is based on both the amount and degree of normal parenchymal tissue enhancement. BPE is assessed on the first postcontrast MIP image at approximately 90 seconds. It can also be symmetric or asymmetric. BPE can occur regardless of the menstrual cycle or menopausal status of the patient. Hormonal influences, breast vascular supply, and the permeability of the contrast agent into the breast tissue can all affect BPE. Examples of BPE on breast MRI are shown below [ 8]. Minimal BPE Mild BPE Moderate BPE Marked BPE"}, {"number": "17", "stem": "Which of the following MR artifacts is shown below?", "options": [{"letter": "A", "text": "Misregistration."}, {"letter": "B", "text": "Incomplete fat saturation."}, {"letter": "C", "text": "Ghosting."}, {"letter": "D", "text": "Radiofrequency."}], "images": ["assets/q17_p212_02.jpg"], "explanationImages": ["assets/a17_p233_01.jpg"], "answer": "A", "explanation": "a. Misregistration. Misregistration artifact is the result of motion artifact between the unenhanced and contrast-enhanced images, resulting in an area that mimics enhancement on subtraction images. In this case, there is apparent enhancement along the left pectoralis musculature on the subtraction image. However, the post-contrast non-subtracted images do not show this enhancement, in keeping with artifact. Often this apparent enhancement on the subtraction image is due to pectoralis muscle relaxation between the preand post-contrast series [9]."}, {"number": "18", "stem": "A 45-year-old female presents for screening breast MRI. What is the best next step?", "options": [{"letter": "A", "text": "Second look breast ultrasound."}, {"letter": "B", "text": "Surgical excision."}, {"letter": "C", "text": "Neoadjuvant chemotherapy."}, {"letter": "D", "text": "MRI guided biopsy."}], "images": ["assets/q18_p213_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "a. Second look breast ultrasound. Masses identified on MRI should be evaluated with a breast ultrasound. Ultrasound is a useful tool that enables ultrasound biopsy of suspicious lesions detected on breast MRI. Ultrasound biopsy is preferred over MRI biopsy as it is less expensive, more comfortable, and less time consuming."}, {"number": "19", "stem": "Review the breast MR sequences below. Which of the following sequences (not shown) is also performed as part of a diagnostic breast MRI exam?", "options": [{"letter": "A", "text": "T2-weighted/Bright fluid sequence."}, {"letter": "B", "text": "Pre-Contrast T1."}, {"letter": "C", "text": "Early phase post-contrast T1."}, {"letter": "D", "text": "Late phase post-contrast T1."}], "images": ["assets/q19_p213_02.jpg"], "explanationImages": ["assets/a19_p233_02.jpg"], "answer": "A", "explanation": "a. T2-weighted/Bright fluid sequence. In order to receive ACR accreditation for breast MRI, the following sequences should be performed: T2-weighted or bright fluid series (can be a STIR sequence), multi-phase T1-weighted series (pre-contrast T1 with fat suppression and dynamic post-contrast series at 90 seconds for a total of four postcontrast sequences). STIR sequence"}, {"number": "20a", "stem": "A 45-year-old woman presents for high-risk screening breast MRI. What is the most appropriate BI-RADS internal enhancement descriptor for the mass shown?", "options": [{"letter": "A", "text": "Dark internal septations."}, {"letter": "B", "text": "Heterogeneous internal enhancement."}, {"letter": "C", "text": "Rim enhancement."}, {"letter": "D", "text": "Stippled, punctate."}, {"letter": "E", "text": "Homogeneous internal enhancement."}], "images": ["assets/q20a_20b_p214_01.jpg"], "explanationImages": ["assets/a20a_20b_21a_21b_21c_p234_01.jpg"], "answer": "C", "explanation": "c. Rim enhancement. 20b. Inflamed cyst. The internal enhancement patterns used to describe masses include homogeneous, heterogeneous, rim enhancement, and dark internal septations. Rim enhancement, as shown in this case, is an enhancement that is more pronounced at the periphery of the mass. Rim enhancement of a solid mass is a suspicious finding. Cysts can enhance peripherally, as in this case, and are bright on fluid-sensitive sequences. Smooth inner and irregular outer rim enhancement is classic for an inflamed cyst, also known as the \"solar eclipse sign.\" Irregular inner and outer rim enhancement is an enhancement pattern seen in breast malignancies [7]. Heterogeneous Non enhancingRim enhancement Homogeneous internal septations"}, {"number": "20b", "stem": "What is the most likely diagnosis for the finding in the prior question?", "options": [{"letter": "A", "text": "Fibroadenoma."}, {"letter": "B", "text": "Inflamed cyst."}, {"letter": "C", "text": "Mucinous carcinoma."}, {"letter": "D", "text": "Invasive ductal carcinoma."}, {"letter": "E", "text": "Intramammary lymph node."}], "images": ["assets/q20a_20b_p214_01.jpg"], "explanationImages": ["assets/a20a_20b_21a_21b_21c_p234_01.jpg"], "answer": "B", "explanation": "b. Inflamed cyst."}, {"number": "21a", "stem": "A 30-year-old woman presents for high-risk screening breast MRI. What is the most appropriate BI-RADS non-mass enhancement pattern in the left breast shown below?", "options": [{"letter": "A", "text": "Heterogeneous internal enhancement."}, {"letter": "B", "text": "Clustered ring."}, {"letter": "C", "text": "Stippled, punctate."}, {"letter": "D", "text": "Homogeneous internal enhancement."}, {"letter": "E", "text": "Clumped."}], "images": ["assets/q21a_21b_21c_p214_02.jpg"], "explanationImages": ["assets/a20a_20b_21a_21b_21c_p234_01.jpg"], "answer": "B", "explanation": "b. Clustered ring."}, {"number": "21b", "stem": "What is the most appropriate BI-RADS assessment for the case presented in the prior question?", "options": [{"letter": "A", "text": "BI-RADS Category 1: Negative."}, {"letter": "B", "text": "BI-RADS Category 2: Benign."}, {"letter": "C", "text": "BI-RADS Category 3: Probably Benign."}, {"letter": "D", "text": "BI-RADS Category 4: Suspicious."}, {"letter": "E", "text": "BI-RADS Category 0: Incomplete."}], "images": ["assets/q21a_21b_21c_p214_02.jpg"], "explanationImages": ["assets/a20a_20b_21a_21b_21c_p234_01.jpg"], "answer": "D", "explanation": "d. BI-RADS Category 4: Suspicious."}, {"number": "21c", "stem": "What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Fibrocystic change."}, {"letter": "B", "text": "DCIS."}, {"letter": "C", "text": "Pseudoangiomatous stromal hyperplasia."}, {"letter": "D", "text": "Atypical lobular hyperplasia."}], "images": ["assets/q21a_21b_21c_p214_02.jpg"], "explanationImages": ["assets/a20a_20b_21a_21b_21c_p234_01.jpg"], "answer": "B", "explanation": "b. DCIS. Non-mass enhancement (NME) is the enhancement of an area that is not a mass or focus. NME is an enhancement that is discrete from the surrounding breast tissue. The internal enhancement characteristics of NME can be described as homogeneous, heterogeneous, clumped, or clustered ring. Of note, stippled, punctate is no longer a BI-RADS term used to describe NME. NME showing a clustered ring pattern of enhancement is suggestive of malignancy. Clustered ring enhancement looks like \"punched out holes.\" This nonmass enhancement pattern is thought to reflect periductal enhancement and is the result of contrast pooling in the periductal stroma or ductal walls. This has a high PPV value for malignancy, and thus DCIS (answer D) is the most appropriate answer choice. The most appropriate BI-RADS assessment is BI-RADS Category 4, suspicious. Given that clustered ring enhancement is strongly suggestive of malignancy, biopsy is the most appropriate next step [7]."}, {"number": "22", "stem": "Review the kinetic curve graph below. Which kinetic curve enhancement pattern on breast MRI is most suggestive of a malignancy?", "options": [{"letter": "A", "text": "Curve A."}, {"letter": "B", "text": "Curve B."}, {"letter": "C", "text": "Curve C."}, {"letter": "D", "text": "Curve D."}], "images": ["assets/q22_p215_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Curve C."}, {"number": "23", "stem": "For the delayed phase, washout is less than or equal to ___% of the initial enhancement.", "options": [{"letter": "A", "text": "5%."}, {"letter": "B", "text": "10%."}, {"letter": "C", "text": "15%."}, {"letter": "D", "text": "20%."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. 10%. Kinetic techniques are dynamic measurements in which the uptake and washout of contrast material is assessed for a period of time after contrast injection. Lesion enhancement depends on perfusion, capillary permeability, blood volume, contrast distribution volume, and local vascular anatomy and physiology. The kinetic information is expressed as a time intensity curve (TIC). TICs can be divided into three main shapes reflecting the initial enhancement phase and the delayed enhancement phase. The initial phase enhancement pattern reflects enhancement within the first 2 mins after contrast injection and the delayed phase pattern occurs after 2 mins. The initial phase of enhancement is determined by comparing the differences in signal intensity between the preand post-contrast sequences. An intensity increase of <50% is classified as \"slow,\" 50-100% is classified as \"medium,\" and >100% enhancement is classified as \"fast.\" Delayed phase enhancement is classified as persistent, plateau, and washout. Persistent curves show continued increases in enhancement throughout the delayed phase. Plateau curves remain constant in signal intensity after the upstroke of enhancement. Washout curves show decreasing signal intensity after peak enhancement. In general, for the delayed phase, persistent is greater than or equal to 10% of the initial enhancement, plateau is equal to the initial enhancement, and washout is less than or equal to 10% of the initial enhancement. Malignant masses tend to have fast washout enhancement and benign lesions show more persistent kinetics. However, there is overlap in enhancement kinetics of benign and malignant masses and lesion morphology should also be taken into consideration when evaluating masses [7]."}, {"number": "24", "stem": "Based on the MR images, what is the most likely diagnosis in this 45-year-old patient?", "options": [{"letter": "A", "text": "Papillary Carcinoma."}, {"letter": "B", "text": "Fibroadenoma."}, {"letter": "C", "text": "Complicated cyst."}, {"letter": "D", "text": "Tubular carcinoma."}], "images": ["assets/q24_p216_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Fibroadenoma. The MR features of fibroadenomas are variable.They typically appear as oval masses with circumscribed margins and are hypointense to isointense on T1-weighted images. The T2 or STIR signal intensity varies and depends on the amount of myxoid (bright) and fibrous (dark) tissue within the mass. They also show variable enhancement and may have dark internal septations [10]."}, {"number": "25", "stem": "Based on the MR images below, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Fibroadenoma."}, {"letter": "B", "text": "Complicated cyst."}, {"letter": "C", "text": "Intramammary lymph node."}, {"letter": "D", "text": "DCIS."}], "images": ["assets/q25_p217_01.jpg"], "explanationImages": ["assets/a25_p236_01.jpg"], "answer": "C", "explanation": "c. Intramammary lymph node. The MR images include a post-contrast subtracted image and a T1-weighted image. The mass in question is consistent with an intramammary lymph node. Imaging characteristics of an intramammary lymph node on MR include a reniform shape, a fatty hilum, and a feeding vessel. The fatty hilum is best seen on the T1-weighted image without fat suppression. Intramammary lymph nodes can show avid enhancement and may show rapid washout kinetics. However, recognition of the lymph node morphology is important in making the diagnosis. Lymph nodes are also hyperintense on fluid-sensitive sequences. A complicated cyst may show rim enhancement or no enhancement. It may show hyperintense signal on both fluid-sensitive and T1-weighted sequences. A fibroadenoma is oval and may or may not enhance. It should not contain fat centrally. DCIS generally shows non-mass enhancement [11]."}, {"number": "26", "stem": "A 40-year-old patient underwent screening breast MRI shown below. Which of the following indications does not qualify for high-risk screening breast MRI, per the American Cancer Society Guidelines?", "options": [{"letter": "A", "text": "Known BRCA 1 or 2 mutation."}, {"letter": "B", "text": "First-degree relative with a known BRCA mutation, but untested."}, {"letter": "C", "text": "Personal history of LCIS."}, {"letter": "D", "text": "History of mantle field radiation between the ages 10 and 30 years."}, {"letter": "E", "text": "History of Cowden syndrome."}], "images": ["assets/q26_p217_02.jpg"], "explanationImages": ["assets/a26_p237_01.jpg"], "answer": "C", "explanation": "c. Personal history of LCIS. The American Cancer Society Guidelines for Screening Breast MRI recommend annual screening breast MRI in the following high-risk groups: • Known BRCA mutation • First-degree relative of BRCA carrier, but untested • Lifetime risk of 20-25% or greater, as defined by BRCAPRO or other models that are largely dependent on family history • Radiation to the chest between the ages 10 and 30 years • Li-Fraumeni syndrome and first-degree relatives • Cowden and Bannayan-Riley-Ruvalcaba syndromes and first-degree relatives Insufficient Evidence to Recommend for or Against MRI Screening: • Lifetime risk 15-20%, as defined by BRCAPRO or other models that are largely dependent on family history • Lobular carcinoma in situ (LCIS) or atypical lobular hyperplasia (ALH) • Atypical ductal hyperplasia (ADH) • Heterogeneously or extremely dense breasts on mammography • Women with a personal history of breast cancer, including DCIS Recommend Against MRI Screening: • Women at <15% lifetime risk [12]"}, {"number": "27", "stem": "A patient is status post mantle field radiation for Hodgkin's Lymphoma at age 16. When should she begin screening for breast MRI?", "options": [{"letter": "A", "text": "Eight years after radiation therapy but not before the age of 25 years."}, {"letter": "B", "text": "Screening breast MRI is not indicated in this patient population."}, {"letter": "C", "text": "Screening breast MRI should begin at the age of 30 years."}, {"letter": "D", "text": "Screening breast MRI should begin at the age of 40 years once mammography screening starts."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. Eight years after radiation therapy but not before the age of 25 years. Increased breast cancer risk has been consistently shown in those women with a history of Hodgkin's disease who underwent mantle field radiation. The risk seems to be greatest in women who received radiation between the ages 10 and 30 years. Therefore, screening breast MRI should be performed in this high-risk subgroup 8 years after radiation therapy or beginning at the age of 25 years, whichever occurs first [12]."}, {"number": "28", "stem": "A patient presented with metastatic axillary lymphadenopathy consistent with breast primary. Breast MRI will identify the breast primary lesion in what percentage of cases?", "options": [{"letter": "A", "text": "10-20%."}, {"letter": "B", "text": "20-30%."}, {"letter": "C", "text": "40-50%."}, {"letter": "D", "text": "70-80%."}], "images": ["assets/q28_p218_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. 70-80%. This case shows bulky right axillary lymph nodes in keeping with nodal metastasis. Less than 1% of all breast cancers present with metastatic LAD without a primary breast lesion detected clinically or with mammography. Breast MRI may identify the site of primary breast carcinoma and affect patient management. Breast MRI detects mammographically occult breast cancer in 62-86% of patients, thus answer choice d is most correct. Most occult tumors identified on breast MRI are less than 2 cm. Breast MRI is indicated for the evaluation of unilateral metastatic axillary lymphadenopathy with an unknown primary malignancy [13, 14]."}, {"number": "29", "stem": "A high-risk patient presents for screening. The right breast shows a small enhancing focus. The kinetic curve for this focus is also shown. Which is the most appropriate BI-RADS?", "options": [{"letter": "A", "text": "BI-RADS Category 2. Benign, focus is too small to characterize."}, {"letter": "B", "text": "BI-RADS Category 3. Probably Benign. Recommend 6-month follow-up MRI."}, {"letter": "C", "text": "BI-RADS Category 0. Assessment Incomplete. Recommend second-look ultrasound."}, {"letter": "D", "text": "BI-RADS Category 4. Suspicious. Recommend second-look ultrasound. If no sonographic correlate, MRI biopsy should be performed."}], "images": ["assets/q29_p218_02.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. BI-RADS Category 4. Suspicious. Recommend second-look ultrasound. If no sonographic correlate, MRI biopsy should be performed. The post-contrast MR images show an isolated enhancing focus in the right breast. The kinetic enhancement pattern is suspicious, showing rapid washout. The most appropriate BI-RADS, in this case, is a BI-RADS 4, suspicious. A second-look ultrasound should be performed to identify a sonographic correlate. If a sonographic correlate is not identified, an MRI biopsy should be performed. There are no formal guidelines to assign a breast MRI a BI-RADS 3, probably benign assessment; therefore, this should be avoided. When a suspicious finding is seen on breast MRI, it should NOT be given a BI-RADS 0 assessment. An incomplete assessment (BI-RADS 0) should not be given when recommending targeted US in order to determine the feasibility of performing a biopsy using sonographic guidance. These cases should be given a Category 4 or 5 assessment (suspicious or highly suggestive of malignancy). If a suspicious abnormality is detected, the report should indicate that a biopsy should be performed (either with ultrasound or MR guidance) [7]."}, {"number": "30", "stem": "Which of the following is NOT an indication for breast MRI?", "options": [{"letter": "A", "text": "A 45-year-old woman with dense breasts and average lifetime risk."}, {"letter": "B", "text": "A 32-year-old woman status post neoadjuvant chemotherapy for breast cancer."}, {"letter": "C", "text": "A 55-year-old woman with newly diagnosed breast cancer and suspected chest wall involvement."}, {"letter": "D", "text": "Evaluation of silicone implant integrity in a 65-year-old woman with a new breast contour deformity and inconclusive breast ultrasound."}, {"letter": "E", "text": "Screening of the contralateral breast in a 40-year-old woman with newly diagnosed breast cancer."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. A 45-year-old woman with dense breasts and average lifetime risk. The indications for breast MRI include the following: • High-risk screening. • Extent of ipsilateral disease and screening of the contralateral breast. • Evaluate involvement of adjacent structures, including pectoralis muscle, chest wall, skin, and nipple. • Evaluate treatment response following neoadjuvant chemotherapy. • Metastatic adenopathy of unknown primary (suspect breast origin). • Evaluation of positive margins following lumpectomy. • Implant evaluation (silicone implants; can be non-contrast). • Evaluation of equivocal mammographic and/or sonographic findings. (Problemsolving breast MRI should not be used in place of a complete diagnostic mammographic and sonographic work-up and should not be used as an alternative to biopsy suspicious findings.) *Breast MRI should not be used for screening average-risk women with dense breasts [15]."}, {"number": "31", "stem": "Which of the following is a correct statement regarding breast MRI in pregnancy and lactation?", "options": [{"letter": "A", "text": "Contrast-enhanced breast MRI is an absolute contraindication in lactation."}, {"letter": "B", "text": "No special consideration for a lactating patient to receive a non-contrast MRI."}, {"letter": "C", "text": "Gadolinium-based contrast media have been classified by the Food and Drug Administration as pregnancy class B drugs."}, {"letter": "D", "text": "Gadolinium-based contrast agents pass through the placental barrier but do not enter fetal circulation."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. No special consideration for a lactating patient to receive a non-contrast MRI. There are no contraindications for a lactating patient to receive a noncontrast or a contrast-enhanced MRI. Gadolinium-based contrast agents have been classified by the Food and Drug Administration as pregnancy class C drugs (no adequate and wellcontrolled studies in humans have been performed, although animal reproduction studies have shown an adverse effect on the fetus) and not class B. Gadolinium-based contrast agents pass through the placental barrier and enter the fetal circulation. They are then filtered by the fetal kidneys and excreted into the amniotic fluid, where they may remain for a prolonged period [16, 17]."}, {"number": "32", "stem": "What is the feature that makes a focus more suspicious?", "options": [{"letter": "A", "text": "Washout kinetics."}, {"letter": "B", "text": "Fatty hilum."}, {"letter": "C", "text": "Hyperintense signal on fluid-sensitive sequences."}, {"letter": "D", "text": "Persistent kinetics."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. Washout kinetics. A focus is a unique punctate enhancing dot usually <5 mm, which is nonspecific, is too small to be characterized morphologically, and has no corresponding finding on the precontrast sequence. A focus may be benign or malignant. The following features make a focus more likely to be benign: hyperintense signal on fluid sensitive sequences (e.g., STIR or T2-weighted imaging), fatty hilum, persistent enhancement kinetics, and stability compared to prior exams. The following features make a focus more suspicious: hypointense signal on T2-weighted imaging, washout kinetics, and an increase in size compared to prior studies [18]."}, {"number": "33", "stem": "What is the most appropriate description of the finding indicated by the arrow?", "options": [{"letter": "A", "text": "Homogenously enhancing round mass with irregular margins."}, {"letter": "B", "text": "Homogenously enhancing round mass with indistinct margins."}, {"letter": "C", "text": "Homogenously enhancing focus with indistinct margins."}, {"letter": "D", "text": "T2 hyperintense oval mass with irregular margins."}], "images": ["assets/q33_p220_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "a. Homogenously enhancing round mass with irregular margins. This MRI is an axial contrast-enhanced image with fat suppression. The clue for contrast-enhanced image is the cardiac enhancement. Therefore, choice d is incorrect. A mass is a 3-D, space-occupying structure with convex outward contour. A focus is a unique punctate enhancing dot usually <5 mm, which is nonspecific, is too small to be characterized morphologically, and has no corresponding finding on the precontrast sequence. BI-RADS descriptors of a mass on MRI include shape, margin, and internal enhancement characteristics. MRI BI-RADS shape descriptors are oval, round, and irregular. MRI BI-RADS margin descriptors are circumscribed and not circumscribed. Not circumscribed is further classified as irregular or spiculated. An indistinct margin is not part of the MRI lexicon for mass. Therefore, choices b and c are incorrect. Internal enhancement characteristics are homogenous (confluent and uniform), heterogeneous (nonuniform, with areas of variable signal intensity), rim enhancement, and dark internal septations. Homogeneous enhancement is confluent and uniform [18]."}, {"number": "34", "stem": "What is the shape description and most appropriate BI-RADS category for the finding in the right breast?", "options": [{"letter": "A", "text": "Irregular mass; BI-RADS Category 3."}, {"letter": "B", "text": "Irregular mass; BI-RADS Category 4."}, {"letter": "C", "text": "Oval mass; BI-RADS Category 3."}, {"letter": "D", "text": "Oval mass; BI-RADS Category 4."}], "images": ["assets/q34_p220_02.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Irregular mass; BI-RADS Category 4. The lesion's shape is neither round nor oval. For MRI, use of this descriptor usually implies a suspicious finding. Given the heterogeneous enhancement with irregular shape and margin, this finding is suspicious for malignancy. Thus, BI-RADS Category 4 assessment is most appropriate [18]."}, {"number": "35", "stem": "The MRI shows a biopsy-proven malignancy in the right breast which measures 3 cm in maximum dimension without other suspicious findings in either breast. Based on the 8th edition of TNM staging, what is the appropriate T stage for this mass?", "options": [{"letter": "A", "text": "T1."}, {"letter": "B", "text": "T2."}, {"letter": "C", "text": "T3."}, {"letter": "D", "text": "More information is needed to assign the T staging."}], "images": ["assets/q35_p221_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. T2. Based on the 8th edition of AJCC for breast cancer, T category is based primarily on the size of the invasive component of cancer. The largest contiguous dimension of a tumor focus is used, and small satellite foci of noncontiguous tumor are not added to the size. Please refer to Chap. 10, question 25b explanation for full table of Tumor Staging. • T1: tumor 20 mm or less in greatest dimension. • T2: tumor more than 20 mm but not more than 50 mm in greatest dimension. • T3: tumor more than 50 mm in greatest dimension. • T4: tumor of any size with direct extension to chest wall and/or to the skin (ulceration or skin nodules) [19]."}, {"number": "36", "stem": "What is the sequence shown and what is the appropriate description of amount of fibroglandular tissue?", "options": [{"letter": "A", "text": "Precontrast T1 non-fat saturated; Extreme fibroglandular tissue."}, {"letter": "B", "text": "Precontrast T1 non-fat saturated; Almost entirely fat."}, {"letter": "C", "text": "Contrast-enhanced T1 non-fat saturated; Extreme fibroglandular tissue."}, {"letter": "D", "text": "Precontrast T1 non-fat saturated; Assessment of the amount of fibroglandular tissue is not part of the MRI lexicon and should be assessed only in mammogram."}], "images": ["assets/q36_p222_01.jpg"], "explanationImages": ["assets/a36_p241_01.jpg", "assets/a36_p241_02.jpg", "assets/a36_p241_03.jpg", "assets/a36_p241_04.jpg"], "answer": "A", "explanation": "a. Precontrast T1 non-fat saturated; Extreme fibroglandular tissue. The presented sequence is precontrast T1 non-fat saturated. Note, that there is no contrast in the heart. Assessment of the amount of fibroglandular tissue is part of the MRI lexicon. The four categories of breast composition are defined by the visually estimated content of fibroglandular tissue (FGT) within the breasts. If the breasts are not of apparently equal amounts of FGT, the breast with the most FGT should be used to categorize breast composition. Examples of 4 categories of breast composition in the MRI (non-fat saturated pre-contrast T1 axial image): Almost Entirely Fat Scattered Fibroglandular tissue Heterogeneous Fibroglandular Tissue Extreme Fibroglandular Tissue"}, {"number": "37", "stem": "The mass in the left breast is a biopsy-proven malignancy. What other suspicious finding is in the below image?", "options": [{"letter": "A", "text": "Skin retraction and enhancement."}, {"letter": "B", "text": "Nipple retraction."}, {"letter": "C", "text": "Left axillary lymphadenopathy."}, {"letter": "D", "text": "Chest wall invasion."}], "images": ["assets/q37_p222_02.jpg"], "explanationImages": ["assets/a37_p242_01.jpg"], "answer": "A", "explanation": "a. Skin retraction and enhancement. The arrow demonstrates enhancement of the skin. The presence of localized skin involvement increases the T staging to T4b. There is normal nipple enhancement and morphology. There is no evidence of axillary lymphadenopathy or chest wall invasion."}, {"number": "38", "stem": "Which of the following is not depicted in the below image?", "options": [{"letter": "A", "text": "Nipple inversion."}, {"letter": "B", "text": "Nipple invasion."}, {"letter": "C", "text": "Skin thickening."}, {"letter": "D", "text": "Chest wall invasion."}], "images": ["assets/q38_p223_01.jpg"], "explanationImages": ["assets/a38_39_40_p243_01.jpg"], "answer": "D", "explanation": "d. Chest wall invasion. The circle demonstrates nipple retraction and invasion. The nipple is retracted with subareolar abnormal enhancement. The arrow shows skin thickening. There is preserved fat plane between the malignancy and the chest wall posteriorly."}, {"number": "39", "stem": "What is the most appropriate assessment and recommendation of the finding in the left breast in this asymptomatic patient with a recent history of lumpectomy?", "options": [{"letter": "A", "text": "Cyst; recommend cyst aspiration."}, {"letter": "B", "text": "Cyst; recommend short term follow-up breast MRI to ensure resolution."}, {"letter": "C", "text": "Suspicious mass; recommend targeted second-look ultrasound and core needle biopsy."}, {"letter": "D", "text": "Benign seroma; no action is needed."}], "images": ["assets/q39_p223_02.jpg"], "explanationImages": ["assets/a38_39_40_p243_01.jpg"], "answer": "D", "explanation": "d. Benign seroma; no action is needed. There is an oval circumscribed mass showing fluid signal without enhancement which is consistent with a benign postsurgical seroma given recent lumpectomy. Note that there is no peripheral thickening or enhancing solid component. Therefore, targeted second look ultrasound or short-term follow-up is not an appropriate recommendation. Patient is asymptomatic and no aspiration is indicated. Most seromas will resolve over time."}, {"number": "40", "stem": "What is an appropriate description of the margin of the mass shown in the MRI?", "options": [{"letter": "A", "text": "Microlobulated."}, {"letter": "B", "text": "Spiculated."}, {"letter": "C", "text": "Circumscribed."}, {"letter": "D", "text": "Angular."}], "images": ["assets/q40_p224_01.jpg"], "explanationImages": ["assets/a38_39_40_p243_01.jpg", "assets/a40_41_p244_01.jpg"], "answer": "B", "explanation": "b. Spiculated. The BIRADS descriptor of margin for mass in MRI are: • Circumscribed • Not circumscribedirregularspiculated Angular and microlobulated margins are sonographic descriptors and are not included in the MRI lexicon for margin description. The circle demonstrates a spiculated enhancing mass in the right breast. Note that there is a susceptibility artifact in the posterior border of the mass representing a biopsy clip (arrow) [18]."}, {"number": "41", "stem": "Based on the ultrasound and corresponding MRI finding in the right breast, what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Invasive ductal carcinoma."}, {"letter": "B", "text": "Inflammatory breast cancer."}, {"letter": "C", "text": "Breast abscess."}, {"letter": "D", "text": "Fibroadenoma."}], "images": ["assets/q41_p224_02.jpg"], "explanationImages": ["assets/a40_41_p244_01.jpg"], "answer": "A", "explanation": "a. Invasive ductal carcinoma. The most common primary breast cancer is invasive ductal carcinoma (about 75% of all primary breast cancers). Inflammatory breast cancer (IBC) is a rare subtype of breast cancer that accounts for 2%-5% of all breast cancers and presents with breast skin edema and thickening as well as skin enhancement. There is no skin thickening or skin enhancement on this MRI. A breast abscess demonstrates a rim-enhancing mass on MRI without internal enhancement. There is often overlying skin thickening without skin enhancement. Fibroadenomas usually present as an oval circumscribed mass with or without enhancement on MRI. The margins of the mass shown are irregular; thus, answer choice d would not be appropriate."}, {"number": "42", "stem": "Which of the following is NOT correct regarding screening breast MR in high-risk women?", "options": [{"letter": "A", "text": "Screening breast MRI is indicated in a patient with a 25% lifetime risk of breast cancer due to strong family history."}, {"letter": "B", "text": "Li-Fraumeni syndrome, Cowden and Bannayan-Riley-Ruvalcaba syndromes are associated with an increased risk of developing breast cancer."}, {"letter": "C", "text": "30% of all breast cancer occurs in women with a family history of breast cancer (familial breast cancer)."}, {"letter": "D", "text": "Increased risk of breast cancer is only associated in patients with BRCA1 mutation, and not in patients with BRCA2 mutation."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. Increased risk of breast cancer is only associated in patients with BRCA1 mutation, and not in patients with BRCA2 mutation. Both BRCA1 and BRCA2 mutations are associated with an increased risk of breast cancer. For women with a history of mantle or chest radiation therapy who received a cumulative dose of 10 Gy or more before the age of 30 years, contrast-enhanced breast MRI should be performed annually beginning at age 25 or 8 years after radiation therapy, whichever is later. Known genetic predisposition for breast cancer is BRCA1 or BRCA2 mutation. Other less common gene mutations include TP53 and CHEK2 (Li-Fraumeni syndrome), PTEN (Cowden and Bannayan-Riley-Ruvalcaba syndromes), CDH1 (hereditary diffuse gastric cancer), STK11 (Peutz-Jeghers syndrome), PALB2 (interacts with BRCA2), and ATM (ataxia-telangiectasia) genes. Thirty percent of all breast cancer occurs in women with a family history of breast cancer (familial breast cancer). According to the American College of Radiology (ACR), breast MRI is indicated in women with greater than or equal to 20% lifetime risk of breast cancer [20]. Breast cancer 30% 70% Sporadic Familial"}, {"number": "43", "stem": "Which of the following is NOT a contraindication for contrast-enhanced breast MRI?", "options": [{"letter": "A", "text": "Pregnancy."}, {"letter": "B", "text": "Port-A-Cath."}, {"letter": "C", "text": "Metallic foreign body in the eye."}, {"letter": "D", "text": "Non-MRI-conditional implanted device."}], "images": [], "explanationImages": ["assets/a43_p246_01.jpg"], "answer": "B", "explanation": "b. Port-a-cath. Port-a-Cath is not a contraindication for breast MRI. In pregnancy, gadolinium-based contrast agents (GBCAs) cross the placental barrier, enter the fetal circulation, and pass via the kidneys into the amniotic fluid. Although no definite adverse effects of GBCA administration on the human fetus have been documented, the potential bioeffects of fetal GBCA exposure are not well understood. GBCA administration should therefore be avoided during pregnancy unless no suitable alternative imaging is possible and the benefits of contrast administration outweigh the potential risk to the fetus. Only a tiny fraction of a GBCA administered to a lactating woman is excreted into the breast milk, and only a similarly small portion of the excreted milk is absorbed by the infant's gut. Moreover, intravenous administration of a GBCA to neonates and infants is considered safe and performed routinely in clinical practice. ACR contrast manual suggests that it is safe for the mother and infant to continue breast-feeding after receiving contrast. Ultimately, an informed decision to temporarily stop breast-feeding should be up to the mother after these facts are communicated. If the mother remains concerned about any potential effects to the infant, she may abstain from breast-feeding from the time of contrast administration for a period of 12-24 h. There is no value to stop breast-feeding beyond 24 h [ 21, 22]."}, {"number": "44", "stem": "What artery is denoted by the arrow in the axial enhanced T1 image and corresponding MIP image?", "options": [{"letter": "A", "text": "Lateral thoracic artery."}, {"letter": "B", "text": "Intercostal artery."}, {"letter": "C", "text": "Internal mammary (thoracic) artery."}, {"letter": "D", "text": "Epigastric artery."}], "images": ["assets/q44_p225_01.jpg"], "explanationImages": ["assets/a44_p246_02.jpg", "assets/a44_p246_03.jpg", "assets/a44_p246_04.jpg"], "answer": "C", "explanation": "c. Internal mammary (thoracic) artery. The vessel shown by thin arrow is the right internal mammary vein that runs parallel to the internal mammary artery shown by thick arrow. Thoracoacromial artery, pectoral branches Axillary ar tery Lateral thoracic Internal thoracic ar tery and ar tery and lateral perforators perforators Perforators fo rm intercostal arteries"}];
+    const APP_ID = "absolute-breast-imaging-review-breast-mri-quiz-ch5";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          lines.push("");
+          continue;
+        }
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
+      const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
+      canvas.width = width;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
+      ctx.font = "24px Arial";
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
