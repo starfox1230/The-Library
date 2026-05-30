@@ -1,6 +1,23 @@
 window.BOARDVITALS_REVIEWS = {
-  "generatedOn": "2026-05-28",
+  "generatedOn": "2026-05-29",
   "reviews": [
+    {
+      "quizId": "59040582",
+      "date": "2026-05-29",
+      "href": "../anki-card-creation-codex-helper/boardvitals/2026-05-29-quiz-59040582/quiz-59040582-review.html",
+      "questions": 50,
+      "missed": [
+        6,
+        11,
+        22,
+        30,
+        47,
+        49
+      ],
+      "stemImages": 47,
+      "explanationImages": 28,
+      "hasDeck": false
+    },
     {
       "quizId": "59015122",
       "date": "2026-05-28",
@@ -26,7 +43,7 @@ window.BOARDVITALS_REVIEWS = {
       ],
       "stemImages": 57,
       "explanationImages": 37,
-      "hasDeck": false
+      "hasDeck": true
     },
     {
       "quizId": "58980608",

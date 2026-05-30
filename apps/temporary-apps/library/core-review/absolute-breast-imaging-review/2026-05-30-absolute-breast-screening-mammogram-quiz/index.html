@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Absolute Breast Imaging Review Screening Mammogram Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Absolute Breast Imaging Review Screening Mammogram Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"absolute-breast-imaging-review-screening-mammogram-quiz-ch3",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "The American College of Radiology (ACR) recommends annual breast cancer screening for an average-risk woman beginning at what age?", "options": [{"letter": "A", "text": "30."}, {"letter": "B", "text": "40."}, {"letter": "C", "text": "50."}, {"letter": "D", "text": "60."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. 40. Various organizations recommend beginning screening mammography at different ages. The ACR recommends annual screening beginning at 40 years of age, based on the benefits of life years gained which is higher for women with screen-detected breast cancer in their 40s than in the 50-70 year-old population [1]. Per ACR guidelines, annual screening should continue as long as a woman's life expectancy exceeds 5-7 years [1]. Table 3.1 summarizes age and frequency recommendations for breast cancer screening with mammography in average-risk women [2]."}, {"number": "2", "stem": "What is the lifetime risk of developing breast cancer for an average-risk woman?", "options": [{"letter": "A", "text": "<5%."}, {"letter": "B", "text": "<15%."}, {"letter": "C", "text": "<25%."}, {"letter": "D", "text": "<35%."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. <15%. Average-risk women have a < 15% lifetime risk of breast cancer. A lifetime risk of 15-20% is considered intermediate-risk. A lifetime risk of >20% is considered high-risk [1]. Table 3.1 Screening age and frequency recommendations for breast cancer screening with mammography in average-risk women by organization [3] Organization Start age End age Frequency U.S. Preventive 50 years 74 years Every 2 years Services Task Force Choice to start at age 40-49 years American Cancer 45 years No upper limit; Age 45-54 years: Every Society Choice to start continue as long as year at age life expectancy is Age 55 years and older: 40-44 years ≥10 years Every year or every 2 years American College of 50 years No upper limit; Every year or every Obstetricians and Choice to start continue based on 2 years Gynecologists age 40-49 years woman's health status and longevity International Agency 50 years 74 years Not addressed for Research on Cancer American College of 40 years No upper limit; Every year Radiology continue based on woman's health status and life expectancy of at least 5-7 years American College 50 years No upper limit; Every 2 years of Physicians Choice to start continue as long as age 40-49 years life expectancy is ≥10 years American Academy of 50 years 74 years Every 2 years Family Physicians Choice to start age 40-49 years"}, {"number": "3", "stem": "Screening mammography is appropriate for which of the following individuals?", "options": [{"letter": "A", "text": "A 50-year-old asymptomatic female with a history of one first-degree relative with breast cancer diagnosed in her 50s."}, {"letter": "B", "text": "A 40-year-old asymptomatic female with a \"probably benign\" finding identified at a diagnostic exam 6 months prior."}, {"letter": "C", "text": "A 60-year-old male with bilateral palpable retroareolar masses."}, {"letter": "D", "text": "A 35-year-old breastfeeding female with strong family history of breast cancer and left-sided breast pain, swelling, and redness."}, {"letter": "E", "text": "A 55-year-old asymptomatic female with smoking history and incidentally noted right breast mass on low-dose lung cancer screening chest CT."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. A 50-year-old asymptomatic female with a history of one first-degree relative with breast cancer diagnosed in her 50s. The purpose of screening mammography is to detect early, unsuspected breast cancer in asymptomatic women. The individual described in answer choice A is most appropriate for screening mammography. Answer choices b and e require diagnostic mammography and/or ultrasound for further evaluation, regardless of symptoms. Answer choices c and d require diagnostic mammography and ultrasound to further evaluate symptoms and clinical findings [1, 3]."}, {"number": "4", "stem": "Which of the following factors places a woman in the high-risk category for breast cancer screening?", "options": [{"letter": "A", "text": "History of fibroadenoma."}, {"letter": "B", "text": "First-degree relative with history of breast cancer diagnosed in her 70s."}, {"letter": "C", "text": "History of cigarette smoking."}, {"letter": "D", "text": "A 31-year-old untested daughter whose mother has a BRCA gene mutation."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. A 31-year-old untested daughter whose mother has a BRCA gene mutation. High-risk breast cancer screening recommendations should be followed for women with a BRCA gene mutation and their untested first-degree relatives, history of chest irradiation between 10 and 30 years of age, and 20% or greater lifetime risk of breast cancer due to family history. Intermediate-risk factors include personal history of breast cancer, lobular neoplasia, atypical ductal hyperplasia, or 15-20% lifetime risk of breast cancer [1]."}, {"number": "5", "stem": "A 38-year-old female is diagnosed with biopsy-proven lobular carcinoma in situ. At what age should she begin breast cancer mammography screening?", "options": [{"letter": "A", "text": "38 years of age."}, {"letter": "B", "text": "40 years of age."}, {"letter": "C", "text": "45 years of age."}, {"letter": "D", "text": "50 years of age."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. 38 years of age. Women with biopsy-proven lobular neoplasia or atypical ductal hyperplasia should undergo annual breast cancer screening with mammography beginning at age of diagnosis, but not younger than 30 years of age [ 1]."}, {"number": "6a", "stem": "A 25-year-old female with a confirmed BRCA1 mutation and no personal history of breast cancer presents to her primary care doctor with questions regarding breast cancer screening. This patient meets criteria for which of the following breast cancer screening risk categories?", "options": [{"letter": "A", "text": "Low-risk."}, {"letter": "B", "text": "Average-risk."}, {"letter": "C", "text": "Intermediate-risk."}, {"letter": "D", "text": "High-risk."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. High-risk. Based on this patient's history, she would be considered at high-risk for breast cancer. Table 3.2 outlines the American College of Radiology designations of each risk group. Low-risk is not a risk category."}, {"number": "6b", "stem": "Based on her risk category, at what age should she start breast cancer screening with mammography?", "options": [{"letter": "A", "text": "At the time of BRCA1 mutation detection."}, {"letter": "B", "text": "At age 30 years."}, {"letter": "C", "text": "At age 40 years."}, {"letter": "D", "text": "At age 50 years."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. At age 30. Women with genetics-based increased risk and their untested first-degree relatives should begin breast cancer screening with mammogram at the age of 30 years [ 1, 4]. Table 3.2 Risk-based categories for breast cancer screening [1] Risk category Description Average-risk • Less than 15% lifetime risk of breast cancer. Intermediate-risk • Personal history of breast cancer. • Personal history of lobular neoplasia. • Personal history of atypical ductal hyperplasia. • 15-20% lifetime risk of breast cancer. High-risk • Patients with BRCA gene mutation and their untested first-degree relatives. • History of chest irradiation between 10 and 30 years of age. • 20% or greater lifetime risk of breast cancer."}, {"number": "6c", "stem": "What breast screening modality(ies) is (are) indicated for this patient?", "options": [{"letter": "A", "text": "Mammography only."}, {"letter": "B", "text": "Mammography with molecular breast imaging."}, {"letter": "C", "text": "Mammography with breast MRI or ultrasound."}, {"letter": "D", "text": "Mammography with dedicated FDG-PET breast."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. Mammography with breast MRI or ultrasound. The American College of Radiology, American Cancer Society, and Society of Breast Imaging recommend high-risk screening with digital mammography with or without digital breast tomosynthesis, in addition to annual supplemental screening with breast MRI. For those unable to undergo MRI, screening ultrasound is indicated. The combination of mammography and supplemental screening has the highest sensitivity for breast cancer detection in high-risk women, especially those with a genetic predisposition, than mammography alone [ 1, 4]. There is a lack of evidence in large screening populations to support supplemental screening with molecular breast imaging or FDG-PET [ 1]."}, {"number": "7", "stem": "A 40-year-old female with an average risk for breast cancer and extremely dense breasts presents for baseline screening. In addition to mammography, she inquires about a whole breast screening ultrasound. Which of the following is an indication for screening ultrasound?", "options": [{"letter": "A", "text": "Palpable mass in woman aged under 30 years."}, {"letter": "B", "text": "High-risk and unable to tolerate MRI."}, {"letter": "C", "text": "Breast cancer screening during pregnancy."}, {"letter": "D", "text": "Fatty breasts."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. High-risk and unable to tolerate MRI. Screening ultrasound is indicated as an adjunct to mammography for highrisk patients who cannot tolerate MRI [ 1]. A woman presenting with a palpable mass should undergo diagnostic ultrasound rather than a screening ultrasound, with or without diagnostic mammography depending on her age. Breast cancer screening during pregnancy at the age of 40 years is usually performed with mammography, as the dose to the fetus is negligible and lead shielding can be done safely [ 5]. Screening whole-breast ultrasound during pregnancy has not been well evaluated, but may be used as a screening adjunct while keeping in mind the possibility of increased false-positive rates prompting additional biopsies [ 5]. In women with dense breasts, such as the patient described in the question stem, screening ultrasound may be considered in addition to screening mammography but is not clearly recommended [1]. For women with dense breasts, the benefit of increased cancer detection with adjunct screening ultrasound should be balanced with the increased risk of a false-positive result [ 1]."}, {"number": "8", "stem": "Which of the following statements is true regarding breast cancer screening and dense breast tissue?", "options": [{"letter": "A", "text": "Dense breast tissue lowers the sensitivity of mammography and increases breast cancer risk compared to patients with fatty breast tissue."}, {"letter": "B", "text": "Dense breast notification laws suggest women with dense breast tissue are informed of risks related to dense breast tissue."}, {"letter": "C", "text": "Screening breast ultrasound performed with mammography decreases the false-positive rate of breast cancer."}, {"letter": "D", "text": "Screening breast MRI is indicated."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. Dense breast tissue lowers the sensitivity of mammography and increases breast cancer risk compared to patients with fatty breast tissue. Answer choice a is true. Answer choice b is false because dense breast notification laws mandate, not suggest, that mammogram reports include information regarding the risks related to dense breast tissue. Answer choice c is false because screening ultrasound in women with dense breasts increases the falsepositive rate of breast cancer as well as a number of short-interval follow-up and biopsy recommendations, with decreased positive predictive value of biopsies [1]. Answer choice d is false as a blanket statement; however, screening breast MRI in women with dense breast tissue is recommended for women with a personal history of breast cancer and dense breast tissue [4]."}, {"number": "9", "stem": "A 33-year-old female with no known increased risk factors for breast cancer presents with a palpable mass which is ultimately diagnosed as invasive ductal carcinoma. She undergoes lumpectomy followed by radiation therapy. Which of the following statements is true?", "options": [{"letter": "A", "text": "Based on her individual risk factors, she should be screened with annual mammography and FDG-PET."}, {"letter": "B", "text": "Based on her age, she should start screening with breast MRI and transition to mammography at age 40 years."}, {"letter": "C", "text": "Based on her history, she should start breast cancer screening 6-12 months post-radiation."}, {"letter": "D", "text": "Screening is not recommended since she is aged under 40 years."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. Based on her history, she should start breast cancer screening 6-12 months post-radiation. Women with a personal history of breast cancer should start screening with mammography 6-12 months post-radiation if the breast is conserved; otherwise mammography every 12 months is indicated. Women with a personal history of breast cancer diagnosed before the age of 50 years, or who also have increased lifetime risk greater than 20% are recommended to undergo screening with mammography supplemented with contrast-enhanced MRI [1, 4]."}, {"number": "10", "stem": "In which of the following scenarios is screening mammography indicated during pregnancy?", "options": [{"letter": "A", "text": "A 35-year-old pregnant female with high-risk of breast cancer."}, {"letter": "B", "text": "A 40-year-old pregnant female with bloody nipple discharge."}, {"letter": "C", "text": "A 32-year-old pregnant female with palpable breast mass."}, {"letter": "D", "text": "A 28-year-old lactating female with average-risk for breast cancer."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. A 35-year-old pregnant female with high-risk of breast cancer. Screening mammography remains indicated in pregnant women at high-risk under the age of 30 years, and at elevated risk (intermediate or high risk) between the ages 30 and 39 years. At age 40 years or older, breast cancer screening during pregnancy is recommended for all levels of risk. The fetal radiation dose from a 4-view mammogram is <0.03 mGy, which is well below the 50 mGy threshold below which no teratogenic effects have been demonstrated. Lead shielding can also be safely used with pregnant women undergoing mammography [4]. Answer choices b and c require diagnostic imaging due to symptoms. There is no indication for screening mammography with answer choice d."}, {"number": "11", "stem": "What is the earliest age at which it is recommended that patients with a BRCA gene mutation begin annual breast cancer screening with contrast-enhanced breast MRI?", "options": [{"letter": "A", "text": "20 years old."}, {"letter": "B", "text": "25 years old."}, {"letter": "C", "text": "30 years old."}, {"letter": "D", "text": "35 years old."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. 25 years old. For BRCA gene mutation carriers, annual breast cancer screening with contrast-enhanced MRI is recommended to start as early as age 25 years [ 4, 6]. Most societies recommend starting annual screening with contrast-enhanced MRI between the ages of 25 and 30 years [ 6]. Annual MRI breast cancer screening should be obtained in addition to annual screening mammography at and beyond age 30 years. In practice, these two modalities are often alternated every 6 months starting at age 30 years."}, {"number": "12", "stem": "Which of the following is NOT considered a risk factor for breast cancer?", "options": [{"letter": "A", "text": "Age."}, {"letter": "B", "text": "Early menstrual periods before the age of 12 years."}, {"letter": "C", "text": "Fatty breasts."}, {"letter": "D", "text": "First pregnancy after the age of 30 years."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. Fatty breasts. Dense breasts, not fatty breasts, are considered a risk factor for breast cancer because the increased amount of connective tissue can make it harder to see tumors on a mammogram. General risk factors for breast cancer include: • Age (most breast cancers are diagnosed after age 50 years). • Genetic mutations (e.g., BRCA1 and BRCA 2). • Reproductive history with longer exposure to hormones (e.g., early menses before age 12 years, menopause after age 55 years, first pregnancy after age 30 years, never breastfeeding, never having a full-term pregnancy). • Dense breasts. • Personal history of breast cancer or high-risk lesion. • Family history of breast or ovarian cancer. • Prior radiation therapy to the chest or breasts before age 30 years. • Prior exposure to diethylstilbestrol (DES). • Sedentary lifestyle/obesity. • Hormone replacement therapy after menopause for greater than 5 years. • Alcohol consumption [7]."}, {"number": "13", "stem": "The imaging finding indicated by the circle:", "options": [{"letter": "A", "text": "Could be suspicious in a patient with cancer."}, {"letter": "B", "text": "Represents a normal anatomical variant."}, {"letter": "C", "text": "Is most often bilateral."}, {"letter": "D", "text": "Is easily seen on MLO views."}], "images": ["assets/q13_p087_01.jpg"], "explanationImages": ["assets/a13_p110_01.jpg"], "answer": "B", "explanation": "b. Represents a normal anatomical variant. The sternalis muscle is a normal anatomical variant of the chest wall musculature present in approximately 8% of the general population. When present, it is twice as often unilateral as bilateral. It is important to be aware of this variant as it can often be seen on screening mammography and should not be confused for a suspicious mass. It appears as a mass-like density in the medial aspect of the breast at posterior depth on the craniocaudal view (indicated by the red arrow below). It is essentially never seen in the MLO projection due to its far medial and posterior location on the chest wall [8]."}, {"number": "14", "stem": "Which of the following is true regarding an increase in breast density detected on screening mammogram PRIOR CURRENT:", "options": [{"letter": "A", "text": "Tamoxifen causes an increase in breast density."}, {"letter": "B", "text": "This finding could be explained by a typical age-related change in breast density."}, {"letter": "C", "text": "This finding is typical after a period of weight gain."}, {"letter": "D", "text": "If unilateral, additional diagnostic workup is indicated."}], "images": ["assets/q14_p088_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. If unilateral, additional diagnostic workup is indicated. The breast is composed of fibroglandular tissue as well as fatty elements. The ratio of these two components determines the fibroglandular density of a breast on screening mammogram, which is reported in every screening mammography report as \"almost entirely fatty (A),\" \"scattered areas of fibroglandular density (B),\" \"heterogeneously dense (C),\" and \"extremely dense (D).\" Common factors affecting breast density are detailed in the table below. Bilateral increase in density detected at screening mammogram typically does not warrant further workup, but a unilateral increase could suggest lymphatic obstruction and could be malignant [10-12]. Common causes for changes in breast density [10-12] Increased density Decreased density Hormonal stimulation (e.g., hormone replacement therapy and Tamoxifen pregnancy) Increasing age Systemic conditions causing edema (e.g., congestive heart failure) Weight gain"}, {"number": "15", "stem": "Which of the following is true regarding accessory breast tissue:", "options": [{"letter": "A", "text": "It results from abnormal migration during embryologic development."}, {"letter": "B", "text": "It most commonly occurs in the axilla, but may be present anywhere along the \"milk line\"."}, {"letter": "C", "text": "Incidence is approximately 70%."}, {"letter": "D", "text": "It is not responsive to hormonal stimulation as typical breast tissue and any symptom associated with accessory breast tissue should be considered suspicious."}], "images": ["assets/q15_p089_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. It most commonly occurs in the axilla, but may be present anywhere along the \"milk line\". Accessory breast tissue, also known as ectopic breast tissue, refers to any breast tissue outside of the expected location of the breast. While the precise etiology of accessory breast tissue is not definitively understood, one theory purports that the mammary ridges, derived from the ectoderm, migrate along the \"milk line\" on the ventral surface of the fetus and regress everywhere except at the breasts. If the ridges do not regress, accessory breast tissue is left behind along the pathway of normal migration which extends from the anterior axilla to the medial thigh, most commonly in the axilla. Incidence of accessory breast tissue is approximately 6% and is frequently bilateral. Just like breast tissue within the breast, accessory breast tissue responds to hormonal stimulation and may thus display the same benign/physiologic and malignant processes as the breast [11, 12]."}, {"number": "16", "stem": "An 18-year-old patient presents with a hard, palpable breast lump. Targeted ultrasound was performed directly over her area of concern. What is the next step?", "options": [{"letter": "A", "text": "Reassure the patient that the mass she is feeling is a normal anatomical structure."}, {"letter": "B", "text": "Recommend cross-sectional imaging to better characterize the mass."}, {"letter": "C", "text": "Perform a biopsy."}, {"letter": "D", "text": "Refer the patient to a breast surgeon."}], "images": ["assets/q16_p090_01.jpg"], "explanationImages": ["assets/a16_p111_01.jpg"], "answer": "A", "explanation": "a. Reassure the patient that the mass she is feeling is a normal anatomical structure. It is important to be familiar with the normal sonographic appearance of the breast and surrounding structures. The breast parenchyma demonstrates varying echogenicity based on its composition of fat (hypoechoic), fibrous (hyperechoic), and glandular (intermediate echogenicity) tissue. The structures of the chest wall, including the pectoralis muscle (which appears as a longitudinally oriented structure with linear bands of alternating hyperand hypoechoic lines), the ribs, and the costal cartilage are often seen. In this case, the patient's palpable abnormality corresponds to a rib (indicated by the circle on the image below), which can be easily identified by its thin echogenic rim with dense posterior acoustic shadowing and location posterior to the pectoralis and anterior to the lung [13, 14]."}, {"number": "17", "stem": "When is the optimal timing to perform a breast screening MRI in relationship to a patient's menstrual cycle?", "options": [{"letter": "A", "text": "Week 1 (days 1-7)."}, {"letter": "B", "text": "Week 2 (days 7-14)."}, {"letter": "C", "text": "Week 3 (days 14-21)."}, {"letter": "D", "text": "Week 4 (days 21-28)."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. Week 2 (days 7-14). Background parenchymal enhancement is highest during days 1-6 and 21-28 of the menstrual cycle. A breast MRI is ideally performed during the second week of the menstrual cycle (days 7-14) to maximize the sensitivity of lesion detection [15, 16]."}, {"number": "18", "stem": "Which of the following is FALSE regarding the structures indicated by the arrows?", "options": [{"letter": "A", "text": "On ultrasound, they can create posterior acoustic shadowing which could appear suspicious."}, {"letter": "B", "text": "Force on these ligaments can create skin retraction."}, {"letter": "C", "text": "They are absent in the male breast."}, {"letter": "D", "text": "They decrease with age."}], "images": ["assets/q18_p091_01.jpg", "assets/q18_p091_02.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. They decrease with age. Cooper's ligaments, which make up the underlying ligamentous supporting structure of the breast, are seen as fine white lines on mammography. Any straightening or distortion of Cooper's ligaments should be viewed with suspicion as an indication of underlying malignancy. Similarly, a mass that is exerting force on Cooper's ligaments can create skin or nipple retraction, a suspicious physical exam finding. On ultrasound, Cooper's ligaments are seen as thin hyperechoic lines that can create acoustic shadows. These shadows are typically thin and hypoechoic, but have the potential to mimic malignancy if the shadow is wider. Differentiating features include the lack of an associated mass and the disappearance of the shadow with increased transducer pressure and changes in the angle of insonation. Cooper's ligaments are stable over a women's lifetime and are not present in the male breast [18-20]."}, {"number": "19", "stem": "The nipple areolar complex contains all of the following except:", "options": [{"letter": "A", "text": "Montgomery glands."}, {"letter": "B", "text": "Acini."}, {"letter": "C", "text": "Morgagni tubercles."}, {"letter": "D", "text": "Lactiferous sinuses."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. Acini. The breast is composed of approximately 15-20 segments, each of which has a corresponding mammary duct that converges at the nipple. These draining ducts come together in the subareolar breast to form lactiferous sinuses, which each measure approximately 5-8 mm. Occasionally, a palpable normal lactiferous sinus will bring in a woman for a diagnostic exam. The nipple-areolar complex also contains the Montgomery glands, which secrete milk into the Morgagni tubercles. The Morgagni tubercles are seen as tiny (1-2 mm) raised lesions on the surface of the areolar skin [20]."}, {"number": "20", "stem": "What is the appropriate BI-RADS designation for this screening ultrasound? The remainder of the study is negative.", "options": [{"letter": "A", "text": "BI-RADS Category 0."}, {"letter": "B", "text": "BI-RADS Category 1."}, {"letter": "C", "text": "BI-RADS Category 2."}, {"letter": "D", "text": "BI-RADS Category 3."}, {"letter": "E", "text": "BI-RADS Category 4."}], "images": ["assets/q20_p092_01.jpg"], "explanationImages": ["assets/a20_p113_01.jpg"], "answer": "B", "explanation": "b. BI-RADS Category 1. The image above demonstrates the normal sonographic appearance of the nipple. On ultrasound, the nipple produces severe attenuation of the sound beam from whirled smooth muscle bundles. When seen on static images, the nipple can be occasionally misinterpreted as a shadowing breast mass. Thus, it is important to interpret images knowing the relative position of the nipple and to interrogate the subareolar parenchyma using different angles of insonation [17]. In this case, the body marker to the left of the image demonstrates that the sonographer is imaging directly over the nipple, and this study should be given a BI-RADS 1: Negative. nipple Posterior acoustic shadowing deep to the nipple due to attenuation of the sound beam"}, {"number": "21", "stem": "What structure is responsible for the majority of milk production?", "options": [{"letter": "A", "text": "Lactiferous sinus."}, {"letter": "B", "text": "Lobular acini."}, {"letter": "C", "text": "Terminal ducts."}, {"letter": "D", "text": "Segmental ducts."}], "images": [], "explanationImages": ["assets/a21_22_p114_01.jpg"], "answer": "B", "explanation": "b. Lobular acini. The terminal duct lobular unit (TDLU) is considered a \"functional unit\" of the breast (see image below) and contains the lobular acini which are responsible for milk production. The epithelial cells lining the acini produce milk which is then transferred through the terminal ducts to segmental ducts to the lactiferous sinus. The outer lining of the acini is formed by myoepithelial cells which help excrete the milk into the terminal ducts [21]."}, {"number": "22", "stem": "Where do most ductal breast cancers begin?", "options": [{"letter": "A", "text": "Terminal ducts."}, {"letter": "B", "text": "Lactiferous sinus."}, {"letter": "C", "text": "Segmental ducts."}, {"letter": "D", "text": "Collecting ducts."}], "images": [], "explanationImages": ["assets/a21_22_p114_01.jpg"], "answer": "A", "explanation": "a. Terminal ducts. Most cancers in the breast begin in the terminal duct-lobular unit (TDLU), the functional unit of the breast. The two most common types of breast cancer, which account for approximately 90% of breast cancers are ductal carcinoma and lobular carcinoma. The majority of ductal carcinomas begin in the terminal ducts. The lobular carcinomas begin in the lobules of the TDLU. Invasive ductal carcinoma is the most common breast cancer, accounting for 70-80% of invasive breast cancers [22-24]. Intralobular terminal duct Segmental duct Ductules Collecting duct Lactiferous sinus Extralobular Lobule terminal duct Terminal ductlobular unit TDLU (Image from Hindle W.H. (1999) Breast Disease for Primary Health Care Providers for Women: An Overview. In: Hindle W.H. (eds) Breast Care. Springer, New York, NY. https://doi.org/10.1007/978-1-4612-2144-9_1; Reprinted with permission)"}, {"number": "23a", "stem": "What is the appropriate management of this axillary lymph node detected on ultrasound?", "options": [{"letter": "A", "text": "Nothing; recommend a return to normal screening."}, {"letter": "B", "text": "Recommend short-term follow-up ultrasound."}, {"letter": "C", "text": "Call the patient back for additional imaging."}, {"letter": "D", "text": "Call the patient back for biopsy."}], "images": ["assets/q23a_23b_p093_01.jpg"], "explanationImages": ["assets/a23a_p115_01.jpg", "assets/a23a_p115_02.jpg", "assets/a23a_p115_03.jpg"], "answer": "A", "explanation": "a. Nothing; recommend return to normal screening. This ultrasound depicts a morphologically normal axillary lymph node, which is commonly imaged as part of breast screening ultrasound. Normal lymph nodes are oval in shape with thin, uniform hypoechoic cortices measuring 3 mm or less (image A below). There is preservation of a fatty hilum, where a feeding vessel can often be seen. Suspicious features include focal or diffuse cortical thickening (image B), loss of the fatty hilum, round shape, and non-hilar cortical blood flow (image C). Since this lymph node lacks any suspicious feature, no further imaging is required and the patient should return to routine screening [24, 25]. Smooth, uniform, thin cortex Fatty hilum Abnormal, focal Non-hilar cortical cortical thickening blood flow"}, {"number": "24a", "stem": "How would you describe the abnormality on this baseline screening mammogram ?", "options": [{"letter": "A", "text": "There is a round mass in the left upper outer quadrant."}, {"letter": "B", "text": "There is an asymmetry in the left upper outer quadrant."}, {"letter": "C", "text": "There is an asymmetry in the left superior breast."}, {"letter": "D", "text": "There is a focal asymmetry in the left superior breast."}], "images": ["assets/q24a_24b_24c_p094_01.jpg"], "explanationImages": ["assets/a24a_p116_01.jpg"], "answer": "C", "explanation": "c. There is an asymmetry in the left superior breast. The lesion is a single view finding only seen on the left MLO view superiorly and hence labeled an \"asymmetry.\" An asymmetry is a planar finding seen on only one of the two mammographic views, usually lacking convex margins, and with or without interspersed fat. It is different from a focal asymmetry, which is defined as a finding having a similar appearance on two orthogonal views, lacking convex margins, with or without interspersed fat, and occupying less than one quadrant of the breast. It also differs from a mass, which is defined as a three-dimensional (3D) structure with convex margins that is visible on two orthogonal views. According to the BI-RADS lexicon, an apparent mass (round or oval shape with convex margins) seen on only one mammographic view is termed an asymmetry until it is localized in 3D space [26, 27]. Answer choices a and d are incorrect as the finding is not seen on craniocaudal view and cannot be labeled as a mass or focal asymmetry both of which are two view findings. Answer choice b is incorrect as an asymmetry is a single view finding and hence without 3D data can only be localized to a hemisphere of breast (i.e., lateral, medial, superior, or inferior) but not to a quadrant."}, {"number": "24b", "stem": "The above single view finding can be localized using the methods except:", "options": [{"letter": "A", "text": "Use relative information from tomosynthesis."}, {"letter": "B", "text": "Perform a 90-degree lateral view."}, {"letter": "C", "text": "Perform medial and lateral exaggerated craniocaudal views."}, {"letter": "D", "text": "Perform a rolled craniocaudal view."}], "images": ["assets/q24a_24b_24c_p094_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. Perform a rolled craniocaudal view. a. The relative 3D information from breast tomosynthesis can be used to estimate whether the lesion is lateral or medial and guide additional views. b. If a lesion shifts inferiorly relative to the nipple from the MLO view to the ML view, then it is Lateral in location ( Lead drops). If a lesion shifts superiorly relative to the nipple from the MLO view to the ML view, then it is Medial in location ( Muffins rise). If a lesion does not move significantly, it is likely more central/retroareolar in location. CC view MLO view ML view c. Exaggerated lateral and medial CC views can be performed to visualize the deeper portions of the relative hemispheres of the breast. d. Rolled CC views can be used to assess whether an asymmetry seen on CC view is real or localize a finding only seen on CC view to the superior or inferior breast depending upon the relative movement of the lesion. For example, if a lesion on a \"rolled lateral CC view\" (meaning superior breast is rolled laterally as the inferior breast is rolled medially) moves medially relative to a routine CC view, that lesion is in the inferior breast. In our case, the finding is not seen on the original CC view and rolled views are of no additional value."}, {"number": "24c", "stem": "Why is this lesion seen on left MLO, and not seen on CC view?", "options": [{"letter": "A", "text": "There is inadequate compression on the CC view."}, {"letter": "B", "text": "Nipple is not in profile on the CC view."}, {"letter": "C", "text": "The posterior nipple line (PNL) is too short on the CC view."}, {"letter": "D", "text": "There is motion on the CC view."}], "images": ["assets/q24a_24b_24c_p094_01.jpg"], "explanationImages": ["assets/a24c_p118_01.jpg", "assets/a24c_p118_02.jpg", "assets/a24c_p118_03.jpg"], "answer": "C", "explanation": "c. Posterior nipple line (PNL) is too short on the CC view. Proper positioning criteria exist for breast imaging modalities aimed to ensure greatest amount of tissue has been included in the examination. On the MLO view: - Pectoralis muscle should be visible down to at least the PNL (line drawn from the nipple, perpendicular to surface of pectoralis muscle). - Anterior margin of pectoralis should be convex (relaxed muscle to allow maximum pulling of tissue). - Inframammary fold should be included and open. - Nipple should point anterior and not inferior to allow spreading of tissue and uniform compression (avoid sagging tissue with a \"Camel nose\" appearance). On CC view: - PNL should be within 1 cm of the length of the line on MLO view. - Try to include as much posteromedial tissue without exaggerating as this part of the breast may be excluded on MLO [28, 29]. 7.4 cm 6 cm 7.2 cm Left MLO Left CCRepeat Left CC Left MLO and CC views show that the PNL on the left CC view is not within 1 cm from that on the left MLO view. The patient was called back, and a repeat left CC view was performed with improved positioning. Now, the PNL line on the left CC view is within 1 cm of the PNL line on the MLO view"}, {"number": "25a", "stem": "A 65-year-old female presents for screening mammogram. What is the best management?", "options": [{"letter": "A", "text": "BI-RADS Category 2: Benign. Routine annual follow up is suggested."}, {"letter": "B", "text": "BI-RADS Category 4: Suspicious. Tissue diagnosis is suggested."}, {"letter": "C", "text": "BI-RADS Category 0: Incomplete. Additional workup is recommended."}, {"letter": "D", "text": "BI-RADS Category 0: Incomplete. MRI is recommended."}], "images": ["assets/q25a_p095_01.jpg", "assets/q25a_p095_02.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. BI-RADS Category 0: Incomplete. Additional workup is recommended. There is an asymmetry with convex somewhat spiculated margins overlying the left pectoralis muscle only seen on the left MLO view that needs further evaluation. Hence, assignment of \"Benign\" to this mammogram is inaccurate. Category 4 can only be assigned after a diagnostic workup and not from a screening mammogram. The asymmetry requires verification (whether it is a true lesion versus overlapping tissue), localization and further characterization (either with additional mammographic views and/or ultrasound) and workup to assess how the biopsy is to be performed. MRI is not used for diagnostic workup from a screening mammogram."}, {"number": "25b", "stem": "The mammogram from the previous year is now uploaded and the asymmetry noted on the current screening mammogram is partly seen in the old study. What is your BI-RADS assessment now? Current 13 months ago", "options": [{"letter": "A", "text": "BI-RADS Category 2: Benign. Routine annual follow-up is recommended."}, {"letter": "B", "text": "BI-RADS Category 3: Probably Benign. Return for follow-up mammogram in 6 months."}, {"letter": "C", "text": "BI-RADS Category 4: Suspicious. Tissue diagnosis is recommended."}, {"letter": "D", "text": "BI-RADS Category 0: Incomplete. Additional workup is recommended."}], "images": ["assets/q25b_p096_01.jpg"], "explanationImages": ["assets/a25b_p119_01.jpg"], "answer": "D", "explanation": "d. BI-RADS Category 0: Incomplete. Additional workup is recommended. A suspicious finding, whether it has been stable or increasing, warrants additional workup and potential biopsy. Comparison should preferably be made to multiple older mammograms to detect slowly growing tumors. Women taking tamoxifen may have breast lesions that appear stable or even decreasing. Any abnormality noted on screening mammography needs to be worked up before a BI-RADS 3, 4, or 5 can be assigned [30]. Current 13 months ago"}, {"number": "26", "stem": "The following are all factors that can cause a false NEGATIVE screening mammogram except:", "options": [{"letter": "A", "text": "Improper positioning."}, {"letter": "B", "text": "Breast density."}, {"letter": "C", "text": "Stable mass."}, {"letter": "D", "text": "Interrupted workflow."}, {"letter": "E", "text": "Scattered bilateral calcifications."}], "images": [], "explanationImages": ["assets/a26_p121_01.jpg"], "answer": "E", "explanation": "e. Scattered bilateral calcifications. Causes of missed breast cancer: 1. Technical factors (improper positioning, suboptimal exposure, motion, etc.). 2. Patient factors (breast size and breast density). 3. Lesion factors (one view finding, developing asymmetry, slow-growing mass, malignancy with benign features, subtle calcifications/architectural distortion). 4. Reader factors (distractions, interruptions and cognitive bias such as difficult location of an obvious mass, blind spots, and satisfaction of search). In order to reduce Cognitive bias, the reader should: - Be strict about technical factors to ensure optimal quality. - Follow a systematic review of the screening mammogram and check the common blind spots which are located overlying and anterior to the pectoralis muscle, inferior and medial breast, retroareolar region, and the retroglandular fat). - Compare the current mammogram to multiple prior mammograms 5-7 years old if possible (slowly changing lesions or relatively stable lesions with suspicious or indeterminate features still require workup and biopsy) [ 31]. Causes of missed breast cancer and potential strategies to improve Type Example Potential remedies Technical factors Positioning Provide proper training and continuous Motion feedback to technologists and repeat the image Exposure when needed Patient factors Breast size Ensure appropriate positioning and technique Tissue density Lesion factors One view finding or • Be aware of interval changes and suspicious developing asymmetry features Subtle calcifications or • Be aware if the finding is in an area of architectural distortion palpable concern Stable or benign • Be careful of areas in the breast that are only appearing masses seen in one view • Compare current mammograms to older mammograms up to 5-7 years old • Do appropriate workup with additional views • Be aware of stable calcifications with suspicious features • Be aware of new or slowly increasing calcifications • Do not trust negative ultrasound, especially when an architectural distortion is suspected on the mammogram, proceed with biopsy • Be aware of stable lesions with suspicious features • Be sure all features of a benign mass are present • Have a low threshold for biopsy in high-risk patients Causes of missed breast cancer and potential strategies to improve Type Example Potential remedies Reader factors 1. Cognitive bias: • Systematic search method and secondary (most common) - Satisfaction of search search • Careful when correlating findings onInattention different modalities blindness • Check blind spots and \"forbidden zones\" - Difficult location• Pay attention to areas of clinical concern 2. Distraction and • Be vigilant on positioning and triangulation interruptions • Try to read in a quiet place when possible • Dedicated screening time when feasible • Focus and double check"}, {"number": "27", "stem": "What is the BI-RADS assessment for the calcifications?", "options": [{"letter": "A", "text": "BI-RADS Category 0."}, {"letter": "B", "text": "BI-RADS Category 2."}, {"letter": "C", "text": "BI-RADS Category 3."}, {"letter": "D", "text": "BI-RADS Category 4."}], "images": ["assets/q27_p097_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. BI-RADS Category 2. Prominent bilateral \"tram-track\" calcifications are seen, consistent with vascular calcifications. This type of calcifications can be seen in older patients or patients with chronic diseases such as diabetes, cardiovascular disease, or renal failure [32]. Early calcifications can mimic cancer if only one edge of the artery is calcified [33]."}, {"number": "28", "stem": "A 54-year old presents for a baseline screening mammogram. Based on the below images what is your assessment?", "options": [{"letter": "A", "text": "BI-RADS Category 1: Negative."}, {"letter": "B", "text": "BI-RADS Category 0: There are abnormal nodes in the left axilla."}, {"letter": "C", "text": "BI-RADS Category 0: There is an asymmetry in the left lateral breast."}, {"letter": "D", "text": "BI-RADS Category 0: There is a mass and abnormal nodes in the left breast."}], "images": ["assets/q28_p098_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. BI-RADS Category 0: There is a mass and abnormal nodes in the left breast. There is a spiculated mass in the left 3 o'clock as well as prominent nodes in the left axilla. An additional asymmetry with architectural distortion in the left superior breast was also noted on tomosynthesis images. Patient was called back and an additional workup was performed confirming two masses with distortion at the left 2 and 3 o'clock posteriorly. There was a sonographic correlate for the 3 o'clock mass but the 2 o'clock lesion could not be seen sonographically. Multiple axillary nodes showed borderline cortical thickening with preservation of fatty hila. Stereotactic core needle biopsy of both masses showed invasive carcinoma with ductal and lobular features. \"Satisfaction of search\" is defined as decreased vigilance regarding and/or decreased awareness of additional abnormalities after the first abnormality has been identified. This form of cognitive bias, has been reported to account for 22% of missed radiologic finding, and can result in missed breast cancers [31]. Once an obvious (benign or malignant appearing) finding is seen (in this case spiculated 3 o'clock mass), make sure to search for additional sites of potential disease or associated findings (such as calcifications outside of a suspicious mass or more than one mass or groups of calcification) on the image(s)."}, {"number": "29", "stem": "What is the best management for the findings on this screening mammogram?", "options": [{"letter": "A", "text": "BI-RADS Category 2: Benign findings."}, {"letter": "B", "text": "BI-RADS Category 3: Probably benign findings. Short-term follow-up is suggested."}, {"letter": "C", "text": "BI-RADS Category 0: Incomplete. Recommend bilateral ultrasound."}, {"letter": "D", "text": "BI-RADS Category 0: Incomplete. Recommend additional mammographic views and ultrasound."}], "images": ["assets/q29_p099_01.jpg", "assets/q29_p099_02.jpg"], "explanationImages": ["assets/a29_p122_01.jpg", "assets/a29_p122_02.jpg"], "answer": "A", "explanation": "a. BI-RADS Category 2, benign findings.. Multiple bilateral benign-appearing masses are defined as at least three circumscribed or mostly circumscribed masses, with at least one mass in each breast. To be considered partially circumscribed, at least 75% of the margins of a mass should be circumscribed, with the remaining margins obscured by adjacent fibroglandular tissue. No part of the margins may be indistinct or spiculated. The multiple masses must have a similar appearance in that not one of them can be substantially different from the others in terms of size, margin characteristics, or density. Studies have suggested that interval cancer rate for patients with multiple benign-appearing masses as described above, was similar to that reported for the general population undergoing routine mammography in various screening studies and hence no further workup is necessary [34]. b. BI-RADS Category 3 should not be assigned based on screening mammography and is not indicated based upon low rate of cancer development as mentioned. c and d. Again based on the above no additional workup is necessary. Furthermore, correlation of sonographic with mammographic findings in case of multiple bilateral masses may be confusing and ultrasound may yield findings other than simple cysts requiring follow-up and or aspirations with no apparent benefit given no increased risk of interval cancers."}, {"number": "30", "stem": "Left-sided screening mammogram in a 55-year-old female with a history of right mastectomy 10 years ago in Europe recently immigrated to the USA. What is your assessment?", "options": [{"letter": "A", "text": "BI-RADS Category 0: Incomplete. Recommend comparison with old films."}, {"letter": "B", "text": "BI-RADS Category 0: Incomplete. Recommend ultrasound."}, {"letter": "C", "text": "BI-RADS Category 2: Benign. Routine follow-up suggested."}, {"letter": "D", "text": "BI-RADS Category 3: Probably Benign. Recommend short-term follow-up mammography in 6 months."}], "images": ["assets/q30_p100_01.jpg"], "explanationImages": ["assets/a30_p123_01.jpg"], "answer": "C", "explanation": "c. BI-RADS Cate gory 2-Benign. Routine follow-up suggested. The oval mass with mostly circumscribed margins containing coarse popcornlike calcification in the left 11-12 o'clock is a classic appearance of a calcified/ degenerating fibroadenoma. Once these classic calcifications appear, no further workup is necessary. Earlier calcifications however can appear more pleomorphic, mimicking a malignant mass with calcifications, necessitating a biopsy."}, {"number": "31", "stem": "The new ACR/SBI guidelines recognize African-American women at high risk for breast cancer secondary to which of the following factors:", "options": [{"letter": "A", "text": "The incidence of breast cancer is higher in African-American women than in non-Hispanic white women."}, {"letter": "B", "text": "African-American women are more likely to die from breast cancer than non-Hispanic white women."}, {"letter": "C", "text": "African-American women are more likely to be diagnosed with stage I breast cancer."}, {"letter": "D", "text": "African-American women have a lower risk of aggressive tumors."}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. African-American women are more likely to die from breast cancer than nonHispanic white women. Although the incidence of breast cancer is not higher in African-American women, they have higher mortality. Factors that contributed to the ACR/SBI reclassification of African-American women include that: • African-American women are 42 percent more likely to die from breast cancer than non-Hispanic white women despite similar incidence rates. • African-American women have a two-fold higher risk of aggressive breast cancer, including the triple-negative breast tumors. • African-American women are less likely to be diagnosed with stage I breast cancer, but twice as likely to die of early breast cancers. • African-American women have a higher risk of BRCA1 and BRCA2 genetic mutations than women of Western European ancestry [ 4]."}, {"number": "32", "stem": "Which of the following is true for breast cancers caused by the BRCA1 and BRCA2 mutations?", "options": [{"letter": "A", "text": "Approximately 20% of breast cancers are caused by the BRCA1 and BRCA2 mutations."}, {"letter": "B", "text": "The average age of breast cancer onset is 60 years in patients who are BRCA mutation carriers."}, {"letter": "C", "text": "Cancers in patients with the BRCA1 mutation tend to be of higher grade with an overall poorer prognosis than cancers in the general population."}, {"letter": "D", "text": "The sensitivity of mammography for the detection of cancer in patients with a BRCA mutation is higher than that in the general population."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. Cancers in patients with the BRCA1 mutation tend to be of higher grade with an overall poorer prognosis than cancers in the general population. Answer choice a is incorrect. The vast majority of breast cancers occur sporadically, and only approximately 6% of breast cancer cases are caused by BRCA1 and BRCA2 mutations. Answer choice b is incorrect. The age at breast cancer onset is much younger in BRCA1 and BRCA2 mutation carriers than in the general population. The average age of breast cancer onset is 40 years in patients who are BRCA mutation carriers, but 61 years in the general population. Approximately 55%-65% of women with BRCA1 mutation and 45% of women with BRCA2 mutation will develop breast cancer by 70 years. Answer choice c is correct. Breast cancers in patients with BRCA1 mutation tend to be of a higher grade, are negative for hormone receptors, and are larger in size, with an overall poorer prognosis than those in the general population. Answer choice d is incorrect. The sensitivity of mammography for the detection of breast cancer in patients with a BRCA mutation is significantly lower than that in the general population. This is likely due to the fact that patients with a BRCA mutation are younger at diagnosis and tend to have denser breast tissue [35]."}, {"number": "33", "stem": "Which breast screening modality has been shown to have a mortality benefit?", "options": [{"letter": "A", "text": "Breast MRI."}, {"letter": "B", "text": "Breast Ultrasound."}, {"letter": "C", "text": "Mammography."}, {"letter": "D", "text": "FDG-PET."}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. Mammography. Screening mammography is the only breast imaging modality that has been evaluated in case controlled studies and shown to reduce the death rate from breast cancer. In the late 1970s, a Swedish trial of over 130,000 women, showed a 30% reduction in breast cancer mortality with invitation to screening. Since then, numerous observational trials and follow-up of these patients have also shown mortality benefit. No other breast screening modality has been evaluated with such extensive case controlled studies [36]."}, {"number": "34", "stem": "This screening mammogram was considered technically inadequate. Standard views as well as magnified views of the left breast are provided. What is the technical issue?", "options": [{"letter": "A", "text": "Pacemaker left chest."}, {"letter": "B", "text": "Motion left MLO."}, {"letter": "C", "text": "Skin folds."}, {"letter": "D", "text": "Inadequate visualization of posterior tissues on right CC."}], "images": ["assets/q34_p102_01.jpg"], "explanationImages": ["assets/a34_p125_01.jpg", "assets/a34_p125_02.jpg"], "answer": "B", "explanation": "b. Motion left MLO. The left MLO view is degraded by motion. This is visualized as blurring of the lines in the left MLO view. Also, the round calcification in the left subareolar breast is much sharper on the left CC view than the left MLO view. A is incorrect. The pacemaker does not make the study inadequate. It limits visualization of the axilla, and should be mentioned in the report. C is incorrect. There are no significant skin folds. D is incorrect. The right CC view includes adequate tissue as the retroglandular fat is visualized and the posterior nipple line on the right CC views measures within expected limits."}, {"number": "35a", "stem": "How would you describe the abnormality in the screening mammogram?", "options": [{"letter": "A", "text": "Asymmetry in the left upper breast."}, {"letter": "B", "text": "Mass in the right upper outer breast."}, {"letter": "C", "text": "Focal asymmetry in the right lower outer breast."}, {"letter": "D", "text": "Bilateral axillary lymphadenopathy."}], "images": ["assets/q35a_35b_p103_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Mass in the right upper outer breast. Answer choice b is correct. There is a space-occupying mass visualized on two views in the right upper outer breast. The pertinent finding is a mass, not an asymmetry or a focal asymmetry. There are lymph nodes in the axilla bilaterally, which are of normal size and appearance.."}, {"number": "35b", "stem": "What is the correct BI-RADS Final Assessment for this screening mammogram, and what is the correct recommendation?", "options": [{"letter": "A", "text": "BI-RADS Category 4. Recommend biopsy."}, {"letter": "B", "text": "BI-RADS Category 0. Recommend additional evaluation with MRI."}, {"letter": "C", "text": "BI-RADS Category 0. Recommend additional evaluation with diagnostic mammography and ultrasound."}, {"letter": "D", "text": "BI-RADS Category 3. Recommend short-term follow-up."}], "images": ["assets/q35a_35b_p103_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. BI-RADS 0. Recommend additional evaluation with diagnostic mammography and ultrasound. Additional evaluation of the mass must be obtained to further characterize the mass. A is incorrect. Although the abnormality is suspicious, the choices for BI-RADS assessment from screening mammography include 1,2, or 0. Additional evaluation must be obtained for further evaluation before any other BI-RADS category can be assigned. B is incorrect. Breast MRI is not indicated in the evaluation of this lesion at this point. Breast MRI can be used for equivocal mammographic lesions, including one-view findings with no US correlate. It is not the first-line evaluation of breast masses. Breast MRI should never be used as a substitute for complete imaging evaluation (with mammography or ultrasound) or for biopsy [37]. d is incorrect. This mass requires further evaluation before a decision can be made if it is probably benign or requires biopsy. BI-RADS 3 cannot be assigned to a screening mammogram."}, {"number": "36", "stem": "Representative images at the same level of a screening breast MRI are shown. Regarding MRI technique for this study, which is true? T1 Pre Contrast T1 Post Contrast, T1 Post Contrast", "options": [{"letter": "A", "text": "Inadequate technique, motion."}, {"letter": "B", "text": "Adequate technique."}, {"letter": "C", "text": "Inadequate technique, insufficient field of view."}, {"letter": "D", "text": "Inadequate technique, insufficient contrast enhancement."}], "images": ["assets/q36_p104_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. Inadequate technique, insufficient contrast enhancement. There is no contrast in the study. There is a lack of contrast enhancement in the vessels, heart, and breast. The technologist did not notice that the contrast had not been injected and inadvertently obtained the post-contrast images. a is incorrect. There is minimal, but not significant motion. b is incorrect. This study is non-diagnostic. Breast MRI for detection of breast cancer must be performed following contrast administration. The most sensitive sequences for detection of breast abnormalities are dynamic T1-weighted contrast-enhanced series. c is incorrect. The positioning of the breast is adequate. The nipples are in profile and centered and the entire breast is in the field of view. Breast MRIs should be obtained on a scanner with a field strength of at least 1.5 T, to allow for adequate spatial resolution. Breast MRI must be obtained with a dedicated breast coil, with at least four channels. Newer coils have over 16 channels (increasing the number of channels improves the signal-to-noise ratio). Protocols can vary, and many centers include T2-weighted and Diffusion-Weighted imaging, however, the basis of the study are the dynamic T1-weighted post-contrast series. A pre-contrast T1-weighted sequence (most commonly axial) is followed by contrast infusion at a rate of approximately 2 mL/sec, followed by 2-5 post-contrast series. The use of dynamic series allows for evaluation of the rate of contrast enhancement and washout. This evaluation can be expedited with the use of commercially available CAD software. Abbreviated MRI protocols have recently been developed allowing reduction in cost and duration of breast MRI and increasing accessibility [38]."}, {"number": "37", "stem": "The advantages of Digital Breast Tomosynthesis versus Full Field Digital Mammography include:", "options": [{"letter": "A", "text": "Improved Cancer Detection Rate."}, {"letter": "B", "text": "Reduced Screening Recall rate."}, {"letter": "C", "text": "Improved Screening Specificity."}, {"letter": "D", "text": "All of the above."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. All of the above. Multiple large studies have shown Digital Breast Tomosynthesis (DBT) detecting more cancers while reducing the screening call back rate as compared to Full Field Digital Mammography (FFDM). This leads to improved sensitivity and specificity of screening mammography. The improved cancer detection rate is mostly due to improved detection of invasive breast cancers. The detection of DCIS (Ductal Carcinoma in Situ) appears to be similar between DBT and FFDM [39, 40]."}, {"number": "38", "stem": "Digital Breast Tomosynthesis (DBT) reduces screening recall rates as compared to Full Field Digital Mammography (FFDM). Which type of finding is mostly responsible for false positives seen on FFDM?", "options": [{"letter": "A", "text": "Asymmetries."}, {"letter": "B", "text": "Masses."}, {"letter": "C", "text": "Architectural Distortions."}, {"letter": "D", "text": "None of the above."}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. Asymmetries. Asymmetries are responsible for a large number of false-positive screening mammograms. Asymmetries are often caused by overlapping breast tissue on FFDM. DBT reduces the overlapping breast tissue as the breast can be visualized through a series of slices. Therefore, there are fewer unnecessary callbacks for asymmetries with DBT. Architectural distortions are much better visualized with DBT, and many times are caused by radial scars or other benign processes. So, DBT recall rates for distortions are actually higher than that of FFDM. Masses are better detected by DBT, but these are often cancers and lead to improvement in cancer detection rates [41]."}, {"number": "39", "stem": "The advantages of the use of commercially available Computer-Aided Detection (CAD software) in the interpretation of screening mammography include:", "options": [{"letter": "A", "text": "Improved Cancer Detection Rate."}, {"letter": "B", "text": "Improved Screening Mammography Specificity."}, {"letter": "C", "text": "Both of the above."}, {"letter": "D", "text": "None of the above."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. None of the above. The FDA approved computer-aided detection (CAD) for mammography in 1998, and the Centers for Medicare and Medicaid Services (CMS) provided increased payment in 2002 for mammograms interpreted with the use of CAD. Since then, CAD technology disseminated rapidly. Even though there has been little evidence that CAD improves the accuracy of mammographic interpretations, CAD is currently used by a large percentage of breast imaging centers in the USA. A very large-scale study for the Breast Cancer Surveillance Consortium published in 2015 showed no significant improvement with the use of CAD in interpreting screening mammograms. However, there are new investigational artificial intelligence-based computer-aided detection (AI-CAD) systems that have shown improved accuracy and sensitivity for detection of breast cancer in small trials. As of the time of this publication, these are not yet fully evaluated and are not widely commercially available [42, 43]."}, {"number": "40", "stem": "Regarding screening with whole breast ultrasound, which of the following are true?", "options": [{"letter": "A", "text": "Screening ultrasound is a supplemental test to mammography, and does not replace screening mammography."}, {"letter": "B", "text": "Whole breast ultrasound can detect cancers, which would have been missed by mammography in dense breast tissue."}, {"letter": "C", "text": "The addition of screening ultrasound to screening mammography can reduce advanced breast cancer."}, {"letter": "D", "text": "All of the above."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. All of the above. Whole breast ultrasound can be used as a supplementary screening tool, in conjunction with screening mammography, especially in women with dense breast tissue. Ultrasound can detect some lesions missed by mammography, especially in dense breast tissue. In women with dense breast tissue, screening mammography alone reduced advanced breast cancer by 31% over no screening mammography, while the combination of screening mammography and ultrasound reduced advanced breast cancer by 40% [ 44]."}, {"number": "41", "stem": "Which of the following are true regarding automated breast ultrasound versus handheld ultrasound?", "options": [{"letter": "A", "text": "Studies have shown no significant differences in sensitivity, specificity, and predictive values between automated breast ultrasound and handheld ultrasound."}, {"letter": "B", "text": "Automated breast ultrasound requires recall for targeted handheld ultrasound of lesions."}, {"letter": "C", "text": "False-positive rates are the most significant criticism of both techniques, but this can be reduced with experience."}, {"letter": "D", "text": "All of the above."}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. All of the above. Whole breast screening by ultrasound can be performed by Automated Breast Volume Scanning (ABVS) or handheld ultrasound. Handheld ultrasound is the technique used in the diagnostic evaluation of the breast. These two techniques have been shown to have similar specificity and sensitivity. The advantage of the automated device is time saving. However, this will require eventual review by a radiologist who will bring the patient back for re-evaluation of any indeterminate lesion, similar to screening mammography. The major criticism of screening ultrasound (as with screening mammography) is the relatively high false-positive rate (identification of lesions that are eventually shown to be benign). However, the false-positive rate can be reduced with long-term experience [45]."}];
+    const APP_ID = "absolute-breast-imaging-review-screening-mammogram-quiz-ch3";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          lines.push("");
+          continue;
+        }
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
+      const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
+      canvas.width = width;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
+      ctx.font = "24px Arial";
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
