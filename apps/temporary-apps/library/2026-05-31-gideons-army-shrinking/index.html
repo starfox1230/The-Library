@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gideon's Army Gets Smaller</title>
+  <style>
+    :root {
+      --ink: #243041;
+      --muted: #667085;
+      --paper: #fffaf0;
+      --sun: #f8c453;
+      --sky: #94d2bd;
+      --field: #5f9f68;
+      --field-dark: #3f7d50;
+      --water: #4dabf7;
+      --card: #fffdf7;
+      --border: #d9c9a7;
+      --accent: #e76f51;
+      --glow: #ffd166;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(#8ed1e8 0 36%, #b8df9e 36% 100%);
+      overflow-x: hidden;
+    }
+
+    main {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(10px, 1.5vw, 18px);
+      padding: clamp(16px, 2.2vw, 28px);
+    }
+
+    header,
+    footer {
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 4.6rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0.45rem 0 0;
+      font-size: clamp(1rem, 1.7vw, 1.45rem);
+      font-weight: 700;
+      color: #415062;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: clamp(8px, 1.2vw, 18px);
+      align-items: start;
+      min-height: 0;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border: 4px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(#fffef9 0 58%, #7bbf72 58% 100%);
+      box-shadow: 0 10px 0 rgba(80, 62, 30, 0.16);
+      padding: clamp(12px, 1.6vw, 20px);
+      display: grid;
+      grid-template-rows: auto auto auto auto;
+      gap: clamp(8px, 1vw, 14px);
+      opacity: 0.45;
+      transform: scale(0.98);
+      transition: opacity 350ms ease, transform 350ms ease;
+    }
+
+    .stage.active {
+      opacity: 1;
+      transform: scale(1);
+      border-color: var(--sun);
+    }
+
+    .count {
+      font-size: clamp(2rem, 4.5vw, 4.8rem);
+      font-weight: 900;
+      line-height: 0.92;
+      color: #1f3b4d;
+    }
+
+    .label {
+      margin-top: 0.2rem;
+      font-size: clamp(0.95rem, 1.5vw, 1.25rem);
+      font-weight: 900;
+      color: #59616f;
+      text-transform: uppercase;
+    }
+
+    .scene {
+      position: relative;
+      min-height: 190px;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 16% 20%, #fff3b0 0 9%, transparent 10%),
+        linear-gradient(#bde7f0 0 45%, #86c56b 46% 100%);
+      border: 2px solid rgba(36, 48, 65, 0.12);
+      overflow: hidden;
+    }
+
+    .soldiers {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 12%;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: clamp(4px, 0.7vw, 8px);
+      align-items: end;
+      justify-items: center;
+    }
+
+    .stage[data-stage="2"] .soldiers { grid-template-columns: repeat(5, 1fr); }
+    .stage[data-stage="3"] .soldiers { grid-template-columns: repeat(3, 1fr); left: 24%; right: 24%; }
+
+    .soldier {
+      width: clamp(18px, 2.4vw, 34px);
+      aspect-ratio: 0.72;
+      position: relative;
+      animation: pop 420ms ease both;
+    }
+
+    .soldier::before {
+      content: "";
+      position: absolute;
+      inset: 0 14% 34%;
+      border-radius: 50% 50% 40% 40%;
+      background: #f4a261;
+      border: 2px solid #7a4d2b;
+    }
+
+    .soldier::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 62%;
+      clip-path: polygon(50% 0, 100% 28%, 82% 100%, 18% 100%, 0 28%);
+      background: #457b9d;
+      border: 2px solid #1d3557;
+    }
+
+    .leaving {
+      opacity: 0.22;
+      transform: translateX(-18px) rotate(-7deg);
+    }
+
+    .stream {
+      position: absolute;
+      left: -8%;
+      right: -8%;
+      bottom: 23%;
+      height: 38px;
+      background: linear-gradient(90deg, #74c0fc, #4dabf7, #a5d8ff);
+      border-top: 3px solid rgba(30, 93, 138, 0.25);
+      border-bottom: 3px solid rgba(30, 93, 138, 0.25);
+      transform: rotate(-5deg);
+    }
+
+    .stage-text {
+      font-size: clamp(1rem, 1.6vw, 1.42rem);
+      font-weight: 900;
+      line-height: 1.15;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: clamp(0.86rem, 1.15vw, 1rem);
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      font-size: clamp(2rem, 4vw, 4rem);
+      font-weight: 900;
+      color: #1f3b4d;
+    }
+
+    .teacher-bar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      max-width: 1180px;
+      margin: 0 auto;
+      width: 100%;
+      background: rgba(255, 253, 247, 0.92);
+      border: 3px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 6px 0 rgba(80, 62, 30, 0.14);
+    }
+
+    .prompt {
+      font-size: clamp(1rem, 1.6vw, 1.45rem);
+      font-weight: 900;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      font: inherit;
+      font-weight: 900;
+      color: #fffdf7;
+      background: #2a9d8f;
+      cursor: pointer;
+      min-width: 110px;
+    }
+
+    button.secondary { background: #6c757d; }
+    button:focus-visible { outline: 4px solid #ffd166; outline-offset: 3px; }
+
+    .legend {
+      font-size: clamp(0.82rem, 1vw, 0.95rem);
+      color: #4f5b68;
+      font-weight: 800;
+    }
+
+    .finale {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: clamp(18px, 4vw, 54px);
+      background:
+        radial-gradient(circle at 18% 72%, rgba(255, 209, 102, 0.4) 0 1.2%, transparent 1.4%),
+        radial-gradient(circle at 35% 60%, rgba(255, 209, 102, 0.4) 0 1.2%, transparent 1.4%),
+        radial-gradient(circle at 52% 76%, rgba(255, 209, 102, 0.4) 0 1.2%, transparent 1.4%),
+        radial-gradient(circle at 71% 57%, rgba(255, 209, 102, 0.4) 0 1.2%, transparent 1.4%),
+        radial-gradient(circle at 84% 70%, rgba(255, 209, 102, 0.4) 0 1.2%, transparent 1.4%),
+        linear-gradient(#15182a, #243041);
+      color: #fffdf7;
+      z-index: 10;
+      text-align: center;
+    }
+
+    .finale.show { display: grid; }
+
+    .finale-card {
+      max-width: 900px;
+      display: grid;
+      gap: clamp(14px, 2vw, 22px);
+      justify-items: center;
+    }
+
+    .finale h2 {
+      margin: 0;
+      font-size: clamp(2.4rem, 6vw, 6rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .verse {
+      font-size: clamp(1.35rem, 2.5vw, 2.2rem);
+      font-weight: 900;
+      color: #ffe08a;
+    }
+
+    .question {
+      font-size: clamp(1.1rem, 2vw, 1.7rem);
+      font-weight: 900;
+    }
+
+    @keyframes pop {
+      from { transform: translateY(12px) scale(0.7); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    @media (max-width: 680px) {
+      main { min-height: auto; }
+      .dashboard { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      .teacher-bar { grid-template-columns: 1fr; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Gideon's Army Gets Smaller</h1>
+      <p class="subtitle">The Lord wanted Israel to know He was the one helping them.</p>
+    </header>
+
+    <section class="dashboard" aria-label="Gideon's army shrinking dashboard">
+      <article class="stage active" data-stage="1">
+        <div>
+          <div class="count">32,000</div>
+          <div class="label">Starting army</div>
+        </div>
+        <div class="scene" aria-hidden="true">
+          <div class="soldiers" id="armyOne"></div>
+        </div>
+        <div class="stage-text">Gideon had many soldiers.</div>
+        <div class="note">But the Lord said there were too many.</div>
+      </article>
+
+      <div class="arrow" aria-hidden="true">-&gt;</div>
+
+      <article class="stage" data-stage="2">
+        <div>
+          <div class="count">10,000</div>
+          <div class="label">Soldiers remain</div>
+        </div>
+        <div class="scene" aria-hidden="true">
+          <div class="soldiers" id="armyTwo"></div>
+        </div>
+        <div class="stage-text">22,000 went home.</div>
+        <div class="note">The Lord said the army was still too big.</div>
+      </article>
+
+      <div class="arrow" aria-hidden="true">-&gt;</div>
+
+      <article class="stage" data-stage="3">
+        <div>
+          <div class="count">300</div>
+          <div class="label">Chosen soldiers</div>
+        </div>
+        <div class="scene" aria-hidden="true">
+          <div class="stream"></div>
+          <div class="soldiers" id="armyThree"></div>
+        </div>
+        <div class="stage-text">Only 300 were chosen.</div>
+        <div class="note">Now everyone would know the Lord saved Israel.</div>
+      </article>
+    </section>
+
+    <footer class="teacher-bar">
+      <div>
+        <div class="prompt" id="prompt">Does this look like a big army?</div>
+        <div class="legend">Each little soldier picture stands for many real soldiers.</div>
+      </div>
+      <button type="button" id="backButton" class="secondary">Back</button>
+      <button type="button" id="nextButton">Next</button>
+    </footer>
+  </main>
+
+  <section class="finale" id="finale" aria-live="polite">
+    <div class="finale-card">
+      <h2>The army was small.<br />But the Lord was with them.</h2>
+      <div class="verse">"Surely I will be with thee."<br />Judges 6:16</div>
+      <div class="question">When can the Lord help me be brave?</div>
+      <button type="button" id="startOverButton">Start Over</button>
+    </div>
+  </section>
+
+  <script>
+    const soldierGroups = [
+      { id: "armyOne", count: 32 },
+      { id: "armyTwo", count: 10 },
+      { id: "armyThree", count: 3 },
+    ];
+
+    soldierGroups.forEach((group) => {
+      const container = document.getElementById(group.id);
+      for (let index = 0; index < group.count; index += 1) {
+        const soldier = document.createElement("span");
+        soldier.className = "soldier";
+        soldier.style.animationDelay = `${index * 18}ms`;
+        if (group.id === "armyTwo" && index > 6) soldier.classList.add("leaving");
+        container.appendChild(soldier);
+      }
+    });
+
+    const prompts = [
+      "Does this look like a big army?",
+      "How many went home? 22,000 went home.",
+      "Does this look like enough soldiers? The Lord was with Gideon.",
+    ];
+
+    let step = 0;
+    const stages = [...document.querySelectorAll(".stage")];
+    const prompt = document.getElementById("prompt");
+    const nextButton = document.getElementById("nextButton");
+    const backButton = document.getElementById("backButton");
+    const finale = document.getElementById("finale");
+    const startOverButton = document.getElementById("startOverButton");
+
+    function render() {
+      stages.forEach((stage, index) => {
+        stage.classList.toggle("active", index <= step);
+      });
+      prompt.textContent = prompts[step];
+      backButton.disabled = step === 0;
+      nextButton.textContent = step === 2 ? "Final" : "Next";
+    }
+
+    nextButton.addEventListener("click", () => {
+      if (step < 2) {
+        step += 1;
+        render();
+      } else {
+        finale.classList.add("show");
+      }
+    });
+
+    backButton.addEventListener("click", () => {
+      if (step > 0) {
+        step -= 1;
+        render();
+      }
+    });
+
+    startOverButton.addEventListener("click", () => {
+      step = 0;
+      finale.classList.remove("show");
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
