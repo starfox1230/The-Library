@@ -3,9 +3,11 @@ from .ai_tools import install as install_ai_tools
 from .card_safety import install as install_card_safety
 from .card_tracker import install as install_card_tracker
 from .clipboard_json_cards import install as install_clipboard_json_cards
+from .ctrl_click_links import install as install_ctrl_click_links
 from .draw_on_image import install as install_draw_on_image
 from .f3_blocker import install as install_f3_blocker
 from .hard_cards import install as install_hard_cards
+from .king_answer_buttons import install as install_king_answer_buttons
 from .lightning_mode import install as install_lightning_mode
 from .menu import install
 from .no_image_today import install as install_no_image_today
@@ -28,9 +30,11 @@ install_ai_tools()
 install_card_safety()
 install_card_tracker()
 install_clipboard_json_cards()
+install_ctrl_click_links()
 install_draw_on_image()
 install_f3_blocker()
 install_hard_cards()
+install_king_answer_buttons()
 install_lightning_mode()
 install_no_image_today()
 install_recent_leeches()

@@ -14,6 +14,7 @@ from aqt.qt import (
     QLineEdit,
     QMenu,
     QPushButton,
+    QSlider,
     QScrollArea,
     QSpinBox,
     Qt,
@@ -42,6 +43,10 @@ from .clipboard_json_cards import (
     ACTION_LABEL as CLIPBOARD_JSON_ACTION_LABEL,
     import_cards_from_clipboard_json,
 )
+from .ctrl_click_links import (
+    is_ctrl_click_open_links_enabled,
+    set_ctrl_click_open_links_enabled,
+)
 from .early_review import (
     EARLY_REVIEW_DEFAULT_COUNT,
     EARLY_REVIEW_SHORTCUT,
@@ -54,6 +59,19 @@ from .f3_blocker import (
     set_default_f3_shortcut_disabled,
 )
 from .hard_cards import open_hard_cards_dialog
+from .king_answer_buttons import (
+    is_king_answer_buttons_enabled,
+    king_answer_button_height,
+    is_king_answer_feedback_enabled,
+    king_answer_feedback_font_size,
+    king_answer_feedback_width,
+    set_king_answer_button_height,
+    set_king_answer_buttons_enabled,
+    set_king_answer_feedback_enabled,
+    set_king_answer_feedback_font_size,
+    set_king_answer_feedback_width,
+    show_feedback_preview,
+)
 from .lightning_mode import (
     build_lightning_mode_filtered_deck_for_current_deck,
     is_speed_streak_bridge_enabled,
@@ -129,6 +147,7 @@ _tts_audio_action: QAction | None = None
 _disable_f3_action: QAction | None = None
 _block_ctrl_shift_p_action: QAction | None = None
 _underline_trailing_spaces_action: QAction | None = None
+_ctrl_click_open_links_action: QAction | None = None
 _add_cards_auto_deck_action: QAction | None = None
 _add_cards_diagnosis_action: QAction | None = None
 _add_cards_multi_image_counter_action: QAction | None = None
@@ -388,6 +407,11 @@ class PocketKnifeLauncherDialog(QDialog):
             is_underline_trailing_spaces_fix_enabled()
         )
         editor_formatting_layout.addWidget(self.underline_trailing_spaces_checkbox)
+        self.ctrl_click_open_links_checkbox = QCheckBox(
+            "Ctrl+click editor links opens them in the default browser"
+        )
+        self.ctrl_click_open_links_checkbox.setChecked(is_ctrl_click_open_links_enabled())
+        editor_formatting_layout.addWidget(self.ctrl_click_open_links_checkbox)
         layout.addWidget(editor_formatting_box)
 
         filtered_cleanup_box = QGroupBox("Filtered Deck Cleanup")
@@ -515,6 +539,44 @@ class PocketKnifeLauncherDialog(QDialog):
         self.tts_audio_checkbox = QCheckBox("Play audio from TTS-enabled cards")
         self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
         review_layout.addWidget(self.tts_audio_checkbox)
+        self.king_answer_buttons_checkbox = QCheckBox("Use King-style answer buttons at the bottom")
+        self.king_answer_buttons_checkbox.setChecked(is_king_answer_buttons_enabled())
+        review_layout.addWidget(self.king_answer_buttons_checkbox)
+        self.king_answer_feedback_checkbox = QCheckBox("Show large selected-answer feedback")
+        self.king_answer_feedback_checkbox.setChecked(is_king_answer_feedback_enabled())
+        review_layout.addWidget(self.king_answer_feedback_checkbox)
+        feedback_size_row = QHBoxLayout()
+        feedback_size_row.addWidget(QLabel("Selected-answer width:"))
+        self.king_answer_feedback_width_slider = QSlider(Qt.Orientation.Horizontal)
+        self.king_answer_feedback_width_slider.setRange(120, 900)
+        self.king_answer_feedback_width_slider.setSingleStep(10)
+        self.king_answer_feedback_width_slider.setValue(king_answer_feedback_width())
+        feedback_size_row.addWidget(self.king_answer_feedback_width_slider, 1)
+        self.king_answer_feedback_width_value_label = QLabel(f"{king_answer_feedback_width()} px")
+        feedback_size_row.addWidget(self.king_answer_feedback_width_value_label)
+        self.king_answer_feedback_preview_button = QPushButton("Preview")
+        feedback_size_row.addWidget(self.king_answer_feedback_preview_button)
+        review_layout.addLayout(feedback_size_row)
+        button_height_row = QHBoxLayout()
+        button_height_row.addWidget(QLabel("Bottom button height:"))
+        self.king_answer_button_height_slider = QSlider(Qt.Orientation.Horizontal)
+        self.king_answer_button_height_slider.setRange(20, 120)
+        self.king_answer_button_height_slider.setSingleStep(1)
+        self.king_answer_button_height_slider.setValue(king_answer_button_height())
+        button_height_row.addWidget(self.king_answer_button_height_slider, 1)
+        self.king_answer_button_height_value_label = QLabel(f"{king_answer_button_height()} px")
+        button_height_row.addWidget(self.king_answer_button_height_value_label)
+        review_layout.addLayout(button_height_row)
+        feedback_font_row = QHBoxLayout()
+        feedback_font_row.addWidget(QLabel("Selected-answer font:"))
+        self.king_answer_feedback_font_slider = QSlider(Qt.Orientation.Horizontal)
+        self.king_answer_feedback_font_slider.setRange(10, 48)
+        self.king_answer_feedback_font_slider.setSingleStep(1)
+        self.king_answer_feedback_font_slider.setValue(king_answer_feedback_font_size())
+        feedback_font_row.addWidget(self.king_answer_feedback_font_slider, 1)
+        self.king_answer_feedback_font_value_label = QLabel(f"{king_answer_feedback_font_size()} px")
+        feedback_font_row.addWidget(self.king_answer_feedback_font_value_label)
+        review_layout.addLayout(feedback_font_row)
         self.floating_card_tracker_checkbox = QCheckBox("Show floating card tracker")
         self.floating_card_tracker_checkbox.setChecked(is_floating_card_tracker_enabled())
         review_layout.addWidget(self.floating_card_tracker_checkbox)
@@ -580,6 +642,9 @@ class PocketKnifeLauncherDialog(QDialog):
         self.underline_trailing_spaces_checkbox.toggled.connect(
             self._set_underline_trailing_spaces_enabled
         )
+        self.ctrl_click_open_links_checkbox.toggled.connect(
+            self._set_ctrl_click_open_links_enabled
+        )
         self.visual_card_multitude_checkbox.toggled.connect(self._set_visual_card_multitude_enabled)
         self.add_cards_sticky_fields_checkbox.toggled.connect(
             self._set_add_cards_sticky_fields_default_on_enabled
@@ -604,6 +669,20 @@ class PocketKnifeLauncherDialog(QDialog):
             self._set_review_image_overlay_remember_position_enabled
         )
         self.tts_audio_checkbox.toggled.connect(self._set_tts_audio_enabled)
+        self.king_answer_buttons_checkbox.toggled.connect(self._set_king_answer_buttons_enabled)
+        self.king_answer_feedback_checkbox.toggled.connect(self._set_king_answer_feedback_enabled)
+        self.king_answer_feedback_width_slider.valueChanged.connect(
+            self._set_king_answer_feedback_width
+        )
+        self.king_answer_button_height_slider.valueChanged.connect(
+            self._set_king_answer_button_height
+        )
+        self.king_answer_feedback_font_slider.valueChanged.connect(
+            self._set_king_answer_feedback_font_size
+        )
+        self.king_answer_feedback_preview_button.clicked.connect(
+            lambda *_args: show_feedback_preview(3, period_ms=1200)
+        )
         self.floating_card_tracker_checkbox.toggled.connect(
             self._set_floating_card_tracker_enabled
         )
@@ -656,6 +735,32 @@ class PocketKnifeLauncherDialog(QDialog):
             self.tts_audio_checkbox.blockSignals(True)
             self.tts_audio_checkbox.setChecked(is_tts_audio_enabled())
             self.tts_audio_checkbox.blockSignals(False)
+        if hasattr(self, "king_answer_buttons_checkbox"):
+            self.king_answer_buttons_checkbox.blockSignals(True)
+            self.king_answer_buttons_checkbox.setChecked(is_king_answer_buttons_enabled())
+            self.king_answer_buttons_checkbox.blockSignals(False)
+        if hasattr(self, "king_answer_feedback_checkbox"):
+            self.king_answer_feedback_checkbox.blockSignals(True)
+            self.king_answer_feedback_checkbox.setChecked(is_king_answer_feedback_enabled())
+            self.king_answer_feedback_checkbox.blockSignals(False)
+        if hasattr(self, "king_answer_feedback_width_slider"):
+            width = king_answer_feedback_width()
+            self.king_answer_feedback_width_slider.blockSignals(True)
+            self.king_answer_feedback_width_slider.setValue(width)
+            self.king_answer_feedback_width_slider.blockSignals(False)
+            self.king_answer_feedback_width_value_label.setText(f"{width} px")
+        if hasattr(self, "king_answer_button_height_slider"):
+            height = king_answer_button_height()
+            self.king_answer_button_height_slider.blockSignals(True)
+            self.king_answer_button_height_slider.setValue(height)
+            self.king_answer_button_height_slider.blockSignals(False)
+            self.king_answer_button_height_value_label.setText(f"{height} px")
+        if hasattr(self, "king_answer_feedback_font_slider"):
+            font_size = king_answer_feedback_font_size()
+            self.king_answer_feedback_font_slider.blockSignals(True)
+            self.king_answer_feedback_font_slider.setValue(font_size)
+            self.king_answer_feedback_font_slider.blockSignals(False)
+            self.king_answer_feedback_font_value_label.setText(f"{font_size} px")
         if hasattr(self, "floating_card_tracker_checkbox"):
             self.floating_card_tracker_checkbox.blockSignals(True)
             self.floating_card_tracker_checkbox.setChecked(is_floating_card_tracker_enabled())
@@ -682,6 +787,10 @@ class PocketKnifeLauncherDialog(QDialog):
                 is_underline_trailing_spaces_fix_enabled()
             )
             self.underline_trailing_spaces_checkbox.blockSignals(False)
+        if hasattr(self, "ctrl_click_open_links_checkbox"):
+            self.ctrl_click_open_links_checkbox.blockSignals(True)
+            self.ctrl_click_open_links_checkbox.setChecked(is_ctrl_click_open_links_enabled())
+            self.ctrl_click_open_links_checkbox.blockSignals(False)
         if hasattr(self, "lightning_card_limit_spin"):
             self.lightning_card_limit_spin.blockSignals(True)
             self.lightning_card_limit_spin.setValue(lightning_card_limit())
@@ -759,6 +868,32 @@ class PocketKnifeLauncherDialog(QDialog):
         set_tts_audio_enabled(bool(checked))
         sync_settings_ui()
 
+    def _set_king_answer_buttons_enabled(self, checked: bool) -> None:
+        set_king_answer_buttons_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_king_answer_feedback_enabled(self, checked: bool) -> None:
+        set_king_answer_feedback_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_king_answer_feedback_width(self, value: int) -> None:
+        set_king_answer_feedback_width(int(value))
+        if hasattr(self, "king_answer_feedback_width_value_label"):
+            self.king_answer_feedback_width_value_label.setText(f"{king_answer_feedback_width()} px")
+        show_feedback_preview(3, period_ms=500)
+
+    def _set_king_answer_button_height(self, value: int) -> None:
+        set_king_answer_button_height(int(value))
+        if hasattr(self, "king_answer_button_height_value_label"):
+            self.king_answer_button_height_value_label.setText(f"{king_answer_button_height()} px")
+        show_feedback_preview(3, period_ms=500)
+
+    def _set_king_answer_feedback_font_size(self, value: int) -> None:
+        set_king_answer_feedback_font_size(int(value))
+        if hasattr(self, "king_answer_feedback_font_value_label"):
+            self.king_answer_feedback_font_value_label.setText(f"{king_answer_feedback_font_size()} px")
+        show_feedback_preview(3, period_ms=500)
+
     def _set_floating_card_tracker_enabled(self, checked: bool) -> None:
         set_floating_card_tracker_enabled(bool(checked))
         sync_settings_ui()
@@ -781,6 +916,10 @@ class PocketKnifeLauncherDialog(QDialog):
 
     def _set_underline_trailing_spaces_enabled(self, checked: bool) -> None:
         set_underline_trailing_spaces_fix_enabled(bool(checked))
+        sync_settings_ui()
+
+    def _set_ctrl_click_open_links_enabled(self, checked: bool) -> None:
+        set_ctrl_click_open_links_enabled(bool(checked))
         sync_settings_ui()
 
     def _set_lightning_card_limit(self, value: int) -> None:
@@ -857,6 +996,7 @@ def sync_settings_ui() -> None:
     global _disable_f3_action
     global _block_ctrl_shift_p_action
     global _underline_trailing_spaces_action
+    global _ctrl_click_open_links_action
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
@@ -915,6 +1055,11 @@ def sync_settings_ui() -> None:
         _underline_trailing_spaces_action.blockSignals(True)
         _underline_trailing_spaces_action.setChecked(underline_trailing_spaces_enabled)
         _underline_trailing_spaces_action.blockSignals(False)
+    ctrl_click_open_links_enabled = is_ctrl_click_open_links_enabled()
+    if _ctrl_click_open_links_action is not None:
+        _ctrl_click_open_links_action.blockSignals(True)
+        _ctrl_click_open_links_action.setChecked(ctrl_click_open_links_enabled)
+        _ctrl_click_open_links_action.blockSignals(False)
     add_cards_sticky_fields_enabled = is_add_cards_sticky_fields_default_on_enabled()
     if _add_cards_sticky_fields_action is not None:
         _add_cards_sticky_fields_action.blockSignals(True)
@@ -1027,6 +1172,10 @@ def sync_settings_ui() -> None:
         _dialog.underline_trailing_spaces_checkbox.blockSignals(True)
         _dialog.underline_trailing_spaces_checkbox.setChecked(underline_trailing_spaces_enabled)
         _dialog.underline_trailing_spaces_checkbox.blockSignals(False)
+    if _dialog is not None and hasattr(_dialog, "ctrl_click_open_links_checkbox"):
+        _dialog.ctrl_click_open_links_checkbox.blockSignals(True)
+        _dialog.ctrl_click_open_links_checkbox.setChecked(ctrl_click_open_links_enabled)
+        _dialog.ctrl_click_open_links_checkbox.blockSignals(False)
     if _dialog is not None and hasattr(_dialog, "add_cards_sticky_fields_checkbox"):
         _dialog.add_cards_sticky_fields_checkbox.blockSignals(True)
         _dialog.add_cards_sticky_fields_checkbox.setChecked(add_cards_sticky_fields_enabled)
@@ -1125,6 +1274,11 @@ def _toggle_underline_trailing_spaces(checked: bool) -> None:
     sync_settings_ui()
 
 
+def _toggle_ctrl_click_open_links(checked: bool) -> None:
+    set_ctrl_click_open_links_enabled(bool(checked))
+    sync_settings_ui()
+
+
 def _toggle_visual_card_multitude_button(checked: bool) -> None:
     set_visual_card_multitude_add_button_enabled(bool(checked))
     sync_settings_ui()
@@ -1173,6 +1327,7 @@ def _register_menu() -> None:
     global _tts_audio_action
     global _disable_f3_action
     global _underline_trailing_spaces_action
+    global _ctrl_click_open_links_action
     global _add_cards_auto_deck_action
     global _add_cards_diagnosis_action
     global _add_cards_multi_image_counter_action
@@ -1287,6 +1442,12 @@ def _register_menu() -> None:
     _underline_trailing_spaces_action.setChecked(is_underline_trailing_spaces_fix_enabled())
     _underline_trailing_spaces_action.triggered.connect(_toggle_underline_trailing_spaces)
     pocket_menu.addAction(_underline_trailing_spaces_action)
+
+    _ctrl_click_open_links_action = QAction("Ctrl+Click Opens Editor Links In Browser", mw)
+    _ctrl_click_open_links_action.setCheckable(True)
+    _ctrl_click_open_links_action.setChecked(is_ctrl_click_open_links_enabled())
+    _ctrl_click_open_links_action.triggered.connect(_toggle_ctrl_click_open_links)
+    pocket_menu.addAction(_ctrl_click_open_links_action)
 
     _recent_leech_banner_action = QAction("Recent-Leech Banner On Deck List", mw)
     _recent_leech_banner_action.setCheckable(True)

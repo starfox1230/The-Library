@@ -101,6 +101,7 @@ When extracting or rebuilding quiz stems, preserve every stem paragraph before t
 - Include a full source-page screenshot in `Extra` whenever feasible.
 - When a quiz workflow generates question-context or explanation screenshot cards for `Extra`, use the same compact dark framed renderer as its local review page: size the image from measured wrapped text lines with only a small minimum height, avoiding large blank tails. The copied review-page screenshot pack and packaged Anki media should follow the same crop behavior.
 - BoardVitals question-context screenshot images should include selected/correct labels and per-answer percentages. Do not replace this with separate peer-comparison prose in the `Extra` field.
+- For BoardVitals-derived cards, append a direct local HTML review-page link at the very end of `Extra`, after all text and images. The link should include the question anchor, e.g. `quiz-<quiz-id>-review.html#q17`, so the card can open the full review page scrolled directly to the source question.
 - Front-side diagnosis images must include the complete diagnostic figure or all relevant panels, while excluding figure captions.
 - Do not crop front-side diagnosis images so tightly that distribution, multiplicity, anatomy, or comparison information is lost.
 - Captions may inform card creation, but caption text should not appear in the front-side `Text` field.

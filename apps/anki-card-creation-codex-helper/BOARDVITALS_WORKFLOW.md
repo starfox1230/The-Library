@@ -64,6 +64,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Include at least one short teaching sentence explaining the tested point or discriminator.
 - If the question includes `Vital Concept` or a similarly labeled concept, copy it word-for-word into `Extra` whenever technically possible. Put it after the question number/result metadata and before appended images.
 - Include all unused question images after the Extra text.
+- At the very end of every BoardVitals Anki `Extra`, append a direct link to the local HTML review page for that exact question. The link should target the per-question anchor, e.g. `.../quiz-<quiz-id>-review.html#q17`, so opening it jumps directly to the source question while keeping the full review page available.
 
 ## Review Documents
 
@@ -81,7 +82,9 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Save review pages in the permanent Library repository under `apps/anki-card-creation-codex-helper/boardvitals/<date>-quiz-<quiz-id>/`, not in a temporary-app library.
 - After creating or updating a review page, update the permanent BoardVitals Reviews index by running `python scripts/build_boardvitals_reviews_index.py` from the root of `The-Library`. The resulting `apps/boardvitals-reviews/reviews.js` must include the completed review before finishing.
 - Use dark-mode styling by default.
+- Keep long quiz pages responsive while scrolling: use `content-visibility: auto` with an appropriate `contain-intrinsic-size` on each question card, use asynchronous/lazy image decoding, and avoid expensive sticky-header effects such as `backdrop-filter` blur.
 - Show all questions top-to-bottom.
+- Give every rendered question card a stable HTML anchor id in the format `q<number>` so Anki Extra links can jump directly to the source question.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
 - Display stem images directly under the question stem. Display explanation images inside the explanation section, not with the question stem.
 - Render captured explanation lists in their original ordered or unordered form with nesting preserved. For legacy captures where ordered/unordered type was not saved, render retained list hierarchy as bullet lists rather than presenting it as plain paragraphs.
@@ -109,6 +112,7 @@ Before calling the workflow done, validate:
 - Media counts match referenced local media.
 - Card fronts contain no source labels or answer-choice letters.
 - Every `Extra` starts with `Q<number>`.
+- Every BoardVitals Anki `Extra` ends with a direct local review-page link for that source question.
 - The HTML page has 50 question cards for a 50-question quiz.
 - The HTML page contains the expected number of choices and local image tags.
 - The HTML page has `All`, `Incorrect`, and `Hardest` controls.

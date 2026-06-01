@@ -16,6 +16,7 @@ DEFAULT_SETTINGS = {
     "disable_default_f3_shortcut": True,
     "block_ctrl_shift_p_shortcut": True,
     "underline_trailing_spaces_fix": True,
+    "editor_ctrl_click_open_links": True,
     "visual_card_multitude_add_button": True,
     "add_cards_sticky_fields_default_on": True,
     "add_cards_diagnosis_button": True,
@@ -42,6 +43,13 @@ DEFAULT_SETTINGS = {
     "floating_card_tracker_follow_speed_streak_window": False,
     "floating_card_tracker_only_when_speed_streak_paused": False,
     "speed_streak_native_overview_migration_v1": False,
+    "king_answer_buttons_enabled": True,
+    "king_answer_feedback_enabled": True,
+    "king_answer_feedback_scale": 100,
+    "king_answer_feedback_width": 530,
+    "king_answer_feedback_font_size": 24,
+    "king_answer_button_height": 47,
+    "king_answer_feedback_defaults_v2": False,
 }
 
 
@@ -89,6 +97,15 @@ def load_settings() -> dict[str, Any]:
         settings["floating_card_tracker_only_when_speed_streak_paused"] = False
         settings["lightning_mode_speed_streak_bridge_enabled"] = True
         settings["speed_streak_native_overview_migration_v1"] = True
+    if not bool(settings.get("king_answer_feedback_defaults_v2", False)):
+        if int(settings.get("king_answer_feedback_width", 530) or 530) == 530:
+            settings["king_answer_feedback_width"] = 530
+        if int(settings.get("king_answer_feedback_font_size", 13) or 13) == 13:
+            settings["king_answer_feedback_font_size"] = 24
+        if int(settings.get("king_answer_button_height", 25) or 25) == 25:
+            settings["king_answer_button_height"] = 47
+        settings["king_answer_feedback_defaults_v2"] = True
+        save_settings(settings)
     return settings
 
 
