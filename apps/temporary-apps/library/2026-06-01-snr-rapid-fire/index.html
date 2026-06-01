@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SNR Rapid Fire</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #151b23;
+      --panel-2: #1f2933;
+      --text: #f2f5f8;
+      --muted: #9aa7b3;
+      --line: #303946;
+      --hot: #ffcf5a;
+      --good: #58d68d;
+      --bad: #ff7a7a;
+      --blue: #72d7ff;
+      --shadow: rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #18202b 0, var(--bg) 48rem);
+      color: var(--text);
+      touch-action: manipulation;
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      border: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      min-height: 100svh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+      gap: 10px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: #0a0f15;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue), var(--hot));
+      transition: width 120ms ease;
+    }
+
+    main {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      display: grid;
+      align-items: center;
+    }
+
+    .card {
+      min-height: min(66svh, 660px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(31,41,51,0.96), rgba(15,20,27,0.98));
+      box-shadow: 0 20px 50px var(--shadow);
+      padding: clamp(16px, 4vw, 30px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tagrow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .prompt {
+      display: grid;
+      align-content: center;
+      gap: 22px;
+      min-height: 260px;
+    }
+
+    .front {
+      font-size: clamp(1.75rem, 7vw, 3.8rem);
+      line-height: 1.08;
+      font-weight: 850;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .cloze {
+      display: inline-block;
+      min-width: 4.8ch;
+      color: transparent;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #314050, #151b23);
+      border: 1px solid #53606f;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+      vertical-align: 0.02em;
+      user-select: none;
+    }
+
+    .revealed .cloze {
+      color: #10151b;
+      background: var(--hot);
+      border-color: var(--hot);
+      padding: 0 0.18em;
+      user-select: text;
+    }
+
+    .extra {
+      display: none;
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+      gap: 12px;
+      color: #dce6ee;
+    }
+
+    .revealed .extra { display: grid; }
+
+    .explain {
+      margin: 0;
+      color: #dce6ee;
+      font-size: clamp(1rem, 3.3vw, 1.22rem);
+      line-height: 1.45;
+    }
+
+    .formula {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: #0c1219;
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .formula strong {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .mini {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini div {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 10px;
+      background: rgba(255,255,255,0.035);
+      min-height: 58px;
+    }
+
+    .mini b { display: block; color: var(--blue); margin-bottom: 4px; }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .controls {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1.25fr 1fr;
+      gap: 8px;
+    }
+
+    .controls button,
+    .mode button {
+      min-height: 54px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      font-weight: 850;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.16);
+    }
+
+    .controls .primary {
+      background: var(--hot);
+      color: #151006;
+      border-color: var(--hot);
+      font-size: 1.04rem;
+    }
+
+    .controls .again { color: var(--bad); }
+    .controls .good { color: var(--good); }
+
+    .mode {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .mode button {
+      min-height: 42px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .mode button.active {
+      color: #061018;
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    @media (max-width: 520px) {
+      .app { padding-left: 8px; padding-right: 8px; }
+      .card { min-height: calc(100svh - 205px); }
+      .mini { grid-template-columns: 1fr; }
+      .controls { grid-template-columns: 0.9fr 1.2fr 0.9fr; }
+      .controls button { min-height: 58px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="topbar">
+        <h1>SNR Rapid Fire</h1>
+        <div class="counter" id="counter"></div>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+      <div class="mode" aria-label="Study mode">
+        <button id="shuffleBtn" type="button">Shuffle</button>
+        <button id="resetBtn" type="button">Reset</button>
+        <button id="copyBtn" type="button">Copy</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="card" id="card" aria-live="polite">
+        <div class="tagrow">
+          <span class="tag" id="topic"></span>
+          <span class="tag" id="direction"></span>
+        </div>
+        <div class="prompt">
+          <div class="front" id="front"></div>
+          <div class="extra" id="extra"></div>
+        </div>
+        <p class="hint" id="hint">Tap the card or press Space to reveal.</p>
+      </section>
+    </main>
+
+    <footer class="controls">
+      <button class="again" id="againBtn" type="button">Again</button>
+      <button class="primary" id="mainBtn" type="button">Reveal</button>
+      <button class="good" id="goodBtn" type="button">Good</button>
+    </footer>
+  </div>
+
+  <script>
+    const cards = [
+      { t: "FOV", d: "up", front: "{{c1::Increasing}} FOV {{c2::increases}} SNR if matrix is unchanged.", why: "If field of view gets larger while the matrix stays the same, each pixel covers a larger area. That makes each voxel larger, so SNR increases.", rule: "Bigger FOV + same matrix = bigger pixels = bigger voxels." },
+      { t: "FOV", d: "down", front: "{{c1::Decreasing}} FOV {{c2::decreases}} SNR if matrix is unchanged.", why: "If field of view gets smaller while the matrix stays the same, each pixel covers a smaller area. That makes each voxel smaller, so SNR decreases.", rule: "Smaller FOV + same matrix = smaller pixels = smaller voxels." },
+      { t: "Matrix", d: "up", front: "{{c1::Increasing}} matrix {{c2::decreases}} SNR if FOV is unchanged.", why: "Increasing the matrix divides the same field of view into more pixels. Each pixel and voxel is smaller, so less signal is collected per voxel.", rule: "256 x 256 to 512 x 512 improves resolution but decreases SNR." },
+      { t: "Matrix", d: "down", front: "{{c1::Decreasing}} matrix {{c2::increases}} SNR if FOV is unchanged.", why: "A smaller matrix divides the same field of view into fewer pixels. Each pixel and voxel is larger, so SNR increases.", rule: "Lower matrix increases SNR at the cost of spatial resolution." },
+      { t: "Slice", d: "up", front: "{{c1::Increasing}} slice thickness {{c2::increases}} SNR.", why: "A thicker slice contains more tissue per voxel. More tissue produces more MR signal, so SNR increases.", rule: "Thicker slice = larger voxel = higher SNR." },
+      { t: "Slice", d: "down", front: "{{c1::Decreasing}} slice thickness {{c2::decreases}} SNR.", why: "A thinner slice contains less tissue per voxel. Less tissue produces less signal, so the image becomes noisier.", rule: "Thin slices are noisier unless another parameter compensates." },
+      { t: "NEX", d: "formula", front: "Increasing NEX increases SNR by {{c1::the square root of NEX}}.", why: "NEX is the number of excitations or signal averages. Random noise averages out while true signal is reinforced.", rule: "SNR scales with sqrt(NEX)." },
+      { t: "NEX", d: "up", front: "{{c1::Increasing}} NEX {{c2::increases}} SNR.", why: "More NEX means the scanner repeats the acquisition and averages the data. More averaging increases SNR.", rule: "More averaging = higher SNR, but longer scan time." },
+      { t: "NEX", d: "down", front: "{{c1::Decreasing}} NEX {{c2::decreases}} SNR.", why: "Fewer averages means less noise cancellation. The scan is faster, but the image is noisier.", rule: "Less averaging = lower SNR." },
+      { t: "Bandwidth", d: "up", front: "{{c1::Increasing}} receiver bandwidth {{c2::decreases}} SNR.", why: "A wider receiver bandwidth listens to a wider range of frequencies. Noise exists across frequencies, so more bandwidth collects more noise.", rule: "More bandwidth = more noise = lower SNR." },
+      { t: "Bandwidth", d: "down", front: "{{c1::Decreasing}} receiver bandwidth {{c2::increases}} SNR.", why: "A narrower receiver bandwidth collects less noise. Less noise means higher SNR.", rule: "Less bandwidth improves SNR but can increase chemical shift artifact and distortion." },
+      { t: "Bandwidth", d: "formula", front: "Increasing the receiver bandwidth by a factor of 4 will have what effect on SNR?<br><br>{{c1::decrease by factor of 2}}", why: "SNR is inversely proportional to the square root of bandwidth. Bandwidth x 4 increases noise by sqrt(4), so SNR decreases by half.", rule: "Bandwidth x 4 -> SNR / 2." },
+      { t: "Parallel imaging", d: "fast", front: "Parallel imaging {{c1::decreases}} SNR.", why: "Parallel imaging speeds up the scan by acquiring less raw data and using coil information to reconstruct the image. Because less data is acquired, SNR decreases.", rule: "Faster scan by skipped data usually lowers SNR." },
+      { t: "Parallel imaging", d: "fast", front: "Higher parallel imaging acceleration decreases SNR {{c1::more}} than lower parallel imaging acceleration.", why: "A higher acceleration factor skips more data. More skipped data creates a larger reconstruction penalty and lower SNR.", rule: "SNR_PI = SNR_0 / (g x sqrt(R))." },
+      { t: "TR", d: "up", front: "{{c1::Increasing}} TR generally {{c2::increases}} SNR.", why: "A longer TR allows more longitudinal magnetization to recover before the next excitation. More recovered magnetization means more signal.", rule: "Longer TR generally increases SNR until recovery plateaus." },
+      { t: "TR", d: "down", front: "{{c1::Decreasing}} TR generally {{c2::decreases}} SNR.", why: "A shorter TR gives less time for longitudinal recovery. Less recovered magnetization means less signal.", rule: "Short TR helps T1 weighting but reduces SNR." },
+      { t: "TE", d: "up", front: "{{c1::Increasing}} TE {{c2::decreases}} SNR.", why: "A longer TE allows more transverse magnetization to decay before the signal is measured. More decay means less signal.", rule: "Longer TE = more T2 decay = lower SNR." },
+      { t: "TE", d: "down", front: "{{c1::Decreasing}} TE {{c2::increases}} SNR.", why: "A shorter TE measures the signal earlier, before as much T2 decay has occurred. More remaining signal means higher SNR.", rule: "Shorter TE preserves signal." },
+      { t: "Field strength", d: "up", front: "{{c1::Increasing}} field strength {{c2::increases}} SNR.", why: "A stronger magnet generally produces stronger net magnetization and more signal. For board purposes, 3 T has higher SNR than 1.5 T.", rule: "Higher field strength = higher SNR, with tradeoffs." },
+      { t: "Field strength", d: "down", front: "{{c1::Decreasing}} field strength {{c2::decreases}} SNR.", why: "A lower magnetic field produces less net magnetization, so there is less available signal.", rule: "1.5 T has lower SNR than 3 T." }
+    ];
+
+    const state = {
+      order: cards.map((_, i) => i),
+      pos: Number(localStorage.getItem("snrRapidPos") || 0),
+      revealed: false,
+      seen: new Set(JSON.parse(localStorage.getItem("snrRapidSeen") || "[]"))
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const cardEl = $("card");
+    const frontEl = $("front");
+    const extraEl = $("extra");
+    const topicEl = $("topic");
+    const directionEl = $("direction");
+    const counterEl = $("counter");
+    const progressEl = $("progress");
+    const hintEl = $("hint");
+    const mainBtn = $("mainBtn");
+
+    function clozeToHtml(text, reveal) {
+      return text.replace(/\{\{c\d+::(.*?)\}\}/g, (_, answer) => {
+        return `<span class="cloze">${reveal ? answer : " ".repeat(Math.max(4, answer.length))}</span>`;
+      });
+    }
+
+    function currentIndex() {
+      if (state.pos >= state.order.length) state.pos = 0;
+      if (state.pos < 0) state.pos = state.order.length - 1;
+      return state.order[state.pos];
+    }
+
+    function render() {
+      const card = cards[currentIndex()];
+      cardEl.classList.toggle("revealed", state.revealed);
+      topicEl.textContent = card.t;
+      directionEl.textContent = card.d;
+      frontEl.innerHTML = clozeToHtml(card.front, state.revealed);
+      extraEl.innerHTML = `
+        <p class="explain">${card.why}</p>
+        <div class="formula">
+          <strong>${card.rule}</strong>
+          <div>SNR is proportional to voxel volume x sqrt(NEX) / sqrt(receiver bandwidth).</div>
+          <div class="mini">
+            <div><b>Bigger voxel</b>increases SNR</div>
+            <div><b>More averaging</b>increases SNR</div>
+            <div><b>More bandwidth</b>decreases SNR</div>
+            <div><b>Skipped data</b>decreases SNR</div>
+          </div>
+        </div>
+      `;
+      counterEl.textContent = `${state.pos + 1} / ${state.order.length}`;
+      progressEl.style.width = `${(state.seen.size / state.order.length) * 100}%`;
+      mainBtn.textContent = state.revealed ? "Next" : "Reveal";
+      hintEl.textContent = state.revealed ? "Tap Good or Next to keep moving." : "Tap the card or press Space to reveal.";
+      localStorage.setItem("snrRapidPos", String(state.pos));
+      localStorage.setItem("snrRapidSeen", JSON.stringify([...state.seen]));
+    }
+
+    function reveal() {
+      state.revealed = true;
+      state.seen.add(currentIndex());
+      render();
+    }
+
+    function next() {
+      state.revealed = false;
+      state.pos = (state.pos + 1) % state.order.length;
+      render();
+    }
+
+    function again() {
+      state.revealed = false;
+      const idx = state.order.splice(state.pos, 1)[0];
+      state.order.splice(Math.min(state.pos + 3, state.order.length), 0, idx);
+      render();
+    }
+
+    function shuffle() {
+      for (let i = state.order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [state.order[i], state.order[j]] = [state.order[j], state.order[i]];
+      }
+      state.pos = 0;
+      state.revealed = false;
+      render();
+    }
+
+    mainBtn.addEventListener("click", () => state.revealed ? next() : reveal());
+    cardEl.addEventListener("click", () => state.revealed ? next() : reveal());
+    $("goodBtn").addEventListener("click", () => state.revealed ? next() : reveal());
+    $("againBtn").addEventListener("click", again);
+    $("shuffleBtn").addEventListener("click", shuffle);
+    $("resetBtn").addEventListener("click", () => {
+      state.pos = 0;
+      state.revealed = false;
+      state.seen.clear();
+      localStorage.removeItem("snrRapidPos");
+      localStorage.removeItem("snrRapidSeen");
+      render();
+    });
+    $("copyBtn").addEventListener("click", async () => {
+      const c = cards[currentIndex()];
+      const plain = c.front.replace(/\{\{c\d+::(.*?)\}\}/g, "$1").replace(/<br>/g, "\n");
+      await navigator.clipboard.writeText(`${plain}\n\n${c.why}\n\n${c.rule}`);
+      $("copyBtn").textContent = "Copied";
+      setTimeout(() => $("copyBtn").textContent = "Copy", 900);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        state.revealed ? next() : reveal();
+      }
+      if (event.key === "ArrowRight") next();
+      if (event.key === "ArrowLeft") {
+        state.pos -= 1;
+        state.revealed = false;
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
