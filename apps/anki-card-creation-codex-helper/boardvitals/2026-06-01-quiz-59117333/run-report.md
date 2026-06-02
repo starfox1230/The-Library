@@ -3,8 +3,8 @@
 Scope: capture, parsing, ranked review document, local media, and HTML review page only.
 APKG/cards: not generated.
 Questions: 50
-Stem images: 64
-Explanation images: 0
+Stem images: 55
+Explanation images: 9
 Total images: 64
 Missed questions: Q13, Q16, Q24, Q40.
 

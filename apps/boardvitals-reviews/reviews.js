@@ -12,9 +12,9 @@ window.BOARDVITALS_REVIEWS = {
         24,
         40
       ],
-      "stemImages": 64,
-      "explanationImages": 0,
-      "hasDeck": false
+      "stemImages": 55,
+      "explanationImages": 9,
+      "hasDeck": true
     },
     {
       "quizId": "59106173",

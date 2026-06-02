@@ -22,6 +22,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Create `parsed-questions.json` with question number, QID, result, difficulty, selected answer, correct answer, answer text, peer percentages, full stem, explanation, Vital Concept when present, and image records.
 - Separate images into `stem_images` and `explanation_images` whenever the capture data identifies where the image appeared. Preserve a backward-compatible flat `images` list only as a combined legacy field.
 - Quizzes captured on or before 2026-05-19 used a legacy flat image workflow and may display all images with the question stem because the saved image records did not reliably distinguish stem images from explanation images.
+- After capture, explicitly audit multi-image questions for annotated answer-side figures. BoardVitals may expose explanation/answer images through the same Figure/Media surface as stem images, so DOM position alone is not sufficient. Images with arrows/labels that reveal the answer or are only discussed in the explanation must be labeled `explanation`, displayed in the explanation section of the review page, and excluded from Anki image-card fronts.
 - When extracting stems, preserve every stem paragraph before the answer choices. Do not stop at the first long paragraph. Join short follow-up lines, lab values, and the final asked question so clinical context and the actual task are not silently dropped.
 - Do not assume answer choices stop at `E`; support additional choices such as `F` when present.
 - For questions without a `Figure/Media` marker, still extract the stem from the main review area before the answer-choice list.
@@ -63,8 +64,8 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Do not include peer-comparison percentages as prose in Anki `Extra`; avoid lines such as `correct answer chosen by X% of peers` or `selected answer chosen by Y% of peers`. Keep per-choice percentages in the generated question-context screenshot support image.
 - Include at least one short teaching sentence explaining the tested point or discriminator.
 - If the question includes `Vital Concept` or a similarly labeled concept, copy it word-for-word into `Extra` whenever technically possible. Put it after the question number/result metadata and before appended images.
-- Include all unused question images after the Extra text.
-- At the very end of every BoardVitals Anki `Extra`, append a direct link to the local HTML review page for that exact question. The link should target the per-question anchor, e.g. `.../quiz-<quiz-id>-review.html#q17`, so opening it jumps directly to the source question while keeping the full review page available.
+- Include all unused question/explanation images after the Extra text.
+- At the very end of every BoardVitals Anki `Extra`, append a direct published GitHub Pages link to the HTML review page for that exact question. The link should target the per-question anchor, e.g. `.../quiz-<quiz-id>-review.html#q17`, so opening it jumps directly to the source question while keeping the full review page available from phone or desktop.
 
 ## Review Documents
 
@@ -87,6 +88,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Give every rendered question card a stable HTML anchor id in the format `q<number>` so Anki Extra links can jump directly to the source question.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
 - Display stem images directly under the question stem. Display explanation images inside the explanation section, not with the question stem.
+- Never display annotated answer-side images with the question stem. If an image would give away the answer or appears to be an explanation overlay/annotated copy, it belongs in the explanation section and in Anki `Extra`, not on the front of an image card.
 - Render captured explanation lists in their original ordered or unordered form with nesting preserved. For legacy captures where ordered/unordered type was not saved, render retained list hierarchy as bullet lists rather than presenting it as plain paragraphs.
 - Preserve the full multi-paragraph stem.
 - Show peer percentages for every answer choice as small right-aligned parenthetical badges inside each answer-choice row.
@@ -110,6 +112,7 @@ Before calling the workflow done, validate:
 - The APKG uses only `saCloze++`.
 - The APKG deck is `Saved Cards`.
 - Media counts match referenced local media.
+- Stem-vs-explanation image placement has been audited, especially for multi-image questions with annotated answer-side copies.
 - Card fronts contain no source labels or answer-choice letters.
 - Every `Extra` starts with `Q<number>`.
 - Every BoardVitals Anki `Extra` ends with a direct published GitHub Pages review-page link for that source question, not a `127.0.0.1` local dev-server link.
