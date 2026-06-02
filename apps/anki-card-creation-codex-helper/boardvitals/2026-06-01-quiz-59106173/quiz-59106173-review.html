@@ -7,6 +7,10 @@
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BoardVitals Quiz 59106173</title>
+  <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    if (window.location.hash) document.documentElement.classList.add('hash-navigation');
+  </script>
   <style>
     :root { --bg:#101318; --panel:#171c23; --panel2:#202733; --ink:#eef3fb; --muted:#9aa7b8; --line:#303948; --green:#52d18f; --red:#ff7468; --blue:#7ab7ff; --focus:#d8e6ff; }
     * { box-sizing:border-box; }
@@ -28,6 +32,7 @@
     .count { color:var(--muted); white-space:nowrap; }
     main { max-width:1120px; margin:0 auto; padding:20px; }
     .question { background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--green); border-radius:8px; margin:0 0 18px; padding:18px; box-shadow:0 12px 30px rgba(0,0,0,.18); content-visibility:auto; contain-intrinsic-size:900px; scroll-margin-top:36px; }
+    html.hash-navigation .question { content-visibility:visible; contain-intrinsic-size:auto; }
     .question.incorrect { border-left-color:var(--red); }
     header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
     h2 { margin:0; font-size:20px; }
@@ -2163,12 +2168,19 @@ Vital Concept: Pediatric RCC is extremely rare and typically occurs in periadole
     function scrollToHashQuestion() {
       const id = decodeURIComponent(window.location.hash || '').replace(/^#/, '');
       if (!id) return;
+      document.documentElement.classList.add('hash-navigation');
       const target = document.getElementById(id);
       if (!target) return;
       const top = target.getBoundingClientRect().top;
-      const acceptableTop = Math.min(220, window.innerHeight * 0.33);
-      if (top >= 0 && top <= acceptableTop) return;
-      window.scrollBy(0, top - 36);
+      const desiredTop = 36;
+      if (Math.abs(top - desiredTop) <= 8) return;
+      window.scrollBy(0, top - desiredTop);
+    }
+    function scheduleHashScroll() {
+      if (!window.location.hash) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(scrollToHashQuestion);
+      });
     }
     setHeaderCollapsed(true);
     function flashButton(button, text) {
@@ -2396,10 +2408,12 @@ Vital Concept: Pediatric RCC is extremely rare and typically occurs in periadole
     }
     applyFilters();
     setHeaderCollapsed(true);
-    window.setTimeout(scrollToHashQuestion, 0);
+    scheduleHashScroll();
+    window.addEventListener('load', scheduleHashScroll, { once: true });
+    window.addEventListener('pageshow', scheduleHashScroll);
     window.addEventListener('hashchange', () => {
       setHeaderCollapsed(true);
-      window.setTimeout(scrollToHashQuestion, 0);
+      scheduleHashScroll();
     });
   </script>
 </body>
