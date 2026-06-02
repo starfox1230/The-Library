@@ -83,7 +83,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Save review pages in the permanent Library repository under `apps/anki-card-creation-codex-helper/boardvitals/<date>-quiz-<quiz-id>/`, not in a temporary-app library.
 - After creating or updating a review page, update the permanent BoardVitals Reviews index by running `python scripts/build_boardvitals_reviews_index.py` from the root of `The-Library`. The resulting `apps/boardvitals-reviews/reviews.js` must include the completed review before finishing.
 - Use dark-mode styling by default.
-- Keep long quiz pages responsive while scrolling: use `content-visibility: auto` with an appropriate `contain-intrinsic-size` on each question card, use asynchronous/lazy image decoding, and avoid expensive sticky-header effects such as `backdrop-filter` blur.
+- Keep long quiz pages responsive while scrolling: use `content-visibility: auto` with an appropriate `contain-intrinsic-size` on each question card, use asynchronous/lazy image decoding, and avoid expensive sticky-header effects such as `backdrop-filter` blur. Also avoid paint-heavy repeated card effects such as large shadows on every question, and give image/figure containers stable dimensions so fast scrollbar movement does not force large relayout or repaint bursts.
 - Show all questions top-to-bottom.
 - Give every rendered question card a stable HTML anchor id in the format `q<number>` so Anki Extra links can jump directly to the source question.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
