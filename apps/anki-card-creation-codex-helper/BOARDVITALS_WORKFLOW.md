@@ -103,6 +103,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - For `Copy screenshot`, generate compact dark framed text-card images whose height is measured from the wrapped visible content. Match the Anki screenshot-card layout; do not use character-count estimates or tall fixed minimums that leave large blank areas below short text.
 - Clean the rebuilt page so DOM/accessibility artifacts never appear in visible text.
 - Add a small `Hide` / `Show` tab at the bottom of the sticky header so the header and filters can be collapsed while scrolling.
+- BoardVitals review pages should open with the sticky header collapsed by default. The visible tab should say `Show` on initial load, with the full header available when clicked.
 
 ## Validation
 
