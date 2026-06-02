@@ -27,7 +27,7 @@
     .toggle button.active { background:#d8e6ff; color:#0d1117; }
     .count { color:var(--muted); white-space:nowrap; }
     main { max-width:1120px; margin:0 auto; padding:20px; }
-    .question { background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--green); border-radius:8px; margin:0 0 18px; padding:18px; box-shadow:0 12px 30px rgba(0,0,0,.18); content-visibility:auto; contain-intrinsic-size:900px; }
+    .question { background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--green); border-radius:8px; margin:0 0 18px; padding:18px; box-shadow:0 12px 30px rgba(0,0,0,.18); content-visibility:auto; contain-intrinsic-size:900px; scroll-margin-top:36px; }
     .question.incorrect { border-left-color:var(--red); }
     header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
     h2 { margin:0; font-size:20px; }
@@ -2107,8 +2107,10 @@ Vital Concept: Lowering kVp improves subject contrast as differential attenuatio
       if (!id) return;
       const target = document.getElementById(id);
       if (!target) return;
-      target.scrollIntoView({ block: 'start' });
-      window.scrollBy(0, -36);
+      const top = target.getBoundingClientRect().top;
+      const acceptableTop = Math.min(220, window.innerHeight * 0.33);
+      if (top >= 0 && top <= acceptableTop) return;
+      window.scrollBy(0, top - 36);
     }
     setHeaderCollapsed(true);
     function flashButton(button, text) {
@@ -2259,6 +2261,8 @@ Vital Concept: Lowering kVp improves subject contrast as differential attenuatio
       } else {
         ordered.sort((a, b) => Number(a.dataset.q) - Number(b.dataset.q));
       }
+      const current = [...questions.querySelectorAll('.question')];
+      if (current.length === ordered.length && current.every((card, index) => card === ordered[index])) return;
       for (const card of ordered) questions.appendChild(card);
     }
     function currentQuestionAnchor() {
@@ -2335,7 +2339,6 @@ Vital Concept: Lowering kVp improves subject contrast as differential attenuatio
     applyFilters();
     setHeaderCollapsed(true);
     window.setTimeout(scrollToHashQuestion, 0);
-    window.setTimeout(scrollToHashQuestion, 250);
     window.addEventListener('hashchange', () => {
       setHeaderCollapsed(true);
       window.setTimeout(scrollToHashQuestion, 0);
