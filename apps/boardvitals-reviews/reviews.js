@@ -12,8 +12,8 @@ window.BOARDVITALS_REVIEWS = {
         24,
         40
       ],
-      "stemImages": 55,
-      "explanationImages": 9,
+      "stemImages": 47,
+      "explanationImages": 17,
       "hasDeck": true
     },
     {
