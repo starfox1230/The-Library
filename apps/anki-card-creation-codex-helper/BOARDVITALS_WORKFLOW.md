@@ -112,7 +112,7 @@ Before calling the workflow done, validate:
 - Media counts match referenced local media.
 - Card fronts contain no source labels or answer-choice letters.
 - Every `Extra` starts with `Q<number>`.
-- Every BoardVitals Anki `Extra` ends with a direct local review-page link for that source question.
+- Every BoardVitals Anki `Extra` ends with a direct published GitHub Pages review-page link for that source question, not a `127.0.0.1` local dev-server link.
 - The HTML page has 50 question cards for a 50-question quiz.
 - The HTML page contains the expected number of choices and local image tags.
 - The HTML page has `All`, `Incorrect`, and `Hardest` controls.

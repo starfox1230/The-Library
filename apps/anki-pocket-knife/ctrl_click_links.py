@@ -73,8 +73,10 @@ def _build_editor_script(enabled: bool) -> str:
   }}
   window[stateKey] = true;
 
-  const URL_RE = /^(https?:\\/\\/|ftp:\\/\\/)[^\\s<>'"]+$/i;
+  const URL_RE = /(?:https?:\\/\\/|ftp:\\/\\/)[^\\s<>'"]+/ig;
+  const FULL_URL_RE = /^(https?:\\/\\/|ftp:\\/\\/)[^\\s<>'"]+$/i;
   const TRAILING_PUNCT_RE = /[.,;:!?\\])}}]+$/;
+  let lastOpened = {{ url: "", time: 0 }};
 
   function normalizeUrl(raw) {{
     let url = String(raw || "").trim();
@@ -82,65 +84,123 @@ def _build_editor_script(enabled: bool) -> str:
       return "";
     }}
     url = url.replace(TRAILING_PUNCT_RE, "");
-    if (URL_RE.test(url)) {{
+    if (FULL_URL_RE.test(url)) {{
       return url;
     }}
     return "";
   }}
 
-  function hrefFromAnchor(target) {{
-    const anchor = target && target.closest ? target.closest("a[href]") : null;
-    if (!anchor) {{
-      return "";
+  function eventPath(event) {{
+    if (typeof event.composedPath === "function") {{
+      return event.composedPath();
     }}
-    return normalizeUrl(anchor.getAttribute("href") || anchor.href || "");
+    return [];
   }}
 
-  function textNodeAtPoint(x, y) {{
-    if (document.caretPositionFromPoint) {{
-      const pos = document.caretPositionFromPoint(x, y);
-      return pos ? {{ node: pos.offsetNode, offset: pos.offset }} : null;
+  function hrefFromAnchor(event) {{
+    for (const node of eventPath(event)) {{
+      if (node && node.nodeType === Node.ELEMENT_NODE && node.matches && node.matches("a[href]")) {{
+        return normalizeUrl(node.getAttribute("href") || node.href || "");
+      }}
+      if (node && node.closest) {{
+        const anchor = node.closest("a[href]");
+        if (anchor) {{
+          return normalizeUrl(anchor.getAttribute("href") || anchor.href || "");
+        }}
+      }}
     }}
-    if (document.caretRangeFromPoint) {{
-      const range = document.caretRangeFromPoint(x, y);
-      return range ? {{ node: range.startContainer, offset: range.startOffset }} : null;
+    return "";
+  }}
+
+  function editableFromEvent(event) {{
+    for (const node of eventPath(event)) {{
+      if (node && node.nodeType === Node.ELEMENT_NODE) {{
+        if (node.matches && node.matches("anki-editable, [contenteditable='true']")) {{
+          return node;
+        }}
+        if (node.closest) {{
+          const editable = node.closest("anki-editable, [contenteditable='true']");
+          if (editable) {{
+            return editable;
+          }}
+        }}
+      }}
     }}
     return null;
   }}
 
-  function linkFromPlainText(x, y) {{
-    const point = textNodeAtPoint(x, y);
-    if (!point || !point.node || point.node.nodeType !== Node.TEXT_NODE) {{
-      return "";
-    }}
-
-    const text = point.node.nodeValue || "";
-    let offset = Math.max(0, Math.min(point.offset || 0, text.length));
-    const left = text.slice(0, offset).search(/\\S+$/);
-    const rightMatch = text.slice(offset).match(/^\\S+/);
-    if (left < 0 && !rightMatch) {{
-      return "";
-    }}
-
-    const start = left < 0 ? offset : left;
-    const end = rightMatch ? offset + rightMatch[0].length : offset;
-    return normalizeUrl(text.slice(start, end));
+  function pointInRect(x, y, rect) {{
+    return x >= rect.left - 1 && x <= rect.right + 1 && y >= rect.top - 1 && y <= rect.bottom + 1;
   }}
 
-  document.addEventListener("click", function(event) {{
+  function pointInRange(x, y, range) {{
+    for (const rect of Array.from(range.getClientRects())) {{
+      if (pointInRect(x, y, rect)) {{
+        return true;
+      }}
+    }}
+    return false;
+  }}
+
+  function textNodesUnder(root) {{
+    const nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {{
+      nodes.push(walker.currentNode);
+    }}
+    return nodes;
+  }}
+
+  function linkFromPlainText(event) {{
+    const editable = editableFromEvent(event);
+    if (!editable) {{
+      return "";
+    }}
+
+    for (const node of textNodesUnder(editable)) {{
+      const text = node.nodeValue || "";
+      URL_RE.lastIndex = 0;
+      let match = URL_RE.exec(text);
+      while (match) {{
+        const raw = match[0];
+        const url = normalizeUrl(raw);
+        if (url) {{
+          const range = document.createRange();
+          range.setStart(node, match.index);
+          range.setEnd(node, match.index + raw.length);
+          if (pointInRange(event.clientX, event.clientY, range)) {{
+            return url;
+          }}
+        }}
+        match = URL_RE.exec(text);
+      }}
+    }}
+    return "";
+  }}
+
+  function handlePointer(event) {{
     if (!window[configKey] || !event.ctrlKey || event.button !== 0) {{
       return;
     }}
 
-    const url = hrefFromAnchor(event.target) || linkFromPlainText(event.clientX, event.clientY);
+    const url = hrefFromAnchor(event) || linkFromPlainText(event);
     if (!url || typeof pycmd !== "function") {{
       return;
     }}
 
     event.preventDefault();
     event.stopPropagation();
+    const now = Date.now();
+    if (lastOpened.url === url && now - lastOpened.time < 500) {{
+      return;
+    }}
+    lastOpened = {{ url: url, time: now }};
     pycmd(bridgePrefix + encodeURIComponent(url));
-  }}, true);
+  }}
+
+  document.addEventListener("pointerdown", handlePointer, true);
+  document.addEventListener("mousedown", handlePointer, true);
+  document.addEventListener("click", handlePointer, true);
 }})();
 """
 

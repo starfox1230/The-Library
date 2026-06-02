@@ -2,6 +2,21 @@ window.BOARDVITALS_REVIEWS = {
   "generatedOn": "2026-06-01",
   "reviews": [
     {
+      "quizId": "59117333",
+      "date": "2026-06-01",
+      "href": "../anki-card-creation-codex-helper/boardvitals/2026-06-01-quiz-59117333/quiz-59117333-review.html",
+      "questions": 50,
+      "missed": [
+        13,
+        16,
+        24,
+        40
+      ],
+      "stemImages": 64,
+      "explanationImages": 0,
+      "hasDeck": false
+    },
+    {
       "quizId": "59106173",
       "date": "2026-06-01",
       "href": "../anki-card-creation-codex-helper/boardvitals/2026-06-01-quiz-59106173/quiz-59106173-review.html",
@@ -18,7 +33,7 @@ window.BOARDVITALS_REVIEWS = {
       ],
       "stemImages": 57,
       "explanationImages": 35,
-      "hasDeck": false
+      "hasDeck": true
     },
     {
       "quizId": "59040582",
