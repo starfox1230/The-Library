@@ -2,6 +2,40 @@ window.BOARDVITALS_REVIEWS = {
   "generatedOn": "2026-06-02",
   "reviews": [
     {
+      "quizId": "59143875",
+      "date": "2026-06-02",
+      "href": "../anki-card-creation-codex-helper/boardvitals/2026-06-02-quiz-59143875/quiz-59143875-review.html",
+      "questions": 55,
+      "missed": [
+        22,
+        33,
+        46,
+        48,
+        51
+      ],
+      "stemImages": 102,
+      "explanationImages": 0,
+      "hasDeck": false
+    },
+    {
+      "quizId": "59142118",
+      "date": "2026-06-02",
+      "href": "../anki-card-creation-codex-helper/boardvitals/2026-06-02-quiz-59142118/quiz-59142118-review.html",
+      "questions": 55,
+      "missed": [
+        10,
+        16,
+        17,
+        41,
+        44,
+        49,
+        55
+      ],
+      "stemImages": 83,
+      "explanationImages": 33,
+      "hasDeck": true
+    },
+    {
       "quizId": "59117333",
       "date": "2026-06-01",
       "href": "../anki-card-creation-codex-helper/boardvitals/2026-06-01-quiz-59117333/quiz-59117333-review.html",
