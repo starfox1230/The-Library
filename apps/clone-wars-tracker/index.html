@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Clone Wars Chronological Tracker</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #101823;
+    --card-2: #0e1520;
+    --text: #e6f1ff;
+    --muted: #9fb3c8;
+    --accent: #37e3ff;
+    --accent-2: #6df2ff;
+    --danger: #ff6b6b;
+    --danger-bg: rgba(255, 78, 78, .22);
+    --danger-bg-2: rgba(255, 78, 78, .11);
+    --warn: #ffd166;
+    --good: #2fe6a5;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: radial-gradient(circle at top, #111b27 0, var(--bg) 42%, #070a0e 100%); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
+
+  header { display: grid; gap: 12px; margin-bottom: 12px; }
+  .titlebar { display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+  .titlebar h1 { margin:0; font-size: 21px; letter-spacing:.3px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
+    display:inline-flex; align-items:center; justify-content: center; gap:8px; cursor:pointer;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.ghost { background: transparent; border-color: rgba(255,255,255,.14); }
+  .btn.small { padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+  .btn.primary { border-color: rgba(55,227,255,.45); box-shadow: 0 0 0 1px rgba(55,227,255,.08) inset, var(--shadow); }
+  .controls { display:flex; gap:8px; flex-wrap: wrap; }
+
+  .stats-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat {
+    background: var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: var(--shadow);
+  }
+  .stat .n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .l { color: var(--muted); font-size: 12px; }
+
+  .progress { display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .progress-bar { flex:1; height: 12px; background: #0a0f18; border-radius: 999px; overflow: hidden; position: relative; }
+  .progress-bar > span { position:absolute; left:0; top:0; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); box-shadow: 0 0 16px rgba(55,227,255,.35) inset; transition: width .25s ease; }
+  .pct { font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; color: #dbf7ff; }
+
+  .nextup { margin: 14px 0 8px; background: var(--card); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .nextup .hero { position: relative; aspect-ratio: 16/9; background: linear-gradient(135deg, #0d1a27, #172033); overflow: hidden; display: grid; place-items: center; }
+  .crawl { width: 78%; max-width: 560px; color: #ffe16b; text-align: center; text-transform: uppercase; font-weight: 900; font-size: clamp(24px, 7vw, 54px); letter-spacing: .04em; line-height: .88; text-shadow: 0 0 18px rgba(255,225,107,.25); transform: perspective(360px) rotateX(18deg); }
+  .nextup .chip { position:absolute; left:10px; top:10px; background: rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15); color:#dbf7ff; padding:4px 8px; border-radius:999px; font-size:12px; backdrop-filter: blur(6px); }
+  .nextup .meta { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .nextup .meta .t { font-size: 18px; font-weight: 700; }
+  .nextup .meta .s { color: var(--muted); font-size: 13px; }
+
+  .filters { display: grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin: 10px 0 12px; }
+  .seg { padding: 10px 6px; text-align:center; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: var(--card-2); color: var(--muted); cursor:pointer; user-select:none; font-size: 14px; }
+  .seg.active { color: var(--text); border-color: rgba(55,227,255,.5); box-shadow: 0 0 0 2px rgba(55,227,255,.12) inset; }
+
+  .filterbar { margin: 6px 0 12px; }
+  .filter-panel[hidden] { display: none !important; }
+  .filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .chk {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px; border:1px solid rgba(255,255,255,.08);
+    border-radius: 12px; background: var(--card-2); color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .chk input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .chk span { flex: 1; }
+  #btnFilterToggle { width: 100%; justify-content: space-between; }
+
+  .list { display: grid; gap:10px; }
+  .row {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    grid-template-areas:
+      "badge main"
+      "actions actions";
+    gap: 10px 12px;
+    align-items: center;
+    padding: 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.01)), var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .row.skippable {
+    background: linear-gradient(180deg, var(--danger-bg), var(--danger-bg-2)), var(--card);
+    border-color: rgba(255, 107, 107, .34);
+  }
+  .row.supporting { border-color: rgba(255, 209, 102, .15); }
+  .row.essential { border-color: rgba(47, 230, 165, .18); }
+  .row.watched { opacity: .72; }
+  .badge {
+    grid-area: badge;
+    width: 42px; height: 42px; border-radius: 12px;
+    display: grid; place-items: center;
+    background: #0a121b; border: 1px solid rgba(255,255,255,.08);
+    font-weight: 800; color: #dbf7ff; font-variant-numeric: tabular-nums;
+  }
+  .row-main { grid-area: main; min-width: 0; }
+  .row-title { font-weight: 750; font-size: 16px; letter-spacing:.2px; display:flex; gap: 7px; align-items: center; min-width: 0; }
+  .row-title button { all: unset; color: var(--text); cursor: pointer; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-title button:hover { text-decoration: underline; }
+  .row-speaker { color: var(--muted); font-size: 13px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+  .row-summary { color: #c4d3e4; font-size: 13px; margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap:8px; align-items: center; margin-top: 2px; }
+  .pill { display:inline-flex; align-items:center; gap: 5px; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); font-size: 12px; color: var(--muted); background: rgba(0,0,0,.18); }
+  .pill.essential { color: #b8ffe6; border-color: rgba(47,230,165,.35); }
+  .pill.supporting { color: #ffe9ad; border-color: rgba(255,209,102,.35); }
+  .pill.skippable { color: #ffd0d0; border-color: rgba(255,107,107,.48); background: rgba(120,0,0,.18); }
+  .iconbtn { background: var(--card-2); border:1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--muted); }
+  .iconbtn:hover { color:var(--text); border-color: rgba(255,255,255,.18); }
+  .star { font-size:18px; line-height:1; color:#bcd; }
+  .star.fav { color: #ffe08a; text-shadow: 0 0 10px rgba(255,224,138,.35); }
+  .check { width:22px; height:22px; border-radius:6px; display:inline-grid; place-items:center; border:1px solid rgba(255,255,255,.18); background: #0a0f18; color:#88ffd1; cursor:pointer; }
+  .check.on { background: rgba(47,230,165,.12); border-color: rgba(47,230,165,.55); }
+
+  .settings { margin: 12px 0 24px; display:flex; flex-wrap: wrap; gap:8px; }
+  dialog { border:none; padding:0; border-radius: 16px; background: var(--card); color: var(--text); width:min(720px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(4,8,12,.55); backdrop-filter: blur(2px); }
+  .modal-head { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .modal-body { padding: 12px; }
+  textarea.notes { width:100%; min-height: 220px; resize: vertical; background: #0a121b; color: var(--text); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; line-height:1.4; }
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #dbf7ff; padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.15); opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; z-index: 999; }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+  .tiny { color: var(--muted); font-size: 12px; margin: 8px 2px 0; }
+
+  @media (max-width: 620px) {
+    .wrap { padding: 12px; }
+    .filters { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .stat .n { font-size: 18px; }
+    .filter-panel { grid-template-columns: 1fr; }
+    .nextup .meta { align-items: stretch; flex-direction: column; }
+    .nextup .meta .btn { width: 100%; }
+    .titlebar { align-items: flex-start; flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="titlebar">
+        <div>
+          <h1>Clone Wars Chronological Tracker</h1>
+          <div class="subtitle">Watch-order tracker based on the chronological order, with Essential / Supporting / Skippable categories.</div>
+        </div>
+        <div class="controls">
+          <button class="btn small ghost" id="btnSettings">Settings</button>
+        </div>
+      </div>
+      <div class="progress" aria-label="Overall progress">
+        <div class="progress-bar" aria-hidden="true"><span id="progFill"></span></div>
+        <div class="pct" id="progPct">0%</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><div class="n" id="watchedCount">0</div><div class="l">Watched</div></div>
+        <div class="stat"><div class="n" id="leftCount">0</div><div class="l">Left</div></div>
+        <div class="stat"><div class="n" id="essentialLeft">0</div><div class="l">Essential left</div></div>
+      </div>
+    </header>
+
+    <section class="nextup" id="nextUp" hidden>
+      <div class="hero">
+        <div class="chip">Next Up</div>
+        <div class="crawl" id="nextHeroText">The Clone Wars</div>
+      </div>
+      <div class="meta">
+        <div>
+          <div class="t" id="nextTitle">&nbsp;</div>
+          <div class="s" id="nextSub">&nbsp;</div>
+        </div>
+        <button class="btn primary" id="btnPlayNext">Open</button>
+      </div>
+    </section>
+
+    <div class="filters" role="tablist" aria-label="View">
+      <div class="seg active" data-filter="need" role="tab" aria-selected="true">Need</div>
+      <div class="seg" data-filter="all" role="tab" aria-selected="false">All</div>
+      <div class="seg" data-filter="seen" role="tab" aria-selected="false">Seen</div>
+      <div class="seg" data-filter="faves" role="tab" aria-selected="false">Favs</div>
+      <div class="seg" data-filter="essential" role="tab" aria-selected="false">Essential</div>
+    </div>
+
+    <div class="filterbar">
+      <button class="btn" id="btnFilterToggle" type="button" role="button" aria-expanded="false" aria-controls="filterPanel">
+        <span>Category filters</span><span aria-hidden="true">▾</span>
+      </button>
+      <div id="filterPanel" class="filter-panel" hidden>
+        <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
+        <label class="chk"><input type="checkbox" id="catEssential"> <span>Essential</span></label>
+        <label class="chk"><input type="checkbox" id="catSupporting"> <span>Supporting</span></label>
+        <label class="chk"><input type="checkbox" id="catSkippable"> <span>Skippable</span></label>
+      </div>
+    </div>
+
+    <section class="list" id="list"></section>
+
+    <section class="settings">
+      <button class="btn small" id="btnDownload">Download All</button>
+      <label class="btn small" for="fileRestore" style="cursor:pointer;">Upload / Restore</label>
+      <input id="fileRestore" type="file" accept="application/json" hidden />
+      <button class="btn small" id="btnEmail">Email Export</button>
+      <button class="btn small" id="btnNotesDownload">Notes → File</button>
+      <button class="btn small" id="btnNotesCopy">Notes → Clipboard</button>
+      <button class="btn small ghost" id="btnReset">Reset watched</button>
+    </section>
+    <div class="tiny">Red-tinted rows are skippable. Progress counts all items in this tracker; use the Essential filter if you only want the must-watch path.</div>
+  </div>
+
+  <dialog id="notesModal">
+    <div class="modal-head">
+      <div id="notesTitle" style="font-weight:600;">Notes</div>
+      <button class="btn small ghost" id="closeNotes">Close</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="notes" id="notesArea" placeholder="Quick thoughts…"></textarea>
+    </div>
+  </dialog>
+
+  <dialog id="settingsModal">
+    <div class="modal-head">
+      <div style="font-weight:600;">Settings</div>
+      <button class="btn small ghost" id="closeSettings">Close</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted); margin-top:0;">This saves locally in this browser using localStorage. Export periodically if you want a backup.</p>
+      <button class="btn small" id="btnMarkEssentials">Mark skippable hidden path: show only essential need</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const episodes = [
+  { title:'Cat and Mouse', season:2, episode:16, type:'Supporting', summary:'Beginning of the Battle of Christophsis and introduction of Trench.' },
+  { title:'The Hidden Enemy', season:1, episode:16, type:'Skippable', summary:'Continues Christophsis with a clone mystery; optional Rex/Cody setup.' },
+  { title:'The Clone Wars movie', season:null, episode:null, type:'Supporting', summary:'Introduces many main characters despite rough animation and a weaker plot.' },
+  { title:'Clone Cadets', season:3, episode:1, type:'Essential', summary:'Clone training on Kamino and introduction to an important group of clones.' },
+  { title:'Supply Lines', season:3, episode:3, type:'Skippable', summary:'Connects with the later Ryloth arc but is not very important by itself.' },
+  { title:'Ambush', season:1, episode:1, type:'Essential', summary:'The episode that started the series and establishes the show’s tone.' },
+  { title:'Rising Malevolence', season:1, episode:2, type:'Supporting', arc:'Malevolence Arc', summary:'Part of the first Malevolence arc.' },
+  { title:'Shadow of Malevolence', season:1, episode:3, type:'Supporting', arc:'Malevolence Arc', summary:'Part of the first Malevolence arc.' },
+  { title:'Destroy Malevolence', season:1, episode:4, type:'Supporting', arc:'Malevolence Arc', summary:'Part of the first Malevolence arc.' },
+  { title:'Rookies', season:1, episode:5, type:'Essential', summary:'Major clone-centered episode and strong introduction to Rex and Cody.' },
+  { title:'Downfall of a Droid', season:1, episode:6, type:'Skippable', arc:'R3 Droid Arc', summary:'Optional droid-focused episode.' },
+  { title:'Duel of the Droids', season:1, episode:7, type:'Skippable', arc:'R3 Droid Arc', summary:'Optional droid-focused episode with a memorable final fight.' },
+  { title:'Bombad Jedi', season:1, episode:8, type:'Skippable', arc:'Nute Gunray Arc', summary:'Loosely connected Nute Gunray episode; optional.' },
+  { title:'Cloak of Darkness', season:1, episode:9, type:'Supporting', arc:'Nute Gunray Arc', summary:'Loosely connected Nute Gunray episode.' },
+  { title:'Lair of Grievous', season:1, episode:10, type:'Supporting', arc:'Nute Gunray Arc', summary:'Best of the Nute Gunray arc and worth watching if choosing only one.' },
+  { title:'Dooku Captured', season:1, episode:11, type:'Supporting', arc:'Dooku Pirate Arc', summary:'Introduces Hondo Ohnaka, who returns repeatedly later.' },
+  { title:'The Gungan General', season:1, episode:12, type:'Supporting', arc:'Dooku Pirate Arc', summary:'More Hondo and pirate story.' },
+  { title:'Jedi Crash', season:1, episode:13, type:'Skippable', arc:'Lurmen Arc', summary:'Optional Lurmen story with an interesting character injury.' },
+  { title:'Defenders of Peace', season:1, episode:14, type:'Skippable', arc:'Lurmen Arc', summary:'Optional Lurmen story.' },
+  { title:'Trespass', season:1, episode:15, type:'Skippable', summary:'Optional, but connects loosely to Sphere of Influence.' },
+  { title:'Blue Shadow Virus', season:1, episode:17, type:'Skippable', arc:'Blue Shadow Virus Arc', summary:'Fun and memorable but not important to the main story.' },
+  { title:'Mystery of a Thousand Moons', season:1, episode:18, type:'Skippable', arc:'Blue Shadow Virus Arc', summary:'Follow-up to Blue Shadow Virus.' },
+  { title:'Storm Over Ryloth', season:1, episode:19, type:'Supporting', arc:'Ryloth Arc', summary:'First part of Ryloth; recommended.' },
+  { title:'Innocents of Ryloth', season:1, episode:20, type:'Supporting', arc:'Ryloth Arc', summary:'Second part of Ryloth; recommended.' },
+  { title:'Liberty on Ryloth', season:1, episode:21, type:'Skippable', arc:'Ryloth Arc', summary:'Third Ryloth episode; basic and listed as skippable in the guide.' },
+  { title:'Holocron Heist', season:2, episode:1, type:'Essential', arc:'Cad Bane Holocron Arc', summary:'Cad Bane, Ahsoka moments, Jedi Temple intrigue.' },
+  { title:'Cargo of Doom', season:2, episode:2, type:'Essential', arc:'Cad Bane Holocron Arc', summary:'Continuation of the Cad Bane Holocron arc.' },
+  { title:'Children of the Force', season:2, episode:3, type:'Essential', arc:'Cad Bane Holocron Arc', summary:'Conclusion of the Cad Bane Holocron arc.' },
+  { title:'Bounty Hunters', season:2, episode:17, type:'Supporting', summary:'Fan-favorite Hondo-related episode.' },
+  { title:'The Zillo Beast', season:2, episode:18, type:'Supporting', arc:'Zillo Beast Arc', summary:'Wild canon arc with the Zillo Beast.' },
+  { title:'The Zillo Beast Strikes Back', season:2, episode:19, type:'Supporting', arc:'Zillo Beast Arc', summary:'Conclusion of the Zillo Beast story.' },
+  { title:'Senate Spy', season:2, episode:4, type:'Skippable', arc:'Geonosis Arc', summary:'First Geonosis setup episode; listed as skippable.' },
+  { title:'Landing at Point Rain', season:2, episode:5, type:'Essential', arc:'Geonosis Arc', summary:'Major Geonosis battle episode.' },
+  { title:'Weapons Factory', season:2, episode:6, type:'Essential', arc:'Geonosis Arc', summary:'Geonosis episode with strong Ahsoka development.' },
+  { title:'Legacy of Terror', season:2, episode:7, type:'Essential', arc:'Geonosis Arc', summary:'Geonosian zombie material.' },
+  { title:'Brain Invaders', season:2, episode:8, type:'Essential', arc:'Geonosis Arc', summary:'Conclusion of the Geonosis arc.' },
+  { title:'Grievous Intrigue', season:2, episode:9, type:'Supporting', arc:'Saleucami Arc', summary:'Strong episode in the Saleucami arc.' },
+  { title:'The Deserter', season:2, episode:10, type:'Supporting', arc:'Saleucami Arc', summary:'Fan-favorite Rex character episode.' },
+  { title:'Lightsaber Lost', season:2, episode:11, type:'Supporting', summary:'Important Ahsoka character development and maturity turning point.' },
+  { title:'The Mandalore Plot', season:2, episode:12, type:'Essential', arc:'Mandalore Arc', summary:'Introduces major Mandalore characters, locations, and ideas.' },
+  { title:'Voyage of Temptation', season:2, episode:13, type:'Essential', arc:'Mandalore Arc', summary:'Continues the central Mandalore storyline.' },
+  { title:'Duchess of Mandalore', season:2, episode:14, type:'Essential', arc:'Mandalore Arc', summary:'Conclusion of the Mandalore arc.' },
+  { title:'Death Trap', season:2, episode:20, type:'Supporting', arc:'Boba Fett Arc', summary:'Suspenseful bounty hunting arc with Boba Fett.' },
+  { title:'R2 Come Home', season:2, episode:21, type:'Supporting', arc:'Boba Fett Arc', summary:'Artoo-focused part of the Boba Fett arc.' },
+  { title:'Lethal Trackdown', season:2, episode:22, type:'Supporting', arc:'Boba Fett Arc', summary:'Conclusion of the Boba Fett arc.' },
+  { title:'Corruption', season:3, episode:5, type:'Supporting', arc:'Mandalore Politics Arc', summary:'Mandalore corruption and politics.' },
+  { title:'The Academy', season:3, episode:6, type:'Supporting', arc:'Mandalore Politics Arc', summary:'Continues Mandalore politics.' },
+  { title:'Assassin', season:3, episode:7, type:'Supporting', summary:'Recommended if watching Boba Fett and the Ziro arc.' },
+  { title:'ARC Troopers', season:3, episode:2, type:'Essential', summary:'Major clone episode with excellent action and payoff.' },
+  { title:'Sphere of Influence', season:3, episode:4, type:'Skippable', summary:'Optional unless you care about characters from Trespass.' },
+  { title:'Evil Plans', season:3, episode:8, type:'Supporting', arc:'Bounty Hunters and Ziro Arc', summary:'Bounty hunter and Ziro-related setup.' },
+  { title:'Hostage Crisis', season:1, episode:22, type:'Supporting', arc:'Bounty Hunters and Ziro Arc', summary:'Bounty hunter episode with Cad Bane.' },
+  { title:'Hunt for Ziro', season:3, episode:9, type:'Supporting', arc:'Bounty Hunters and Ziro Arc', summary:'Conclusion of the Ziro arc.' },
+  { title:'Heroes on Both Sides', season:3, episode:10, type:'Essential', arc:'Politics and Senators Arc', summary:'Most essential of the politics arc; gives a new perspective on the Clone Wars.' },
+  { title:'Pursuit of Peace', season:3, episode:11, type:'Supporting', arc:'Politics and Senators Arc', summary:'Solid political episode.' },
+  { title:'Senate Murders', season:2, episode:15, type:'Supporting', arc:'Politics and Senators Arc', summary:'Optional third politics/senators episode.' },
+  { title:'Nightsisters', season:3, episode:12, type:'Essential', arc:'Nightsisters Arc', summary:'Important building block for later stories.' },
+  { title:'Monster', season:3, episode:13, type:'Essential', arc:'Nightsisters Arc', summary:'Continuation of the Nightsisters arc.' },
+  { title:'Witches of the Mist', season:3, episode:14, type:'Essential', arc:'Nightsisters Arc', summary:'Conclusion of the Nightsisters arc.' },
+  { title:'Overlords', season:3, episode:15, type:'Essential', arc:'Mortis Arc', summary:'Deep Force and Chosen One lore.' },
+  { title:'Altar of Mortis', season:3, episode:16, type:'Essential', arc:'Mortis Arc', summary:'Continues the Mortis arc.' },
+  { title:'Ghosts of Mortis', season:3, episode:17, type:'Essential', arc:'Mortis Arc', summary:'Conclusion of the Mortis arc.' },
+  { title:'The Citadel', season:3, episode:18, type:'Essential', arc:'Citadel Arc', summary:'Action-packed rescue mission that adds depth to Anakin and the clones.' },
+  { title:'Counterattack', season:3, episode:19, type:'Essential', arc:'Citadel Arc', summary:'Continuation of the Citadel arc.' },
+  { title:'Citadel Rescue', season:3, episode:20, type:'Essential', arc:'Citadel Arc', summary:'Conclusion of the Citadel arc.' },
+  { title:'Padawan Lost', season:3, episode:21, type:'Supporting', arc:'Ahsoka Captured Arc', summary:'Good Ahsoka-centered arc.' },
+  { title:'Wookiee Hunt', season:3, episode:22, type:'Supporting', arc:'Ahsoka Captured Arc', summary:'Conclusion of Ahsoka Captured.' },
+  { title:'Water War', season:4, episode:1, type:'Supporting', arc:'Mon Calamari Arc', summary:'Solid Mon Calamari arc with Kit Fisto.' },
+  { title:'Gungan Attack', season:4, episode:2, type:'Supporting', arc:'Mon Calamari Arc', summary:'Continuation of Mon Calamari.' },
+  { title:'Prisoners', season:4, episode:3, type:'Supporting', arc:'Mon Calamari Arc', summary:'Conclusion of Mon Calamari.' },
+  { title:'Shadow Warrior', season:4, episode:4, type:'Skippable', summary:'Gungan-focused optional episode.' },
+  { title:'Mercy Mission', season:4, episode:5, type:'Skippable', arc:'Nomad Droids Arc', summary:'Threepio and Artoo arc; optional.' },
+  { title:'Nomad Droids', season:4, episode:6, type:'Skippable', arc:'Nomad Droids Arc', summary:'Conclusion of the Nomad Droids arc.' },
+  { title:'Darkness on Umbara', season:4, episode:7, type:'Essential', arc:'Umbara Arc', summary:'One of the best clone-centered arcs.' },
+  { title:'The General', season:4, episode:8, type:'Essential', arc:'Umbara Arc', summary:'Rex and Fives in a complex mature storyline.' },
+  { title:'Plan of Dissent', season:4, episode:9, type:'Essential', arc:'Umbara Arc', summary:'Continuation of Umbara.' },
+  { title:'Carnage of Krell', season:4, episode:10, type:'Essential', arc:'Umbara Arc', summary:'Conclusion of Umbara.' },
+  { title:'Kidnapped', season:4, episode:11, type:'Supporting', arc:'Zygerrian Slave Arc', summary:'Solid arc about slavery in the galaxy.' },
+  { title:'Slaves of the Republic', season:4, episode:12, type:'Supporting', arc:'Zygerrian Slave Arc', summary:'Continuation of Zygerrian arc.' },
+  { title:'Escape from Kadavo', season:4, episode:13, type:'Supporting', arc:'Zygerrian Slave Arc', summary:'Conclusion of Zygerrian arc.' },
+  { title:'A Friend in Need', season:4, episode:14, type:'Essential', summary:'Introduces important characters and sets up an important later arc.' },
+  { title:'Deception', season:4, episode:15, type:'Essential', arc:'Obi-Wan Undercover Arc', summary:'One of the coolest arcs; foreshadows Jedi flaws and Anakin’s path.' },
+  { title:'Friends and Enemies', season:4, episode:16, type:'Essential', arc:'Obi-Wan Undercover Arc', summary:'Continuation of Obi-Wan Undercover.' },
+  { title:'The Box', season:4, episode:17, type:'Essential', arc:'Obi-Wan Undercover Arc', summary:'Bounty hunter-heavy part of the arc.' },
+  { title:'Crisis on Naboo', season:4, episode:18, type:'Essential', arc:'Obi-Wan Undercover Arc', summary:'Conclusion of Obi-Wan Undercover.' },
+  { title:'Massacre', season:4, episode:19, type:'Essential', arc:'Nightsisters and Nightbrothers Arc', summary:'Important arc tying up old threads and introducing new ones.' },
+  { title:'Bounty', season:4, episode:20, type:'Essential', arc:'Nightsisters and Nightbrothers Arc', summary:'Continuation of Nightsisters/Nightbrothers.' },
+  { title:'Brothers', season:4, episode:21, type:'Essential', arc:'Nightsisters and Nightbrothers Arc', summary:'Major fan-favorite-related episode.' },
+  { title:'Revenge', season:4, episode:22, type:'Essential', arc:'Nightsisters and Nightbrothers Arc', summary:'Conclusion of Nightsisters/Nightbrothers.' },
+  { title:'A War on Two Fronts', season:5, episode:2, type:'Supporting', arc:'Onderon Arc', summary:'Background for Saw Gerrera and early rebellion material.' },
+  { title:'Front Runners', season:5, episode:3, type:'Supporting', arc:'Onderon Arc', summary:'Continuation of Onderon.' },
+  { title:'The Soft War', season:5, episode:4, type:'Supporting', arc:'Onderon Arc', summary:'Continuation of Onderon.' },
+  { title:'Tipping Points', season:5, episode:5, type:'Supporting', arc:'Onderon Arc', summary:'Conclusion of Onderon.' },
+  { title:'The Gathering', season:5, episode:6, type:'Supporting', arc:'Padawan Arc', summary:'Padawan training and Jedi lore.' },
+  { title:'A Test of Strength', season:5, episode:7, type:'Supporting', arc:'Padawan Arc', summary:'Continuation of Padawan arc.' },
+  { title:'Bound for Rescue', season:5, episode:8, type:'Supporting', arc:'Padawan Arc', summary:'Continuation of Padawan arc.' },
+  { title:'A Necessary Bond', season:5, episode:9, type:'Supporting', arc:'Padawan Arc', summary:'Conclusion of Padawan arc.' },
+  { title:'Secret Weapons', season:5, episode:10, type:'Skippable', arc:'D-Squad Arc', summary:'Droid-focused D-Squad arc.' },
+  { title:'A Sunny Day in the Void', season:5, episode:11, type:'Skippable', arc:'D-Squad Arc', summary:'Optional D-Squad episode.' },
+  { title:'Missing in Action', season:5, episode:12, type:'Skippable', arc:'D-Squad Arc', summary:'Optional D-Squad episode.' },
+  { title:'Point of No Return', season:5, episode:13, type:'Skippable', arc:'D-Squad Arc', summary:'Conclusion of D-Squad.' },
+  { title:'Revival', season:5, episode:1, type:'Essential', arc:'Takeover of Mandalore Arc', summary:'Major setup for the Takeover of Mandalore.' },
+  { title:'Eminence', season:5, episode:14, type:'Essential', arc:'Takeover of Mandalore Arc', summary:'Important and intense Mandalore storyline.' },
+  { title:'Shades of Reason', season:5, episode:15, type:'Essential', arc:'Takeover of Mandalore Arc', summary:'Continuation of Takeover of Mandalore.' },
+  { title:'The Lawless', season:5, episode:16, type:'Essential', arc:'Takeover of Mandalore Arc', summary:'Conclusion of Takeover of Mandalore.' },
+  { title:'Sabotage', season:5, episode:17, type:'Essential', arc:'Ahsoka Arc', summary:'One of the best arcs in the series.' },
+  { title:'The Jedi Who Knew Too Much', season:5, episode:18, type:'Essential', arc:'Ahsoka Arc', summary:'Continuation of the Ahsoka arc.' },
+  { title:'To Catch a Jedi', season:5, episode:19, type:'Essential', arc:'Ahsoka Arc', summary:'Continuation of the Ahsoka arc.' },
+  { title:'The Wrong Jedi', season:5, episode:20, type:'Essential', arc:'Ahsoka Arc', summary:'Emotional conclusion of the Ahsoka arc.' },
+  { title:'The Unknown', season:6, episode:1, type:'Essential', arc:'Inhibitor Chip Arc', summary:'Critical lore arc about the clone inhibitor chips.' },
+  { title:'Conspiracy', season:6, episode:2, type:'Essential', arc:'Inhibitor Chip Arc', summary:'Continuation of Inhibitor Chip arc.' },
+  { title:'Fugitive', season:6, episode:3, type:'Essential', arc:'Inhibitor Chip Arc', summary:'Continuation of Inhibitor Chip arc.' },
+  { title:'Orders', season:6, episode:4, type:'Essential', arc:'Inhibitor Chip Arc', summary:'Conclusion of Inhibitor Chip arc.' },
+  { title:'An Old Friend', season:6, episode:5, type:'Supporting', arc:'Clovis Arc', summary:'More Anakin attachment material and dark-side hints.' },
+  { title:'The Rise of Clovis', season:6, episode:6, type:'Supporting', arc:'Clovis Arc', summary:'Continuation of Clovis arc.' },
+  { title:'Crisis at the Heart', season:6, episode:7, type:'Supporting', arc:'Clovis Arc', summary:'Conclusion of Clovis arc.' },
+  { title:'The Disappeared, Part I', season:6, episode:8, type:'Skippable', arc:'The Disappeared Arc', summary:'Fun but not especially significant.' },
+  { title:'The Disappeared, Part II', season:6, episode:9, type:'Skippable', arc:'The Disappeared Arc', summary:'Conclusion of The Disappeared.' },
+  { title:'The Lost One', season:6, episode:10, type:'Essential', arc:'Sifo-Dyas and Yoda Journey Arc', summary:'Deep look into the creation of the clone army.' },
+  { title:'Voices', season:6, episode:11, type:'Essential', arc:'Sifo-Dyas and Yoda Journey Arc', summary:'Yoda’s living Force journey.' },
+  { title:'Destiny', season:6, episode:12, type:'Essential', arc:'Sifo-Dyas and Yoda Journey Arc', summary:'Continuation of Yoda’s journey.' },
+  { title:'Sacrifice', season:6, episode:13, type:'Essential', arc:'Sifo-Dyas and Yoda Journey Arc', summary:'Conclusion with symbolism, foreshadowing, and lore.' },
+  { title:'Gone with a Trace', season:7, episode:5, type:'Skippable', arc:'Martez Sisters Arc', summary:'Fills gaps for Ahsoka but can be skipped.' },
+  { title:'Deal No Deal', season:7, episode:6, type:'Skippable', arc:'Martez Sisters Arc', summary:'Optional Ahsoka walkabout episode.' },
+  { title:'Dangerous Debt', season:7, episode:7, type:'Skippable', arc:'Martez Sisters Arc', summary:'Optional Ahsoka walkabout episode.' },
+  { title:'Together Again', season:7, episode:8, type:'Skippable', arc:'Martez Sisters Arc', summary:'Conclusion of Martez Sisters arc.' },
+  { title:'The Bad Batch', season:7, episode:1, type:'Supporting', arc:'The Bad Batch Arc', summary:'Introduces Clone Force 99.' },
+  { title:'A Distant Echo', season:7, episode:2, type:'Supporting', arc:'The Bad Batch Arc', summary:'Important if watching The Bad Batch show or following clone stories.' },
+  { title:'On the Wings of Keeradaks', season:7, episode:3, type:'Supporting', arc:'The Bad Batch Arc', summary:'Continuation of Bad Batch arc.' },
+  { title:'Unfinished Business', season:7, episode:4, type:'Supporting', arc:'The Bad Batch Arc', summary:'Conclusion of Bad Batch arc.' },
+  { title:'Old Friends Not Forgotten', season:7, episode:9, type:'Essential', arc:'Siege of Mandalore Arc', summary:'Start of the final and most important arc. Watch Revenge of the Sith before this arc.' },
+  { title:'The Phantom Apprentice', season:7, episode:10, type:'Essential', arc:'Siege of Mandalore Arc', summary:'Continuation of Siege of Mandalore.' },
+  { title:'Shattered', season:7, episode:11, type:'Essential', arc:'Siege of Mandalore Arc', summary:'Continuation of Siege of Mandalore.' },
+  { title:'Victory and Death', season:7, episode:12, type:'Essential', arc:'Siege of Mandalore Arc', summary:'Finale of The Clone Wars.' }
+];
+
+episodes.forEach((ep, index) => {
+  ep.id = `tcw-${index + 1}`;
+  ep.order = index + 1;
+  ep.label = ep.season ? `S${ep.season} E${ep.episode}` : 'Movie';
+  ep.disneySearch = `https://www.google.com/search?q=${encodeURIComponent('Disney+ Star Wars The Clone Wars ' + ep.title + ' ' + ep.label)}`;
+});
+
+const STORAGE_KEY = 'cloneWarsChronologicalTracker.v1';
+let state = loadState();
+let activeFilter = 'need';
+let catMode = 'all';
+let currentNotesId = null;
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { watched:{}, fav:{}, notes:{} };
+    return Object.assign({ watched:{}, fav:{}, notes:{} }, JSON.parse(raw));
+  } catch { return { watched:{}, fav:{}, notes:{} }; }
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function $(id){ return document.getElementById(id); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1600); }
+function safeName(s){ return s.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase(); }
+function isWatched(ep){ return !!state.watched[ep.id]; }
+function isFav(ep){ return !!state.fav[ep.id]; }
+function typeClass(ep){ return ep.type.toLowerCase(); }
+function visibleByCategory(ep){ return catMode === 'all' || ep.type.toLowerCase() === catMode; }
+function openEpisode(ep){ window.open(ep.disneySearch, '_blank', 'noopener'); }
+
+function filteredEpisodes(){
+  return episodes.filter(ep => {
+    if (!visibleByCategory(ep)) return false;
+    if (activeFilter === 'need') return !isWatched(ep);
+    if (activeFilter === 'seen') return isWatched(ep);
+    if (activeFilter === 'faves') return isFav(ep);
+    if (activeFilter === 'essential') return ep.type === 'Essential';
+    return true;
+  });
+}
+
+function render(){
+  renderProgress();
+  renderNextUp();
+  renderList();
+}
+
+function renderProgress(){
+  const watched = episodes.filter(isWatched).length;
+  const pct = episodes.length ? Math.round((watched / episodes.length) * 100) : 0;
+  $('progFill').style.width = `${pct}%`;
+  $('progPct').textContent = `${pct}%`;
+  $('watchedCount').textContent = watched;
+  $('leftCount').textContent = episodes.length - watched;
+  $('essentialLeft').textContent = episodes.filter(ep => ep.type === 'Essential' && !isWatched(ep)).length;
+}
+
+function renderNextUp(){
+  const next = episodes.find(ep => !isWatched(ep));
+  const box = $('nextUp');
+  if (!next) { box.hidden = true; return; }
+  box.hidden = false;
+  $('nextTitle').textContent = `${next.order}. ${next.title}`;
+  $('nextSub').textContent = `${next.label} • ${next.type}${next.arc ? ' • ' + next.arc : ''}`;
+  $('nextHeroText').textContent = next.title;
+  $('btnPlayNext').onclick = () => openEpisode(next);
+}
+
+function renderList(){
+  const list = $('list');
+  const rows = filteredEpisodes();
+  list.innerHTML = '';
+  if (!rows.length) {
+    const empty = document.createElement('div');
+    empty.className = 'row';
+    empty.innerHTML = '<div class="row-main" style="grid-column:1/-1;color:var(--muted);">No episodes match this view.</div>';
+    list.appendChild(empty);
+    return;
+  }
+  rows.forEach(ep => {
+    const row = document.createElement('article');
+    row.className = `row ${typeClass(ep)} ${isWatched(ep) ? 'watched' : ''}`;
+    row.innerHTML = `
+      <div class="badge">${ep.order}</div>
+      <div class="row-main">
+        <div class="row-title">
+          <button type="button" class="open-title">${escapeHtml(ep.title)}</button>
+          <span class="pill ${typeClass(ep)}">${ep.type}</span>
+        </div>
+        <div class="row-speaker">${ep.label}${ep.arc ? ' • ' + escapeHtml(ep.arc) : ''}</div>
+        <div class="row-summary">${escapeHtml(ep.summary)}</div>
+      </div>
+      <div class="row-actions">
+        <button class="iconbtn watch-btn" title="Toggle watched"><span class="check ${isWatched(ep) ? 'on' : ''}">${isWatched(ep) ? '✓' : ''}</span> Watched</button>
+        <button class="iconbtn fav-btn" title="Favorite"><span class="star ${isFav(ep) ? 'fav' : ''}">${isFav(ep) ? '★' : '☆'}</span> Fav</button>
+        <button class="iconbtn notes-btn" title="Notes">Notes</button>
+        <button class="iconbtn open-btn" title="Open search">Open</button>
+      </div>`;
+    row.querySelector('.watch-btn').onclick = () => { state.watched[ep.id] = !isWatched(ep); if (!state.watched[ep.id]) delete state.watched[ep.id]; save(); render(); };
+    row.querySelector('.fav-btn').onclick = () => { state.fav[ep.id] = !isFav(ep); if (!state.fav[ep.id]) delete state.fav[ep.id]; save(); render(); };
+    row.querySelector('.notes-btn').onclick = () => openNotes(ep);
+    row.querySelector('.open-btn').onclick = () => openEpisode(ep);
+    row.querySelector('.open-title').onclick = () => openEpisode(ep);
+    list.appendChild(row);
+  });
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+}
+
+function openNotes(ep){
+  currentNotesId = ep.id;
+  $('notesTitle').textContent = `Notes — ${ep.order}. ${ep.title}`;
+  $('notesArea').value = state.notes[ep.id] || '';
+  $('notesModal').showModal();
+  setTimeout(()=>$('notesArea').focus(), 50);
+}
+function closeNotes(){
+  if (currentNotesId) {
+    const v = $('notesArea').value;
+    if (v.trim()) state.notes[currentNotesId] = v; else delete state.notes[currentNotesId];
+    save();
+  }
+  $('notesModal').close();
+  currentNotesId = null;
+}
+
+function exportData(){
+  return {
+    exportedAt: new Date().toISOString(),
+    app: 'Clone Wars Chronological Tracker',
+    storageKey: STORAGE_KEY,
+    state,
+    episodes: episodes.map(ep => ({ id: ep.id, order: ep.order, title: ep.title, label: ep.label, type: ep.type, arc: ep.arc || '', summary: ep.summary }))
+  };
+}
+function download(filename, text, type='application/json'){
+  const blob = new Blob([text], {type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function notesText(){
+  return episodes.map(ep => {
+    const note = state.notes[ep.id];
+    if (!note) return '';
+    return `${ep.order}. ${ep.title} (${ep.label})\n${note}\n`;
+  }).filter(Boolean).join('\n---\n\n') || 'No notes yet.';
+}
+
+function setupEvents(){
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.onclick = () => {
+      document.querySelectorAll('.seg').forEach(s => { s.classList.remove('active'); s.setAttribute('aria-selected','false'); });
+      seg.classList.add('active'); seg.setAttribute('aria-selected','true');
+      activeFilter = seg.dataset.filter;
+      render();
+    };
+  });
+
+  $('btnFilterToggle').onclick = () => {
+    const panel = $('filterPanel');
+    panel.hidden = !panel.hidden;
+    $('btnFilterToggle').setAttribute('aria-expanded', String(!panel.hidden));
+  };
+  $('catAll').onchange = () => { if ($('catAll').checked) setCategory('all'); };
+  $('catEssential').onchange = () => { if ($('catEssential').checked) setCategory('essential'); };
+  $('catSupporting').onchange = () => { if ($('catSupporting').checked) setCategory('supporting'); };
+  $('catSkippable').onchange = () => { if ($('catSkippable').checked) setCategory('skippable'); };
+
+  $('closeNotes').onclick = closeNotes;
+  $('notesModal').addEventListener('cancel', (e)=>{ e.preventDefault(); closeNotes(); });
+
+  $('btnDownload').onclick = () => download(`clone-wars-tracker-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(exportData(), null, 2));
+  $('fileRestore').onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (data.state) state = Object.assign({ watched:{}, fav:{}, notes:{} }, data.state);
+      else state = Object.assign({ watched:{}, fav:{}, notes:{} }, data);
+      save(); render(); toast('Restored');
+    } catch { toast('Could not restore file'); }
+    e.target.value = '';
+  };
+  $('btnEmail').onclick = () => {
+    const subject = encodeURIComponent('Clone Wars Tracker Export');
+    const body = encodeURIComponent(JSON.stringify(exportData(), null, 2));
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+  $('btnNotesDownload').onclick = () => download(`clone-wars-notes-${new Date().toISOString().slice(0,10)}.txt`, notesText(), 'text/plain');
+  $('btnNotesCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(notesText()); toast('Notes copied'); }
+    catch { toast('Copy failed'); }
+  };
+  $('btnReset').onclick = () => {
+    if (!confirm('Clear watched status? Favorites and notes will remain.')) return;
+    state.watched = {}; save(); render(); toast('Watched reset');
+  };
+  $('btnSettings').onclick = () => $('settingsModal').showModal();
+  $('closeSettings').onclick = () => $('settingsModal').close();
+  $('btnMarkEssentials').onclick = () => {
+    activeFilter = 'need';
+    document.querySelectorAll('.seg').forEach(s => { s.classList.toggle('active', s.dataset.filter === 'need'); s.setAttribute('aria-selected', String(s.dataset.filter === 'need')); });
+    setCategory('essential');
+    $('settingsModal').close();
+  };
+}
+function setCategory(mode){
+  catMode = mode;
+  $('catAll').checked = mode === 'all';
+  $('catEssential').checked = mode === 'essential';
+  $('catSupporting').checked = mode === 'supporting';
+  $('catSkippable').checked = mode === 'skippable';
+  render();
+}
+
+setupEvents();
+render();
+</script>
+</body>
+</html>
