@@ -86,6 +86,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - After creating or updating a review page, update the permanent BoardVitals Reviews index by running `python scripts/build_boardvitals_reviews_index.py` from the root of `The-Library`. The resulting `apps/boardvitals-reviews/reviews.js` must include the completed review before finishing.
 - Use dark-mode styling by default.
 - Keep long quiz pages responsive while scrolling: use `content-visibility: auto` with an appropriate `contain-intrinsic-size` on each question card, use asynchronous/lazy image decoding, and avoid expensive sticky-header effects such as `backdrop-filter` blur. Also avoid paint-heavy repeated card effects such as large shadows on every question, and give image/figure containers stable dimensions so fast scrollbar movement does not force large relayout or repaint bursts.
+- Do not solve hash-link scrolling by disabling `content-visibility` for every question on the page. If a direct `#qN` link needs help, temporarily force visibility only on the target question long enough to scroll to it, then remove that class so the rest of the page remains virtualized.
 - Show all questions top-to-bottom.
 - Give every rendered question card a stable HTML anchor id in the format `q<number>` so Anki Extra links can jump directly to the source question.
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
@@ -123,6 +124,7 @@ Before calling the workflow done, validate:
 - Every BoardVitals Anki `Extra` ends with a direct published GitHub Pages review-page link for that source question, not a `127.0.0.1` local dev-server link.
 - The HTML page has 50 question cards for a 50-question quiz.
 - The HTML page contains the expected number of choices and local image tags.
+- Long-review performance settings are present in the generated HTML: question cards keep `content-visibility:auto`, no large repeated box shadows are applied, images use lazy/async decoding, figure containers have stable sizing, and hash-link handling does not globally disable virtualization.
 - The HTML page has `All`, `Incorrect`, and `Hardest` controls.
 - The HTML page has answer-choice percentage badges.
 - The HTML page has per-question `Copy question text` and `Copy screenshot` buttons.

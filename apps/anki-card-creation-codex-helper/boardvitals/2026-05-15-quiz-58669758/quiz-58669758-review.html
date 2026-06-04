@@ -31,8 +31,8 @@
     .toggle button.active { background:#d8e6ff; color:#0d1117; }
     .count { color:var(--muted); white-space:nowrap; }
     main { max-width:1120px; margin:0 auto; padding:20px; }
-    .question { background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--green); border-radius:8px; margin:0 0 18px; padding:18px; box-shadow:0 12px 30px rgba(0,0,0,.18); content-visibility:auto; contain-intrinsic-size:900px; scroll-margin-top:36px; }
-    html.hash-navigation .question { content-visibility:visible; contain-intrinsic-size:auto; }
+    .question { background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--green); border-radius:8px; margin:0 0 18px; padding:18px; box-shadow:none; content-visibility:auto; contain-intrinsic-size:auto 980px; contain:layout style paint; scroll-margin-top:36px; }
+    .question.hash-target { content-visibility:visible; contain-intrinsic-size:auto; }
     .question.incorrect { border-left-color:var(--red); }
     header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
     h2 { margin:0; font-size:20px; }
@@ -44,9 +44,9 @@
     .badge.correct { color:var(--green); }
     .badge.incorrect { color:var(--red); }
     .stem { font-size:17px; margin:12px 0 14px; }
-    .images { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin:12px 0 16px; }
-    figure { margin:0; border:1px solid var(--line); background:#070a0f; border-radius:6px; padding:8px; display:flex; align-items:center; justify-content:center; min-height:180px; }
-    img { max-width:100%; height:auto; max-height:520px; display:block; }
+    .images { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin:12px 0 16px; content-visibility:auto; contain-intrinsic-size:auto 360px; }
+    figure { margin:0; border:1px solid var(--line); background:#070a0f; border-radius:6px; padding:8px; display:flex; align-items:center; justify-content:center; min-height:180px; aspect-ratio:4 / 3; contain:layout paint; }
+    img { max-width:100%; width:auto; height:auto; max-height:520px; display:block; }
     .choices { list-style:none; padding:0; margin:12px 0; display:grid; gap:8px; }
     .choices li { display:grid; grid-template-columns:32px 1fr minmax(48px,auto); gap:8px; border:1px solid var(--line); border-radius:7px; padding:9px 10px; background:var(--panel2); }
     .letter { font-weight:800; color:var(--muted); }
@@ -2163,10 +2163,15 @@ Vital Concept: Autosomal dominant polycystic kidney disease diagnosis on ultraso
       document.documentElement.classList.add('hash-navigation');
       const target = document.getElementById(id);
       if (!target) return;
+      for (const card of cards) card.classList.toggle('hash-target', card === target);
       const top = target.getBoundingClientRect().top;
       const desiredTop = 36;
-      if (Math.abs(top - desiredTop) <= 8) return;
-      window.scrollBy(0, top - desiredTop);
+      if (Math.abs(top - desiredTop) > 8) window.scrollBy(0, top - desiredTop);
+      window.clearTimeout(scrollToHashQuestion._timer);
+      scrollToHashQuestion._timer = window.setTimeout(() => {
+        target.classList.remove('hash-target');
+        document.documentElement.classList.remove('hash-navigation');
+      }, 1600);
     }
     function scheduleHashScroll() {
       if (!window.location.hash) return;
