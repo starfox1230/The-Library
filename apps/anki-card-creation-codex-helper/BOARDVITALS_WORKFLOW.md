@@ -24,6 +24,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Quizzes captured on or before 2026-05-19 used a legacy flat image workflow and may display all images with the question stem because the saved image records did not reliably distinguish stem images from explanation images.
 - After capture, explicitly audit multi-image questions for annotated answer-side figures. BoardVitals may expose explanation/answer images through the same Figure/Media surface as stem images, so DOM position alone is not sufficient. Images with arrows/labels that reveal the answer or are only discussed in the explanation must be labeled `explanation`, displayed in the explanation section of the review page, and excluded from Anki image-card fronts.
 - During that audit, treat unannotated/annotated duplicate pairs conservatively: if one image is the same case/view with added arrows, circles, labels, colored overlays, or answer markings, classify the annotated copy as `explanation` by default unless the original question stem clearly required that annotated image to answer a labeled-structure question. This is a required correction before building HTML or Anki cards, not an optional visual cleanup.
+- Before finalizing any BoardVitals review HTML or APKG, generate a stem-only contact sheet from the images still classified as `stem` and inspect it visually. If the contact sheet contains answer arrows, circles, colored lines, overlay labels, or marked duplicate answer figures, stop and reclassify those files as `explanation`, then rebuild the review HTML and APKG. Do not rely only on DOM order or filename patterns for this check.
 - When extracting stems, preserve every stem paragraph before the answer choices. Do not stop at the first long paragraph. Join short follow-up lines, lab values, and the final asked question so clinical context and the actual task are not silently dropped.
 - Do not assume answer choices stop at `E`; support additional choices such as `F` when present.
 - For questions without a `Figure/Media` marker, still extract the stem from the main review area before the answer-choice list.
@@ -90,7 +91,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Include local images, selected answer, correct answer, result, difficulty, QID, explanation, and Vital Concept when present.
 - Display stem images directly under the question stem. Display explanation images inside the explanation section, not with the question stem.
 - Never display annotated answer-side images with the question stem. If an image would give away the answer or appears to be an explanation overlay/annotated copy, it belongs in the explanation section and in Anki `Extra`, not on the front of an image card.
-- Before generating an APKG, regenerate or inspect a contact sheet after any image-section edits and confirm that image-card fronts do not include answer arrows, circles, labels, or colored overlays unless the card is explicitly asking for an indicated structure.
+- Before generating an APKG, regenerate or inspect a stem-only contact sheet after any image-section edits and confirm that image-card fronts do not include answer arrows, circles, labels, or colored overlays unless the card is explicitly asking for an indicated structure. This check must happen after the final `downloaded-media.json`/image-section edits, not just after the initial scrape.
 - Render captured explanation lists in their original ordered or unordered form with nesting preserved. For legacy captures where ordered/unordered type was not saved, render retained list hierarchy as bullet lists rather than presenting it as plain paragraphs.
 - Preserve the full multi-paragraph stem.
 - Show peer percentages for every answer choice as small right-aligned parenthetical badges inside each answer-choice row.
@@ -116,6 +117,7 @@ Before calling the workflow done, validate:
 - The APKG deck is `Saved Cards`.
 - Media counts match referenced local media.
 - Stem-vs-explanation image placement has been audited, especially for multi-image questions with annotated answer-side copies.
+- A stem-only image contact sheet was generated from the final media labels and visually inspected; all answer-marked/annotated explanation images were moved out of the question stem and out of Anki fronts.
 - Card fronts contain no source labels or answer-choice letters.
 - Every `Extra` starts with `Q<number>`.
 - Every BoardVitals Anki `Extra` ends with a direct published GitHub Pages review-page link for that source question, not a `127.0.0.1` local dev-server link.

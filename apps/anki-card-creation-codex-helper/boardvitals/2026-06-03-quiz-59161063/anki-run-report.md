@@ -1,8 +1,8 @@
 # BoardVitals Quiz 59161063 Anki Run
 
 APKG: `C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\boardvitals\2026-06-03-quiz-59161063\boardvitals-quiz-59161063.apkg`
-Cards: 100 notes
-Image cards: 41
+Cards: 93 notes
+Image cards: 34
 Fact cards: 55
 Misconception cards: 4
 Source media: 108 files
