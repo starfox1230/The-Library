@@ -38,11 +38,19 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Use the user's existing `saCloze++` note type exactly.
 - Put cards in `Saved Cards`.
 - Do not create, rename, restyle, or approximate a note type.
+- Write cards around the real retrieval direction: the front should provide the cue likely to appear in practice or on an exam, and the cloze should be the item the user needs to retrieve. Do not reverse the direction merely because the quiz answer was phrased that way.
+- Prefer active recall over recognition. A card should make the user generate the answer, not merely recognize that a statement sounds familiar after the key entity has already been named.
+- Avoid cue overload. Do not hand the user the key diagnosis/entity and then ask for a generic associated fact unless that is truly the real-world retrieval task. Include only the minimum cue set needed for an unambiguous answer.
+- Every card must be self-contained without relying on memory of the original quiz or answer choices.
+- Use one tested point per card. If the quiz required more than one step, split the worthwhile steps into separate cards rather than making a multi-step card front.
+- Maintain desirable difficulty: make the cue specific enough to avoid guessing what the card wants, but not so over-cued that it becomes recognition.
+- Minimize extraneous load. Remove source labels, quiz metadata, filler clinical boilerplate, and wording that does not change the tested concept.
 - Do not put source labels, BoardVitals text, quiz names, question numbers, or answer-choice letters on the front of cards.
 - Make one focused fact card for each worthwhile tested concept, targeting the key fact needed to answer correctly. Skip a fact card if it cannot be made into a clean, self-contained cloze without copying the quiz stem or creating a vague `Answer:` card.
 - Make one image-front card for every question with meaningful diagnostic images. Include all images from that question on the front. If more than one image appears on the front, put `1/N` immediately above the first image.
 - Make one additional misconception card for every missed question based on the user's selected wrong answer and the concept that would have prevented the miss.
 - The final APKG note insertion order must be grouped by question number rather than drafting pass. Within each question, use the consistent order: image-front card first when present, then focused fact card, then misconception card when present. This makes initial Anki Browser review follow the source quiz.
+- In the APKG, every card generated from a question the user answered incorrectly must import with Anki Flag 1 set, which is the red flag. Apply this at the Anki card level, not by adding visible text or tags to the card front.
 - For image cards, default to natural, direct wording. When clinical information is needed, give a brief patient/context sentence followed by the task, usually `Most likely diagnosis?` for diagnosis cards. Avoid stilted label fragments such as `CT abdomen: rim-enhancing lesion. Diagnosis?` when a normal sentence would read better.
 - Good image prompt pattern: `16-year-old male with persistent hip pain. Most likely diagnosis?`
 - Other acceptable direct prompts include `What named fracture is shown?`, `What device is shown?`, `What artifact is shown?`, or `What structure is indicated?`.
@@ -118,6 +126,7 @@ Before calling the workflow done, validate:
 - The APKG builds.
 - The APKG uses only `saCloze++`.
 - The APKG deck is `Saved Cards`.
+- Cards from missed questions import with Anki Flag 1/red flag set.
 - Media counts match referenced local media.
 - Stem-vs-explanation image placement has been audited, especially for multi-image questions with annotated answer-side copies.
 - A stem-only image contact sheet was generated from the final media labels and visually inspected; all answer-marked/annotated explanation images were moved out of the question stem and out of Anki fronts.
