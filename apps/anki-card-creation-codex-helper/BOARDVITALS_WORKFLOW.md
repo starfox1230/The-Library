@@ -103,7 +103,9 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Include result/sort controls with `All`, `Incorrect`, and `Hardest`.
 - `Incorrect` shows only missed questions.
 - `Hardest` sorts by the percentage of peers who selected the correct answer, ascending from lowest correct-answer percentage to highest.
+- Include a `Favorite` filter. Each question header should have a star button next to the correctness badge; the empty star is white, clicking it turns it yellow/filled, and the selected favorites persist across page reloads with per-quiz local storage.
 - Include per-question `Copy question text` and `Copy screenshot` buttons, matching the core review quiz behavior. `Copy question text` should copy the stem, choices, selected/correct answer, Vital Concept, and explanation. `Copy screenshot` should create a rich clipboard pack with generated text-card images plus the local question images, falling back to copied text if the rich clipboard API is blocked.
+- Both `Copy question text` and `Copy screenshot` must visibly change the clicked button label to `Copied` after success so it is clear the copy action worked.
 - For `Copy screenshot`, generate compact dark framed text-card images whose height is measured from the wrapped visible content. Match the Anki screenshot-card layout; do not use character-count estimates or tall fixed minimums that leave large blank areas below short text.
 - Clean the rebuilt page so DOM/accessibility artifacts never appear in visible text.
 - Add a small `Hide` / `Show` tab at the bottom of the sticky header so the header and filters can be collapsed while scrolling.
@@ -126,7 +128,9 @@ Before calling the workflow done, validate:
 - The HTML page contains the expected number of choices and local image tags.
 - Long-review performance settings are present in the generated HTML: question cards keep `content-visibility:auto`, no large repeated box shadows are applied, images use lazy/async decoding, figure containers have stable sizing, and hash-link handling does not globally disable virtualization.
 - The HTML page has `All`, `Incorrect`, and `Hardest` controls.
+- The HTML page has a persisted `Favorite` filter and per-question star buttons that toggle filled yellow favorites.
 - The HTML page has answer-choice percentage badges.
 - The HTML page has per-question `Copy question text` and `Copy screenshot` buttons.
+- The `Copy question text` button visibly changes to `Copied` after copying.
 - The HTML page has no visible `Radio Selected`, `Radio Unselected`, `img "Radio..."`, `checkbox`, or `[level=...]` artifacts.
 - The permanent `apps/boardvitals-reviews/index.html` landing page lists the newly generated review after rebuilding `reviews.js`.
