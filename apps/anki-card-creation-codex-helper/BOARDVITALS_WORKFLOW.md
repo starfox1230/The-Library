@@ -16,6 +16,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Use the user's Chrome extension workflow for BoardVitals quiz pages unless the user explicitly says otherwise.
 - Do not use the Codex in-app browser for BoardVitals quiz extraction.
 - Save every question page locally as raw JSON, preserving the DOM snapshot and image URLs.
+- Preserve whether the user marked the question in BoardVitals. Store this as `marked: true/false` in the parsed question data when the Mark checkbox/flag is selected.
 - Preserve explanation list structure during capture as `explanation_lists`: save each top-level list as `{"type": "ul"|"ol", "items": [{"text": "...", "children": [...] }]}` using the page DOM. The accessibility snapshot preserves some nesting but does not reliably distinguish bullets from numbering, so it is only a fallback for older captures.
 - When saving image records, include a `section` field on each image: `stem` for images that appear before the answer choices / graded response / correct-answer explanation, and `explanation` for images that appear inside or after the explanation/correct-answer section. Prefer DOM containment when available; otherwise use DOM order relative to the answer-choice list and `Correct Answer:` block.
 - Create `source-pages.json` containing all captured questions.
@@ -51,6 +52,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Make one additional misconception card for every missed question based on the user's selected wrong answer and the concept that would have prevented the miss.
 - The final APKG note insertion order must be grouped by question number rather than drafting pass. Within each question, use the consistent order: image-front card first when present, then focused fact card, then misconception card when present. This makes initial Anki Browser review follow the source quiz.
 - In the APKG, every card generated from a question the user answered incorrectly must import with Anki Flag 1 set, which is the red flag. Apply this at the Anki card level, not by adding visible text or tags to the card front.
+- In the APKG, every card generated from a BoardVitals question the user marked must import with Anki Flag 5 set. If a card qualifies for both missed-question Flag 1 and marked-question Flag 5, prefer the marked-question Flag 5 because Anki supports one card flag value at a time.
 - For image cards, default to natural, direct wording. When clinical information is needed, give a brief patient/context sentence followed by the task, usually `Most likely diagnosis?` for diagnosis cards. Avoid stilted label fragments such as `CT abdomen: rim-enhancing lesion. Diagnosis?` when a normal sentence would read better.
 - Good image prompt pattern: `16-year-old male with persistent hip pain. Most likely diagnosis?`
 - Other acceptable direct prompts include `What named fracture is shown?`, `What device is shown?`, `What artifact is shown?`, or `What structure is indicated?`.
@@ -111,7 +113,7 @@ Create a standalone local HTML quiz-review page as the final artifact for every 
 - Include result/sort controls with `All`, `Incorrect`, and `Hardest`.
 - `Incorrect` shows only missed questions.
 - `Hardest` sorts by the percentage of peers who selected the correct answer, ascending from lowest correct-answer percentage to highest.
-- Include a `Favorite` filter. Each question header should have a star button next to the correctness badge; the empty star is white, clicking it turns it yellow/filled, and the selected favorites persist across page reloads with per-quiz local storage.
+- Include a `Favorite` filter. Each question header should have a star button next to the correctness badge; the empty star is white, clicking it turns it yellow/filled, and the selected favorites persist across page reloads with per-quiz local storage. Questions marked in BoardVitals should be default favorites on first page load for that quiz.
 - Include per-question `Copy question text` and `Copy screenshot` buttons, matching the core review quiz behavior. `Copy question text` should copy the stem, choices, selected/correct answer, Vital Concept, and explanation. `Copy screenshot` should create a rich clipboard pack with generated text-card images plus the local question images, falling back to copied text if the rich clipboard API is blocked.
 - Both `Copy question text` and `Copy screenshot` must visibly change the clicked button label to `Copied` after success so it is clear the copy action worked.
 - For `Copy screenshot`, generate compact dark framed text-card images whose height is measured from the wrapped visible content. Match the Anki screenshot-card layout; do not use character-count estimates or tall fixed minimums that leave large blank areas below short text.
@@ -127,6 +129,7 @@ Before calling the workflow done, validate:
 - The APKG uses only `saCloze++`.
 - The APKG deck is `Saved Cards`.
 - Cards from missed questions import with Anki Flag 1/red flag set.
+- Cards from BoardVitals-marked questions import with Anki Flag 5 set, with Flag 5 taking precedence over Flag 1 if both apply.
 - Media counts match referenced local media.
 - Stem-vs-explanation image placement has been audited, especially for multi-image questions with annotated answer-side copies.
 - A stem-only image contact sheet was generated from the final media labels and visually inspected; all answer-marked/annotated explanation images were moved out of the question stem and out of Anki fronts.
@@ -138,6 +141,7 @@ Before calling the workflow done, validate:
 - Long-review performance settings are present in the generated HTML: question cards keep `content-visibility:auto`, no large repeated box shadows are applied, images use lazy/async decoding, figure containers have stable sizing, and hash-link handling does not globally disable virtualization.
 - The HTML page has `All`, `Incorrect`, and `Hardest` controls.
 - The HTML page has a persisted `Favorite` filter and per-question star buttons that toggle filled yellow favorites.
+- BoardVitals-marked questions are default favorites in the HTML review page before user-local favorite edits.
 - The HTML page has answer-choice percentage badges.
 - The HTML page has per-question `Copy question text` and `Copy screenshot` buttons.
 - The `Copy question text` button visibly changes to `Copied` after copying.
