@@ -52,7 +52,7 @@ Use this as the source of truth for BoardVitals quiz capture, review documents, 
 - Make one additional misconception card for every missed question based on the user's selected wrong answer and the concept that would have prevented the miss.
 - The final APKG note insertion order must be grouped by question number rather than drafting pass. Within each question, use the consistent order: image-front card first when present, then focused fact card, then misconception card when present. This makes initial Anki Browser review follow the source quiz.
 - In the APKG, every card generated from a question the user answered incorrectly must import with Anki Flag 1 set, which is the red flag. Apply this at the Anki card level, not by adding visible text or tags to the card front.
-- In the APKG, every card generated from a BoardVitals question the user marked must import with Anki Flag 5 set. If a card qualifies for both missed-question Flag 1 and marked-question Flag 5, prefer the marked-question Flag 5 because Anki supports one card flag value at a time.
+- In the APKG, every card generated from a BoardVitals question the user marked must import with Anki Flag 5 set. If a card qualifies for both missed-question Flag 1 and marked-question Flag 5, prefer missed-question Flag 1 because Anki supports one card flag value at a time and missed questions take priority.
 - For image cards, default to natural, direct wording. When clinical information is needed, give a brief patient/context sentence followed by the task, usually `Most likely diagnosis?` for diagnosis cards. Avoid stilted label fragments such as `CT abdomen: rim-enhancing lesion. Diagnosis?` when a normal sentence would read better.
 - Good image prompt pattern: `16-year-old male with persistent hip pain. Most likely diagnosis?`
 - Other acceptable direct prompts include `What named fracture is shown?`, `What device is shown?`, `What artifact is shown?`, or `What structure is indicated?`.
@@ -129,7 +129,7 @@ Before calling the workflow done, validate:
 - The APKG uses only `saCloze++`.
 - The APKG deck is `Saved Cards`.
 - Cards from missed questions import with Anki Flag 1/red flag set.
-- Cards from BoardVitals-marked questions import with Anki Flag 5 set, with Flag 5 taking precedence over Flag 1 if both apply.
+- Cards from BoardVitals-marked questions import with Anki Flag 5 set, with Flag 1 taking precedence over Flag 5 if the question was also missed.
 - Media counts match referenced local media.
 - Stem-vs-explanation image placement has been audited, especially for multi-image questions with annotated answer-side copies.
 - A stem-only image contact sheet was generated from the final media labels and visually inspected; all answer-marked/annotated explanation images were moved out of the question stem and out of Anki fronts.
