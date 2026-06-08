@@ -18,8 +18,11 @@ const els = {
   explanation: document.getElementById("explanation"),
   prev: document.getElementById("prevBtn"),
   next: document.getElementById("nextBtn"),
-  copyText: document.getElementById("copyTextBtn"),
-  copyAnki: document.getElementById("copyAnkiBtn"),
+  copy: document.getElementById("copyBtn"),
+  settings: document.getElementById("settingsBtn"),
+  closeSettings: document.getElementById("closeSettingsBtn"),
+  settingsPanel: document.getElementById("settingsPanel"),
+  settingsBackdrop: document.getElementById("settingsBackdrop"),
   answered: document.getElementById("answeredCount"),
   correctPct: document.getElementById("correctPct"),
   missed: document.getElementById("missedCount"),
@@ -170,6 +173,12 @@ function render() {
   updateStats();
 }
 
+function setSettingsOpen(open) {
+  els.settingsPanel.hidden = !open;
+  els.settingsBackdrop.hidden = !open;
+  els.settings.setAttribute("aria-expanded", String(open));
+}
+
 function renderImages(q) {
   els.images.innerHTML = "";
   for (const src of q.images) {
@@ -267,23 +276,12 @@ function fullText(q, selected) {
   ].join("\n");
 }
 
-function ankiText(q, selected) {
-  const front = [q.question_text || "", "", ...(q.choices || [])].join("\n");
-  const back = [
-    `Correct answer: ${q.correct_answer || ""}. ${q.correct_answer_text || ""}`,
-    `Your answer: ${selected}`,
-    "",
-    q.explanation || "",
-  ].join("\n");
-  return `Front:\n${front}\n\nBack:\n${back}`;
-}
-
-async function copyText(mode) {
+async function copyText() {
   const q = currentQuestion();
   if (!q) return;
   const answer = getSession().answers[q.id];
   const selected = answer?.selected || "Not answered";
-  await navigator.clipboard.writeText(mode === "anki" ? ankiText(q, selected) : fullText(q, selected));
+  await navigator.clipboard.writeText(fullText(q, selected));
 }
 
 function resetCurrentSession() {
@@ -324,7 +322,9 @@ els.order.addEventListener("change", () => {
 els.reset.addEventListener("click", resetCurrentSession);
 els.prev.addEventListener("click", () => move(-1));
 els.next.addEventListener("click", () => move(1));
-els.copyText.addEventListener("click", () => copyText("full"));
-els.copyAnki.addEventListener("click", () => copyText("anki"));
+els.copy.addEventListener("click", copyText);
+els.settings.addEventListener("click", () => setSettingsOpen(els.settingsPanel.hidden));
+els.closeSettings.addEventListener("click", () => setSettingsOpen(false));
+els.settingsBackdrop.addEventListener("click", () => setSettingsOpen(false));
 
 init();
