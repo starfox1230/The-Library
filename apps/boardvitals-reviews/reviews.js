@@ -1,6 +1,32 @@
 window.BOARDVITALS_REVIEWS = {
-  "generatedOn": "2026-06-07",
+  "generatedOn": "2026-06-08",
   "reviews": [
+    {
+      "quizId": "59288618",
+      "date": "2026-06-08",
+      "href": "../anki-card-creation-codex-helper/boardvitals/2026-06-08-quiz-59288618/quiz-59288618-review.html",
+      "questions": 60,
+      "missed": [
+        3,
+        4,
+        5,
+        8,
+        9,
+        15,
+        16,
+        17,
+        27,
+        29,
+        38,
+        43,
+        45,
+        48,
+        60
+      ],
+      "stemImages": 133,
+      "explanationImages": 0,
+      "hasDeck": true
+    },
     {
       "quizId": "59266282",
       "date": "2026-06-07",
