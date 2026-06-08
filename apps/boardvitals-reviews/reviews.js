@@ -16,7 +16,7 @@ window.BOARDVITALS_REVIEWS = {
       ],
       "stemImages": 68,
       "explanationImages": 41,
-      "hasDeck": false
+      "hasDeck": true
     },
     {
       "quizId": "59222243",
