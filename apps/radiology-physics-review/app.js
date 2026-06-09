@@ -293,7 +293,7 @@ function resetCurrentSession() {
 
 async function init() {
   try {
-    const response = await fetch(DATA_URL);
+    const response = await fetch(DATA_URL, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     questions = (await response.json()).map(normalizeQuestion);
     questions.sort((a, b) =>
