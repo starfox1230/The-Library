@@ -198,7 +198,7 @@ function renderImages(q) {
 }
 
 function choiceLetter(choice) {
-  const match = String(choice || "").trim().match(/^([A-E])[\).\s]/i);
+  const match = String(choice || "").trim().match(/^([A-F])[\).\s]/i);
   return match ? match[1].toUpperCase() : null;
 }
 
@@ -234,11 +234,20 @@ function answerQuestion(q, selected) {
 function renderFeedback(q, answer) {
   els.feedback.hidden = !answer;
   if (!answer) return;
+  const correctAnswer = formatAnswer(q);
   els.feedbackTitle.className = `feedback-title ${answer.correct ? "correct" : "wrong"}`;
   els.feedbackTitle.textContent = answer.correct
-    ? `Correct: ${q.correct_answer}. ${q.correct_answer_text || ""}`
-    : `Incorrect. Correct answer: ${q.correct_answer}. ${q.correct_answer_text || ""}`;
+    ? `Correct: ${correctAnswer}`
+    : `Incorrect. Correct answer: ${correctAnswer}`;
   els.explanation.textContent = q.explanation || "";
+}
+
+function formatAnswer(q) {
+  const answer = q.correct_answer || "";
+  const text = q.correct_answer_text || "";
+  if (!answer) return text || "";
+  if (text.trim().toUpperCase().startsWith(`${answer}.`)) return text;
+  return text ? `${answer}. ${text}` : answer;
 }
 
 function updateStats() {
@@ -269,7 +278,7 @@ function fullText(q, selected) {
     ...(q.choices || []),
     "",
     `Selected answer: ${selected}`,
-    `Correct answer: ${q.correct_answer || ""}. ${q.correct_answer_text || ""}`,
+    `Correct answer: ${formatAnswer(q)}`,
     "",
     "Explanation:",
     q.explanation || "",
