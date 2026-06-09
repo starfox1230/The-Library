@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thoracic Imaging: A Core Review Normal Anatomy Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Thoracic Imaging: A Core Review Normal Anatomy Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"thoracic-imaging-core-review-normal-anatomy-quiz-ch2",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "Characterize the structure interposed between the aorta and carina.", "options": [{"letter": "A", "text": "Lymphadenopathy"}, {"letter": "B", "text": "Normal anatomic variant"}, {"letter": "C", "text": "Mediastinal cyst"}, {"letter": "D", "text": "Vascular aneurysm"}], "images": ["assets/Hobbs2e-ch002-unimage001.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Occasionally misinterpreted as lymphadenopathy, a mass, or a mediastinal cyst, a prominent superior pericardial aortic recess is a normal anatomic variant that generally requires no further follow-up. Imaging findings that confirm the presence of the superior pericardial recess include (1) characteristic position of this known pericardial recess, here along the posterior aorta, (2) crescentic shape, (3) fluid density and nonenhancing, and (4) benign appearance relative to adjacent structures. The superior aortic recess can even extend superiorly into the right paratracheal mediastinum. Some benign cystic lesions could overlap with these findings warranting follow-up, but multiplanar reformatted images in the sagittal or coronal plane may better demonstrate extension from the pericardial region. Lymphadenopathy and vascular aneurysm would not have all of these findings. Reference: Truong MT, et al. Pictorial essay: anatomy of pericardial recesses on multidetector CT: implications for oncologic imaging. AJR Am J Roentgenol 2003; 181: 11091113."}, {"number": "2", "stem": "Which of the following is responsible for the creation of a juxtaphrenic peak?", "options": [{"letter": "A", "text": "Superior pulmonary ligament"}, {"letter": "B", "text": "Inferior pulmonary ligament"}, {"letter": "C", "text": "Phrenic nerve"}, {"letter": "D", "text": "Diaphragmatic eventration"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. The juxtaphrenic peak is associated with upper lung volume loss of any cause and a resulting appearance of a small triangular opacity at the apex of the diaphragm on a frontal chest radiograph. The peak is formed due to the inferior accessory fissure of an intrapulmonary septum related to the inferior pulmonary ligament. The superior pulmonary ligament would not touch the diaphragm. The phrenic nerve is generally not identifiable on imaging unless pathologic. Diaphragmatic eventration could account for a similar abnormality but is not associated with this term specifically and generally manifests as an additional smooth convexity of the diaphragm. Reference: Hansell DM, Bankier AA, MacMahon H, et al. Fleischner Society: glossary of terms for thoracic imaging. Radiology 2008; 246 ( 3 )."}, {"number": "3a", "stem": "The provided images were obtained from the same patient at different times. What contrast-enhanced structure is visualized to the left of the aorta on the initial provided image?", "options": [{"letter": "A", "text": "Left upper lobe anomalous pulmonary vein"}, {"letter": "B", "text": "Persistent left superior vena cava"}, {"letter": "C", "text": "Aberrant right subclavian artery"}, {"letter": "D", "text": "Hemiazygos vein"}], "images": ["assets/Hobbs2e-ch002-unimage002a.jpg", "assets/Hobbs2e-ch002-unimage002b.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. See related explanation: The superior vena cava (SVC) is the major venous drainage pathway for the head and neck, upper extremities, and thorax to the heart. The SVC lies to the right of midline and forms from the confluence of the left and right brachiocephalic veins. During the 5th week of life, the fetus has anterior and posterior cardinal veins draining its cranial and caudal portions respectively. During development the right anterior cardinal vein, the right common cardinal vein and right horn of sinus venosus join to form the right-sided SVC. The right posterior cardinal vein forms the azygos vein. On the left, a portion of the anterior cardinal vein forms the brachiocephalic vein and left superior intercostal vein with the remainder forming a structure called the ligament of Marshall. The left posterior cardinal vein regresses, and the left horn of the sinus venosus becomes the coronary sinus. A persistent left SVC is the most common congenital venous variant in the thorax occurring in <0.5% of the general population. The underlying etiology is failure of the left anterior cardinal vein, left common cardinal vein, and left horn of the sinus venosus to regress. The persistent left SVC arises from the confluence of the left subclavian and internal jugular veins and may or may not have communication with a right SVC via a bridging vein. The right SVC can be normal in size, small, or absent. The left SVC drains distally into the right atrium via a dilated coronary sinus. This vein occurs along the course of what would otherwise become the ligament of Marshall in the normal population. In the vast majority of these patients, there is no associated vascular shunt associated with this anomaly. Rarely, there can be an associated abnormal communication with the left atrium such as a levoatrial cardinal vein. Reference: Sonavane SK, et al. Comprehensive imaging review of the superior vena cava. Radiographics 2014; 34: 15711592."}, {"number": "3b", "stem": "Which of the following is the typical drainage pathway of this structure (shown in the second provided image above)?", "options": [{"letter": "A", "text": "Right superior vena cava to right atrium"}, {"letter": "B", "text": "Coronary sinus to right atrium"}, {"letter": "C", "text": "Coronary sinus to left atrium"}, {"letter": "D", "text": "Directly into right atrium"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. See related explanation: The superior vena cava (SVC) is the major venous drainage pathway for the head and neck, upper extremities, and thorax to the heart. The SVC lies to the right of midline and forms from the confluence of the left and right brachiocephalic veins. During the 5th week of life, the fetus has anterior and posterior cardinal veins draining its cranial and caudal portions respectively. During development the right anterior cardinal vein, the right common cardinal vein and right horn of sinus venosus join to form the right-sided SVC. The right posterior cardinal vein forms the azygos vein. On the left, a portion of the anterior cardinal vein forms the brachiocephalic vein and left superior intercostal vein with the remainder forming a structure called the ligament of Marshall. The left posterior cardinal vein regresses, and the left horn of the sinus venosus becomes the coronary sinus. A persistent left SVC is the most common congenital venous variant in the thorax occurring in <0.5% of the general population. The underlying etiology is failure of the left anterior cardinal vein, left common cardinal vein, and left horn of the sinus venosus to regress. The persistent left SVC arises from the confluence of the left subclavian and internal jugular veins and may or may not have communication with a right SVC via a bridging vein. The right SVC can be normal in size, small, or absent. The left SVC drains distally into the right atrium via a dilated coronary sinus. This vein occurs along the course of what would otherwise become the ligament of Marshall in the normal population. In the vast majority of these patients, there is no associated vascular shunt associated with this anomaly. Rarely, there can be an associated abnormal communication with the left atrium such as a levoatrial cardinal vein. Reference: Sonavane SK, et al. Comprehensive imaging review of the superior vena cava. Radiographics 2014; 34: 15711592."}, {"number": "3c", "stem": "In the majority of patients, what type of vascular shunt is associated with this anomaly?", "options": [{"letter": "A", "text": "Left to right shunt"}, {"letter": "B", "text": "Right to left shunt"}, {"letter": "C", "text": "No associated shunt"}, {"letter": "D", "text": "Bidirectional shunt"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. The superior vena cava (SVC) is the major venous drainage pathway for the head and neck, upper extremities, and thorax to the heart. The SVC lies to the right of midline and forms from the confluence of the left and right brachiocephalic veins. During the 5th week of life, the fetus has anterior and posterior cardinal veins draining its cranial and caudal portions respectively. During development the right anterior cardinal vein, the right common cardinal vein and right horn of sinus venosus join to form the right-sided SVC. The right posterior cardinal vein forms the azygos vein. On the left, a portion of the anterior cardinal vein forms the brachiocephalic vein and left superior intercostal vein with the remainder forming a structure called the ligament of Marshall. The left posterior cardinal vein regresses, and the left horn of the sinus venosus becomes the coronary sinus. A persistent left SVC is the most common congenital venous variant in the thorax occurring in <0.5% of the general population. The underlying etiology is failure of the left anterior cardinal vein, left common cardinal vein, and left horn of the sinus venosus to regress. The persistent left SVC arises from the confluence of the left subclavian and internal jugular veins and may or may not have communication with a right SVC via a bridging vein. The right SVC can be normal in size, small, or absent. The left SVC drains distally into the right atrium via a dilated coronary sinus. This vein occurs along the course of what would otherwise become the ligament of Marshall in the normal population. In the vast majority of these patients, there is no associated vascular shunt associated with this anomaly. Rarely, there can be an associated abnormal communication with the left atrium such as a levoatrial cardinal vein. Reference: Sonavane SK, et al. Comprehensive imaging review of the superior vena cava. Radiographics 2014; 34: 15711592."}, {"number": "4", "stem": "What forms the medial border of the right paratracheal stripe?", "options": [{"letter": "A", "text": "Pleura"}, {"letter": "B", "text": "Ascending aorta"}, {"letter": "C", "text": "Trachea"}, {"letter": "D", "text": "Superior vena cava"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "c. On radiographs, the right paratracheal stripe is formed by the right tracheal wall (medially) and the medial pleura (laterally). It typically measures <4 mm although it can be affected by the degree of inspiration and predominance of mediastinal fat. Pathology that can cause widening of the stripe is frequently best evaluated by CT and includes lymphadenopathy (most common), mediastinal hemorrhage, mediastinal mass, or vessel enlargement. Reference: Hansell DM, Bankier AA, MacMahon H, et al. Fleischner Society: glossary of terms for thoracic imaging. Radiology 2008; 246 ( 3 )."}, {"number": "5", "stem": "What is the name of the fissure that separates the medial basal bronchopulmonary segment from the other lower lobe segments?", "options": [{"letter": "A", "text": "Superior accessory fissure"}, {"letter": "B", "text": "Inferior accessory fissure"}, {"letter": "C", "text": "Medial accessory fissure"}, {"letter": "D", "text": "Minor accessory fissure"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. The inferior accessory fissure separates the medial basal bronchopulmonary segment from the other basilar segments and is typically vertically oriented and frequently complete. It is more common on the right. The superior accessory fissure is in the same plane as the right minor fissure and separates the lower lobe superior segment from the basilar segments. There is no such thing as a medial accessory fissure or minor accessory fissure. Reference: Godwin JD, Tarver RD. Accessory fissures of the lung. AJR Am J Roentgenol 1985; 144 ( 1 ): 3947."}, {"number": "6", "stem": "Per the 2009 International Association for the Study of Lung Cancer (IASLC) lymph node map, which lymph node station is associated with the lymph node indicated in the provided image?", "options": [{"letter": "A", "text": "Station 2R (Right Upper Paratracheal)"}, {"letter": "B", "text": "Station 4R (Right Lower Paratracheal)"}, {"letter": "C", "text": "Station 4L (Left Lower Paratracheal)"}, {"letter": "D", "text": "Station 6 (Para-aortic)"}], "images": ["assets/Hobbs2e-ch002-unimage003.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Knowledge of regional lymph nodal stations within the thorax is imperative for the accurate staging of lung cancer. The IASLC lymph node map was developed to create a unified lymph nodal classification and resolve differences in previously described lymph node maps such as the Mountain-Dresler modification of the American Thoracic Society and Naruke lymph node maps. In this case, the lymph node in question is positioned just anterior to the trachea below the level of the aortic arch consistent with the upper zone, station 4R (right lower paratracheal) per the IASLC lymph node map. In the cranial caudal plane, station 4R is defined as those occurring inferior to the caudal margin of the intersection of the left brachiocephalic vein with the trachea and superior to the lower border of the azygos vein/arch. The anatomic landmark distinguishing the left and right paratracheal stations is the left border of the trachea. As such, all lymph nodes to the right of the left border of the trachea are considered right paratracheal. Reference: El-Sherief AH, et al. International Association for the Study of Lung Cancer (IASLC) lymph node map: radiologic review with CT illustration. Radiographics 2014; 34: 16801691."}, {"number": "7", "stem": "Which segment of lung has been resected?", "options": [{"letter": "A", "text": "Posterior right upper lobe"}, {"letter": "B", "text": "Medial right middle lobe"}, {"letter": "C", "text": "Superior right lower lobe"}, {"letter": "D", "text": "Medial basilar right lower lobe"}], "images": ["assets/Hobbs2e-ch002-unimage004a.jpg", "assets/Hobbs2e-ch002-unimage004b.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. Outside of the occasional anatomic variant, the divisions of the tracheobronchial tree into 2 lungs, 5 lobes, and 18 segments are relatively constant as are their relationships on CT imaging. When a segment or lobe has been removed, knowing the expected relationships allows for successful characterizing of the prior resection. The upper and right middle lobar bronchi originate anterior to the lower, and lobectomy of one of these lobes results in surgical clips and bronchial stump anterior to the residual airway. Conversely, resection of a lower lobe results in clips or a stump posterior to the residual airway. A segmentectomy can be more difficult to accurately characterize and requires knowledge of the normal branching. In this case, the suture line courses along the superior right lower lobe and inferior posterior right upper lobe, in the region of the right lower lobe superior segment and posterior right upper lobe segment. The surgical clips and stump are demonstrated along the posterior bronchus intermedius at the expected origin of the right lower lobe superior segmental bronchus. Reference: Webb WR, Higgins CB. Thoracic imaging: pulmonary and cardiovascular radiology, 3rd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2017: 78104; Chapter 3: The pulmonary hila."}, {"number": "8", "stem": "Which of the following is located in the periphery of the secondary pulmonary lobule?", "options": [{"letter": "A", "text": "Pulmonary vein"}, {"letter": "B", "text": "Pulmonary artery"}, {"letter": "C", "text": "Respiratory bronchiole"}, {"letter": "D", "text": "Terminal bronchiole"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. The secondary pulmonary lobule serves as the functional unit of the lung and is critical to HRCT evaluation. It is polyhedral in shape measuring approximately 1.5 cm in size with fibrous septa walls (containing pulmonary veins and lymphatics). The center of the lobule is formed by the terminal bronchiole and pulmonary artery (as well as a central set of lymphatics). Reference: Hansell DM, Lynch DA, McAdams HP, et al. Imaging of diseases of the chest, 5th ed. Mosby, 2009:153-204; Chapter 4: Basic HRCT patterns of lung disease."}, {"number": "9", "stem": "Which anatomic structure is identified on this CT image by the arrow?", "options": [{"letter": "A", "text": "Medial lumbocostal arch"}, {"letter": "B", "text": "Central tendon of the diaphragm"}, {"letter": "C", "text": "Psoas muscle"}, {"letter": "D", "text": "Right diaphragmatic crus"}], "images": ["assets/Hobbs2e-ch002-unimage005.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. The diaphragm is a skeletal muscle and membranous structure that separates the thorax from the abdomen and aids in respiration. Centrally, the diaphragm is composed of a strong aponeurosis known as the central tendon. Skeletal muscle constitutes the more peripheral aspect of the diaphragm with attachments to the sternum, lower ribs, and upper lumbar region. Posteriorly, the diaphragm is attached to the psoas and quadratus lumborum muscles via ligamentous arches known as the medial and lateral lumbocostal arches (arcuate ligaments), respectively. The posteromedial aspects of the diaphragm form pillars composed of muscular and tendinous components that have been termed the diaphragmatic crura. The tendinous portions of the crura attach to the ventral aspect of L1-L3 on the right and L1 and L2 on the left. Anterior and medially, the muscular portions of the crura form an arch known as the median arcuate ligament. The space between the diaphragmatic crura has been termed the retrocrural space and contains the aorta, lymph nodes, azygos and hemiazygos veins, thoracic duct, and splanchnic nerves. Reference: Restrepo C, et al. The diaphragmatic crura and retrocrural space: normal imaging appearance, variants, and pathologic conditions. Radiographics 2008; 28: 12891305."}, {"number": "10", "stem": "Name the normal variant.", "options": [{"letter": "A", "text": "Tracheal bronchus"}, {"letter": "B", "text": "Bronchial atresia"}, {"letter": "C", "text": "Bronchus intermedius"}, {"letter": "D", "text": "Cardiac bronchus"}], "images": ["assets/Hobbs2e-ch002-unimage006.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. Congenital variation in the branching of the tracheobronchial tree is not uncommon ranging from 1% to 12% of individuals. In this case, a short segment of bronchus branches from the medial aspect of the bronchus intermedius, opposite the right upper lobe bronchus, and is known as an accessory cardiac bronchus. The bronchus may be blind ending or have some associated aerated cystic or alveolar tissue. Reports of associated infection or hemoptysis have required resection, although the majority are discovered incidentally in asymptomatic individuals. As the name suggests, a tracheal bronchus arises from the trachea and almost invariably provides an accessory bronchus to the right upper lobe. Bronchial atresia refers to an interruption in a normal bronchial branch with noncommunicating peripheral bronchi and associated portions of lung. Finally, the bronchus intermedius is a normal anatomic branch beyond the right upper lobe takeoff, so named as it is the only bronchus beyond a lobar branch, but still peripherally bifurcating into two additional lobar branches. Reference: Ghaye B, Szapiro D, Fanchamps JM, et al. Congenital bronchial abnormalities revisited. Radiographics 2001; 21: 105119."}, {"number": "11", "stem": "Which of the following airways is the first to lack cartilage within its wall?", "options": [{"letter": "A", "text": "Terminal bronchiole"}, {"letter": "B", "text": "Mainstem bronchus"}, {"letter": "C", "text": "Respiratory bronchiole"}, {"letter": "D", "text": "Alveolar duct"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. There are approximately 23 dichotomous branches that occur from the level of the trachea to the alveolus. These branches are broken into bronchi, which contain cartilage in their wall, and bronchioles, which lack cartilage. The terminal bronchiole is the final airway in the conducting zone and is the first airway to lack cartilage within its wall. The respiratory bronchioles arise from the terminal bronchioles and are therefore the second airway to lack cartilage within their walls. The respiratory bronchioles are the first airways to contain alveoli and the first to participate in gas exchange. The respiratory bronchioles subsequently terminate as alveolar ducts and finally alveoli. Reference: Webb WR, Higgins CB. Thoracic imaging: pulmonary and cardiovascular radiology, 3rd ed. Philadelphia, PA: Lippincott Williams & Wilkins, 2017: 602; Chapter 23: Airway disease: bronchiectasis, chronic bronchitis, bronchiolitis."}, {"number": "12a", "stem": "Which window or clear space is demonstrated in this radiograph?", "options": [{"letter": "A", "text": "Retrotracheal"}, {"letter": "B", "text": "Retrocardiac"}, {"letter": "C", "text": "Retrosternal"}, {"letter": "D", "text": "Raider triangle"}], "images": ["assets/Hobbs2e-ch002-unimage007.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. See related explanation: The retrosternal window or clear space, also known as the \"anterior clear space,\" represents a narrowing of the mediastinum anterior to the heart and great vessels and posterior to the sternum where the pleurae of the anterior upper lobes come close together or meet. On the lateral chest radiograph, the retrosternal window provides improved visualization of the anterior mediastinum, a potential blind spot on the frontal radiograph as the overlying sternum and mediastinal structures often obscure lesions in the anterior mediastinum. Normal anatomical structures that reside in the anterior mediastinum and retrosternal region include mediastinal fat, lymph nodes, thymic tissue, and internal mammary vessels. When the pleurae of the anterior upper lobes of the lungs approximate close enough to each other, the anterior junctional line may be seen on frontal chest radiograph. In addition to understanding expected shadows and borders on the normal chest radiograph, recognizing the anterior junctional line can also support the impression of hyperinflation or emphysema, which can accentuate the anterior junctional line. Reference: Feigin DS. Lateral chest radiograph: a systematic approach. Acad Radiol 2010; 17: 15601566."}, {"number": "12b", "stem": "The retrosternal window on lateral view correlates with which structure on frontal view?", "options": [{"letter": "A", "text": "Anterior junctional line"}, {"letter": "B", "text": "Posterior superior junctional line"}, {"letter": "C", "text": "Azygoesophageal recess"}, {"letter": "D", "text": "Right paratracheal stripe"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. The retrosternal window or clear space, also known as the \"anterior clear space,\" represents a narrowing of the mediastinum anterior to the heart and great vessels and posterior to the sternum where the pleurae of the anterior upper lobes come close together or meet. On the lateral chest radiograph, the retrosternal window provides improved visualization of the anterior mediastinum, a potential blind spot on the frontal radiograph as the overlying sternum and mediastinal structures often obscure lesions in the anterior mediastinum. Normal anatomical structures that reside in the anterior mediastinum and retrosternal region include mediastinal fat, lymph nodes, thymic tissue, and internal mammary vessels. When the pleurae of the anterior upper lobes of the lungs approximate close enough to each other, the anterior junctional line may be seen on frontal chest radiograph. In addition to understanding expected shadows and borders on the normal chest radiograph, recognizing the anterior junctional line can also support the impression of hyperinflation or emphysema, which can accentuate the anterior junctional line. Reference: Feigin DS. Lateral chest radiograph: a systematic approach. Acad Radiol 2010; 17: 15601566."}, {"number": "13a", "stem": "In the intercostal spaces, what is the cranial-to-caudal order of the neurovascular bundle?", "options": [{"letter": "A", "text": "Vein → artery → nerve"}, {"letter": "B", "text": "Nerve → artery → vein"}, {"letter": "C", "text": "Artery → vein → nerve"}, {"letter": "D", "text": "Nerve → vein → artery"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. See related explanation: The intercostal space neurovascular bundle is ordered vein, artery, and then nerve from superior to inferior (VAN is the acronym to remember). The location of the neurovascular bundle as immediately under the superior rib (cranial in the intercostal space) is critical for those performing interventional procedures to avoid vascular injury. Despite the classic distribution of the intercostal structures, three-dimensional CT angiographic images of the intercostal arteries can demonstrate the potential tortuous route of these arteries. Intercostal vessels can bleed profusely if injured, especially if they bleed into the pleural space. Reference: Talbot B, Gange C, Chaturvedi A, et al. Traumatic rib injury: patterns, complications, and treatment. Radiographics, 2017;37:628-651."}, {"number": "13b", "stem": "What is the best descriptor for positioning of the neurovascular bundle in the intercostal space?", "options": [{"letter": "A", "text": "Cranial (along the undersurface of the superior rib)"}, {"letter": "B", "text": "Central (midway between the two ribs)"}, {"letter": "C", "text": "Caudal (along the superior surface of the inferior rib)"}, {"letter": "D", "text": "Variable (positioning depends on rib level)"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. The intercostal space neurovascular bundle is ordered vein, artery, and then nerve from superior to inferior (VAN is the acronym to remember). The location of the neurovascular bundle as immediately under the superior rib (cranial in the intercostal space) is critical for those performing interventional procedures to avoid vascular injury. Despite the classic distribution of the intercostal structures, three-dimensional CT angiographic images of the intercostal arteries can demonstrate the potential tortuous route of these arteries. Intercostal vessels can bleed profusely if injured, especially if they bleed into the pleural space. Reference: Talbot B, Gange C, Chaturvedi A, et al. Traumatic rib injury: patterns, complications, and treatment. Radiographics, 2017;37:628-651."}, {"number": "14", "stem": "What is the name for the vascular structure located posterior to bronchus intermedius (annotated by the arrow)?", "options": [{"letter": "A", "text": "Partial anomalous pulmonary venous return"}, {"letter": "B", "text": "Right superior pulmonary vein"}, {"letter": "C", "text": "Right top pulmonary vein"}, {"letter": "D", "text": "Right middle pulmonary vein"}], "images": ["assets/Hobbs2e-ch002-unimage008a.jpg", "assets/Hobbs2e-ch002-unimage008b.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. A right top pulmonary vein is a relatively uncommon pulmonary vein variant occurring in 10% of patients and has a unique course traversing posterior and medial to the right bronchus intermedius to the superior (or top) aspect of the left atrium. This vein typically drains the superior segment of the right lower lobe, posterior segment of the right upper lobe, and occasionally both. A left \"top\" pulmonary vein has also been reported. Supernumerary pulmonary veins can be an important preoperative finding in patients undergoing catheter-directed ablation for atrial fibrillation. Reference: Hassani C, Farhood S. Comprehensive cross-sectional imaging of the pulmonary veins. Radiographics 2017; 37: 19281954."}, {"number": "15a", "stem": "What is the name of the space denoted by the arrow?", "options": [{"letter": "A", "text": "Anterior esophageal stripe"}, {"letter": "B", "text": "Tracheoesophageal stripe"}, {"letter": "C", "text": "Anterior junctional line"}, {"letter": "D", "text": "Posterior junctional line"}], "images": ["assets/Hobbs2e-ch002-unimage009.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. See related explanation: The tracheoesophageal stripe is identified on lateral chest radiographs as the space between the posterior wall of the air-filled trachea and the anterior wall of the air-filled esophagus. It typically measures up to 5 mm in size. If the posterior trachea does not abut the esophagus, it is generally smaller, up to 2.5 mm, and referred to as the posterior tracheal stripe. Thickening of this stripe (as in this example) generally warrants correlation with CT to evaluate for esophageal lesion, vascular lesion, or other mediastinal pathology. Reference: Gibbs JM, Chandrasekhar CA, Ferguson EC, et al. Lines and stripes: where did they go?-from conventional radiography to CT. Radiographics 2007; 27 ( 1 ):33-48."}, {"number": "15b", "stem": "What is the upper limit of normal for width of this anatomic space?", "options": [{"letter": "A", "text": "2 mm"}, {"letter": "B", "text": "5 mm"}, {"letter": "C", "text": "10 mm"}, {"letter": "D", "text": "15 mm"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "b. The tracheoesophageal stripe is identified on lateral chest radiographs as the space between the posterior wall of the air-filled trachea and the anterior wall of the air-filled esophagus. It typically measures up to 5 mm in size. If the posterior trachea does not abut the esophagus, it is generally smaller, up to 2.5 mm, and referred to as the posterior tracheal stripe. Thickening of this stripe (as in this example) generally warrants correlation with CT to evaluate for esophageal lesion, vascular lesion, or other mediastinal pathology. Reference: Gibbs JM, Chandrasekhar CA, Ferguson EC, et al. Lines and stripes: where did they go?-from conventional radiography to CT. Radiographics 2007; 27 ( 1 ):33-48."}, {"number": "16", "stem": "What vessel is most at risk of injury given the position of the percutaneous pleural catheter?", "options": [{"letter": "A", "text": "Superior vena cava"}, {"letter": "B", "text": "Ascending aorta"}, {"letter": "C", "text": "Right brachiocephalic vein"}, {"letter": "D", "text": "Right internal thoracic artery"}], "images": ["assets/Hobbs2e-ch002-unimage010.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. The bilateral internal thoracic arteries (internal mammary arteries) serve as blood supply to the anterior chest wall extending from the clavicles to the umbilicus. They most frequently arise directly from the subclavian artery and pass posterior to the subclavian vein with a vertical course between the transversus thoracis muscle posteriorly and the costal cartilages anteriorly. The distal bifurcation results in the musculophrenic artery and superior epigastric artery. Placement of a chest tube via an anteromedial approach (close to the sternum as seen here) places this artery at risk. Injury can be catastrophic with severe chest wall, pleural, and mediastinal hemorrhage. This patient required massive transfusion and artery coil embolization as a result of this placement. The artery provides an important collateral to the inferior epigastric arteries if there is a coarctation or descending aortic occlusion. Reference: Glassberg R, Sussman S, Glickstein M. CT anatomy of the internal mammary vessels: importance in planning percutaneous transthoracic procedures. AJR Am J Roentgenol 1990; 155: 397400."}, {"number": "17", "stem": "What cardiac valve is identified on this lateral chest radiograph by its severe degree of calcification?", "options": [{"letter": "A", "text": "Aortic"}, {"letter": "B", "text": "Pulmonary"}, {"letter": "C", "text": "Mitral"}, {"letter": "D", "text": "Tricuspid"}], "images": ["assets/Hobbs2e-ch002-unimage011.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. The lateral radiograph demonstrates severe dystrophic calcification projecting high and anterior relative to the cardiac shadow. The location is that of the pulmonary valve. The other valves would be more posterior and inferior than demonstrated. This patient had long-standing pulmonary stenosis. Reference: Cressman S, Rheinboldt C, et al. Chest radiographic appearance of minimally invasive cardiac implants and support devices: what the radiologist needs to know. Curr Probl Diagn Radiol 2019;48(3):274-288."}, {"number": "18a", "stem": "What long tubular structure is identified by arrows on these two images?", "options": [{"letter": "A", "text": "Azygos vein"}, {"letter": "B", "text": "Thoracic duct"}, {"letter": "C", "text": "Hemiazygos vein"}, {"letter": "D", "text": "Accessory hemiazygos vein"}], "images": ["assets/Hobbs2e-ch002-unimage012a.jpg", "assets/Hobbs2e-ch002-unimage012b.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. See related explanation: The thoracic duct serves as the common trunk for a majority of the lymphatic vessels. The duct serves as a continuation of the cisterna chyli (typically located around L1). It courses through the aortic hiatus and ascends in the right posterior mediastinum between the aorta and azygos vein (shown). The hemiazygos and accessory hemiazygos are in the left posterior mediastinum. The thoracic duct is typically identifiable (although small) in patients with a moderate degree of mediastinal fat, but not identifiable on thinner patients. It crosses midline around T5 and continues to the thoracic inlet, anterior to the subclavian artery and anterior scalene, before draining into the angle of the left subclavian and internal jugular veins. Variant drainage includes drainage directly into one of the other neck vessels (internal jugular, external jugular, brachiocephalic of subclavian). Understanding this anatomy is important for cases of chylothorax to guide potential surgical or interventional therapy. The duct drains the lower extremities, abdomen, left chest, left upper extremity, and left neck. Reference: Liu ME, Branstetter BF, Whetstone J, et al. Normal appearance of the distal thoracic duct. AJR Am J Roentgenol 2006; 187: 16151620."}, {"number": "18b", "stem": "What structure does the thoracic duct typically drain into?", "options": [{"letter": "A", "text": "Left subclavian vein and internal jugular vein confluence"}, {"letter": "B", "text": "Right subclavian vein and internal jugular vein confluence"}, {"letter": "C", "text": "Superior vena cava"}, {"letter": "D", "text": "Inferior vena cava"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. See related explanation: The thoracic duct serves as the common trunk for a majority of the lymphatic vessels. The duct serves as a continuation of the cisterna chyli (typically located around L1). It courses through the aortic hiatus and ascends in the right posterior mediastinum between the aorta and azygos vein (shown). The hemiazygos and accessory hemiazygos are in the left posterior mediastinum. The thoracic duct is typically identifiable (although small) in patients with a moderate degree of mediastinal fat, but not identifiable on thinner patients. It crosses midline around T5 and continues to the thoracic inlet, anterior to the subclavian artery and anterior scalene, before draining into the angle of the left subclavian and internal jugular veins. Variant drainage includes drainage directly into one of the other neck vessels (internal jugular, external jugular, brachiocephalic of subclavian). Understanding this anatomy is important for cases of chylothorax to guide potential surgical or interventional therapy. The duct drains the lower extremities, abdomen, left chest, left upper extremity, and left neck. Reference: Liu ME, Branstetter BF, Whetstone J, et al. Normal appearance of the distal thoracic duct. AJR Am J Roentgenol 2006; 187: 16151620."}, {"number": "18c", "stem": "Which of the following areas is not typically drained (directly or indirectly) via the thoracic duct?", "options": [{"letter": "A", "text": "Right upper extremity"}, {"letter": "B", "text": "Left upper extremity"}, {"letter": "C", "text": "Right lower extremity"}, {"letter": "D", "text": "Left lower extremity"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. The thoracic duct serves as the common trunk for a majority of the lymphatic vessels. The duct serves as a continuation of the cisterna chyli (typically located around L1). It courses through the aortic hiatus and ascends in the right posterior mediastinum between the aorta and azygos vein (shown). The hemiazygos and accessory hemiazygos are in the left posterior mediastinum. The thoracic duct is typically identifiable (although small) in patients with a moderate degree of mediastinal fat, but not identifiable on thinner patients. It crosses midline around T5 and continues to the thoracic inlet, anterior to the subclavian artery and anterior scalene, before draining into the angle of the left subclavian and internal jugular veins. Variant drainage includes drainage directly into one of the other neck vessels (internal jugular, external jugular, brachiocephalic of subclavian). Understanding this anatomy is important for cases of chylothorax to guide potential surgical or interventional therapy. The duct drains the lower extremities, abdomen, left chest, left upper extremity, and left neck. Reference: Liu ME, Branstetter BF, Whetstone J, et al. Normal appearance of the distal thoracic duct. AJR Am J Roentgenol 2006; 187: 16151620."}, {"number": "19", "stem": "What forms the superior margin of the azygoesophageal recess?", "options": [{"letter": "A", "text": "Azygos arch"}, {"letter": "B", "text": "Aortic arch"}, {"letter": "C", "text": "Accessory hemiazygos vein"}, {"letter": "D", "text": "Innominate artery"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "a. The azygoesophageal recess is a posterior mediastinal recess located in the right chest. The azygos arch forms the cranial margin. The azygos vein and pleura form the posterior margin. The esophagus generally forms the medial margin. Reference: Hansell DM, Bankier AA, MacMahon H, et al. Fleischner Society: glossary of terms for thoracic imaging. Radiology 2008; 246 ( 3 )."}, {"number": "20a", "stem": "What is responsible for the marbled fat appearance in the anterior mediastinum of this adult?", "options": [{"letter": "A", "text": "Mediastinal hemorrhage"}, {"letter": "B", "text": "Infectious mediastinitis"}, {"letter": "C", "text": "Normal thymus"}, {"letter": "D", "text": "Thymolipoma"}], "images": ["assets/Hobbs2e-ch002-unimage013.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. See related explanation: The appearance is that of normal thymus. Mediastinal hemorrhage would be expected to demonstrate more areas of mixed high and low attenuation from either direct vessel injury or, more commonly, rupture of the vasa vasorum surrounding the mediastinal vessels. Thymolipoma would demonstrate a combination of fat density and soft tissue; however, there is no actual mass in this case. Similarly, infectious mediastinitis would be much more likely to produce an indurated space-occupying appearance than is demonstrated. The thymus involutes with age resulting in continual decrease in thymic mass relative to body size. The thymus actually continues to grow in absolute terms until puberty but will start occupying a significantly smaller portion of relative size from infancy. In a study of 309 individuals ranging in age from 6 weeks to 81 years, some remnant thymic tissue was visualized on CT up to the age of 70 years with those in the eighth decade (older than 70) all demonstrating complete fatty replacement of the thymus on CT. The stranded mixed soft tissue and fat appearance shown is typical. Configuration is normally bilobed or triangular. Presence of a significant solid component should raise the possibility of developing thymic neoplasm. References: Francis IR, Glazer GM, Bookstein FL, et al. The thymus: reexamination of age-related changes in size and shape. AJR Am J Roentgenol 1985; 145: 249254. Nishino M, Ashiku SK, Kocher ON, et al. The thymus: a comprehensive review. Radiographics 2006; 26 ( 2 ): 335348."}, {"number": "20b", "stem": "In which decade of life should complete fatty replacement of the thymus be expected in all patients?", "options": [{"letter": "A", "text": "Second"}, {"letter": "B", "text": "Fourth"}, {"letter": "C", "text": "Sixth"}, {"letter": "D", "text": "Eighth"}], "images": [], "explanationImages": [], "answer": "D", "explanation": "d. The appearance is that of normal thymus. Mediastinal hemorrhage would be expected to demonstrate more areas of mixed high and low attenuation from either direct vessel injury or, more commonly, rupture of the vasa vasorum surrounding the mediastinal vessels. Thymolipoma would demonstrate a combination of fat density and soft tissue; however, there is no actual mass in this case. Similarly, infectious mediastinitis would be much more likely to produce an indurated space-occupying appearance than is demonstrated. The thymus involutes with age resulting in continual decrease in thymic mass relative to body size. The thymus actually continues to grow in absolute terms until puberty but will start occupying a significantly smaller portion of relative size from infancy. In a study of 309 individuals ranging in age from 6 weeks to 81 years, some remnant thymic tissue was visualized on CT up to the age of 70 years with those in the eighth decade (older than 70) all demonstrating complete fatty replacement of the thymus on CT. The stranded mixed soft tissue and fat appearance shown is typical. Configuration is normally bilobed or triangular. Presence of a significant solid component should raise the possibility of developing thymic neoplasm. References: Francis IR, Glazer GM, Bookstein FL, et al. The thymus: reexamination of age-related changes in size and shape. AJR Am J Roentgenol 1985; 145: 249254. Nishino M, Ashiku SK, Kocher ON, et al. The thymus: a comprehensive review. Radiographics 2006; 26 ( 2 ): 335348."}, {"number": "21", "stem": "Name the anatomic structure.", "options": [{"letter": "A", "text": "Anterior junctional line"}, {"letter": "B", "text": "Posterior junctional line"}, {"letter": "C", "text": "Posterior wall of the bronchus intermedius"}, {"letter": "D", "text": "Right paratracheal stripe"}], "images": ["assets/Hobbs2e-ch002e-unimage014.jpg"], "explanationImages": [], "answer": "D", "explanation": "d. The ability to recognize expected lines and stripes on chest radiograph can assist in recognizing or explaining abnormal findings such as unilateral volume loss shifting a junctional line or widening of the right paratracheal stripe in lymphadenopathy. Alternatively, recognizing these lines or stripes as normal will alleviate the possibility of characterizing one as abnormal and assigning disease where none exists. In this case, the arrows highlight the right paratracheal stripe, a shadow outlined by tracheal air and the air-filled right upper lobe. Anatomic structures that reside in this region include the tracheal wall including the epithelium and tracheal cartilage, mediastinal fat containing lymph nodes and minor vessels, and visceral and parietal pleural layers. A thickness of >4 mm suggests thickening such as adenopathy. The other options provided are midline structures either on a normal frontal chest radiograph or a lateral radiograph finding. The anterior junctional line courses from right superior to left inferior over the superior midline mediastinum on the frontal radiograph and represents the pleural layers of the right and left upper lobes meeting anterior to the great vessels. The posterior junctional line is similar in that it represents the meeting of pleural layers of the right and left upper lobes, but posterior to the trachea and esophagus, and appears overlying the trachea just left of midline and may extend superior to the clavicles. Finally, the posterior wall of the bronchus intermedius (PWBI) is found on lateral radiograph as a thin linear shadow and part of the intermediate stem line coursing through the left mainstem bronchus in the well-positioned lateral. Reference: Gibbs JM, et al. Lines and stripes: where did they go? From conventional radiography to CT. Radiographics 2007; 27: 3348."}, {"number": "22", "stem": "What muscle is identified on this CT?", "options": [{"letter": "A", "text": "Supraspinatus"}, {"letter": "B", "text": "Infraspinatus"}, {"letter": "C", "text": "Subscapularis"}, {"letter": "D", "text": "Teres minor"}], "images": ["assets/Hobbs2e-ch002e-unimage015.jpg"], "explanationImages": [], "answer": "A", "explanation": "a. Despite the focus of chest imaging on thoracic pathology, adjacent anatomic regions are included on chest images, to include the neck base, bilateral shoulders, and upper abdomen, and recognizing normal and abnormal CT appearances of these adjacent structures is part of every exam. Chest wall lesions or invasion can involve the musculature, which necessitates clearly defining each muscle on chest CT. The rotator cuff on axial chest CT is relatively straightforward. The scapula creates a \"T\" shape dividing the muscles into subscapularis deep (or anterior) to the scapula, infraspinatus lateral and inferior to the spine of the scapula, and supraspinatus medial and superior to the spine of the scapula. Teres minor courses along the lateral aspect of infraspinatus. Reference: E-Anatomy. Available at www.imaios.com/en/e-Anatomy. Last accessed July 7, 2019."}, {"number": "23", "stem": "Name the structure identified.", "options": [{"letter": "A", "text": "Right upper lobe bronchus"}, {"letter": "B", "text": "Left lower lobe bronchus"}, {"letter": "C", "text": "Left mainstem bronchus"}, {"letter": "D", "text": "Right middle lobe bronchus"}], "images": ["assets/Hobbs2e-ch002e-unimage016.jpg"], "explanationImages": [], "answer": "C", "explanation": "c. The asymmetry of the hila creates complicated shadows on lateral exam but also allows for lateralization of findings when these shadows are well understood. The origin of the left upper lobe bronchus is hyparterial, meaning it arises below the left pulmonary artery as it courses laterally into the lung. In contrast, the right upper lobe bronchus arises above the pulmonary artery with the right mainstem bronchus passing along the posterior aspect of the pulmonary artery. This asymmetry results in the left mainstem bronchus being outlined along its anterior, superior, and posterior aspects as it extends into the left upper lobe bronchus. As such, it is well defined relative to the other hilar bronchi. Above the left mainstem bronchus, the horizontal portion of the right upper lobe bronchus is about at the level of the carina. As stated before, the posterior wall of the bronchus intermedius can be seen passing vertically through the left mainstem bronchus radiolucency on a well-positioned lateral chest radiograph. The right middle lobe bronchus does not have well-defined portions on the lateral chest radiograph. Reference: Feigin DS. Lateral chest radiograph: a systematic approach. Acad Radiol 2010; 17: 15601566."}, {"number": "24", "stem": "What anatomic structure is identified in the CT?", "options": [{"letter": "A", "text": "Internal mammary lymph node"}, {"letter": "B", "text": "Sternalis muscle"}, {"letter": "C", "text": "Pectoralis minor muscle"}, {"letter": "D", "text": "Internal mammary artery"}], "images": ["assets/Hobbs2e-ch002e-unimage017a.jpg", "assets/Hobbs2e-ch002e-unimage017b.jpg"], "explanationImages": [], "answer": "B", "explanation": "b. Seen occasionally on mammography, the sternalis muscle, also known as the rectus sternalis muscle, is present in 2% to 11% of individuals with equal distribution between males and females. Recognizing this normal variant on chest imaging can avoid mischaracterizing it as a mass. Coursing vertically along the medial anterior aspect of the pectoralis major muscle, sternalis muscle may be unilateral or bilateral. References: Bradley FM, Hoover HC Jr, Hulka CA, et al. The sternalis muscle: an unusual normal finding seen on mammography. AJR Am J Roentgenol 1996; 166: 3336. Katara P, Chauhan S, Arora R, et al. A unilateral rectus sternalis muscle: rare but normal anatomic variant of anterior chest wall musculature. J Clin Diagn Res 2013; 7 ( 12 ): 26652667. Nuthakki S, Gross M, Fessell D. Sonography and helical computed tomography of the sternalis muscle. J Ultrasound Med 2007; 26: 247250."}, {"number": "25", "stem": "What contrast enhancing structure is identified immediately to the left of the aortic arch on these images?", "options": [{"letter": "A", "text": "Superior intercostal vein"}, {"letter": "B", "text": "Bronchial artery"}, {"letter": "C", "text": "Persistent left superior vena cava"}, {"letter": "D", "text": "Left upper lobe anomalous pulmonary venous return"}], "images": ["assets/Hobbs2e-ch002e-unimage018a.jpg", "assets/Hobbs2e-ch002e-unimage018b.jpg"], "explanationImages": [], "answer": "A", "explanation": "a. There is an enhancing structure coursing roughly parallel to the aortic arch. This is the normal left superior intercostal vein. This vein typically drains the second through fourth intercostal spaces, typically drains into the left brachiocephalic vein, and frequently communicates with the accessory hemiazygos or hemiazygos vein. It can occasionally be seen \"en face\" on an AP or PA chest radiograph where it is referred to as the \"aortic nipple.\" It may enlarge in the presence of a more central obstruction where it can serve as a collateral pathway. The bronchial arteries typically arise from the anterior descending thoracic aorta directly at the T3-T8 level. Both a persistent left SVC and an anomalous left upper lobe pulmonary vein would demonstrate a more vertical course than shown here. Reference: Demos TC, Posniak HV, Pierce KL, et al. Venous anomalies of the thorax. AJR Am J Roentgenol 2004; 182 ( 5 ):1139-1150."}];
+    const APP_ID = "thoracic-imaging-core-review-normal-anatomy-quiz-ch2";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          lines.push("");
+          continue;
+        }
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
+      const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
+      canvas.width = width;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
+      ctx.font = "24px Arial";
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
