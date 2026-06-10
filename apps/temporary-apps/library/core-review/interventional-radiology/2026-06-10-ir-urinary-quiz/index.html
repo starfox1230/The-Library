@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interventional Radiology Urinary Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Interventional Radiology Urinary Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"ir-urinary-quiz-ch6",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "An 8-year-old male undergoes a percutaneous native kidney core needle biopsy. In the recovery area, he is tachycardic and hypotensive. A noncontrast computed tomography (CT) demonstrates a massive left perirenal hematoma and he is taken emergently to the interventional radiology (IR) suite. What is the best treatment option after these images are obtained?", "options": [{"letter": "A", "text": "Watchful waiting, no safe position to perform embolization"}, {"letter": "B", "text": "Superselective coil embolization"}, {"letter": "C", "text": "Embolize with particles"}, {"letter": "D", "text": "Surgical partial nephrectomy"}], "images": ["assets/q1_p001_03.jpg"], "explanationImages": ["assets/a1_p002_01.jpg"], "answer": "B", "explanation": "Answer B. Embolization of a renal artery or one of its branches is not without consequence as it is an end-organ vessel and some degree of renal parenchyma, and therefore kidney function, will be sacrificed. If there is active bleeding from an intrarenal branch, as this case demonstrates, a microcatheter can be guided as close to the injury as possible, and superselective embolization can be performed such that it infarcts a relatively small amount of kidney parenchyma. Watchful waiting is not appropriate, as there is clearly active bleeding, the patient is hemodynamically unstable, and embolization should at least be attempted. Particles work well in the kidney for tumor embolization, but when there is a focal arterial injury, they offer less control than a coil and risk nontarget embolization through reflux. Surgery should only be entertained if minimally invasive techniques fail. Figure 1-1 Completion digital subtraction angiography (DSA) images from the case example after superselective coil embolization of 2 lower pole renal artery branches that demonstrated active bleeding. Straight, fibered coils were used in this instance, as the injured arteries were quite small in caliber. Note the lack of parenchymal filling corresponding to the embolization territory on the parenchymal phase (right image). This will become a small renal infarct. References: Schwartz MJ, Smith EB, Trost DW, Vaughan ED. Renal artery embolization: clinical indications and experience from over 100 cases. BJU Int. 2007;99(4):881-886. Tøndel C, Vikse BE, Bostad L, Svarstad E. Safety and complications of percutaneous kidney biopsies in 715 children and 8573 adults in Norway 1988-2010. Clin J Am Soc Nephrol. 2012;7(10):1591-1597."}, {"number": "2", "stem": "Which of the following is an indication for a renal arteriogram in a pediatric patient?", "options": [{"letter": "A", "text": "Hydronephrosis"}, {"letter": "B", "text": "Recurrent urinary tract infection"}, {"letter": "C", "text": "Hypertension"}, {"letter": "D", "text": "Nephrolithiasis"}], "images": [], "explanationImages": ["assets/a2_p003_01.jpg"], "answer": "C", "explanation": "Answer C. Hypertension affects 1% to 2% of the pediatric population, with renal artery stenosis as the cause 5% to 25% of the time. The following (Figure 2-1) is an example of a 14-year-old presenting with systolic blood pressure in the 180s for several months despite multiple medications. The lesion was treated with angioplasty alone, and the patient subsequently experienced normalization of the blood pressure. Hydronephrosis, recurrent urinary tract infection, and nephrolithiasis often warrant radiologic workup; however, they are not indications for a catheter arteriogram. Figure 2-1 Pre (left) and post (right) images from renal artery angioplasty to treat pediatric renovascular hypertension. Both main renal artery and branch artery stenoses benefit from angioplasty. Operators have published clinical response treating lesions with as little as 30% luminal narrowing. References: Srinivasan A, Krishnamurthy G, Fontalvo-herazo L, et al. Angioplasty for renal artery stenosis in pediatric patients: an 11-year retrospective experience. J Vasc Interv Radiol. 2010;21(11):1672-1680. Zhu G, He F, Gu Y, et al. Angioplasty for pediatric renovascular hypertension: a 13-year experience. Diagn Interv Radiol. 2014;20(3):285-292."}, {"number": "3", "stem": "Which of the following is the most common cause of pediatric renal arterial stenosis?", "options": [{"letter": "A", "text": "Fibromuscular dysplasia"}, {"letter": "B", "text": "Atherosclerosis"}, {"letter": "C", "text": "Neurofibromatosis 1"}, {"letter": "D", "text": "Polyarteritis nodosa"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. In the Western literature, fibromuscular dysplasia is the leading cause of pediatric renal artery stenosis. In the East, Takayasu arteritis is often listed as the most common cause. Neurofibromatosis, midaortic syndrome, and polyarteritis nodosa are less likely causes. Atherosclerosis is virtually absent in the pediatric population. References Srinivasan A, Krishnamurthy G, Fontalvo-Herazo L, et al. Angioplasty for renal artery stenosis in pediatric patients: an 11-year retrospective experience. J Vasc Interv Radiol. 2010;21(11):1672-1680. Zhu G, He F, Gu Y, et al. Angioplasty for pediatric renovascular hypertension: a 13-year experience. Diagn Interv Radiol. 2014;20(3):285-292."}, {"number": "4", "stem": "An adult female with cervical cancer and known vesicovaginal fistula presents for urinary diversion. Which is the most appropriate initial procedure?", "options": [{"letter": "A", "text": "Bilateral PCN (percutaneous nephrostomy) catheter placement"}, {"letter": "B", "text": "Bilateral NUS (nephroureteral stent) placement"}, {"letter": "C", "text": "Bilateral double-J ureteral stent placement"}, {"letter": "D", "text": "Bilateral ureteral embolization with plugs"}], "images": [], "explanationImages": ["assets/a4_p004_01.jpg"], "answer": "A", "explanation": "Answer A. This question addresses the basics of urologic intervention. A PCN catheter is a drainage catheter with a distal pigtail that is positioned in the collecting system of the kidney, often the renal pelvis. It functions primarily as an external drainage catheter. When attached to a bag, it relieves distal urinary obstruction but also provides urinary diversion in the setting of a distal leak (as in the case example). An NUS is like a PCN catheter, except that it extends all the way to the bladder. It has proximal (renal pelvis) and distal (bladder) pigtails. It can be attached to a bag for external drainage or capped for internal drainage. It maintains percutaneous access to the kidney, ureter, and bladder. It is often used for stone intervention, in the setting of ureteral injuries or fistulas (to maintain contiguity), or when internal drainage is desired but the patient cannot undergo retrograde procedures. In the case example, an NUS does not offer benefit beyond a PCN and, because of the catheter extending into the bladder, is likely to cause some continued leakage of urine and possibly unnecessary irritation to the underlying vesicovaginal fistula. A double-J ureteral stent can be placed percutaneously (antegrade approach) or cystoscopically (retrograde approach). It primarily serves to keep the urine flowing from the kidney to the bladder, and often used in the setting of ureteral obstruction (stone, stenosis) or ureteral leak. As the urine will drain to the bladder, patients should have normal bladder function. In the case example, it provides no benefit to the patient. Ureteral embolization is a procedure that can be performed when permanent ureteral occlusion is desired. Plugs, coils, glue, and other embolics can be deployed in the ureters to completely block urine flow to the distal ureter and/or bladder. A PCN is required to drain the kidney. This is often a procedure of last resort and not appropriate as an initial urinary diversion tactic. Figure 4-1 Example of a percutaneous nephrostomy (PCN) catheter (left), nephroureteral stent (NUS) (middle), and double-J stent (right). References: Dagli M, Ramchandani P. Percutaneous nephrostomy: technical aspects and indications. Semin Intervent Radiol. 2011;28(4):424-437. Makramalla A, Zuckerman DA. Nephroureteral stents: principles and techniques. Semin Intervent Radiol. 2011;28(4):367-379."}, {"number": "5", "stem": "PCN catheter placement carries which risk of bleeding?", "options": [{"letter": "A", "text": "Category I low risk of bleeding, easy to detect or control"}, {"letter": "B", "text": "Category II moderate risk of bleeding"}, {"letter": "C", "text": "Category III significant risk of bleeding, difficult to detect or control"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. There are guidelines from the Society of Interventional Radiology, which categorize common procedures into 1 of 3 levels of bleeding risk. Based on the assessed risk of bleeding that a procedure carries, operators can then appropriately manage coagulation parameters, antiplatelet and anticoagulation medications in the periprocedural period. Category I:Low-Risk of Bleeding, Easy to Detect or Control Venous access Thoracentesis Superficial biopsy or drainage Routine drain exchange Paracentesis IVC filter placement Category II:Moderate Risk of Bleeding Arterial intervention Spine intervention Venous intervention Transjugular liver biopsy Category III:Significant Risk of Bleeding, Difficult to Detect or Control TIPS Kidney biopsy PTC with drain placement PCN catheter placement Adapted from Patel IJ, Davidson JC, Nikolic B, et al. Consensus guidelines for periprocedural management of coagulation status and hemostasis risk in percutaneous image-guided interventions. J Vasc Interv Radiol. 2012;23(6):727-736. IR, interventional radiology; IVC, inferior vena cava; PCN, percutaneous nephrostomy; PTC, percutaneous transhepatic cholangiography; TIPS, transjugular intrahepatic portosystemic shunt. Memorizing the guideline is not recommended, but a basic concept of level of risk should be known and the guideline frequently referenced when triaging procedures. For the highest risk procedures (Category III), all mitigable risk factors should be addressed; platelets should be greater than 50,000/μL, international normalized ratio (INR) should be <1.5, and all anticoagulation/antiplatelet medications should be held if possible. Reference: Patel IJ, Davidson JC, Nikolic B, et al. Consensus guidelines for periprocedural management of coagulation status and hemostasis risk in percutaneous image-guided interventions. J Vasc Interv Radiol. 2012;23(6):727-736."}, {"number": "6", "stem": "A 75-year-old female presents to the emergency room (ER) with left flank pain and weakness. She is febrile and hypotensive, which quickly escalates to the need for pressors. She has normal coagulation laboratory test results but does have a history of vascular disease with bilateral renal artery stents, and she takes clopidogrel (Plavix) 75 mg daily. What is the most appropriate treatment plan?", "options": [{"letter": "A", "text": "Give intravenous (IV) antibiotics, hold clopidogrel for 5 days, and then place a left PCN catheter"}, {"letter": "B", "text": "Give IV antibiotics and place a left PCN catheter emergently"}, {"letter": "C", "text": "Give IV antibiotics and percutaneous placement of a left internal double-J ureteral stent emergently"}, {"letter": "D", "text": "Give IV antibiotics and reimage in 48 hours; if there is persistent obstruction, place a left PCN catheter and internal double-J ureteral stent"}], "images": ["assets/q6_p005_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. This question is a bit of a reality check to the preceding question. Periprocedural coagulation guidelines are extremely important. Decades of research and numerous consensus meetings have tried to establish best practice. However, guidelines will always be guidelines and must be used in the context of each individual patient. In this example, there is an unstable patient with presumed sepsis, and imaging showing an obstructed left ureter due to a large calcific stone, left hydronephrosis with collecting system, and/or parenchymal gas locules. The patient needs source control. Although the risk of bleeding is higher in the setting of Plavix, the lifesaving benefit to immediate left renal decompression outweighs the risk. A sidenote about Plavix worth knowing: although the binding and disabling of platelets by the drug is irreversible, the half-life is about 6 hours. Therefore, if the drug is held for 24 to 48 hours, the medication will mostly be eliminated and a transfusion of fresh platelets can be expected to function appropriately. References: Patel IJ, Davidson JC, Nikolic B, et al. Consensus guidelines for periprocedural management of coagulation status and hemostasis risk in percutaneous image-guided interventions. J Vasc Interv Radiol. 2012;23(6):727-736. Thiele T, Sümnig A, Hron G, et al. Platelet transfusion for reversal of dual antiplatelet therapy in patients requiring urgent surgery: a pilot study. J Thromb Haemost. 2012;10(5):968-971."}, {"number": "7", "stem": "A 35-year-old female with malignant distal right ureteral obstruction presents for PCN catheter placement. Which would be the preferred access path (arrows) for tube placement?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q7_p006_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. PCN catheter placement can be performed with a few different techniques, but there are some basic principles regarding the access path to be aware of. As discussed elsewhere, the kidney is a very vascular organ, earning a category III risk for periprocedural risk of bleeding. Best practice is to avoid passing through and subsequently dilating a tract across a large vessel. This can be accomplished by accessing a peripheral calyx, which avoids the large hilar vessels, and targeting the posterolateral kidney where there is a relative avascular zone in the parenchyma (the avascular plane of Brodel). On the patient, the skin entry translates to roughly a full hand breadth lateral from the midline spinous process in the subcostal space. Among the choices, D fits all the criteria for safe percutaneous access. Choice A is medial and intercostal, increasing the risk of pleural transgression. Choice B is medial and direct access to the central renal pelvis without intervening parenchyma. This type of access increases the risk of central vascular injury, collecting system injury, and urinary extravasation. Choice C is anterior and transhepatic, which is unnecessary. References: Dagli M, Ramchandani P. Percutaneous nephrostomy: technical aspects and indications. Semin Intervent Radiol. 2011;28(4):424-437. Dyer RB, Regan JD, Kavanagh PV, Khatod EG, Chen MY, Zagoria RJ. Percutaneous nephrostomy with extensions of the technique: step by step. Radiographics. 2002;22(3):503-525."}, {"number": "8", "stem": "A 63-year-old male undergoes renal transplantation in the right iliac fossa. The patient does not make urine in the immediate post-op period. Based on the following images, what is the best explanation for the transplant kidney dysfunction?", "options": [{"letter": "A", "text": "Transplant renal artery thrombosis"}, {"letter": "B", "text": "External iliac artery stenosis"}, {"letter": "C", "text": "Transplant renal vein thrombosis"}, {"letter": "D", "text": "Transplant kidney urinary obstruction"}], "images": ["assets/q8_p007_01.jpg"], "explanationImages": ["assets/a8_p008_01.jpg"], "answer": "B", "explanation": "Answer B. The images show pelvic arteriography, not venography or urography (excluding choices C and D). There is a moderate to severe focal stenosis of the external iliac artery, just proximal to the arterial anastomosis of the transplant kidney. The transplant renal artery appears widely patent. The etiology of the inflow stenosis is not always clear, with a differential including preexisting atherosclerosis or iatrogenic injury during transplantation. In this patient, the inflow lesion was treated with a self- expanding bare-metal stent with good angiographic result and subsequent improvement in kidney function. Figure 8-1 Pelvic arteriography with focal flow-limiting stenosis (arrow) of the right external iliac artery as the source of transplant kidney dysfunction. Preprocedural ultrasound shows evolving parvus et tardus waveform, which normalizes after stent placement (right images). References: Kolli KP, Laberge JM. Interventional management of vascular renal transplant complications. Tech Vasc Interv Radiol. 2016;19(3):228-236. Rajan DK, Stavropoulos SW, Shlansky-Goldberg RD. Management of transplant renal artery stenosis. Semin Intervent Radiol. 2004;21(4):259-269."}, {"number": "9", "stem": "Which of the following interventions is most appropriate in this patient with right flank pain?", "options": [{"letter": "A", "text": "PCN catheter placement"}, {"letter": "B", "text": "Percutaneous cyst sclerosis"}, {"letter": "C", "text": "Percutaneous double-J stent placement"}, {"letter": "D", "text": "Transarterial embolization"}], "images": ["assets/q9_p009_01.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. There is an exophytic mass arising from the right kidney with macroscopic fat, which is the hallmark of an AML. AML often occurs sporadically (approximately 80% of cases) or may be associated with the phakomatoses, such as tuberous sclerosis (seen here), von Hippel-Lindau, or neurofibromatosis 1. It can also be seen with lymphangioleiomyomatosis (LAM). When these lesions grow to a large size, they can be symptomatic and also carry a risk for significant spontaneous bleeding. Transarterial embolization can be performed to shrink the tumor, which can palliate the symptoms and/or alleviate the risk of bleeding. There is no evidence for obstructive urinary pathology; therefore, choices A and C are incorrect. Although renal cyst sclerosis can be performed, the cysts present are quite small and the dominant pathology is clearly the AML. References: Kiefer RM, Stavropoulos SW. The role of interventional radiology techniques in the management of renal angiomyolipomas. Curr Urol Rep. 2017;18(5):36. Li D, Pua BB, Madoff DC. Role of embolization in the treatment of renal masses. Semin Intervent Radiol. 2014;31(1):70-81."}, {"number": "10", "stem": "What is the most commonly used tumor diameter for considering prophylactic embolization of a renal angiomyolipoma (AML)?", "options": [{"letter": "A", "text": ">2 cm"}, {"letter": "B", "text": ">3 cm"}, {"letter": "C", "text": ">4 cm"}, {"letter": "D", "text": ">5 cm"}], "images": [], "explanationImages": ["assets/a10_p010_01.jpg"], "answer": "C", "explanation": "Answer C. As discussed previously, larger renal AMLs carry a risk for spontaneous hemorrhage. In the literature, >4 cm is most commonly used as the threshold for treatment in an asymptomatic patient. Other factors that may be considered are overall degree of vascularity and size of aneurysms within the tumor. Regarding embolization technique, permanent particles or alcohol are the most commonly used agents. At angiography, the appearance can be quite variable, largely depending on the proportion of lipomatous to vascular components. Classically, the tumor will be hypervascular, composed of abnormal tortuous arteries with variably sized aneurysms. Arteriovenous shunting is usually absent. Figure 10-1 Bilateral renal arteriography in a patient with tuberous sclerosis and multiple angiomyolipomas (AMLs) (orange circles). References: Kiefer RM, Stavropoulos SW. The role of interventional radiology techniques in the management of renal angiomyolipomas. Curr Urol Rep. 2017;18(5):36. Li D, Pua BB, Madoff DC. Role of embolization in the treatment of renal masses. Semin Intervent Radiol. 2014;31(1):70-81."}, {"number": "11", "stem": "Which of the following scenarios is best suited for percutaneous thermal ablation of a renal cell carcinoma (RCC)?", "options": [{"letter": "A", "text": "6 cm solitary tumor"}, {"letter": "B", "text": "Life expectancy of 9 months"}, {"letter": "C", "text": "Underlying von Hippel-Lindau"}, {"letter": "D", "text": "Metastasis confined to the lungs"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. If a patient has a predisposition to RCC, such as with von Hippel-Lindau, one should strongly consider percutaneous thermal ablation. Partial nephrectomy is a good surgery, but if the patient is expected to have recurrent tumors, the most minimally invasive nephron-sparing technique is ideal. Accepted indications for renal ablation include T1a (≤4 cm) tumors, increased risk of multiple tumors, solitary kidney, or poor surgical candidate. If the life expectancy is poor, the risk of the procedure outweighs the benefit. Metastatic disease is considered a contraindication to local treatment. References: Higgins LJ, Hong K. Renal ablation techniques: state of the art. AJR Am J Roentgenol. 2015;205(4):735-741. Krokidis ME, Orsi F, Katsanos K, Helmberger T, Adam A. CIRSE guidelines on percutaneous ablation of small renal cell carcinoma. Cardiovasc Intervent Radiol. 2017;40(2):177-191."}, {"number": "12", "stem": "Which of the following is most likely to be found in this kidney transplant recipient?", "options": [{"letter": "A", "text": "Two ureteral stents"}, {"letter": "B", "text": "Transplant renal artery stent"}, {"letter": "C", "text": "PCN catheter"}, {"letter": "D", "text": "Bladder outlet obstruction"}], "images": ["assets/q12_p011_03.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The case images demonstrate an en bloc double pediatric kidney transplant. This is not a common procedure and needs to be recognized. Typically, portions of the donor aorta and vena cava are transplanted along with the kidneys and anastomosed to the recipient iliac vessels, leaving the donor renal vessels untouched. As there are 2 separate collecting systems, there will be 2 ureteral stents (choice A) placed at transplantation. Reference: Brunner MC, Matalon TA, Patel SK, Siliunas DA, Mcdonald V, Merkel FK. Percutaneous interventions in adults receiving pediatric \"en bloc\" double renal grafts. Cardiovasc Intervent Radiol. 1995;18(5):291-295."}, {"number": "13", "stem": "Which of the following should be avoided if possible when performing PCN access for the purpose of nephrolithotomy?", "options": [{"letter": "A", "text": "Access above the 12th rib"}, {"letter": "B", "text": "Access to a peripheral calyx"}, {"letter": "C", "text": "Prone positioning of the patient"}, {"letter": "D", "text": "Upper pole calyceal access"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. The most commonly injured juxtarenal structures when accessing the collecting system of the kidney are the diaphragm and the pleura. Studies have shown rates of pleural transgression at the 11th intercostal space of 29% on the right and 14% on the left. This becomes even more important for PCNL access as the tract may subsequently be dilated up to 30 Fr (1 cm). Reported rates of pleural complications from nephrostomy access alone range from 0.1% to 0.6%, whereas in the setting of PCNL, it can be as high as 12%. During PCNL, intercostal approach transpleural access can result in irrigant pleural fluid accumulation, pneumothorax, hemothorax, pulmonary infection, and nephropleural fistula. It should be noted that the intercostal approach is not contraindicated; in fact, it is frequently used. However, operators should not necessarily choose this access path unless necessary for the stone intervention. The remaining choices are all appropriate for PCN access for the purpose of PCNL. Peripheral calyceal access is desired, as less kidney parenchyma is transgressed and the operator can have greater instrument flexibility during stone removal. Prone or semiprone positioning is required to perform PCNL access, given the anatomic location of the kidneys. Lateral decubitus position can also be used; however, hyperinflation of the nondependent lung will occur, increasing the risk of pneumothorax. Upper pole calyceal access may be desired depending on the orientation of the kidney, collecting system, and/or position of the target stones. Both rigid and flexible instruments are used during PCNL, and the ideal access facilitates their use. References: Dagli M, Ramchandani P. Percutaneous nephrostomy: technical aspects and indications. Semin Intervent Radiol. 2011;28(4):424-437. Lee WJ, Smith AD, Cubelli V, et al. Complications of percutaneous nephrolithotomy. AJR Am J Roentgenol. 1987;148 (1):177-180. Pabon-ramos WM, Dariushnia SR, Walker TG, et al. Quality improvement guidelines for percutaneous nephrostomy. J Vasc Interv Radiol. 2016;27(3):410-414. Springer RM. Planning and execution of access for percutaneous renal stone removal in a community hospital setting. Semin Intervent Radiol. 2015;32(3):311-322."}, {"number": "14", "stem": "This pyelogram is obtained the day following percutaneous nephrolithotomy (PCNL) for a large central stone. Which of the following should be performed next?", "options": [{"letter": "A", "text": "Remove the balloon nephrostomy catheter"}, {"letter": "B", "text": "Obtain additional fluoroscopic images"}, {"letter": "C", "text": "Take patient emergently to the operating room (OR)"}, {"letter": "D", "text": "Renal angiogram with embolization"}], "images": ["assets/q14_p013_03.jpg"], "explanationImages": ["assets/a14_p014_03.jpg"], "answer": "B", "explanation": "Answer B. After PCNL, a common practice is to leave a PCN catheter in place, which tamponades the PCNL tract, drains the kidney, and maintains access to the kidney for subsequent urography and intervention if needed. When performing post-PCNL urography, interpreting physicians should identify residual stones, urinary obstruction, and urinary extravasation. Complete evaluation of the collecting system down to the bladder is performed. One must ensure that contrast progresses fully into the bladder, a concept sometimes missed by trainees focused on the intrarenal portion of the collection system. For the patient in the case example, additional imaging identified a complete distal ureteral obstruction from residual stones or clot. Either a PCN catheter should remain in place or double-J ureteral stent should be placed to ensure adequate drainage. Figure 14-1 Urography after percutaneous nephrolithotomy (PCNL) with distal ureteral obstruction due to residual stones. Had the nephrostomy access been removed based on the initial image, the patient would have been left with untreated urinary obstruction. References: Michel MS, Trojan L, Rassweiler JJ. Complications in percutaneous nephrolithotomy. Eur Urol. 2007;51(4):899-906. Springer RM. Planning and execution of access for percutaneous renal stone removal in a community hospital setting. Semin Intervent Radiol. 2015;32(3):311-322."}, {"number": "15", "stem": "What is the best interpretation of the following computed tomography angiography (CTA) images with respect to the changes in the right kidney?", "options": [{"letter": "A", "text": "Postablation changes"}, {"letter": "B", "text": "Interval growth of angiomyolipoma"}, {"letter": "C", "text": "Traumatic injury"}, {"letter": "D", "text": "Expected changes"}], "images": ["assets/q15_p015_03.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. To understand the change in appearance of the right kidney, one must recognize the patient has undergone interval endovascular aneurysm repair (EVAR) in the setting of 2 right renal arteries. After EVAR, the smaller and more caudally positioned accessory renal artery is clearly covered by the stent graft and demonstrates a diminutive appearance. As expected, the lower pole of the right kidney became ischemic resulting in corticomedullary atrophy and increased prominence of the renal sinus fat. Postablation changes, remote traumatic injury, or an underlying AML may appear similar; however, the constellation of findings best supports choice D. Reference: Picel AC, Kansal N. Essentials of endovascular abdominal aortic aneurysm repair imaging: postprocedure surveillance and complications. AJR Am J Roentgenol. 2014;203(4):W358-W372."}, {"number": "16", "stem": "What is the most likely cause of this transplant kidney ureteral stricture?", "options": [{"letter": "A", "text": "Ischemic"}, {"letter": "B", "text": "Infectious"}, {"letter": "C", "text": "Rejection"}, {"letter": "D", "text": "Kinking"}], "images": ["assets/q16_p016_01.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. PCN catheter placement in a transplant kidney is often performed for obstruction due to a ureteral stenosis. Published rates of transplant kidney ureteral stenosis formation range between 2% and 10%. Ischemia accounts for 90% of cases and is typically found at the ureterovesicular end. This is due to the vulnerable blood supply of the ureter the further from the renal artery. Other causes such as rejection, kinking, and extrinsic compression are less common. Treatment options include surgical revision, stenting, and/or ureteroplasty. References: Dagli M, Ramchandani P. Percutaneous nephrostomy: technical aspects and indications. Semin Intervent Radiol. 2011;28(4):424-437. Sandhu C, Patel U. Renal transplantation dysfunction: the role of interventional radiology. Clin Radiol. 2002;57(9):772-783."}, {"number": "17", "stem": "Which intervention could you offer to this patient with kidney pathology who is a surgical candidate?", "options": [{"letter": "A", "text": "Transarterial radioembolization"}, {"letter": "B", "text": "Percutaneous thermal ablation"}, {"letter": "C", "text": "Transarterial alcohol embolization"}, {"letter": "D", "text": "Prophylactic nephrostomy catheter placement"}], "images": ["assets/q17_p017_01.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Demonstrated on the images is a large hypervascular tumor arising from the left kidney consistent with primary renal malignancy. Currently, radioembolization has an extremely limited role in the treatment of renal cancer and is mainly palliative in intent. Percutaneous thermal ablation is recommended for T1a lesions (≤4 cm) and, at some centers, is performed on larger lesions. This tumor is clearly >4 cm in size and at least T3 in staging, as this tumor grows into the left renal vein and IVC and ablation is not appropriate. Surgical resection is the treatment of choice. There is no role for prophylactic PCN catheter placement in an unobstructed kidney, and the procedure would incur additional risk of bleeding from the tumor replaced kidney. For surgical candidates, preoperative embolization, often performed with alcohol and/or embolic particles, can be performed to devascularize the tumor and kidney, aiding in resection and reducing operative blood loss. Some research has also shown improved long-term survival with prenephrectomy embolization when compared with resection alone. References: Bakal CW, Cynamon J, Lakritz PS, Sprayregen S. Value of preoperative renal artery embolization in reducing blood transfusion requirements during nephrectomy for renal cell carcinoma. J Vasc Interv Radiol. 1993;4(6):727-731. Sauk S, Zuckerman DA. Renal artery embolization. Semin Intervent Radiol. 2011;28(4):396-406. Zielinski H, Szmigielski S, Petrovich Z. Comparison of preoperative embolization followed by radical nephrectomy with radical nephrectomy alone for renal cell carcinoma. Am J Clin Oncol. 2000;23(1):6-12."}, {"number": "18", "stem": "Based on these images, what is the most likely underlying pathology?", "options": [{"letter": "A", "text": "Nephrolithiasis"}, {"letter": "B", "text": "Bladder cancer"}, {"letter": "C", "text": "Iatrogenic injury"}, {"letter": "D", "text": "Ureterocolic fistula"}], "images": ["assets/q18_p018_01.jpg"], "explanationImages": ["assets/a18_p019_01.jpg"], "answer": "B", "explanation": "Answer B. When performing nephrostograms, it is important to not only evaluate tube positioning but study the entire urinary pathway. The urogram shows bilateral ureteral obstruction. The points of obstruction demonstrate cupped margins with dilation of the ureter above and below. This appearance is characteristic of chronic obstruction due to underlying intraluminal mass, most commonly transitional cell carcinoma. The patient also has a Foley catheter to treat bladder outlet obstruction (note the thickened bladder wall). The constellation of findings supports a diagnosis of underlying transitional cell cancer of the bladder with synchronous ureteral involvement. Transitional cell carcinoma arises from the bladder 90% of the time, and synchronous and/or metachronous upper tract lesions are found in up to 6% of patients. Figure 18-1 Corresponding maximum intensity projection (MIP) image from F-18 fludeoxyglucose positron emission tomography (FDG PET) shows focal tracer activity in the ureters corresponding to the strictures seen on urography (arrows). References: Wong-you-Cheong JJ, Wagner BJ, Davis CJ. Transitional cell carcinoma of the urinary tract: radiologic-pathologic correlation. Radiographics. 1998;18(1):123-142. Yousem DM, Gatewood OM, Goldman SM, Marshall FF. Synchronous and metachronous transitional cell carcinoma of the urinary tract: prevalence, incidence, and radiographic detection. Radiology. 1988;167(3):613-618."}, {"number": "19", "stem": "What is the diameter size threshold for treating this asymptomatic pathology?", "options": [{"letter": "A", "text": ">2 cm"}, {"letter": "B", "text": ">3 cm"}, {"letter": "C", "text": ">4 cm"}, {"letter": "D", "text": "No size threshold, only treat if symptomatic"}], "images": ["assets/q19_p020_02.jpg"], "explanationImages": ["assets/a19_p021_01.jpg"], "answer": "A", "explanation": "Answer A. The images demonstrate an avidly enhancing round lesion arising from the left kidney with peripherally calcified walls and mural thrombus. There is an enlarged feeding artery. This is a renal artery aneurysm. This particular lesion is atypical because of its large size (>8 cm in diameter); renal aneurysms are often <2 cm and discovered incidentally on imaging for some other reason. The most often quoted guideline for treatment in an asymptomatic patient is >2 cm in diameter (choice A). There admittedly is some degree of controversy here, as the natural course of these lesions is unclear; therefore, the risk of rupture is not fully known. Treatment options are surgical or endovascular. Renal artery aneurysms should also be treated when symptomatic or when they occur in women who are pregnant or of childbearing age. Figure 19-1 Aortography shows left renal artery aneurysm measuring >8 cm. The feeding artery was selected and occluded with a vascular plug. The aneurysm arose from a branch of the main renal artery, and virtually all of the kidney parenchyma was spared during the embolization. References: Henke PK, Cardneau JD, Welling TH, et al. Renal artery aneurysms: a 35-year clinical experience with 252 aneurysms in 168 patients. Ann Surg. 2001;234(4):454-462. Klausner JQ, Harlander-locke MP, Plotnik AN, Lehrman E, Derubertis BG, Lawrence PF. Current treatment of renal artery aneurysms may be too aggressive. J Vasc Surg. 2014;59(5):1356-1361."}, {"number": "20", "stem": "An unstable blunt trauma patient is transported directly to the OR for laparotomy. In the OR, there is suspected bleeding from the right kidney and the trauma team requests emergent angiography. Based on the angiographic image, what is the best course of action?", "options": [{"letter": "A", "text": "Coil embolize the right renal artery"}, {"letter": "B", "text": "No intervention indicated"}, {"letter": "C", "text": "Additional angiography required"}, {"letter": "D", "text": "Return to the OR"}], "images": ["assets/q20_p022_01.jpg"], "explanationImages": ["assets/a20_p023_03.jpg"], "answer": "C", "explanation": "Answer C. The images demonstrate selective catheterization of the right renal artery with angiography. What must be recognized is that only ⅓ of the expected kidney parenchyma is opacified with contrast. With or without prior cross-sectional imaging, one must be on guard for variant vascular anatomy. Duplicated/multiple renal arteries are fairly common, with reported incidence as high as 30%. If there is any doubt, a flush catheter aortogram can be performed to reveal additional arteries. In the case example, the upper pole artery was interrogated and angiography identified brisk active extravasation. Figure 20-1 Blunt trauma patient with right renal angiogram demonstrating perfusion to the upper ⅔ of the right kidney and large laceration and active bleeding (arrow). A superselective coil embolization was performed. References: Al-katib S, Shetty M, Jafri SM, Jafri SZ. Radiologic assessment of native renal vasculature: a multimodality review. Radiographics. 2017;37(1):136-156. Ramaswamy RS, Darcy MD. Arterial embolization for the treatment of renal masses and traumatic renal injuries. Tech Vasc Interv Radiol. 2016;19(3):203-210."}, {"number": "21", "stem": "Which is the most common major complication with percutaneous thermal ablation for RCC?", "options": [{"letter": "A", "text": "Ureteral injury"}, {"letter": "B", "text": "Nerve damage"}, {"letter": "C", "text": "Hemorrhage"}, {"letter": "D", "text": "Bowel injury"}, {"letter": "E", "text": "Tumor tract seeding"}], "images": [], "explanationImages": ["assets/a21_p024_03.jpg"], "answer": "C", "explanation": "Answer C. The major complication rate for percutaneous thermal ablation of renal malignancies is between 3% and 7%. All of the provided answer choices have been reported, and a critical look at a sample case image reveals why. Figure 21-1 Example of a lower pole renal cell carcinoma (red shade) with location of adjacent bowel, ureter, and nerve identified by the arrows. Renal tumors (especially those located in the medial lower pole) can be in close proximity to the ureter, bowel, and major nerves that travel along the periphery of the psoas muscle. When faced with potential nontarget thermal injury, adjunctive techniques such as hydrodissection can be used to displace adjacent structures away from the ablation zone. For protection of the collecting system and ureter, a stent can be placed preprocedurally and pyeloperfusion can be performed during the ablation (cool saline for heat ablation and warm saline for cryoablation). Although any of these complications can occur, major bleeding is the most common. Bleeding may be less common when using radiofrequency ablation (RFA) compared with cryoablation, which is attributed to coagulative effects. Tumor tract seeding, although reported and feared, is very uncommon and described in fewer than 1% of cases. References: Atwell TD, Schmit GD, Boorjian SA, et al. Percutaneous ablation of renal masses measuring 3.0 cm and smaller: comparative local control and complications after radiofrequency ablation and cryoablation. AJR Am J Roentgenol. 2013;200 (2):461-466. Kim KR, Thomas S. Complications of image-guided thermal ablation of liver and kidney neoplasms. Semin Intervent Radiol. 2014;31(2):138-148. Kurup AN. Percutaneous ablation for small renal masses-complications. Semin Intervent Radiol. 2014;31(1):42-49."}];
+    const APP_ID = "ir-urinary-quiz-ch6";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: false };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          lines.push("");
+          continue;
+        }
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
+      const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
+      canvas.width = width;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
+      ctx.font = "24px Arial";
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
