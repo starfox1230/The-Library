@@ -11,6 +11,8 @@ If you create or modify an app under `apps/temporary-apps/library/`, you **must*
 
 Do not consider the task complete unless the verification script passes.
 
+After completing and verifying a temporary app change, commit the completed work and push the commit to GitHub. Keep the commit scoped to the app and its required registrations/documentation; do not include unrelated working-tree changes.
+
 ### Core Review quiz apps
 If the temporary app is a Core Review radiology quiz, do **not** create a new top-level `apps/temporary-apps/library/YYYY-MM-DD-slug/` folder unless the user explicitly asks for a legacy duplicate.
 
