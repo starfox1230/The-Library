@@ -5,27 +5,38 @@ const CATEGORY_SCOPES = [
   {
     id: "mixed-artifacts",
     label: "Mixed artifacts / image quality",
-    ranges: [{ block: "Block 1", start: 1, end: 88 }],
+    ranges: [{ block: "Block 1", start: 1, end: 87 }],
   },
   {
     id: "radiography-xray",
     label: "Radiography / x-ray production",
     ranges: [
-      { block: "Block 1", start: 89, end: 143 },
+      { block: "Block 1", start: 88, end: 143 },
       { block: "Block 2", start: 1, end: 55 },
+      { block: "Block 2", start: 97, end: 113 },
+      { block: "Block 3", start: 5, end: 5 },
+      { block: "Block 3", start: 8, end: 8 },
     ],
   },
   {
     id: "radiation-safety",
     label: "Radiation safety / biology",
-    ranges: [{ block: "Block 2", start: 56, end: 95 }],
+    ranges: [
+      { block: "Block 2", start: 56, end: 96 },
+      { block: "Block 3", start: 18, end: 20 },
+      { block: "Block 3", start: 27, end: 27 },
+    ],
   },
   {
     id: "ct-physics",
     label: "CT physics",
     ranges: [
-      { block: "Block 2", start: 96, end: 143 },
-      { block: "Block 3", start: 1, end: 28 },
+      { block: "Block 2", start: 114, end: 143 },
+      { block: "Block 3", start: 1, end: 4 },
+      { block: "Block 3", start: 6, end: 7 },
+      { block: "Block 3", start: 9, end: 17 },
+      { block: "Block 3", start: 21, end: 26 },
+      { block: "Block 3", start: 28, end: 28 },
     ],
   },
   {
