@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interventional Radiology Gastrointestinal Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Interventional Radiology Gastrointestinal Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"ir-gastrointestinal-quiz-ch5",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "Which of the following is considered a potentially curative treatment for hepatocellular carcinoma (HCC)?", "options": [{"letter": "A", "text": "Thermal ablation"}, {"letter": "B", "text": "Conventional transarterial chemoembolization (cTACE)"}, {"letter": "C", "text": "Drug-eluting beads transarterial chemoembolization (DEBTACE)"}, {"letter": "D", "text": "Sorafenib"}], "images": ["assets/q1_p001_03.jpg"], "explanationImages": ["assets/a1_p053_03.jpg"], "answer": "A", "explanation": "Answer A. The standard of care for the treatment of HCC is to follow a liver cancer staging and treatment system such as the Barcelona Clinic Liver Cancer (BCLC) model for HCC. Figure 1-1 BCLC algorithm for the management of HCC. CP, Child-Pugh score; PST, ECOG performance status. Adapted from Forner A, Reig ME, De Lope CR, Bruix J. Current strategy for staging and treatment: the BCLC update and future prospects. Semin Liver Dis. 2010;30(1):61-74. First-line treatments for very early and early stage HCC strive for a curative result, namely through surgical resection, liver transplantation, or ablation (choice A). The transarterial liver-directed therapies (choices B and C) are most commonly utilized in intermediate or even advanced-stage patients and generally are considered noncurative. There are exceptions, such as performance of a radiation segmentectomy with yttrium-90 to achieve results akin to ablation or surgery, but this is beyond the scope of this book. Importantly, the transarterial treatments can shrink or stabilize the tumor(s) in hopes of downstaging to a curative treatment, maintaining transplant candidacy, and/or providing palliation/extension of life. References: Forner A, Reig ME, De Lope CR, Bruix J. Current strategy for staging and treatment: the BCLC update and future prospects. Semin Liver Dis. 2010;30(1):61-74. Hickey R, Vouche M, Sze DY, et al. Cancer concepts and principles: primer for the interventional oncologist-part II. J Vasc Interv Radiol. 2013;24(8):1167-1188. Kinoshita A, Onoda H, Fushiya N, Koike K, Nishino H, Tajiri H. Staging systems for hepatocellular carcinoma: current status and future perspectives. World J Hepatol. 2015;7(3):406-424. Llovet JM, Brú C, Bruix J. Prognosis of hepatocellular carcinoma: the BCLC staging classification. Semin Liver Dis. 1999;19 (3):329-338."}, {"number": "2", "stem": "What complication is depicted on these fluoroscopic images from a gastrostomy tube study?", "options": [{"letter": "A", "text": "Gastrostomy tube is clogged"}, {"letter": "B", "text": "Internal fixation balloon is malpositioned"}, {"letter": "C", "text": "Contrast extravasation into the lesser sac"}, {"letter": "D", "text": "Contrast extravasation along the tube tract"}], "images": ["assets/q2_p002_01.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The initial scout image on the left suggests incorrect gastrostomy tube positioning. For orientation, the gastric air bubble is fairly well seen, and the tube tip is right of midline in the region where the pylorus would be located. Contrast is injected through the tube, and the duodenum opacifies (choice A is incorrect) at the tube tip, confirming the internal fixation balloon is postpyloric. Postpyloric tube position can result in gastric outlet obstruction, leaking along the tube tract, and abdominal pain. Only intraluminal contrast is identified on the images, excluding choices C and D. Figure 2-1 Initial postpyloric placement image (left) followed by repositioning into the stomach (right). Reference: Lyon SM, Pascoe DM. Percutaneous gastrostomy and gastrojejunostomy. Semin Intervent Radiol. 2004;21(3):181-189."}, {"number": "3", "stem": "How should interventional radiology best triage a gastrostomy tube placement request in a patient with ascites?", "options": [{"letter": "A", "text": "Refer to gastroenterology as endoscopic placement is the only safe option"}, {"letter": "B", "text": "Deny request as ascites is an absolute contraindication for gastrostomy tube placement"}, {"letter": "C", "text": "Perform percutaneous gastrostomy tube placement with preprocedure paracentesis"}, {"letter": "D", "text": "Perform percutaneous gastrostomy tube placement with ascites untouched to keep sterile"}], "images": ["assets/q3_p002_03.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. Gastrostomy tube placement can be performed by surgeons, endoscopists, or interventional radiologists. Typical indications include dysphagia or swallowing disorders, unmet nutritional needs, and gastric outlet obstruction. The most widely held absolute contraindication is untreated hypocoagulable state. The presence of gastric varices, inability to insufflate the stomach, and inability to safely access the stomach are additional contraindications. Ascites, once considered a contraindication, can be handled by performing preprocedure paracentesis (choice C) decreasing the risk of peritonitis and delayed tract maturation. If there is significant preprocedure ascites or rapid reaccumulation, sonographic follow-up and repeat paracentesis can be performed while the tract matures over 7 to 10 days. Reference: Lyon SM, Pascoe DM. Percutaneous gastrostomy and gastrojejunostomy. Semin Intervent Radiol. 2004;21(3):181-189."}, {"number": "4", "stem": "Which is the best approach for percutaneous cholecystostomy tube placement in this patient?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q4_p003_02.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The optimal tract for percutaneous cholecystostomy tube placement crosses a small amount of liver parenchyma in order to tamponade any possible bile leak (choice C). Peritoneal nontranshepatic approach (choice B) is suboptimal, but acceptable if it is the only option, such as with a markedly dilated gallbladder. The posterior approach (choice D) results in an inappropriately long trajectory and does not include a good tract of hepatic parenchyma. For all percutaneous procedures, vascularity in the projected path of the intervention must be considered. Choice A demonstrates potential crossing of the inferior epigastric artery, which could lead to a major bleeding complication. Reference: Bakkaloglu H, Yanar H, Guloglu R, et al. Ultrasound guided percutaneous cholecystostomy in high-risk patients for surgical intervention. World J Gastroenterol. 2006;12(44):7179-7182."}, {"number": "5", "stem": "What is the most likely etiology of this finding (arrow) on antegrade cholangiography?", "options": [{"letter": "A", "text": "Benign stricture"}, {"letter": "B", "text": "Mirizzi syndrome"}, {"letter": "C", "text": "Choledochal cyst"}, {"letter": "D", "text": "Primary sclerosing cholangitis (PSC)"}], "images": ["assets/q5_p005_02.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The cholangiogram depicts a short-segment focal narrowing or stricture of the common hepatic duct. The nearby metallic clips and lack of cystic duct suggest previous surgery to the region. This is confirmed by the very short distance between the hepatic duct confluence and the bowel. Benign strictures occur in approximately 10% of patients who have undergone hepaticojejunostomy (choice A). If the cystic duct is absent, presumably the gallbladder is absent; therefore Mirizzi syndrome is not feasible. Choledochal cysts do not present as strictures. Primary sclerosing cholangitis is not typically found as a singular focal stricture, and given the postoperative appearance, benign stricture is the most likely option. Reference: Abdelrafee A, El-Shobari M, Askar W, Sultan AM, El Nakeeb A. Long-term follow-up of 120 patients after hepaticojejunostomy for treatment of post-cholecystectomy bile duct injuries: a retrospective cohort study. Int J Surg. 2015; 18:205-210."}, {"number": "6", "stem": "What is the standard technique for transjugular liver biopsy (TJLB)? Biopsy device positioned in the:", "options": [{"letter": "A", "text": "Left hepatic vein directed anteriorly"}, {"letter": "B", "text": "Left hepatic vein directed posteriorly"}, {"letter": "C", "text": "Right hepatic vein directed anteriorly"}, {"letter": "D", "text": "Right hepatic vein directed posteriorly"}], "images": [], "explanationImages": ["assets/a6_p055_03.jpg"], "answer": "C", "explanation": "Answer C. The sheath commonly used to guide the biopsy needle for this procedure is curved and therefore can be directed anteriorly, posteriorly, etc. The standard technique is to catheterize the right hepatic vein and aim the biopsy sheath and needle anteriorly (choice C). As the right hepatic vein is normally positioned posteriorly in the liver, by directing the biopsy needle anteriorly, it is unlikely to transgress the liver capsule, thereby reducing the risk of a bleeding complication. Figure 6-1 The blue arrows denote projected biopsy needle tract through the liver from the right (RHV), middle (MHV), and left (LHV) hepatic veins. Reference: Dohan A, Guerrache Y, Boudiaf M, Gavini JP, Kaci R, Soyer P. Transjugular liver biopsy: indications, technique and results. Diagn Interv Imaging. 2014;95(1):11-15."}, {"number": "7", "stem": "Which of the following is the most useful prognosticating factor for mortality following elective transjugular intrahepatic portosystemic shunt (TIPS)?", "options": [{"letter": "A", "text": "MELD score"}, {"letter": "B", "text": "Presence or absence of hepatocellular carcinoma"}, {"letter": "C", "text": "Presence or absence of ascites"}, {"letter": "D", "text": "Preprocedure portal vein pressure"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. TIPS creation is a significant alteration in physiology. Even when performed pristinely, the physiologic changes can overwhelm an already abnormal liver. Model for end-stage liver disease (MELD) is a scoring system initially developed to estimate short-term survival after TIPS. Notably, a more recent version of the MELD score includes a correction for the sodium level; however, this has not yet been validated in studies for TIPS. We use the original MELD score in patient evaluation for TIPS. The MELD score was subsequently found to be useful in triaging patients for liver transplantation and is still used routinely in both applications. MELD = 9.6 × log e (creatinine mg/dL) + 3.8 × log e (bilirubin mg/dL) + 11.2 × log e (INR) + 6.4 While there is no absolute cutoff value for MELD score before TIPS, there are data to guide the patient and clinician in making an informed decision regarding the risks and benefits. For example, a MELD ≥18 has been shown to have 1- and 3-month mortality of 18% and 35%, respectively, after elective TIPS. References: Ferral H, Gamboa P, Postoak DW, et al. Survival after elective transjugular intrahepatic portosystemic shunt creation: prediction with model for end-stage liver disease score. Radiology. 2004;231(1):231-236. Kamath PS, Wiesner RH, Malinchoc M, et al. A model to predict survival in patients with end-stage liver disease. Hepatology. 2001;33(2):464-470. Montgomery A, Ferral H, Vasan R, Postoak DW. MELD score as a predictor of early death in patients undergoing elective transjugular intrahepatic portosystemic shunt (TIPS) procedures. Cardiovasc Intervent Radiol. 2005;28(3):307-312."}, {"number": "8", "stem": "Which of the following is the best intervention for this patient with liver failure and refractory ascites? Both images are hepatic venograms.", "options": [{"letter": "A", "text": "Balloon angioplasty"}, {"letter": "B", "text": "Catheter-directed tPA infusion"}, {"letter": "C", "text": "Transjugular intrahepatic portosystemic shunt creation"}, {"letter": "D", "text": "Systemic anticoagulation"}], "images": ["assets/q8_p008_03.jpg"], "explanationImages": ["assets/a8_p056_03.jpg", "assets/a8_p057_03.jpg"], "answer": "C", "explanation": "Answer C. The case demonstrates a grossly abnormal hepatic venogram. There is a disorganized network of collateral hepatic veins, which are not draining the liver effectively. A normal right hepatic vein is not visualized peripherally or centrally. Reference a normal right hepatic venogram (Figure 8-1). Figure 8-1 Venogram from selective right hepatic vein catheterization. This is the angiographic picture of Budd-Chiari from hepatic vein thrombosis. The appearance of well-developed small-caliber tortuous collaterals is consistent with a chronic process; therefore choices A, B, or D would not likely be successful therapies. TIPS creation (choice C) and liver transplantation are the typical options for this presentation. In contradistinction, presented is an example of acute clot in the left axillary vein of a different patient (Figure 8-2). Figure 8-2 Catheter venogram demonstrating acute left axillary vein thrombosis (left image). Note the vein is expanded by a large filling defect, and the vessel maintains its expected anatomic course (not a collateral). This clot would be expected to respond to standard treatments for acute thrombus such as anticoagulation, tPA, or clot maceration/aspiration. Following overnight catheter-directed tPA fibrinolysis (right image), there is patency of the left axillary and central veins with no filling defects or stenosis. References: Garcia-Pagán JC, Heydtmann M, Raffa S, et al. TIPS for Budd-Chiari syndrome: long-term results and prognostics factors in 124 patients. Gastroenterology. 2008;135(3):808815. Han G, Qi X, Zhang W, et al. Percutaneous recanalization for Budd-Chiari syndrome: an 11-year retrospective study on patency and survival in 177 Chinese patients from a single center. Radiology. 2013;266(2):657-667. Molmenti EP, Segev DL, Arepally A, et al. The utility of TIPS in the management of Budd-Chiari syndrome. Ann Surg. 2005;241 (6):978-981. Smith M, Durham J. Evolving indications for tips. Tech Vasc Interv Radiol. 2016;19(1):36-41."}, {"number": "9", "stem": "A TIPS procedure involves the creation of a tract between an intrahepatic portal vein and a hepatic vein. What is the standard method to keep the tract open?", "options": [{"letter": "A", "text": "High-pressure balloon angioplasty"}, {"letter": "B", "text": "Drug-coated balloon angioplasty"}, {"letter": "C", "text": "Uncovered self-expanding stent"}, {"letter": "D", "text": "Covered self-expanding stent"}, {"letter": "E", "text": "Hybrid covered and uncovered self-expanding stent"}], "images": ["assets/q9_p009_03.jpg"], "explanationImages": [], "answer": "E", "explanation": "Answer E. When the TIPS procedure was initially investigated in animal studies, the shunt tract was created and dilated open with angioplasty alone. This technique was quickly discovered to have poor shunt patency. The next step in TIPS evolution was the placement of uncovered stents in the shunt tract. In-stent stenosis occurred (thought to be due to bile leak around the intraparenchymal portion of the uncovered stent), and ultimately a hybrid covered/uncovered stent was found to be superior. The intraparenchymal portion of the hybrid stent is covered, and the terminal 2 cm of the portal venous end is uncovered to ensure portal patency. Figure 9-1 Hepatoportogram from TIPS procedure pre (left) and post (right) deployment of the hybrid covered/uncovered stent. Marker pigtail catheter is seen coming from the right hepatic vein, traversing through the liver parenchyma and entering the right portal vein at the level of the arrow (the traditional route for TIPS). Postdeployment image (right) demonstrating stent extending from the right portal to the right hepatic vein. Note the metallic ring (arrow) delineating the uncovered portion of the stent that lies within the right portal vein, from the covered portion of the stent that lies within the parenchymal tract and extends into the right hepatic vein. LPV, left portal vein; MPV, main portal vein; RHV, right hepatic vein; RPV, right portal vein. References: Cejna M. Should stent-grafts replace bare stents for primary transjugular intrahepatic portosystemic shunts? Semin Intervent Radiol. 2005;22(4):287-299. Clark TW. Stepwise placement of a transjugular intrahepatic portosystemic shunt endograft. Tech Vasc Interv Radiol. 2008;11 (4):208-211."}, {"number": "10", "stem": "Based on the DSA images what is the most likely diagnosis?", "options": [{"letter": "A", "text": "Arteriovenous fistula"}, {"letter": "B", "text": "Active arterial extravasation"}, {"letter": "C", "text": "Active venous extravasation"}, {"letter": "D", "text": "Aneurysm"}], "images": ["assets/q10_p010_03.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. Two DSA images are presented with the end-hole catheter positioned in the proximal segment of the main splenic artery. The left image is in the arterial phase, and the right image is in the parenchymal phase (outflow veins not yet present). On the arterial phase image, near the splenic hilum, there is contrast exiting the normal pathway of the splenic artery. On the more delayed image, a well-defined spherical structure becomes opacified with contrast, consistent with a saccular aneurysm (choice D). Active arterial extravasation would show contrast dispersing in a random and uncontained manner; therefore choice B is incorrect. These images are earlier than the venous phase, excluding choice C (incidentally, seeing true venous extravasation from an arterial injection is rare). Choice A, arteriovenous fistula, would be represented as early opacification of an outflow vein, which is not seen here. Reference: Lakin RO, Bena JF, Sarac TP, et al. The contemporary management of splenic artery aneurysms. J Vasc Surg. 2011;53(4):958-964."}, {"number": "11", "stem": "What is the most commonly held threshold for treating a true aneurysm of the splenic artery in a healthy asymptomatic male patient?", "options": [{"letter": "A", "text": ">0.5 cm"}, {"letter": "B", "text": ">1 to 1.5 cm"}, {"letter": "C", "text": ">2 to 2.5 cm"}, {"letter": "D", "text": ">3 to 3.5 cm"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The commonly accepted minimum diameter for treating a true aneurysm of the splenic artery is 2.0 to 2.5 cm, assuming no complicating factors. Other indications for treatment include a rapidly enlarging aneurysm or one that has ruptured. For women who may become pregnant or patients undergoing liver transplantation, some suggest treating all true splenic artery aneurysms regardless of size because of an increased risk of rupture in those conditions. One additional category is that of a symptomatic (painful) aneurysm; this suggests the possibility of imminent rupture that could result in catastrophic bleeding. All symptomatic aneurysms should be fixed urgently. Reference: Lakin RO, Bena JF, Sarac TP, et al. The contemporary management of splenic artery aneurysms. J Vasc Surg. 2011;53(4):958-964."}, {"number": "12", "stem": "Which artery (arrowheads) provides collateral flow to the spleen after this embolization?", "options": [{"letter": "A", "text": "Arc of Riolan"}, {"letter": "B", "text": "Marginal artery of Drummond"}, {"letter": "C", "text": "Dorsal pancreatic artery"}, {"letter": "D", "text": "Gastroepiploic artery"}], "images": ["assets/q12_p012_03.jpg"], "explanationImages": [], "answer": "D", "explanation": "Answer D. There is robust collateral arterial supply to the visceral organs. Occluding the splenic artery proximally (not at the hilum) will virtually never cause end-organ ischemia. Collateral supply to the spleen includes pancreatic arterial branches, short gastric arteries, and the gastroepiploic artery as a continuation of the gastroduodenal artery. In this case, the embolization was intentionally performed with the coil pack extending from the distal segment of the main splenic artery into the upper and lower pole arteries. This \"isolation\" technique closed the front and back door to the aneurysm, resulting in immediate thrombosis. Following the embolization, the gastroepiploic artery nicely communicated with the residual patent lower pole splenic artery branch, allowing for continued perfusion of the splenic parenchyma. Reference: Madoff DC, Denys A, Wallace MJ, et al. Splenic arterial interventions: anatomy, indications, technical considerations, and potential complications. Radiographics. 2005;25(suppl 1):S191-S211."}, {"number": "13", "stem": "The following angiographic images demonstrate a chronic pathology. Which of the following would be the most likely clinical presentation?", "options": [{"letter": "A", "text": "Threatened bowel"}, {"letter": "B", "text": "Transaminitis"}, {"letter": "C", "text": "Weight loss"}, {"letter": "D", "text": "Chronic kidney disease"}], "images": ["assets/q13_p013_03.jpg", "assets/q13_p014_03.jpg", "assets/q13_p015_03.jpg"], "explanationImages": ["assets/a13_p059_03.jpg", "assets/a13_p060_03.jpg"], "answer": "C", "explanation": "Answer C. On the AP and lateral view abdominal aortograms, neither the celiac artery nor the superior mesenteric artery (SMA) opacify, and a hypertrophied inferior mesenteric artery (IMA) is present giving rise to a large cephalad coursing collateral ( Figure 13-1, small arrowheads). On the lateral view there is a bulky, eccentric atherosclerotic plaque where the celiac and SMA origins would normally be seen. This is the angiographic picture of chronic mesenteric ischemia, which is most often due to atherosclerotic disease. Slowly over time, the mesenteric arteries become narrowed and even occluded, with collateral pathways developing, which help prevent acute ischemia and bowel loss. Symptoms do not usually present until 2 of the 3 major mesenteric arteries become occluded. The classic triad is that of postprandial abdominal pain, food fear or avoidance, and subsequent weight loss. Both endovascular stenting and open surgical revascularization are acceptable treatments. Figure 13-1 Abdominal aortogram. When there is compromise of the SMA or IMA, arterial collaterals hypertrophy between the distributions, allowing for bowel perfusion and viability. The two named pathways often discussed are the arc of Riolan and the marginal artery of Drummond. The arc of Riolan refers to a pathway more centrally located in the root of the mesentery, often arising shortly after the middle colic artery and connecting to the proximal IMA. The marginal artery of Drummond refers to a pathway that develops more peripherally along the mesenteric border of the colon, connecting the distal middle colic branches (SMA origin) to the distal left colic branches (IMA origin). Figure 13-2 Patient is post-EVAR for AAA with exclusion of the IMA by the endograft. Angiography from the SMA shows filling of the middle colic artery, which demonstrates its characteristic \"T\" shape with right and left branches perfusing the transverse colon. A contiguous arterial collateral has hypertrophied connecting the SMA to IMA distributions (marginal artery of Drummond). angiography from the SMA shows both central (arc of Riolan) and peripheral (marginal artery of Drummond) collateral arterial pathways connecting the SMA and IMA distributions. A 3D volume-rendered CTA image (bottom) highlights the pathways. Reference: Hohenwalter EJ. Chronic mesenteric ischemia: diagnosis and treatment. Semin Intervent Radiol. 2009;26(4):345-351."}, {"number": "14", "stem": "Following liver transplant, a patient presents for evaluation. Where is the pathology located on these DSA images from celiac angiography (2 projections of the same process)?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}, {"letter": "D", "text": "D"}], "images": ["assets/q14_p017_04.jpg"], "explanationImages": ["assets/a14_p061_04.jpg"], "answer": "B", "explanation": "Answer B. The case images depict the hepatic artery following liver transplantation. Understanding the orientation and anatomy is crucial to accurately interpret the images, and reviewing the operative report is often necessary. The following diagrams with corresponding angiography demonstrate the surgical anatomy and pathology present here. Figure 14-1 Posttransplant hepatic arterial anatomy. The irregular outpouchings must be recognized as surgically ligated vessel stumps, and not pseudoaneurysms, pathologically thrombosed vessels, or active extravasation. GDA, gastroduodenal artery; HA, hepatic artery. Figure 14-2 The true abnormality is the focal arterial narrowing (arrow) likely from clamp injury at the time of surgery. Balloon angioplasty (middle) is performed, and completion DSA (right) shows no residual stenosis. Reference: Amesur NB, Zajko AB. Interventional radiology in liver transplantation. Liver Transpl. 2006;12(3):330-351."}, {"number": "15", "stem": "The following intravascular pressure measurements were obtained in 3 different patients. Which would most likely benefit from a TIPS?", "options": [{"letter": "A", "text": "Free hepatic vein 18 mmHg; wedged hepatic vein 25 mmHg"}, {"letter": "B", "text": "Free hepatic vein 6 mmHg; wedged hepatic vein 22 mmHg"}, {"letter": "C", "text": "Free hepatic vein 6 mmHg; wedged hepatic vein 9 mmHg"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Portal hypertension can be classified into presinusoidal, sinusoidal, and postsinusoidal causes. Presinusoidal pathology is found upstream from the liver sinusoids. An example of this is portal vein thrombosis. Postsinusoidal pathology relates to the venous outflow of the liver, classically seen with Budd-Chiari or right heart failure. Sinusoidal portal hypertension is due to hepatic parenchymal diseases, most commonly cirrhosis. During endovascular evaluation, a catheter is positioned in the proximal right hepatic vein, and the measured pressure is the free hepatic vein pressure (FHVP). Subsequently, a surrogate for the portal venous pressure can be obtained by wedging an end-hole catheter into a hepatic venule or inflating a balloon occlusion catheter in the proximal hepatic vein. The measured pressure is the wedged hepatic vein pressure (WHVP). The hepatic venous pressure gradient (HVPG), or difference between wedged and free hepatic vein pressures, is a measure of how the liver sinusoids affect the portal pressure. Normal HVPG is <5 mmHg. An HVPG of >10 mmHg is the most commonly used criteria for clinically significant sinusoidal portal hypertension. These patients would potentially benefit from a TIPS (choice B). The pressures in choice A represent a patient with right heart failure and an HVPG <5 mmHg. The pressures in choice C represent a normal patient. References: Fidelman N, Kwan SW, Laberge JM, Gordon RL, Ring EJ, Kerlan RK. The transjugular intrahepatic portosystemic shunt: an update. AJR Am J Roentgenol. 2012;199(4):746-755. Silva-Junior G, Baiges A, Turon F, et al. The prognostic value of hepatic venous pressure gradient in patients with cirrhosis is highly dependent on the accuracy of the technique. Hepatology. 2015;62(5):1584-1592."}, {"number": "16", "stem": "In the setting of a TIPS performed for bleeding gastroesophageal varices, which of the following is an appropriate posttreatment portosystemic pressure gradient?", "options": [{"letter": "A", "text": "2 mmHg"}, {"letter": "B", "text": "8 mmHg"}, {"letter": "C", "text": "16 mmHg"}, {"letter": "D", "text": "24 mmHg"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The best medical evidence supports a post-TIPS goal portosystemic pressure gradient between 5 and 12 mmHg for the indication of variceal bleeding. Following TIPS, if the gradient between the portal and systemic veins remains high, the pressure within the varices will also be elevated, increasing the risk of rupture. If the gradient is too low, the detoxification function of the liver may be compromised as a significant amount of blood is shunted back to the right heart. This can lead to uncontrollable hepatic encephalopathy. For the indication of refractory ascites, the goal portosystemic pressure gradient is less well delineated, although many practitioners use the same criteria as for variceal bleeding. Reference: Fidelman N, Kwan SW, Laberge JM, Gordon RL, Ring EJ, Kerlan RK. The transjugular intrahepatic portosystemic shunt: an update. AJR Am J Roentgenol. 2012;199(4):746-755."}, {"number": "17", "stem": "Which of the following is an indication to constrain a TIPS?", "options": [{"letter": "A", "text": "Portosystemic gradient of 14 mmHg"}, {"letter": "B", "text": "Ascites recurrence"}, {"letter": "C", "text": "Refractory encephalopathy"}, {"letter": "D", "text": "New hepatocellular carcinoma"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The portosystemic gradient across a TIPS is typically optimized at a value between 5 and 12 mmHg. If the gradient is too high (>12 mmHg), the TIPS can be dilated with balloon angioplasty to increase the shunt diameter. This decreases the resistance in the shunt, lowering the pressure gradient and increasing the blood flow back to the right heart. If the gradient is too low, the detoxification function of the liver may be compromised as a significant amount of blood is shunted back to the right heart. This can lead to refractory hepatic encephalopathy (choice C). In this situation the TIPS can be constrained, decreasing the luminal diameter, increasing the resistance and thereby reducing the amount of blood shunted away from the liver. There are several techniques to constrain a TIPS, discussed elsewhere in this book. Choices A and B relate to inadequate shunting and are therefore incorrect. HCC (choice D) should not factor into TIPS function. Reference: Madoff DC, Wallace MJ. Reduced stents and stent-grafts for the management of hepatic encephalopathy after transjugular intrahepatic portosystemic shunt creation. Semin Intervent Radiol. 2005;22(4):316-328."}, {"number": "18", "stem": "What is the indication for the procedure demonstrated?", "options": [{"letter": "A", "text": "Preoperative for right lobe hepatocellular carcinoma"}, {"letter": "B", "text": "Uncontrolled right hepatic bile duct leak"}, {"letter": "C", "text": "Portal hypertension"}, {"letter": "D", "text": "Budd-Chiari syndrome"}], "images": ["assets/q18_p019_03.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The images depict the portal venous system of the liver, pre (left) and post (right) embolization. On the post image, contrast opacifies the main and left portal veins only. There is no further flow in the right portal vein and its branches following coil and particle embolization. Portal vein embolization (PVE) is a technique used to redirect portal blood flow before partial hepatectomy in patients with an inadequate future liver remnant (FLR). Inadequate FLR is commonly defined as <20% in patients with a normal liver and <40% in those with a compromised liver (FLR% = FLR volume/total healthy liver volume × 100). In the case example, a right PVE will cause hypertrophy of the tumor-free left hepatic lobe in preparation for a right hepatectomy. Growth of the FLR after PVE is time dependent, with most growth occurring between 2 and 6 weeks. We typically reimage at 4 weeks post-PVE to assess the results of the procedure. Portal hypertension and Budd-Chiari would not benefit from PVE (choices C and D). Identification that these images represent the portal venous system, not the biliary tree, excludes choice B. References: Hemming AW, Reed AI, Howard RJ, et al. Preoperative portal vein embolization for extended hepatectomy. Ann Surg. 2003;237(5):686-691. May BJ, Madoff DC. Portal vein embolization: rationale, technique, and current application. Semin Intervent Radiol. 2012;29 (2):81-89. Wajswol E, Jazmati T, Contractor S, Kumar A. Portal vein embolization utilizing N-butyl cyanoacrylate for contralateral lobe hypertrophy prior to liver resection: a systematic review and meta-analysis. Cardiovasc Intervent Radiol. 2018;41(9):1302-1312."}, {"number": "19", "stem": "A cholecystostomy tube is placed for presumed cholecystitis in a critically ill patient. The patient eventually makes a complete recovery. Which of the following is the most critical step before cholecystostomy tube removal?", "options": [{"letter": "A", "text": "Fluoroscopic cholecystogram to confirm the absence of gallstones"}, {"letter": "B", "text": "Fluoroscopic cholecystogram to confirm patency of cystic duct and common bile duct"}, {"letter": "C", "text": "Confirm output of drain is <10 cc a day"}, {"letter": "D", "text": "Scintigraphy to confirm no bile leak"}], "images": ["assets/q19_p021_03.jpg"], "explanationImages": ["assets/a19_p063_03.jpg"], "answer": "B", "explanation": "Answer B. Cholecystostomy tube placement is typically done in patients with calculous or acalculous cholecystitis who cannot undergo immediate surgical cholecystectomy. Once the catheter is placed, the patient is followed clinically to ensure improvement. If the patient improves and has no further symptoms, drain removal can be considered. Algorithms for removal vary from practice to practice but most wait at least 3 weeks with the tube in place, which allows the percutaneous tract to epithelialize and reduces the risk of a bile leak upon tube removal. Before removal, the most important step is to confirm patency of the cystic and common bile duct to ensure adequate internal physiologic drainage will occur. This is easily done with contrast injection of the tube under fluoroscopy (choice B). If there is persistent duct obstruction, recurrent cholecystitis is more likely to occur. Although the presence or absence of gallstones should be noted on the cholecystogram, tube removal can be considered with or without stones. A low drain output (choice C) may indicate patency of the cystic duct, but can also be seen with cholecystostomy tube dysfunction because of malposition or obstruction. Although scintigraphy can help evaluate for a suspected bile leak, it is not the standard of care before removal. Figure 19-1 Fluoroscopic cholecystogram in a patient who recovered from acalculous cholecystitis. After 6 weeks of catheter drainage, contrast study showed no gallstones and widely patent cystic and common bile ducts. The tube was removed with no reported recurrence of cholecystitis. Reference: Alvino DML, Fong ZV, Mccarthy CJ, et al. Long-term outcomes following percutaneous cholecystostomy tube placement for treatment of acute calculous cholecystitis. J Gastrointest Surg. 2017;21(5):761-769. Gulaya K, Desai SS, Sato K. Percutaneous cholecystostomy: evidence-based current clinical practice. Semin Intervent Radiol. 2016;33(4):291-296. Wise JN, Gervais DA, Akman A, Harisinghani M, Hahn PF, Mueller PR. Percutaneous cholecystostomy catheter removal and incidence of clinically significant bile leaks: a clinical approach to catheter management. AJR Am J Roentgenol. 2005;184 (5):1647-1651."}, {"number": "20", "stem": "A patient presents with suspected mesenteric ischemia. Based on this angiographic image, what is the most likely etiology?", "options": [{"letter": "A", "text": "Atherosclerosis with in situ thrombosis"}, {"letter": "B", "text": "Embolus"}, {"letter": "C", "text": "Nonocclusive mesenteric ischemia"}, {"letter": "D", "text": "Venous thrombosis"}], "images": ["assets/q20_p023_03.jpg"], "explanationImages": ["assets/a20_p064_03.jpg"], "answer": "B", "explanation": "Answer B. The DSA image shows abrupt occlusion of the SMA approximately 4 cm beyond its origin and just beyond a large patent jejunal branch. The proximal arterial segment is healthy appearing, without underlying flow limiting stenosis. There is poor collateralization distally consistent with an acute presentation. In the distal segment of the jejunal branch, there is another segment of nonopacification with reconstitution distally. The constellation of findings point to an embolus as the underlying etiology. In situ thrombosis more commonly occurs in the first few centimeters of the SMA at a site of preexisting atherosclerotic narrowing; collaterals have often already formed secondary to the underlying arterial stenosis. The clinical presentation also may be less abrupt as a result of these developed collaterals. Choice C occurs in critically ill patients on vasoactive infusions. Angiography often demonstrates diffuse small caliber of the mesenteric artery branches with short and long segmental narrowings. Venous thrombosis is an important cause of mesenteric ischemia but would be best assessed in the venous phase of angiography, or with multiphase CECT. Once a patient is diagnosed with acute mesenteric ischemia, the treatment often depends on the etiology, duration of presentation, and whether or not there is evidence of devitalized bowel. Anticoagulation is the mainstay of initial medical management, followed by surgical or endovascular revascularization. Surgical intervention has the distinct advantage of offering both revascularization of the occluded artery, and visual inspection of the bowel and resection if needed. Figure 20-1 DSA images pre (left) and post (right) endovascular recanalization of an acute SMA embolus. The embolus was mostly removed with a suction catheter, and the artery was then ballooned and stented with excellent restoration of flow to the distal branches. References: Clair DG, Beach JM. Mesenteric ischemia. N Engl J Med. 2016;374(10):959-968. Stone JR, Wilkins LR. Acute mesenteric ischemia. Tech Vasc Interv Radiol. 2015;18(1):24-30. Salsano G, Salsano A, Sportelli E, et al. What is the best revascularization strategy for acute occlusive arterial mesenteric ischemia: systematic review and meta-analysis. Cardiovasc Intervent Radiol. 2018;41(1):27-36."}, {"number": "21", "stem": "A 49-year-old man with colorectal cancer metastatic to the liver presents for consideration of staged lobar treatments with yttrium-90 microspheres. What is the accepted total bilirubin cutoff for considering lobar radioembolization?", "options": [{"letter": "A", "text": "0.2 mg/dL"}, {"letter": "B", "text": "1.0 mg/dL"}, {"letter": "C", "text": "2.0 mg/dL"}, {"letter": "D", "text": "8.0 mg/dL"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. The accepted bilirubin cutoff for lobar yttrium-90 radioembolization is 2.0 mg/dL. The bilirubin level is one of several parameters interventionalists should assess when considering radioembolization to the liver. Choices A and B are within normal limits, and choice C is a significantly elevated bilirubin concerning for biliary obstruction or liver failure. The practice guidelines on radioembolization adapted from the American College of Radiology-Society of Interventional Radiology: Indications: 1. The presence of unresectable primary or secondary liver malignancies. The tumor burden should be liver dominant or liver only. Patients should have a performance status that will allow them to benefit from therapy (ECOG performance status of 0 or 1 or Karnofsky score of 70 or more) 2. Life expectancy >3 months Relative contraindications: 1. Tumor burden >70% of the parenchyma 2. Total bilirubin greater than 2 mg/dL (in the absence of obstructive cause). Operators may choose to treat more selectively (sublobar or segmental) when the bilirubin is elevated beyond 2 mg/dL 3. Pretreatment technetium-99m macroaggregated albumin (MAA) study demonstrating unacceptable shunt fraction between the liver and the lung parenchyma 4. Prior radiation therapy that included a significant volume of the liver 5. Chemotherapy agents in the preceding 4 weeks known to be unsafe when used with radioembolization 6. Pregnancy Absolute contraindications: 1. Inability to catheterize the hepatic artery to safely deliver microspheres 2. Fulminant liver failure 3. Pretreatment technetium-99m MAA study demonstrating significant reflux or nontarget deposition to the gastrointestinal organs that cannot be corrected References: Coldwell D, Sangro B, Wasan H, Salem R, Kennedy A. General selection criteria of patients for radioembolization of liver tumors: an international working group report. Am J Clin Oncol. 2011;34(3):337-341. Kennedy A, Nag S, Salem R, et al. Recommendations for radioembolization of hepatic malignancies using yttrium-90 microsphere brachytherapy: a consensus panel report from the radioembolization brachytherapy oncology consortium. Int J Radiat Oncol Biol Phys. 2007;68(1):13-23. Padia SA, Lewandowski RJ, Johnson GE, et al. Radioembolization of hepatic malignancies: background, quality improvement guidelines, and future directions. J Vasc Interv Radiol. 2017;28(1):1-15. Sangro B, Salem R, Kennedy A, Coldwell D, Wasan H. Radioembolization for hepatocellular carcinoma: a review of the evidence and treatment recommendations. Am J Clin Oncol. 2011;34(4):422-431."}, {"number": "22", "stem": "A patient with multifocal HCC undergoes yttrium-90 radioembolization to the right and left lobe of the liver (lobar treatments separated by 4 wk). Preprocedurally, the bilirubin was 2.0 mg/dL. Eight weeks after completing treatment, he presents at follow-up with significant fatigue and a total bilirubin of 12 mg/dL (normal <1.3 mg/dL). What is the best interpretation of this scenario?", "options": [{"letter": "A", "text": "Bacterial cholangitis"}, {"letter": "B", "text": "Radioembolization-induced liver disease"}, {"letter": "C", "text": "Hepatic artery thrombosis"}, {"letter": "D", "text": "Expected course"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Side effects after transarterial radioembolization (TARE) are common, typically occurring in the first 3 weeks after treatment, and they last for a few to several days. Fatigue is most commonly reported along with nausea, vomiting, low-grade fever, and abdominal pain. Prolonged fatigue coupled with a marked increase in the bilirubin level is concerning for something more sinister. Generally speaking, the liver is somewhat radiation intolerant. Historically, with initial attempts at external beam radiation treatments to the liver, it was found that at doses needed to kill tumor, the risk of radiation-induced liver disease was fairly high. This in part led to the development of selective internal radiation therapy (SIRT) or TARE, whereby microscopic radioactive particles are delivered transarterial, disproportionately travelling to the hypervascular liver tumors and sparing as much healthy liver as possible. Unfortunately, even with transarterial technique, there are cases where the liver responds poorly to the radiation and radioembolization-induced liver disease (REILD) occurs. Careful preprocedural assessment helps to reduce this risk by screening out poor candidates for TARE. REILD typically presents 4 to 8 weeks after treatment with elevated levels of bilirubin, transaminitis, and worsening ascites. Ultimately, it can be a fatal process or the patient can recover over a period of months. If there is question as to the diagnosis, liver biopsy may be helpful. While it is an important consideration, bacterial cholangitis would present more acutely with high-grade fever, jaundice, and abdominal pain. Antibiotics and drainage of obstructed bile ducts are paramount to recovery. Hepatic artery thrombosis can occur anytime the artery is interrogated with a catheter. When it does occur in a native liver, the clinical consequence is usually negligible. References: Gil-Alzugaray B, Chopitea A, Iñarrairaegui M, et al. Prognostic factors and prevention of radioembolization-induced liver disease. Hepatology. 2013;57(3):1078-1087. Hamoui N, Ryu RK. Hepatic radioembolization complicated by fulminant hepatic failure. Semin Intervent Radiol. 2011;28 (2):246-251. Riaz A, Awais R, Salem R. Side effects of yttrium-90 radioembolization. Front Oncol. 2014;4:198."}, {"number": "23", "stem": "A patient with biopsy proven pancreatic cancer presents for management of biliary obstruction. The underlying anatomy is normal. What is the next step in treatment?", "options": [{"letter": "A", "text": "Endoscopy with stent placement"}, {"letter": "B", "text": "Percutaneous cholangiogram with stent placement"}, {"letter": "C", "text": "Open surgical biliary decompression with hepaticojejunostomy"}, {"letter": "D", "text": "Arterial embolization to shrink the obstructing mass"}], "images": [], "explanationImages": [], "answer": "A", "explanation": "Answer A. Endoscopy is an endoluminal procedure that can be both diagnostic and therapeutic. Percutaneous cholangiogram with stent placement is by definition more invasive as you must transgress the liver, a well-vascularized organ, during the procedure. Current American College of Radiology recommendations are to perform endoscopy with stenting for most presentations of benign and malignant biliary obstruction. A notable exception is when the level of biliary obstruction is at or above the hepatic duct confluence (think Klatskin tumor), in which case percutaneous stenting is more likely to be successful. Additionally, if the patient has had surgery that precludes endoscopic access to the ampulla (such as a gastric bypass), a percutaneous procedure will be the preferred approach. Surgery is virtually never performed before endoscopic or percutaneous biliary decompression, and there is no role for arterial embolization in the hopes of shrinking an obstructing mass. Reference: Ray CE, Lorenz JM, Burke CT, et al. ACR appropriateness criteria radiologic management of benign and malignant biliary obstruction. J Am Coll Radiol. 2013;10(8):567-574."}, {"number": "24", "stem": "A 54-year-old man with Childs-Pugh A cirrhosis and a solitary mass in the right lobe of the liver is presented at multidisciplinary tumor board for consideration of treatment. Because of medical comorbidities, he is not a candidate for open surgery. Based on the CECT images given below, what is the preferred treatment?", "options": [{"letter": "A", "text": "Drug-eluting beads chemoembolization"}, {"letter": "B", "text": "Yttrium-90 radioembolization"}, {"letter": "C", "text": "Microwave thermal ablation"}, {"letter": "D", "text": "Sorafenib"}], "images": ["assets/q24_p026_03.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. The images show a 2 cm arterially enhancing round mass in the right lobe of the liver with washout on the portal venous phase. Note the cirrhotic morphology of the liver with enlarged left lateral segment and nodular surface. Keeping in line with the BCLC staging and treatment model (discussed earlier in this chapter), this is the ideal patient for thermal ablation. He has early stage cirrhosis and early stage HCC. The available ablation technologies include chemical ablation (percutaneous ethanol injection) and energy-based ablation (microwave, radiofrequency, cryo, laser, ultrasound, and irreversible electroporation). Percutaneous ethanol injection has fallen out of favor given the major advancements made in the other ablation technologies, and relatively poorer performance in treating larger lesions. Choices A, B, and D are appropriate for intermediate to advanced stage disease and are mainly used for downstaging or palliation/extension of life. References: Ahmed M, Solbiati L, Brace CL, et al. Image-guided tumor ablation: standardization of terminology and reporting criteria-a 10-year update. Radiology. 2014;273(1):241-260. Foltz G. Image-guided percutaneous ablation of hepatic malignancies. Semin Intervent Radiol. 2014;31(2):180-186."}, {"number": "25", "stem": "What is the recommended minimum ablative margin for HCC?", "options": [{"letter": "A", "text": "1 mm"}, {"letter": "B", "text": "5 mm"}, {"letter": "C", "text": "15 mm"}, {"letter": "D", "text": "30 mm"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. Current expert opinion is to ablate with a margin of 5 to 10 mm for primary and secondary liver malignancies. The intended margin is often defined by several factors including hepatic reserve and proximity to adjacent critical structures such as the gallbladder or bowel. An ablative margin is necessary to ensure complete coverage of the target tumor and address microscopic tumor or metastases in the immediate periphery that are not demonstrated with current imaging techniques. At our institution, we aim for a 10 mm ablative margin whenever feasible. Reference: Foltz G. Image-guided percutaneous ablation of hepatic malignancies. Semin Intervent Radiol. 2014;31(2):180-186."}, {"number": "26", "stem": "Immediately following microwave thermal ablation of a solitary right lobe HCC, a CECT in the arterial and portal venous phases is performed to evaluate which of the following? Portal venous phase image given below.", "options": [{"letter": "A", "text": "Local tumor progression"}, {"letter": "B", "text": "Extrahepatic malignancy"}, {"letter": "C", "text": "Ablative margin"}, {"letter": "D", "text": "Confirm portal vein still patent"}], "images": ["assets/q26_p027_02.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. After thermal ablation of liver tumors, an immediate CECT helps to assess for residual unablated tumor, to evaluate the zone of ablation (and associated ablative margin), and to detect immediate complications. Scanning protocols vary, but the authors typically perform CECT with arterial and portal venous phase imaging following every hepatic ablation. The arterial phase image demonstrates residual enhancing tumor (particularly for HCC and other arterial enhancing secondary malignancies), and the portal venous phase depicts the zone of ablation (nonenhancing hypoattenuating area adjacent to enhancing liver parenchyma). The field of view is increased to incorporate the entire liver and complete path of any instrument used in the procedure, in order to assess for complications such as bleeding or injury to adjacent structures. Local tumor progression, which is a new focus of tumor at the margin of the ablation (choice A), should be assessed on follow-up imaging. The presence of tumors outside the liver (choice B) should be known before performing tumor treatment. Immediately after a tumor treatment is not an appropriate time to stage the patient. Naturally, the development of new extrahepatic tumors will be assessed on longer-term follow-up imaging. Table 26-1 Cross-sectional Imaging After Thermal Ablation for Hepatic Malignancy. Assess for residual unablated tumor Determine the zone of ablation Immediate (technical success) Determine the ablative margin Evaluate for immediate complications Assess for residual unablated tumor One month (technique efficacy) Evaluate for complications Assess for local tumor progression Three months Assess for distant tumor Evaluate for delayed complications Adapted from Bouda D, Lagadec M, Alba CG, et al. Imaging review of hepatocellular carcinoma after thermal ablation: the good, the bad, and the ugly. J Magn Reson Imaging. 2016;44(5):1070-1090. References: Ahmed M, Solbiati L, Brace CL, et al. Image-guided tumor ablation: standardization of terminology and reporting criteria-a 10-year update. Radiology. 2014;273(1):241-260. Bouda D, Lagadec M, Alba CG, et al. Imaging review of hepatocellular carcinoma after thermal ablation: the good, the bad, and the ugly. J Magn Reson Imaging. 2016;44(5):1070-1090."}, {"number": "27", "stem": "What do the gas bubbles in the liver represent in this patient scanned with CECT immediately post microwave thermal ablation of right lobe HCC?", "options": [{"letter": "A", "text": "Hepatic abscess formation"}, {"letter": "B", "text": "Bowel perforation from ablation probes"}, {"letter": "C", "text": "Injury to the biliary tree"}, {"letter": "D", "text": "Expected finding immediately following microwave thermal ablation"}], "images": ["assets/q27_p029_04.jpg"], "explanationImages": ["assets/a27_p068_03.jpg"], "answer": "D", "explanation": "Answer D. On CECT immediately after thermal ablation, the zone of ablation is demonstrated by a round to oval, nonenhancing hypoattenuating area. It is less well seen on arterial phase when compared with portal venous phase images, as the surrounding parenchyma enhances relatively greater on the latter. Within the zone of ablation, there may be gas (round and linear) and heterogeneously attenuating debris. Ablation probe tracts are often seen as linear hypoattenuating structures extending to the liver capsule. As time progresses, a rim of enhancement/hyperemia may develop at the margin of the zone of ablation and last a period of 1 to 4 months. This is expected as long as it is thin and relatively uniform. Discontinuous irregular nodular enhancement that enlarges over time is highly concerning for unablated tumor or local tumor progression. Within the zone, the gas resolves (it can be present for weeks), and the internal contents become more homogenous and hypoattenuating. Months after the ablation, the zone shrinks progressively and can be associated with capsular retraction, calcifications, and small dilated biliary radicals. Figure 27-1 Immediate (left) and 9-month follow-up (right) CECT images following right lobe microwave thermal ablation of a solitary HCC. On the immediate postprocedure image, the zone of ablation is defined by the round nonenhancing hypoattenuating area in the right lobe. Note the internal higher attenuation debris, an expected finding and not indicative of unablated tumor or active hemorrhage. On the 9-month follow-up image, the zone of ablation is nonenhancing and uniformly hypoattenuating. The measured size is smaller, and there is associated retraction of the surrounding liver parenchyma. Figure 27-2 Companion case of an abscess in an ablation cavity. Left image was obtained immediately after thermal ablation of recurrent HCC in a transplanted liver. Note the minimal central linear gas present. Approximately 2 weeks later, the patient presented with pain and fever. CECT now demonstrated increasing gas throughout the ablation zone. This was successfully managed with antibiotics and percutaneous catheter drainage. Reference: Bouda D, Lagadec M, Alba CG, et al. Imaging review of hepatocellular carcinoma after thermal ablation: the good, the bad, and the ugly. J Magn Reson Imaging. 2016;44(5):1070-1090. Kim KR, Thomas S. Complications of image-guided thermal ablation of liver and kidney neoplasms. Semin Intervent Radiol. 2014;31(2):138-148."}, {"number": "28", "stem": "A 52-year-old woman with known cirrhosis is admitted several times over a period of 6 months for confusion and forgetfulness. No precipitating event can be identified. Workup is unrevealing for other neuropsychiatric causes. She is treated with full-dose lactulose and rifaximin with some improvement. Despite strict adherence to medical treatment, she continues to have these symptoms resulting in additional hospitalizations. What is the most likely underlying abnormality?", "options": [{"letter": "A", "text": "Biliary obstruction"}, {"letter": "B", "text": "Hepatic hydrothorax"}, {"letter": "C", "text": "Portosystemic shunt"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. In patients with cirrhosis and portal hypertension, hepatic encephalopathy (HE) is common, and often very treatable with medications such as lactulose and rifaximin. HE can be due to liver failure (synthetic dysfunction) and/or related to underlying portosystemic shunts. With shunt physiology, portal venous blood is diverted through collateral channels to the systemic venous blood, resulting in an increased exposure of the brain to certain metabolites such as ammonia and manganese. The most common example is encephalopathy that occurs after TIPS. When a TIPS is not present, an underlying spontaneous portosystemic shunt should be sought in patients who demonstrate recurrent encephalopathy despite maximal medical therapy and no other identifiable cause. Biliary obstruction will present with jaundice, and although hepatic hydrothorax is a manifestation of portal hypertension, it does not produce encephalopathy. References: Philips CA, Kumar L, Augustine P. Shunt occlusion for portosystemic shunt syndrome related refractory hepatic encephalopathy-A single-center experience in 21 patients from Kerala. Indian J Gastroenterol. 2017;36(5):411-419. Saad WE. Portosystemic shunt syndrome and endovascular management of hepatic encephalopathy. Semin Intervent Radiol. 2014;31(3):262-265."}, {"number": "29", "stem": "Immediately after embolization of a portosystemic shunt for refractory encephalopathy, which of the following will occur?", "options": [{"letter": "A", "text": "Portal venous pressure decreases"}, {"letter": "B", "text": "Portal venous pressure unchanged"}, {"letter": "C", "text": "Portal venous pressure increases"}], "images": ["assets/q29_p031_03.jpg", "assets/q29_30_p032_03.jpg"], "explanationImages": ["assets/a29_p069_03.jpg", "assets/a29_p070_03.jpg"], "answer": "C", "explanation": "Answer C. A portosystemic shunt is a low resistance connection between the portal venous system (high pressure in the setting of cirrhosis) and the systemic venous system (low pressure). Even in the presence of a patent portal vein, the shunt may be diverting a significant amount of blood away from the liver and directly back to the systemic veins and ultimately the right heart. Closure of the shunt with embolization eliminates the low resistance pathway, causing an immediate increase in portal venous flow and pressure. If there are preexisting gastroesophageal varices, the increased pressure after embolization can result in acute variceal hemorrhage. Ascites may begin to accumulate as well. Figure 29-1 Four DSA images from transhepatic portogram before shunt embolization, beginning in the upper left image. There is contrast opacification of the intra- and extrahepatic portal veins, as well as a large, tortuous vessel (PSS) arising from the splenic vein that ultimately drains into the left renal vein (bottom right image). Note the diminutive appearance of the main portal vein and its intrahepatic branches due to chronic shunting away from the liver. IVC, inferior vena cava; LRV, left renal vein; MPV, main portal vein; PSS, portosystemic shunt; SMV, superior mesenteric vein; SV, splenic vein. Figure 29-2 DSA image after embolization with a dense coil pack in the afferent segment of the portosystemic shunt. Both the splenic vein and inferior mesenteric vein are opacified. Preembolization main portal vein pressure measured 17 mmHg. Post embolization main portal vein pressure measured 32 mmHg. Upper endoscopy showed no varices before the embolization. Following the procedure, the patient's hepatic encephalopathy resolved with no recurrence 2 years later. References: Philips CA, Kumar L, Augustine P. Shunt occlusion for portosystemic shunt syndrome related refractory hepatic encephalopathy-A single-center experience in 21 patients from Kerala. Indian J Gastroenterol. 2017;36(5):411-419. Saad WE. Portosystemic shunt syndrome and endovascular management of hepatic encephalopathy. Semin Intervent Radiol. 2014;31(3):262-265."}, {"number": "30", "stem": "A 25-year-old woman with abdominal pain presents to the emergency department. A three-phase CECT scan is performed. What is the most likely diagnosis?", "options": [{"letter": "A", "text": "Active gastrointestinal bleeding"}, {"letter": "B", "text": "Ischemic necrosis of the cecum"}, {"letter": "C", "text": "Right lower quadrant abscess formation"}, {"letter": "D", "text": "Ectopic varices"}], "images": ["assets/q29_30_p032_03.jpg", "assets/q30_p033_03.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. The images depict a three-phase CECT examination with precontrast, arterial, and delayed phases. The imaged vasculature gives you the necessary information to delineate the phase of contrast enhancement. The finding of interest is a distended loop of colon in the right lower abdomen. Note on the precontrast image, there is no high attenuation material seen within the bowel lumen. On the arterial phase, there is new intraluminal high attenuation that matches that of the adjacent iliac arteries. On the delayed phase, the high attenuation collection has spread out and begins to layer against the right lateral wall. All of these findings indicate extravasating iodinated contrast from active colonic bleeding (choice A). Necrosis of the colon may show a spectrum of findings including bowel dilatation, wall thickening, absent wall enhancement, pneumatosis, and portal venous gas. An abscess would present as an extraluminal collection of fluid and/or air. Over time, a well-formed rim of enhancement will develop. Ectopic varices can form at many different locations in the abdomen or pelvis and certainly can cause bleeding; however, high-attenuation arterial phase intraluminal contrast extravasation should not occur from venous pathology. References: Artigas JM, Martí M, Soto JA, Esteban H, Pinilla I, Guillén E. Multidetector CT angiography for acute gastrointestinal bleeding: technique and findings. Radiographics. 2013;33(5):1453-1470. Feuerstein JD, Ketwaroo G, Tewani SK, et al. Localizing acute lower gastrointestinal hemorrhage: CT angiography versus tagged RBC scintigraphy. AJR Am J Roentgenol. 2016;207(3):578-584."}, {"number": "31", "stem": "A patient with a history of diverticulosis is hypotensive and a hemoglobin level is measured at 4 g/dL (normal 12-15 g/dL). Resuscitation begins promptly with intravenous fluids and blood products. She is transported to interventional radiology for emergent angiography. To evaluate a suspected right colon bleed, what artery should be selected first?", "options": [{"letter": "A", "text": "Celiac artery"}, {"letter": "B", "text": "Superior mesenteric artery"}, {"letter": "C", "text": "Inferior mesenteric artery"}, {"letter": "D", "text": "Internal iliac artery"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. The celiac artery branches into the left gastric artery, splenic artery, and common hepatic artery supplying the distal esophagus through the duodenum. The SMA branches into jejunal branches, ileal branches, ileocolic artery, right colic artery, and middle colic artery supplying the jejunum through the transverse colon. The inferior mesenteric artery branches into the left colic artery, sigmoid branches, and superior rectal (hemorrhoidal) artery supplying the splenic flexure of the colon through the rectum. The internal iliac artery has anterior and posterior divisions and has collateral circulation to the rectum through the middle and inferior hemorrhoidal arteries. Reference: Uflacker R. In: Atlas of Vascular Anatomy, An Angiographic Approach. LWW; 2007:457-654."}, {"number": "32", "stem": "The SMA is selected, and angiography is performed. Active bleeding is seen from the cecum. At what level should microcoil embolization be performed to stop the bleeding (arrow)?", "options": [{"letter": "A", "text": "A"}, {"letter": "B", "text": "B"}, {"letter": "C", "text": "C"}], "images": ["assets/q32_p036_03.jpg"], "explanationImages": ["assets/a32_p071_03.jpg"], "answer": "C", "explanation": "Answer C. Endovascular treatment of lower gastrointestinal bleeding is most commonly performed by microcatheterization of arterial branches as close to the source as possible (choice C). Microcoils (other embolics can be used as well) are then deployed, occluding the extravasating branch. If limited superselective embolization is performed, ischemic complications are rare. In this case, a more proximal embolization at the level of the ileocolic artery (choice A) or cecal artery (choice B) would be ineffective, as robust collateral arcades exist closer to the bowel wall. The arcades anastomose along the inner margin of the colon forming the marginal artery of Drummond. If superselective embolization cannot be performed, vasoconstrictor infusion can be initiated with repeat angiographic assessments to assess for hemostasis, although this technique is not commonly used today. Figure 32-1 Pre-embolization DSA image (left) demonstrating a brisk bleed from the cecum. Note the long straight arteries extending out to the bowel wall termed vasa recta. Postembolization DSA image (right) after superselective embolization with straight coils into the extravasating vasa recta branch as well as slightly more proximal. References: Bouhaidar DS, Strife BJ. Transcatheter intervention for non-variceal gastrointestinal bleeding: what have we learned in 45 years? Dig Dis Sci. 2013;58(7):1819-1821. Frisoli JK, Sze DY, Kee S. Transcatheter embolization for the treatment of upper gastrointestinal bleeding. Tech Vasc Interv Radiol. 2004;7(3):136-142. Kuo WT. Transcatheter treatment for lower gastrointestinal hemorrhage. Tech Vasc Interv Radiol. 2004;7(3):143-150. Walker TG. Acute gastrointestinal hemorrhage. Tech Vasc Interv Radiol. 2009;12(2):80-91."}, {"number": "33", "stem": "A celiac angiogram is performed to evaluate suspected upper gastrointestinal bleeding. What artery is identified by the arrows in the images given below?", "options": [{"letter": "A", "text": "Celiac artery"}, {"letter": "B", "text": "Splenic artery"}, {"letter": "C", "text": "Left gastric artery"}, {"letter": "D", "text": "Common hepatic artery"}, {"letter": "E", "text": "Left inferior phrenic artery"}], "images": ["assets/q33_p037_03.jpg"], "explanationImages": ["assets/a33_p072_03.jpg"], "answer": "E", "explanation": "Answer E. The celiac artery traditionally branches into the common hepatic artery, left gastric artery, and splenic artery although numerous variations are commonly found in practice (discussed elsewhere in this book in detail). The right and left inferior phrenic arteries have a variable origin, with the most common being the supraceliac abdominal aorta or the base of the celiac artery as seen here (left artery only; right inferior phrenic originated directly from the aorta). The inferior phrenic arteries demonstrate an initial steep course cephalad and curve laterally as they run along the right and left hemidiaphragm. The inferior phrenic arteries have significant clinical importance in conditions such as hepatocellular carcinoma and bronchial hemorrhage from chronic lung disease, as the artery can become parasitized causing treatment failure or recurrence. It is also prone to injury with diaphragmatic trauma. Figure 33-1 Catheter angiography after selection of the celiac artery. CA, celiac artery; CHA; common hepatic artery; GDA, gastroduodenal artery; LGA, left gastric artery; LHA; left hepatic artery; LIP, left inferior phrenic artery; PHA, proper hepatic artery; RHA, right hepatic artery; SA, splenic artery. Reference: Uflacker R. In: Atlas of Vascular Anatomy, An Angiographic Approach. LWW; 2007:457-654."}, {"number": "34", "stem": "A 56-year-old man with a history of bleeding duodenal ulcer and prior endoscopic treatment, presents urgently to interventional radiology with hypotension and bright red blood per rectum. A magnified DSA image demonstrates a pseudoaneurysm of the gastroduodenal artery (GDA) with brisk bleeding into the lumen of the duodenum. Where should microcoils be placed to effectively treat this bleed?", "options": [{"letter": "A", "text": "A (proximal GDA)"}, {"letter": "B", "text": "B (distal GDA)"}, {"letter": "C", "text": "C (within the pseudoaneurysm)"}, {"letter": "D", "text": "A and B (proximal and distal GDA)"}], "images": ["assets/q34_p040_03.jpg"], "explanationImages": ["assets/a34_p074_03.jpg"], "answer": "D", "explanation": "Answer D. This case illustrates the importance of understanding endovascular treatment options for aneurysms and pseudoaneurysms, as well as collateral arterial pathways that can result in treatment failure. The first question we ask before any embolization is whether or not the parent artery can be sacrificed. Each vascular territory is different, and some arteries are \"end organ\" and others can be occluded without risking organ ischemia/infarction. In the case example, there is a saccular pseudoaneurysm arising from the proximal GDA, with jet of extravasating contrast into the adjacent duodenal lumen. Collateral flow from both the SMA (through the pancreaticoduodenal arcade) and celiac artery (splenic artery to left gastroepiploic artery) will prevent distal stomach and duodenal ischemia after occlusion of the GDA. Having decided that the parent artery can be sacrificed, the operator must then consider if there are collateral blood flow pathways that might cause a treatment failure. A coil occluding the proximal GDA (choice A) will certainly result in treatment failure as retrograde flow through the gastroepiploic artery will backfill the distal GDA and the pseudoaneurysm (see question 12 for example of GDA to gastroepiploic collateralization). Similarly, treatment at choice B will occlude the backdoor pathway, but allow the inflow to persist. Coils within the pseudoaneurysm can be effective, but a pseudoaneurysm is a contained arterial rupture by definition, and catheter, wire, or coil manipulation within the sac can take a nonbleeding pseudoaneurysm to a frank rupture. Ideally, treatment would consist of arterial occlusion distal and proximal to the pseudoaneurysm. This isolates the pseudoaneurysm from the circulation as seen in Figure 34-1. Notably, with true aneurysms, coiling of the aneurysm sac alone may be a good option as the aneurysm wall is otherwise intact and flow preservation through the parent artery is achieved. Figure 34-1 Postembolization angiogram demonstrating distal and proximal coil occlusion of the GDA (isolation technique). Coils unintentionally migrated into the pseudoaneurysm sac while forming the pack. With parent arteries that cannot be sacrificed, flow preservation can also be achieved with covered stent grafts (think EVAR for AAA) and stent or balloon-assisted coiling. Percutaneous thrombin or glue injection into the pseudo-/aneurysm can also be considered in certain instances. Figure 34-2 Companion case of a broad necked pseudoaneurysm arising from the right pulmonary artery, which developed after a surgical lymph node biopsy. Coronal CECT image (top left) demonstrates the pseudoaneurysm. Endovascular embolization was planned for flow preservation to the right lung using a stent-assisted coiling technique. Uncovered stents were deployed in the right pulmonary artery across the pseudoaneurysm, providing a scaffold to then pack the sac with coils (top right). A microcatheter was advanced through the interstices of the stents into the pseudoaneurysm sac (bottom left), and several meters of coil were deployed (middle bottom). Completion angiogram showed no further filling of the pseudoaneurysm with preserved flow to right pulmonary artery branches. References: Belli AM, Markose G, Morgan R. The role of interventional radiology in the management of abdominal visceral artery aneurysms. Cardiovasc Intervent Radiol. 2012;35(2):234-243. Hemp JH, Sabri SS. Endovascular management of visceral arterial aneurysms. Tech Vasc Interv Radiol. 2015;18(1):14-23."}, {"number": "35", "stem": "A 10-year-old woman with fever and abdominal pain presents with perforated appendicitis. A CECT scan is performed demonstrating an 8 × 8 × 6 cm abscess (Ab) in the mid-pelvis. What is the best approach for image-guided drainage catheter placement?", "options": [{"letter": "A", "text": "US-guided transabdominal"}, {"letter": "B", "text": "CT-guided transgluteal"}, {"letter": "C", "text": "US-guided transrectal"}, {"letter": "D", "text": "Catheter placement is not indicated"}], "images": ["assets/q35_p040_04.jpg"], "explanationImages": [], "answer": "C", "explanation": "Answer C. In this case, the best approach for abscess drainage catheter placement is US-guided transrectal. We use transabdominal (using the bladder as an acoustic window) or transrectal ultrasound to visualize the abscess cavity. A barium enema catheter or dilator is used as a needle sheath and introduced transrectally. The needle is then advanced into the fluid collection, a wire is coiled, serial dilation is performed, and a locking pigtail drainage catheter is advanced over the wire into position. The pigtail is formed and locked in the collection, and the cavity is drained of all infected fluid. The catheter is then secured to the thigh and is well tolerated in terms of comfort. Patients can then undergo interval appendectomy at a later date, once the abscess has been completely eradicated and inflammation has subsided. Transabdominal access, whether with CT or US, would not be safe in this case as the needle and subsequent drainage catheter would traverse adjacent blood vessels, bladder, or uninvolved bowel. Transgluteal catheter placement is usually a good option for mid-pelvic abscess, but the ideal needle tract is medial, close to the sacrum, and through the sacrospinous ligament in order to avoid nerves and blood vessels. Based on the images presented, there was perhaps a small window on the right, but the level is significantly cranial to the sacrospinous ligament, increasing the risk of traversing important neurovascular structures. Another drawback of CT guidance is the radiation exposure to the child. Choice D is incorrect as catheter drainage of the pelvic abscess is arguably the most important step in treatment when dealing with a pelvic abscess. If the abscess measures less than 3 cm, needle aspiration (no catheter) of the abscess can be considered. References: Brown C, Kang L, Kim ST. Percutaneous drainage of abdominal and pelvic abscesses in children. Semin Intervent Radiol. 2012;29(4):286-294. Mcdaniel JD, Warren MT, Pence JC, Ey EH. Ultrasound-guided transrectal drainage of deep pelvic abscesses in children: a modified and simplified technique. Pediatr Radiol. 2015;45(3):435-438."}, {"number": "36", "stem": "A 50-year-old woman with cirrhosis and a history of right iliac fossa kidney transplant presents for ultrasound-guided paracentesis. Eight liters of fluid are obtained from a left lower abdomen access site. What is the SAAG calculation performed for fluid analysis?", "options": [{"letter": "A", "text": "Serum total protein minus ascites albumin"}, {"letter": "B", "text": "Serum albumin plus ascites albumin"}, {"letter": "C", "text": "Serum albumin minus ascites albumin"}, {"letter": "D", "text": "Serum amylase minus ascites amylase"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. Ascites fluid analysis is critical for the determination of underlying etiology. The SAAG or serum ascites albumin gradient is calculated by subtracting the ascites albumin level from the serum albumin level (choice C). Ideally these levels are measured simultaneously. When the SAAG is >1.1 g/dL, the ascites is most commonly due to hepatic causes such as cirrhosis with portal hypertension, and less commonly congestive heart failure. When the SAAG is <1.1 g/dL, the ascites may be due to malignancy, infection such tuberculosis, or spontaneous bacterial peritonitis. Table 36-1 Ascitic Fluid Analysis Based on Etiology Cirrhosis CHF Malignancy Infection Total protein <25 g/L <25 g/L >25 g/L >25 g/L SAAG >1.1 g/dL >1.1 g/dL <1.1 g/dL <1.1 g/dL Glucose Normal Normal Decreased Decreased Lactate dehydrogenase Decreased Normal to decreased Increased Normal to increased Cell count >250/μL or normal >250/μL or normal Culture Occasionally positive Positive or false negative Adapted from Huang LL, Xia HH, Zhu SL. Ascitic fluid analysis in the differential diagnosis of ascites: focus on cirrhotic ascites. J Clin Transl Hepatol. 2014;2(1):58-64. CHF, Congestive heart failure. Reference: Huang LL, Xia HH, Zhu SL. Ascitic fluid analysis in the differential diagnosis of ascites: focus on cirrhotic ascites. J Clin Transl Hepatol. 2014;2(1):58-64."}, {"number": "37", "stem": "A 15-year-old girl presents with repeated episodes of hematemesis and a mesenteric angiogram is requested. During the procedure, the SMA is selected and angiography demonstrates what pathology?", "options": [{"letter": "A", "text": "Arteriovenous malformation in the colon"}, {"letter": "B", "text": "Blunt trauma to the liver with pseudoaneurysm formation"}, {"letter": "C", "text": "Chronic portal vein thrombosis with cavernous transformation"}, {"letter": "D", "text": "Diffuse mucosal hemorrhage of the small and large bowel"}], "images": ["assets/q37_p042_03.jpg", "assets/q37_p043_03.jpg"], "explanationImages": ["assets/a37_p075_03.jpg"], "answer": "C", "explanation": "Answer C. Three sequential DSA images depict the arterial phase, parenchymal phase, and finally the portal venous phase from a power injection of the SMA. On the arterial phase image, the SMA and its branches perfusing the bowel from the duodenum through transverse colon appear normal. Note the absence of an early draining vein that would indicate an arteriovenous malformation or fistula. On the parenchymal phase, contrast has filled the wall of the bowel appropriately. There is no extravasation. On the portal venous phase, contrast has filled peripheral mesenteric veins, which coalesce into the superior mesenteric vein centrally. Normally, the SMV joins the splenic vein in the upper abdomen with a single main portal vein coursing towards the liver and ultimately branching into the right and left portal veins. Instead, there is a tangle of dilated and tortuous collaterals that have formed to circumvent a chronic main portal vein occlusion. Additionally, several dilated and tortuous veins have formed coursing towards the gastroesophageal junction. These are gastroesophageal varices. In summary, this is a classic angiographic picture of presinusoidal portal hypertension due to chronic portal vein occlusion with cavernous transformation. Figure 37-1 DSA image from chronic portal vein thrombosis with cavernous transformation (left) compared with a normal portal venogram (right). Both were performed by injecting the superior mesenteric artery and holding out for the portal venous phase. References: Arora A, Sarin SK. Multimodality imaging of primary extrahepatic portal vein obstruction (EHPVO): what every radiologist should know. Br J Radiol. 2015;88(1052):20150008. Gallego C, Velasco M, Marcuello P, Tejedor D, De Campo L, Friera A. Congenital and acquired anomalies of the portal venous system. Radiographics. 2002;22(1):141-159. Uflacker R. In: Atlas of Vascular Anatomy, An Angiographic Approach. LWW; 2007:699-802."}, {"number": "38", "stem": "The IR team receives a request from surgery for CT-guided placement of a percutaneous drainage catheter. The patient is a 53-year-old man with necrotizing pancreatitis for approximately 5 weeks, and CECT demonstrates pancreatic and peripancreatic walled-off necrosis. He is symptomatic with pain and fevers and cannot tolerate nasojejunal feeds. What is the best management strategy?", "options": [{"letter": "A", "text": "Place an 8-Fr pigtail drain using a midline transperitoneal approach"}, {"letter": "B", "text": "Place a 14-Fr pigtail drain using a left retroperitoneal approach"}, {"letter": "C", "text": "No indication for drainage catheter"}, {"letter": "D", "text": "Perform 20-gauge needle aspiration only"}], "images": ["assets/q38_p043_04.jpg"], "explanationImages": [], "answer": "B", "explanation": "Answer B. The management of necrotizing pancreatitis has evolved in the last few years with increased utilization of minimally invasive surgical, endoscopic, and percutaneous techniques. In this case, the patient has necrotizing pancreatitis on CECT with development of walled-off necrosis (WON), which is a persistent fluid collection (>4 wk from onset of necrotizing pancreatitis) with defined walls. Note the foci of fat within the peripancreatic collection and irregular contour of the wall, which helps delineate it as WON. These collections can be sterile or become superinfected. Indications for drainage catheter placement include sepsis from superinfection of necrotic tissue, and control of symptoms from the collection due to mass effect such as pain, obstruction, and inability to tolerate feeds. The favored percutaneous approach is left retroperitoneal when possible, to avoid peritoneal transgression. Also, as part of a step-up approach, future minimally invasive necrosectomy can utilize the left retroperitoneal approach catheter tract to assist with that operation. In general, drains for necrotizing pancreatitis should be large (>10 Fr) to assist with removal of fluid and/or debris. Fine needle aspiration is useful for diagnostic purposes only, in cases where these is a question of an infected fluid collection. References: Shyu JY, Sainani NI, Sahni VA, et al. Necrotizing pancreatitis: diagnosis, imaging, and intervention. Radiographics. 2014;34(5):1218-1239. Van Santvoort HC, Besselink MG, Bakker OJ, et al. A step-up approach or open necrosectomy for necrotizing pancreatitis. N Engl J Med. 2010;362(16):1491-1502."}, {"number": "39", "stem": "A CECT is performed to evaluate a patient with nausea and vomiting. What additional history is most likely present?", "options": [{"letter": "A", "text": "Remote abdominal trauma"}, {"letter": "B", "text": "Poorly controlled diabetes mellitus"}, {"letter": "C", "text": "Long history of smoking"}, {"letter": "D", "text": "Significant weight loss"}], "images": ["assets/q39_p044_03.jpg", "assets/q39_p045_03.jpg"], "explanationImages": ["assets/a39_p076_03.jpg", "assets/a39_p077_03.jpg"], "answer": "D", "explanation": "Answer D. The CECT images depict marked distention of the stomach, and first and second portions of the duodenum with collapse of the third portion of the duodenum. These findings point to the level of obstruction in the midduodenum. The axial and sagittal-oblique reconstructions show that the SMA tightly opposed the adjacent abdominal aorta. Note the transition point in the bowel from obstructed to unobstructed specifically at the level of the SMA crossing the duodenum. The constellation of findings are consistent with SMA syndrome, a vascular phenomenon of complete or partial duodenal obstruction due to vascular compression. Patients frequently present with a history of significant weight loss, often due to an underlying condition (medical, surgical, and/or psychiatric). As the obstruction evolves, progressive fullness, nausea, vomiting, and malnutrition can occur. Treatment is aimed at the underlying condition, and weight gain can be curative. Surgical treatment may be necessary to reposition the bowel or circumvent the obstruction. Figure 39-1 A young female with history of marked weight loss due to an anxiety disorder. Fluoroscopic examination with oral barium demonstrates dilation of the stomach, and first and second portions of the duodenum with transition point (arrowhead) in the mid transverse segment. Note the decompressed appearance of distal duodenum. Figure 39-2 Companion case of a patient with excessive weight loss following gastric bypass surgery. A feeding tube for nutrition is placed into the excluded stomach. When used, the tube continually leaks along the percutaneous tract concerning for a downstream bowel obstruction. Tube contrast study shows a distended first and second portions of the duodenum with no passage of contrast left of midline (left image). A CTA showed SMA compression of the duodenum. A gastrojejunostomy tube is subsequently placed beyond the midduodenal obstruction for distal feeding (right image). Note the decompressed bowel left of midline. Reference: Lamba R, Tanner DT, Sekhon S, Mcgahan JP, Corwin MT, Lall CG. Multidetector CT of vascular compression syndromes in the abdomen and pelvis. Radiographics. 2014;34(1):93-115."}, {"number": "40", "stem": "A patient presents to the ER with hematochezia, jaundice, and feeling weak. She underwent percutaneous liver biopsy 2 days prior. A CECT is performed. Which is the correct conclusion?", "options": [{"letter": "A", "text": "Complication of liver biopsy"}, {"letter": "B", "text": "Underlying pancreatic malignancy"}, {"letter": "C", "text": "Brisk small bowel bleed"}, {"letter": "D", "text": "Worsening cirrhosis"}], "images": ["assets/q40_p046_03.jpg"], "explanationImages": [], "answer": "A", "explanation": "Answer A. In patients with gastrointestinal bleeding, diagnostic investigation aims to localize the source to the upper or lower tract. An uncommon but important etiology for upper tract bleeding is transpapillary hemorrhage from the liver or pancreas via their respective ducts into the duodenum. If brisk, there can be hematochezia rather than melena. As in this case, a history of trauma or instrumentation is often elicited, which produces a communication between the parenchymal vasculature and ductal system. For the pancreas, pancreatitis and pseudocyst formation are common precursors. The images presented depict diffuse biliary dilatation with internal high-attenuation fluid consistent with blood products. Angiography should be performed to identify and embolize the vascular injury (an arterial pseudoaneurysm with fistula to the bile duct in this case), while endoscopic retrograde cannulation of the common bile duct with balloon sweep and sphincterotomy can treat symptomatic and/or unresolved biliary obstruction from blood clots. Reference: Behrens G, Ferral H. Transjugular liver biopsy. Semin Intervent Radiol. 2012;29(2):111-117."}, {"number": "41", "stem": "During workup for a transarterial chemoembolization (TACE) procedure to treat intrahepatic metastases, the patient reports a history of prior surgery with choledochojejunostomy. Which complication is the patient at increased risk for developing after the embolization?", "options": [{"letter": "A", "text": "Portal vein thrombosis"}, {"letter": "B", "text": "Hepatic abscess formation"}, {"letter": "C", "text": "Hepatic infarct"}, {"letter": "D", "text": "Biliary stricture"}], "images": [], "explanationImages": [], "answer": "B", "explanation": "Answer B. TACE is typically performed using (1) an emulsion of chemotherapeutic agent with lipiodol aka conventional (cTACE) or (2) chemotherapeutic agent loaded onto embolic beads aka drug-eluting bead chemoembolization (DEBTACE). TACE has been used extensively for the treatment of primary and secondary malignancies in the liver. Ideally, catheter position will be as selective as possible, although depending on the tumor type and distribution of disease, the treatment can be delivered in lobar fashion. The embolization is often repeated depending on the tumor response and goals of care. Patient selection is important to avoid complications from the procedure, considering that the treatment is embolic with some degree of ischemia caused. Adequate hepatic reserve and absence of portal vein thrombosis are two important inclusion criteria. An additional important consideration is whether the patient has biliary incompetence from prior surgery such as hepaticojejunostomy or prior manipulation such as sphincterotomy or biliary stenting. Several studies have identified biliary incompetence as a significant risk factor for the development of hepatic abscess after TACE procedures. Antibiotic protocols have been studied and perhaps the most promising approach is an extended course of moxifloxacin given before and after the procedure. Figure 41-1 Coronal CECT images pre (left) and post (right) right lobar TACE in a patient with metastatic gastric cancer. Note the indwelling internal-external biliary drainage catheter. Despite periprocedural antibiotics, the patient developed large hepatic abscesses after the embolization, treated with prolonged antibiotics and catheter drainage. References: Brown DB, Nikolic B, Covey AM, et al. Quality improvement guidelines for transhepatic arterial chemoembolization, embolization, and chemotherapeutic infusion for hepatic malignancy. J Vasc Interv Radiol. 2012;23(3):287-294. Khan W, Sullivan KL, Mccann JW, et al. Moxifloxacin prophylaxis for chemoembolization or embolization in patients with previous biliary interventions: a pilot study. AJR Am J Roentgenol. 2011;197(2):W343-W345. Kim W, Clark TW, Baum RA, Soulen MC. Risk factors for liver abscess formation after hepatic chemoembolization. J Vasc Interv Radiol. 2001;12(8):965-968. Woo S, Chung JW, Hur S, et al. Liver abscess after transarterial chemoembolization in patients with bilioenteric anastomosis: frequency and risk factors. AJR Am J Roentgenol. 2013;200(6):1370-1377."}, {"number": "42", "stem": "Which of the following scenarios would be acceptable for liver transplantation according to the Milan criteria for hepatocellular carcinoma?", "options": [{"letter": "A", "text": "1 tumor 5.8 cm"}, {"letter": "B", "text": "2 tumors 1.7 cm and 3.3 cm"}, {"letter": "C", "text": "3 tumors 1.4 cm, 2.0 cm, 2.8 cm"}, {"letter": "D", "text": "4 tumors 1.2 cm, 1.4 cm, 1.5 cm, 1.8 cm"}], "images": [], "explanationImages": [], "answer": "C", "explanation": "Answer C. A significant arm of interventional radiology is oncologic work centered on the treatment of cirrhosis and HCC. Ideally, these patients are reviewed and discussed among a multidisciplinary team as their care is often complex and affected by a myriad of different issues ranging from psychosocial to physical. As liver transplantation is one of the most important treatment options for patients with cirrhosis and HCC, team members should be familiar with the Milan criteria. There can be 1 tumor ≤5.0 cm in diameter or up to 3 tumors, each of which is ≤3.0 cm in diameter. Patients cannot have hepatic vascular invasion or extrahepatic malignancy. Keeping a patient within these criteria is often a task for the interventional radiologist through the use of downstaging procedures such as transarterial embolization. It is worth noting that there are variations or extensions of Milan criteria, which may be used at some institutions. References: Clavien PA, Lesurtel M, Bossuyt PM, et al. Recommendations for liver transplantation for hepatocellular carcinoma: an international consensus conference report. Lancet Oncol. 2012;13(1):e11-e22. Mazzaferro V, Regalia E, Doci R, et al. Liver transplantation for the treatment of small hepatocellular carcinomas in patients with cirrhosis. N Engl J Med. 1996;334(11):693-699."}, {"number": "43", "stem": "A patient with known capsular HCC (arrow) presents to the ED with severe acute abdominal pain. Given the findings on this CT scan, what is this patient at increased risk for?", "options": [{"letter": "A", "text": "Spontaneous bacterial peritonitis (SBP)"}, {"letter": "B", "text": "Hepatic tumor thrombus"}, {"letter": "C", "text": "Future need of TIPS"}, {"letter": "D", "text": "Intraperitoneal metastasis"}], "images": ["assets/q43_p048_03.jpg", "assets/q43_p049_03.jpg", "assets/q43_p049_04.jpg"], "explanationImages": ["assets/a43_p079_03.jpg", "assets/a43_p079_04.jpg"], "answer": "D", "explanation": "Answer D. The CECT images demonstrate a shrunken cirrhotic liver and a round tumor with central necrosis extending off the surface of the liver exophytically. There is complex fluid around the liver and spleen consistent with hemorrhage. With the history of acute abdominal pain, the constellation of findings point to a ruptured HCC. Unfortunately, studies have shown HCC rupture is a risk factor for peritoneal seeding. The patient in the case example was treated in the acute setting for continued hemorrhage with transarterial particle embolization (see Figure 43-1). In the short term, he had excision of the tumor with a central hepatectomy. Years later an enlarging peritoneal nodule distant to the liver was identified and biopsy proven to be metastatic HCC (see Figure 43-2). Figure 43-1 Angiography from the proper hepatic artery shows hypervascular segment 4 HCC with jet of contrast extravasation (arrowhead) from ongoing hemorrhage. Notice the right lateral border of the liver is displaced from the abdominal wall from known perihepatic hematoma. Figure 43-2 Axial T1 fat sat + gad MRI images 3 years after embolization and resection of ruptured segment 4 HCC. Right image shows surgical scar with no recurrence. Unfortunately, a new peritoneal nodule (arrow) is discovered, biopsy proven to be HCC. References: Matsukuma S, Sato K. Peritoneal seeding of hepatocellular carcinoma: clinicopathological characteristics of 17 autopsy cases. Pathol Int. 2011;61(6):356-362. Sonoda T, Kanematsu T, Takenaka K, Sugimachi K. Ruptured hepatocellular carcinoma evokes risk of implanted metastases. J Surg Oncol. 1989;41(3):183-186."}, {"number": "44", "stem": "A patient status post remote cadaveric liver transplantation with hepaticojejunostomy presents with cholangitis. An MRCP is performed confirming central biliary stones (arrows). What is the best initial approach to treat this condition?", "options": [{"letter": "A", "text": "Percutaneous drainage followed by rendezvous with endoscopy for stone removal"}, {"letter": "B", "text": "Percutaneous drainage followed by surgical laparotomy for stone removal"}, {"letter": "C", "text": "Percutaneous drainage followed by percutaneous stone removal"}, {"letter": "D", "text": "Lifetime percutaneous biliary drainage"}], "images": ["assets/q44_p050_03.jpg"], "explanationImages": ["assets/a44_p080_03.jpg"], "answer": "C", "explanation": "Answer C. Percutaneous treatment of biliary stones is in the purview of the interventional radiologist. This mostly comes into play if the patient has anatomy preclusive to endoscopy (such as hepaticojejunostomy or Roux-en-Y gastric bypass) or has failed endoscopic intervention. As this minimally invasive percutaneous option exists, this would be a more reasonable treatment compared with laparotomy. Once percutaneous access is made into the biliary system, several tools can be employed to facilitate clearing the stone(s). We commonly start with cholangioplasty to dilate any preexisting stenosis and then follow with antegrade balloon sweeps into the bowel. This often works well for small stones. With large stones, they can be broken down using specially made baskets or even standard vascular loop snares (see Figure 44-1). Once fragmented, the stone debris can be aspirated or swept antegrade into the bowel. Multiple procedures may be needed with serial upsizing of the biliary drainage catheter to help treat any underlying stenosis and allow for stones and debris to pass on their own. Finally, percutaneous choledocoscopy with lithotripsy may be available at certain centers. Figure 44-1 Percutaneous stone removal in the patient presented in the case example. Large central stone is seen as a filling defect on antegrade cholangiogram (left). A combination of loop snare fragmentation (middle) and balloon sweep successfully removes the stone with completion cholangiogram (right) showing a patent central bile duct with flow into the bowel. Reference: García-García L, Lanciego C. Percutaneous treatment of biliary stones: sphincteroplasty and occlusion balloon for the clearance of bile duct calculi. AJR Am J Roentgenol. 2004;182(3):663-670."}, {"number": "45", "stem": "What is the management for the pathology demonstrated here?", "options": [{"letter": "A", "text": "Biliary drain removal and \"fresh stick\" 1 week later"}, {"letter": "B", "text": "Anticoagulation for portal clot"}, {"letter": "C", "text": "Coil embolization of the hepatic artery"}, {"letter": "D", "text": "Exchange biliary drain and leave uncapped to bag drainage"}], "images": ["assets/q45_p051_03.jpg", "assets/q45_p052_03.jpg", "assets/q45_p052_04.jpg", "assets/q45_p052_05.jpg"], "explanationImages": ["assets/a45_p080_04.jpg", "assets/a45_p080_05.jpg", "assets/a45_p081_03.jpg"], "answer": "C", "explanation": "Answer C. The case images demonstrate a complication from a right flank approach internal-external biliary drainage catheter. On the image labeled \"hepatic arteriogram,\" the drainage catheter has been removed over a wire and an arteriogram performed from a catheter in a branch of the right hepatic artery. There is obvious deformity to the artery where the biliary catheter crosses the vessel but no frank extravasation. On the unsubtracted image labeled \"cholangiogram,\" contrast has been injected into the biliary tree, demonstrating diffuse biliary dilatation with extensive intraluminal filling defects that represent blood clots in obstructed bile ducts. In addition, the right hepatic artery is opacified on the cholangiogram, confirming an arteriobiliary fistula. Figure 45-1 Hepatic artery injury (star) from percutaneous biliary catheter on cholangiogram and arteriogram. The common bile duct is obstructed by extensive blood clots (arrowheads). This is treated with coil embolization of the artery, proximal and distal to the injury to prevent backbleeding (right). Of note, the biliary drainage catheter can tamponade the bleeding intermittently, making evaluation challenging. When a blood vessel to bile duct connection is suspected in the setting of an indwelling catheter, angiography with and without (removed over a wire) the tube in place should be performed to thoroughly evaluate for a connection. Figure 45-2 Companion case demonstrating arteriobiliary fistula, which is only identified when the biliary drainage catheter is removed over a wire. The patient presented with multiple episodes of intermittent gastrointestinal bleeding. Percutaneous biliary drainage is a vital procedure for the treatment of acute and chronic biliary pathology. Although it can be a life-saving intervention, it is not without risk. In general, when creating the percutaneous tract to the bile ducts, the more central the access is relative to the liver hilum, the more likely the operator will transgress a large blood vessel. Additionally, one must take into account possible pleural transgression. For fluoroscopic-guided right-sided biliary access, classic teaching is to start with the needle entry at or below the 10th intercostal space just anterior to the midaxillary line. The needle should be parallel to the table, and aimed 20° to 30° cranial. Figure 45-3 The patient in the case example with the arteriobiliary fistula also had the drain placed at the eighth intercostal space with resultant bile leak into the pleural space. Fortunately, this was managed with pleural catheter drainage alone; the biliary-pleural communication closed in a matter of weeks and both tubes were removed uneventfully. Reference: Covey AM, Brown KT. Percutaneous transhepatic biliary drainage. Tech Vasc Interv Radiol. 2008;11(1):14-20."}];
+    const APP_ID = "ir-gastrointestinal-quiz-ch5";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SEED_VERSION = 1;
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: true };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID || saved.defaultSeedVersion !== DEFAULT_SEED_VERSION) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen !== false,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        defaultSeedVersion: DEFAULT_SEED_VERSION,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen !== false;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          lines.push("");
+          continue;
+        }
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
+      const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
+      canvas.width = width;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
+      ctx.font = "24px Arial";
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>
