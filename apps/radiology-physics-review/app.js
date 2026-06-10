@@ -1,12 +1,53 @@
 const DATA_URL = "data/quiz_ready.json";
 const STORAGE_KEY = "radiologyPhysicsReview.v1";
 
+const CATEGORY_SCOPES = [
+  {
+    id: "mixed-artifacts",
+    label: "Mixed artifacts / image quality",
+    ranges: [{ block: "Block 1", start: 1, end: 88 }],
+  },
+  {
+    id: "radiography-xray",
+    label: "Radiography / x-ray production",
+    ranges: [
+      { block: "Block 1", start: 89, end: 143 },
+      { block: "Block 2", start: 1, end: 55 },
+    ],
+  },
+  {
+    id: "radiation-safety",
+    label: "Radiation safety / biology",
+    ranges: [{ block: "Block 2", start: 56, end: 95 }],
+  },
+  {
+    id: "ct-physics",
+    label: "CT physics",
+    ranges: [
+      { block: "Block 2", start: 96, end: 143 },
+      { block: "Block 3", start: 1, end: 28 },
+    ],
+  },
+  {
+    id: "ultrasound",
+    label: "Ultrasound physics",
+    ranges: [{ block: "Block 3", start: 29, end: 74 }],
+  },
+  {
+    id: "mri",
+    label: "MRI physics",
+    ranges: [{ block: "Block 3", start: 75, end: 143 }],
+  },
+];
+
 const els = {
   loading: document.getElementById("loading"),
   card: document.getElementById("questionCard"),
   scope: document.getElementById("scopeSelect"),
   order: document.getElementById("orderSelect"),
   reset: document.getElementById("resetBtn"),
+  missedOnly: document.getElementById("missedOnlyToggle"),
+  answerRecord: document.getElementById("answerRecord"),
   position: document.getElementById("positionLabel"),
   block: document.getElementById("blockLabel"),
   title: document.getElementById("questionTitle"),
@@ -79,12 +120,15 @@ function slug(value) {
 }
 
 function sessionKey() {
-  return `${state.scope || "all"}:${state.orderMode || "sequential"}`;
+  const missed = state.missedOnly ? "missed" : "all-attempts";
+  return `${state.scope || "all"}:${state.orderMode || "sequential"}:${missed}`;
 }
 
 function getSession() {
   state.scope ||= "all";
   state.orderMode ||= "sequential";
+  state.missedOnly ||= false;
+  state.history ||= {};
   state.sessions ||= {};
   const key = sessionKey();
   if (!state.sessions[key]) {
@@ -100,18 +144,31 @@ function buildSession() {
 }
 
 function filterQuestions() {
-  if (state.scope === "missed") {
-    const missedIds = new Set(Object.values(state.sessions || {}).flatMap((session) =>
-      Object.entries(session.answers || {})
-        .filter(([, answer]) => answer.correct === false)
-        .map(([id]) => id)
-    ));
-    return questions.filter((q) => missedIds.has(q.id));
+  let filtered = questions;
+  const scope = state.scope || "all";
+  if (scope === "missed") {
+    state.missedOnly = true;
+  } else if (scope.startsWith("block:")) {
+    const blockSlug = scope.slice(6);
+    filtered = filtered.filter((q) => slug(q.block) === blockSlug);
+  } else if (scope !== "all") {
+    const category = CATEGORY_SCOPES.find((item) => item.id === scope);
+    if (category) {
+      filtered = filtered.filter((q) => isInCategory(q, category));
+    } else {
+      filtered = filtered.filter((q) => slug(q.block) === scope);
+    }
   }
-  if (state.scope && state.scope !== "all") {
-    return questions.filter((q) => slug(q.block) === state.scope);
+  if (state.missedOnly) {
+    filtered = filtered.filter((q) => state.history?.[q.id]?.correct === false);
   }
-  return questions;
+  return filtered;
+}
+
+function isInCategory(q, category) {
+  return category.ranges.some((range) =>
+    q.block === range.block && q.questionNumber >= range.start && q.questionNumber <= range.end
+  );
 }
 
 function shuffle(items) {
@@ -133,28 +190,41 @@ function renderScopes() {
     String(a).localeCompare(String(b), undefined, { numeric: true })
   );
   els.scope.innerHTML = `<option value="all">All questions</option>`;
+
+  const blockGroup = document.createElement("optgroup");
+  blockGroup.label = "Blocks";
   for (const block of blocks) {
     const option = document.createElement("option");
-    option.value = slug(block);
+    option.value = `block:${slug(block)}`;
     option.textContent = block;
-    els.scope.appendChild(option);
+    blockGroup.appendChild(option);
   }
-  const missed = document.createElement("option");
-  missed.value = "missed";
-  missed.textContent = "Missed questions";
-  els.scope.appendChild(missed);
+  els.scope.appendChild(blockGroup);
+
+  const categoryGroup = document.createElement("optgroup");
+  categoryGroup.label = "Subcategories";
+  for (const category of CATEGORY_SCOPES) {
+    const option = document.createElement("option");
+    option.value = category.id;
+    option.textContent = category.label;
+    categoryGroup.appendChild(option);
+  }
+  els.scope.appendChild(categoryGroup);
 }
 
 function render() {
   const session = getSession();
   const q = currentQuestion();
+  normalizeLegacyScope();
   els.scope.value = state.scope || "all";
   els.order.value = state.orderMode || "sequential";
+  els.missedOnly.checked = Boolean(state.missedOnly);
 
   if (!q) {
     els.loading.hidden = false;
     els.loading.textContent = "No questions in this scope yet.";
     els.card.hidden = true;
+    renderAnswerRecord(null);
     updateStats();
     return;
   }
@@ -168,9 +238,21 @@ function render() {
   renderImages(q);
   renderChoices(q, session.answers[q.id]);
   renderFeedback(q, session.answers[q.id]);
+  renderAnswerRecord(q);
   els.prev.disabled = session.index === 0;
   els.next.textContent = session.index >= session.order.length - 1 ? "Finish" : "Next";
   updateStats();
+}
+
+function normalizeLegacyScope() {
+  if (state.scope === "missed") {
+    state.scope = "all";
+    state.missedOnly = true;
+    return;
+  }
+  if (state.scope && state.scope !== "all" && !state.scope.startsWith("block:") && !CATEGORY_SCOPES.some((item) => item.id === state.scope)) {
+    state.scope = `block:${state.scope}`;
+  }
 }
 
 function setSettingsOpen(open) {
@@ -222,13 +304,23 @@ function renderChoices(q, answer) {
 
 function answerQuestion(q, selected) {
   const session = getSession();
-  session.answers[q.id] = {
+  const record = {
     selected,
+    selectedText: choiceText(q, selected),
     correct: selected === q.correct_answer,
+    correctAnswer: q.correct_answer,
+    correctAnswerText: formatAnswer(q),
     answeredAt: new Date().toISOString(),
   };
+  session.answers[q.id] = record;
+  state.history ||= {};
+  state.history[q.id] = record;
   saveState();
   render();
+}
+
+function choiceText(q, selected) {
+  return (q.choices || []).find((choice) => choiceLetter(choice) === selected) || selected || "";
 }
 
 function renderFeedback(q, answer) {
@@ -248,6 +340,32 @@ function formatAnswer(q) {
   if (!answer) return text || "";
   if (text.trim().toUpperCase().startsWith(`${answer}.`)) return text;
   return text ? `${answer}. ${text}` : answer;
+}
+
+function renderAnswerRecord(q) {
+  if (!els.answerRecord) return;
+  if (!q) {
+    els.answerRecord.innerHTML = `<dt>Status</dt><dd>No question selected</dd>`;
+    return;
+  }
+  const record = state.history?.[q.id];
+  if (!record) {
+    els.answerRecord.innerHTML = `<dt>Status</dt><dd>Not answered yet</dd>`;
+    return;
+  }
+  const result = record.correct ? "Correct" : "Incorrect";
+  els.answerRecord.innerHTML = [
+    ["Last answered", formatDateTime(record.answeredAt)],
+    ["Chosen", record.selectedText || record.selected || "-"],
+    ["Result", result],
+  ].map(([term, value]) => `<dt>${term}</dt><dd>${value}</dd>`).join("");
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
 }
 
 function updateStats() {
@@ -312,6 +430,9 @@ async function init() {
     );
     state.scope ||= "all";
     state.orderMode ||= "sequential";
+    state.missedOnly ||= false;
+    state.history ||= {};
+    normalizeLegacyScope();
     renderScopes();
     render();
   } catch (error) {
@@ -323,6 +444,10 @@ els.scope.addEventListener("change", () => {
   state.scope = els.scope.value;
   saveState();
   render();
+});
+els.missedOnly.addEventListener("change", () => {
+  state.missedOnly = els.missedOnly.checked;
+  resetCurrentSession();
 });
 els.order.addEventListener("change", () => {
   state.orderMode = els.order.value;
