@@ -118,6 +118,7 @@ def render_html(template: str, questions: list[dict], title: str, app_id: str) -
         flags=re.S,
     )
     html = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", html, count=1)
+    html = re.sub(r"<h1>.*?</h1>", f"<h1>{title}</h1>", html, count=1)
     html = re.sub(r'const APP_ID = ".*?";', f'const APP_ID = "{app_id}";', html, count=1)
     html = html.replace(
         'const STORAGE_KEY = "temporary-app-state:" + APP_ID;',

@@ -64,12 +64,13 @@ For every generated chapter:
 9. Search for repetitive source-attribution stems, malformed substitutions, broken spacing, page artifacts, inverted ranges, capitalization errors, contradictory choices, and explanations that merely restate the answer.
 10. Sample questions from every source subsection, not only the beginning of a chapter.
 11. Compare the final style with several professionally edited, text-only Core Review questions already in the library.
-12. Compile the generated inline JavaScript with Node.
-13. Register each app in both temporary-app indexes and run:
+12. Search the generated HTML for inherited template content. Confirm the document title, visible heading, app ID, save-state placeholder, copy labels, and explanation labels all identify the current quiz rather than the template source.
+13. Compile the generated inline JavaScript with Node.
+14. Register each app in both temporary-app indexes and run:
 
 ```powershell
 python scripts\verify-temporary-apps-index.py
 ```
 
-14. Open representative chapters in the browser, answer both correctly and incorrectly in Tutor mode, and verify Quiz mode review, persistence, reset, and state export/import.
-15. Commit and push the verified work.
+15. Open representative chapters in the browser, answer both correctly and incorrectly in Tutor mode, and verify Quiz mode review, persistence, reset, and state export/import.
+16. Commit and push the verified work.
