@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
+from collections import Counter
 from pathlib import Path
+
+from risc_curated_bank import CHAPTER_QUESTIONS
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PLAN = ROOT / "apps/core-studying/Radioisotope Safety Document/RISC-game-design-plan.md"
 SOURCE_DIR = ROOT / "apps/core-studying/Radioisotope Safety Document 2026"
 OUTPUT_ROOT = ROOT / "apps/temporary-apps/library/core-review/radioisotope-safety-document-2026"
 TEMPLATE = (
@@ -15,6 +16,7 @@ TEMPLATE = (
     / "apps/temporary-apps/library/core-review/absolute-breast-imaging-review"
     / "2026-06-10-absolute-breast-pathology-quiz/_template.html"
 )
+BANK_VERSION = 2
 
 CHAPTERS = {
     1: ("Introduction and Radiation Protection", "introduction-radiation-protection"),
@@ -38,178 +40,74 @@ SOURCE_FILES = {
     8: "08. Appendix 1. Radiation-Measuring Instrumentation and Quality Control Tests.txt",
 }
 
-SWAPS = [
-    ("annual", "monthly"),
-    ("annually", "monthly"),
-    ("quarterly", "annually"),
-    ("every 3 months", "every 12 months"),
-    ("every 12 months", "every 3 months"),
-    ("must", "need not"),
-    ("required", "prohibited"),
-    ("higher", "lower"),
-    ("high", "low"),
-    ("shorter", "longer"),
-    ("less than", "greater than"),
-    ("more than", "less than"),
-    ("diagnostic", "therapeutic"),
-    ("therapeutic", "diagnostic"),
-    ("restricted", "unrestricted"),
-    ("unrestricted", "restricted"),
-    ("internal", "external"),
-    ("external", "internal"),
-    ("alpha", "gamma"),
-    ("gamma", "alpha"),
-    ("beta", "neutron"),
-    ("physical", "biological"),
-    ("biological", "physical"),
-    ("stochastic", "deterministic"),
-    ("deterministic", "stochastic"),
-    ("RSO", "patient"),
-    ("NRC", "FDA"),
-]
 
-
-def clean(text: str) -> str:
-    text = text.replace("“", '"').replace("”", '"').replace("’", "'")
-    text = text.replace("–", "-").replace("—", "-").replace("×", "x")
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def parse_plan() -> dict[int, list[dict]]:
-    chapters: dict[int, list[dict]] = {number: [] for number in CHAPTERS}
-    chapter = 0
-    section = ""
-    mode = ""
-    for raw in PLAN.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        chapter_match = re.match(r"## Chapter (\d+)\.", line)
-        if chapter_match:
-            chapter = int(chapter_match.group(1))
-            section = ""
-            mode = ""
-            continue
-        section_match = re.match(r"### (.+)", line)
-        if section_match:
-            section = clean(section_match.group(1))
-            mode = ""
-            continue
-        if line == "**Facts to teach**":
-            mode = "facts"
-            continue
-        if line.startswith("**"):
-            mode = ""
-            continue
-        if chapter and mode == "facts" and line.startswith("- "):
-            fact = clean(line[2:])
-            if len(fact) >= 20:
-                chapters[chapter].append({"section": section, "fact": fact})
-    return chapters
-
-
-def replace_first(text: str, old: str, new: str) -> str | None:
-    pattern = re.escape(old)
-    if old[0].isalnum() and old[-1].isalnum():
-        pattern = rf"\b{pattern}\b"
-    match = re.search(pattern, text, flags=re.I)
-    if not match:
-        return None
-    return text[: match.start()] + new + text[match.end() :]
-
-
-def mutate_number(text: str, offset: int) -> str | None:
-    matches = list(re.finditer(r"(?<![A-Za-z])(\d+(?:\.\d+)?)", text))
-    if not matches:
-        return None
-    match = matches[min(offset, len(matches) - 1)]
-    value = float(match.group(1))
-    if value == 0:
-        replacement = "1"
-    elif value < 2:
-        replacement = f"{value * (2 + offset):g}"
-    elif value <= 10:
-        replacement = f"{value + 2 + offset:g}"
-    else:
-        replacement = f"{value * (2 if offset % 2 == 0 else 0.5):g}"
-    return text[: match.start()] + replacement + text[match.end() :]
-
-
-def make_distractors(fact: str) -> list[str]:
-    candidates: list[str] = []
-    for old, new in SWAPS:
-        changed = replace_first(fact, old, new)
-        if (
-            changed
-            and changed != fact
-            and not re.search(r"\b(\w+)\s+(?:or|and)\s+\1\b", changed, flags=re.I)
-        ):
-            candidates.append(changed)
-    for index in range(3):
-        changed = mutate_number(fact, index)
-        if changed and changed != fact:
-            candidates.append(changed)
-    negated = None
-    for old, new in [
-        (" does not ", " does "),
-        (" do not ", " do "),
-        (" cannot ", " can "),
-        (" can ", " cannot "),
-        (" are ", " are not "),
-        (" is ", " is not "),
-        (" includes ", " excludes "),
-        (" include ", " exclude "),
-    ]:
-        negated = replace_first(fact, old, new)
-        if negated:
-            candidates.append(negated)
-            break
-    unique = []
-    for candidate in candidates:
-        candidate = clean(candidate)
-        if candidate != fact and candidate not in unique:
-            unique.append(candidate)
-    fallbacks = [
-        "The guidance treats this as optional and leaves the decision entirely to individual preference.",
-        "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology.",
-        "No documentation, training, or radiation-safety oversight is required for this issue.",
+def balance_options(item: dict, target_answer: str) -> tuple[list[dict], str]:
+    letters = "ABCD"
+    source_index = letters.index(item["answer"])
+    correct_text = item["options"][source_index]
+    distractors = [
+        option for index, option in enumerate(item["options"]) if index != source_index
     ]
-    for fallback in fallbacks:
-        if len(unique) >= 3:
-            break
-        unique.append(fallback)
-    return unique[:3]
+    target_index = letters.index(target_answer)
+    ordered = distractors[:]
+    ordered.insert(target_index, correct_text)
+    return (
+        [
+            {"letter": letter, "text": text}
+            for letter, text in zip(letters, ordered, strict=True)
+        ],
+        target_answer,
+    )
 
 
 def make_questions(items: list[dict], chapter_number: int) -> list[dict]:
     questions = []
-    answer_positions = [0, 2, 1, 3]
-    for index, item in enumerate(items, start=1):
-        fact = item["fact"]
-        distractors = make_distractors(fact)
-        position = answer_positions[(index - 1) % len(answer_positions)]
-        choices = distractors[:]
-        choices.insert(position, fact)
-        letters = "ABCD"
-        options = [{"letter": letters[i], "text": choice} for i, choice in enumerate(choices)]
-        section = re.sub(r"^\d+(?:\.\d+)*\s*", "", item["section"]).strip()
-        stem = f"According to the 2026 RISC guidance, which statement about {section.lower()} is correct?"
+    letters = "ABCD"
+    for index, source_item in enumerate(items, start=1):
+        target_answer = letters[(index + chapter_number - 2) % 4]
+        options, answer = balance_options(source_item, target_answer)
         questions.append(
             {
                 "number": str(index),
-                "stem": stem,
+                "stem": source_item["stem"],
                 "options": options,
-                "answer": letters[position],
-                "explanation": (
-                    f"Correct answer: {letters[position]}. {fact} "
-                    f"This point is drawn from Chapter {chapter_number}, section '{item['section']}', "
-                    "and is tested because it is a practical safety rule, regulatory requirement, "
-                    "high-yield distinction, or commonly confused threshold."
-                ),
+                "answer": answer,
+                "explanation": source_item["explanation"],
                 "images": [],
                 "explanationImages": [],
+                "sourceChapter": chapter_number,
             }
         )
     return questions
+
+
+def validate_questions(questions: list[dict], chapter_number: int) -> None:
+    expected_numbers = [str(number) for number in range(1, len(questions) + 1)]
+    actual_numbers = [question["number"] for question in questions]
+    if actual_numbers != expected_numbers:
+        raise ValueError(f"Chapter {chapter_number}: question numbers are not sequential")
+
+    for question in questions:
+        number = question["number"]
+        options = question["options"]
+        letters = [option["letter"] for option in options]
+        texts = [option["text"].strip() for option in options]
+        if letters != list("ABCD"):
+            raise ValueError(f"Chapter {chapter_number}, question {number}: invalid letters")
+        if question["answer"] not in letters:
+            raise ValueError(f"Chapter {chapter_number}, question {number}: invalid answer")
+        if len(set(texts)) != 4:
+            raise ValueError(f"Chapter {chapter_number}, question {number}: duplicate options")
+        if not question["stem"].strip().endswith("?"):
+            raise ValueError(f"Chapter {chapter_number}, question {number}: open lead-in")
+        if not question["explanation"].strip():
+            raise ValueError(f"Chapter {chapter_number}, question {number}: no explanation")
+
+    distribution = Counter(question["answer"] for question in questions)
+    if max(distribution.values()) - min(distribution.values()) > 1:
+        raise ValueError(
+            f"Chapter {chapter_number}: unbalanced answer distribution {distribution}"
+        )
 
 
 def render_html(template: str, questions: list[dict], title: str, app_id: str) -> str:
@@ -221,6 +119,11 @@ def render_html(template: str, questions: list[dict], title: str, app_id: str) -
     )
     html = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", html, count=1)
     html = re.sub(r'const APP_ID = ".*?";', f'const APP_ID = "{app_id}";', html, count=1)
+    html = html.replace(
+        'const STORAGE_KEY = "temporary-app-state:" + APP_ID;',
+        f'const STORAGE_KEY = "temporary-app-state:" + APP_ID + ":bank-{BANK_VERSION}";',
+        1,
+    )
     html = re.sub(r"const DEFAULT_SELECTED = \{.*?\};", "const DEFAULT_SELECTED = {};", html, count=1)
     html = re.sub(
         r"const DEFAULT_STATE = \{.*?\};",
@@ -228,42 +131,91 @@ def render_html(template: str, questions: list[dict], title: str, app_id: str) -
         html,
         count=1,
     )
+    html = html.replace("version: 1,", f"version: {BANK_VERSION},", 1)
+    html = html.replace(
+        'if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");',
+        f'if (!payload || payload.appId !== APP_ID || payload.version !== {BANK_VERSION}) throw new Error("This saved state is for a different quiz version.");',
+        1,
+    )
+    html = html.replace(
+        '{"version":1,"appId":"pediatric-gi-imaging-quiz-ch1",...}',
+        f'{{"version":{BANK_VERSION},"appId":"{app_id}",...}}',
+        1,
+    )
+    html = html.replace("PDF explanation:", "Source explanation:")
     return html
 
 
+def chapter_readme(
+    chapter_number: int, chapter_title: str, source_file: str, question_count: int
+) -> str:
+    return (
+        f"# RISC 2026 Chapter {chapter_number} Quiz\n\n"
+        f"- Chapter: {chapter_title}.\n"
+        f"- Authoritative source: `apps/core-studying/Radioisotope Safety Document 2026/{source_file}`.\n"
+        f"- Output: {question_count} manually authored, source-grounded questions.\n"
+        "- Images: none by design.\n"
+        "- Default answers: empty. Progress is saved locally by the quiz app.\n"
+        f"- Question-bank version: {BANK_VERSION}. The versioned save key prevents answers from the superseded generated bank from being mapped to different questions.\n\n"
+        "The bank emphasizes application, commonly confused distinctions, regulatory thresholds, and operational decisions. "
+        "Distractors are authored as plausible alternatives rather than produced by mechanical word or number substitution. "
+        "Re-run `python scripts/generate_risc_quizzes.py` after editing `scripts/risc_curated_bank.py`.\n"
+    )
+
+
+def series_readme(manifest: list[dict]) -> str:
+    rows = "\n".join(
+        f"| {item['chapter']}. {item['title']} | {item['questions']} |"
+        for item in manifest
+    )
+    total = sum(item["questions"] for item in manifest)
+    return (
+        "# Radioisotope Safety Document 2026 Quiz Series\n\n"
+        "This series converts the eight sections of the 2026 RISC source corpus into separate interactive quizzes.\n\n"
+        "| Chapter | Questions |\n"
+        "| --- | ---: |\n"
+        f"{rows}\n"
+        f"| **Total** | **{total}** |\n\n"
+        "The authoritative text files are in `apps/core-studying/Radioisotope Safety Document 2026/`. "
+        "The manually authored bank is in `scripts/risc_curated_bank.py`.\n\n"
+        "Source ambiguities intentionally omitted from scored items include the conflicting 5.3 mSv and 6.2 mSv "
+        "annual-population totals and the internally inconsistent Chapter 4 public-dose line that pairs 50 mrem with 5 mSv.\n\n"
+        "Regenerate the full series with:\n\n"
+        "```powershell\n"
+        "python scripts\\generate_risc_quizzes.py\n"
+        "```\n\n"
+        "The generator validates sequential IDs, unique choices, closed lead-ins, answer keys, and balanced A-D positions. "
+        "Bank version 2 intentionally starts with empty progress because the original mechanically generated questions were replaced.\n"
+    )
+
+
 def main() -> None:
-    parsed = parse_plan()
     template = TEMPLATE.read_text(encoding="utf-8")
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     manifest = []
     for chapter_number, (chapter_title, slug) in CHAPTERS.items():
-        items = parsed[chapter_number]
-        questions = make_questions(items, chapter_number)
+        questions = make_questions(CHAPTER_QUESTIONS[chapter_number], chapter_number)
+        validate_questions(questions, chapter_number)
         folder = OUTPUT_ROOT / f"2026-06-10-risc-{slug}-quiz"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "assets").mkdir(exist_ok=True)
         title = f"RISC Chapter {chapter_number}: {chapter_title} Quiz"
         app_id = f"risc-2026-{slug}-quiz-ch{chapter_number}"
+        source_file = SOURCE_FILES[chapter_number]
+        if not (SOURCE_DIR / source_file).is_file():
+            raise FileNotFoundError(SOURCE_DIR / source_file)
         (folder / "questions.json").write_text(
             json.dumps(questions, indent=2, ensure_ascii=False), encoding="utf-8"
         )
         (folder / "index.html").write_text(
             render_html(template, questions, title, app_id), encoding="utf-8"
         )
-        source_file = SOURCE_FILES[chapter_number]
-        readme = (
-            f"# RISC 2026 Chapter {chapter_number} Quiz\n\n"
-            f"- Chapter: {chapter_title}.\n"
-            f"- Authoritative source: `apps/core-studying/Radioisotope Safety Document 2026/{source_file}`.\n"
-            f"- Coverage map: `apps/core-studying/Radioisotope Safety Document/RISC-game-design-plan.md`.\n"
-            f"- Output: {len(questions)} scored entries, one for each major fact identified in the coverage map.\n"
-            "- Images: none by design.\n"
-            "- Default answers: empty. Progress is saved locally by the quiz app.\n\n"
-            "The generator creates answer choices deterministically, rotates correct-answer positions, "
-            "and includes a source-section explanation for every item. Re-run "
-            "`python scripts/generate_risc_quizzes.py` after updating the source or coverage map.\n"
+        (folder / "README.md").write_text(
+            chapter_readme(
+                chapter_number, chapter_title, source_file, len(questions)
+            ),
+            encoding="utf-8",
         )
-        (folder / "README.md").write_text(readme, encoding="utf-8")
         manifest.append(
             {
                 "chapter": chapter_number,
@@ -272,11 +224,17 @@ def main() -> None:
                 "folder": folder.name,
                 "questions": len(questions),
                 "source": source_file,
+                "bankVersion": BANK_VERSION,
             }
         )
-        print(f"Chapter {chapter_number}: {len(questions)} questions")
+        distribution = Counter(question["answer"] for question in questions)
+        print(f"Chapter {chapter_number}: {len(questions)} questions {dict(distribution)}")
+
     (OUTPUT_ROOT / "quiz-manifest.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf-8"
+    )
+    (OUTPUT_ROOT / "README.md").write_text(
+        series_readme(manifest), encoding="utf-8"
     )
     print(f"Total: {sum(item['questions'] for item in manifest)} questions")
 

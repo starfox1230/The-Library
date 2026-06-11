@@ -2,9 +2,9 @@
 
 - Chapter: Regulatory Exposure Limits.
 - Authoritative source: `apps/core-studying/Radioisotope Safety Document 2026/04. Regulatory exposure limits to radioactive materials.txt`.
-- Coverage map: `apps/core-studying/Radioisotope Safety Document/RISC-game-design-plan.md`.
-- Output: 34 scored entries, one for each major fact identified in the coverage map.
+- Output: 18 manually authored, source-grounded questions.
 - Images: none by design.
 - Default answers: empty. Progress is saved locally by the quiz app.
+- Question-bank version: 2. The versioned save key prevents answers from the superseded generated bank from being mapped to different questions.
 
-The generator creates answer choices deterministically, rotates correct-answer positions, and includes a source-section explanation for every item. Re-run `python scripts/generate_risc_quizzes.py` after updating the source or coverage map.
+The bank emphasizes application, commonly confused distinctions, regulatory thresholds, and operational decisions. Distractors are authored as plausible alternatives rather than produced by mechanical word or number substitution. Re-run `python scripts/generate_risc_quizzes.py` after editing `scripts/risc_curated_bank.py`.
