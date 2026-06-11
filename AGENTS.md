@@ -28,6 +28,17 @@ Before generating or fixing any Core Review quiz, read and follow `apps/temporar
 
 When creating original quizzes from the informational content of a source document rather than extracting prewritten questions, also read and follow `apps/temporary-apps/library/DOCUMENT_TO_QUIZ_BUILD_WORKFLOW.md`.
 
+### Physics video transcript quiz apps
+Quizzes authored from the transcript collection under `apps/core-studying/YT Physics/` must live only under:
+
+```text
+apps/temporary-apps/library/physics-video-quizzes/<modality>/<YYYY-MM-DD-video-slug>/
+```
+
+The same change must update `apps/temporary-apps/library/physics-video-quizzes/index.html`, which is the grouped landing page for X-ray, CT, MRI, and ultrasound video quizzes. Register the organized `library/physics-video-quizzes/.../index.html` paths in `apps/temporary-apps/index.html`.
+
+Before authoring these quizzes, read and follow both `apps/temporary-apps/library/DOCUMENT_TO_QUIZ_BUILD_WORKFLOW.md` and `apps/temporary-apps/library/PHYSICS_VIDEO_QUIZ_BUILD_WORKFLOW.md`. Treat each transcript as a source chapter, keep the authored bank separate from the renderer, start with empty answers, and use a versioned save key whenever the bank changes.
+
 ## Why this exists
 A previous change added a temporary app folder but forgot to update the landing-page registration path. These instructions and the verifier prevent that regression.
 
