@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RISC Chapter 5: Radiopharmaceutical Administration Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --ink: #eef2f7;
+      --muted: #9ca7b8;
+      --panel: #171c25;
+      --panel-2: #10151e;
+      --line: #2e3747;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --good: #5ee0a0;
+      --bad: #ff8a8a;
+      --warn: #f4c76b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #111721;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .bar {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 3px; letter-spacing: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; }
+    main {
+      width: min(1180px, 94vw);
+      margin: 20px auto 36px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+    main.nav-closed { grid-template-columns: 1fr; }
+    nav, .question-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 78px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+    }
+    .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .nav-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .nav-title { font-weight: 800; }
+    main.nav-closed nav { display: none; }
+    button {
+      border: 1px solid var(--line);
+      background: #111721;
+      color: var(--ink);
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 8px 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #06111a; border-color: var(--accent); }
+    button.primary:hover { background: var(--accent-2); }
+    button.icon { min-width: 42px; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    button.current { outline: 2px solid var(--accent); }
+    button.correct { background: #123326; border-color: #2f8e62; color: var(--good); }
+    button.wrong { background: #3a171b; border-color: #9b3f48; color: var(--bad); }
+    .question-panel { padding: 18px; }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .counter { color: var(--muted); font-size: 0.92rem; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .mode-switch {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+    .mode-switch button {
+      border: 0;
+      border-radius: 0;
+      min-height: 38px;
+      background: transparent;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #06111a;
+    }
+    .stem {
+      font-size: 1.12rem;
+      line-height: 1.48;
+      margin: 8px 0 16px;
+    }
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+    .images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .explanation-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+    .explanation-images img {
+      width: 100%;
+      background: #111;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .choices { display: grid; gap: 8px; margin: 14px 0; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-weight: 500;
+      line-height: 1.35;
+      min-height: 48px;
+    }
+    .choice .letter {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #243044;
+      font-weight: 800;
+    }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .notice {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+    .result {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .result.show { display: block; }
+    .review-panel {
+      border-top: 1px solid var(--line);
+      margin-top: 18px;
+      padding-top: 16px;
+      display: none;
+    }
+    .review-panel.show { display: block; }
+    .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; margin-top: 12px; }
+    .review-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .status { font-weight: 800; margin-bottom: 10px; }
+    .status.good { color: var(--good); }
+    .status.bad { color: var(--bad); }
+    .feedback-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .feedback-head .status { margin-bottom: 0; }
+    .feedback-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .explanation {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    dialog {
+      width: min(720px, 94vw);
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.94);
+      cursor: zoom-out;
+      padding: 0;
+    }
+    .lightbox.show { display: grid; }
+    .lightbox img {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      display: block;
+    }
+    .settings-body { padding: 16px; display: grid; gap: 12px; }
+    .settings-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 16px;
+    }
+    .settings-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0; }
+    .settings-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .settings-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .settings-field textarea {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea {
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+    }
+    @media (max-width: 780px) {
+      .bar { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; }
+      nav { position: static; max-height: none; }
+      .nav-grid { grid-template-columns: repeat(8, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div>
+        <h1>Pediatric Gastrointestinal Tract Quiz</h1>
+      </div>
+      <div class="counter" id="score">0 answered</div>
+    </div>
+  </header>
+  <main>
+    <nav aria-label="Question list">
+      <div class="nav-head">
+        <div class="nav-title">Questions</div>
+        <button type="button" id="hideNav">Hide</button>
+      </div>
+      <div class="nav-grid" id="navGrid"></div>
+    </nav>
+    <section class="question-panel" aria-live="polite">
+      <div class="topline">
+        <div>
+          <div class="counter" id="questionCounter"></div>
+          <button type="button" id="showNav">Show Questions</button>
+        </div>
+        <div class="tools">
+          <div class="mode-switch" aria-label="Study mode">
+            <button type="button" id="tutorMode" class="active">Tutor</button>
+            <button type="button" id="quizMode">Quiz</button>
+          </div>
+          <button type="button" id="settingsButton">Settings</button>
+        </div>
+      </div>
+      <div id="imageGrid" class="images"></div>
+      <div id="stem" class="stem"></div>
+      <div id="choices" class="choices"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="submit">Submit Answer</button>
+        <button type="button" id="prev">Previous</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="reviewQuiz">Review Quiz</button>
+      </div>
+      <div class="result" id="result">
+        <div class="feedback-head">
+          <div class="status" id="status"></div>
+          <div class="feedback-tools">
+            <button type="button" id="copyQuestionText">Copy Question Text</button>
+            <button type="button" id="copyScreenshot">Copy Screenshot</button>
+          </div>
+        </div>
+        <div id="explanationImageGrid" class="explanation-images"></div>
+        <div class="explanation" id="explanation"></div>
+      </div>
+      <div class="review-panel" id="reviewPanel">
+        <div class="status" id="reviewStatus"></div>
+        <div class="review-meta">Select a question below to review its answer explanation above.</div>
+        <div class="review-grid" id="reviewGrid"></div>
+      </div>
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+  <div class="lightbox" id="lightbox" role="presentation">
+    <img id="lightboxImage" alt="" />
+  </div>
+  <dialog id="settingsDialog">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button type="button" id="closeSettings">Close</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <button type="button" id="copyState">Copy Saved State JSON</button>
+        <button type="button" id="downloadState">Download Saved State</button>
+        <button type="button" id="resetState">Reset Test</button>
+      </div>
+      <div class="settings-field">
+        <label for="stateImport">Paste saved state JSON from another computer</label>
+        <textarea id="stateImport" placeholder='{"version":1,"appId":"pediatric-gi-imaging-quiz-ch1",...}'></textarea>
+      </div>
+      <div class="settings-row">
+        <button type="button" class="primary" id="importState">Load Pasted State</button>
+      </div>
+    </div>
+  </dialog>
+  <textarea id="clipboardScratch"></textarea>
+  <script>
+    const QUESTIONS = [{"number": "1", "stem": "According to the 2026 RISC guidance, which statement about confirming dosage is correct?", "options": [{"letter": "A", "text": "Short-half-life radioisotopes are preferred to reduce patient dose and prolonged exposure."}, {"letter": "B", "text": "Short-half-life radioisotopes are not preferred to reduce patient dose and prolonged exposure."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "A", "explanation": "Correct answer: A. Short-half-life radioisotopes are preferred to reduce patient dose and prolonged exposure. This point is drawn from Chapter 5, section '5.1 Confirming dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "2", "stem": "According to the 2026 RISC guidance, which statement about confirming dosage is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "Many short-lived isotopes decay to stable elements within minutes, hours, or days, which helps patients leave the hospital sooner."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "C", "explanation": "Correct answer: C. Many short-lived isotopes decay to stable elements within minutes, hours, or days, which helps patients leave the hospital sooner. This point is drawn from Chapter 5, section '5.1 Confirming dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "3", "stem": "According to the 2026 RISC guidance, which statement about confirming dosage is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "FDA oversees clinical administration of radiopharmaceuticals to humans through NDA, ANDA, or IND pathways."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "B", "explanation": "Correct answer: B. FDA oversees clinical administration of radiopharmaceuticals to humans through NDA, ANDA, or IND pathways. This point is drawn from Chapter 5, section '5.1 Confirming dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "4", "stem": "According to the 2026 RISC guidance, which statement about confirming dosage is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}, {"letter": "D", "text": "Commercial distribution approval depends on FDA/state/pharmacy/PET facility registration and licensure status."}], "answer": "D", "explanation": "Correct answer: D. Commercial distribution approval depends on FDA/state/pharmacy/PET facility registration and licensure status. This point is drawn from Chapter 5, section '5.1 Confirming dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "5", "stem": "According to the 2026 RISC guidance, which statement about confirming dosage is correct?", "options": [{"letter": "A", "text": "Before medical use, radiopharmaceutical activities must be determined and recorded."}, {"letter": "B", "text": "Before medical use, radiopharmaceutical activities need not be determined and recorded."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "A", "explanation": "Correct answer: A. Before medical use, radiopharmaceutical activities must be determined and recorded. This point is drawn from Chapter 5, section '5.1 Confirming dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "6", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "Each syringe or vial containing unsealed radioactive byproduct material need not identify the radiopharmaceutical."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "Each syringe or vial containing unsealed radioactive byproduct material must identify the radiopharmaceutical."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "C", "explanation": "Correct answer: C. Each syringe or vial containing unsealed radioactive byproduct material must identify the radiopharmaceutical. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "7", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "Syringe/vial shields need not also be labeled unless the syringe/vial label remains visible when shielded."}, {"letter": "B", "text": "Syringe/vial shields must also be labeled unless the syringe/vial label remains visible when shielded."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "B", "explanation": "Correct answer: B. Syringe/vial shields must also be labeled unless the syringe/vial label remains visible when shielded. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "8", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "Dosage labels need not include radionuclide, chemical form, amount/activity and date/time measured, expiration date/time, quantity/volume/weight/count, dispensing nuclear pharmacy name/address/phone, prescription or lot number, and radiopharmaceutical name."}, {"letter": "B", "text": "Dosage labels must exclude radionuclide, chemical form, amount/activity and date/time measured, expiration date/time, quantity/volume/weight/count, dispensing nuclear pharmacy name/address/phone, prescription or lot number, and radiopharmaceutical name."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "Dosage labels must include radionuclide, chemical form, amount/activity and date/time measured, expiration date/time, quantity/volume/weight/count, dispensing nuclear pharmacy name/address/phone, prescription or lot number, and radiopharmaceutical name."}], "answer": "D", "explanation": "Correct answer: D. Dosage labels must include radionuclide, chemical form, amount/activity and date/time measured, expiration date/time, quantity/volume/weight/count, dispensing nuclear pharmacy name/address/phone, prescription or lot number, and radiopharmaceutical name. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "9", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "Labels for radiolabeled blood components and radiotherapies must contain the patient's name."}, {"letter": "B", "text": "Labels for radiolabeled blood components and radiotherapies need not contain the patient's name."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "A", "explanation": "Correct answer: A. Labels for radiolabeled blood components and radiotherapies must contain the patient's name. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "10", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "Delivery containers need not have a tamper-evident seal."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "Delivery containers must have a tamper-evident seal."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "C", "explanation": "Correct answer: C. Delivery containers must have a tamper-evident seal. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "11", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "For diagnostic dosing when patient name is unavailable at dispensing, a 72-hour exemption is allowed; the patient's name need not be associated with the prescription no later than 72 hours after dispensing and retained for 3 years."}, {"letter": "B", "text": "For diagnostic dosing when patient name is unavailable at dispensing, a 72-hour exemption is allowed; the patient's name must be associated with the prescription no later than 72 hours after dispensing and retained for 3 years."}, {"letter": "C", "text": "For therapeutic dosing when patient name is unavailable at dispensing, a 72-hour exemption is allowed; the patient's name must be associated with the prescription no later than 72 hours after dispensing and retained for 3 years."}, {"letter": "D", "text": "For diagnostic dosing when patient name is unavailable at dispensing, a 144-hour exemption is allowed; the patient's name must be associated with the prescription no later than 72 hours after dispensing and retained for 3 years."}], "answer": "B", "explanation": "Correct answer: B. For diagnostic dosing when patient name is unavailable at dispensing, a 72-hour exemption is allowed; the patient's name must be associated with the prescription no later than 72 hours after dispensing and retained for 3 years. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "12", "stem": "According to the 2026 RISC guidance, which statement about labeling is correct?", "options": [{"letter": "A", "text": "Administered-radiopharmaceutical records also include nuclear-pharmacy name/address, name of the end AU who is not also a prescriber, and lot number."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "Administered-radiopharmaceutical records also include nuclear-pharmacy name/address, name of the end AU who is also a prescriber, and lot number."}], "answer": "D", "explanation": "Correct answer: D. Administered-radiopharmaceutical records also include nuclear-pharmacy name/address, name of the end AU who is also a prescriber, and lot number. This point is drawn from Chapter 5, section '5.1.1 Labeling', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "13", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "Unit dosages may be determined by direct measurement or decay correction from a predetermined activity."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "A", "explanation": "Correct answer: A. Unit dosages may be determined by direct measurement or decay correction from a predetermined activity. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "14", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "Other dosages may be determined by direct measurement, measurement plus calculation, or volumetric plus manufacturer-based calculation."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "C", "explanation": "Correct answer: C. Other dosages may be determined by direct measurement, measurement plus calculation, or volumetric plus manufacturer-based calculation. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "15", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "AUs may prescribe a specific dosage or dosage range."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "B", "explanation": "Correct answer: B. AUs may prescribe a specific dosage or dosage range. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "16", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "Administered dosage may vary by +/-40% from the prescribed dosage."}, {"letter": "B", "text": "Administered dosage may vary by +/-10% from the prescribed dosage."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "Administered dosage may vary by +/-20% from the prescribed dosage."}], "answer": "D", "explanation": "Correct answer: D. Administered dosage may vary by +/-20% from the prescribed dosage. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "17", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "If the licensee knows the administered dosage differs by more than 20% and still gives it without a revised order, the licensee would be cited."}, {"letter": "B", "text": "If the licensee knows the administered dosage differs by less than 20% and still gives it without a revised order, the licensee would be cited."}, {"letter": "C", "text": "If the licensee knows the administered dosage differs by more than 40% and still gives it without a revised order, the licensee would be cited."}, {"letter": "D", "text": "If the licensee knows the administered dosage differs by more than 10% and still gives it without a revised order, the licensee would be cited."}], "answer": "A", "explanation": "Correct answer: A. If the licensee knows the administered dosage differs by more than 20% and still gives it without a revised order, the licensee would be cited. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "18", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "An AU may direct administration more than 20% outside the original range for medical purposes, but need not revise the prescription so the actual administered dosage falls within the revised range."}, {"letter": "B", "text": "An AU may direct administration less than 20% outside the original range for medical purposes, but must revise the prescription so the actual administered dosage falls within the revised range."}, {"letter": "C", "text": "An AU may direct administration more than 20% outside the original range for medical purposes, but must revise the prescription so the actual administered dosage falls within the revised range."}, {"letter": "D", "text": "An AU may direct administration more than 40% outside the original range for medical purposes, but must revise the prescription so the actual administered dosage falls within the revised range."}], "answer": "C", "explanation": "Correct answer: C. An AU may direct administration more than 20% outside the original range for medical purposes, but must revise the prescription so the actual administered dosage falls within the revised range. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "19", "stem": "According to the 2026 RISC guidance, which statement about outside of prescribed range for diagnostic and therapeutic dosage is correct?", "options": [{"letter": "A", "text": "The licensee need not retain a record of the dosage determination."}, {"letter": "B", "text": "The licensee must retain a record of the dosage determination."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "B", "explanation": "Correct answer: B. The licensee must retain a record of the dosage determination. This point is drawn from Chapter 5, section '5.1.2 Outside of prescribed range for diagnostic and therapeutic dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "20", "stem": "According to the 2026 RISC guidance, which statement about patient identity is correct?", "options": [{"letter": "A", "text": "Before radiopharmaceutical administration, patient identity need not be confirmed with two identifiers."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "Before radiopharmaceutical administration, patient identity must be confirmed with two identifiers."}], "answer": "D", "explanation": "Correct answer: D. Before radiopharmaceutical administration, patient identity must be confirmed with two identifiers. This point is drawn from Chapter 5, section '5.2 Patient identity', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "21", "stem": "According to the 2026 RISC guidance, which statement about patient identity is correct?", "options": [{"letter": "A", "text": "Acceptable identifiers include name, assigned ID number, telephone number, date of birth, person-specific identifier, or electronic identification such as barcode/RFID containing two or more person-specific identifiers."}, {"letter": "B", "text": "Acceptable identifiers exclude name, assigned ID number, telephone number, date of birth, person-specific identifier, or electronic identification such as barcode/RFID containing two or more person-specific identifiers."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "A", "explanation": "Correct answer: A. Acceptable identifiers include name, assigned ID number, telephone number, date of birth, person-specific identifier, or electronic identification such as barcode/RFID containing two or more person-specific identifiers. This point is drawn from Chapter 5, section '5.2 Patient identity', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "22", "stem": "According to the 2026 RISC guidance, which statement about patient identity is correct?", "options": [{"letter": "A", "text": "If identity cannot be verified, a temporary identification method need not be used."}, {"letter": "B", "text": "If identity can be verified, a temporary identification method must be used."}, {"letter": "C", "text": "If identity cannot be verified, a temporary identification method must be used."}, {"letter": "D", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}], "answer": "C", "explanation": "Correct answer: C. If identity cannot be verified, a temporary identification method must be used. This point is drawn from Chapter 5, section '5.2 Patient identity', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "23", "stem": "According to the 2026 RISC guidance, which statement about patient identity is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "Formal identification should occur as soon as possible, and new identifying information should replace the temporary method."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "B", "explanation": "Correct answer: B. Formal identification should occur as soon as possible, and new identifying information should replace the temporary method. This point is drawn from Chapter 5, section '5.2 Patient identity', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "24", "stem": "According to the 2026 RISC guidance, which statement about patient identity is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}, {"letter": "D", "text": "No formal standard exists for alias use to protect anonymity; organizations should still use two identifiers."}], "answer": "D", "explanation": "Correct answer: D. No formal standard exists for alias use to protect anonymity; organizations should still use two identifiers. This point is drawn from Chapter 5, section '5.2 Patient identity', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "25", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "Licensees must telephone the NRC Operations Center by the next calendar day after discovering embryo/fetus dose >5 rem (50 mSv) from administration to a pregnant individual, unless specifically approved in advance by the AU."}, {"letter": "B", "text": "Licensees need not telephone the NRC Operations Center by the next calendar day after discovering embryo/fetus dose >5 rem (50 mSv) from administration to a pregnant individual, unless specifically approved in advance by the AU."}, {"letter": "C", "text": "Licensees must telephone the FDA Operations Center by the next calendar day after discovering embryo/fetus dose >5 rem (50 mSv) from administration to a pregnant individual, unless specifically approved in advance by the AU."}, {"letter": "D", "text": "Licensees must telephone the NRC Operations Center by the next calendar day after discovering embryo/fetus dose >7 rem (50 mSv) from administration to a pregnant individual, unless specifically approved in advance by the AU."}], "answer": "A", "explanation": "Correct answer: A. Licensees must telephone the NRC Operations Center by the next calendar day after discovering embryo/fetus dose >5 rem (50 mSv) from administration to a pregnant individual, unless specifically approved in advance by the AU. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "26", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "Licensees need not also telephone by the next calendar day for dose to a nursing child >5 rem (50 mSv) TEDE or unintended permanent functional damage to an organ/system as determined by a physician."}, {"letter": "B", "text": "Licensees must also telephone by the next calendar day for dose to a nursing child >7 rem (50 mSv) TEDE or unintended permanent functional damage to an organ/system as determined by a physician."}, {"letter": "C", "text": "Licensees must also telephone by the next calendar day for dose to a nursing child >5 rem (50 mSv) TEDE or unintended permanent functional damage to an organ/system as determined by a physician."}, {"letter": "D", "text": "Licensees must also telephone by the next calendar day for dose to a nursing child >5 rem (25 mSv) TEDE or unintended permanent functional damage to an organ/system as determined by a physician."}], "answer": "C", "explanation": "Correct answer: C. Licensees must also telephone by the next calendar day for dose to a nursing child >5 rem (50 mSv) TEDE or unintended permanent functional damage to an organ/system as determined by a physician. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "27", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "A written report to the NRC Regional Office is prohibited within 15 days."}, {"letter": "B", "text": "A written report to the NRC Regional Office is required within 15 days."}, {"letter": "C", "text": "A written report to the FDA Regional Office is required within 15 days."}, {"letter": "D", "text": "A written report to the NRC Regional Office is required within 30 days."}], "answer": "B", "explanation": "Correct answer: B. A written report to the NRC Regional Office is required within 15 days. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "28", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "prohibited report contents include licensee name, prescribing physician, brief event description, cause, effect on embryo/fetus or child, prevention steps, and certification of notification or why notification did not occur."}, {"letter": "B", "text": "Required report contents exclude licensee name, prescribing physician, brief event description, cause, effect on embryo/fetus or child, prevention steps, and certification of notification or why notification did not occur."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "Required report contents include licensee name, prescribing physician, brief event description, cause, effect on embryo/fetus or child, prevention steps, and certification of notification or why notification did not occur."}], "answer": "D", "explanation": "Correct answer: D. Required report contents include licensee name, prescribing physician, brief event description, cause, effect on embryo/fetus or child, prevention steps, and certification of notification or why notification did not occur. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "29", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "The written report must exclude patient-identifying information."}, {"letter": "B", "text": "The written report need not exclude patient-identifying information."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "A", "explanation": "Correct answer: A. The written report must exclude patient-identifying information. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "30", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "The licensee need not notify the referring provider and the pregnant individual or mother within 24 hours after discovery of a reportable event, unless the referring provider will inform them or decides notification would be harmful."}, {"letter": "B", "text": "The licensee must notify the referring provider and the pregnant individual or mother within 48 hours after discovery of a reportable event, unless the referring provider will inform them or decides notification would be harmful."}, {"letter": "C", "text": "The licensee must notify the referring provider and the pregnant individual or mother within 24 hours after discovery of a reportable event, unless the referring provider will inform them or decides notification would be harmful."}, {"letter": "D", "text": "The licensee must notify the referring provider and the pregnant individual or mother within 12 hours after discovery of a reportable event, unless the referring provider will inform them or decides notification would be harmful."}], "answer": "C", "explanation": "Correct answer: C. The licensee must notify the referring provider and the pregnant individual or mother within 24 hours after discovery of a reportable event, unless the referring provider will inform them or decides notification would be harmful. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "31", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "Notification can delay appropriate medical or remedial care."}, {"letter": "B", "text": "Notification cannot delay appropriate medical or remedial care."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "B", "explanation": "Correct answer: B. Notification cannot delay appropriate medical or remedial care. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "32", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}, {"letter": "D", "text": "A responsible relative or guardian may be notified instead."}], "answer": "D", "explanation": "Correct answer: D. A responsible relative or guardian may be notified instead. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "33", "stem": "According to the 2026 RISC guidance, which statement about fetal dose (patient) is correct?", "options": [{"letter": "A", "text": "If verbal notification is given, the licensee must offer a written description on request."}, {"letter": "B", "text": "If verbal notification is given, the licensee need not offer a written description on request."}, {"letter": "C", "text": "If verbal notification is not given, the licensee must offer a written description on request."}, {"letter": "D", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}], "answer": "A", "explanation": "Correct answer: A. If verbal notification is given, the licensee must offer a written description on request. This point is drawn from Chapter 5, section '5.3 Fetal dose (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "34", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "Breastfeeding patients may expose the child both internally through milk and externally from the mother's body."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "C", "explanation": "Correct answer: C. Breastfeeding patients may expose the child both internally through milk and externally from the mother's body. This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "35", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "A nursing mother who received unsealed byproduct may be released if TEDE to any other individual, including the nursing child, is projected to stay <=1000 mrem (5 mSv)."}, {"letter": "B", "text": "A nursing mother who received unsealed byproduct may be released if TEDE to any other individual, including the nursing child, is projected to stay <=500 mrem (5 mSv)."}, {"letter": "C", "text": "A nursing mother who received unsealed byproduct may be released if TEDE to any other individual, including the nursing child, is projected to stay <=500 mrem (8 mSv)."}, {"letter": "D", "text": "A nursing mother who received unsealed byproduct may be released if TEDE to any other individual, including the nursing child, is projected to stay <=500 mrem (9 mSv)."}], "answer": "B", "explanation": "Correct answer: B. A nursing mother who received unsealed byproduct may be released if TEDE to any other individual, including the nursing child, is projected to stay <=500 mrem (5 mSv). This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "36", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "If continued breastfeeding could expose the child to >100 mrem (1 mSv), written instructions are prohibited on risks and on interruption/cessation."}, {"letter": "B", "text": "If continued breastfeeding could expose the child to >200 mrem (1 mSv), written instructions are required on risks and on interruption/cessation."}, {"letter": "C", "text": "If continued breastfeeding could expose the child to >100 mrem (3 mSv), written instructions are required on risks and on interruption/cessation."}, {"letter": "D", "text": "If continued breastfeeding could expose the child to >100 mrem (1 mSv), written instructions are required on risks and on interruption/cessation."}], "answer": "D", "explanation": "Correct answer: D. If continued breastfeeding could expose the child to >100 mrem (1 mSv), written instructions are required on risks and on interruption/cessation. This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "37", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "Before radioiodine therapy, oral and written precautions should be provided at least 6 weeks before the procedure so lactation can cease."}, {"letter": "B", "text": "Before radioiodine therapy, oral and written precautions should be provided at least 8 weeks before the procedure so lactation can cease."}, {"letter": "C", "text": "Before radioiodine therapy, oral and written precautions should be provided at least 9 weeks before the procedure so lactation can cease."}, {"letter": "D", "text": "Before radioiodine therapy, oral and written precautions should be provided at least 10 weeks before the procedure so lactation can cease."}], "answer": "A", "explanation": "Correct answer: A. Before radioiodine therapy, oral and written precautions should be provided at least 6 weeks before the procedure so lactation can cease. This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "38", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "Radionuclide-specific guidance given here: F-36 4-hour interruption; Ga-67 28 days; Ga-68 no interruption; I-123 NaI 3 days; I-131 NaI and I-124 NaI permanent cessation for the current child and stop breastfeeding 6 weeks before therapy; In-111 WBC 6 days; Lu-177 dotatate permanent cessation for current child; N-13 no interruption; Rb-82 no interruption; all Tc-99m-labeled radiopharmaceuticals 24 hours; Tl-201 chloride 4 days."}, {"letter": "B", "text": "Radionuclide-specific guidance given here: F-18 7-hour interruption; Ga-67 28 days; Ga-68 no interruption; I-123 NaI 3 days; I-131 NaI and I-124 NaI permanent cessation for the current child and stop breastfeeding 6 weeks before therapy; In-111 WBC 6 days; Lu-177 dotatate permanent cessation for current child; N-13 no interruption; Rb-82 no interruption; all Tc-99m-labeled radiopharmaceuticals 24 hours; Tl-201 chloride 4 days."}, {"letter": "C", "text": "Radionuclide-specific guidance given here: F-18 4-hour interruption; Ga-67 28 days; Ga-68 no interruption; I-123 NaI 3 days; I-131 NaI and I-124 NaI permanent cessation for the current child and stop breastfeeding 6 weeks before therapy; In-111 WBC 6 days; Lu-177 dotatate permanent cessation for current child; N-13 no interruption; Rb-82 no interruption; all Tc-99m-labeled radiopharmaceuticals 24 hours; Tl-201 chloride 4 days."}, {"letter": "D", "text": "Radionuclide-specific guidance given here: F-18 4-hour interruption; Ga-134 28 days; Ga-68 no interruption; I-123 NaI 3 days; I-131 NaI and I-124 NaI permanent cessation for the current child and stop breastfeeding 6 weeks before therapy; In-111 WBC 6 days; Lu-177 dotatate permanent cessation for current child; N-13 no interruption; Rb-82 no interruption; all Tc-99m-labeled radiopharmaceuticals 24 hours; Tl-201 chloride 4 days."}], "answer": "C", "explanation": "Correct answer: C. Radionuclide-specific guidance given here: F-18 4-hour interruption; Ga-67 28 days; Ga-68 no interruption; I-123 NaI 3 days; I-131 NaI and I-124 NaI permanent cessation for the current child and stop breastfeeding 6 weeks before therapy; In-111 WBC 6 days; Lu-177 dotatate permanent cessation for current child; N-13 no interruption; Rb-82 no interruption; all Tc-99m-labeled radiopharmaceuticals 24 hours; Tl-201 chloride 4 days. This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "39", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "Brachytherapy and seed-localization procedures generally require breastfeeding suspension while seeds remain in place, then resumption after removal."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "B", "explanation": "Correct answer: B. Brachytherapy and seed-localization procedures generally require breastfeeding suspension while seeds remain in place, then resumption after removal. This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "40", "stem": "According to the 2026 RISC guidance, which statement about breastfeeding/lactation (patient) is correct?", "options": [{"letter": "A", "text": "Y-180 microsphere radioembolization does not require breastfeeding interruption because Y-90 does not enter systemic circulation, breast tissue, or breast milk."}, {"letter": "B", "text": "Y-90 microsphere radioembolization does not require breastfeeding interruption because Y-45 does not enter systemic circulation, breast tissue, or breast milk."}, {"letter": "C", "text": "Y-90 microsphere radioembolization does not require breastfeeding interruption because Y-180 does not enter systemic circulation, breast tissue, or breast milk."}, {"letter": "D", "text": "Y-90 microsphere radioembolization does not require breastfeeding interruption because Y-90 does not enter systemic circulation, breast tissue, or breast milk."}], "answer": "D", "explanation": "Correct answer: D. Y-90 microsphere radioembolization does not require breastfeeding interruption because Y-90 does not enter systemic circulation, breast tissue, or breast milk. This point is drawn from Chapter 5, section '5.4 Breastfeeding/lactation (patient)', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "41", "stem": "According to the 2026 RISC guidance, which statement about administration of prescribed dosage is correct?", "options": [{"letter": "A", "text": "Radiopharmaceutical administration requires coordinated control of dose verification, staff protection, contamination prevention, and patient-release readiness."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "A", "explanation": "Correct answer: A. Radiopharmaceutical administration requires coordinated control of dose verification, staff protection, contamination prevention, and patient-release readiness. This point is drawn from Chapter 5, section '5.5 Administration of prescribed dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "42", "stem": "According to the 2026 RISC guidance, which statement about administration of prescribed dosage is correct?", "options": [{"letter": "A", "text": "Criteria for release after unsealed byproduct or implant administration are handled later in 8.5.1.3."}, {"letter": "B", "text": "Criteria for release after unsealed byproduct or implant administration are handled later in 6.5.3.9."}, {"letter": "C", "text": "Criteria for release after unsealed byproduct or implant administration are handled later in 6.5.1.3."}, {"letter": "D", "text": "Criteria for release after unsealed byproduct or implant administration are handled later in 6.5.5.2."}], "answer": "C", "explanation": "Correct answer: C. Criteria for release after unsealed byproduct or implant administration are handled later in 6.5.1.3. This point is drawn from Chapter 5, section '5.5 Administration of prescribed dosage', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "43", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "Administration should occur in a specific area or room separated from other operations and near where radiopharmaceuticals are not stored."}, {"letter": "B", "text": "Administration should occur in a specific area or room separated from other operations and near where radiopharmaceuticals are stored."}, {"letter": "C", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "B", "explanation": "Correct answer: B. Administration should occur in a specific area or room separated from other operations and near where radiopharmaceuticals are stored. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "44", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}, {"letter": "D", "text": "Transport to patient rooms often requires radiation-safety or nuclear-technology monitoring and assistance."}], "answer": "D", "explanation": "Correct answer: D. Transport to patient rooms often requires radiation-safety or nuclear-technology monitoring and assistance. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "45", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "Staff should use ALARA measures such as tongs/tweezers, warning staff about excretion, avoiding surface contamination, securing radioactive material when unattended, avoiding eating/drinking and oral contamination, and training workers."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "A", "explanation": "Correct answer: A. Staff should use ALARA measures such as tongs/tweezers, warning staff about excretion, avoiding surface contamination, securing radioactive material when unattended, avoiding eating/drinking and oral contamination, and training workers. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "46", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "People administering volatile I-262 radiopharmaceuticals may be sampled for bioassay if >10 mCi."}, {"letter": "B", "text": "People administering volatile I-131 radiopharmaceuticals may be sampled for bioassay if >13 mCi."}, {"letter": "C", "text": "People administering volatile I-131 radiopharmaceuticals may be sampled for bioassay if >10 mCi."}, {"letter": "D", "text": "People administering volatile I-131 radiopharmaceuticals may be sampled for bioassay if >14 mCi."}], "answer": "C", "explanation": "Correct answer: C. People administering volatile I-131 radiopharmaceuticals may be sampled for bioassay if >10 mCi. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "47", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "Syringe shields should be used during administration."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "B", "explanation": "Correct answer: B. Syringe shields should be used during administration. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "48", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "For positron emitters, lead or tungsten may be used, but tungsten is not preferred because it attenuates better at smaller thickness, is lighter, and is less toxic."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "For positron emitters, lead or tungsten may be used, but tungsten is preferred because it attenuates better at smaller thickness, is lighter, and is less toxic."}], "answer": "D", "explanation": "Correct answer: D. For positron emitters, lead or tungsten may be used, but tungsten is preferred because it attenuates better at smaller thickness, is lighter, and is less toxic. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "49", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "Disposable gloves, body dosimeters, and finger dosimeters should be worn."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "A", "explanation": "Correct answer: A. Disposable gloves, body dosimeters, and finger dosimeters should be worn. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "50", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "Ring dosimeters go under a glove on the most exposed hand, on an exposed finger, with the badge facing the palm."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "C", "explanation": "Correct answer: C. Ring dosimeters go under a glove on the most exposed hand, on an exposed finger, with the badge facing the palm. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "51", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "neutron emitters can be stopped by lead, but the resulting Bremsstrahlung makes lead a poor shielding choice; low-Z materials such as acrylic or aluminum are preferred."}, {"letter": "B", "text": "Beta emitters can be stopped by lead, but the resulting Bremsstrahlung makes lead a poor shielding choice; low-Z materials such as acrylic or aluminum are preferred."}, {"letter": "C", "text": "Beta emitters cannot be stopped by lead, but the resulting Bremsstrahlung makes lead a poor shielding choice; low-Z materials such as acrylic or aluminum are preferred."}, {"letter": "D", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}], "answer": "B", "explanation": "Correct answer: B. Beta emitters can be stopped by lead, but the resulting Bremsstrahlung makes lead a poor shielding choice; low-Z materials such as acrylic or aluminum are preferred. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "52", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}, {"letter": "D", "text": "After treatment, bedding, clothing, towels, food, and trays should be surveyed before removal or held for decay in storage."}], "answer": "D", "explanation": "Correct answer: D. After treatment, bedding, clothing, towels, food, and trays should be surveyed before removal or held for decay in storage. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "53", "stem": "According to the 2026 RISC guidance, which statement about safe handling and administration is correct?", "options": [{"letter": "A", "text": "The patient should be surveyed before release and instructed how to minimize contamination and exposure."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "A", "explanation": "Correct answer: A. The patient should be surveyed before release and instructed how to minimize contamination and exposure. This point is drawn from Chapter 5, section '5.5.1 Safe handling and administration', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "54", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "Shielding is not a core ALARA principle and depends on understanding radionuclide emission type."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "Shielding is a core ALARA principle and depends on understanding radionuclide emission type."}, {"letter": "D", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}], "answer": "C", "explanation": "Correct answer: C. Shielding is a core ALARA principle and depends on understanding radionuclide emission type. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "55", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "Generators should be placed in a remote, well-shielded enclosure."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "B", "explanation": "Correct answer: B. Generators should be placed in a remote, well-shielded enclosure. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "56", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}, {"letter": "D", "text": "Dose calibrators should be shielded to protect workers."}], "answer": "D", "explanation": "Correct answer: D. Dose calibrators should be shielded to protect workers. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "57", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "Lead shielding should be used for Tc-99m and other gamma-emitting radiopharmaceuticals."}, {"letter": "B", "text": "Lead shielding should be used for Tc-99m and other alpha-emitting radiopharmaceuticals."}, {"letter": "C", "text": "Lead shielding should be used for Tc-198m and other gamma-emitting radiopharmaceuticals."}, {"letter": "D", "text": "Lead shielding should be used for Tc-49.5m and other gamma-emitting radiopharmaceuticals."}], "answer": "A", "explanation": "Correct answer: A. Lead shielding should be used for Tc-99m and other gamma-emitting radiopharmaceuticals. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "58", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "B", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "C", "text": "Fume hoods should be used for potentially airborne radioactive materials."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "C", "explanation": "Correct answer: C. Fume hoods should be used for potentially airborne radioactive materials. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "59", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "Xe-266 studies require additional lead shielding around the charcoal absorber canister, oxygen bag, and waste receptacle."}, {"letter": "B", "text": "Xe-133 studies require additional lead shielding around the charcoal absorber canister, oxygen bag, and waste receptacle."}, {"letter": "C", "text": "Xe-66.5 studies require additional lead shielding around the charcoal absorber canister, oxygen bag, and waste receptacle."}, {"letter": "D", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}], "answer": "B", "explanation": "Correct answer: B. Xe-133 studies require additional lead shielding around the charcoal absorber canister, oxygen bag, and waste receptacle. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "60", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "Individualized Xe-133 room evacuation time calculations are prohibited in rooms where ventilation scans are performed."}, {"letter": "B", "text": "Individualized Xe-266 room evacuation time calculations are required in rooms where ventilation scans are performed."}, {"letter": "C", "text": "Individualized Xe-66.5 room evacuation time calculations are required in rooms where ventilation scans are performed."}, {"letter": "D", "text": "Individualized Xe-133 room evacuation time calculations are required in rooms where ventilation scans are performed."}], "answer": "D", "explanation": "Correct answer: D. Individualized Xe-133 room evacuation time calculations are required in rooms where ventilation scans are performed. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}, {"number": "61", "stem": "According to the 2026 RISC guidance, which statement about shielding for ionizing radiation is correct?", "options": [{"letter": "A", "text": "Shielded containers or waste cans should be used for syringes and radioactive waste and kept as far from workers as practical."}, {"letter": "B", "text": "The guidance treats this as optional and leaves the decision entirely to individual preference."}, {"letter": "C", "text": "The rule applies only to nonmedical industrial facilities, not to clinical nuclear radiology."}, {"letter": "D", "text": "No documentation, training, or radiation-safety oversight is required for this issue."}], "answer": "A", "explanation": "Correct answer: A. Shielded containers or waste cans should be used for syringes and radioactive waste and kept as far from workers as practical. This point is drawn from Chapter 5, section '5.5.2 Shielding for ionizing radiation', and is tested because it is a practical safety rule, regulatory requirement, high-yield distinction, or commonly confused threshold.", "images": [], "explanationImages": []}];
+    const APP_ID = "risc-2026-radiopharmaceutical-administration-quiz-ch5";
+    const STORAGE_KEY = "temporary-app-state:" + APP_ID;
+    const DEFAULT_SELECTED = {};
+    const DEFAULT_SUBMITTED = Object.fromEntries(Object.keys(DEFAULT_SELECTED).map(number => [number, true]));
+    const DEFAULT_STATE = { index: 0, selected: DEFAULT_SELECTED, submitted: DEFAULT_SUBMITTED, mode: "tutor", reviewOpen: false, navOpen: false };
+    const state = loadState();
+    const el = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!saved || saved.appId !== APP_ID) return { ...DEFAULT_STATE };
+        return {
+          ...DEFAULT_STATE,
+          index: Number.isInteger(saved.index) ? Math.min(Math.max(saved.index, 0), QUESTIONS.length - 1) : 0,
+          selected: saved.selected && typeof saved.selected === "object" ? saved.selected : {},
+          submitted: saved.submitted && typeof saved.submitted === "object" ? saved.submitted : {},
+          mode: saved.mode === "quiz" ? "quiz" : "tutor",
+          reviewOpen: !!saved.reviewOpen,
+          navOpen: saved.navOpen === true,
+        };
+      } catch {
+        return { ...DEFAULT_STATE };
+      }
+    }
+
+    function statePayload() {
+      return {
+        version: 1,
+        appId: APP_ID,
+        savedAt: new Date().toISOString(),
+        index: state.index,
+        selected: state.selected,
+        submitted: state.submitted,
+        mode: state.mode,
+        reviewOpen: state.reviewOpen,
+        navOpen: state.navOpen,
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statePayload()));
+    }
+
+    function applyImportedState(payload) {
+      if (!payload || payload.appId !== APP_ID) throw new Error("This saved state is for a different quiz.");
+      state.index = Number.isInteger(payload.index) ? Math.min(Math.max(payload.index, 0), QUESTIONS.length - 1) : 0;
+      state.selected = payload.selected && typeof payload.selected === "object" ? payload.selected : {};
+      state.submitted = payload.submitted && typeof payload.submitted === "object" ? payload.submitted : {};
+      state.mode = payload.mode === "quiz" ? "quiz" : "tutor";
+      state.reviewOpen = !!payload.reviewOpen;
+      state.navOpen = payload.navOpen === true;
+      saveState();
+    }
+
+    function flash(message) {
+      el("notice").textContent = message;
+      window.clearTimeout(flash.timer);
+      flash.timer = window.setTimeout(() => { el("notice").textContent = ""; }, 2600);
+    }
+
+    function questionText(q) {
+      const opts = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      return `Question ${q.number}\n${q.stem}\n\n${opts}`;
+    }
+
+    function fullQuestionText(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const result = state.submitted[q.number] ? (chosen === q.answer ? "correct" : "incorrect") : "not yet submitted";
+      const questionImages = q.images.length ? `\n\nQuestion image files:\n${q.images.join("\n")}` : "";
+      const explanationImages = (q.explanationImages || []).length ? `\n\nExplanation image files:\n${q.explanationImages.join("\n")}` : "";
+      return `${questionText(q)}${questionImages}\n\nSelected answer: ${chosen}\nCorrect answer: ${q.answer}\nAttempt: ${result}\n\nPDF explanation:\n${q.explanation}${explanationImages}`;
+    }
+
+    async function copy(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const scratch = el("clipboardScratch");
+        scratch.value = text;
+        scratch.select();
+        document.execCommand("copy");
+      }
+      flash("Copied.");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+    }
+
+    function wrappedCanvasLines(ctx, text, maxWidth) {
+      const lines = [];
+      for (const paragraph of String(text || "").split("\n")) {
+        const words = paragraph.split(/\s+/).filter(Boolean);
+        let line = "";
+        if (!words.length) {
+          lines.push("");
+          continue;
+        }
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) lines.push(line);
+      }
+      return lines;
+    }
+
+    function textCardDataUrl(title, body) {
+      const width = 1200;
+      const padding = 52;
+      const lineHeight = 34;
+      const canvas = document.createElement("canvas");
+      const measure = canvas.getContext("2d");
+      measure.font = "24px Arial";
+      const lines = wrappedCanvasLines(measure, body, width - padding * 2);
+      canvas.width = width;
+      canvas.height = Math.max(360, 150 + lines.length * lineHeight);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#11151c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18202b";
+      ctx.fillRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.strokeStyle = "#6ea8ff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+      ctx.fillStyle = "#f1f6ff";
+      ctx.font = "700 36px Arial";
+      ctx.fillText(title, padding, 72);
+      ctx.fillStyle = "#dce6f5";
+      ctx.font = "24px Arial";
+      let y = 120;
+      for (const line of lines) {
+        if (line) ctx.fillText(line, padding, y);
+        y += lineHeight;
+      }
+      return canvas.toDataURL("image/png");
+    }
+
+    async function imageToDataUrl(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      });
+    }
+
+    async function copyScreenshotPack(q) {
+      const chosen = state.selected[q.number] || "not selected";
+      const options = q.options.map(o => `${o.letter}. ${o.text}`).join("\n");
+      const questionCard = textCardDataUrl(`Question ${q.number}`, `${q.stem}\n\n${options}`);
+      const explanationCard = textCardDataUrl(`Answer ${q.answer}`, `Selected: ${chosen}\nCorrect: ${q.answer}\n\n${q.explanation}`);
+      const questionImages = await Promise.all(q.images.map(src => imageToDataUrl(src)));
+      const explanationImages = await Promise.all((q.explanationImages || []).map(src => imageToDataUrl(src)));
+      const imageTags = [...questionImages, questionCard, ...explanationImages, explanationCard]
+        .map(src => `<p><img src="${src}" style="max-width:900px;width:100%;height:auto;display:block;"></p>`)
+        .join("");
+      const html = `<div>${imageTags}</div>`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([fullQuestionText(q)], { type: "text/plain" }),
+          })
+        ]);
+        flash("Copied screenshot pack.");
+      } catch {
+        await copy(fullQuestionText(q));
+        flash("Rich screenshot copy was blocked; copied full text instead.");
+      }
+    }
+
+    function renderNav() {
+      const nav = el("navGrid");
+      nav.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.textContent = q.number;
+        b.className = i === state.index ? "current" : "";
+        if (state.submitted[q.number]) {
+          if (state.mode === "tutor" || state.reviewOpen) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        }
+        b.addEventListener("click", () => { state.index = i; render(); });
+        nav.appendChild(b);
+      });
+    }
+
+    function render() {
+      const q = QUESTIONS[state.index];
+      const reveal = state.mode === "tutor" || state.reviewOpen;
+      document.querySelector("main").classList.toggle("nav-closed", !state.navOpen);
+      el("showNav").style.display = state.navOpen ? "none" : "inline-block";
+      el("questionCounter").textContent = `Question ${q.number} of ${QUESTIONS.length}`;
+      el("stem").textContent = q.stem;
+      el("imageGrid").innerHTML = q.images.map(src => `<img src="${src}" alt="Question ${q.number} image" />`).join("");
+      el("imageGrid").querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src, img.alt));
+      });
+      const choices = el("choices");
+      choices.innerHTML = "";
+      q.options.forEach(option => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choice";
+        if (state.selected[q.number] === option.letter) b.classList.add("current");
+        if (state.submitted[q.number] && reveal) {
+          if (option.letter === q.answer) b.classList.add("correct");
+          if (option.letter === state.selected[q.number] && option.letter !== q.answer) b.classList.add("wrong");
+        }
+        const letter = document.createElement("span");
+        letter.className = "letter";
+        letter.textContent = option.letter;
+        const label = document.createElement("span");
+        label.textContent = option.text;
+        b.append(letter, label);
+        b.addEventListener("click", () => {
+          if (!state.submitted[q.number]) state.selected[q.number] = option.letter;
+          render();
+        });
+        choices.appendChild(b);
+      });
+      const submitted = state.submitted[q.number];
+      el("result").classList.toggle("show", !!submitted && reveal);
+      if (submitted && reveal) {
+        const ok = state.selected[q.number] === q.answer;
+        el("status").className = `status ${ok ? "good" : "bad"}`;
+        el("status").textContent = ok ? `Correct: ${q.answer}` : `Incorrect. You chose ${state.selected[q.number] || "nothing"}; correct answer: ${q.answer}`;
+        el("explanationImageGrid").innerHTML = (q.explanationImages || []).map(src => `<img src="${src}" alt="Question ${q.number} explanation image" />`).join("");
+        el("explanationImageGrid").querySelectorAll("img").forEach(img => {
+          img.addEventListener("click", () => openLightbox(img.src, img.alt));
+        });
+        el("explanation").textContent = q.explanation;
+      }
+      const answered = Object.keys(state.submitted).length;
+      const right = QUESTIONS.filter(x => state.submitted[x.number] && state.selected[x.number] === x.answer).length;
+      el("score").textContent = state.mode === "quiz" && !state.reviewOpen ? `${answered} of ${QUESTIONS.length} answered` : `${answered} answered | ${right} correct`;
+      el("submit").textContent = state.submitted[q.number] ? "Answer Saved" : "Submit Answer";
+      el("reviewQuiz").style.display = state.mode === "quiz" ? "inline-block" : "none";
+      el("reviewQuiz").disabled = answered !== QUESTIONS.length;
+      el("reviewQuiz").textContent = answered === QUESTIONS.length ? "Review Quiz" : `Review unlocks at ${QUESTIONS.length}`;
+      el("copyScreenshot").style.display = state.mode === "tutor" || state.reviewOpen ? "inline-block" : "none";
+      el("tutorMode").classList.toggle("active", state.mode === "tutor");
+      el("quizMode").classList.toggle("active", state.mode === "quiz");
+      renderNav();
+      renderReview();
+      saveState();
+    }
+
+    function renderReview() {
+      const answered = Object.keys(state.submitted).length;
+      const complete = answered === QUESTIONS.length;
+      el("reviewPanel").classList.toggle("show", state.mode === "quiz" && state.reviewOpen);
+      if (!(state.mode === "quiz" && state.reviewOpen)) return;
+      const right = QUESTIONS.filter(q => state.submitted[q.number] && state.selected[q.number] === q.answer).length;
+      el("reviewStatus").textContent = complete ? `Quiz complete: ${right} / ${QUESTIONS.length} correct` : `Reviewing ${answered} of ${QUESTIONS.length} answered questions: ${right} correct so far`;
+      const grid = el("reviewGrid");
+      grid.innerHTML = "";
+      QUESTIONS.forEach((q, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = q.number;
+        if (i === state.index) b.classList.add("current");
+        if (state.submitted[q.number]) b.classList.add(state.selected[q.number] === q.answer ? "correct" : "wrong");
+        b.addEventListener("click", () => {
+          state.index = i;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function openLightbox(src, alt) {
+      el("lightboxImage").src = src;
+      el("lightboxImage").alt = alt || "Expanded quiz image";
+      el("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      el("lightbox").classList.remove("show");
+      el("lightboxImage").removeAttribute("src");
+    }
+
+    el("submit").addEventListener("click", () => {
+      const q = QUESTIONS[state.index];
+      if (!state.selected[q.number]) return;
+      state.submitted[q.number] = true;
+      if (state.mode === "quiz" && state.index < QUESTIONS.length - 1) state.index += 1;
+      render();
+    });
+    el("prev").addEventListener("click", () => { state.index = Math.max(0, state.index - 1); render(); });
+    el("next").addEventListener("click", () => { state.index = Math.min(QUESTIONS.length - 1, state.index + 1); render(); });
+    el("tutorMode").addEventListener("click", () => { state.mode = "tutor"; state.reviewOpen = false; render(); });
+    el("quizMode").addEventListener("click", () => { state.mode = "quiz"; state.reviewOpen = false; render(); });
+    el("reviewQuiz").addEventListener("click", () => {
+      if (Object.keys(state.submitted).length !== QUESTIONS.length) return;
+      state.reviewOpen = true;
+      render();
+    });
+    el("hideNav").addEventListener("click", () => { state.navOpen = false; render(); });
+    el("showNav").addEventListener("click", () => { state.navOpen = true; render(); });
+    el("settingsButton").addEventListener("click", () => {
+      el("stateImport").value = JSON.stringify(statePayload(), null, 2);
+      el("settingsDialog").showModal();
+    });
+    el("closeSettings").addEventListener("click", () => el("settingsDialog").close());
+    el("copyState").addEventListener("click", () => copy(JSON.stringify(statePayload(), null, 2)));
+    el("downloadState").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(statePayload(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${APP_ID}-state.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash("Downloaded saved state.");
+    });
+    el("resetState").addEventListener("click", () => {
+      if (!confirm("Reset all answers and saved progress for this quiz?")) return;
+      Object.assign(state, { ...DEFAULT_STATE, selected: {}, submitted: {} });
+      localStorage.removeItem(STORAGE_KEY);
+      el("settingsDialog").close();
+      render();
+      flash("Test reset.");
+    });
+    el("importState").addEventListener("click", () => {
+      try {
+        applyImportedState(JSON.parse(el("stateImport").value));
+        el("settingsDialog").close();
+        render();
+        flash("Saved state loaded.");
+      } catch (error) {
+        flash(error.message || "Could not load saved state JSON.");
+      }
+    });
+    el("lightbox").addEventListener("click", closeLightbox);
+    el("copyQuestionText").addEventListener("click", () => copy(fullQuestionText(QUESTIONS[state.index])));
+    el("copyScreenshot").addEventListener("click", () => copyScreenshotPack(QUESTIONS[state.index]));
+    render();
+  </script>
+</body>
+</html>

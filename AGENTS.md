@@ -26,6 +26,8 @@ For these Core Review quiz apps, the same change must also update `apps/temporar
 
 Before generating or fixing any Core Review quiz, read and follow `apps/temporary-apps/library/RADIOLOGY_QUIZ_BUILD_WORKFLOW.md`. That workflow includes required image-alignment QA steps learned from prior PDF/EPUB conversions.
 
+When creating original quizzes from the informational content of a source document rather than extracting prewritten questions, also read and follow `apps/temporary-apps/library/DOCUMENT_TO_QUIZ_BUILD_WORKFLOW.md`.
+
 ## Why this exists
 A previous change added a temporary app folder but forgot to update the landing-page registration path. These instructions and the verifier prevent that regression.
 
