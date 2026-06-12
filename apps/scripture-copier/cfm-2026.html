@@ -90,7 +90,11 @@
       color: var(--text); text-decoration: none; font-size: 0.95rem; cursor: pointer;
       transition: background-color 0.2s ease;
     }
-    .dropdown-menu a:hover, .dropdown-menu .submenu-trigger:hover { background: var(--input-bg); }
+    .dropdown-menu button {
+      display: flex; align-items: center; width: 100%; padding: 12px 20px; border: 0;
+      background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+    }
+    .dropdown-menu a:hover, .dropdown-menu button:hover, .dropdown-menu .submenu-trigger:hover { background: var(--input-bg); }
     .submenu-trigger::after {
       content: '›'; margin-left: auto; font-weight: bold; font-size: 1.2em; color: var(--accent);
       transition: transform 0.3s ease-in-out;
@@ -329,6 +333,7 @@
         <ul>
           <li><a href="index.html">Scripture Copier</a></li>
           <li><a href="bible-project-copier.html">Bible Project Copier</a></li>
+          <li><button id="preferences-btn" type="button">Preferences</button></li>
           <li class="has-submenu">
             <span class="submenu-trigger">Learn It</span>
             <ul class="submenu">
@@ -430,12 +435,11 @@
 
   <div id="version-modal" class="version-modal" aria-hidden="true">
     <div class="version-card" role="dialog" aria-modal="true" aria-labelledby="version-modal-title">
-      <h2 id="version-modal-title">Choose Bible version</h2>
+      <h2 id="version-modal-title">Preferences</h2>
+      <p>Default Bible version for displayed and copied Bible text:</p>
       <div class="version-options">
         <button class="version-option" data-version="KJV">KJV</button>
         <button class="version-option" data-version="NRSVUE">NRSVUE</button>
-        <button class="version-option" data-version="NIV">NIV</button>
-        <button class="version-option" data-version="NIRV">NIRV</button>
       </div>
     </div>
   </div>
@@ -601,16 +605,15 @@
     });
     embedCloseBtn.addEventListener('click', closeEmbed);
 
-    /* ===== Bible version picker ===== */
+    /* ===== Bible version preference ===== */
     const versionModal = document.getElementById('version-modal');
-    const versionOptions = Array.from(document.querySelectorAll('.version-option'));
-    let pendingScriptureHref = null;
+    const preferencesBtn = document.getElementById('preferences-btn');
+    const versionOptions = Array.from(document.querySelectorAll('#version-modal .version-option'));
     const versionStorageKey = 'cfm-bible-version-choice';
+    let currentBibleVersion = localStorage.getItem(versionStorageKey) === 'NRSVUE' ? 'NRSVUE' : 'KJV';
 
     const YOUVERSION_TRANSLATIONS = {
       NRSVUE: { bibleId: 3523, versionCode: 'NRSVUE' },
-      NIV:    { bibleId: 111,  versionCode: 'NIV' },
-      NIRV:   { bibleId: 110,  versionCode: 'NIRV' }
     };
 
     // YouVersion/Bible.com format: https://www.bible.com/bible/{bibleId}/{USFM}.{chapter}[.{verseOrRange}].{versionCode}
@@ -659,44 +662,32 @@
       return `https://www.bible.com/bible/${cfg.bibleId}/${ref}.${cfg.versionCode}`;
     }
 
-    function openVersionPicker(href){
-      pendingScriptureHref = href;
-      const lastChoice = localStorage.getItem(versionStorageKey);
-      versionOptions.forEach(btn => btn.setAttribute('aria-current', String(btn.dataset.version === lastChoice)));
+    function openPreferences(){
+      versionOptions.forEach(btn => btn.setAttribute('aria-current', String(btn.dataset.version === currentBibleVersion)));
       versionModal.classList.add('open');
       versionModal.setAttribute('aria-hidden', 'false');
     }
-    function closeVersionPicker(){
+    function closePreferences(){
       versionModal.classList.remove('open');
       versionModal.setAttribute('aria-hidden', 'true');
-      pendingScriptureHref = null;
     }
 
     versionOptions.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const hrefToOpen = pendingScriptureHref;
-        if (!hrefToOpen) { closeVersionPicker(); return; }
-        
-        const choice = btn.dataset.version;
-        localStorage.setItem(versionStorageKey, choice);
-        closeVersionPicker();
-        
-        if (choice === 'KJV') {
-          openScriptureInGospelLibrary(hrefToOpen);
-          return;
-        }
-        
-        const youVersionUrl = buildYouVersionUrl(hrefToOpen, choice);
-        if (youVersionUrl) {
-          window.location.href = youVersionUrl; 
-        } else {
-          openScriptureInGospelLibrary(hrefToOpen);
-        }
+      btn.addEventListener('click', async () => {
+        currentBibleVersion = btn.dataset.version;
+        localStorage.setItem(versionStorageKey, currentBibleVersion);
+        weekCache = {};
+        closePreferences();
+        await render();
       });
     });
 
-    versionModal.addEventListener('click', e => { if (e.target === versionModal) closeVersionPicker(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && versionModal.classList.contains('open')) closeVersionPicker(); });
+    preferencesBtn.addEventListener('click', () => {
+      closeMenu();
+      openPreferences();
+    });
+    versionModal.addEventListener('click', e => { if (e.target === versionModal) closePreferences(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && versionModal.classList.contains('open')) closePreferences(); });
 
       document.addEventListener('click', evt => {
         const anchor = evt.target.closest('a');
@@ -715,7 +706,12 @@
         if (!isBible) return;
         evt.preventDefault();
         evt.stopPropagation();
-        openVersionPicker(targetHref);
+        if (currentBibleVersion === 'KJV') {
+          openScriptureInGospelLibrary(targetHref);
+          return;
+        }
+        const youVersionUrl = buildYouVersionUrl(targetHref, currentBibleVersion);
+        window.location.href = youVersionUrl || targetHref;
       }, true);
 
     /* ===== Helpers ===== */
@@ -971,7 +967,7 @@
     let dayIdx = computeDayIdx(currentDate, cw);
     let viewMode = 'day';            // 'day' | 'week' | 'manual'
     let displayMode = 'verses';      // 'verses' | 'sections'
-    const weekCache = {};
+    let weekCache = {};
     const manualCache = {};
 
     /* ===== Elements ===== */
@@ -1144,7 +1140,10 @@
       async function addReading(reading){
         const { volume, book, chapStart, chapEnd } = reading;
         if (!volume || !book || !chapStart || !chapEnd) return;
-        const data = await fetch(`data/${volume}/${book}.json`).then(r=>r.json());
+        const translationPath = currentBibleVersion === 'NRSVUE' && volume === 'oldtestament'
+          ? 'data/nrsvue/oldtestament'
+          : `data/${volume}`;
+        const data = await fetch(`${translationPath}/${book}.json`).then(r=>r.json());
         const display = reading.display || data.title || book;
         const linkBase = reading.linkBase || (defaultLinkBases[volume] && defaultLinkBases[volume][book]) || '';
         sources.push({ display, start: chapStart, end: chapEnd, linkBase, volume, book });
