@@ -2,6 +2,11 @@
 
 A local-first daily radiology work-RVU tracker presented as a neon arcade/RPG shift.
 
+The primary mobile surface is optimized as an iPhone companion: a fixed-height one-handed
+logger, safe-area-aware bottom navigation, dedicated scrolling study list, 44+ px touch
+targets, no input zoom, and a lower-cost graphics profile on compact/coarse-pointer devices.
+It also includes an install manifest for Safari's **Add to Home Screen** workflow.
+
 ## Data
 
 - Source: CMS Physician Fee Schedule relative value file `RVU26C`

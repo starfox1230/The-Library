@@ -22,6 +22,11 @@
     comboCount: $("comboCount"),
     dayStreak: $("dayStreak"),
     undoButton: $("undoButton"),
+    mobileRvuTotal: $("mobileRvuTotal"),
+    mobileStudyCount: $("mobileStudyCount"),
+    mobileUndoButton: $("mobileUndoButton"),
+    mobileGoalFill: $("mobileGoalFill"),
+    mobileMoreButton: $("mobileMoreButton"),
     shiftRank: $("shiftRank"),
     levelValue: $("levelValue"),
     goalReactor: $("goalReactor"),
@@ -73,6 +78,7 @@
   let linkMode = false;
   let linkSelectionIds = [];
   let audioContext = null;
+  const compactDevice = window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
 
   function localDateKey(date = new Date()) {
     const year = date.getFullYear();
@@ -239,13 +245,17 @@
       day: "numeric",
     }).format(new Date()).toUpperCase();
     els.studyCount.textContent = entries.length;
+    els.mobileStudyCount.textContent = entries.length;
     els.comboCount.textContent = `x${stats.combo}`;
     const streak = dayStreak();
     els.dayStreak.textContent = `${streak} DAY${streak === 1 ? "" : "S"}`;
     els.undoButton.disabled = entries.length === 0;
+    els.mobileUndoButton.disabled = entries.length === 0;
     els.shiftRank.textContent = rankName(stats.totalWrvu);
     els.levelValue.textContent = stats.level;
     els.rvuTotal.textContent = stats.totalWrvu.toFixed(2);
+    els.mobileRvuTotal.textContent = stats.totalWrvu.toFixed(2);
+    els.mobileGoalFill.style.width = `${progress * 100}%`;
     els.goalCurrent.textContent = stats.totalWrvu.toFixed(2);
     els.goalTarget.textContent = goal.toFixed(0);
     els.goalProgress.style.strokeDasharray = String(circumference);
@@ -728,6 +738,19 @@
     }, 220);
   }
 
+  function setMobileView(view) {
+    const normalized = view === "stats" ? "stats" : "log";
+    document.body.dataset.mobileView = normalized;
+    document.querySelectorAll("[data-mobile-view]").forEach((button) => {
+      const active = button.dataset.mobileView === normalized;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    if (normalized === "stats") {
+      document.querySelector(".arena-panel").scrollTop = 0;
+    }
+  }
+
   function exportCsv() {
     const entries = getToday().entries;
     if (!entries.length) {
@@ -815,7 +838,12 @@
       els.studyGrid.scrollTop = 0;
     });
     els.undoButton.addEventListener("click", undoLast);
+    els.mobileUndoButton.addEventListener("click", undoLast);
     els.drawerButton.addEventListener("click", openDrawer);
+    els.mobileMoreButton.addEventListener("click", openDrawer);
+    document.querySelectorAll("[data-mobile-view]").forEach((button) => {
+      button.addEventListener("click", () => setMobileView(button.dataset.mobileView));
+    });
     els.closeDrawerButton.addEventListener("click", closeDrawer);
     els.drawerBackdrop.addEventListener("click", closeDrawer);
     els.exportButton.addEventListener("click", exportCsv);
@@ -932,7 +960,7 @@
       this.context = this.canvas.getContext("2d");
       this.parent = parent;
       this.parent.append(this.canvas);
-      this.stars = Array.from({ length: 110 }, () => this.newStar());
+      this.stars = Array.from({ length: compactDevice ? 55 : 110 }, () => this.newStar());
       this.bursts = [];
       this.reduced = false;
       this.resize = this.resize.bind(this);
@@ -954,7 +982,7 @@
     }
 
     resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, compactDevice ? 1.5 : 2);
       this.canvas.width = innerWidth * dpr;
       this.canvas.height = innerHeight * dpr;
       this.canvas.style.width = `${innerWidth}px`;
@@ -968,7 +996,8 @@
 
     onReward(event) {
       const color = modalityMeta(event.detail.modality).color;
-      for (let index = 0; index < (this.reduced ? 8 : 34); index += 1) {
+      const count = this.reduced ? 8 : compactDevice ? 18 : 34;
+      for (let index = 0; index < count; index += 1) {
         const angle = Math.random() * Math.PI * 2;
         this.bursts.push({
           x: innerWidth * 0.38,
@@ -1042,7 +1071,7 @@
       create() {
         this.grid = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
         this.core = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-        this.stars = Array.from({ length: 150 }, () => ({
+        this.stars = Array.from({ length: compactDevice ? 70 : 150 }, () => ({
           x: Math.random(),
           y: Math.random(),
           speed: 0.00008 + Math.random() * 0.00028,
@@ -1124,7 +1153,7 @@
           this.cameras.main.flash(120, 80, 10, 100, false);
           this.cameras.main.shake(110, 0.0035);
         }
-        const count = this.reduced ? 8 : 42;
+        const count = this.reduced ? 8 : compactDevice ? 22 : 42;
         for (let index = 0; index < count; index += 1) {
           const angle = Math.random() * Math.PI * 2;
           const distance = 45 + Math.random() * 180;
@@ -1166,14 +1195,14 @@
       type: Phaser.AUTO,
       parent: "fx-layer",
       transparent: true,
-      antialias: true,
+      antialias: !compactDevice,
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: window.innerWidth,
         height: window.innerHeight,
       },
       render: {
-        antialias: true,
+        antialias: !compactDevice,
         powerPreference: "high-performance",
       },
       scene: NeonScene,
@@ -1188,6 +1217,7 @@
   }
 
   initControls();
+  setMobileView("log");
   bindEvents();
   render();
   startFx();
