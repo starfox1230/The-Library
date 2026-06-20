@@ -30,6 +30,9 @@ employment compensation calculations.
 - Press `Q`, `W`, or `E` to repeat a recent study.
 - Press `/`, type a study or CPT code, and press `Enter` to log the top match.
 - Press `L` to enter link mode, select multiple studies, then press `Enter` to log the set.
+- Press and hold any study for about half a second to toggle it as a gold favorite.
+  Favorites appear alphabetically in a dedicated block at the top and remain in their
+  normal position in the full alphabetical modality/search list.
 - Common linked presets cover CT chest/abdomen/pelvis, CTA head/neck, trauma CT,
   pelvic ultrasound, screening mammography/tomosynthesis, and brain MRI/MRA.
 

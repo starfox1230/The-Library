@@ -78,6 +78,11 @@
   let linkMode = false;
   let linkSelectionIds = [];
   let audioContext = null;
+  let favoriteHoldTimer = null;
+  let favoriteHoldTarget = null;
+  let favoriteHoldStart = null;
+  let suppressStudyClickUntil = 0;
+  let suppressStudyClickId = null;
   const compactDevice = window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
 
   function localDateKey(date = new Date()) {
@@ -97,6 +102,7 @@
       days: {},
       usage: {},
       recentStudyIds: [],
+      favoriteStudyIds: [],
     };
   }
 
@@ -112,6 +118,7 @@
         days: saved.days || {},
         usage: saved.usage || {},
         recentStudyIds: Array.isArray(saved.recentStudyIds) ? saved.recentStudyIds : [],
+        favoriteStudyIds: Array.isArray(saved.favoriteStudyIds) ? saved.favoriteStudyIds : [],
       };
     } catch {
       return defaultState();
@@ -340,15 +347,32 @@
     const source = query
       ? studies.filter((study) => study.search.includes(query))
       : studies.filter((study) => study.modality === activeModality);
-    const recentIndex = new Map(state.recentStudyIds.map((id, index) => [id, index]));
+    return source.sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: "base", numeric: true })
+      || a.code.localeCompare(b.code)
+    );
+  }
 
-    return source.sort((a, b) => {
-      const score = (study) =>
-        (study.popular ? 80 : 0) +
-        Number(state.usage[study.id] || 0) * 9 +
-        (recentIndex.has(study.id) ? 50 - recentIndex.get(study.id) * 8 : 0);
-      return score(b) - score(a) || a.label.localeCompare(b.label);
-    });
+  function studyCardMarkup(study, index, favoriteCopy = false) {
+    const meta = modalityMeta(study.modality);
+    const selected = linkSelectionIds.includes(study.id);
+    const favorite = state.favoriteStudyIds.includes(study.id);
+    const action = linkMode
+      ? `${selected ? "Remove from" : "Add to"} linked set`
+      : "Log";
+    return `
+      <button class="study-card ${selected ? "link-selected" : ""} ${favorite ? "favorite" : ""}"
+        type="button" data-study-id="${study.id}" data-favorite-copy="${favoriteCopy}"
+        style="--card-color:${meta.color}"
+        title="${action} ${esc(study.label)}. Press and hold to ${favorite ? "remove from" : "add to"} favorites.">
+        ${index < 9 && !favoriteCopy ? `<span class="study-key">${index + 1}</span>` : ""}
+        ${favorite ? `<span class="favorite-star" aria-hidden="true">★</span>` : ""}
+        <span>
+          <span class="study-card-title">${esc(study.label)}</span>
+          <small class="study-card-meta">${meta.label.toUpperCase()} // CPT ${study.code}</small>
+        </span>
+        <strong class="study-card-rvu">+${study.wrvu.toFixed(2)}</strong>
+      </button>`;
   }
 
   function renderStudies() {
@@ -361,21 +385,39 @@
       return;
     }
 
-    els.studyGrid.innerHTML = visibleStudies.map((study, index) => {
-      const meta = modalityMeta(study.modality);
-      const selected = linkSelectionIds.includes(study.id);
-      return `
-        <button class="study-card ${selected ? "link-selected" : ""}" type="button"
-          data-study-id="${study.id}" style="--card-color:${meta.color}"
-          title="${linkMode ? (selected ? "Remove from" : "Add to") + " linked set" : "Log"} ${esc(study.label)}">
-          ${index < 9 ? `<span class="study-key">${index + 1}</span>` : ""}
-          <span>
-            <span class="study-card-title">${esc(study.label)}</span>
-            <small class="study-card-meta">${meta.label.toUpperCase()} // CPT ${study.code}</small>
-          </span>
-          <strong class="study-card-rvu">+${study.wrvu.toFixed(2)}</strong>
-        </button>`;
-    }).join("");
+    const favorites = visibleStudies.filter((study) =>
+      state.favoriteStudyIds.includes(study.id)
+    );
+    const favoriteBlock = favorites.length
+      ? `
+        <div class="study-section-heading favorite-heading">
+          <span>★ FAVORITES</span>
+          <small>PRESS + HOLD TO REMOVE</small>
+        </div>
+        ${favorites.map((study) => studyCardMarkup(study, -1, true)).join("")}
+        <div class="study-section-heading">
+          <span>ALL ${els.studySearch.value.trim() ? "MATCHES" : modalityMeta(activeModality).label.toUpperCase()}</span>
+          <small>ALPHABETICAL</small>
+        </div>`
+      : "";
+    els.studyGrid.innerHTML =
+      favoriteBlock + visibleStudies.map((study, index) => studyCardMarkup(study, index)).join("");
+  }
+
+  function toggleFavorite(study) {
+    const favorite = state.favoriteStudyIds.includes(study.id);
+    state.favoriteStudyIds = favorite
+      ? state.favoriteStudyIds.filter((id) => id !== study.id)
+      : [...state.favoriteStudyIds, study.id];
+    saveState();
+    renderStudies();
+    showToast(
+      favorite ? "FAVORITE REMOVED" : "GOLD FAVORITE ADDED",
+      study.label,
+      favorite ? "☆" : "★",
+      "#ffbd2e"
+    );
+    if (navigator.vibrate) navigator.vibrate(favorite ? 25 : [25, 35, 25]);
   }
 
   function selectedLinkStudies() {
@@ -806,10 +848,56 @@
       if (!button) return;
       const study = studyById.get(button.dataset.studyId);
       if (!study) return;
+      if (study.id === suppressStudyClickId && Date.now() < suppressStudyClickUntil) {
+        event.preventDefault();
+        suppressStudyClickId = null;
+        return;
+      }
       if (linkMode) toggleLinkedStudy(study);
       else logStudy(study);
     };
     els.studyGrid.addEventListener("click", logFromButton);
+    els.studyGrid.addEventListener("contextmenu", (event) => {
+      if (event.target.closest("[data-study-id]")) event.preventDefault();
+    });
+    els.studyGrid.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      const button = event.target.closest("[data-study-id]");
+      if (!button) return;
+      const study = studyById.get(button.dataset.studyId);
+      if (!study) return;
+      clearTimeout(favoriteHoldTimer);
+      favoriteHoldTarget = button;
+      favoriteHoldStart = { x: event.clientX, y: event.clientY, id: study.id };
+      button.classList.add("holding-favorite");
+      favoriteHoldTimer = window.setTimeout(() => {
+        suppressStudyClickId = study.id;
+        suppressStudyClickUntil = Date.now() + 800;
+        toggleFavorite(study);
+        favoriteHoldTimer = null;
+        favoriteHoldTarget = null;
+        favoriteHoldStart = null;
+      }, 575);
+    });
+    const cancelFavoriteHold = () => {
+      clearTimeout(favoriteHoldTimer);
+      favoriteHoldTimer = null;
+      favoriteHoldTarget?.classList.remove("holding-favorite");
+      favoriteHoldTarget = null;
+      favoriteHoldStart = null;
+    };
+    els.studyGrid.addEventListener("pointermove", (event) => {
+      if (!favoriteHoldStart) return;
+      if (
+        Math.abs(event.clientX - favoriteHoldStart.x) > 10
+        || Math.abs(event.clientY - favoriteHoldStart.y) > 10
+      ) {
+        cancelFavoriteHold();
+      }
+    });
+    els.studyGrid.addEventListener("pointerup", cancelFavoriteHold);
+    els.studyGrid.addEventListener("pointercancel", cancelFavoriteHold);
+    els.studyGrid.addEventListener("pointerleave", cancelFavoriteHold);
     els.recentGrid.addEventListener("click", logFromButton);
     els.linkModeButton.addEventListener("click", () => setLinkMode(!linkMode));
     els.clearLinkButton.addEventListener("click", () => {
