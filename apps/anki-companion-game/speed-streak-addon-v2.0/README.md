@@ -1,6 +1,8 @@
-# Speed Streak v2.0
+# Speed Streak v2.0 - Historical Comparison Build
 
-This folder contains the Speed Streak v2.0 version of the project packaged as an Anki add-on.
+This folder contains a historical Speed Streak v2.0 comparison build packaged as an Anki add-on.
+
+Do not use this folder as the base for new Speed Streak updates. The active development line is the latest `speed-streak-addon-v1.xx` folder, currently v1.23 or newer.
 
 It does not modify the original standalone files in the parent folder.
 

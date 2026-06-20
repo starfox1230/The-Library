@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05030c">
+  <title>RVU Rush // Neon Shift</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+  <script defer src="studies.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div id="fx-layer" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <main class="game-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-kicker">DIAGNOSTIC ARCADE SYSTEM</div>
+        <h1>RVU <span>RUSH</span></h1>
+        <div class="brand-subtitle">NEON SHIFT // DAILY WORK-RVU TRACKER</div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="source-chip" title="CMS Physician Fee Schedule RVU26C, July 2026 release">
+          <span class="signal-dot"></span>
+          CMS RVU26C
+        </div>
+        <button class="icon-button" id="drawerButton" type="button" aria-haspopup="dialog">
+          <span aria-hidden="true">☰</span>
+          LOGS / CONFIG
+        </button>
+      </div>
+    </header>
+
+    <section class="status-strip" aria-label="Today's status">
+      <div class="status-item">
+        <span>SHIFT DATE</span>
+        <strong id="dateLabel">--</strong>
+      </div>
+      <div class="status-item">
+        <span>STUDIES</span>
+        <strong id="studyCount">0</strong>
+      </div>
+      <div class="status-item">
+        <span>HOT COMBO</span>
+        <strong id="comboCount">x0</strong>
+      </div>
+      <div class="status-item">
+        <span>DAY STREAK</span>
+        <strong id="dayStreak">0 DAYS</strong>
+      </div>
+      <button class="undo-button" id="undoButton" type="button" disabled>
+        ↶ UNDO LAST
+      </button>
+    </section>
+
+    <div class="play-layout">
+      <section class="arena-panel" aria-labelledby="shiftRank">
+        <div class="corner-mark top-left" aria-hidden="true"></div>
+        <div class="corner-mark top-right" aria-hidden="true"></div>
+        <div class="corner-mark bottom-left" aria-hidden="true"></div>
+        <div class="corner-mark bottom-right" aria-hidden="true"></div>
+
+        <div class="rank-row">
+          <div>
+            <div class="eyebrow">CURRENT SHIFT RANK</div>
+            <h2 id="shiftRank">BOOT SEQUENCE</h2>
+          </div>
+          <div class="level-badge">
+            <span>LVL</span>
+            <strong id="levelValue">1</strong>
+          </div>
+        </div>
+
+        <div class="reactor-zone">
+          <div class="orbit-label orbit-label-a">WORK RVU</div>
+          <div class="orbit-label orbit-label-b">XP LINK</div>
+          <div class="orbit-label orbit-label-c">SHIFT CORE</div>
+          <div class="goal-reactor" id="goalReactor">
+            <svg viewBox="0 0 240 240" role="img" aria-labelledby="goalTitle goalDesc">
+              <title id="goalTitle">Daily work RVU goal</title>
+              <desc id="goalDesc">Zero percent complete</desc>
+              <circle class="reactor-track" cx="120" cy="120" r="98"></circle>
+              <circle class="reactor-progress" id="goalProgress" cx="120" cy="120" r="98"></circle>
+              <circle class="reactor-track inner" cx="120" cy="120" r="77"></circle>
+            </svg>
+            <div class="reactor-copy">
+              <span>TODAY</span>
+              <strong id="rvuTotal">0.00</strong>
+              <small><span id="goalCurrent">0.00</span> / <span id="goalTarget">40</span> wRVU</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="xp-panel">
+          <div class="xp-heading">
+            <span>LEVEL SYNCHRONIZATION</span>
+            <strong id="xpLabel">0 / 600 XP</strong>
+          </div>
+          <div class="xp-track"><div id="xpFill"></div></div>
+        </div>
+
+        <div class="attribute-grid" id="attributeGrid" aria-label="Modality RPG stats"></div>
+
+        <div class="telemetry-row">
+          <div class="telemetry-card">
+            <span>RUN RATE</span>
+            <strong id="runRate">0.0</strong>
+            <small>wRVU / HR</small>
+          </div>
+          <div class="telemetry-card">
+            <span>TOP MODALITY</span>
+            <strong id="topModality">—</strong>
+            <small id="topModalityDetail">NO DATA</small>
+          </div>
+          <div class="telemetry-card">
+            <span>ACHIEVEMENTS</span>
+            <strong id="achievementCount">0</strong>
+            <small>UNLOCKED TODAY</small>
+          </div>
+        </div>
+
+        <div class="pulse-chart" id="pulseChart" aria-label="Recent study RVU pulse"></div>
+      </section>
+
+      <section class="command-panel" aria-labelledby="commandTitle">
+        <div class="command-header">
+          <div>
+            <div class="eyebrow">PRIMARY INPUT ARRAY</div>
+            <h2 id="commandTitle">LOG A STUDY</h2>
+          </div>
+          <div class="two-click">2-CLICK MODE</div>
+        </div>
+
+        <div class="recent-section">
+          <div class="section-label">
+            <span>QUICK REPEAT</span>
+            <small>Q / W / E</small>
+          </div>
+          <div class="recent-grid" id="recentGrid"></div>
+        </div>
+
+        <div class="section-label modality-label">
+          <span>1 // SELECT MODALITY</span>
+          <small>ALT + 1–7</small>
+        </div>
+        <div class="modality-tabs" id="modalityTabs" role="tablist" aria-label="Imaging modalities"></div>
+
+        <label class="search-box" for="studySearch">
+          <span class="search-glyph" aria-hidden="true">⌕</span>
+          <input id="studySearch" type="search" autocomplete="off"
+            placeholder="Search any study or CPT — press /">
+          <kbd>ENTER</kbd>
+        </label>
+
+        <div class="section-label">
+          <span>2 // SELECT STUDY</span>
+          <small>KEYS 1–9</small>
+        </div>
+        <div class="study-grid" id="studyGrid" role="tabpanel"></div>
+
+        <div class="command-footer">
+          <span><i class="status-light"></i> LOCAL SAVE ONLINE</span>
+          <span id="catalogCount">0 STUDIES LOADED</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true"
+    aria-labelledby="drawerTitle" aria-hidden="true">
+    <div class="drawer-header">
+      <div>
+        <div class="eyebrow">SECONDARY SYSTEMS</div>
+        <h2 id="drawerTitle">SHIFT CONTROL</h2>
+      </div>
+      <button class="close-button" id="closeDrawerButton" type="button" aria-label="Close">×</button>
+    </div>
+
+    <section class="drawer-section">
+      <div class="drawer-section-heading">
+        <h3>TODAY'S LOG</h3>
+        <button id="exportButton" type="button">EXPORT CSV</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+
+    <section class="drawer-section settings-grid">
+      <h3>SHIFT CONFIG</h3>
+      <label>
+        Daily wRVU target
+        <input id="goalInput" type="number" min="1" max="250" step="1">
+      </label>
+      <label class="toggle-row">
+        Reward sound
+        <input id="soundToggle" type="checkbox">
+      </label>
+      <label class="toggle-row">
+        Reduced visual FX
+        <input id="motionToggle" type="checkbox">
+      </label>
+    </section>
+
+    <section class="drawer-section">
+      <h3>CUSTOM STUDY</h3>
+      <form class="custom-form" id="customStudyForm">
+        <input id="customStudyName" required maxlength="50" placeholder="Study name">
+        <select id="customStudyModality" aria-label="Custom study modality"></select>
+        <input id="customStudyRvu" required type="number" min="0.01" max="25" step="0.01"
+          placeholder="wRVU">
+        <button type="submit">LOG CUSTOM</button>
+      </form>
+    </section>
+
+    <section class="drawer-section source-note">
+      <h3>DATA / SAFETY</h3>
+      <p>
+        Catalog values are physician <strong>work RVUs</strong> from modifier-26 rows in the
+        CMS RVU26C July 2026 release, published May 20, 2026. They are for personal
+        productivity tracking, not billing or compensation calculation.
+      </p>
+      <p>
+        Local contracts, code selection, bundling, modifiers, payer rules, and later CMS
+        revisions can differ. Verify against your organization's schedule. Do not enter PHI.
+      </p>
+      <a href="https://www.cms.gov/medicare/payment/fee-schedules/physician/pfs-relative-value-files/rvu26c"
+        target="_blank" rel="noopener">OPEN OFFICIAL CMS SOURCE ↗</a>
+    </section>
+
+    <button class="danger-button" id="resetButton" type="button">RESET TODAY'S SHIFT</button>
+  </aside>
+</body>
+</html>
