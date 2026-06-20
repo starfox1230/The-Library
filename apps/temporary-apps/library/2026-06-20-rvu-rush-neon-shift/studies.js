@@ -40,6 +40,7 @@
     ["XR", "74018", "Abdomen, single view", 0.18, 1],
     ["XR", "74019", "Abdomen, 2 views", 0.22],
     ["XR", "74021", "Abdomen, 3+ views", 0.26],
+    ["XR", "74022", "Acute abdomen series with chest", 0.31, 1],
     ["XR", "77080", "DXA, axial skeleton", 0.20],
 
     // CT
@@ -183,4 +184,54 @@
     popular: Boolean(popular),
     search: `${label} ${code} ${MODALITIES[modality].label}`.toLowerCase(),
   }));
+
+  // When one comprehensive code represents both selected services, the link builder
+  // replaces the pair rather than adding both work RVUs.
+  window.RVU_COMPREHENSIVE_MERGES = {
+    "70450+70460": "70470",
+    "70480+70481": "70482",
+    "70486+70487": "70488",
+    "70490+70491": "70492",
+    "71045+74019": "74022",
+    "71045+74021": "74022",
+    "71250+71260": "71270",
+    "72125+72126": "72127",
+    "72128+72129": "72130",
+    "72131+72132": "72133",
+    "73200+73201": "73202",
+    "73700+73701": "73702",
+    "74150+74160": "74170",
+    "74176+74177": "74178",
+    "70551+70552": "70553",
+    "72141+72142": "72156",
+    "72146+72147": "72157",
+    "72148+72149": "72158",
+  };
+
+  window.RVU_LINK_PRESETS = [
+    { id: "ct-cap-plus", label: "CT CAP +C", codes: ["71260", "74177"] },
+    { id: "ct-cap-minus", label: "CT CAP −C", codes: ["71250", "74176"] },
+    { id: "cta-head-neck", label: "CTA HEAD + NECK", codes: ["70496", "70498"] },
+    { id: "trauma-head-csp", label: "CT HEAD + C-SP", codes: ["70450", "72125"] },
+    { id: "pelvic-us", label: "PELVIC US + TV", codes: ["76856", "76830"] },
+    { id: "screening-mammo", label: "MAMMO + TOMO", codes: ["77067", "77063"] },
+    { id: "brain-mri-mra", label: "MR BRAIN + MRA", codes: ["70551", "70544"] },
+  ];
+
+  window.RVU_LINK_COMPANIONS = {
+    "71260": ["74177"],
+    "74177": ["71260"],
+    "71250": ["74176"],
+    "74176": ["71250"],
+    "70496": ["70498"],
+    "70498": ["70496"],
+    "70450": ["72125"],
+    "72125": ["70450"],
+    "76856": ["76830"],
+    "76830": ["76856"],
+    "77067": ["77063"],
+    "77063": ["77067"],
+    "70551": ["70544"],
+    "70544": ["70551"],
+  };
 })();

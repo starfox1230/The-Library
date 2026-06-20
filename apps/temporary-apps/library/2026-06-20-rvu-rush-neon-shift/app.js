@@ -7,6 +7,13 @@
   const modalityKeys = Object.keys(window.RVU_MODALITIES);
   const studies = window.RVU_STUDIES;
   const studyById = new Map(studies.map((study) => [study.id, study]));
+  const studyByCode = new Map();
+  studies.forEach((study) => {
+    if (!studyByCode.has(study.code)) studyByCode.set(study.code, study);
+  });
+  const comprehensiveMerges = window.RVU_COMPREHENSIVE_MERGES || {};
+  const linkPresets = window.RVU_LINK_PRESETS || [];
+  const linkCompanions = window.RVU_LINK_COMPANIONS || {};
   const $ = (id) => document.getElementById(id);
 
   const els = {
@@ -35,6 +42,14 @@
     modalityTabs: $("modalityTabs"),
     studySearch: $("studySearch"),
     studyGrid: $("studyGrid"),
+    linkModeButton: $("linkModeButton"),
+    linkTray: $("linkTray"),
+    linkTrayTotal: $("linkTrayTotal"),
+    linkSelection: $("linkSelection"),
+    linkSuggestions: $("linkSuggestions"),
+    linkPresets: $("linkPresets"),
+    clearLinkButton: $("clearLinkButton"),
+    logLinkButton: $("logLinkButton"),
     catalogCount: $("catalogCount"),
     toastStack: $("toastStack"),
     drawerButton: $("drawerButton"),
@@ -55,6 +70,8 @@
 
   let activeModality = "XR";
   let visibleStudies = [];
+  let linkMode = false;
+  let linkSelectionIds = [];
   let audioContext = null;
 
   function localDateKey(date = new Date()) {
@@ -326,6 +343,7 @@
 
   function renderStudies() {
     renderModalityTabs();
+    renderLinkTray();
     visibleStudies = rankedStudies();
     if (!visibleStudies.length) {
       els.studyGrid.innerHTML = `
@@ -335,9 +353,11 @@
 
     els.studyGrid.innerHTML = visibleStudies.map((study, index) => {
       const meta = modalityMeta(study.modality);
+      const selected = linkSelectionIds.includes(study.id);
       return `
-        <button class="study-card" type="button" data-study-id="${study.id}"
-          style="--card-color:${meta.color}" title="Log ${esc(study.label)}">
+        <button class="study-card ${selected ? "link-selected" : ""}" type="button"
+          data-study-id="${study.id}" style="--card-color:${meta.color}"
+          title="${linkMode ? (selected ? "Remove from" : "Add to") + " linked set" : "Log"} ${esc(study.label)}">
           ${index < 9 ? `<span class="study-key">${index + 1}</span>` : ""}
           <span>
             <span class="study-card-title">${esc(study.label)}</span>
@@ -346,6 +366,97 @@
           <strong class="study-card-rvu">+${study.wrvu.toFixed(2)}</strong>
         </button>`;
     }).join("");
+  }
+
+  function selectedLinkStudies() {
+    return linkSelectionIds.map((id) => studyById.get(id)).filter(Boolean);
+  }
+
+  function renderLinkTray() {
+    els.linkModeButton.setAttribute("aria-pressed", String(linkMode));
+    els.linkTray.hidden = !linkMode;
+    if (!linkMode) return;
+
+    const selected = selectedLinkStudies();
+    const total = selected.reduce((sum, study) => sum + study.wrvu, 0);
+    els.linkTrayTotal.textContent =
+      `${selected.length} STUD${selected.length === 1 ? "Y" : "IES"} // ${total.toFixed(2)} wRVU`;
+    els.logLinkButton.disabled = selected.length < 2;
+    els.linkSelection.innerHTML = selected.length
+      ? selected.map((study) => `
+          <button class="link-chip" type="button" data-remove-link="${study.id}"
+            style="--chip-color:${modalityMeta(study.modality).color}">
+            ${modalityMeta(study.modality).short} ${esc(study.label)}
+          </button>`).join("")
+      : `<span class="link-selection-empty">Choose two or more separately read studies below.</span>`;
+
+    const selectedCodes = new Set(selected.map((study) => study.code));
+    const companionCodes = [...new Set(selected.flatMap(
+      (study) => linkCompanions[study.code] || []
+    ))].filter((code) => !selectedCodes.has(code));
+    els.linkSuggestions.innerHTML = companionCodes.map((code) => {
+      const study = studyByCode.get(code);
+      if (!study) return "";
+      return `
+        <button class="suggestion-chip" type="button" data-add-link="${study.id}"
+          style="--chip-color:${modalityMeta(study.modality).color}">
+          + ${esc(study.label)}
+        </button>`;
+    }).join("");
+
+    els.linkPresets.innerHTML = selected.length ? "" : linkPresets.map((preset) => `
+      <button class="preset-chip" type="button" data-link-preset="${preset.id}">
+        ${esc(preset.label)}
+      </button>`).join("");
+  }
+
+  function setLinkMode(enabled) {
+    linkMode = enabled;
+    if (!enabled) linkSelectionIds = [];
+    renderStudies();
+  }
+
+  function toggleLinkedStudy(study) {
+    const existingIndex = linkSelectionIds.indexOf(study.id);
+    if (existingIndex >= 0) {
+      linkSelectionIds.splice(existingIndex, 1);
+      renderStudies();
+      return;
+    }
+
+    for (const selectedId of linkSelectionIds) {
+      const selectedStudy = studyById.get(selectedId);
+      const pair = [selectedStudy.code, study.code].sort().join("+");
+      const replacementCode = comprehensiveMerges[pair];
+      const replacement = replacementCode ? studyByCode.get(replacementCode) : null;
+      if (replacement) {
+        linkSelectionIds = linkSelectionIds.filter((id) => id !== selectedId);
+        if (!linkSelectionIds.includes(replacement.id)) linkSelectionIds.push(replacement.id);
+        activeModality = replacement.modality;
+        showToast(
+          "SMART MERGE // COMPREHENSIVE CODE",
+          `${selectedStudy.label} + ${study.label} → ${replacement.label}`,
+          replacement.code,
+          "#ffbd2e"
+        );
+        renderStudies();
+        return;
+      }
+    }
+
+    linkSelectionIds.push(study.id);
+    renderStudies();
+  }
+
+  function applyLinkPreset(presetId) {
+    const preset = linkPresets.find((item) => item.id === presetId);
+    if (!preset) return;
+    linkSelectionIds = preset.codes
+      .map((code) => studyByCode.get(code)?.id)
+      .filter(Boolean);
+    const first = studyById.get(linkSelectionIds[0]);
+    if (first) activeModality = first.modality;
+    renderStudies();
   }
 
   function renderRecents() {
@@ -372,20 +483,41 @@
   }
 
   function renderHistory() {
-    const entries = [...getToday().entries].reverse();
+    const entries = getToday().entries;
     if (!entries.length) {
       els.historyList.innerHTML =
         `<div class="empty-history">NO STUDIES LOGGED YET.<br>THE SHIFT CORE IS WAITING.</div>`;
       return;
     }
-    els.historyList.innerHTML = entries.map((entry) => `
-      <div class="history-item" style="--history-color:${modalityMeta(entry.modality).color}">
-        <span class="history-time">${formatTime(entry.timestamp)}</span>
-        <span class="history-title" title="${esc(entry.label)}">${esc(entry.label)}</span>
-        <strong class="history-rvu">+${Number(entry.wrvu).toFixed(2)}</strong>
-        <button class="history-delete" type="button" data-delete-entry="${entry.id}"
-          aria-label="Delete ${esc(entry.label)}">×</button>
-      </div>`).join("");
+    const groups = [];
+    const groupIndex = new Map();
+    entries.forEach((entry) => {
+      const key = entry.groupId || entry.id;
+      if (!groupIndex.has(key)) {
+        groupIndex.set(key, groups.length);
+        groups.push({ key, entries: [] });
+      }
+      groups[groupIndex.get(key)].entries.push(entry);
+    });
+    els.historyList.innerHTML = groups.reverse().map((group) => {
+      const linked = group.entries.length > 1;
+      const first = group.entries[0];
+      const total = group.entries.reduce((sum, entry) => sum + Number(entry.wrvu), 0);
+      const label = linked
+        ? `⛓ ${group.entries.map((entry) => entry.label).join(" + ")}`
+        : first.label;
+      const deleteAttr = linked
+        ? `data-delete-group="${first.groupId}"`
+        : `data-delete-entry="${first.id}"`;
+      return `
+        <div class="history-item" style="--history-color:${modalityMeta(first.modality).color}">
+          <span class="history-time">${formatTime(first.timestamp)}</span>
+          <span class="history-title" title="${esc(label)}">${esc(label)}</span>
+          <strong class="history-rvu">+${total.toFixed(2)}</strong>
+          <button class="history-delete" type="button" ${deleteAttr}
+            aria-label="Delete ${esc(label)}">×</button>
+        </div>`;
+    }).join("");
   }
 
   function logStudy(study, options = {}) {
@@ -421,6 +553,61 @@
     saveState();
     render();
     rewardFeedback(entry, before, derived(entries), options.custom);
+  }
+
+  function logLinkedSet() {
+    const selected = selectedLinkStudies();
+    if (selected.length < 2) return;
+    const entries = getToday().entries;
+    const before = derived(entries);
+    const now = Date.now();
+    const groupId = `linked-${now}-${Math.random().toString(16).slice(2)}`;
+    const previous = entries.at(-1);
+    const startingCombo = previous && now - previous.timestamp <= COMBO_WINDOW_MS
+      ? Number(previous.combo || 1) + 1
+      : 1;
+    let totalXp = 0;
+
+    selected.forEach((study, index) => {
+      const combo = startingCombo + index;
+      const multiplier = 1 + Math.min(combo - 1, 10) * 0.08;
+      const xp = Math.round((Number(study.wrvu) * 100 + 25) * multiplier);
+      totalXp += xp;
+      entries.push({
+        id: `${now + index}-${Math.random().toString(16).slice(2)}`,
+        studyId: study.id,
+        label: study.label,
+        modality: study.modality,
+        code: study.code,
+        wrvu: Number(study.wrvu),
+        timestamp: now + index,
+        combo,
+        xp,
+        groupId,
+        groupSize: selected.length,
+        groupIndex: index,
+      });
+      state.usage[study.id] = Number(state.usage[study.id] || 0) + 1;
+    });
+
+    state.recentStudyIds = [
+      ...selected.map((study) => study.id).reverse(),
+      ...state.recentStudyIds.filter((id) => !selected.some((study) => study.id === id)),
+    ].slice(0, 10);
+    const totalWrvu = selected.reduce((sum, study) => sum + study.wrvu, 0);
+    const rewardEntry = {
+      label: `LINKED SET // ${selected.length} STUDIES`,
+      modality: selected[0].modality,
+      wrvu: totalWrvu,
+      xp: totalXp,
+      combo: startingCombo + selected.length - 1,
+    };
+
+    linkMode = false;
+    linkSelectionIds = [];
+    saveState();
+    render();
+    rewardFeedback(rewardEntry, before, derived(entries));
   }
 
   function rewardFeedback(entry, before, after, custom = false) {
@@ -488,10 +675,15 @@
   function undoLast() {
     const entries = getToday().entries;
     if (!entries.length) return;
-    const removed = entries.pop();
+    const last = entries.at(-1);
+    const removed = last.groupId
+      ? entries.splice(entries.findIndex((entry) => entry.groupId === last.groupId))
+      : [entries.pop()];
+    const total = removed.reduce((sum, entry) => sum + Number(entry.wrvu), 0);
+    const label = removed.length > 1 ? `LINKED SET // ${removed.length} STUDIES` : removed[0].label;
     saveState();
     render();
-    showToast("LAST LOG UNDONE", removed.label, `-${Number(removed.wrvu).toFixed(2)}`, "#ff426f");
+    showToast("LAST LOG UNDONE", label, `-${total.toFixed(2)}`, "#ff426f");
   }
 
   function deleteEntry(id) {
@@ -502,6 +694,22 @@
     saveState();
     render();
     showToast("ENTRY REMOVED", removed.label, `-${Number(removed.wrvu).toFixed(2)}`, "#ff426f");
+  }
+
+  function deleteGroup(groupId) {
+    const entries = getToday().entries;
+    const removed = entries.filter((entry) => entry.groupId === groupId);
+    if (!removed.length) return;
+    state.days[localDateKey()].entries = entries.filter((entry) => entry.groupId !== groupId);
+    const total = removed.reduce((sum, entry) => sum + Number(entry.wrvu), 0);
+    saveState();
+    render();
+    showToast(
+      "LINKED SET REMOVED",
+      `${removed.length} studies`,
+      `-${total.toFixed(2)}`,
+      "#ff426f"
+    );
   }
 
   function openDrawer() {
@@ -527,7 +735,7 @@
       return;
     }
     const rows = [
-      ["date", "time", "modality", "study", "cpt", "work_rvu", "xp", "combo"],
+      ["date", "time", "modality", "study", "cpt", "work_rvu", "xp", "combo", "linked_group"],
       ...entries.map((entry) => [
         localDateKey(new Date(entry.timestamp)),
         formatTime(entry.timestamp),
@@ -537,6 +745,7 @@
         Number(entry.wrvu).toFixed(2),
         entry.xp,
         entry.combo,
+        entry.groupId || "",
       ]),
     ];
     const csv = rows.map((row) =>
@@ -573,10 +782,34 @@
       const button = event.target.closest("[data-study-id]");
       if (!button) return;
       const study = studyById.get(button.dataset.studyId);
-      if (study) logStudy(study);
+      if (!study) return;
+      if (linkMode) toggleLinkedStudy(study);
+      else logStudy(study);
     };
     els.studyGrid.addEventListener("click", logFromButton);
     els.recentGrid.addEventListener("click", logFromButton);
+    els.linkModeButton.addEventListener("click", () => setLinkMode(!linkMode));
+    els.clearLinkButton.addEventListener("click", () => {
+      linkSelectionIds = [];
+      renderStudies();
+    });
+    els.logLinkButton.addEventListener("click", logLinkedSet);
+    els.linkTray.addEventListener("click", (event) => {
+      const removeButton = event.target.closest("[data-remove-link]");
+      if (removeButton) {
+        const study = studyById.get(removeButton.dataset.removeLink);
+        if (study) toggleLinkedStudy(study);
+        return;
+      }
+      const addButton = event.target.closest("[data-add-link]");
+      if (addButton) {
+        const study = studyById.get(addButton.dataset.addLink);
+        if (study) toggleLinkedStudy(study);
+        return;
+      }
+      const presetButton = event.target.closest("[data-link-preset]");
+      if (presetButton) applyLinkPreset(presetButton.dataset.linkPreset);
+    });
     els.studySearch.addEventListener("input", () => {
       renderStudies();
       els.studyGrid.scrollTop = 0;
@@ -588,8 +821,13 @@
     els.exportButton.addEventListener("click", exportCsv);
     els.resetButton.addEventListener("click", resetToday);
     els.historyList.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-delete-entry]");
-      if (button) deleteEntry(button.dataset.deleteEntry);
+      const entryButton = event.target.closest("[data-delete-entry]");
+      if (entryButton) {
+        deleteEntry(entryButton.dataset.deleteEntry);
+        return;
+      }
+      const groupButton = event.target.closest("[data-delete-group]");
+      if (groupButton) deleteGroup(groupButton.dataset.deleteGroup);
     });
 
     els.goalInput.addEventListener("change", () => {
@@ -635,11 +873,22 @@
       }
       if (event.key === "Enter" && document.activeElement === els.studySearch && visibleStudies[0]) {
         event.preventDefault();
-        logStudy(visibleStudies[0]);
+        if (linkMode) toggleLinkedStudy(visibleStudies[0]);
+        else logStudy(visibleStudies[0]);
         els.studySearch.select();
         return;
       }
       if (isTyping || els.drawer.classList.contains("open")) return;
+      if (event.key.toLowerCase() === "l") {
+        event.preventDefault();
+        setLinkMode(!linkMode);
+        return;
+      }
+      if (event.key === "Enter" && linkMode && linkSelectionIds.length >= 2) {
+        event.preventDefault();
+        logLinkedSet();
+        return;
+      }
       if (event.altKey && /^[1-7]$/.test(event.key)) {
         event.preventDefault();
         activeModality = modalityKeys[Number(event.key) - 1];
@@ -651,7 +900,8 @@
         const study = visibleStudies[Number(event.key) - 1];
         if (study) {
           event.preventDefault();
-          logStudy(study);
+          if (linkMode) toggleLinkedStudy(study);
+          else logStudy(study);
         }
         return;
       }
@@ -661,7 +911,8 @@
         const study = studyById.get(state.recentStudyIds[recentIndex]);
         if (study) {
           event.preventDefault();
-          logStudy(study);
+          if (linkMode) toggleLinkedStudy(study);
+          else logStudy(study);
         }
       }
     });
