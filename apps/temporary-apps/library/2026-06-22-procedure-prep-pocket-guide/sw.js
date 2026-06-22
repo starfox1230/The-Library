@@ -1,4 +1,4 @@
-const CACHE = "procedure-prep-pocket-guide-v2";
+const CACHE = "procedure-prep-pocket-guide-v3";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./app-icon.svg"];
 
 self.addEventListener("install", event => {
