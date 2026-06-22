@@ -498,11 +498,15 @@
         <input id="quiz-importer-url" type="url" inputmode="url">
       </label>
       <label>
-        Core Radiology PDF URL
-        <input id="core-pdf-url" type="url" inputmode="url" placeholder="Private Google Drive or PDF app link">
+        Desktop Core Radiology PDF URL
+        <input id="core-pdf-url" type="url" inputmode="url" placeholder="Private Google Drive or browser PDF link">
+      </label>
+      <label>
+        PDF Expert file path on iPhone/iPad
+        <input id="pdf-expert-path" type="text" autocapitalize="off" autocomplete="off" placeholder="Core Radiology 2nd ed.pdf">
       </label>
       <div class="dialog-note">
-        Add this page to your phone’s home screen after opening the setup link. Your schedule and completion state remain in this browser. Reopen a newly copied setup link whenever the schedule changes.
+        For PDF Expert, enter the path as it appears inside PDF Expert, such as <strong>Core Radiology 2nd ed.pdf</strong>, <strong>Books/Core Radiology 2nd ed.pdf</strong>, or <strong>SyncedFolders/Google Drive/0. Radiology/Core Radiology 2nd ed.pdf</strong>. On Apple devices the Source button uses PDF Expert; on computers it uses the desktop URL above.
       </div>
       <div class="dialog-actions">
         <button class="small-button source-link" id="save-settings">Save Settings</button>
@@ -525,7 +529,8 @@
       readUrl: READ_GPT_URL,
       quizUrl: QUIZ_GPT_URL,
       quizImporterUrl: new URL('../quiz-generator/index.html', window.location.href).toString(),
-      corePdfUrl: ''
+      corePdfUrl: '',
+      pdfExpertPath: ''
     };
 
     let appData = { savedPlans: {}, lastActiveId: null };
@@ -545,6 +550,7 @@
       'section-list', 'copy-text-action', 'quiz-importer-action', 'phone-link-action',
       'codex-plan-action', 'settings-button', 'settings-dialog', 'close-settings',
       'plan-select', 'read-url', 'quiz-url', 'quiz-importer-url', 'core-pdf-url',
+      'pdf-expert-path',
       'save-settings', 'open-organizer-empty', 'open-organizer-settings',
       'copy-current-url', 'toast'
     ].map(id => [id, document.getElementById(id)]));
@@ -577,7 +583,8 @@
         readUrl: els['read-url'].value.trim() || DEFAULT_SETTINGS.readUrl,
         quizUrl: els['quiz-url'].value.trim() || DEFAULT_SETTINGS.quizUrl,
         quizImporterUrl: els['quiz-importer-url'].value.trim() || DEFAULT_SETTINGS.quizImporterUrl,
-        corePdfUrl: els['core-pdf-url'].value.trim()
+        corePdfUrl: els['core-pdf-url'].value.trim(),
+        pdfExpertPath: els['pdf-expert-path'].value.trim()
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       els['settings-dialog'].close();
@@ -804,10 +811,27 @@
       return currentPlan?.book === 'YT Physics' ? ytSources[section.sectionKey] : null;
     }
 
+    function isAppleMobile() {
+      return /iPhone|iPad|iPod/i.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function getPdfExpertUrl(path) {
+      const cleanPath = String(path || '')
+        .trim()
+        .replace(/^pdfefile:\/+/i, '')
+        .replace(/^\/+/, '');
+      if (!cleanPath) return '';
+      return `pdfefile:///${cleanPath.split('/').map(encodeURIComponent).join('/')}`;
+    }
+
     function getSectionSourceUrl(section) {
       const video = getVideoSource(section);
       if (video?.youtubeUrl) return video.youtubeUrl;
-      if (currentPlan?.book === 'Core Radiology' && settings.corePdfUrl) return settings.corePdfUrl;
+      if (currentPlan?.book === 'Core Radiology') {
+        if (isAppleMobile() && settings.pdfExpertPath) return getPdfExpertUrl(settings.pdfExpertPath);
+        if (settings.corePdfUrl) return settings.corePdfUrl;
+      }
       return '';
     }
 
@@ -940,7 +964,7 @@ ${JSON.stringify(schedule, null, 2)}`;
       if (sourceUrl) {
         const sourceButton = document.createElement('button');
         sourceButton.className = 'small-button source-link';
-        sourceButton.textContent = video ? 'Watch' : 'Open PDF';
+        sourceButton.textContent = video ? 'Watch' : (sourceUrl.startsWith('pdfefile:') ? 'PDF Expert' : 'Open PDF');
         sourceButton.onclick = () => window.open(sourceUrl, '_blank', 'noopener');
         actions.appendChild(sourceButton);
       }
@@ -1000,7 +1024,11 @@ ${JSON.stringify(schedule, null, 2)}`;
       els['source-action-note'].textContent = allVideos
         ? 'Launch today’s Radiology Tutorials video'
         : currentPlan.book === 'Core Radiology'
-          ? (settings.corePdfUrl ? 'Open your configured textbook PDF' : 'Add your private PDF link in Settings')
+          ? (getSectionSourceUrl(day.sections[0] || {})
+              ? (isAppleMobile() && settings.pdfExpertPath
+                  ? 'Open your configured textbook in PDF Expert'
+                  : 'Open your configured desktop textbook link')
+              : 'Configure PDF Expert or a desktop PDF link in Settings')
           : 'Open the configured source';
       els['source-action'].disabled = !anySource;
       [els['read-action'], els['quiz-action'], els['anki-action'], els['copy-text-action']]
@@ -1022,6 +1050,7 @@ ${JSON.stringify(schedule, null, 2)}`;
       els['quiz-url'].value = settings.quizUrl;
       els['quiz-importer-url'].value = settings.quizImporterUrl;
       els['core-pdf-url'].value = settings.corePdfUrl;
+      els['pdf-expert-path'].value = settings.pdfExpertPath || '';
       els['settings-dialog'].showModal();
     }
 
