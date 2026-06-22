@@ -117,6 +117,14 @@
     button.danger { background: rgba(248, 81, 73, 0.1); color: var(--danger); border: 1px solid rgba(248, 81, 73, 0.4); }
     
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .sync-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
     .msg { margin-top: 10px; font-size: 0.9rem; min-height: 1.4em; }
     .msg.error { color: var(--danger); }
     .msg.info { color: var(--accent); }
@@ -457,6 +465,11 @@
         <div class="pill" id="sum-counts"></div>
         <div class="pill" id="sum-load"></div>
       </div>
+      <div class="sync-actions">
+        <button id="open-today-view-btn">Open Phone Today View</button>
+        <button id="copy-phone-setup-btn" class="secondary">Copy Phone Setup Link</button>
+        <button id="copy-codex-schedule-btn" class="secondary">Copy Codex Schedule Handoff</button>
+      </div>
       
       <div style="display:flex; justify-content: space-between; align-items: center;">
         <label style="margin:0;">Progress Calendar</label>
@@ -578,7 +591,10 @@ const els = {
   gemQaBtn: document.getElementById('gem-qa-btn'),
   gemAnkiBtn: document.getElementById('gem-anki-btn'),
   gemVisualBtn: document.getElementById('gem-visual-btn'),
-  ttsBtn: document.getElementById('tts-btn')
+  ttsBtn: document.getElementById('tts-btn'),
+  openTodayViewBtn: document.getElementById('open-today-view-btn'),
+  copyPhoneSetupBtn: document.getElementById('copy-phone-setup-btn'),
+  copyCodexScheduleBtn: document.getElementById('copy-codex-schedule-btn')
 };
 
 async function init() {
@@ -1593,6 +1609,103 @@ async function copyText(text, btn) {
   } catch (e) { console.error(e); }
 }
 
+function getCompactPlan(plan = currentPlan) {
+  if (!plan) return null;
+  return {
+    v: 1,
+    id: plan.id,
+    title: plan.title || '',
+    book: plan.book,
+    planLabel: plan.planLabel || '',
+    range: plan.range || '',
+    startDate: plan.startDate,
+    endDate: plan.endDate,
+    loadUnit: plan.loadUnit || 'chars',
+    totalLoad: typeof plan.totalLoad === 'number' ? plan.totalLoad : null,
+    targetPerDay: typeof plan.targetPerDay === 'number' ? plan.targetPerDay : null,
+    days: plan.days.map(day => ({
+      d: day.date,
+      s: day.sections.map(section => [
+        section.sectionKey,
+        (section.listen ? 1 : 0) | (section.read ? 2 : 0) | (section.anki ? 4 : 0),
+        section.studyMode || 'new',
+        typeof section.loadFactor === 'number' ? section.loadFactor : 1,
+        typeof section.length === 'number' ? section.length : 0,
+        typeof section.load === 'number' ? section.load : 0,
+        typeof section.runtimeMinutes === 'number' ? section.runtimeMinutes : null
+      ])
+    }))
+  };
+}
+
+function encodeSharePayload(value) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let binary = '';
+  bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function getTodayViewUrl(includePlan = false) {
+  const url = new URL('study-today.html', window.location.href);
+  if (includePlan && currentPlan) {
+    url.hash = `plan=${encodeSharePayload(getCompactPlan(currentPlan))}`;
+  }
+  return url.toString();
+}
+
+function showButtonFeedback(button, label = 'Copied!') {
+  if (!button) return;
+  const original = button.textContent;
+  button.textContent = label;
+  button.classList.add('success');
+  setTimeout(() => {
+    button.textContent = original;
+    button.classList.remove('success');
+  }, 1600);
+}
+
+async function copyPhoneSetupLink() {
+  if (!currentPlan) return;
+  await navigator.clipboard.writeText(getTodayViewUrl(true));
+  showButtonFeedback(els.copyPhoneSetupBtn);
+}
+
+async function copyCodexScheduleHandoff() {
+  if (!currentPlan) return;
+  const schedule = {
+    schemaVersion: 1,
+    id: currentPlan.id,
+    title: currentPlan.title || currentPlan.planLabel || `${currentPlan.book} Study Plan`,
+    book: currentPlan.book,
+    startDate: currentPlan.startDate,
+    endDate: currentPlan.endDate,
+    days: currentPlan.days.map(day => ({
+      date: day.date,
+      sections: day.sections.map(section => ({
+        sectionKey: section.sectionKey,
+        title: section.fullTitle,
+        file: section.file,
+        studyMode: section.studyMode || 'new'
+      }))
+    }))
+  };
+  const prompt = `Save or update this Core Study Organizer schedule in the repository.
+
+Follow:
+apps/core-studying/STUDY_ORGANIZER_CODEX_HANDOFF.md
+
+Use a concise slug and write the durable schedule under:
+apps/core-studying/plans/<plan-slug>.json
+
+Do not modify the schedule content unless I ask. Validate the resulting JSON and run:
+python scripts/verify_core_studying_books.py
+
+Schedule:
+${JSON.stringify(schedule, null, 2)}`;
+  await navigator.clipboard.writeText(prompt);
+  showButtonFeedback(els.copyCodexScheduleBtn);
+}
+
 async function getFullDayText() {
   const day = currentPlan.days[currentDayIndex];
   if (!day || !day.sections.length) return '';
@@ -1731,6 +1844,21 @@ els.gemVisualBtn.addEventListener('click', () => copyAndOpen(getFullDayText, els
 
 els.ttsBtn.addEventListener('click', () => {
   window.open(TTS_URL, '_blank');
+});
+els.openTodayViewBtn.addEventListener('click', () => {
+  window.open(getTodayViewUrl(false), '_blank');
+});
+els.copyPhoneSetupBtn.addEventListener('click', () => {
+  copyPhoneSetupLink().catch(error => {
+    console.error(error);
+    els.copyPhoneSetupBtn.textContent = 'Copy failed';
+  });
+});
+els.copyCodexScheduleBtn.addEventListener('click', () => {
+  copyCodexScheduleHandoff().catch(error => {
+    console.error(error);
+    els.copyCodexScheduleBtn.textContent = 'Copy failed';
+  });
 });
 els.setupHeader.addEventListener('click', toggleSetupPanel);
 els.setupToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSetupPanel(); });

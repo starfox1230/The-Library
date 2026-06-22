@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08111f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="study-today.webmanifest">
+  <link rel="icon" href="study-today-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="study-today-icon.svg">
+  <title>Today · Core Study</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07101d;
+      --bg-soft: #0c1727;
+      --panel: rgba(17, 31, 50, 0.92);
+      --panel-strong: #122239;
+      --line: rgba(148, 177, 211, 0.18);
+      --text: #edf5ff;
+      --muted: #9cb0c9;
+      --blue: #67b6ff;
+      --blue-strong: #258fea;
+      --green: #45d49b;
+      --amber: #f4bd5f;
+      --purple: #b69cff;
+      --danger: #ff7d8a;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--bg); }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100svh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% -4%, rgba(37, 143, 234, 0.28), transparent 30rem),
+        radial-gradient(circle at 100% 18%, rgba(182, 156, 255, 0.16), transparent 26rem),
+        linear-gradient(180deg, #07101d 0%, #081321 52%, #060d17 100%);
+      padding:
+        max(16px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(32px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+    }
+
+    button, input, select { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-weight: 850;
+      color: white;
+      background: linear-gradient(145deg, #2d9df5, #7368e8);
+      box-shadow: 0 10px 28px rgba(37, 143, 234, 0.32);
+    }
+
+    .brand-title { font-size: 1rem; font-weight: 780; letter-spacing: 0.01em; }
+    .brand-sub { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+
+    .icon-button {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(18, 34, 57, 0.76);
+      cursor: pointer;
+    }
+
+    .hero, .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      border-radius: 28px;
+      padding: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      right: -110px;
+      top: -125px;
+      background: rgba(103, 182, 255, 0.12);
+      pointer-events: none;
+    }
+
+    .date-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .date-kicker {
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.72rem;
+      font-weight: 850;
+    }
+
+    .date-title {
+      margin: 5px 0 0;
+      font-size: clamp(1.55rem, 7vw, 2.25rem);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .date-nav { display: flex; gap: 7px; }
+    .date-nav button {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: rgba(6, 14, 25, 0.45);
+      cursor: pointer;
+    }
+
+    .plan-line {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+
+    .progress {
+      margin-top: 17px;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      transition: width 180ms ease;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.77rem;
+    }
+
+    .primary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .action {
+      min-height: 78px;
+      border: 1px solid var(--line);
+      border-radius: 19px;
+      padding: 13px;
+      color: var(--text);
+      background: rgba(18, 34, 57, 0.82);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+    }
+
+    .action:active, .icon-button:active, .date-nav button:active, .small-button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .action.primary {
+      background: linear-gradient(145deg, rgba(37, 143, 234, 0.98), rgba(72, 105, 222, 0.96));
+      border-color: rgba(137, 201, 255, 0.46);
+    }
+
+    .action.quiz { background: linear-gradient(145deg, rgba(80, 61, 173, 0.92), rgba(135, 86, 190, 0.86)); }
+    .action.anki { background: linear-gradient(145deg, rgba(14, 115, 91, 0.9), rgba(37, 126, 135, 0.88)); }
+    .action.source { background: linear-gradient(145deg, rgba(148, 87, 29, 0.9), rgba(146, 104, 41, 0.88)); }
+    .action[disabled] { opacity: 0.46; cursor: not-allowed; }
+
+    .action-icon { font-size: 1.22rem; }
+    .action-label { display: block; font-weight: 790; font-size: 0.93rem; }
+    .action-note {
+      display: block;
+      margin-top: 3px;
+      color: rgba(237, 245, 255, 0.72);
+      font-size: 0.72rem;
+      line-height: 1.25;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 17px 12px;
+    }
+
+    .panel-title { font-weight: 800; }
+    .panel-meta { color: var(--muted); font-size: 0.77rem; margin-top: 3px; }
+
+    .section-list { display: grid; gap: 10px; padding: 0 12px 12px; }
+
+    .section-card {
+      background: rgba(7, 16, 29, 0.58);
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      padding: 14px;
+    }
+
+    .section-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-key {
+      color: var(--blue);
+      font-size: 0.72rem;
+      font-weight: 820;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .section-title { margin-top: 4px; font-weight: 760; line-height: 1.35; }
+    .section-sub { margin-top: 5px; color: var(--muted); font-size: 0.75rem; }
+
+    .section-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 13px;
+    }
+
+    .small-button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 8px 11px;
+      color: var(--text);
+      background: rgba(25, 44, 70, 0.8);
+      font-size: 0.75rem;
+      font-weight: 730;
+      cursor: pointer;
+    }
+
+    .small-button.active.listen { color: #171005; background: var(--amber); }
+    .small-button.active.read { color: #03140d; background: var(--green); }
+    .small-button.active.anki { color: #0d071a; background: var(--purple); }
+    .small-button.source-link { color: #07111c; background: var(--blue); }
+
+    .secondary-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 12px 12px;
+    }
+
+    .secondary-actions .small-button {
+      min-height: 46px;
+      text-align: center;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 34px 20px;
+      color: var(--muted);
+    }
+
+    .empty h2 { color: var(--text); margin: 0 0 8px; }
+    .empty p { margin: 0 auto 18px; max-width: 34rem; line-height: 1.5; }
+
+    .toast {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      transform: translate(-50%, 20px);
+      opacity: 0;
+      pointer-events: none;
+      width: max-content;
+      max-width: calc(100vw - 28px);
+      padding: 11px 14px;
+      border-radius: 13px;
+      color: #061018;
+      background: #d9f7eb;
+      box-shadow: var(--shadow);
+      font-size: 0.82rem;
+      font-weight: 740;
+      transition: 160ms ease;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.error { color: white; background: #b93b52; }
+
+    dialog {
+      width: min(620px, calc(100vw - 24px));
+      max-height: min(82vh, 760px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 0;
+      color: var(--text);
+      background: #0d192a;
+      box-shadow: var(--shadow);
+    }
+
+    dialog::backdrop { background: rgba(0, 0, 0, 0.68); backdrop-filter: blur(5px); }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 18px; border-bottom: 1px solid var(--line); }
+    .dialog-body { display: grid; gap: 14px; padding: 18px; overflow: auto; }
+    .dialog-body label { display: grid; gap: 6px; color: var(--muted); font-size: 0.78rem; font-weight: 700; }
+    .dialog-body input, .dialog-body select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      color: var(--text);
+      background: #07111f;
+    }
+
+    .dialog-note { color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
+    .dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    @media (min-width: 640px) {
+      body { padding-top: 28px; }
+      .primary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .hero { padding: 24px; }
+    }
+
+    @media (max-width: 390px) {
+      .hero { padding: 17px; }
+      .action { min-height: 72px; padding: 11px; }
+      .section-title { font-size: 0.92rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">CS</div>
+        <div>
+          <div class="brand-title">Core Study Today</div>
+          <div class="brand-sub" id="sync-status">Static, private, and browser-synced</div>
+        </div>
+      </div>
+      <button class="icon-button" id="settings-button" aria-label="Settings">⚙</button>
+    </header>
+
+    <section id="empty-state" class="panel empty" hidden>
+      <h2>No study plan on this device</h2>
+      <p>Create a plan in Core Study Organizer, tap “Copy Phone Setup Link,” and open that link once on this phone.</p>
+      <button class="small-button source-link" id="open-organizer-empty">Open Study Organizer</button>
+    </section>
+
+    <div id="study-view" class="app" hidden>
+      <section class="hero">
+        <div class="date-row">
+          <div>
+            <div class="date-kicker" id="date-kicker">Today</div>
+            <h1 class="date-title" id="date-title"></h1>
+          </div>
+          <div class="date-nav">
+            <button id="previous-day" aria-label="Previous study day">‹</button>
+            <button id="today-button" aria-label="Go to today">●</button>
+            <button id="next-day" aria-label="Next study day">›</button>
+          </div>
+        </div>
+        <div class="plan-line" id="plan-line"></div>
+        <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-label"><span id="progress-text"></span><span id="day-position"></span></div>
+      </section>
+
+      <section class="primary-grid">
+        <button class="action primary" id="read-action">
+          <span class="action-icon">▶</span>
+          <span>
+            <span class="action-label">Read to Me</span>
+            <span class="action-note">Copy today’s text and open your GPT</span>
+          </span>
+        </button>
+        <button class="action quiz" id="quiz-action">
+          <span class="action-icon">✦</span>
+          <span>
+            <span class="action-label">Make Quiz</span>
+            <span class="action-note">Copy quiz request and open your GPT</span>
+          </span>
+        </button>
+        <button class="action anki" id="anki-action">
+          <span class="action-icon">◆</span>
+          <span>
+            <span class="action-label">Anki via Codex</span>
+            <span class="action-note">Copy a precise APKG request</span>
+          </span>
+        </button>
+        <button class="action source" id="source-action">
+          <span class="action-icon">↗</span>
+          <span>
+            <span class="action-label" id="source-action-label">Open Source</span>
+            <span class="action-note" id="source-action-note">Video or textbook</span>
+          </span>
+        </button>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <div class="panel-title">Today’s material</div>
+            <div class="panel-meta" id="material-meta"></div>
+          </div>
+        </div>
+        <div class="section-list" id="section-list"></div>
+        <div class="secondary-actions">
+          <button class="small-button" id="copy-text-action">Copy Reading Text</button>
+          <button class="small-button" id="quiz-importer-action">Open Quiz Importer</button>
+          <button class="small-button" id="phone-link-action">Copy Phone Setup Link</button>
+          <button class="small-button" id="codex-plan-action">Copy Full Plan for Codex</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="settings-dialog">
+    <div class="dialog-head">
+      <strong>Today View Settings</strong>
+      <button class="icon-button" id="close-settings" aria-label="Close settings">×</button>
+    </div>
+    <div class="dialog-body">
+      <label>
+        Active plan
+        <select id="plan-select"></select>
+      </label>
+      <label>
+        Read-to-Me GPT URL
+        <input id="read-url" type="url" inputmode="url">
+      </label>
+      <label>
+        Quiz GPT URL
+        <input id="quiz-url" type="url" inputmode="url">
+      </label>
+      <label>
+        Quiz importer URL
+        <input id="quiz-importer-url" type="url" inputmode="url">
+      </label>
+      <label>
+        Core Radiology PDF URL
+        <input id="core-pdf-url" type="url" inputmode="url" placeholder="Private Google Drive or PDF app link">
+      </label>
+      <div class="dialog-note">
+        Add this page to your phone’s home screen after opening the setup link. Your schedule and completion state remain in this browser. Reopen a newly copied setup link whenever the schedule changes.
+      </div>
+      <div class="dialog-actions">
+        <button class="small-button source-link" id="save-settings">Save Settings</button>
+        <button class="small-button" id="open-organizer-settings">Open Full Organizer</button>
+        <button class="small-button" id="copy-current-url">Copy This Page URL</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'core_study_data_v4';
+    const SETTINGS_KEY = 'core_study_today_settings_v1';
+    const DEFAULT_SETTINGS = {
+      readUrl: 'https://chatgpt.com/g/g-p-68d551179e20819199aaa83585b01711-read-to-me-2-0/project',
+      quizUrl: 'https://chatgpt.com/',
+      quizImporterUrl: new URL('../quiz-generator/index.html', window.location.href).toString(),
+      corePdfUrl: ''
+    };
+
+    let appData = { savedPlans: {}, lastActiveId: null };
+    let settings = { ...DEFAULT_SETTINGS };
+    let booksData = {};
+    let ytSources = {};
+    let currentPlan = null;
+    let currentDayIndex = 0;
+    let currentBookPath = '';
+    const textCache = {};
+
+    const els = Object.fromEntries([
+      'sync-status', 'empty-state', 'study-view', 'date-kicker', 'date-title',
+      'plan-line', 'progress-fill', 'progress-text', 'day-position', 'previous-day',
+      'today-button', 'next-day', 'read-action', 'quiz-action', 'anki-action',
+      'source-action', 'source-action-label', 'source-action-note', 'material-meta',
+      'section-list', 'copy-text-action', 'quiz-importer-action', 'phone-link-action',
+      'codex-plan-action', 'settings-button', 'settings-dialog', 'close-settings',
+      'plan-select', 'read-url', 'quiz-url', 'quiz-importer-url', 'core-pdf-url',
+      'save-settings', 'open-organizer-empty', 'open-organizer-settings',
+      'copy-current-url', 'toast'
+    ].map(id => [id, document.getElementById(id)]));
+
+    function loadLocalData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) appData = JSON.parse(raw);
+      } catch (error) {
+        console.error(error);
+      }
+      try {
+        settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+      } catch (error) {
+        settings = { ...DEFAULT_SETTINGS };
+      }
+    }
+
+    function saveLocalData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function saveSettings() {
+      settings = {
+        readUrl: els['read-url'].value.trim() || DEFAULT_SETTINGS.readUrl,
+        quizUrl: els['quiz-url'].value.trim() || DEFAULT_SETTINGS.quizUrl,
+        quizImporterUrl: els['quiz-importer-url'].value.trim() || DEFAULT_SETTINGS.quizImporterUrl,
+        corePdfUrl: els['core-pdf-url'].value.trim()
+      };
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      els['settings-dialog'].close();
+      renderDay();
+      toast('Settings saved');
+    }
+
+    function encodePath(path) {
+      return path.split('/').map(encodeURIComponent).join('/');
+    }
+
+    function parseLocalISO(value) {
+      const [year, month, day] = String(value || '').split('T')[0].split('-').map(Number);
+      return new Date(year, (month || 1) - 1, day || 1);
+    }
+
+    function formatLocalISO(date) {
+      const offset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() - offset).toISOString().split('T')[0];
+    }
+
+    function compareSectionKeys(a, b) {
+      return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function addSection(flat, chapter, sectionKey, value, titleOverride = null) {
+      if (!value?.file) return;
+      const title = titleOverride || value.title || sectionKey;
+      flat.push({
+        chapter,
+        sectionKey,
+        title,
+        file: value.file,
+        fullTitle: `${chapter} · ${sectionKey} - ${title}`
+      });
+    }
+
+    function flattenManifest(manifest) {
+      const flat = [];
+      Object.keys(manifest).sort(compareSectionKeys).forEach(chapterKey => {
+        const chapter = manifest[chapterKey];
+        if (!chapter?.title) return;
+        if (chapter.sections) {
+          if (chapter.introFile) {
+            addSection(flat, chapter.title, `${chapterKey}.intro`, {
+              file: chapter.introFile,
+              title: chapter.introTitle || 'Introduction'
+            });
+          }
+          Object.keys(chapter.sections).sort(compareSectionKeys)
+            .forEach(key => addSection(flat, chapter.title, key, chapter.sections[key]));
+          return;
+        }
+        Object.keys(chapter)
+          .filter(key => !['title', 'introFile', 'introTitle', 'sections'].includes(key))
+          .sort(compareSectionKeys)
+          .forEach(key => addSection(flat, chapter.title, key, chapter[key]));
+      });
+      return flat;
+    }
+
+    function decodeSharePayload(encoded) {
+      const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+      const binary = atob(padded);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }
+
+    function encodeSharePayload(value) {
+      const bytes = new TextEncoder().encode(JSON.stringify(value));
+      let binary = '';
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function getCompactPlan(plan = currentPlan) {
+      return {
+        v: 1,
+        id: plan.id,
+        title: plan.title || '',
+        book: plan.book,
+        planLabel: plan.planLabel || '',
+        range: plan.range || '',
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        loadUnit: plan.loadUnit || 'chars',
+        totalLoad: typeof plan.totalLoad === 'number' ? plan.totalLoad : null,
+        targetPerDay: typeof plan.targetPerDay === 'number' ? plan.targetPerDay : null,
+        days: plan.days.map(day => ({
+          d: day.date,
+          s: day.sections.map(section => [
+            section.sectionKey,
+            (section.listen ? 1 : 0) | (section.read ? 2 : 0) | (section.anki ? 4 : 0),
+            section.studyMode || 'new',
+            typeof section.loadFactor === 'number' ? section.loadFactor : 1,
+            typeof section.length === 'number' ? section.length : 0,
+            typeof section.load === 'number' ? section.load : 0,
+            typeof section.runtimeMinutes === 'number' ? section.runtimeMinutes : null
+          ])
+        }))
+      };
+    }
+
+    async function importSharedPlan(compact) {
+      if (compact?.v !== 1 || !compact.book || !Array.isArray(compact.days)) {
+        throw new Error('Unsupported study-plan link.');
+      }
+      const book = booksData[compact.book];
+      if (!book) throw new Error(`Book not found: ${compact.book}`);
+      const manifest = await fetch(book.manifest).then(response => {
+        if (!response.ok) throw new Error('Could not load the book manifest.');
+        return response.json();
+      });
+      const sectionMap = new Map(flattenManifest(manifest).map(section => [section.sectionKey, section]));
+      const days = compact.days.map(day => ({
+        date: day.d,
+        sections: day.s.map(item => {
+          const source = sectionMap.get(item[0]);
+          if (!source) throw new Error(`Section not found: ${item[0]}`);
+          const flags = item[1] || 0;
+          return {
+            ...source,
+            length: typeof item[4] === 'number' ? item[4] : 0,
+            load: typeof item[5] === 'number' ? item[5] : 0,
+            listen: Boolean(flags & 1),
+            read: Boolean(flags & 2),
+            anki: Boolean(flags & 4),
+            studyMode: item[2] || 'new',
+            loadFactor: typeof item[3] === 'number' ? item[3] : 1,
+            runtimeMinutes: typeof item[6] === 'number' ? item[6] : undefined
+          };
+        })
+      }));
+      const id = compact.id || `shared-${Date.now()}`;
+      const plan = {
+        id,
+        created: Date.now(),
+        title: compact.title || '',
+        book: compact.book,
+        planLabel: compact.planLabel || '',
+        range: compact.range || '',
+        startDate: compact.startDate || days[0]?.date,
+        endDate: compact.endDate || days[days.length - 1]?.date,
+        loadUnit: compact.loadUnit || 'chars',
+        totalLoad: typeof compact.totalLoad === 'number' ? compact.totalLoad : undefined,
+        targetPerDay: typeof compact.targetPerDay === 'number' ? compact.targetPerDay : undefined,
+        totalSections: days.reduce((sum, day) => sum + day.sections.length, 0),
+        days
+      };
+      appData.savedPlans[id] = plan;
+      appData.lastActiveId = id;
+      saveLocalData();
+      return plan;
+    }
+
+    async function importPlanFromHash() {
+      const match = window.location.hash.match(/^#plan=(.+)$/);
+      if (!match) return null;
+      const compact = decodeSharePayload(match[1]);
+      const plan = await importSharedPlan(compact);
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+      toast('Study plan synced to this device');
+      return plan;
+    }
+
+    function getTodayIndex(plan = currentPlan) {
+      if (!plan?.days?.length) return 0;
+      const today = formatLocalISO(new Date());
+      const exact = plan.days.findIndex(day => day.date === today);
+      if (exact >= 0) return exact;
+      const future = plan.days.findIndex(day => day.date > today);
+      return future >= 0 ? future : plan.days.length - 1;
+    }
+
+    function setCurrentPlan(id) {
+      const plan = appData.savedPlans[id];
+      if (!plan) return;
+      currentPlan = plan;
+      appData.lastActiveId = id;
+      currentBookPath = booksData[plan.book]?.basePath || '';
+      currentDayIndex = getTodayIndex(plan);
+      saveLocalData();
+      populatePlanSelect();
+      render();
+    }
+
+    function populatePlanSelect() {
+      els['plan-select'].innerHTML = '';
+      const plans = Object.values(appData.savedPlans || {}).sort((a, b) => (b.created || 0) - (a.created || 0));
+      plans.forEach(plan => {
+        const option = new Option(plan.title || plan.planLabel || plan.book, plan.id);
+        els['plan-select'].add(option);
+      });
+      if (currentPlan) els['plan-select'].value = currentPlan.id;
+    }
+
+    async function getSectionText(section) {
+      const key = `${currentPlan.book}:${section.file}`;
+      if (textCache[key]) return textCache[key];
+      const response = await fetch(encodePath(`${currentBookPath}/${section.file}`));
+      if (!response.ok) throw new Error(`Could not load ${section.sectionKey}`);
+      const text = await response.text();
+      textCache[key] = text;
+      return text;
+    }
+
+    async function getDayText() {
+      const day = currentPlan.days[currentDayIndex];
+      if (!day?.sections?.length) return '';
+      const chunks = [];
+      for (const section of day.sections) {
+        const text = await getSectionText(section);
+        chunks.push(`# ${section.fullTitle}\n\n${text.trim()}`);
+      }
+      return chunks.join('\n\n---\n\n');
+    }
+
+    function getDay() {
+      return currentPlan?.days?.[currentDayIndex] || null;
+    }
+
+    function getVideoSource(section) {
+      return currentPlan?.book === 'YT Physics' ? ytSources[section.sectionKey] : null;
+    }
+
+    function getSectionSourceUrl(section) {
+      const video = getVideoSource(section);
+      if (video?.youtubeUrl) return video.youtubeUrl;
+      if (currentPlan?.book === 'Core Radiology' && settings.corePdfUrl) return settings.corePdfUrl;
+      return '';
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.left = '-10000px';
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+    }
+
+    async function copyAndOpen(text, url, message) {
+      await copyText(text);
+      toast(message);
+      if (url) window.open(url, '_blank', 'noopener');
+    }
+
+    function toast(message, isError = false) {
+      els.toast.textContent = message;
+      els.toast.classList.toggle('error', isError);
+      els.toast.classList.add('show');
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+    }
+
+    function buildReadPrompt(text) {
+      return `Teach this material to me aloud as an engaging radiology study session.
+
+Start directly with the lesson. Explain abbreviations, clarify difficult mechanisms, and emphasize board-relevant distinctions. Use natural spoken language rather than reading formatting symbols. Pause periodically for a brief recall question, then continue.
+
+SOURCE MATERIAL
+
+${text}`;
+    }
+
+    function buildQuizPrompt(text) {
+      return `Based solely on the source material below, create a concise 5-7 word title and 12 board-exam-level multiple-choice questions.
+
+Each question must have exactly these properties:
+- "question": a focused exam-style stem
+- "options": four plausible, parallel answer strings of similar length
+- "correctAnswer": exactly one string matching an entry in "options"
+- "explanation": a brief source-grounded rationale
+
+Vary the correct-answer position. Avoid obvious distractors, wording clues, and questions about the source's phrasing.
+
+Return only one raw JSON object with exactly:
+{
+  "title": "Descriptive title",
+  "questions": [
+    {
+      "question": "Question?",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": "A",
+      "explanation": "Brief rationale."
+    }
+  ]
+}
+
+Do not use markdown fences or add commentary.
+
+SOURCE MATERIAL
+
+${text}`;
+    }
+
+    function buildAnkiPrompt() {
+      const day = getDay();
+      const sourceLines = day.sections.map(section => {
+        const path = `apps/core-studying/${currentBookPath}/${section.file}`.replace(/\\/g, '/');
+        const video = getVideoSource(section);
+        return `- ${section.sectionKey} — ${section.title}\n  Source: ${path}${video ? `\n  Video: ${video.youtubeUrl}` : ''}`;
+      }).join('\n');
+      const workflow = currentPlan.book === 'Core Radiology'
+        ? 'apps/anki-card-creation-codex-helper/CORE_RADIOLOGY_WORKFLOW.md'
+        : `apps/anki-card-creation-codex-helper/CARD_STYLE_GUIDE.md
+apps/anki-card-creation-codex-helper/APKG_PACKAGING.md`;
+      return `Create a finished Anki APKG for this Core Study Organizer assignment.
+
+Date: ${day.date}
+Book: ${currentPlan.book}
+Sections:
+${sourceLines}
+
+Follow these canonical instructions:
+${workflow}
+apps/core-studying/STUDY_ORGANIZER_CODEX_HANDOFF.md
+
+Use the existing saCloze++ note type and Saved Cards deck. Create atomic, board-relevant cards and skip low-yield filler. For Core Radiology, inspect the corresponding PDF pages and include useful diagnostic images or source-page context when appropriate. Report the APKG path, note count, source sections, and anything intentionally skipped.`;
+    }
+
+    function buildCodexPlanPrompt() {
+      const schedule = {
+        schemaVersion: 1,
+        id: currentPlan.id,
+        title: currentPlan.title || currentPlan.planLabel || `${currentPlan.book} Study Plan`,
+        book: currentPlan.book,
+        startDate: currentPlan.startDate,
+        endDate: currentPlan.endDate,
+        days: currentPlan.days.map(day => ({
+          date: day.date,
+          sections: day.sections.map(section => ({
+            sectionKey: section.sectionKey,
+            title: section.fullTitle,
+            file: section.file,
+            studyMode: section.studyMode || 'new'
+          }))
+        }))
+      };
+      return `Save or update this Core Study Organizer schedule in the repository.
+
+Follow apps/core-studying/STUDY_ORGANIZER_CODEX_HANDOFF.md and save it under apps/core-studying/plans/ using a concise slug. Preserve the supplied schedule exactly, validate the JSON, and run python scripts/verify_core_studying_books.py.
+
+${JSON.stringify(schedule, null, 2)}`;
+    }
+
+    function getPhoneSetupUrl() {
+      const url = new URL(window.location.href);
+      url.search = '';
+      url.hash = `plan=${encodeSharePayload(getCompactPlan())}`;
+      return url.toString();
+    }
+
+    function toggleProgress(sectionIndex, field) {
+      const section = getDay().sections[sectionIndex];
+      section[field] = !section[field];
+      saveLocalData();
+      renderDay();
+    }
+
+    function createSectionCard(section, index) {
+      const card = document.createElement('article');
+      card.className = 'section-card';
+
+      const top = document.createElement('div');
+      top.className = 'section-top';
+      const titleWrap = document.createElement('div');
+      const key = document.createElement('div');
+      key.className = 'section-key';
+      key.textContent = section.sectionKey;
+      const title = document.createElement('div');
+      title.className = 'section-title';
+      title.textContent = String(section.title || section.fullTitle)
+        .replace(new RegExp(`^${section.sectionKey.replace('.', '\\.')}\\s*-\\s*`, 'i'), '');
+      const sub = document.createElement('div');
+      sub.className = 'section-sub';
+      const video = getVideoSource(section);
+      sub.textContent = video
+        ? `${video.series} · ${video.duration} video`
+        : `${section.chapter}${section.studyMode === 'review' ? ' · Review' : ''}`;
+      titleWrap.append(key, title, sub);
+      top.append(titleWrap);
+
+      const actions = document.createElement('div');
+      actions.className = 'section-actions';
+      ['listen', 'read', 'anki'].forEach(field => {
+        const button = document.createElement('button');
+        button.className = `small-button ${field}${section[field] ? ' active' : ''}`;
+        button.textContent = field === 'anki' ? 'Cards done' : field[0].toUpperCase() + field.slice(1);
+        button.onclick = () => toggleProgress(index, field);
+        actions.appendChild(button);
+      });
+      const sourceUrl = getSectionSourceUrl(section);
+      if (sourceUrl) {
+        const sourceButton = document.createElement('button');
+        sourceButton.className = 'small-button source-link';
+        sourceButton.textContent = video ? 'Watch' : 'Open PDF';
+        sourceButton.onclick = () => window.open(sourceUrl, '_blank', 'noopener');
+        actions.appendChild(sourceButton);
+      }
+      const copyButton = document.createElement('button');
+      copyButton.className = 'small-button';
+      copyButton.textContent = 'Copy text';
+      copyButton.onclick = async () => {
+        try {
+          await copyText(await getSectionText(section));
+          toast(`${section.sectionKey} copied`);
+        } catch (error) {
+          toast(error.message, true);
+        }
+      };
+      actions.appendChild(copyButton);
+
+      card.append(top, actions);
+      return card;
+    }
+
+    function renderDay() {
+      const day = getDay();
+      if (!day) return;
+      const date = parseLocalISO(day.date);
+      const today = formatLocalISO(new Date());
+      els['date-kicker'].textContent = day.date === today ? 'Today' : 'Study day';
+      els['date-title'].textContent = date.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'short', day: 'numeric'
+      });
+      const planName = currentPlan.title || currentPlan.planLabel || currentPlan.book;
+      els['plan-line'].textContent = `${planName} · ${day.sections.length || 'Rest'} ${day.sections.length === 1 ? 'section' : 'sections'}`;
+      els['day-position'].textContent = `${currentDayIndex + 1} of ${currentPlan.days.length}`;
+
+      const total = day.sections.length * 3;
+      const completed = day.sections.reduce((sum, section) =>
+        sum + Number(Boolean(section.listen)) + Number(Boolean(section.read)) + Number(Boolean(section.anki)), 0);
+      const percent = total ? Math.round(completed / total * 100) : 100;
+      els['progress-fill'].style.width = `${percent}%`;
+      els['progress-text'].textContent = `${percent}% complete`;
+      els['material-meta'].textContent = day.sections.length
+        ? `${day.sections.map(section => section.sectionKey).join(' · ')}`
+        : 'Rest day';
+
+      els['section-list'].innerHTML = '';
+      if (!day.sections.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'Nothing scheduled. Use the arrows to view another study day.';
+        els['section-list'].appendChild(empty);
+      } else {
+        day.sections.forEach((section, index) => els['section-list'].appendChild(createSectionCard(section, index)));
+      }
+
+      const allVideos = day.sections.length && day.sections.every(section => getVideoSource(section));
+      const anySource = day.sections.some(section => getSectionSourceUrl(section));
+      els['source-action-label'].textContent = allVideos ? (day.sections.length > 1 ? 'Open First Video' : 'Watch Video') : 'Open Source';
+      els['source-action-note'].textContent = allVideos
+        ? 'Launch today’s Radiology Tutorials video'
+        : currentPlan.book === 'Core Radiology'
+          ? (settings.corePdfUrl ? 'Open your configured textbook PDF' : 'Add your private PDF link in Settings')
+          : 'Open the configured source';
+      els['source-action'].disabled = !anySource;
+      [els['read-action'], els['quiz-action'], els['anki-action'], els['copy-text-action']]
+        .forEach(button => { button.disabled = !day.sections.length; });
+      els['previous-day'].disabled = currentDayIndex <= 0;
+      els['next-day'].disabled = currentDayIndex >= currentPlan.days.length - 1;
+    }
+
+    function render() {
+      const hasPlan = Boolean(currentPlan?.days?.length);
+      els['empty-state'].hidden = hasPlan;
+      els['study-view'].hidden = !hasPlan;
+      if (hasPlan) renderDay();
+    }
+
+    function openSettings() {
+      populatePlanSelect();
+      els['read-url'].value = settings.readUrl;
+      els['quiz-url'].value = settings.quizUrl;
+      els['quiz-importer-url'].value = settings.quizImporterUrl;
+      els['core-pdf-url'].value = settings.corePdfUrl;
+      els['settings-dialog'].showModal();
+    }
+
+    async function init() {
+      loadLocalData();
+      try {
+        const [booksResponse, sourcesResponse] = await Promise.all([
+          fetch('books.json'),
+          fetch(encodePath('YT Physics/sources.json'))
+        ]);
+        booksData = await booksResponse.json();
+        if (sourcesResponse.ok) ytSources = (await sourcesResponse.json()).sections || {};
+        const imported = await importPlanFromHash();
+        currentPlan = imported || appData.savedPlans?.[appData.lastActiveId] || Object.values(appData.savedPlans || {})[0] || null;
+        if (currentPlan) {
+          appData.lastActiveId = currentPlan.id;
+          currentBookPath = booksData[currentPlan.book]?.basePath || '';
+          currentDayIndex = getTodayIndex();
+          saveLocalData();
+        }
+        populatePlanSelect();
+        render();
+      } catch (error) {
+        console.error(error);
+        els['sync-status'].textContent = 'Could not load study data';
+        toast(error.message || 'Could not load study data', true);
+        render();
+      }
+    }
+
+    els['previous-day'].onclick = () => { currentDayIndex--; renderDay(); };
+    els['next-day'].onclick = () => { currentDayIndex++; renderDay(); };
+    els['today-button'].onclick = () => { currentDayIndex = getTodayIndex(); renderDay(); };
+    els['settings-button'].onclick = openSettings;
+    els['close-settings'].onclick = () => els['settings-dialog'].close();
+    els['save-settings'].onclick = saveSettings;
+    els['plan-select'].onchange = event => setCurrentPlan(event.target.value);
+
+    els['read-action'].onclick = async () => {
+      try {
+        const text = await getDayText();
+        await copyAndOpen(buildReadPrompt(text), settings.readUrl, 'Reading copied · opening GPT');
+      } catch (error) {
+        toast(error.message, true);
+      }
+    };
+
+    els['quiz-action'].onclick = async () => {
+      try {
+        const text = await getDayText();
+        await copyAndOpen(buildQuizPrompt(text), settings.quizUrl, 'Quiz request copied · opening GPT');
+      } catch (error) {
+        toast(error.message, true);
+      }
+    };
+
+    els['anki-action'].onclick = async () => {
+      try {
+        await copyText(buildAnkiPrompt());
+        toast('Codex Anki request copied');
+      } catch (error) {
+        toast(error.message, true);
+      }
+    };
+
+    els['source-action'].onclick = () => {
+      const section = getDay()?.sections?.find(item => getSectionSourceUrl(item));
+      if (section) window.open(getSectionSourceUrl(section), '_blank', 'noopener');
+    };
+
+    els['copy-text-action'].onclick = async () => {
+      try {
+        await copyText(await getDayText());
+        toast('Today’s reading copied');
+      } catch (error) {
+        toast(error.message, true);
+      }
+    };
+
+    els['quiz-importer-action'].onclick = () => window.open(settings.quizImporterUrl, '_blank', 'noopener');
+    els['phone-link-action'].onclick = async () => {
+      await copyText(getPhoneSetupUrl());
+      toast('Phone setup link copied');
+    };
+    els['codex-plan-action'].onclick = async () => {
+      await copyText(buildCodexPlanPrompt());
+      toast('Full schedule handoff copied');
+    };
+    els['open-organizer-empty'].onclick = els['open-organizer-settings'].onclick = () =>
+      window.open('study-organizer.html', '_blank', 'noopener');
+    els['copy-current-url'].onclick = async () => {
+      await copyText(window.location.href);
+      toast('Page URL copied');
+    };
+
+    init();
+  </script>
+</body>
+</html>
