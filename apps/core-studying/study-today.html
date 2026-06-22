@@ -438,7 +438,7 @@
           <span class="action-icon">✦</span>
           <span>
             <span class="action-label">Make Quiz</span>
-            <span class="action-note">Copy quiz request and open your GPT</span>
+            <span class="action-note">Copy today’s source and open the quiz GPT</span>
           </span>
         </button>
         <button class="action anki" id="anki-action">
@@ -519,9 +519,11 @@
     const SETTINGS_KEY = 'core_study_today_settings_v1';
     const LEGACY_READ_URL = 'https://chatgpt.com/g/g-p-68d551179e20819199aaa83585b01711-read-to-me-2-0/project';
     const READ_GPT_URL = 'https://chatgpt.com/g/g-6a38bef4b8b88191a1bec3e65ef57590-read-to-me-2-0';
+    const LEGACY_QUIZ_URL = 'https://chatgpt.com/';
+    const QUIZ_GPT_URL = 'https://chatgpt.com/g/g-6a38c28935488191a99e128a9775a062-core-study-quiz-json';
     const DEFAULT_SETTINGS = {
       readUrl: READ_GPT_URL,
-      quizUrl: 'https://chatgpt.com/',
+      quizUrl: QUIZ_GPT_URL,
       quizImporterUrl: new URL('../quiz-generator/index.html', window.location.href).toString(),
       corePdfUrl: ''
     };
@@ -558,8 +560,9 @@
         settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
         if (settings.readUrl === LEGACY_READ_URL) {
           settings.readUrl = READ_GPT_URL;
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
         }
+        if (settings.quizUrl === LEGACY_QUIZ_URL) settings.quizUrl = QUIZ_GPT_URL;
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       } catch (error) {
         settings = { ...DEFAULT_SETTINGS };
       }
@@ -837,37 +840,6 @@
       toast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
     }
 
-    function buildQuizPrompt(text) {
-      return `Based solely on the source material below, create a concise 5-7 word title and 12 board-exam-level multiple-choice questions.
-
-Each question must have exactly these properties:
-- "question": a focused exam-style stem
-- "options": four plausible, parallel answer strings of similar length
-- "correctAnswer": exactly one string matching an entry in "options"
-- "explanation": a brief source-grounded rationale
-
-Vary the correct-answer position. Avoid obvious distractors, wording clues, and questions about the source's phrasing.
-
-Return only one raw JSON object with exactly:
-{
-  "title": "Descriptive title",
-  "questions": [
-    {
-      "question": "Question?",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "A",
-      "explanation": "Brief rationale."
-    }
-  ]
-}
-
-Do not use markdown fences or add commentary.
-
-SOURCE MATERIAL
-
-${text}`;
-    }
-
     function buildAnkiPrompt() {
       const day = getDay();
       const sourceLines = day.sections.map(section => {
@@ -1100,7 +1072,7 @@ ${JSON.stringify(schedule, null, 2)}`;
     els['quiz-action'].onclick = async () => {
       try {
         const text = await getDayText();
-        await copyAndOpen(buildQuizPrompt(text), settings.quizUrl, 'Quiz request copied · opening GPT');
+        await copyAndOpen(text, settings.quizUrl, 'Source copied · opening quiz GPT');
       } catch (error) {
         toast(error.message, true);
       }
