@@ -517,8 +517,10 @@
   <script>
     const STORAGE_KEY = 'core_study_data_v4';
     const SETTINGS_KEY = 'core_study_today_settings_v1';
+    const LEGACY_READ_URL = 'https://chatgpt.com/g/g-p-68d551179e20819199aaa83585b01711-read-to-me-2-0/project';
+    const READ_GPT_URL = 'https://chatgpt.com/g/g-6a38bef4b8b88191a1bec3e65ef57590-read-to-me-2-0';
     const DEFAULT_SETTINGS = {
-      readUrl: 'https://chatgpt.com/g/g-p-68d551179e20819199aaa83585b01711-read-to-me-2-0/project',
+      readUrl: READ_GPT_URL,
       quizUrl: 'https://chatgpt.com/',
       quizImporterUrl: new URL('../quiz-generator/index.html', window.location.href).toString(),
       corePdfUrl: ''
@@ -554,6 +556,10 @@
       }
       try {
         settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+        if (settings.readUrl === LEGACY_READ_URL) {
+          settings.readUrl = READ_GPT_URL;
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
       } catch (error) {
         settings = { ...DEFAULT_SETTINGS };
       }
@@ -831,16 +837,6 @@
       toast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
     }
 
-    function buildReadPrompt(text) {
-      return `Teach this material to me aloud as an engaging radiology study session.
-
-Start directly with the lesson. Explain abbreviations, clarify difficult mechanisms, and emphasize board-relevant distinctions. Use natural spoken language rather than reading formatting symbols. Pause periodically for a brief recall question, then continue.
-
-SOURCE MATERIAL
-
-${text}`;
-    }
-
     function buildQuizPrompt(text) {
       return `Based solely on the source material below, create a concise 5-7 word title and 12 board-exam-level multiple-choice questions.
 
@@ -1095,7 +1091,7 @@ ${JSON.stringify(schedule, null, 2)}`;
     els['read-action'].onclick = async () => {
       try {
         const text = await getDayText();
-        await copyAndOpen(buildReadPrompt(text), settings.readUrl, 'Reading copied · opening GPT');
+        await copyAndOpen(text, settings.readUrl, 'Reading copied · opening GPT');
       } catch (error) {
         toast(error.message, true);
       }
