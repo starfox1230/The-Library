@@ -61,7 +61,7 @@ function pickPublicationDate(item) {
 
 function stripHtml(text) {
   return (text || "")
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<\/?[A-Za-z][^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

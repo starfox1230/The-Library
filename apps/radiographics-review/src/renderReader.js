@@ -629,7 +629,7 @@ function buildReaderHtml(article) {
 
       <section class="narrative-panel">
         <h2>Why This Article Matters</h2>
-        <p>This page is meant to be a quick study digest rather than a full-text mirror. Use the summary cards first, review the figures next, and open the original article when you want the full discussion and references.</p>
+        <p>This page pairs a quick study digest with the complete extracted article prose and figure captions. Use the summary cards first, review the figures next, and open the original article for references and supplemental media.</p>
         ${buildNarrativeDetails(article)}
       </section>
 
@@ -699,8 +699,7 @@ function buildArticlesIndex(articles) {
                 : ""
             }
           </div>
-        </article>
-      `;
+        </article>`;
     })
     .join("\n");
 

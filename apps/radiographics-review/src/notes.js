@@ -668,6 +668,58 @@ function buildTechniqueNotes(article, insights, batchTag, pushNote) {
   buildTechniqueFigureEvidenceNotes(article, title, batchTag, pushNote);
 }
 
+function buildCeusArtifactsNotes(batchTag, pushNote) {
+  const textNotes = [
+    "CEUS microbubbles are approximately {{c1::3–5 µm}} in diameter and remain {{c2::purely intravascular}}.",
+    "CEUS microbubbles are cleared through {{c1::exhalation of the gas core}} and {{c2::reticuloendothelial processing of the shell}}, not renal excretion.",
+    "For nondestructive CEUS imaging, use a mechanical index of about {{c1::<0.1}}; an MI {{c2::>0.5}} accelerates microbubble destruction.",
+    "At peak pressures of roughly {{c1::100–500 kPa}}, microbubbles oscillate nonlinearly and generate strong harmonic frequencies.",
+    "Contrast-specific US suppresses the predominantly {{c1::linear tissue response}} while preserving the {{c2::nonlinear microbubble response}}.",
+    "For a difficult CEUS target, first reduce the {{c1::skin-to-target distance}}, ideally keeping the target within about {{c2::10 cm}}.",
+    "To limit focal microbubble destruction, position the focal zone {{c1::deep to the target}}.",
+    "Lowering transmit frequency improves {{c1::penetration and microbubble signal}} at the cost of {{c2::spatial resolution}}.",
+    "Excessive CEUS gain amplifies {{c1::noise and pseudoenhancement}}, while excessive output power promotes {{c2::microbubble destruction and pseudowashout}}.",
+    "After the arterial phase, {{c1::intermittent imaging}} helps preserve microbubbles and reduces burnoff and pseudowashout.",
+    "A burst or flash sequence distinguishes enhancement from artifact: true microbubble signal {{c1::disappears and then reperfuses}}, while fixed artifact persists.",
+    "Signal saturation is mitigated by reducing the {{c1::contrast-agent dose}} and, when appropriate, the {{c2::output power}}.",
+    "Perform Doppler before CEUS; otherwise wait about {{c1::10–15 minutes}} for microbubble clearance before spectral measurements.",
+    "Persistent heterogeneous liver enhancement after UCA administration is a rare, typically asymptomatic artifact that may resolve over {{c1::1–2 days}}.",
+  ];
+
+  for (const content of textNotes) {
+    pushNote(buildContentNote(content, batchTag));
+  }
+
+  const imageNotes = [
+    [
+      "On this diagram, what occurs at high acoustic pressure?",
+      "Microbubble shell disruption with release of the gas core and loss of signal",
+      "figure-02.jpg",
+    ],
+    [
+      "After a burst sequence, why does the septal signal remain on this CEUS image?",
+      "It is artifactual rather than true microbubble enhancement",
+      "figure-17.jpg",
+    ],
+    [
+      "What artifact explains the apparent delayed washout in this focal nodular hyperplasia?",
+      "Pseudowashout from continuous insonation and accelerated microbubble destruction",
+      "figure-20.jpg",
+    ],
+    [
+      "What explains enhancement-like signal that decreases as contrast clears from the overlying spleen?",
+      "Pseudoenhancement from phase aberration caused by superficial microbubbles",
+      "figure-21.jpg",
+    ],
+  ];
+
+  for (const [question, answer, imageName] of imageNotes) {
+    pushNote(
+      buildImageQuestionAnswerNote(question, answer, imageName, batchTag),
+    );
+  }
+}
+
 function buildArticleNotes(article, dateLike = new Date()) {
   const batchTag = buildBatchTag(article, dateLike);
   const insights = extractArticleInsights(article);
@@ -686,7 +738,9 @@ function buildArticleNotes(article, dateLike = new Date()) {
     seen.add(key);
   }
 
-  if (insights.mode === "technique") {
+  if (article.doi === "10.1148/rg.220093") {
+    buildCeusArtifactsNotes(batchTag, pushNote);
+  } else if (insights.mode === "technique") {
     buildTechniqueNotes(article, insights, batchTag, pushNote);
   } else {
     buildDiseaseNotes(article, insights, batchTag, pushNote);

@@ -395,6 +395,31 @@ function extractArticleInsights(article) {
 }
 
 function buildSummarySections(article, maxSections = 5) {
+  if (article.doi === "10.1148/rg.220093") {
+    return [
+      {
+        label: "Core physics",
+        text: "Microbubbles are 3–5-µm purely intravascular agents whose nonlinear oscillation produces the contrast-specific signal.",
+      },
+      {
+        label: "Optimal setup",
+        text: "Use very-low-MI imaging (about <0.1), keep the target within roughly 10 cm, and place the focal zone deep to the target.",
+      },
+      {
+        label: "Signal tradeoff",
+        text: "Lower transmit frequency improves penetration and microbubble sensitivity but reduces spatial resolution.",
+      },
+      {
+        label: "Major pitfalls",
+        text: "Recognize burnoff, pseudowashout, pseudoenhancement, saturation, attenuation, shadowing, and Doppler contamination.",
+      },
+      {
+        label: "Corrective strategy",
+        text: "Use intermittent imaging, optimize gain and dose, change the acoustic window, and apply burst imaging when enhancement versus artifact is uncertain.",
+      },
+    ].slice(0, maxSections);
+  }
+
   const insights = extractArticleInsights(article);
   const sections = [];
 

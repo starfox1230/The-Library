@@ -4,9 +4,11 @@ const assert = require("node:assert/strict");
 const { buildSummarySections, buildTeachingPoint } = require("../src/summarize");
 const { buildAnkiNotes } = require("../src/notes");
 const { buildArticlesIndex, buildReaderHtml } = require("../src/renderReader");
+const { cleanProseBlock } = require("../src/studyText");
 
 const mlmArticle = require("../articles/2026-05-01-10-1148-rg-250248-macrodystrophia-lipomatosis-macrodactyly/article.json");
 const nbcaArticle = require("../articles/2026-05-01-10-1148-rg-250122-embolization-with-n-butyl-cyanoacrylate-properties-techniques-applicatio/article.json");
+const ceusArticle = require("../articles/2023-02-01-10-1148-rg-220093-artifacts-and-technical-considerations-at-contrast-enhanced-us/article.json");
 
 test("disease article summary stays concrete and study-oriented", () => {
   const sections = buildSummarySections(mlmArticle);
@@ -135,4 +137,37 @@ test("reader lightbox includes close control and scrollable overlay", () => {
   assert.match(readerHtml, /data-lightbox-close/i);
   assert.match(readerHtml, /\.lightbox\s*\{[\s\S]*overflow-y:\s*auto;/i);
   assert.match(readerHtml, /\.lightbox-close\s*\{[\s\S]*position:\s*fixed;/i);
+});
+
+test("plain-text comparison thresholds survive study text cleanup", () => {
+  const cleaned = cleanProseBlock(
+    "At a low MI (<0.1), microbubbles oscillate; a higher MI (>0.5) destroys them.",
+  );
+
+  assert.match(cleaned, /MI \(<0\.1\)/);
+  assert.match(cleaned, /MI \(>0\.5\)/);
+});
+
+test("CEUS article notes prioritize physics, optimization, and artifacts", () => {
+  const { notes } = buildAnkiNotes(ceusArticle, new Date("2026-06-22T12:00:00-05:00"));
+  const contents = notes.map((note) => note.content).join("\n");
+
+  assert.equal(notes.length, 18);
+  assert.match(contents, /mechanical index of about \{\{c1::<0\.1\}\}/i);
+  assert.match(contents, /focal zone \{\{c1::deep to the target\}\}/i);
+  assert.match(contents, /Pseudowashout from continuous insonation/i);
+  assert.match(contents, /figure-21\.jpg/i);
+  assert.doesNotMatch(contents, /Mplete nonenhancement/i);
+  assert.doesNotMatch(contents, /A major complication/i);
+});
+
+test("CEUS summary surfaces actionable setup and artifact correction", () => {
+  const sections = buildSummarySections(ceusArticle);
+
+  assert.deepEqual(
+    sections.map((section) => section.label),
+    ["Core physics", "Optimal setup", "Signal tradeoff", "Major pitfalls", "Corrective strategy"],
+  );
+  assert.match(sections[1].text, /<0\.1/);
+  assert.match(sections[4].text, /intermittent imaging/i);
 });
