@@ -205,11 +205,11 @@
       padding: 13px;
       color: var(--text);
       background: rgba(18, 34, 57, 0.82);
-      text-align: left;
+      text-align: center;
       cursor: pointer;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: center;
       gap: 8px;
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
     }
@@ -224,18 +224,36 @@
     }
 
     .action.quiz { background: linear-gradient(145deg, rgba(80, 61, 173, 0.92), rgba(135, 86, 190, 0.86)); }
+    .action.load-quiz { background: linear-gradient(145deg, rgba(88, 74, 172, 0.92), rgba(63, 111, 184, 0.9)); }
     .action.anki { background: linear-gradient(145deg, rgba(14, 115, 91, 0.9), rgba(37, 126, 135, 0.88)); }
     .action.source { background: linear-gradient(145deg, rgba(148, 87, 29, 0.9), rgba(146, 104, 41, 0.88)); }
     .action[disabled] { opacity: 0.46; cursor: not-allowed; }
 
     .action-icon { font-size: 1.22rem; }
     .action-label { display: block; font-weight: 790; font-size: 0.93rem; }
-    .action-note {
-      display: block;
-      margin-top: 3px;
-      color: rgba(237, 245, 255, 0.72);
-      font-size: 0.72rem;
-      line-height: 1.25;
+    .quiz-action-slot {
+      display: grid;
+      min-width: 0;
+    }
+    .quiz-action-slot.split {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 3px;
+      overflow: hidden;
+      border-radius: 19px;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+    }
+    .quiz-action-slot.split .action {
+      min-width: 0;
+      border-radius: 0;
+      padding-inline: 7px;
+      box-shadow: none;
+    }
+    .quiz-action-slot.split .action:first-child {
+      border-radius: 19px 0 0 19px;
+    }
+    .quiz-action-slot.split .action:last-child {
+      border-radius: 0 19px 19px 0;
     }
 
     .panel {
@@ -429,31 +447,16 @@
       <section class="primary-grid">
         <button class="action primary" id="read-action">
           <span class="action-icon">▶</span>
-          <span>
-            <span class="action-label">Read to Me</span>
-            <span class="action-note">Copy today’s text and open your GPT</span>
-          </span>
+          <span class="action-label">Read to Me</span>
         </button>
-        <button class="action quiz" id="quiz-action">
-          <span class="action-icon">✦</span>
-          <span>
-            <span class="action-label">Make Quiz</span>
-            <span class="action-note">Copy today’s source and open the quiz GPT</span>
-          </span>
-        </button>
+        <div class="quiz-action-slot" id="quiz-action-slot"></div>
         <button class="action anki" id="anki-action">
           <span class="action-icon">◆</span>
-          <span>
-            <span class="action-label">Anki via Codex</span>
-            <span class="action-note">Copy a precise APKG request</span>
-          </span>
+          <span class="action-label">Anki via Codex</span>
         </button>
         <button class="action source" id="source-action">
           <span class="action-icon">↗</span>
-          <span>
-            <span class="action-label" id="source-action-label">Open Source</span>
-            <span class="action-note" id="source-action-note">Video or textbook</span>
-          </span>
+          <span class="action-label" id="source-action-label">Open Source</span>
         </button>
       </section>
 
@@ -467,7 +470,6 @@
         <div class="section-list" id="section-list"></div>
         <div class="secondary-actions">
           <button class="small-button" id="copy-text-action">Copy Reading Text</button>
-          <button class="small-button" id="quiz-importer-action">Open Quiz Importer</button>
           <button class="small-button" id="phone-link-action">Copy Phone Setup Link</button>
           <button class="small-button" id="codex-plan-action">Copy Full Plan for Codex</button>
         </div>
@@ -521,6 +523,7 @@
   <script>
     const STORAGE_KEY = 'core_study_data_v4';
     const SETTINGS_KEY = 'core_study_today_settings_v1';
+    const QUIZ_GENERATED_KEY = 'core_study_today_quiz_generated_v1';
     const LEGACY_READ_URL = 'https://chatgpt.com/g/g-p-68d551179e20819199aaa83585b01711-read-to-me-2-0/project';
     const READ_GPT_URL = 'https://chatgpt.com/g/g-6a38bef4b8b88191a1bec3e65ef57590-read-to-me-2-0';
     const LEGACY_QUIZ_URL = 'https://chatgpt.com/';
@@ -545,9 +548,9 @@
     const els = Object.fromEntries([
       'sync-status', 'empty-state', 'study-view', 'date-kicker', 'date-title',
       'plan-line', 'progress-fill', 'progress-text', 'day-position', 'previous-day',
-      'today-button', 'next-day', 'read-action', 'quiz-action', 'anki-action',
-      'source-action', 'source-action-label', 'source-action-note', 'material-meta',
-      'section-list', 'copy-text-action', 'quiz-importer-action', 'phone-link-action',
+      'today-button', 'next-day', 'read-action', 'quiz-action-slot', 'anki-action',
+      'source-action', 'source-action-label', 'material-meta',
+      'section-list', 'copy-text-action', 'phone-link-action',
       'codex-plan-action', 'settings-button', 'settings-dialog', 'close-settings',
       'plan-select', 'read-url', 'quiz-url', 'quiz-importer-url', 'core-pdf-url',
       'pdf-expert-path',
@@ -576,6 +579,32 @@
 
     function saveLocalData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function loadQuizGeneratedState() {
+      try {
+        return JSON.parse(localStorage.getItem(QUIZ_GENERATED_KEY) || '{}');
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function getQuizGeneratedId(day = getDay()) {
+      if (!currentPlan || !day) return '';
+      return `${currentPlan.id}:${day.date}`;
+    }
+
+    function wasQuizGenerated(day = getDay()) {
+      const id = getQuizGeneratedId(day);
+      return Boolean(id && loadQuizGeneratedState()[id]);
+    }
+
+    function markQuizGenerated(day = getDay()) {
+      const id = getQuizGeneratedId(day);
+      if (!id) return;
+      const state = loadQuizGeneratedState();
+      state[id] = Date.now();
+      localStorage.setItem(QUIZ_GENERATED_KEY, JSON.stringify(state));
     }
 
     function saveSettings() {
@@ -856,6 +885,61 @@
       if (url) window.open(url, '_blank', 'noopener');
     }
 
+    function createPrimaryAction({ className, icon, label, onClick }) {
+      const button = document.createElement('button');
+      button.className = `action ${className}`;
+      const iconElement = document.createElement('span');
+      iconElement.className = 'action-icon';
+      iconElement.textContent = icon;
+      const labelElement = document.createElement('span');
+      labelElement.className = 'action-label';
+      labelElement.textContent = label;
+      button.append(iconElement, labelElement);
+      button.onclick = onClick;
+      return button;
+    }
+
+    async function makeQuiz() {
+      markQuizGenerated();
+      renderQuizActions();
+      try {
+        const text = await getDayText();
+        await copyAndOpen(text, settings.quizUrl, 'Source copied · opening quiz GPT');
+      } catch (error) {
+        toast(error.message, true);
+      }
+    }
+
+    function loadQuiz() {
+      window.location.assign(settings.quizImporterUrl);
+    }
+
+    function renderQuizActions() {
+      const slot = els['quiz-action-slot'];
+      const hasMaterial = Boolean(getDay()?.sections?.length);
+      slot.innerHTML = '';
+      slot.classList.toggle('split', wasQuizGenerated());
+
+      const makeButton = createPrimaryAction({
+        className: 'quiz',
+        icon: '✦',
+        label: 'Make Quiz',
+        onClick: makeQuiz
+      });
+      makeButton.disabled = !hasMaterial;
+      slot.appendChild(makeButton);
+
+      if (wasQuizGenerated()) {
+        const loadButton = createPrimaryAction({
+          className: 'load-quiz',
+          icon: '↗',
+          label: 'Load Quiz',
+          onClick: loadQuiz
+        });
+        slot.appendChild(loadButton);
+      }
+    }
+
     function toast(message, isError = false) {
       els.toast.textContent = message;
       els.toast.classList.toggle('error', isError);
@@ -1021,18 +1105,10 @@ ${JSON.stringify(schedule, null, 2)}`;
       const allVideos = day.sections.length && day.sections.every(section => getVideoSource(section));
       const anySource = day.sections.some(section => getSectionSourceUrl(section));
       els['source-action-label'].textContent = allVideos ? (day.sections.length > 1 ? 'Open First Video' : 'Watch Video') : 'Open Source';
-      els['source-action-note'].textContent = allVideos
-        ? 'Launch today’s Radiology Tutorials video'
-        : currentPlan.book === 'Core Radiology'
-          ? (getSectionSourceUrl(day.sections[0] || {})
-              ? (isAppleMobile() && settings.pdfExpertPath
-                  ? 'Open your configured textbook in PDF Expert'
-                  : 'Open your configured desktop textbook link')
-              : 'Configure PDF Expert or a desktop PDF link in Settings')
-          : 'Open the configured source';
       els['source-action'].disabled = !anySource;
-      [els['read-action'], els['quiz-action'], els['anki-action'], els['copy-text-action']]
+      [els['read-action'], els['anki-action'], els['copy-text-action']]
         .forEach(button => { button.disabled = !day.sections.length; });
+      renderQuizActions();
       els['previous-day'].disabled = currentDayIndex <= 0;
       els['next-day'].disabled = currentDayIndex >= currentPlan.days.length - 1;
     }
@@ -1098,15 +1174,6 @@ ${JSON.stringify(schedule, null, 2)}`;
       }
     };
 
-    els['quiz-action'].onclick = async () => {
-      try {
-        const text = await getDayText();
-        await copyAndOpen(text, settings.quizUrl, 'Source copied · opening quiz GPT');
-      } catch (error) {
-        toast(error.message, true);
-      }
-    };
-
     els['anki-action'].onclick = async () => {
       try {
         await copyText(buildAnkiPrompt());
@@ -1130,7 +1197,6 @@ ${JSON.stringify(schedule, null, 2)}`;
       }
     };
 
-    els['quiz-importer-action'].onclick = () => window.open(settings.quizImporterUrl, '_blank', 'noopener');
     els['phone-link-action'].onclick = async () => {
       await copyText(getPhoneSetupUrl());
       toast('Phone setup link copied');
