@@ -529,6 +529,9 @@
 const STORAGE_KEY = 'core_study_data_v4';
 const YT_PHYSICS_BOOK = 'YT Physics';
 const TRANSCRIPT_FALLBACK_CHARS_PER_MINUTE = 950;
+const TEXT_PLAN_CHUNK_TARGET = 11000;
+const TEXT_PLAN_CHUNK_MIN = 4500;
+const TEXT_PLAN_CHUNK_MAX = 14500;
 let appData = {
   savedPlans: {}, 
   lastActiveId: null
@@ -693,6 +696,19 @@ function getSectionLoadValue(section) {
   return 0;
 }
 
+function getSectionDisplayTitle(section) {
+  if (!section) return '';
+  if (section.chunkTitle && section.chunkCount > 1) {
+    return `${section.fullTitle || section.title} — ${section.chunkTitle}`;
+  }
+  return section.fullTitle || section.title || section.sectionKey || '';
+}
+
+function getSectionChunkLabel(section) {
+  if (!section?.chunkCount || section.chunkCount <= 1) return '';
+  return `Part ${section.chunkIndex || 1} of ${section.chunkCount}`;
+}
+
 function getDayLoadValue(day) {
   return (day?.sections || []).reduce((total, section) => total + getSectionLoadValue(section), 0);
 }
@@ -719,6 +735,7 @@ function formatDayBadge(day, plan = currentPlan) {
 
 function formatSectionMeta(section, plan = currentPlan) {
   const unit = getPlanLoadUnit(plan);
+  const chunkLabel = getSectionChunkLabel(section);
   if (unit === 'minutes' && typeof section.runtimeMinutes === 'number') {
     const parts = [];
     if ((section.loadFactor || 1) !== 1) {
@@ -732,9 +749,10 @@ function formatSectionMeta(section, plan = currentPlan) {
     if (section.length) {
       parts.push(`${section.length.toLocaleString()} chars`);
     }
+    if (chunkLabel) parts.push(chunkLabel);
     return parts.join(' | ');
   }
-  return `${(section.length || 0).toLocaleString()} chars`;
+  return [`${(section.length || 0).toLocaleString()} chars`, chunkLabel].filter(Boolean).join(' | ');
 }
 
 function formatPlanDayOption(day, index, plan = currentPlan) {
@@ -742,6 +760,13 @@ function formatPlanDayOption(day, index, plan = currentPlan) {
   const unit = getPlanLoadUnit(plan);
   const loadLabel = formatLoadValue(getDayLoadValue(day), unit);
   return `Day ${index + 1}: ${dateLabel} (${loadLabel})`;
+}
+
+function sliceSectionText(section, text) {
+  if (typeof section?.chunkStart === 'number' && typeof section?.chunkEnd === 'number') {
+    return text.slice(section.chunkStart, section.chunkEnd).trim();
+  }
+  return String(text || '').trim();
 }
 
 function buildRangeLabel(selection) {
@@ -959,6 +984,141 @@ async function hydrateSelection(selection, options = {}) {
   return hydrated;
 }
 
+function isLikelyTextHeading(line) {
+  const value = String(line || '').trim();
+  if (!value) return false;
+  if (value === '•') return false;
+  if (value.length > 90) return false;
+  if (!/[A-Za-z]/.test(value)) return false;
+  if (/^[•\-–—]/.test(value)) return false;
+  if (/[.;,]$/.test(value)) return false;
+  if (/^(figure|image|table|case courtesy|frontal|axial|coronal|sagittal|radiograph|mri|ct|ultrasound)\b/i.test(value)) return false;
+  if ((value.match(/\b\w+\b/g) || []).length > 10) return false;
+  return true;
+}
+
+function findHeadingAtStart(text) {
+  const firstMeaningful = String(text || '').split(/\r?\n/).find(line => line.trim());
+  return isLikelyTextHeading(firstMeaningful) ? firstMeaningful.trim() : '';
+}
+
+function splitOversizedRangeByParagraphs(text, start, end, target = TEXT_PLAN_CHUNK_TARGET) {
+  const chunks = [];
+  let cursor = start;
+  while (cursor < end) {
+    let chunkEnd = Math.min(end, cursor + target);
+    if (chunkEnd < end) {
+      const windowStart = Math.max(cursor + TEXT_PLAN_CHUNK_MIN, chunkEnd - 2500);
+      const windowEnd = Math.min(end, chunkEnd + 2500);
+      const windowText = text.slice(windowStart, windowEnd);
+      const paragraphBreak = windowText.search(/\r?\n\s*\r?\n/);
+      if (paragraphBreak >= 0) {
+        chunkEnd = windowStart + paragraphBreak;
+      } else {
+        const sentenceBreak = windowText.search(/[.!?]\s+/);
+        if (sentenceBreak >= 0) chunkEnd = windowStart + sentenceBreak + 1;
+      }
+    }
+    while (chunkEnd < end && /\s/.test(text[chunkEnd] || '')) chunkEnd++;
+    chunks.push({ start: cursor, end: chunkEnd });
+    cursor = chunkEnd;
+  }
+  return chunks;
+}
+
+function buildHeadingSegments(text) {
+  const lines = String(text || '').matchAll(/[^\r\n]*(?:\r?\n|$)/g);
+  const headingOffsets = [];
+  let offset = 0;
+  for (const match of lines) {
+    const rawLine = match[0];
+    if (!rawLine) break;
+    const line = rawLine.replace(/\r?\n$/, '');
+    if (isLikelyTextHeading(line)) headingOffsets.push({ offset, title: line.trim() });
+    offset += rawLine.length;
+  }
+
+  if (!headingOffsets.length || headingOffsets[0].offset !== 0) {
+    headingOffsets.unshift({ offset: 0, title: findHeadingAtStart(text) });
+  }
+
+  return headingOffsets.map((heading, index) => ({
+    start: heading.offset,
+    end: index + 1 < headingOffsets.length ? headingOffsets[index + 1].offset : text.length,
+    title: heading.title
+  })).filter(segment => segment.end > segment.start);
+}
+
+function makeChunkSection(section, text, chunk, chunkIndex, chunkCount) {
+  const length = Math.max(0, chunk.end - chunk.start);
+  const chunkTitle = chunk.title || findHeadingAtStart(text.slice(chunk.start, chunk.end)) || `Part ${chunkIndex}`;
+  return {
+    ...section,
+    title: section.title,
+    fullTitle: section.fullTitle,
+    length,
+    load: length,
+    chunkStart: chunkCount > 1 ? chunk.start : undefined,
+    chunkEnd: chunkCount > 1 ? chunk.end : undefined,
+    chunkTitle: chunkCount > 1 ? chunkTitle : undefined,
+    chunkIndex: chunkCount > 1 ? chunkIndex : undefined,
+    chunkCount: chunkCount > 1 ? chunkCount : undefined
+  };
+}
+
+function chunkTextSection(section, text, target = TEXT_PLAN_CHUNK_TARGET) {
+  if (!text || text.length <= TEXT_PLAN_CHUNK_MAX) {
+    return [makeChunkSection(section, text, { start: 0, end: text.length }, 1, 1)];
+  }
+
+  const segments = buildHeadingSegments(text);
+  const rawChunks = [];
+  let current = null;
+
+  segments.forEach(segment => {
+    const segmentLength = segment.end - segment.start;
+    if (segmentLength > TEXT_PLAN_CHUNK_MAX) {
+      if (current) {
+        rawChunks.push(current);
+        current = null;
+      }
+      splitOversizedRangeByParagraphs(text, segment.start, segment.end, target).forEach((range, index) => {
+        rawChunks.push({
+          ...range,
+          title: index === 0 ? segment.title : `${segment.title || section.title} continued`
+        });
+      });
+      return;
+    }
+
+    if (!current) {
+      current = { start: segment.start, end: segment.end, title: segment.title };
+      return;
+    }
+
+    const nextLength = segment.end - current.start;
+    if (nextLength <= TEXT_PLAN_CHUNK_MAX && (nextLength <= target || (current.end - current.start) < TEXT_PLAN_CHUNK_MIN)) {
+      current.end = segment.end;
+      return;
+    }
+
+    rawChunks.push(current);
+    current = { start: segment.start, end: segment.end, title: segment.title };
+  });
+
+  if (current) rawChunks.push(current);
+
+  const chunkCount = rawChunks.length;
+  return rawChunks.map((chunk, index) => makeChunkSection(section, text, chunk, index + 1, chunkCount));
+}
+
+function buildPlanUnitsFromTextSections(sections) {
+  return sections.map(section => ({
+    sections: [section],
+    load: getSectionLoadValue(section)
+  }));
+}
+
 function buildGreedyDaysFromSections(sections, daysCount, startDate, targetPerDay) {
   const days = [];
   let sectionIndex = 0;
@@ -1163,9 +1323,16 @@ async function generatePlan() {
     const hydratedSections = await hydrateSelection(selection, { loadUnit: 'chars', studyMode: 'new' });
 
     const daysCount = Math.floor((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
-    const totalChars = hydratedSections.reduce((acc, section) => acc + getSectionLoadValue(section), 0);
-    const targetPerDay = totalChars / daysCount;
-    const days = buildGreedyDaysFromSections(hydratedSections, daysCount, sDate, targetPerDay);
+    const chunkedSections = [];
+    for (const section of hydratedSections) {
+      const text = await fetchSectionText(section);
+      chunkedSections.push(...chunkTextSection(section, text));
+    }
+    const partitioned = buildTimestampDaysFromUnits(
+      buildPlanUnitsFromTextSections(chunkedSections),
+      daysCount,
+      sDate
+    );
 
     const planId = Date.now().toString();
     const newPlan = {
@@ -1176,15 +1343,16 @@ async function generatePlan() {
       startDate: els.startDate.value,
       endDate: els.endDate.value,
       totalSections: selection.length,
-      days: days
+      totalChunks: chunkedSections.length,
+      days: partitioned.days
     };
 
     appData.savedPlans[planId] = newPlan;
     appData.lastActiveId = planId;
     newPlan.range = buildRangeLabel(selection);
     newPlan.loadUnit = 'chars';
-    newPlan.totalLoad = totalChars;
-    newPlan.targetPerDay = targetPerDay;
+    newPlan.totalLoad = partitioned.totalLoad;
+    newPlan.targetPerDay = partitioned.targetPerDay;
     saveData();
     showMsg("Plan created!", 'info');
     loadPlan(planId);
@@ -1453,13 +1621,13 @@ async function setDay(idx, scrollToDay = false) {
   try {
     const sectionPromises = day.sections.map(async (sec) => {
       const cacheKey = currentPlan.book + '_' + sec.file;
-      if (runtimeTextCache[cacheKey]) return { ...sec, text: runtimeTextCache[cacheKey] };
+      if (runtimeTextCache[cacheKey]) return { ...sec, text: sliceSectionText(sec, runtimeTextCache[cacheKey]) };
       const url = encodePath(`${currentBookPath}/${sec.file}`);
       const res = await fetch(url);
       if (!res.ok) return { ...sec, text: "Error loading text." };
       const txt = await res.text();
       runtimeTextCache[cacheKey] = txt;
-      return { ...sec, text: txt };
+      return { ...sec, text: sliceSectionText(sec, txt) };
     });
 
     const richSections = await Promise.all(sectionPromises);
@@ -1474,7 +1642,7 @@ async function setDay(idx, scrollToDay = false) {
 
       const headerTop = document.createElement('div');
       headerTop.className = 'section-top';
-      headerTop.innerHTML = `<div class="section-title">${sec.fullTitle}</div><div class="section-meta">${formatSectionMeta(sec, currentPlan)}</div>`;
+      headerTop.innerHTML = `<div class="section-title">${getSectionDisplayTitle(sec)}</div><div class="section-meta">${formatSectionMeta(sec, currentPlan)}</div>`;
       
       const grp = document.createElement('div');
       grp.className = 'checklist-group';
@@ -1632,7 +1800,12 @@ function getCompactPlan(plan = currentPlan) {
         typeof section.loadFactor === 'number' ? section.loadFactor : 1,
         typeof section.length === 'number' ? section.length : 0,
         typeof section.load === 'number' ? section.load : 0,
-        typeof section.runtimeMinutes === 'number' ? section.runtimeMinutes : null
+        typeof section.runtimeMinutes === 'number' ? section.runtimeMinutes : null,
+        typeof section.chunkStart === 'number' ? section.chunkStart : null,
+        typeof section.chunkEnd === 'number' ? section.chunkEnd : null,
+        section.chunkTitle || '',
+        typeof section.chunkIndex === 'number' ? section.chunkIndex : null,
+        typeof section.chunkCount === 'number' ? section.chunkCount : null
       ])
     }))
   };
@@ -1682,12 +1855,17 @@ async function copyCodexScheduleHandoff() {
     days: currentPlan.days.map(day => ({
       date: day.date,
       sections: day.sections.map(section => ({
-        sectionKey: section.sectionKey,
-        title: section.fullTitle,
-        file: section.file,
-        studyMode: section.studyMode || 'new'
+          sectionKey: section.sectionKey,
+          title: getSectionDisplayTitle(section),
+          file: section.file,
+          studyMode: section.studyMode || 'new',
+          chunkStart: typeof section.chunkStart === 'number' ? section.chunkStart : undefined,
+          chunkEnd: typeof section.chunkEnd === 'number' ? section.chunkEnd : undefined,
+          chunkTitle: section.chunkTitle || undefined,
+          chunkIndex: typeof section.chunkIndex === 'number' ? section.chunkIndex : undefined,
+          chunkCount: typeof section.chunkCount === 'number' ? section.chunkCount : undefined
+        }))
       }))
-    }))
   };
   const prompt = `Save or update this Core Study Organizer schedule in the repository.
 
@@ -1719,7 +1897,7 @@ async function getFullDayText() {
        txt = await res.text();
        runtimeTextCache[k] = txt;
     }
-    full += `# ${sec.fullTitle}\n${txt}\n\n`;
+    full += `# ${getSectionDisplayTitle(sec)}\n${sliceSectionText(sec, txt)}\n\n`;
   }
   return full;
 }
