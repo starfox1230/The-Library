@@ -5,6 +5,7 @@ from .card_tracker import install as install_card_tracker
 from .clipboard_json_cards import install as install_clipboard_json_cards
 from .ctrl_click_links import install as install_ctrl_click_links
 from .draw_on_image import install as install_draw_on_image
+from .due_today import install as install_due_today
 from .f3_blocker import install as install_f3_blocker
 from .hard_cards import install as install_hard_cards
 from .king_answer_buttons import install as install_king_answer_buttons
@@ -32,6 +33,7 @@ install_card_tracker()
 install_clipboard_json_cards()
 install_ctrl_click_links()
 install_draw_on_image()
+install_due_today()
 install_f3_blocker()
 install_hard_cards()
 install_king_answer_buttons()

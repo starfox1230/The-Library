@@ -283,6 +283,36 @@ def register_restore_batch(
     _ensure_timer_running()
 
 
+def consume_restore_assignments_for_target_decks(target_deck_ids: list[int]) -> dict[int, int]:
+    target_ids = {
+        int(deck_id)
+        for deck_id in target_deck_ids
+        if int(deck_id) > 0
+    }
+    if not target_ids:
+        return {}
+
+    assignments: dict[int, int] = {}
+    remaining: list[dict[str, Any]] = []
+    for batch in _load_batches():
+        target_id = int(batch.get("target_deck_id", 0) or 0)
+        if target_id not in target_ids:
+            remaining.append(batch)
+            continue
+        for source_deck_id, card_ids in _normalize_source_filtered_cards(
+            batch.get("source_filtered_cards")
+        ).items():
+            for card_id in card_ids:
+                assignments[int(card_id)] = int(source_deck_id)
+
+    _save_batches(remaining)
+    if remaining:
+        _ensure_timer_running()
+    else:
+        _stop_timer()
+    return assignments
+
+
 def exclude_restored_cards_for_target_deck(*, target_deck_id: int, card_ids: list[int]) -> None:
     excluded_ids = set(_clean_card_ids(card_ids))
     if not excluded_ids:

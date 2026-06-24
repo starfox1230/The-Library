@@ -126,3 +126,12 @@ Haptics testing workbench release.
 - Added a saved controller type selector for Standard/Xbox-style and Steam Controller/Steam Input tuning.
 - Added a Haptics Lab with grouped one-click test patterns, including timeout-focused and Steam Controller-focused experiments.
 - Made the Steam Controller profile default `Again` to `Sync Tap` and `Timeout` to a repeated `Rising Alarm`.
+
+## `speed-streak-addon-v1.24`
+
+Pause-screen key guard release.
+
+- Created from `speed-streak-addon-v1.23`.
+- Added an optional Shortcuts setting that blocks Anki's normal review `Space`, `Enter`, and `1`-`4` answer/reveal keys while Speed Streak is paused.
+- Guards Anki's show-answer and answer-card paths directly while paused, and disables/captures bottom-bar Show Answer and ease-button clicks.
+- Keeps that setting off by default for normal users and on by default when the hidden developer preset is enabled from Settings with `Ctrl+Shift+W`.
