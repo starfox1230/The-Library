@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#08111f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,7 +32,12 @@
 
     * { box-sizing: border-box; }
 
-    html { background: var(--bg); }
+    html {
+      background: var(--bg);
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
 
     body {
       margin: 0;
@@ -49,10 +54,13 @@
         max(14px, env(safe-area-inset-right))
         max(32px, env(safe-area-inset-bottom))
         max(14px, env(safe-area-inset-left));
+      touch-action: manipulation;
     }
 
     button, input, select { font: inherit; }
+    button, a, .action, .small-button, .icon-button { touch-action: manipulation; }
     button { -webkit-tap-highlight-color: transparent; }
+    input, select, textarea { font-size: 16px; }
 
     .app {
       width: min(760px, 100%);
@@ -500,6 +508,10 @@
         <input id="quiz-importer-url" type="url" inputmode="url">
       </label>
       <label>
+        Quiz question count
+        <input id="quiz-question-count" type="number" inputmode="numeric" min="1" max="100" step="1">
+      </label>
+      <label>
         Desktop Core Radiology PDF URL
         <input id="core-pdf-url" type="url" inputmode="url" placeholder="Private Google Drive or browser PDF link">
       </label>
@@ -532,6 +544,7 @@
       readUrl: READ_GPT_URL,
       quizUrl: QUIZ_GPT_URL,
       quizImporterUrl: new URL('../quiz-generator/index.html', window.location.href).toString(),
+      quizQuestionCount: 20,
       corePdfUrl: '',
       pdfExpertPath: ''
     };
@@ -553,7 +566,7 @@
       'section-list', 'copy-text-action', 'phone-link-action',
       'codex-plan-action', 'settings-button', 'settings-dialog', 'close-settings',
       'plan-select', 'read-url', 'quiz-url', 'quiz-importer-url', 'core-pdf-url',
-      'pdf-expert-path',
+      'quiz-question-count', 'pdf-expert-path',
       'save-settings', 'open-organizer-empty', 'open-organizer-settings',
       'copy-current-url', 'toast'
     ].map(id => [id, document.getElementById(id)]));
@@ -571,6 +584,7 @@
           settings.readUrl = READ_GPT_URL;
         }
         if (settings.quizUrl === LEGACY_QUIZ_URL) settings.quizUrl = QUIZ_GPT_URL;
+        settings.quizQuestionCount = normalizeQuizQuestionCount(settings.quizQuestionCount);
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       } catch (error) {
         settings = { ...DEFAULT_SETTINGS };
@@ -607,11 +621,18 @@
       localStorage.setItem(QUIZ_GENERATED_KEY, JSON.stringify(state));
     }
 
+    function normalizeQuizQuestionCount(value) {
+      const count = Number.parseInt(value, 10);
+      if (!Number.isFinite(count)) return DEFAULT_SETTINGS.quizQuestionCount;
+      return Math.min(100, Math.max(1, count));
+    }
+
     function saveSettings() {
       settings = {
         readUrl: els['read-url'].value.trim() || DEFAULT_SETTINGS.readUrl,
         quizUrl: els['quiz-url'].value.trim() || DEFAULT_SETTINGS.quizUrl,
         quizImporterUrl: els['quiz-importer-url'].value.trim() || DEFAULT_SETTINGS.quizImporterUrl,
+        quizQuestionCount: normalizeQuizQuestionCount(els['quiz-question-count'].value),
         corePdfUrl: els['core-pdf-url'].value.trim(),
         pdfExpertPath: els['pdf-expert-path'].value.trim()
       };
@@ -864,6 +885,35 @@
       return chunks.join('\n\n---\n\n');
     }
 
+    async function buildQuizPrompt() {
+      const day = getDay();
+      const sourceText = await getDayText();
+      const questionCount = normalizeQuizQuestionCount(settings.quizQuestionCount);
+      const importerUrl = settings.quizImporterUrl || DEFAULT_SETTINGS.quizImporterUrl;
+      const sectionList = (day?.sections || [])
+        .map(section => `- ${getSectionDisplayTitle(section)}${getSectionChunkLabel(section) ? ` (${getSectionChunkLabel(section)})` : ''}`)
+        .join('\n');
+      return `Create a Core Study quiz JSON from the source material below.
+
+Requested number of questions: ${questionCount}
+Date: ${day?.date || ''}
+Book: ${currentPlan?.book || ''}
+Sections:
+${sectionList || '- Source material below'}
+
+Requirements:
+- Generate exactly ${questionCount} questions unless the source is too short to support that many high-quality questions.
+- Use the source material only. Do not add unsupported facts.
+- Favor board-relevant radiology recall, diagnosis, imaging findings, differentials, pitfalls, and management-relevant distinctions.
+- Return the quiz JSON inside one fenced code block.
+- Put this importer link both before and after the code block: ${importerUrl}
+- Do not include prose inside the code block.
+
+Source material:
+
+${sourceText}`;
+    }
+
     function getDay() {
       return currentPlan?.days?.[currentDayIndex] || null;
     }
@@ -935,8 +985,8 @@
       markQuizGenerated();
       renderQuizActions();
       try {
-        const text = await getDayText();
-        await copyAndOpen(text, settings.quizUrl, 'Source copied · opening quiz GPT');
+        const prompt = await buildQuizPrompt();
+        await copyAndOpen(prompt, settings.quizUrl, 'Quiz prompt copied · opening quiz GPT');
       } catch (error) {
         toast(error.message, true);
       }
@@ -1165,12 +1215,32 @@ ${JSON.stringify(schedule, null, 2)}`;
       els['read-url'].value = settings.readUrl;
       els['quiz-url'].value = settings.quizUrl;
       els['quiz-importer-url'].value = settings.quizImporterUrl;
+      els['quiz-question-count'].value = normalizeQuizQuestionCount(settings.quizQuestionCount);
       els['core-pdf-url'].value = settings.corePdfUrl;
       els['pdf-expert-path'].value = settings.pdfExpertPath || '';
       els['settings-dialog'].showModal();
     }
 
+    function preventDoubleTapZoom() {
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', event => {
+        const target = event.target;
+        const isEditable = target?.closest?.('input, textarea, select, [contenteditable="true"]');
+        const now = Date.now();
+        if (!isEditable && now - lastTouchEnd <= 350) {
+          event.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+      document.addEventListener('dblclick', event => {
+        if (!event.target?.closest?.('input, textarea, select, [contenteditable="true"]')) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+    }
+
     async function init() {
+      preventDoubleTapZoom();
       loadLocalData();
       try {
         const [booksResponse, sourcesResponse] = await Promise.all([
