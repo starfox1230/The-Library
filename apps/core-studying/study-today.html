@@ -390,13 +390,21 @@
     .dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 18px; border-bottom: 1px solid var(--line); }
     .dialog-body { display: grid; gap: 14px; padding: 18px; overflow: auto; }
     .dialog-body label { display: grid; gap: 6px; color: var(--muted); font-size: 0.78rem; font-weight: 700; }
-    .dialog-body input, .dialog-body select {
+    .dialog-body input, .dialog-body select, .dialog-body textarea {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 11px 12px;
       color: var(--text);
       background: #07111f;
+    }
+
+    .dialog-body textarea {
+      min-height: 112px;
+      resize: vertical;
+      line-height: 1.35;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
     }
 
     .dialog-note { color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
@@ -522,8 +530,17 @@
       <div class="dialog-note">
         PDF Expert deep links work only for files stored locally in PDF Expert or inside a folder explicitly added to <strong>Synced folders</strong>. A connected Google Drive folder that you are merely browsing will not resolve. For your radiology folder, first sync <strong>0. Radiology</strong> in PDF Expert, then enter <strong>SyncedFolders/0. Radiology/Core Radiology 2nd ed.pdf</strong>. Do not include “Google Drive” in the path. On Apple devices the Source button uses PDF Expert; on computers it uses the desktop URL above.
       </div>
+      <label>
+        Import study state JSON
+        <textarea id="study-state-import" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="Paste exported study state JSON here"></textarea>
+      </label>
+      <div class="dialog-note">
+        Use <strong>Copy Study State for Codex</strong> on whichever device is most current. Paste it into Codex on the target computer and ask it to apply the state to Chrome. Use <strong>Import Study State JSON</strong> only if you want to paste the JSON manually on this page.
+      </div>
       <div class="dialog-actions">
         <button class="small-button source-link" id="save-settings">Save Settings</button>
+        <button class="small-button" id="copy-study-state-codex">Copy Study State for Codex</button>
+        <button class="small-button" id="import-study-state">Import Study State JSON</button>
         <button class="small-button" id="open-organizer-settings">Open Full Organizer</button>
         <button class="small-button" id="copy-current-url">Copy This Page URL</button>
       </div>
@@ -566,9 +583,9 @@
       'section-list', 'copy-text-action', 'phone-link-action',
       'codex-plan-action', 'settings-button', 'settings-dialog', 'close-settings',
       'plan-select', 'read-url', 'quiz-url', 'quiz-importer-url', 'core-pdf-url',
-      'quiz-question-count', 'pdf-expert-path',
+      'quiz-question-count', 'pdf-expert-path', 'study-state-import',
       'save-settings', 'open-organizer-empty', 'open-organizer-settings',
-      'copy-current-url', 'toast'
+      'copy-study-state-codex', 'import-study-state', 'copy-current-url', 'toast'
     ].map(id => [id, document.getElementById(id)]));
 
     function loadLocalData() {
@@ -593,6 +610,75 @@
 
     function saveLocalData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function buildStudyStatePayload() {
+      return {
+        schemaVersion: 1,
+        app: 'core-study-today',
+        exportedAt: new Date().toISOString(),
+        sourceUrl: window.location.href,
+        storageKeys: {
+          studyData: STORAGE_KEY,
+          settings: SETTINGS_KEY,
+          quizGenerated: QUIZ_GENERATED_KEY
+        },
+        studyData: appData,
+        settings,
+        quizGenerated: loadQuizGeneratedState()
+      };
+    }
+
+    function extractStudyStateJson(text) {
+      const value = String(text || '').trim();
+      if (!value) throw new Error('Paste study state JSON first.');
+      const fenced = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced) return fenced[1].trim();
+      return value;
+    }
+
+    function applyStudyStatePayload(payload) {
+      if (!payload || payload.schemaVersion !== 1 || payload.app !== 'core-study-today') {
+        throw new Error('Unsupported study state JSON.');
+      }
+      if (!payload.studyData || typeof payload.studyData !== 'object') {
+        throw new Error('Study state is missing studyData.');
+      }
+      appData = payload.studyData;
+      settings = {
+        ...DEFAULT_SETTINGS,
+        ...(payload.settings || {}),
+        quizQuestionCount: normalizeQuizQuestionCount(payload.settings?.quizQuestionCount)
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      localStorage.setItem(QUIZ_GENERATED_KEY, JSON.stringify(payload.quizGenerated || {}));
+    }
+
+    function buildCodexStudyStatePrompt() {
+      const payload = buildStudyStatePayload();
+      const todayUrl = new URL('study-today.html', window.location.href).toString().split('#')[0];
+      return `Use the Chrome browser to update my Core Study Today state on this computer.
+
+Goal:
+- Open this page in Chrome: ${todayUrl}
+- Apply the study state JSON below to that page's localStorage.
+- Reload the page and confirm that the active plan/progress reflect the imported state.
+- Do not modify repository files, commit, push, send email, or change anything outside this browser localStorage update.
+
+Implementation details:
+- Use the Chrome browser, not the in-app browser.
+- Navigate to the Core Study Today page first so localStorage is written for the correct origin.
+- Set these localStorage keys:
+  - core_study_data_v4 = JSON.stringify(state.studyData)
+  - core_study_today_settings_v1 = JSON.stringify(state.settings)
+  - core_study_today_quiz_generated_v1 = JSON.stringify(state.quizGenerated || {})
+- Then reload the page.
+
+Study state JSON:
+\`\`\`json
+${JSON.stringify(payload, null, 2)}
+\`\`\``;
     }
 
     function loadQuizGeneratedState() {
@@ -912,6 +998,23 @@ Requirements:
 Source material:
 
 ${sourceText}`;
+    }
+
+    async function copyStudyStateForCodex() {
+      await copyText(buildCodexStudyStatePrompt());
+      toast('Study state prompt copied for Codex');
+    }
+
+    function importStudyStateFromSettings() {
+      try {
+        const json = extractStudyStateJson(els['study-state-import'].value);
+        const payload = JSON.parse(json);
+        applyStudyStatePayload(payload);
+        toast('Study state imported');
+        setTimeout(() => window.location.reload(), 350);
+      } catch (error) {
+        toast(error.message || 'Could not import study state', true);
+      }
     }
 
     function getDay() {
@@ -1321,6 +1424,8 @@ ${JSON.stringify(schedule, null, 2)}`;
       await copyText(window.location.href);
       toast('Page URL copied');
     };
+    els['copy-study-state-codex'].onclick = copyStudyStateForCodex;
+    els['import-study-state'].onclick = importStudyStateFromSettings;
 
     init();
   </script>
