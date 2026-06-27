@@ -486,8 +486,6 @@
         <div class="section-list" id="section-list"></div>
         <div class="secondary-actions">
           <button class="small-button" id="copy-text-action">Copy Reading Text</button>
-          <button class="small-button" id="phone-link-action">Copy Phone Setup Link</button>
-          <button class="small-button" id="codex-plan-action">Copy Full Plan for Codex</button>
         </div>
       </section>
     </div>
@@ -535,12 +533,14 @@
         <textarea id="study-state-import" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="Paste exported study state JSON here"></textarea>
       </label>
       <div class="dialog-note">
-        Use <strong>Copy Study State for Codex</strong> on whichever device is most current. Paste it into Codex on the target computer and ask it to apply the state to Chrome. Use <strong>Import Study State JSON</strong> only if you want to paste the JSON manually on this page.
+        Use <strong>Copy JSON</strong> to move study state manually, or <strong>Copy JSON with Codex Instructions</strong> on whichever device is most current. Paste the Codex version into Codex on the target computer and ask it to apply the state to Chrome.
       </div>
       <div class="dialog-actions">
         <button class="small-button source-link" id="save-settings">Save Settings</button>
-        <button class="small-button" id="copy-study-state-codex">Copy Study State for Codex</button>
-        <button class="small-button" id="import-study-state">Import Study State JSON</button>
+        <button class="small-button" id="copy-study-state-json">Copy JSON</button>
+        <button class="small-button" id="import-study-state">Import JSON</button>
+        <button class="small-button" id="copy-study-state-codex">Copy JSON with Codex Instructions</button>
+        <button class="small-button" id="phone-link-action">Copy Phone Setup Link</button>
         <button class="small-button" id="open-organizer-settings">Open Full Organizer</button>
         <button class="small-button" id="copy-current-url">Copy This Page URL</button>
       </div>
@@ -580,12 +580,13 @@
       'plan-line', 'progress-fill', 'progress-text', 'day-position', 'previous-day',
       'today-button', 'next-day', 'read-action', 'quiz-action-slot', 'anki-action',
       'source-action', 'source-action-label', 'material-meta',
-      'section-list', 'copy-text-action', 'phone-link-action',
-      'codex-plan-action', 'settings-button', 'settings-dialog', 'close-settings',
+      'section-list', 'copy-text-action',
+      'phone-link-action', 'settings-button', 'settings-dialog', 'close-settings',
       'plan-select', 'read-url', 'quiz-url', 'quiz-importer-url', 'core-pdf-url',
       'quiz-question-count', 'pdf-expert-path', 'study-state-import',
       'save-settings', 'open-organizer-empty', 'open-organizer-settings',
-      'copy-study-state-codex', 'import-study-state', 'copy-current-url', 'toast'
+      'copy-study-state-json', 'copy-study-state-codex', 'import-study-state',
+      'copy-current-url', 'toast'
     ].map(id => [id, document.getElementById(id)]));
 
     function loadLocalData() {
@@ -1002,7 +1003,12 @@ ${sourceText}`;
 
     async function copyStudyStateForCodex() {
       await copyText(buildCodexStudyStatePrompt());
-      toast('Study state prompt copied for Codex');
+      toast('JSON with Codex instructions copied');
+    }
+
+    async function copyStudyStateJson() {
+      await copyText(JSON.stringify(buildStudyStatePayload(), null, 2));
+      toast('Study state JSON copied');
     }
 
     function importStudyStateFromSettings() {
@@ -1010,7 +1016,7 @@ ${sourceText}`;
         const json = extractStudyStateJson(els['study-state-import'].value);
         const payload = JSON.parse(json);
         applyStudyStatePayload(payload);
-        toast('Study state imported');
+        toast('Study state JSON imported');
         setTimeout(() => window.location.reload(), 350);
       } catch (error) {
         toast(error.message || 'Could not import study state', true);
@@ -1159,36 +1165,6 @@ ${workflow}
 apps/core-studying/STUDY_ORGANIZER_CODEX_HANDOFF.md
 
 Use the existing saCloze++ note type and Saved Cards deck. Create atomic, board-relevant cards and skip low-yield filler. For Core Radiology, inspect the corresponding PDF pages and include useful diagnostic images or source-page context when appropriate. Report the APKG path, note count, source sections, and anything intentionally skipped.`;
-    }
-
-    function buildCodexPlanPrompt() {
-      const schedule = {
-        schemaVersion: 1,
-        id: currentPlan.id,
-        title: currentPlan.title || currentPlan.planLabel || `${currentPlan.book} Study Plan`,
-        book: currentPlan.book,
-        startDate: currentPlan.startDate,
-        endDate: currentPlan.endDate,
-        days: currentPlan.days.map(day => ({
-          date: day.date,
-          sections: day.sections.map(section => ({
-            sectionKey: section.sectionKey,
-            title: getSectionDisplayTitle(section),
-            file: section.file,
-            studyMode: section.studyMode || 'new',
-            chunkStart: typeof section.chunkStart === 'number' ? section.chunkStart : undefined,
-            chunkEnd: typeof section.chunkEnd === 'number' ? section.chunkEnd : undefined,
-            chunkTitle: section.chunkTitle || undefined,
-            chunkIndex: typeof section.chunkIndex === 'number' ? section.chunkIndex : undefined,
-            chunkCount: typeof section.chunkCount === 'number' ? section.chunkCount : undefined
-          }))
-        }))
-      };
-      return `Save or update this Core Study Organizer schedule in the repository.
-
-Follow apps/core-studying/STUDY_ORGANIZER_CODEX_HANDOFF.md and save it under apps/core-studying/plans/ using a concise slug. Preserve the supplied schedule exactly, validate the JSON, and run python scripts/verify_core_studying_books.py.
-
-${JSON.stringify(schedule, null, 2)}`;
     }
 
     function getPhoneSetupUrl() {
@@ -1414,16 +1390,13 @@ ${JSON.stringify(schedule, null, 2)}`;
       await copyText(getPhoneSetupUrl());
       toast('Phone setup link copied');
     };
-    els['codex-plan-action'].onclick = async () => {
-      await copyText(buildCodexPlanPrompt());
-      toast('Full schedule handoff copied');
-    };
     els['open-organizer-empty'].onclick = els['open-organizer-settings'].onclick = () =>
       window.open('study-organizer.html', '_blank', 'noopener');
     els['copy-current-url'].onclick = async () => {
       await copyText(window.location.href);
       toast('Page URL copied');
     };
+    els['copy-study-state-json'].onclick = copyStudyStateJson;
     els['copy-study-state-codex'].onclick = copyStudyStateForCodex;
     els['import-study-state'].onclick = importStudyStateFromSettings;
 
