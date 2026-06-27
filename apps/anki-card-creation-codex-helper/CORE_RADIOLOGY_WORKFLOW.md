@@ -35,6 +35,18 @@ C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-cod
 7. Build a downloadable `.apkg` using `APKG_PACKAGING.md`.
 8. Report the APKG path, note count, source section, and any skipped ambiguous material.
 
+## Core Radiology Image Requirement
+
+For Core Radiology APKG requests, actively inspect the corresponding PDF pages before drafting cards. Do not rely only on the extracted `.txt` section when the source is PDF-backed.
+
+- If the section contains useful diagnostic figures, create image-front cards unless the figure is nondiagnostic, caption-dependent, redundant, too low quality, or cannot be cleanly cropped without caption text.
+- For a typical image-rich section, aim for 2-5 image-backed cards plus focused text cloze cards.
+- Prefer complete diagnostic images or panel sets over tiny crops. Preserve enough anatomy, distribution, and comparison context to make the diagnosis visually answerable.
+- Keep captions out of front-side card images and out of the front-side `Text` field.
+- Put the full source-page screenshot or source-page context in `Extra` whenever feasible.
+- If no image-front cards are created for a Core Radiology request, explicitly report why in the final handoff and README.
+- If PDF page localization is uncertain, still inspect the best matching PDF pages by section heading and note the uncertainty rather than silently falling back to text-only cards.
+
 ## Output Location
 
 Use this pattern unless the user specifies another location:
