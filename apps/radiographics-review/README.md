@@ -71,6 +71,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-review.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\run-review.ps1 -IncludeSeen -Limit 3
 ```
 
+## Importing local PDFs
+
+To add already-downloaded RadioGraphics PDFs without opening the RSNA browser session, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\import-pdfs.ps1 "C:\path\to\article-1.pdf" "C:\path\to\article-2.pdf"
+```
+
+The importer extracts DOI metadata, article prose, figure captions, cropped figure images, reader pages, copy packets, note JSON, and Anki packages, then rebuilds the library index.
+
 ## Scheduling
 
 The preferred recurring setup is a Codex cron automation in this workspace. The automation can run:

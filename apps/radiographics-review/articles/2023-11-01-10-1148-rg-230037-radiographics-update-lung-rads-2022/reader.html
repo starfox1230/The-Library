@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script>
+      (function () {
+        var pathname = window.location.pathname || "/";
+        var baseHref = /\/articles\/index\.html$/i.test(pathname)
+          ? pathname.replace(/articles\/index\.html$/i, "")
+          : /\.html$/i.test(pathname)
+          ? pathname.replace(/[^/]+$/, "")
+          : (pathname.endsWith("/") ? pathname : pathname + "/");
+        var existingBase = document.querySelector("base");
+        if (existingBase) {
+          existingBase.setAttribute("href", baseHref);
+          return;
+        }
+
+        var base = document.createElement("base");
+        base.setAttribute("href", baseHref);
+        document.head.prepend(base);
+      })();
+    </script>
+  
+    <title>RadioGraphics Update: Lung-RADS 2022</title>
+    <style>
+      :root {
+        --ink: #14211d;
+        --muted: #576863;
+        --paper: #f5f1e8;
+        --panel: rgba(255, 251, 245, 0.92);
+        --accent: #aa5e2b;
+        --accent-2: #184a45;
+        --line: rgba(20, 33, 29, 0.12);
+        --shadow: 0 20px 60px rgba(20, 33, 29, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(170, 94, 43, 0.18), transparent 36%),
+          radial-gradient(circle at top right, rgba(24, 74, 69, 0.2), transparent 28%),
+          linear-gradient(180deg, #f7f3eb 0%, #efe9dc 100%);
+      }
+      a { color: var(--accent-2); }
+      .shell {
+        width: min(1240px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 48px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 24px;
+        align-items: stretch;
+      }
+      .hero-copy,
+      .hero-visual,
+      .summary-card,
+      .narrative-panel,
+      .figure-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+      }
+      .hero-copy { padding: 28px; }
+      .hero-copy h1 {
+        margin: 0 0 16px;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(2rem, 4vw, 3.8rem);
+        line-height: 1.02;
+      }
+      .eyebrow,
+      .summary-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(24, 74, 69, 0.08);
+        color: var(--accent-2);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+      .summary-label {
+        background: rgba(170, 94, 43, 0.1);
+        color: var(--accent);
+      }
+      .eyebrow-link {
+        text-decoration: none;
+      }
+      .meta-row,
+      .authors {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.96rem;
+      }
+      .digest-lead {
+        margin-top: 18px;
+        color: #273833;
+        font-size: 1.06rem;
+        line-height: 1.75;
+      }
+      .action-row,
+      .jump-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+        align-items: flex-start;
+      }
+      .action-row a,
+      .jump-chip,
+      .figure-picker summary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: white;
+        border: 1px solid rgba(20, 33, 29, 0.14);
+        text-decoration: none;
+        font-weight: 700;
+        color: var(--accent-2);
+        cursor: pointer;
+      }
+      .figure-picker {
+        max-width: min(100%, 760px);
+      }
+      .figure-picker summary {
+        list-style: none;
+        user-select: none;
+      }
+      .figure-picker summary::-webkit-details-marker {
+        display: none;
+      }
+      .figure-picker summary::after {
+        content: "▾";
+        margin-left: 10px;
+        font-size: 0.82rem;
+      }
+      .figure-picker[open] summary::after {
+        content: "▴";
+      }
+      .figure-picker-panel {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 14px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(20, 33, 29, 0.12);
+      }
+      .figure-picker summary::after {
+        content: "v";
+      }
+      .figure-picker[open] summary::after {
+        content: "^";
+      }
+      .hero-visual { padding: 18px; }
+      .hero-visual img {
+        width: 100%;
+        display: block;
+        border-radius: 18px;
+        background: #e8e1d5;
+      }
+      .image-launch {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: zoom-in;
+      }
+      .hero-caption {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        margin-top: 24px;
+      }
+      .summary-card {
+        padding: 22px;
+      }
+      .summary-card p {
+        margin: 14px 0 0;
+        line-height: 1.7;
+        color: #273833;
+      }
+      .narrative-panel {
+        margin-top: 24px;
+        padding: 24px;
+      }
+      .narrative-panel h2,
+      .figure-area h2 {
+        margin: 0 0 10px;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+      }
+      .narrative-panel p,
+      .figure-area p {
+        line-height: 1.75;
+        color: #30453f;
+      }
+      .source-details {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.52);
+      }
+      .source-details summary {
+        cursor: pointer;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+      .source-copy {
+        padding: 0 16px 16px;
+      }
+      .figure-area {
+        margin-top: 28px;
+      }
+      .figure-stack {
+        display: grid;
+        gap: 22px;
+        margin-top: 18px;
+      }
+      .figure-panel {
+        padding: 18px;
+      }
+      .figure-meta-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+      .figure-copy h2 {
+        margin: 12px 0 0;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(1.35rem, 3vw, 2rem);
+        line-height: 1.18;
+      }
+      .figure-image-wrap {
+        margin-top: 16px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #e6dece;
+      }
+      .figure-image-wrap img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .lightbox-open {
+        overflow: hidden;
+      }
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 20px 16px 28px;
+        background: rgba(0, 0, 0, 0.94);
+      }
+      .lightbox[hidden] {
+        display: none !important;
+      }
+      .lightbox-close {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 1000;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.56);
+        color: white;
+        font-size: 1.6rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .lightbox-stage {
+        width: min(100%, 1500px);
+        margin: 42px auto 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .lightbox-stage img {
+        display: block;
+        max-width: 100%;
+        width: auto;
+        height: auto;
+        background: black;
+      }
+      .lightbox-caption {
+        max-width: min(100%, 960px);
+        padding-bottom: 24px;
+        color: rgba(255, 255, 255, 0.86);
+        text-align: center;
+        line-height: 1.6;
+      }
+      @media (max-width: 980px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <article class="hero-copy">
+          <a class="eyebrow eyebrow-link" href="../../index.html">RadioGraphics Digest</a>
+          <h1>RadioGraphics Update: Lung-RADS 2022</h1>
+          <div class="meta-row">RadioGraphics | 2023-11-01 | Vol 43 | Issue 11 | Pages e230037</div>
+          <div class="authors">Maria D. Martin, Jeffrey P. Kanne, Lynn S. Broderick, Ella A. Kazerooni, Cristopher A. Meyer</div>
+          <p class="digest-lead">The Lung CT Screening Reporting and Data System (LungRADS) was created by the American College of Radiology to standardize reporting and management recommendations for lung cancer screening and facilitate evaluation of quality and patient outcomes.</p>
+          <div class="action-row"><a href="https://doi.org/10.1148/rg.230037" target="_blank" rel="noreferrer">Open at RadioGraphics</a><a href="copy-for-chat.txt" target="_blank" rel="noreferrer" data-copy-src="copy-for-chat.txt">Copy for Chat</a><a href="C:\Users\sterl\Downloads\martin-et-al-2023-radiographics-update-lung-rads-2022.pdf" target="_blank" rel="noreferrer">PDF</a><a href="anki/10-1148-rg-230037-radiographics-update-lung-rads-2022.apkg">Download Anki Package</a></div>
+          
+    <div class="jump-row">
+      <a class="jump-chip" href="#figures">Figures</a>
+      <details class="figure-picker" data-figure-picker>
+        <summary>Figure Selection</summary>
+        <div class="figure-picker-panel">
+          <a class="jump-chip" href="#figure-1">Figure 1</a><a class="jump-chip" href="#figure-2">Figure 2</a>
+        </div>
+      </details>
+    </div>
+  
+        </article>
+        
+      <div class="hero-visual">
+        
+    <button
+      class="image-launch hero-image-button"
+      type="button"
+      data-lightbox-src="assets/figure-01.png"
+      data-lightbox-alt="Figure 1"
+      data-lightbox-caption="Figure 1. Atypical pulmonary cyst. (A) Axial CT image through the right lower lobe shows an atypical lung cyst with a small septation and asymmetric wall thickening (arrow). This lesion falls under category 4A. (B) Follow-up axial CT image shows a growing exophytic 5-mm solid nodule (arrow), which upgrades the lesion to category 4B. Biopsy results were consistent with squamous cell carcinoma. any dimension) and specifies that the time interval to assess these nodules grow less than 1.5 mm over 12 months but growth is 12 months (previously not stated). Furthermore, a growth greater than 1.5 mm occurs over multiple screening new note clarifies that a nodule should be reclassified when examinations, they may be upgraded to category 4B, with a it crosses a size threshold between categories and should be recommendation for diagnostic evaluation. managed accordingly, regardless of whether the definition of growth is met or not. Stepped Management Approach The stepped management of Lung-RADS 2022 addresses the Slow Growing Nodules timing of follow-up examinations and simplifies categoriza- Slow growing nodules are addressed in Lung-RADS 2022 tion of nodules at follow-up. The timing of fol"
+      aria-label="Expand Figure 1"
+    >
+      <img src="assets/figure-01.png" alt="Figure 1">
+    </button>
+  
+        <div class="hero-caption">Figure 1</div>
+      </div>
+    
+      </section>
+
+      <section class="summary-grid">
+        
+        <article class="summary-card">
+          <div class="summary-label">Core diagnosis</div>
+          <p>The Lung CT Screening Reporting and Data System (LungRADS) was created by the American College of Radiology to standardize reporting and management recommendations for lung cancer screening and facilitate evaluation of quality and patient outcomes.</p>
+        </article>
+      
+
+        <article class="summary-card">
+          <div class="summary-label">Imaging hallmarks</div>
+          <p>CT typically shows If infection is suspected, category 0 is recommended, with follow-up low-dose chest CT in 1–3 months.</p>
+        </article>
+      
+
+        <article class="summary-card">
+          <div class="summary-label">Management</div>
+          <p>Airway Nodules Endobronchial nodules are now referred to as airway nodules, with updated classification and management based on suspicion for malignancy.</p>
+        </article>
+      
+      </section>
+
+      <section class="narrative-panel">
+        <h2>Why This Article Matters</h2>
+        <p>This page pairs a quick study digest with the complete extracted article prose and figure captions. Use the summary cards first, review the figures next, and open the original article for references and supplemental media.</p>
+        
+    <details class="source-details">
+      <summary>View extracted article prose</summary>
+      <div class="source-copy"><p>Introduction The Lung CT Screening Reporting and Data System (LungRADS) was created by the American College of Radiology to standardize reporting and management recommendations for lung cancer screening and facilitate evaluation of quality and patient outcomes. Since 2014, two updates have been released: Lung-RADS version 1.1 in 2019 and Lung-RADS version 2022 in November 2022. Each iteration aims to incorporate knowledge gained from the latest lung nodule, lung cancer, and lung cancer screening research; clarify or include topics not addressed in previous versions; and reduce overdiagnosis. Using evidence-based medicine, recommendations include expert consensus where gaps in scientific knowledge exist. In this update, we review some key changes made in Lung-RADS 2022 and summarize these changes in Tables 1 and 2.</p><p>New Additions Atypical Pulmonary Cysts Lung cancers associated with cystic spaces are increasingly recognized, with approximately 0.5%–9.3% having a cystic component at initial imaging. These lesions can be underrecognized, which can result in delayed diagnosis. LungRADS 2022 adds new criteria for classification and manage - ment of atypical pulmonary cysts, which fall under categories 3 through 4B. Cyst features considered suspicious (atypical) include thick or asymmetric walls, an associated nodule, internal septations, or growth (Figs 1, 2). Cavitary Nodules Lung-RADS 2022 recommends managing cavitary nodules as solid nodules based on total mean diameter. Distinguishing a cavitary nodule from an atypical lung cyst should be based on the dominant feature. If the solid component is dominant, it is managed as a solid nodule.</p><p>If the cystic component is dominant, it is managed as an atypical lung cyst. If infection is suspected, category 0 is recommended, with follow-up low-dose chest CT in 1–3 months. Updates and Clarifications Juxtapleural Nodules Intrapulmonary lymph nodes may occur on any pleural sur - face, including fissures and the costal, mediastinal, and diaphragmatic pleura. Earlier literature reported that perifissural nodules are detected on 20%–28% of lung cancer screening examinations and are believed to represent benign lymph nodes. Also, when using a strict definition based on size and shape, a large series showed that none are malignant at follow-up. Thus, Lung-RADS 1.1 added perifissural nodules to category 2, using the following definition from de Hoop et al in the largest series published from the NELSON (Nederlands–Leuvens Longkanker Screenings Onderzoek) trial: solid nodules with smooth margins; an oval, lentiform, or triangular shape; and a maximum diameter of less than 10 mm.</p><p>Lung-RADS 2022 introduced the term juxtapleural nodules to also include nodules that meet the same definition of perifissural nodules located on the costal, mediastinal, and diaphragmatic pleura. This was based on new data showing that the criteria for perifissural nodules can be safely applied to juxtapleural nodules, whether they are found at baseline screening or develop on future screening examinations. Airway Nodules Endobronchial nodules are now referred to as airway nodules, with updated classification and management based on suspicion for malignancy. Previously considered to be cate - gory 4A in Lung-RADS 1.1, airway nodules are now assigned RadioGraphics Update: Lung-RADS 2022 Maria D. Martin, MD • Jeffrey P. Kanne, MD • Lynn S. Broderick, MD • Ella A. Kazerooni, MD, MS • Cristopher A.</p><p>Meyer, MD Author affiliations, funding, and conflicts of interest are listed at the end of this article. CHEST IMAGING RADIOGRAPHICS UPDATE Editor’s Note.—RadioGraphics Update articles supplement or up - date information found in full-length articles previously published in RadioGraphics. These updates, written by at least one author of the previous article, provide a brief synopsis that emphasizes important new information such as technological advances, revised imaging protocols, new clinical guidelines involving imaging, or updated classification schemes. RadioGraphics 2023; 43:e230037 https://doi.org/10.1148/rg.230037 Content Code: CH Abbreviation: Lung-RADS = Lung CT Screening Reporting and Data System November 2023 Martin et al Table 1: Summary of Clarifications and Updates Made in Lung-RADS Version 2022 Category Findings Management 0 Clarification: note 9 was added to the finding “Prior chest CT examination being located for comparison,” explaining that category 0 is temporary until the comparison image is available; once available, a new category is assigned NA Update: findings suggestive of an inflammatory or infectious process include multiple (more than six) new nodules, new solid nodule(s) ≥8 mm appearing in a short interval, segmental or lobar consolidation, and new nodules in certain clinical contexts (eg, immunosuppression);* also includes subsegmental and/or multiple tubular endobronchial abnormalities with no underlying obstructive nodule Update (for inflammatory or infectious process): LDCT in 1–3 months 1 NA NA 2 Update: juxtapleural nodules replaced the term perifissural nodules to include nodules close to the costal pleura, mediastinum, and diaphragm.</p><p>Clarification: applies to baseline or new juxtapleural nodules; size and description did not change Update (for airway nodules): subsegmental (at baseline, new, or stable) and/or multiple tubular endobronchial abnormalities with no underlying obstructive nodule; airway nodule with features favoring a benign process, such as the presence of air and absence of a soft-tissue component Update: findings suggestive of an inflammatory or infectious process include tree-in-bud nodules or new ground-glass nodules &lt;3 cm;* also includes subsegmental and/or multiple tubular endobronchial abnormalities with no underlying obstructive nodule NA 3 NA NA 4A Update (for airway nodules): all endobronchial nodules were considered 4A in Lung-RADS 1.1; the new version updated the name to airway nodules, and category 4A only includes segmental or more proximal airway nodules at baseline or when new NA 4B Update (for airway nodules): segmental or more proximal that are stable or grow at follow-up Update: part-solid and solid nodules that grow &lt;1.5 mm over 12 months but show growth &gt;1.5 mm over multiple screening examinations (slowly growing) may be classified as 4B Update (for airway nodules): referral for further clinical evaluation (usually bronchoscopy) Update (for slowly growing solid or part-solid nodules): biopsy or surgical evaluation may be the most appropriate management, given the likelihood of low metabolic activity at PET/CT† Update: removed “For new large nodules that develop on an annual repeat screening CT, a 1-month LDCT may be recommended to address potentially infectious or inflammatory conditions”; these nodules are now addressed in category 0 as possibly inflammatory or infectious 4X NA NA S Update: new references are included to help guide standardized management of clinically significant or potentially clinically significant findings, including two white papers for incidental findings at thoracic CT and a quick reference guide for lung cancer screening incidental findings that is intended for program coordinators and nurse navigators Clarification: S modifier should be used for new or unknown findings and not used for findings that are already known, under evaluation, or treated NA Note.—Numbers in parentheses are reference numbers.</p><p>LDCT = low-dose chest CT, NA = not applicable. * Detailed explanation in Lung-RADS 2022, note 10.† Lung-RADS 2022, note 8. to categories 0, 2, 4A, or 4B. Imaging features that favor a be - nign cause include a subsegmental location, multiple tubular endobronchial abnormalities without a central obstructive lesion, and the presence of air. Suspicious features include solid nodules in a segmental or more proximal airway location. If a segmental or more proximal airway nodule at follow-up is stable or grows, it is upgraded to Lung-RADS 4B, with a new management option of clinical evaluation. Nodule Growth An updated definition of nodule growth clarifies that the increase in size should be the mean nodule diameter (previously November 2023 Martin et al any dimension) and specifies that the time interval to assess growth is 12 months (previously not stated).</p><p>Furthermore, a new note clarifies that a nodule should be reclassified when it crosses a size threshold between categories and should be managed accordingly, regardless of whether the definition of growth is met or not. Slow Growing Nodules Slow growing nodules are addressed in Lung-RADS 2022 notes 7 and 8 based on attenuation. Slow growing groundglass nodules are assigned to category 2 if they do not grow greater than 1.5 mm over 12 months, even if growth occurs over serial examinations. If other signs of growth develop, such as a new solid component, they should be managed as part-solid nodules. Slow growing solid and part-solid nodules are managed differently than ground-glass nodules. If these nodules grow less than 1.5 mm over 12 months but growth greater than 1.5 mm occurs over multiple screening examinations, they may be upgraded to category 4B, with a recommendation for diagnostic evaluation.</p><p>Stepped Management Approach The stepped management of Lung-RADS 2022 addresses the timing of follow-up examinations and simplifies categorization of nodules at follow-up. The timing of follow-up lowdose chest CT should be based on the date of the current ex - amination and no longer on the baseline low-dose chest CT examination that triggered the follow-up examination. For reassigning categories at follow-up, Lung-RADS 2022 pro - poses that unchanged or smaller category 3 and 4A nodules (excluding airway nodules) be downgraded to the next lowest Lung-RADS category, instead of the earlier recommendation Figure 1. Atypical pulmonary cyst. (A) Axial CT image through the right lower lobe shows an atypical lung cyst with a small septation and asymmetric wall thickening (arrow). This lesion falls under category 4A.</p><p>(B) Follow-up axial CT image shows a growing exophytic 5-mm solid nodule (arrow), which upgrades the lesion to category 4B. Biopsy results were consistent with squamous cell carcinoma. Table 2: Summary of New Additions in Lung-RADS 2022 Category Findings Management 0 NA NA 1 NA NA 2 NA NA 3 New: atypical pulmonary cyst,* thick-walled cyst with growing cystic component (total mean diameter) NA 4A New: atypical pulmonary cyst,* thick-walled cyst, multilocular cyst at baseline, or thin- or thick-walled cyst that becomes multilocular NA 4B New: atypical pulmonary cyst,* thick-walled cyst with growing wall thickness or nodularity, growing multilocular cyst (total mean diameter) or multilocular cyst with increased loculation or new or increased opacity (nodular, ground glass, or consolidation) New: referral for further clinical evaluation added to 4B management options 4X NA NA S NA NA Total mean diameter drives category New: cavitary nodules are managed as solid nodules; nodules are considered cavitary when the soft-tissue component is the dominant feature, as opposed to cysts in which the dominant feature is air Category drives management Most concerning feature drives category New: cyst with associated nodule (endophytic, exophytic);* nodule can be solid, ground glass, or part solid Category drives management Note.—NA = not applicable. * Detailed explanation in Lung-RADS 2022, note 12.</p><p>November 2023 Martin et al to downgrade to category 2 in Lung-RADS 1.1. If a nodule resolves at follow-up or is benign after workup, the most concerning finding dictates the new category. Infectious or Inflammatory Findings Lung-RADS 1.1 introduced the option that potentially infectious and inflammatory nodules could be categorized as 4B or 4X with the option to follow-up with low-dose chest CT in 1 month to ensure resolution. Lung-RADS 2022 describes the broad imaging features suggesting infection or inflammation and reassigns these findings to categories 0 and 2. The follow-up options include low-dose chest CT in 1–3 months or 1 year, respectively. Category 0 findings are considered indeterminate for infection or inflammation. Examples include multiple (more than six) new nodules, new solid nodule(s) greater than or equal to 8 mm appearing in a short interval, and segmental or lobar consolidation.</p><p>Category 2 findings are considered benign and include new tree-in-bud nodules or a new ground-glass nodule less than 3 cm. Segmental and/or multiple tubular endobronchial abnormalities with no central obstructing lesion could be assigned to categories 0 or 2 at the discretion of the radiologist. Conclusion Standardization and data collection are critical elements of any screening program. By addressing unclear scenarios, the LungRADS updates continue to promote these elements and the goal of reducing lung cancer mortality with lung cancer screening. Author affiliations.—From the Department of Radiology, University of Wisconsin School of Medicine, 600 Highland Ave, Madison, WI 53792-3252 (M.D.M., J.P.K., L.S.B., C.A.M.); and Department of Radiology, University of Michigan Health System, Ann Arbor, Mich (E.A.K.). Received February 20, 2023; revision requested March 18 and received March 28; accepted April 26.</p><p>Address correspondence to M.D.M. (email: mmartin3@uwhealth.org). Disclosures of conflicts of interest.— The authors, editor, and reviewers have disclosed no relevant relationships.</p></div>
+    </details>
+  
+      </section>
+
+      <section class="figure-area" id="figures">
+        <h2>Figure Review</h2>
+        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first. Tap any figure to open it fullscreen and read the full caption there.</p>
+        <div class="figure-stack">
+          
+        <section class="figure-panel" id="figure-1">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 1</div>
+            </div>
+            <h2>Axial CT image through the right lower lobe shows an atypical lung cyst with a small septation and asymmetric wall thickening (arrow). Follow-up axial CT image shows a growing exophytic 5-mm solid nodule (arrow), which upgrades the lesion to category 4B.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-01.png"
+      data-lightbox-alt="Figure 1"
+      data-lightbox-caption="Figure 1. Atypical pulmonary cyst. (A) Axial CT image through the right lower lobe shows an atypical lung cyst with a small septation and asymmetric wall thickening (arrow). This lesion falls under category 4A. (B) Follow-up axial CT image shows a growing exophytic 5-mm solid nodule (arrow), which upgrades the lesion to category 4B. Biopsy results were consistent with squamous cell carcinoma. any dimension) and specifies that the time interval to assess these nodules grow less than 1.5 mm over 12 months but growth is 12 months (previously not stated). Furthermore, a growth greater than 1.5 mm occurs over multiple screening new note clarifies that a nodule should be reclassified when examinations, they may be upgraded to category 4B, with a it crosses a size threshold between categories and should be recommendation for diagnostic evaluation. managed accordingly, regardless of whether the definition of growth is met or not. Stepped Management Approach The stepped management of Lung-RADS 2022 addresses the Slow Growing Nodules timing of follow-up examinations and simplifies categoriza- Slow growing nodules are addressed in Lung-RADS 2022 tion of nodules at follow-up. The timing of fol"
+      aria-label="Expand Figure 1"
+    >
+      <img src="assets/figure-01.png" alt="Figure 1">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-2">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 2</div>
+            </div>
+            <h2>Axial unenhanced CT image through the left lower lobe at baseline screening shows an atypical 7-mm thick-walled cyst based on asymmetric wall thickening (arrow), which falls under Lung-RADS category 4A.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-02.png"
+      data-lightbox-alt="Figure 2"
+      data-lightbox-caption="Figure 2. New management considerations illustrated in two patients. (A) Axial unenhanced CT image through the left lower lobe at baseline screening shows an atypical 7-mm thick-walled cyst based on asymmetric wall thickening (arrow), which falls under Lung-RADS category 4A. The cyst was stable at follow-up. Unchanged category 3 and 4A nodules should now be downgraded to the next-lowest Lung-RADS category according to Lung-RADS 2022 (in this case, downgraded to Lung-RADS 3) instead of the earlier recommenda- tion to downgrade to category 2 in Lung-RADS 1.1. (B) Axial unenhanced CT image through the left lung shows an atypical left upper lobe cyst with a septation (arrowhead) and an associated exophytic 16-mm solid nodule (arrow). Lung-RADS note 12 explains that the most concerning feature should drive the classification of cysts with associated nodules (in this case the nodule based on size and attenuation). This lesion could be categorized as 4B (solid nodule = 16 mm) or 4X (very suspicious). Biopsy results were consistent with invasive lung adenocarcinoma. to downgrade to category 2 in Lung-RADS 1.1. If a nodule Health System, Ann Arbor, Mich (E.A.K.). Received February 20, 2023;"
+      aria-label="Expand Figure 2"
+    >
+      <img src="assets/figure-02.png" alt="Figure 2">
+    </button>
+  
+          </div>
+        </section>
+      
+        </div>
+      </section>
+    </main>
+    <div class="lightbox" data-lightbox hidden>
+      <button class="lightbox-close" type="button" data-lightbox-close aria-label="Close expanded figure view">×</button>
+      <div class="lightbox-stage" role="dialog" aria-modal="true" aria-label="Expanded figure view">
+        <img data-lightbox-image alt="">
+        <div class="lightbox-caption" data-lightbox-caption></div>
+      </div>
+    </div>
+    
+    <script>
+      (function () {
+        const link = document.querySelector("[data-copy-src]");
+        if (link) {
+          const originalText = link.textContent;
+          link.addEventListener("click", async function (event) {
+            const src = link.getAttribute("data-copy-src");
+            if (!src) {
+              return;
+            }
+
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+              return;
+            }
+
+            event.preventDefault();
+            try {
+              const response = await fetch(src, { credentials: "same-origin" });
+              if (!response.ok) {
+                throw new Error("Copy source request failed.");
+              }
+              const text = await response.text();
+              await navigator.clipboard.writeText(text);
+              link.textContent = "Copied for Chat";
+              window.setTimeout(function () {
+                link.textContent = originalText;
+              }, 1800);
+            } catch (error) {
+              window.open(src, "_blank", "noopener");
+            }
+          });
+        }
+
+        const picker = document.querySelector("[data-figure-picker]");
+        if (picker) {
+          picker.querySelectorAll("a[href^='#']").forEach(function (anchor) {
+            anchor.addEventListener("click", function () {
+              picker.removeAttribute("open");
+            });
+          });
+        }
+
+        const lightbox = document.querySelector("[data-lightbox]");
+        if (!lightbox) {
+          return;
+        }
+
+        const lightboxImage = lightbox.querySelector("[data-lightbox-image]");
+        const lightboxCaption = lightbox.querySelector("[data-lightbox-caption]");
+        const lightboxStage = lightbox.querySelector(".lightbox-stage");
+        const lightboxClose = lightbox.querySelector("[data-lightbox-close]");
+
+        function closeLightbox() {
+          lightbox.hidden = true;
+          document.body.classList.remove("lightbox-open");
+          lightboxImage.removeAttribute("src");
+          lightboxImage.alt = "";
+          lightboxCaption.textContent = "";
+          lightbox.scrollTop = 0;
+        }
+
+        function openLightbox(trigger) {
+          const src = trigger.getAttribute("data-lightbox-src");
+          if (!src) {
+            return;
+          }
+
+          lightboxImage.src = src;
+          lightboxImage.alt = trigger.getAttribute("data-lightbox-alt") || "";
+          lightboxCaption.textContent = trigger.getAttribute("data-lightbox-caption") || "";
+          lightbox.hidden = false;
+          document.body.classList.add("lightbox-open");
+          lightbox.scrollTop = 0;
+        }
+
+        document.querySelectorAll("[data-lightbox-src]").forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            openLightbox(trigger);
+          });
+        });
+
+        lightbox.addEventListener("click", closeLightbox);
+        if (lightboxStage) {
+          lightboxStage.addEventListener("click", function (event) {
+            event.stopPropagation();
+          });
+        }
+        if (lightboxClose) {
+          lightboxClose.addEventListener("click", function (event) {
+            event.stopPropagation();
+            closeLightbox();
+          });
+        }
+
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && !lightbox.hidden) {
+            closeLightbox();
+          }
+        });
+      })();
+    </script>
+  
+  </body>
+</html>

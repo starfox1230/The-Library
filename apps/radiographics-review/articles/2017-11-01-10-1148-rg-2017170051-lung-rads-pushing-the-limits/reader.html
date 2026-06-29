@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script>
+      (function () {
+        var pathname = window.location.pathname || "/";
+        var baseHref = /\/articles\/index\.html$/i.test(pathname)
+          ? pathname.replace(/articles\/index\.html$/i, "")
+          : /\.html$/i.test(pathname)
+          ? pathname.replace(/[^/]+$/, "")
+          : (pathname.endsWith("/") ? pathname : pathname + "/");
+        var existingBase = document.querySelector("base");
+        if (existingBase) {
+          existingBase.setAttribute("href", baseHref);
+          return;
+        }
+
+        var base = document.createElement("base");
+        base.setAttribute("href", baseHref);
+        document.head.prepend(base);
+      })();
+    </script>
+  
+    <title>Lung-RADS: Pushing the Limits</title>
+    <style>
+      :root {
+        --ink: #14211d;
+        --muted: #576863;
+        --paper: #f5f1e8;
+        --panel: rgba(255, 251, 245, 0.92);
+        --accent: #aa5e2b;
+        --accent-2: #184a45;
+        --line: rgba(20, 33, 29, 0.12);
+        --shadow: 0 20px 60px rgba(20, 33, 29, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(170, 94, 43, 0.18), transparent 36%),
+          radial-gradient(circle at top right, rgba(24, 74, 69, 0.2), transparent 28%),
+          linear-gradient(180deg, #f7f3eb 0%, #efe9dc 100%);
+      }
+      a { color: var(--accent-2); }
+      .shell {
+        width: min(1240px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 48px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 24px;
+        align-items: stretch;
+      }
+      .hero-copy,
+      .hero-visual,
+      .summary-card,
+      .narrative-panel,
+      .figure-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+      }
+      .hero-copy { padding: 28px; }
+      .hero-copy h1 {
+        margin: 0 0 16px;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(2rem, 4vw, 3.8rem);
+        line-height: 1.02;
+      }
+      .eyebrow,
+      .summary-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(24, 74, 69, 0.08);
+        color: var(--accent-2);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+      .summary-label {
+        background: rgba(170, 94, 43, 0.1);
+        color: var(--accent);
+      }
+      .eyebrow-link {
+        text-decoration: none;
+      }
+      .meta-row,
+      .authors {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.96rem;
+      }
+      .digest-lead {
+        margin-top: 18px;
+        color: #273833;
+        font-size: 1.06rem;
+        line-height: 1.75;
+      }
+      .action-row,
+      .jump-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+        align-items: flex-start;
+      }
+      .action-row a,
+      .jump-chip,
+      .figure-picker summary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        background: white;
+        border: 1px solid rgba(20, 33, 29, 0.14);
+        text-decoration: none;
+        font-weight: 700;
+        color: var(--accent-2);
+        cursor: pointer;
+      }
+      .figure-picker {
+        max-width: min(100%, 760px);
+      }
+      .figure-picker summary {
+        list-style: none;
+        user-select: none;
+      }
+      .figure-picker summary::-webkit-details-marker {
+        display: none;
+      }
+      .figure-picker summary::after {
+        content: "▾";
+        margin-left: 10px;
+        font-size: 0.82rem;
+      }
+      .figure-picker[open] summary::after {
+        content: "▴";
+      }
+      .figure-picker-panel {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+        padding: 14px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(20, 33, 29, 0.12);
+      }
+      .figure-picker summary::after {
+        content: "v";
+      }
+      .figure-picker[open] summary::after {
+        content: "^";
+      }
+      .hero-visual { padding: 18px; }
+      .hero-visual img {
+        width: 100%;
+        display: block;
+        border-radius: 18px;
+        background: #e8e1d5;
+      }
+      .image-launch {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: zoom-in;
+      }
+      .hero-caption {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        margin-top: 24px;
+      }
+      .summary-card {
+        padding: 22px;
+      }
+      .summary-card p {
+        margin: 14px 0 0;
+        line-height: 1.7;
+        color: #273833;
+      }
+      .narrative-panel {
+        margin-top: 24px;
+        padding: 24px;
+      }
+      .narrative-panel h2,
+      .figure-area h2 {
+        margin: 0 0 10px;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+      }
+      .narrative-panel p,
+      .figure-area p {
+        line-height: 1.75;
+        color: #30453f;
+      }
+      .source-details {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.52);
+      }
+      .source-details summary {
+        cursor: pointer;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+      .source-copy {
+        padding: 0 16px 16px;
+      }
+      .figure-area {
+        margin-top: 28px;
+      }
+      .figure-stack {
+        display: grid;
+        gap: 22px;
+        margin-top: 18px;
+      }
+      .figure-panel {
+        padding: 18px;
+      }
+      .figure-meta-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+      .figure-copy h2 {
+        margin: 12px 0 0;
+        font-family: "Georgia", "Times New Roman", serif;
+        font-size: clamp(1.35rem, 3vw, 2rem);
+        line-height: 1.18;
+      }
+      .figure-image-wrap {
+        margin-top: 16px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #e6dece;
+      }
+      .figure-image-wrap img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .lightbox-open {
+        overflow: hidden;
+      }
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 20px 16px 28px;
+        background: rgba(0, 0, 0, 0.94);
+      }
+      .lightbox[hidden] {
+        display: none !important;
+      }
+      .lightbox-close {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 1000;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.56);
+        color: white;
+        font-size: 1.6rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .lightbox-stage {
+        width: min(100%, 1500px);
+        margin: 42px auto 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .lightbox-stage img {
+        display: block;
+        max-width: 100%;
+        width: auto;
+        height: auto;
+        background: black;
+      }
+      .lightbox-caption {
+        max-width: min(100%, 960px);
+        padding-bottom: 24px;
+        color: rgba(255, 255, 255, 0.86);
+        text-align: center;
+        line-height: 1.6;
+      }
+      @media (max-width: 980px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <article class="hero-copy">
+          <a class="eyebrow eyebrow-link" href="../../index.html">RadioGraphics Digest</a>
+          <h1>Lung-RADS: Pushing the Limits</h1>
+          <div class="meta-row">RadioGraphics | 2017-11-01 | Vol 37 | Issue 7 | Pages 1975-1993</div>
+          <div class="authors">Maria D. Martin, Jeffrey P. Kanne, Lynn S. Broderick, Ella A. Kazerooni, Cristopher A. Meyer</div>
+          <p class="digest-lead">CHEST IMAGING 1975 Lung-RADS: Pushing the Limits1 In response to the recommendation of the U.S.</p>
+          <div class="action-row"><a href="https://doi.org/10.1148/rg.2017170051" target="_blank" rel="noreferrer">Open at RadioGraphics</a><a href="copy-for-chat.txt" target="_blank" rel="noreferrer" data-copy-src="copy-for-chat.txt">Copy for Chat</a><a href="C:\Users\sterl\Downloads\martin-et-al-2017-lung-rads-pushing-the-limits.pdf" target="_blank" rel="noreferrer">PDF</a><a href="anki/10-1148-rg-2017170051-lung-rads-pushing-the-limits.apkg">Download Anki Package</a></div>
+          
+    <div class="jump-row">
+      <a class="jump-chip" href="#figures">Figures</a>
+      <details class="figure-picker" data-figure-picker>
+        <summary>Figure Selection</summary>
+        <div class="figure-picker-panel">
+          <a class="jump-chip" href="#figure-1">Figure 1</a><a class="jump-chip" href="#figure-2">Figure 2</a><a class="jump-chip" href="#figure-3">Figure 3</a><a class="jump-chip" href="#figure-4">Figure 4</a><a class="jump-chip" href="#figure-5">Figure 5</a><a class="jump-chip" href="#figure-6">Figure 6</a><a class="jump-chip" href="#figure-7">Figure 7</a><a class="jump-chip" href="#figure-8">Figure 8</a><a class="jump-chip" href="#figure-9">Figure 9</a><a class="jump-chip" href="#figure-10">Figure 10</a><a class="jump-chip" href="#figure-11">Figure 11</a><a class="jump-chip" href="#figure-12">Figure 12</a><a class="jump-chip" href="#figure-13">Figure 13</a><a class="jump-chip" href="#figure-14">Figure 14</a><a class="jump-chip" href="#figure-15">Figure 15</a><a class="jump-chip" href="#figure-16">Figure 16</a><a class="jump-chip" href="#figure-17">Figure 17</a><a class="jump-chip" href="#figure-18">Figure 18</a><a class="jump-chip" href="#figure-19">Figure 19</a><a class="jump-chip" href="#figure-20">Figure 20</a><a class="jump-chip" href="#figure-21">Figure 21</a><a class="jump-chip" href="#figure-22">Figure 22</a><a class="jump-chip" href="#figure-23">Figure 23</a><a class="jump-chip" href="#figure-24">Figure 24</a>
+        </div>
+      </details>
+    </div>
+  
+        </article>
+        
+      <div class="hero-visual">
+        
+    <button
+      class="image-launch hero-image-button"
+      type="button"
+      data-lightbox-src="assets/figure-01.png"
+      data-lightbox-alt="Figure 1"
+      data-lightbox-caption="Figure 1. Squamous cell carcinoma de- tected at baseline LCS CT in a 63-year-old woman. Axial unenhanced CT image of the chest (lung window settings) shows a right upper lobe irregular mass (arrow) extend- ing into the mediastinum. Careful review of the electronic health record after the LCS CT examination disclosed that the patient had complained of new-onset cervicalgia (neck pain). controversial, given the patient’s age. Discussing stage disease, and patients in whom limited-stage this with the ordering provider and weighing the small cell lung carcinoma was diagnosed at an benefits and risks may help with this decision. annual LCS CT examination were more likely to be asymptomatic."
+      aria-label="Expand Figure 1"
+    >
+      <img src="assets/figure-01.png" alt="Figure 1">
+    </button>
+  
+        <div class="hero-caption">Figure 1</div>
+      </div>
+    
+      </section>
+
+      <section class="summary-grid">
+        
+        <article class="summary-card">
+          <div class="summary-label">Core diagnosis</div>
+          <p>CHEST IMAGING 1975 Lung-RADS: Pushing the Limits1 In response to the recommendation of the U.S.</p>
+        </article>
+      
+
+        <article class="summary-card">
+          <div class="summary-label">Imaging hallmarks</div>
+          <p>CT typically shows Preventive Services Task Force and the coverage decision by the Centers for Medicare and Medicaid Services for lung cancer screening (LCS) computed tomography (CT), the American College of Radiology introduced the Lung CT Screening Reporting and Data System (Lung-RADS) in 2014 to standardize the reporting and management of screeningdetected lung nodules.</p>
+        </article>
+      
+
+        <article class="summary-card">
+          <div class="summary-label">Management</div>
+          <p>After completing this journal-based SA-CME activity, participants will be able to: ■ Describe LCS scenarios in which Lung-RADS guidance is unclear or scenarios that are not currently addressed in Lung-RADS. ■ Explain how volume doubling time can help guide management of a nodule that was depicted at imaging performed before baseline LCS CT. ■ Recognize that growth of a nodule can include an increase in diameter and an increase in density.</p>
+        </article>
+      
+      </section>
+
+      <section class="narrative-panel">
+        <h2>Why This Article Matters</h2>
+        <p>This page pairs a quick study digest with the complete extracted article prose and figure captions. Use the summary cards first, review the figures next, and open the original article for references and supplemental media.</p>
+        
+    <details class="source-details">
+      <summary>View extracted article prose</summary>
+      <div class="source-copy"><p>CHEST IMAGING 1975 Lung-RADS: Pushing the Limits1 In response to the recommendation of the U.S. Preventive Services Task Force and the coverage decision by the Centers for Medicare and Medicaid Services for lung cancer screening (LCS) computed tomography (CT), the American College of Radiology introduced the Lung CT Screening Reporting and Data System (Lung-RADS) in 2014 to standardize the reporting and management of screeningdetected lung nodules. As with many first-edition guidelines, questions arise when such reporting systems are used in daily practice. In this article, a collection of 15 LCS-related scenarios are presented that address situations in which the Lung-RADS guidelines are unclear or situations that are not currently addressed in the LungRADS guidelines. For these 15 scenarios, the authors of this article provide the reader with recommendations that are based on their collective experiences, with the hope that future versions of LungRADS will provide additional guidance, particularly as more data from widespread LCS are collected and analyzed. • radiographics.rsna.org Maria D.</p><p>Martin, MD Jeffrey P . Kanne, MD Lynn S. Broderick, MD Ella A. Kazerooni, MD, MS Cristopher A. Meyer, MD Abbreviations: ACR = American College of Radiology, BI-RADS = Breast Imaging Reporting and Data System, LCS = lung cancer screening, Lung-RADS = Lung CT Screening Reporting and Data System RadioGraphics 2017; 37:1975–1993 https://doi.org/10.1148/rg.2017170051 Content Codes: 1From the Department of Radiology, University of Wisconsin School of Medicine, 600 High - land Ave, Madison, WI 53792-3252 (M.D.M., J.P.K., L.S.B., C.A.M.); and Department of Radiology, University of Michigan Health Sys - tem, Ann Arbor, Mich (E.A.K.). Recipient of a Certificate of Merit award for an education exhibit at the 2016 RSNA Annual Meeting. Received March 11, 2017; revision requested May 18 and received June 19; accepted July 28.</p><p>For this journal-based SA-CME activity, the author J.P.K. has provided disclosures (see end of ar - ticle); all other authors, the editor, and the re - viewers have disclosed no relevant relationships. Address correspondence to M.D.M. (e-mail: mmartin3@uwhealth.org). After completing this journal-based SA-CME activity, participants will be able to: ■ Describe LCS scenarios in which Lung-RADS guidance is unclear or scenarios that are not currently addressed in Lung-RADS. ■ Explain how volume doubling time can help guide management of a nodule that was depicted at imaging performed before baseline LCS CT. ■ Recognize that growth of a nodule can include an increase in diameter and an increase in density. See www.rsna.org/education/search/RG. SA-CME LEARNING OBJECTIVES Introduction For lung cancer screening (LCS) computed tomography (CT), the American College of Radiology (ACR) developed the Lung CT Screening Reporting and Data System (Lung-RADS) in 2014, which was modeled on the success of the Breast Imaging Reporting and Data System (BI-RADS).</p><p>Lung-RADS is a tool that facilitates standardized reporting and management of abnormal findings at LCS CT. The primary goal of Lung-RADS is to minimize variation in the management of LCS CT–detected lung nodules so that LCS can be implemented effectively in radiology practices outside the purview of a clinical trial. Lung-RADS is also an important component of LCS CT quality assurance and registry reporting. Data collected from LCS programs help with practice audits and facilitate outcome monitoring and research on an institutional level and a national level. Further study of the effectiveness of LCS can lead to the optimization of screening criteria and to ideal management of screening-detected lung nodules and can guide the development of future versions of Lung-RADS.</p><p>1976 Scenario 5: Ground-glass nodule with slow growth rate. Scenario 6: How to measure and classify a part-solid nodule. Scenario 7: Nodule that decreases in size but increases in attenuation. Scenario 8: Nodule with characteristic features of an intrapulmonary lymph node. Scenario 9: Airway (endotracheal or endobronchial) nodule. Scenario 10: Incidental potentially important finding other than lung cancer detected at lowdose LCS CT. Scenario 11: Reenrolling patients in the LCS CT program after a stable abnormality. Scenario 12: Low-dose LCS CT of a patient with a recent respiratory infection. Scenario 13: Categorization of a cavitary lung nodule or nodules. Scenario 14: Low-dose LCS CT of a patient with a history of a treated lung malignancy. Scenario 15: Low-dose LCS CT of a patient with a treated low-risk nonlung malignancy.</p><p>Scenario 1: New Lung-RADS Category 3 (Probably Benign) Solid Lung Nodule in a Patient Who Is Aging out of the Screening Program An 80-year-old man, who was about to turn 81 years old in 3 months, underwent a final annual LCS CT examination, and a new 5-mm solid nodule was detected. On the basis of LungRADS, this nodule would be classified as a LungRADS category 3 (probably benign) finding. How should this case be managed? For patients with a new 5-mm solid nodule, Lung-RADS recommends a follow-up low-dose CT examination in 6 months. This patient will be 81 years old at that time and will no longer satisfy the eligibility criteria for LCS. Many organizations advocate LCS, and they have differing recommendations for who should be screened.</p><p>Currently, the two organizations that dictate reimbursement for LCS, the Centers for Medicare and Medicaid Services and the U.S. Preventive Services Task Force, propose 77 years and 80 years, respectively, as the upper age limit for LCS. The patient in this scenario will no longer qualify for LCS because of his age. However, managing actionable findings in individuals who no longer qualify for nodule management under the purview of the LCS program requires guidance. Because this CT examination was performed as part of LCS, a Lung-RADs category 3 should be assigned, and a 6-month follow-up “diagnostic” low-dose CT examination should be recommended, because one can presume that As is often the case with the first iteration of a set of guidelines, questions and controversies arise once those guidelines are implemented in daily practice, affecting radiologists, referring providers, and patients.</p><p>Uncertainties primarily arise from differing interpretations of the Lung-RADS document and from scenarios that are not currently addressed or are incompletely addressed in the Lung-RADS guidelines. In this article, 15 clinical vignettes are used to highlight a variety of ambiguous scenarios, and recommendations are provided for managing these situations that are based on our collective experiences. Fifteen Clinical Scenarios Scenario 1: New Lung-RADS category 3 (probably benign) solid lung nodule in a patient who is aging out of the screening program. Scenario 2: Lung mass in a patient with vague symptoms. Scenario 3: Solid suspicious (Lung-RADS category 4B) nodule with very slow growth rate. Scenario 4: Ground-glass nodule that increases in density but remains stable in size. TEACHING POINTS ■ For some radiologists and referring providers, confusion may arise as to when to use the Lung-RADS guidelines and when to use the Fleischner Society guidelines for the follow-up of lung nodules.</p><p>Table 3 summarizes the main differences between these two sets of guidelines. Lung-RADS was developed specifically for use in LCS CT reporting. The recently published updated guidelines of the Fleischner Society for the management of incidentally detected lung nodules specifically state that the updated guidelines do not apply to LCS. ■ Referring providers and radiologists may be confused about whether to perform a diagnostic CT examination or a LCS CT examination when a clinical suspicion for lung cancer exists. One of the exclusion criteria for LCS CT (or any screening examination) is signs or symptoms that can be attributed to the disease for which screening is being performed. Thus, for patients in whom lung cancer is suspected, LCS CT should not be performed, and patients should instead undergo a diagnostic chest CT examination. ■ Volume doubling time may be used to predict solid pulmonary nodule behavior as benign or malignant.</p><p>Generally, the observed volume doubling times of lung cancers range from 20 days to 360–400 days. For solid pulmonary nodules, volume doubling times of less than 20–30 days are usually associated with benign causes—commonly, inflammatory or infectious causes. Volume doubling times greater than 400–480 days are also usually associated with benign nodules, with only 3%–4% of non–small cell lung carcinomas reported to have volume doubling times of more than 400 days. ■ Persistent subsolid nodules are more likely to be malignant than other nodule types, and the risk of malignancy increases with the size of the solid component. ■ A decrease in nodule size is not always benign, particularly with an increase in attenuation, and continued surveillance may be appropriate. more, the Fleischner Society guidelines do not apply to new or enlarging lung nodules.</p><p>Although both sets of guidelines were developed for different scenarios and although none of the guidelines apply to patients aging out of LCS, for the patient in this vignette, we suggest continuing to follow up the nodule outside the screening program with use of the time frames suggested in Lung-RADS, because it is currently the only practice standard that addresses new or growing nodules, provided the patient is healthy enough to undergo treatment if the nodule proves to be actionable. If the nodule is stable in this particular case, one could report that the stability of the nodule is suggestive of benign etiology or behavior (on the basis of the Lung-RADS description of category 2, because stable category 3 nodules fall back into category 2).</p><p>However, it would be inappropriate to assign a Lung-RADS category or to recommend follow-up LCS CT, because the patient is no longer eligible for LCS. There is no correct answer for when to stop monitoring this nodule, because there are no guidelines, but it is certainly the patient lacks important comorbidities on the basis of his continued enrollment in LCS. At that time, any additional follow-up can be performed, if appropriate, outside the LCS program. In this scenario, management of this nodule becomes complicated at the 6-month follow-up examination because no specific guidelines exist for managing screening-detected nodules in patients who no longer qualify for LCS. For some radiologists and referring providers, confusion may arise as to when to use the LungRADS guidelines and when to use the Fleischner Society guidelines for the follow-up of lung nodules.</p><p>Table 3 summarizes the main differences between these two sets of guidelines. Lung-RADS was developed specifically for use in LCS CT reporting. The recently published updated guidelines of the Fleischner Society for the management of incidentally detected lung nodules specifically state that the updated guidelines do not apply to LCS. Distinguishing incidentally detected lung nodules found at examinations performed for reasons other than LCS from nodules detected in the setting of LCS is key. FurtherTable 1: Lung-RADS Categories 3, 4A, and 4B Category Findings Management 3: Probably benign Solid nodule 6-month low-dose CT ≥6 mm to &lt;8 mm at baseline New, 4 mm to &lt;6 mm Part-solid nodule ≥6-mm total diameter with solid component &lt;6 mm New, &lt;6-mm total diameter Ground-glass nodule ≥20 mm at baseline New 4A: Suspicious Solid nodule 3-month low-dose CT; PET/CT (can be used when there is a ≥8-mm solid component) ≥8 mm to &lt;15 mm at baseline Growing &lt;8 mm New, 6 mm to &lt;8 mm Part-solid nodule ≥6 mm with solid component ≥6 mm to &lt;8 mm New or growing &lt;4-mm solid component Endobronchial nodule 4B: Suspicious Solid nodule Chest CT, with or without contrast material administration; PET/CT (can be used when there is a ≥8-mm solid component); tissue sampling* ≥15 mm New or growing, and ≥8 mm Part-solid nodule Solid component ≥8 mm New or growing ≥4-mm solid component Note.—Adapted and reprinted under a CC BY 4.0 international license from the ACR.</p><p>PET/CT = dualmodality imaging with positron emission tomography (PET) and CT. *Depending on the probability of malignancy and comorbidities. 1978 Table 3: Comparison between Lung-RADS Guidelines and Fleischner Society Guidelines for the Management of Pulmonary Nodules Lung-RADS Guidelines Fleischner Society Guidelines Single version published in 2014 (addresses solid and subsolid nodules) Updated version published in 2017 (addresses solid and subsolid nodules) Older versions published in 2005 for solid nodules and in 2013 for subsolid nodules Developed for the management of nodules in the setting of LCS CT Developed for the management of incidentally detected nodules Includes management of nodules that are new or growing Does not address how to manage nodules that are new or growing Applies to patients older than 55 years of age (current lower limit for LCS) and up to 80 years of age (upper age limit according to the U.S.</p><p>Preventive Services Task Force) Applies to patients older than 35 years of age, with no upper age limit Applies to all patients undergoing LCS CT Does not apply to immunosuppressed patients or those with a history of malignancy Note.—Numbers in parentheses are reference citations. Table 2: Current Eligibility Criteria for LCS Organization Age Criteria (y) Smoking History Criteria (pack-years) Other Eligibility Criteria ACS, ACCP, ALA, ASCO, and ATS ≥55 to 74 ≥30; quit smoking &lt;15 y ago … Centers for Medicare and Medicaid Services ≥55 to 77 ≥30; quit smoking &lt;15 y ago … U.S. Preventive Services Task Force ≥55 to 80 ≥30; quit smoking &lt;15 y ago … National Comprehensive Cancer Network ≥55 to 74 ≥30; quit smoking &lt;15 y ago … ≥50 ≥20 With one more risk factor (other than secondhand smoke), including radon or occupational exposure, cancer history, history of lung cancer in a first-degree relative, or disease history (COPD or pulmonary fibrosis) American Association for Thoracic Surgery ≥55 to 79 ≥30 … Lung cancer survivors starting 5 y after treatment until age 79 … … ≥50 ≥20 5% risk of developing a lung cancer in the next 5 y (COPD, environmental/occupational exposure, prior cancer/radiation therapy, genetics, or a family history) Sources.—References 3–5.</p><p>Note.—ACS = American Cancer Society, ACCP = American College of Chest Physicians, ALA = American Lung Association, ASCO = American Society of Clinical Oncology, ATS = American Thoracic Society, COPD = chronic obstructive pulmonary disease. controversial, given the patient’s age. Discussing this with the ordering provider and weighing the benefits and risks may help with this decision. Scenario 2: Lung Mass in a Patient with Vague Symptoms A 63-year-old woman had a 39-mm mass detected at baseline LCS CT. A retrospective review of the electronic medical record disclosed that the patient had complained of new neck pain. What signs and symptoms should preclude LCS CT and prompt diagnostic chest CT evaluation for lung cancer outside an LCS CT program?</p><p>Symptoms of lung cancer are vague and can overlap with other smoking-related comorbidities such as chronic obstructive pulmonary disease, cardiovascular disease, and head and neck cancers. Referring providers and radiologists may be confused about whether to perform a diagnostic CT examination or an LCS CT examination when a clinical suspicion for lung cancer exists. One of the exclusion criteria for LCS CT (or any screening examination) is signs or symptoms that can be attributed to the disease for which screening is being performed. Thus, for patients in whom lung cancer is suspected, LCS CT should not be performed, and patients should instead undergo a diagnostic chest CT examination. Signs and symptoms that should raise suspicion for lung cancer include chest pain, worsening cough, hemoptysis, and unintended weight loss.</p><p>Symptomatic patients with lung cancer are much more likely to have advanced-stage disease at the time of diagnosis. For example, in the results of one study that was based on data from the International Early Lung Cancer Action Program (I-ELCAP) study, investigators found that patients in whom interim small cell lung carcinoma was diagnosed because of the development of symptoms (cancers that were not apparent at LCS CT but were found before the next annual LCS CT examination) usually had advancedstage disease, and patients in whom limited-stage small cell lung carcinoma was diagnosed at an annual LCS CT examination were more likely to be asymptomatic. Scenario 3: Solid Suspicious (LungRADS Category 4B) Nodule with Very Slow Growth Rate At baseline LCS CT, a 74-year-old woman had a 19-mm solid nodule, which had measured 11 mm at an abdominal CT examination performed 12 years earlier.</p><p>On the basis of LungRADS, this screening-detected nodule should be classified as category 4B (suspicious) because of the increase in size. However, considering the time interval of 12 years between the earlier CT image (comparison image) and the LCS CT image, how should this nodule be managed? One situation not addressed in the current version of Lung-RADS is categorizing and managing a nodule that was present on examinations performed before the baseline LCS CT examination. One option would be to manage this nodule as a nodule depicted at a follow-up LCS CT examination, but the definition of growth (at least a 1.5-mm increase in diameter) complicates matters because of the 12-year interval between the two CT examinations in this patient.</p><p>If we strictly apply the Lung-RADS definition of growth, this nodule should be classified as category 4B, with a probability of malignancy of more than 15% because of a diameter increase of 8 mm, a finding potentially leading to an invasive workup. On the other hand, one can argue that if the 8-mm increase in diameter was divided evenly over the 12-year time span, then the annual growth rate would not meet the 1.5-mm threshold. However, with only two data points, there is no way to determine the true growth curve. Volume doubling time may be used to predict solid pulmonary nodule behavior as benign or malignant. Generally, the Figure 1. Squamous cell carcinoma de - tected at baseline LCS CT in a 63-year-old woman.</p><p>Axial unenhanced CT image of the chest (lung window settings) shows a right upper lobe irregular mass (arrow) extend - ing into the mediastinum. Careful review of the electronic health record after the LCS CT examination disclosed that the patient had complained of new-onset cervicalgia (neck pain). 1980 observed volume doubling times of lung cancers range from 20 days to 360–400 days. For solid pulmonary nodules, volume doubling times of less than 20–30 days are usually associated with benign causes—commonly, inflammatory or infectious causes. Volume doubling times greater than 400–480 days are also usually associated with benign nodules, with only 3%–4% of non–small cell lung carcinomas reported to have volume doubling times of more than 400 days. These volume doubling times do not apply to pure ground-glass nodules, which are discussed separately.</p><p>The use of volume dou - bling time as a discriminator in the context of LCS has been proposed to reduce false-positive screening findings, unnecessary follow-up exam - inations, and additional workups. Currently available tools for radiologists include volume doubling time calculators and online lung cancer risk assessment tools such as the McWil - liams lung cancer risk calculator. Granulomatous inflammation and mesenchymal tumors fall into the types of solid lung nodules that have long volume doubling times. The presence of macroscopic fat, popcorn calcifications, or both in a solid nodule allows the confident diagnosis of a hamartoma, but these findings are often lacking in smaller hamartomas. In the results of one retrospective study of biopsy-proven hamartomas detected at LCS CT, seven of nine hamartomas had volume doubling times greater than 550 days (range, 550–6000 days), one had a volume doubling time less than 450 days, and one had a decrease in volume at follow-up.</p><p>Another potential cause for a slowly growing solid nodule is a carcinoid tumor. These lowgrade malignant neoplasms are rare, with an estimated frequency of 1.57 per 100 000 patients. In the results of one retrospective analysis of 28 pathologically proven carcinoid tumors, investigators showed that when the tumors were peripheral in location, 81% (13 of 16) were detected incidentally. CT features reported to help distinguish carcinoid tumors from be - nign lung nodules include lobulated margins, high attenuation on unenhanced CT images, avid contrast enhancement, and proximity to the airways. In the results of the same series, 13 (81%) of 16 peripheral carcinoids had direct airway involvement, defined as a component of the lesion located within or obstructing a visible airway (“tip of the iceberg” sign).</p><p>Indirect signs of airway involvement in peripheral carci - noids included peripheral hyperlucency (31%), peripheral bronchiectasis (25%), and peripheral opacity or atelectasis (19%), with 10 (63%) of 16 peripheral carcinoids having at least one in - direct finding of airway involvement. Figure 3. Suggested interpretation for the etiology of a solid lung nodule on the basis of the volume doubling time (VDT). Data are from Henschke et al and Truong et al. Figure 2. Very slow-growing nodule in a 74-year-old woman. (a) Baseline LCS CT: Axial unenhanced chest CT image (lung window settings) of the right lung shows a 19-mm nodule (arrow) in the posterior basal right lower lobe. (b) Abdominal CT performed 12 years earlier (before baseline LCS CT): Comparison axial CT image (lung window settings) of the right lung shows that the nodule (arrow) had measured 11 mm.</p><p>The calculated volume doubling time of the nodule in this vignette is 5.2 years. In this case, we are confident that this nodule is not an aggressive cancer, and we recommend assigning category 2 (benign or benign behaving) on the basis of the long volume doubling time and recommend continued LCS CT in 12 months. Although it may be argued that only two time points during a long time period do not guarantee that the nodule recently accelerated growth, we advocate for a conservative approach in a screening program. In this case, the nodule could also be assigned to category 4B on the basis of its size and growth; the recommendations can be based on footnote 9 in Lung-RADS, which states that the management of category 4B nodules should be based on the probability of malignancy on the basis of patient evaluation, preference, and the risk of malignancy.</p><p>Therefore, a follow-up CT examination could be performed in 3 months, and if the nodule is stable, it could be assigned to category 2 and the patient returned to the LCS CT program. Future versions of Lung-RADS may incorporate volume doubling time as a measure to assess solid nodules, as is being suggested in Europe. Scenario 4: Ground-Glass Nodule That Increases in Density but Remains Stable in Size A 66-year-old woman had a ground-glass nodule with increasing attenuation but unchanged diameter. If confronted with this situation at LCS CT, what would be the appropriate LungRADS category and management of this nodule? Subsolid nodules include a spectrum of focal areas of increased lung attenuation. Subsolid nodules can be divided into (a) pure ground-glass nodules, which are defined as focal areas of increased lung attenuation through which normal structures are visible, and (b) part-solid nodules, which are defined as ground-glass nodules with solid components, the latter of which obscure underlying structures.</p><p>Subsolid nodules have a Figure 4. Slowly growing pulmonary ham - artoma in a 64-year-old man. (a) Baseline LCS CT: Axial unenhanced chest CT image (lung window settings) of the right lung shows an irregular 11 3 7-mm solid nodule (arrow). (b) Comparison axial CT image ob - tained 5.5 years earlier (before baseline LCS CT) shows that the nodule (arrow) had measured 6 3 4 mm. Comparison of this earlier measurement with the current one indicates a volume doubling time of approximately 939 days. A remote history of testicular can - cer prompted biopsy of the nodule. Figure 5. Invasive adenocarcinoma in a 66-year-old woman. (a) Axial contrast mate - rial–enhanced chest CT image (lung window settings) of the right upper lobe shows a groundglass nodule (arrow).</p><p>(b) Comparison axial CT image obtained 3 years earlier than a shows that the nodule had increased in attenuation centrally with time, without an overall change in size. 1982 growth behavior that is different from that of solid nodules. A subsolid nodule can grow not only by increasing in diameter but also by increasing in attenuation, which can manifest as the development of a solid component or by enlargement of only the solid component without a change in the overall diameter, resulting in an overall increase in mass. These features of growth have been associated with an increased risk of malignancy. Persistent subsolid nodules are more likely to be malignant than other nodule types, and the risk of malignancy increases with the size of the solid component.</p></div>
+    </details>
+  
+      </section>
+
+      <section class="figure-area" id="figures">
+        <h2>Figure Review</h2>
+        <p>Figures are pulled directly from the article assets. Each card surfaces the main teaching point first. Tap any figure to open it fullscreen and read the full caption there.</p>
+        <div class="figure-stack">
+          
+        <section class="figure-panel" id="figure-1">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 1</div>
+            </div>
+            <h2>Axial unenhanced CT image of the chest (lung window settings) shows a right upper lobe irregular mass (arrow) extend- ing into the mediastinum.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-01.png"
+      data-lightbox-alt="Figure 1"
+      data-lightbox-caption="Figure 1. Squamous cell carcinoma de- tected at baseline LCS CT in a 63-year-old woman. Axial unenhanced CT image of the chest (lung window settings) shows a right upper lobe irregular mass (arrow) extend- ing into the mediastinum. Careful review of the electronic health record after the LCS CT examination disclosed that the patient had complained of new-onset cervicalgia (neck pain). controversial, given the patient’s age. Discussing stage disease, and patients in whom limited-stage this with the ordering provider and weighing the small cell lung carcinoma was diagnosed at an benefits and risks may help with this decision. annual LCS CT examination were more likely to be asymptomatic."
+      aria-label="Expand Figure 1"
+    >
+      <img src="assets/figure-01.png" alt="Figure 1">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-2">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 2</div>
+            </div>
+            <h2>Baseline LCS CT: Axial unenhanced chest CT image (lung window settings) of the right lung shows a 19-mm nod- ule (arrow) in the posterior basal right lower lobe.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-02.png"
+      data-lightbox-alt="Figure 2"
+      data-lightbox-caption="Figure 2. Very slow-growing nodule in a 74-year-old woman. (a) Baseline LCS CT: Axial unenhanced chest CT image (lung window settings) of the right lung shows a 19-mm nod- ule (arrow) in the posterior basal right lower lobe. (b) Abdominal CT performed 12 years earlier (before baseline LCS CT): Comparison axial CT image (lung window settings) of the right lung shows that the nodule (arrow) had measured 11 mm."
+      aria-label="Expand Figure 2"
+    >
+      <img src="assets/figure-02.png" alt="Figure 2">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-3">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 3</div>
+            </div>
+            <h2>Data are from Henschke et al and Truong et al. observed volume doubling times of lung cancers hamartomas detected at LCS CT, seven of nine range from 20 days to 360–400 days.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-03.png"
+      data-lightbox-alt="Figure 3"
+      data-lightbox-caption="Figure 3. Suggested interpretation for the etiology of a solid lung nodule on the basis of the volume doubling time (VDT). Data are from Henschke et al and Truong et al. observed volume doubling times of lung cancers hamartomas detected at LCS CT, seven of nine range from 20 days to 360–400 days. For solid hamartomas had volume doubling times greater pulmonary nodules, volume doubling times of than 550 days (range, 550–6000 days), one had a less than 20–30 days are usually associated with volume doubling time less than 450 days, and one benign causes—commonly, inflammatory or had a decrease in volume at follow-up. infectious causes. Volume doubling times greater Another potential cause for a slowly growing than 400–480 days are also usually associated solid nodule is a carcinoid tumor. These low- with benign nodules, with only 3%–4% grade malignant neoplasms are rare, with an of non–small cell lung carcinomas reported to estimated frequency of 1.57 per 100 000 pa- have volume doubling times of more than 400 tients. In the results of one retrospective analysis days. These volume doubling times do of 28 pathologically proven carcinoid tumors, not apply"
+      aria-label="Expand Figure 3"
+    >
+      <img src="assets/figure-03.png" alt="Figure 3">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-4">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 4</div>
+            </div>
+            <h2>Baseline LCS CT: Axial unenhanced chest CT image (lung window settings) of the right lung shows an irregular 11 3 7-mm solid nodule (arrow).</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-04.png"
+      data-lightbox-alt="Figure 4"
+      data-lightbox-caption="Figure 4. Slowly growing pulmonary ham- artoma in a 64-year-old man. (a) Baseline LCS CT: Axial unenhanced chest CT image (lung window settings) of the right lung shows an irregular 11 3 7-mm solid nodule (arrow). (b) Comparison axial CT image ob- tained 5.5 years earlier (before baseline LCS CT) shows that the nodule (arrow) had mea- sured 6 3 4 mm. Comparison of this earlier measurement with the current one indicates a volume doubling time of approximately 939 days. A remote history of testicular can- cer prompted biopsy of the nodule."
+      aria-label="Expand Figure 4"
+    >
+      <img src="assets/figure-04.png" alt="Figure 4">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-5">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 5</div>
+            </div>
+            <h2>Axial contrast mate- rial–enhanced chest CT image (lung window set- tings) of the right upper lobe shows a ground- glass nodule (arrow).</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-05.png"
+      data-lightbox-alt="Figure 5"
+      data-lightbox-caption="Figure 5. Invasive adenocarcinoma in a 66-year-old woman. (a) Axial contrast mate- rial–enhanced chest CT image (lung window set- tings) of the right upper lobe shows a ground- glass nodule (arrow). (b) Comparison axial CT image obtained 3 years earlier than a shows that the nodule had increased in attenuation centrally with time, without an overall change in size. The calculated volume doubling time of the of Lung-RADS may incorporate volume doubling nodule in this vignette is 5.2 years. In this case, we time as a measure to assess solid nodules, as is be- are confident that this nodule is not an aggressive ing suggested in Europe. cancer, and we recommend assigning category 2 (benign or benign behaving) on the basis of"
+      aria-label="Expand Figure 5"
+    >
+      <img src="assets/figure-05.png" alt="Figure 5">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-6">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 6</div>
+            </div>
+            <h2>Baseline LCS CT: Axial unenhanced chest CT image (lung window set- tings) of the right upper lobe shows a 22-mm irregular ground-glass nodule (arrow).</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-06.png"
+      data-lightbox-alt="Figure 6"
+      data-lightbox-caption="Figure 6. Large ground-glass nodule in a 69-year-old man. (a) Baseline LCS CT: Axial unenhanced chest CT image (lung window set- tings) of the right upper lobe shows a 22-mm irregular ground-glass nodule (arrow). (b) Axial chest CT image obtained 6 months after baseline LCS CT shows resolution of the nodule. growth behavior that is different from that of solid lations, a ground-glass nodule that doubles in size nodules. A subsolid nodule can grow not only by in 1 year, and enlarged lymph nodes. increasing in diameter but also by increasing in attenuation, which can manifest as the develop-"
+      aria-label="Expand Figure 6"
+    >
+      <img src="assets/figure-06.png" alt="Figure 6">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-7">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 7</div>
+            </div>
+            <h2>Axial unen- hanced chest CT image (lung window settings) of the left lung shows an apparent ground-glass nodule (arrow) in the inferior lingula.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-07.png"
+      data-lightbox-alt="Figure 7"
+      data-lightbox-caption="Figure 7. Ground-glass pseudonodule at base- line LCS CT in a 56-year-old man. (a) Axial unen- hanced chest CT image (lung window settings) of the left lung shows an apparent ground-glass nodule (arrow) in the inferior lingula. (b) Sagittal reformatted CT image through the left hemitho- rax shows that the apparent nodule (arrow) is flat, a finding consistent with a scar or an unusual focus of atelectasis."
+      aria-label="Expand Figure 7"
+    >
+      <img src="assets/figure-07.png" alt="Figure 7">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-8">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 8</div>
+            </div>
+            <h2>Axial unenhanced chest CT image (lung window settings) of the right lung shows a part-solid irregular nodule (arrow) in the right lower lobe.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-08.png"
+      data-lightbox-alt="Figure 8"
+      data-lightbox-caption="Figure 8. Benign part-solid nodule in the right lower lobe mimicking lung cancer at LCS CT in a 59-year-old man. Axial unenhanced chest CT image (lung window settings) of the right lung shows a part-solid irregular nodule (arrow) in the right lower lobe. The nodule persisted at follow-up CT. After a nondiagnostic fine-needle aspiration biopsy, lobec- tomy was performed. The final histopathologic find- ings from examination of the lobectomy specimen disclosed benign lung parenchyma with scattered noncaseating granulomas, anthracosis, emphysema, and focal alveolar siderophages. is best practice to compare all nodules with the most remote examination available, to optimize sensitivity for the detection of change. Lung-RADS incorporates all of this informa- (Fig 10), although approximately 20%–25% of tion by simply classifying all stable or slowly such ground-glass nodules are benign . growing ground-glass nodules in category 2 The volume doubling times of ground-glass (benign appearance or behavior). Behavior is nodules are quite variable but typically are longer what would best describe these nodules. Only than the volume doubling times of solid nodules time will tell if these n"
+      aria-label="Expand Figure 8"
+    >
+      <img src="assets/figure-08.png" alt="Figure 8">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-9">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 9</div>
+            </div>
+            <h2>Sagittal reformat- adenocarcinoma in a 57-year-old man. ted chest CT image (lung window settings) Axial unenhanced chest CT image (lung through the right hemithorax shows an 11-mm window settings) of the right lung pu...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-09.png"
+      data-lightbox-alt="Figure 9"
+      data-lightbox-caption="Figure 9. LCS-detected invasive lung noma in a 55-year-old man. Sagittal reformat- adenocarcinoma in a 57-year-old man. ted chest CT image (lung window settings) Axial unenhanced chest CT image (lung through the right hemithorax shows an 11-mm window settings) of the right lung pure ground-glass nodule in the superior seg- shows a 7-mm ground-glass nodule ment of the right lower lobe. Note the distor- with a lucent center (arrow) in the right tion of the fissure (arrow). lower lobe. Two items to consider with respect to the the solid component. The inter- and intraobserver definition of the term slowly growing in future agreement in the classification of nodules as solid versions of Lung-RADS are the concepts of mass or subsolid is highly variable. The Fleischner (attenuation) change and change during longer Society guidelines recommend evaluating part- time intervals (eg, 2–3 years). Some investiga- solid lung nodules by using lung window settings tors advocate for adjusting screening intervals with a sharp filter to better assess the extent of to risk-defined models, including increas- the solid component. However, how does one ing the screening interval to 2 years"
+      aria-label="Expand Figure 9"
+    >
+      <img src="assets/figure-09.png" alt="Figure 9">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-10">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 10</div>
+            </div>
+            <h2>Sagittal reformat- adenocarcinoma in a 57-year-old man. ted chest CT image (lung window settings) Axial unenhanced chest CT image (lung through the right hemithorax shows an 11-mm window settings) of the right lung pu...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-10.png"
+      data-lightbox-alt="Figure 10"
+      data-lightbox-caption="Figure 10. LCS-detected lung adenocarci- Figure 9. LCS-detected invasive lung noma in a 55-year-old man. Sagittal reformat- adenocarcinoma in a 57-year-old man. ted chest CT image (lung window settings) Axial unenhanced chest CT image (lung through the right hemithorax shows an 11-mm window settings) of the right lung pure ground-glass nodule in the superior seg- shows a 7-mm ground-glass nodule ment of the right lower lobe. Note the distor- with a lucent center (arrow) in the right tion of the fissure (arrow). lower lobe. Two items to consider with respect to the the solid component. The inter- and intraobserver definition of the term slowly growing in future agreement in the classification of nodules as solid versions of Lung-RADS are the concepts of mass or subsolid is highly variable. The Fleischner (attenuation) change and change during longer Society guidelines recommend evaluating part- time intervals (eg, 2–3 years). Some investiga- solid lung nodules by using lung window settings tors advocate for adjusting screening intervals with a sharp filter to better assess the extent of to risk-defined models, including increas- the solid component. However, how does o"
+      aria-label="Expand Figure 10"
+    >
+      <img src="assets/figure-10.png" alt="Figure 10">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-11">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 11</div>
+            </div>
+            <h2>Axial unenhanced chest CT image (lung window settings) of the left upper lobe shows a pure ground-glass nodule (arrow). Axial unenhanced chest CT image obtained 2 years later than a shows minimal growth of the nodule (arrow), which now measures 7 mm.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-11.png"
+      data-lightbox-alt="Figure 11"
+      data-lightbox-caption="Figure 11. Slowly growing ground-glass nodule in a 67-year-old man. (a) Axial unenhanced chest CT image (lung window settings) of the left upper lobe shows a pure ground-glass nodule (arrow). (b) Axial unenhanced chest CT image obtained 2 years later than a shows minimal growth of the nodule (arrow), which now measures 7 mm. (c) Axial unenhanced chest CT image obtained 2 years later than b shows continued growth of the nodule (arrow), which now measures 13 mm. The his- topathologic findings from examination of the specimen obtained at wedge resection helped confirm the diagnosis of a well- differentiated minimally invasive adenocarcinoma. may play a role in the future as the LCS data are analyzed with more long-term studies. A decrease in nodule size is not always benign, particularly with an increase in attenuation, and continued surveillance may be appropriate. The nodule in Figure 13 could be assigned either to category 4B (on the basis of a part-solid nodule with an enlarging solid component &gt;4 mm) or to"
+      aria-label="Expand Figure 11"
+    >
+      <img src="assets/figure-11.png" alt="Figure 11">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-12">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 12</div>
+            </div>
+            <h2>CT image (lung window settings) of the right lower lobe shows a large lobulated nodule (arrow)</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-12.png"
+      data-lightbox-alt="Figure 12"
+      data-lightbox-caption="Figure 12. Invasive mucinous category 4X, given that the appearance is highly lung adenocarcinoma in a 69-year- suspicious for malignancy, even though there is a old man. Axial unenhanced chest slight decrease in size. CT image (lung window settings) of the right lower lobe shows a large lobulated nodule (arrow)"
+      aria-label="Expand Figure 12"
+    >
+      <img src="assets/figure-12.png" alt="Figure 12">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-13">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 13</div>
+            </div>
+            <h2>Initial LCS CT: Axial unen- hanced chest CT image (lung window settings) of the right lung shows a part-solid nodule (ar- row) in the inferior right middle lobe.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-13.png"
+      data-lightbox-alt="Figure 13"
+      data-lightbox-caption="Figure 13. Invasive lung adenocarcinoma in a 68-year-old man. (a) Initial LCS CT: Axial unen- hanced chest CT image (lung window settings) of the right lung shows a part-solid nodule (ar- row) in the inferior right middle lobe. (b) Follow- up axial CT image obtained 3 months later than a shows slight contraction of the nodule, although the solid component (arrow) has enlarged. below the level of the carina. The median diameter of intrapulmonary lymph nodes ranges from approximately 1 mm to 6 mm, but they can be larger. Intrapulmonary lymph nodes are extremely common and have been detected more fre- quently with increased routine use of thin-sec- tion CT. For example, up to one-third of lung nodules identified at LCS CT in one series were classified as perifissural. In the results of several LCS studies, investigators have shown"
+      aria-label="Expand Figure 13"
+    >
+      <img src="assets/figure-13.png" alt="Figure 13">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-14">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 14</div>
+            </div>
+            <h2>Axial (a) and sagittal (b) unenhanced reformat- that no lung nodules with features of intrapul- ted chest CT images (lung window settings) through the left lung monary lymph nodes ultimately proved to be a show a tria...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-14.png"
+      data-lightbox-alt="Figure 14"
+      data-lightbox-caption="Figure 14. Normal intrapulmonary lymph node in a 72-year-old man at LCS CT. Axial (a) and sagittal (b) unenhanced reformat- that no lung nodules with features of intrapul- ted chest CT images (lung window settings) through the left lung monary lymph nodes ultimately proved to be a show a triangular left lower lobe nodule (arrow) abutting the lung cancer. oblique fissure. Lung-RADS addresses intrapulmonary lymph nodes in footnote 11, recommending that they"
+      aria-label="Expand Figure 14"
+    >
+      <img src="assets/figure-14.png" alt="Figure 14">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-15">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 15</div>
+            </div>
+            <h2>Axial contrast-en- RADS category 2 (benign or benign behavior), hanced chest CT image (lung window settings) management is to continue annual LCS as long of the right upper lobe as the patient meets the eligibility cr...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-15.png"
+      data-lightbox-alt="Figure 15"
+      data-lightbox-caption="Figure 15. Normal should be managed as any other solid nodule on intrapulmonary lymph the basis of the mean diameter. Because most node in a 75-year-old intrapulmonary lymph nodes fall into Lung- man. Axial contrast-en- RADS category 2 (benign or benign behavior), hanced chest CT image (lung window settings) management is to continue annual LCS as long of the right upper lobe as the patient meets the eligibility criteria. How- shows a thin band of ever, some radiologists do not routinely report tissue (arrow) connect- or recommend follow-up of nodules with the ing the nodule to the pleural surface. classic features of intrapulmonary lymph nodes, conflicting with the Lung-RADS requirement to report and manage nodules on the basis of size. We believe that if there are multireader studies showing adequate agreement for the recognition RADS category should be assigned, and how of intrapulmonary lymph nodes, future ver- should this case be managed? sions of Lung-RADS may allow management Cigarette smoke promotes mucin synthesis of intrapulmonary lymph nodes as category 1 and mucous gland metaplasia and causes stasis of (definitely benign nodules), potentially reducing mucus with a varie"
+      aria-label="Expand Figure 15"
+    >
+      <img src="assets/figure-15.png" alt="Figure 15">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-16">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 16</div>
+            </div>
+            <h2>Follow-up axial CT image obtained after chest CT image (lung window set- vigorous coughing shows that the filling defect is no longer pres- tings) of the anterior right hemi- ent, which indicates that it represented a...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-16.png"
+      data-lightbox-alt="Figure 16"
+      data-lightbox-caption="Figure 16. Normal intrapulmo- shows a filling defect (arrow) in the bronchus intermedius. The nary lymph node in a 60-year-old filling defect is irregular, shows high attenuation, and is nonde- man at LCS CT. Axial unenhanced pendent in location. (b) Follow-up axial CT image obtained after chest CT image (lung window set- vigorous coughing shows that the filling defect is no longer pres- tings) of the anterior right hemi- ent, which indicates that it represented adherent secretions with thorax shows a trapezoidal nodule atypical features. (arrow) in the right middle lobe abutting the horizontal fissure. Several methods can help identify airway secretions with greater confidence. A repeat CT examination of the area of interest with use of a reduced dose technique after vigorous cough- ing is one option, because coughing might help clear secretions mimicking endobronchial lesions. Although this method has proved to be helpful to us in selected cases such as the one in this scenario, to our knowledge, no published Figure 18. Typical airway secre- studies exist that evaluate the utility of coughing tions in a 72-year-old man. Axial for clearing secretions before scanning a patient"
+      aria-label="Expand Figure 16"
+    >
+      <img src="assets/figure-16.png" alt="Figure 16">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-17">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 17</div>
+            </div>
+            <h2>Follow-up axial CT image obtained after chest CT image (lung window set- vigorous coughing shows that the filling defect is no longer pres- tings) of the anterior right hemi- ent, which indicates that it represented a...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-17.png"
+      data-lightbox-alt="Figure 17"
+      data-lightbox-caption="Figure 17. New endobronchial filling defect in a 74-year-old man at LCS CT. (a) Baseline LCS CT: Axial unenhanced chest CT image (soft-tissue window settings) cropped to the mediastinum Figure 16. Normal intrapulmo- shows a filling defect (arrow) in the bronchus intermedius. The nary lymph node in a 60-year-old filling defect is irregular, shows high attenuation, and is nonde- man at LCS CT. Axial unenhanced pendent in location. (b) Follow-up axial CT image obtained after chest CT image (lung window set- vigorous coughing shows that the filling defect is no longer pres- tings) of the anterior right hemi- ent, which indicates that it represented adherent secretions with thorax shows a trapezoidal nodule atypical features. (arrow) in the right middle lobe abutting the horizontal fissure. Several methods can help identify airway secretions with greater confidence. A repeat CT examination of the area of interest with use of a reduced dose technique after vigorous cough- ing is one option, because coughing might help clear secretions mimicking endobronchial lesions. Although this method has proved to be helpful to us in selected cases such as the one in this scenario, to our knowle"
+      aria-label="Expand Figure 17"
+    >
+      <img src="assets/figure-17.png" alt="Figure 17">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-18">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 18</div>
+            </div>
+            <h2>Axial for clearing secretions before scanning a patient. unenhanced chest CT image (lung We suggest considering this option in patients window settings) of the upper tra- with questionable endobronchial lesions if thi...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-18.png"
+      data-lightbox-alt="Figure 18"
+      data-lightbox-caption="Figure 18. Typical airway secre- studies exist that evaluate the utility of coughing tions in a 72-year-old man. Axial for clearing secretions before scanning a patient. unenhanced chest CT image (lung We suggest considering this option in patients window settings) of the upper tra- with questionable endobronchial lesions if this chea shows low-attenuation filling defects containing air bubbles (ar- option can avoid a more aggressive workup such rows) in the upper thoracic trachea. as a PET/CT examination. Maximum intensity projections, which should be part of any LCS CT protocol, or two-dimensional reformatted images tion in 3 months, or PET/CT if the nodule has can improve confidence that an apparent endo- a solid component measuring 8 mm or greater. bronchial nodule is mucus by showing a rectan- If these guidelines are strictly followed, patients gular configuration within an airway that paral- could end up being scanned every 3 months, lels the adjacent pulmonary artery. As with all because mucus plugs are common in smokers and patients, mucus plugs should also prompt one to former smokers, and new foci of plugging may be evaluate the affected airways to exclude a central found"
+      aria-label="Expand Figure 18"
+    >
+      <img src="assets/figure-18.png" alt="Figure 18">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-19">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 19</div>
+            </div>
+            <h2>Baseline LCS CT: Axial unenhanced chest CT image (narrow soft-tissue window settings) through the upper abdomen shows a low-attenuation mass (arrow) in the right hepatic lobe, a finding that prompted the use of the S...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-19.png"
+      data-lightbox-alt="Figure 19"
+      data-lightbox-caption="Figure 19. Hepatocellular carcinoma incidentally detected at LCS CT in a 71-year-old man. (a) Baseline LCS CT: Axial unenhanced chest CT image (narrow soft-tissue window settings) through the upper abdomen shows a low-attenuation mass (arrow) in the right hepatic lobe, a finding that prompted the use of the S modifier. (b) Subsequent axial contrast-enhanced T1-weighted magnetic resonance (MR) image helps confirms the enhancing mass (arrow)."
+      aria-label="Expand Figure 19"
+    >
+      <img src="assets/figure-19.png" alt="Figure 19">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-20">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 20</div>
+            </div>
+            <h2>Axial unenhanced CT image (soft-tissue retrospective study, investigators analyzed the window settings) of the upper abdomen shows a round, low- data of 17 309 participants of the NLST. attenuation left adrenal nodule...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-20.png"
+      data-lightbox-alt="Figure 20"
+      data-lightbox-caption="Figure 20. Adrenal adenoma incidentally detected at LCS CT baseline and 7.5% overall. In a more recent in a 60-year-old man. Axial unenhanced CT image (soft-tissue retrospective study, investigators analyzed the window settings) of the upper abdomen shows a round, low- data of 17 309 participants of the NLST. attenuation left adrenal nodule (arrow) with an appearance Of these participants, 58.7% of the patients had that is typical of a benign adenoma. The S modifier was not used, because benign adenomas are not considered clinically extrapulmonary findings (described as an abnor- important or potentially clinically important. mality beyond the lungs, pleura, chest wall, and hilar and mediastinal lymph nodes), and 19.6% had at least one finding that was considered po- modifier for “clinically significant or potentially tentially clinically important. Of those patients in clinically significant findings other than lung which the location of the abnormality was avail- cancer” detected at LCS CT. However, the term able (70%), these abnormalities were located in clinically significant or potentially clinically signifi- the following organs and systems: cardiovascular cant is no"
+      aria-label="Expand Figure 20"
+    >
+      <img src="assets/figure-20.png" alt="Figure 20">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-21">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 21</div>
+            </div>
+            <h2>Axial unenhanced chest CT image (lung window settings) shows a smoothly mar- ginated 7-mm solid nodule (arrow) in the right upper lobe.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-21.png"
+      data-lightbox-alt="Figure 21"
+      data-lightbox-caption="Figure 21. Indeterminate nodule in a 76-year-old man at baseline LCS CT. Axial unenhanced chest CT image (lung window settings) shows a smoothly mar- ginated 7-mm solid nodule (arrow) in the right upper lobe."
+      aria-label="Expand Figure 21"
+    >
+      <img src="assets/figure-21.png" alt="Figure 21">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-22">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 22</div>
+            </div>
+            <h2>Axial unen- the CT finding was classified as Lung-RADS hanced chest CT image (lung window category 3, and follow-up was recommended in 6 settings) of the right lung shows a nodular focus of consolidation (arrow) in th...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-22.png"
+      data-lightbox-alt="Figure 22"
+      data-lightbox-caption="Figure 22. Residua of infection in a 67-year-old man at LCS CT. Axial unen- the CT finding was classified as Lung-RADS hanced chest CT image (lung window category 3, and follow-up was recommended in 6 settings) of the right lung shows a nodular focus of consolidation (arrow) in the right months. Because the nodule did not change at the upper lobe. A recent chest radiograph follow-up examination, the patient was returned to (not shown) demonstrated more exten- annual screening. Should the next screening exam- sive consolidation in this region. ination be scheduled at 12 months from the origi- nal baseline LCS CT examination or at 12 months from the most recent LCS CT examination? general, patients with a recent respiratory tract Footnote 12 in Lung-RADS states, “Category infection should delay LCS for approximately 3 3 and 4A nodules that are unchanged on inter- months to ensure that any residual lung inflam- val CT should be coded as category 2, and in- mation has resolved. dividuals returned to screening in 12 months.” The Findings suggestive of infection or other in- time point from which the 12 months is counted flammatory processes are not addressed in Lung- is less clear. The"
+      aria-label="Expand Figure 22"
+    >
+      <img src="assets/figure-22.png" alt="Figure 22">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-23">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 23</div>
+            </div>
+            <h2>Axial un- enhanced chest CT image (lung evaluation is usually needed to establish an ac- window settings) of the left lung shows an 18-mm lobulated cavi- curate diagnosis (Fig 24). tary nodule (arrow) in the left up-...</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-23.png"
+      data-lightbox-alt="Figure 23"
+      data-lightbox-caption="Figure 23. Squamous cell car- cinoma of the lung in a 73-year- old asymptomatic man. Axial un- enhanced chest CT image (lung evaluation is usually needed to establish an ac- window settings) of the left lung shows an 18-mm lobulated cavi- curate diagnosis (Fig 24). tary nodule (arrow) in the left up- We suggest classifying and managing a solitary per lobe. It would be appropriate cavitary lung nodule at LCS CT as if it were a to classify this nodule as category solid nodule and appending the X modifier when 4B or category 4X, given the size, thick walls, and irregular inner mar- the suspicion for malignancy is high or the S mod- gins that make the cavitary nodule ifier if infection is suspected so that the appropri- highly suspicious for malignancy. ate workup can ensue. If multiple cavitary nodules are present, the S modifier would be the correct designation unless diffuse lung adenocarcinoma is tasis, infection, granulomatosis with polyangiitis, suspected, in which case the X modifier should be and pulmonary Langerhans cell histiocytosis. appended. If the S modifier is used, management Diffuse lung adenocarcinoma can manifest as and follow-up of these nodules should be pe"
+      aria-label="Expand Figure 23"
+    >
+      <img src="assets/figure-23.png" alt="Figure 23">
+    </button>
+  
+          </div>
+        </section>
+      
+
+        <section class="figure-panel" id="figure-24">
+          <div class="figure-copy">
+            <div class="figure-meta-row">
+              <div class="eyebrow">Figure 24</div>
+            </div>
+            <h2>Axial unenhanced chest CT image (lung window settings) of the right lung shows an irregular cavitary nodule (arrow) in the right lower lobe.</h2>
+          </div>
+          <div class="figure-image-wrap">
+            
+    <button
+      class="image-launch"
+      type="button"
+      data-lightbox-src="assets/figure-24.png"
+      data-lightbox-alt="Figure 24"
+      data-lightbox-caption="Figure 24. Pulmonary blastomycosis in a 44-year-old woman. Axial unenhanced chest CT image (lung window settings) of the right lung shows an irregular cavitary nodule (arrow) in the right lower lobe. The dominant nodule measured 20 mm. The presence of satellite airway-centric nodules makes infection a more likely cause. Al- though this case was not found in the setting of LCS, if similar findings were encountered at LCS, the Lung-RADS category should be based on the size of the largest nodule. The S modifier should be used, specifically stating that infection is suspected and that further evaluation is recom- mended to establish the diagnosis. Figure 23. Squamous cell car- cinoma of the lung in a 73-year- old asymptomatic man. Axial un- enhanced chest CT image (lung evaluation is usually needed to establish an ac- window settings) of the left lung shows an 18-mm lobulated cavi- curate diagnosis (Fig 24). tary nodule (arrow) in the left up- We suggest classifying and managing a solitary per lobe. It would be appropriate cavitary lung nodule at LCS CT as if it were a to classify this nodule as category solid nodule and appending the X modifier when 4B or category 4X, given th"
+      aria-label="Expand Figure 24"
+    >
+      <img src="assets/figure-24.png" alt="Figure 24">
+    </button>
+  
+          </div>
+        </section>
+      
+        </div>
+      </section>
+    </main>
+    <div class="lightbox" data-lightbox hidden>
+      <button class="lightbox-close" type="button" data-lightbox-close aria-label="Close expanded figure view">×</button>
+      <div class="lightbox-stage" role="dialog" aria-modal="true" aria-label="Expanded figure view">
+        <img data-lightbox-image alt="">
+        <div class="lightbox-caption" data-lightbox-caption></div>
+      </div>
+    </div>
+    
+    <script>
+      (function () {
+        const link = document.querySelector("[data-copy-src]");
+        if (link) {
+          const originalText = link.textContent;
+          link.addEventListener("click", async function (event) {
+            const src = link.getAttribute("data-copy-src");
+            if (!src) {
+              return;
+            }
+
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+              return;
+            }
+
+            event.preventDefault();
+            try {
+              const response = await fetch(src, { credentials: "same-origin" });
+              if (!response.ok) {
+                throw new Error("Copy source request failed.");
+              }
+              const text = await response.text();
+              await navigator.clipboard.writeText(text);
+              link.textContent = "Copied for Chat";
+              window.setTimeout(function () {
+                link.textContent = originalText;
+              }, 1800);
+            } catch (error) {
+              window.open(src, "_blank", "noopener");
+            }
+          });
+        }
+
+        const picker = document.querySelector("[data-figure-picker]");
+        if (picker) {
+          picker.querySelectorAll("a[href^='#']").forEach(function (anchor) {
+            anchor.addEventListener("click", function () {
+              picker.removeAttribute("open");
+            });
+          });
+        }
+
+        const lightbox = document.querySelector("[data-lightbox]");
+        if (!lightbox) {
+          return;
+        }
+
+        const lightboxImage = lightbox.querySelector("[data-lightbox-image]");
+        const lightboxCaption = lightbox.querySelector("[data-lightbox-caption]");
+        const lightboxStage = lightbox.querySelector(".lightbox-stage");
+        const lightboxClose = lightbox.querySelector("[data-lightbox-close]");
+
+        function closeLightbox() {
+          lightbox.hidden = true;
+          document.body.classList.remove("lightbox-open");
+          lightboxImage.removeAttribute("src");
+          lightboxImage.alt = "";
+          lightboxCaption.textContent = "";
+          lightbox.scrollTop = 0;
+        }
+
+        function openLightbox(trigger) {
+          const src = trigger.getAttribute("data-lightbox-src");
+          if (!src) {
+            return;
+          }
+
+          lightboxImage.src = src;
+          lightboxImage.alt = trigger.getAttribute("data-lightbox-alt") || "";
+          lightboxCaption.textContent = trigger.getAttribute("data-lightbox-caption") || "";
+          lightbox.hidden = false;
+          document.body.classList.add("lightbox-open");
+          lightbox.scrollTop = 0;
+        }
+
+        document.querySelectorAll("[data-lightbox-src]").forEach(function (trigger) {
+          trigger.addEventListener("click", function () {
+            openLightbox(trigger);
+          });
+        });
+
+        lightbox.addEventListener("click", closeLightbox);
+        if (lightboxStage) {
+          lightboxStage.addEventListener("click", function (event) {
+            event.stopPropagation();
+          });
+        }
+        if (lightboxClose) {
+          lightboxClose.addEventListener("click", function (event) {
+            event.stopPropagation();
+            closeLightbox();
+          });
+        }
+
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && !lightbox.hidden) {
+            closeLightbox();
+          }
+        });
+      })();
+    </script>
+  
+  </body>
+</html>
