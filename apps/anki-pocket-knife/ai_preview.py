@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import json
 import re
 from html import escape
 
@@ -189,7 +190,7 @@ class GeneratedCardsDialog(QDialog):
         toggle = _html_toggle([], self)
         layout.addWidget(toggle)
         layout.addWidget(_heading("Generated Cards", self))
-        hint = QLabel("Select a generated card, then copy it, add it now, or load it into the editor.")
+        hint = QLabel("Select a generated card, then copy or add it. For multi-card results, use Copy All or Add All Now.")
         hint.setWordWrap(True)
         layout.addWidget(hint)
         self.list_widget = QListWidget(self)
@@ -207,17 +208,25 @@ class GeneratedCardsDialog(QDialog):
         row.addStretch(1)
         dismiss = QPushButton("Dismiss", self)
         copy = QPushButton("Copy Selected", self)
+        copy_all = QPushButton("Copy All", self)
         add_now = QPushButton("Add Selected Now", self)
+        add_all = QPushButton("Add All Now", self)
         load = QPushButton("Load Selected Into Editor", self)
         row.addWidget(dismiss)
         row.addWidget(copy)
+        row.addWidget(copy_all)
         row.addWidget(add_now)
+        row.addWidget(add_all)
         row.addWidget(load)
         layout.addLayout(row)
+        copy_all.setEnabled(len(self.cards) > 1)
+        add_all.setEnabled(len(self.cards) > 1)
 
         dismiss.clicked.connect(self.close)
         copy.clicked.connect(self._copy_selected)
+        copy_all.clicked.connect(self._copy_all)
         add_now.clicked.connect(self._add_selected)
+        add_all.clicked.connect(self._add_all)
         load.clicked.connect(self._load_selected)
 
     def selected_card(self) -> str:
@@ -226,10 +235,23 @@ class GeneratedCardsDialog(QDialog):
             return self.cards[0] if self.cards else ""
         return str(item.data(256) or "")
 
+    def selected_cards(self) -> list[str]:
+        return [str(card or "") for card in self.cards if str(card or "").strip()]
+
     def _copy_selected(self) -> None:
         QApplication.clipboard().setText(self.selected_card())
         self.selected_action = "copy"
         self._mark_current_done()
+        if not callable(self.action_callback):
+            self.accept()
+
+    def _copy_all(self) -> None:
+        cards = self.selected_cards()
+        QApplication.clipboard().setText(json.dumps([{"html": card} for card in cards], ensure_ascii=False, indent=2))
+        self.selected_action = "copy_all"
+        self._mark_all_done("copied")
+        if not callable(self.action_callback):
+            self.accept()
 
     def _load_selected(self) -> None:
         self.selected_action = "load"
@@ -247,10 +269,24 @@ class GeneratedCardsDialog(QDialog):
         else:
             self.accept()
 
+    def _add_all(self) -> None:
+        self.selected_action = "add_all"
+        if callable(self.action_callback):
+            self.action_callback("add_all", self.selected_cards())
+            self._mark_all_done("added")
+        else:
+            self.accept()
+
     def _mark_current_done(self, label: str = "copied") -> None:
         item = self.list_widget.currentItem()
         if item is not None and not item.text().startswith("["):
             item.setText(f"[{label}] " + item.text())
+
+    def _mark_all_done(self, label: str = "copied") -> None:
+        for row in range(self.list_widget.count()):
+            item = self.list_widget.item(row)
+            if item is not None and not item.text().startswith("["):
+                item.setText(f"[{label}] " + item.text())
 
     def _refresh_card_labels(self) -> None:
         for row, card in enumerate(self.cards):

@@ -195,6 +195,7 @@ def bottom_bar_styles() -> str:
     /* the "Show Answer" button */
     #ansbut {
         width: %(answer_width)spx !important;
+        max-width: calc(100vw - 24px) !important;
         height: %(height)spx !important;
         min-height: %(height)spx !important;
         line-height: %(button_line_height)spx !important;
@@ -337,12 +338,26 @@ def _on_webview_will_set_content(web_content: Any, context: Any) -> None:
     const rect = showAnswer.getBoundingClientRect();
     window.pocketKnifeShowAnswerAnchor = {
       centerX: rect.left + (rect.width / 2),
-      top: rect.top
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight
     };
   }
+  window.pocketKnifeRememberShowAnswerAnchor = savePocketKnifeShowAnswerAnchor;
   savePocketKnifeShowAnswerAnchor();
   window.setTimeout(savePocketKnifeShowAnswerAnchor, 0);
   window.setTimeout(savePocketKnifeShowAnswerAnchor, 50);
+  window.addEventListener("resize", savePocketKnifeShowAnswerAnchor);
+  if (window.ResizeObserver) {
+    const showAnswer = document.querySelector("#ansbut");
+    if (showAnswer) {
+      window.pocketKnifeShowAnswerResizeObserver?.disconnect?.();
+      window.pocketKnifeShowAnswerResizeObserver = new ResizeObserver(savePocketKnifeShowAnswerAnchor);
+      window.pocketKnifeShowAnswerResizeObserver.observe(showAnswer);
+    }
+  }
 })();
 </script>
 """
@@ -411,6 +426,7 @@ def show_feedback_preview(ease: int = 3, *, period_ms: int = 900) -> None:
         "fontSize": king_answer_feedback_font_size(),
         "period": int(period_ms),
         "showAnswerWidth": 530,
+        "useShowAnswerWidth": king_answer_feedback_width() == 530,
     }
     bottom_web.eval(
         """
@@ -421,20 +437,35 @@ def show_feedback_preview(ease: int = 3, *, period_ms: int = 900) -> None:
           const showAnswer = document.querySelector("#ansbut");
           const middle = document.querySelector("#middle");
           const firstButton = document.querySelector("#middle button");
+          if (typeof window.pocketKnifeRememberShowAnswerAnchor === "function") {
+            window.pocketKnifeRememberShowAnswerAnchor();
+          }
           if (showAnswer) {
             const showRect = showAnswer.getBoundingClientRect();
             window.pocketKnifeShowAnswerAnchor = {
               centerX: showRect.left + (showRect.width / 2),
-              top: showRect.top
+              top: showRect.top,
+              width: showRect.width,
+              height: showRect.height,
+              viewportWidth: window.innerWidth,
+              viewportHeight: window.innerHeight
             };
           }
           const savedAnchor = window.pocketKnifeShowAnswerAnchor || null;
           const fallbackAnchor = middle || firstButton || document.body;
           const fallbackRect = fallbackAnchor.getBoundingClientRect();
-          const centerX = savedAnchor
+          const viewportChanged = savedAnchor
+            ? Math.abs((savedAnchor.viewportWidth || window.innerWidth) - window.innerWidth) > 2
+            : false;
+          const rawCenterX = savedAnchor && !viewportChanged
             ? savedAnchor.centerX
             : fallbackRect.left + (fallbackRect.width / 2);
-          const top = savedAnchor
+          const width = data.useShowAnswerWidth && savedAnchor && savedAnchor.width
+            ? Math.round(savedAnchor.width)
+            : data.width;
+          const clampedWidth = Math.max(1, Math.min(width, window.innerWidth - 24));
+          const centerX = Math.max(12 + (clampedWidth / 2), Math.min(rawCenterX, window.innerWidth - 12 - (clampedWidth / 2)));
+          const top = savedAnchor && !viewportChanged
             ? savedAnchor.top
             : Math.max(0, window.innerHeight - data.height - 6);
           const el = document.createElement("div");
@@ -445,7 +476,7 @@ def show_feedback_preview(ease: int = 3, *, period_ms: int = 900) -> None:
             left: `${centerX}px`,
             top: `${top}px`,
             transform: "translateX(-50%%)",
-            width: `${data.width}px`,
+            width: `${clampedWidth}px`,
             maxWidth: "calc(100vw - 24px)",
             height: `${data.height}px`,
             lineHeight: `${data.height}px`,

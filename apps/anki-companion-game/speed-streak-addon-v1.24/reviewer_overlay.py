@@ -164,7 +164,6 @@ class PausedAnswerKeyBlocker(QObject):
         self._owner = owner
 
     def eventFilter(self, watched: QObject, event: Any) -> bool:
-        del watched
         if event is None:
             return False
         try:
@@ -173,7 +172,7 @@ class PausedAnswerKeyBlocker(QObject):
             return False
         if event_type not in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride):
             return False
-        if not self._owner.should_block_answer_key_while_paused():
+        if not self._owner.should_block_answer_key_while_paused(watched):
             return False
         try:
             key = event.key()
@@ -630,12 +629,62 @@ class ReviewerOverlayController:
     def unpause_shortcut_display(self) -> str:
         return self.shortcut_label("unpause")
 
-    def should_block_answer_key_while_paused(self) -> bool:
-        return (
+    def should_block_answer_key_while_paused(self, event_target: QObject | None = None) -> bool:
+        active = (
             bool(self.block_answer_keys_while_paused)
             and getattr(mw, "state", "") == "review"
             and bool(getattr(self.engine.state, "paused", False))
         )
+        if not active or event_target is None:
+            return active
+        return self._is_review_key_block_context(event_target)
+
+    def _is_review_key_block_context(self, event_target: QObject) -> bool:
+        try:
+            active_window = QApplication.activeWindow()
+        except Exception:
+            active_window = None
+        if active_window is not None and active_window is not mw:
+            return False
+
+        reviewer = getattr(mw, "reviewer", None)
+        review_web = self._review_web or getattr(reviewer, "web", None)
+        bottom_web = getattr(getattr(reviewer, "bottom", None), "web", None)
+        if self._object_is_or_belongs_to(event_target, review_web):
+            return True
+        if self._object_is_or_belongs_to(event_target, bottom_web):
+            return True
+
+        try:
+            focus_widget = QApplication.focusWidget()
+        except Exception:
+            focus_widget = None
+        if focus_widget is not None:
+            return (
+                self._object_is_or_belongs_to(focus_widget, review_web)
+                or self._object_is_or_belongs_to(focus_widget, bottom_web)
+            )
+
+        return event_target is mw
+
+    def _object_is_or_belongs_to(self, child: QObject | None, parent: QObject | None) -> bool:
+        if child is None or parent is None:
+            return False
+        current = child
+        while current is not None:
+            if current is parent:
+                return True
+            try:
+                current = current.parent()
+            except Exception:
+                return False
+        if isinstance(child, QWidget) and isinstance(parent, QWidget):
+            widget = child
+            while widget is not None:
+                if widget is parent:
+                    return True
+                widget = widget.parentWidget()
+        return False
 
     def _install_paused_answer_key_blocker(self) -> None:
         if self._answer_key_blocker_app_installed:
