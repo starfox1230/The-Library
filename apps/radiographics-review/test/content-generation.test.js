@@ -139,6 +139,16 @@ test("reader lightbox includes close control and scrollable overlay", () => {
   assert.match(readerHtml, /\.lightbox-close\s*\{[\s\S]*position:\s*fixed;/i);
 });
 
+test("reader figure images remain real links with lightbox enhancement", () => {
+  const readerHtml = buildReaderHtml(mlmArticle);
+
+  assert.match(readerHtml, /<a\s+class="image-launch hero-image-button"\s+href="assets\/figure-01\.jpg"/i);
+  assert.match(readerHtml, /document\.querySelectorAll\("\.image-launch\[href\]"\)/i);
+  assert.match(readerHtml, /event\.preventDefault\(\);[\s\S]*openLightbox\(trigger\)/i);
+  assert.doesNotMatch(readerHtml, /<button\s+class="image-launch/i);
+  assert.doesNotMatch(readerHtml, /data-lightbox-src/i);
+});
+
 test("plain-text comparison thresholds survive study text cleanup", () => {
   const cleaned = cleanProseBlock(
     "At a low MI (<0.1), microbubbles oscillate; a higher MI (>0.5) destroys them.",

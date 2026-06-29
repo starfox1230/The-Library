@@ -93,19 +93,18 @@ function buildLightboxCaption(figure) {
   return figure.caption || figure.rawCaption || figure.teachingPoint || figure.label || "";
 }
 
-function buildImageButton(figure, className = "") {
+function buildImageLink(figure, className = "") {
   const classes = ["image-launch", className].filter(Boolean).join(" ");
   return `
-    <button
+    <a
       class="${classes}"
-      type="button"
-      data-lightbox-src="${escapeHtml(figure.relativeImagePath)}"
+      href="${escapeHtml(figure.relativeImagePath)}"
       data-lightbox-alt="${escapeHtml(figure.label || "Figure")}"
       data-lightbox-caption="${escapeHtml(buildLightboxCaption(figure))}"
-      aria-label="Expand ${escapeHtml(figure.label || "figure")}"
+      aria-label="Open ${escapeHtml(figure.label || "figure")}"
     >
       <img src="${escapeHtml(figure.relativeImagePath)}" alt="${escapeHtml(figure.label || "Figure")}">
-    </button>
+    </a>
   `;
 }
 
@@ -121,7 +120,7 @@ function buildFigureSections(figures) {
             <h2>${escapeHtml(figure.teachingPoint)}</h2>
           </div>
           <div class="figure-image-wrap">
-            ${buildImageButton(figure)}
+            ${buildImageLink(figure)}
           </div>
         </section>
       `,
@@ -213,7 +212,7 @@ function buildPageScript() {
         }
 
         function openLightbox(trigger) {
-          const src = trigger.getAttribute("data-lightbox-src");
+          const src = trigger.getAttribute("href");
           if (!src) {
             return;
           }
@@ -226,8 +225,9 @@ function buildPageScript() {
           lightbox.scrollTop = 0;
         }
 
-        document.querySelectorAll("[data-lightbox-src]").forEach(function (trigger) {
-          trigger.addEventListener("click", function () {
+        document.querySelectorAll(".image-launch[href]").forEach(function (trigger) {
+          trigger.addEventListener("click", function (event) {
+            event.preventDefault();
             openLightbox(trigger);
           });
         });
@@ -268,7 +268,7 @@ function buildReaderHtml(article) {
   const heroImageBlock = heroFigure
     ? `
       <div class="hero-visual">
-        ${buildImageButton(heroFigure, "hero-image-button")}
+        ${buildImageLink(heroFigure, "hero-image-button")}
         <div class="hero-caption">${escapeHtml(heroFigure.label)}</div>
       </div>
     `
@@ -462,6 +462,8 @@ function buildReaderHtml(article) {
         border: 0;
         background: transparent;
         cursor: zoom-in;
+        color: inherit;
+        text-decoration: none;
       }
       .hero-caption {
         margin-top: 10px;
