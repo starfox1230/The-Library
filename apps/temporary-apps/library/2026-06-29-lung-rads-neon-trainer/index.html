@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#050914" />
+  <title>Lung-RADS Neon Trainer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050914;
+      --panel: rgba(9, 18, 33, 0.86);
+      --panel-solid: #0a1423;
+      --panel-soft: rgba(16, 34, 54, 0.72);
+      --line: rgba(117, 238, 255, 0.18);
+      --line-hot: rgba(78, 249, 214, 0.58);
+      --text: #ecfbff;
+      --muted: #91aebe;
+      --dim: #5e7888;
+      --teal: #4ef9d6;
+      --cyan: #67c7ff;
+      --pink: #ff5fa2;
+      --amber: #ffd166;
+      --green: #7df2a6;
+      --red: #ff6b81;
+      --shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+      --radius: 8px;
+      --tap: 46px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 8%, rgba(78, 249, 214, 0.2), transparent 26rem),
+        radial-gradient(circle at 80% 18%, rgba(255, 95, 162, 0.14), transparent 24rem),
+        linear-gradient(180deg, #071020 0%, #050914 100%);
+      touch-action: manipulation;
+      overscroll-behavior-y: contain;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #fx {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .game {
+      position: relative;
+      z-index: 1;
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 18px);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 4px;
+      font-size: clamp(1.55rem, 7vw, 3rem);
+      line-height: 0.96;
+      letter-spacing: 0;
+      text-shadow: 0 0 22px rgba(78, 249, 214, 0.24);
+    }
+
+    .subtitle {
+      max-width: 68ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.35;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(76px, 1fr));
+      gap: 7px;
+      min-width: min(380px, 100%);
+    }
+
+    .hud-item {
+      min-height: 54px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(5, 9, 20, 0.62);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .hud-item span {
+      display: block;
+      color: var(--dim);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    .hud-item strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--teal);
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr) 300px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(14, 30, 49, 0.9), rgba(7, 15, 28, 0.9));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-inner {
+      padding: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .section-title h2,
+    .section-title h3 {
+      margin: 0;
+      font-size: 0.98rem;
+      letter-spacing: 0;
+    }
+
+    .tiny {
+      color: var(--dim);
+      font-size: 0.76rem;
+      line-height: 1.3;
+    }
+
+    .mode-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .mode-btn,
+    .stage-btn,
+    .answer-btn,
+    .mgmt-btn,
+    .control-btn {
+      min-height: var(--tap);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: rgba(5, 9, 20, 0.58);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, color 140ms ease;
+    }
+
+    .mode-btn:active,
+    .stage-btn:active,
+    .answer-btn:active,
+    .mgmt-btn:active,
+    .control-btn:active {
+      transform: scale(0.98);
+    }
+
+    .mode-btn.active,
+    .stage-btn.active,
+    .answer-btn.selected,
+    .mgmt-btn.selected {
+      border-color: transparent;
+      color: #031016;
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      box-shadow: 0 0 24px rgba(78, 249, 214, 0.18);
+    }
+
+    .stage-btn.active .stage-main strong,
+    .stage-btn.active .stage-main span {
+      color: #031016;
+    }
+
+    .stage-stack {
+      display: grid;
+      gap: 7px;
+    }
+
+    .stage-btn {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .stage-btn[disabled] {
+      opacity: 0.44;
+      cursor: not-allowed;
+    }
+
+    .stage-index {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      color: var(--bg);
+      background: var(--teal);
+      font-weight: 900;
+      font-size: 0.82rem;
+    }
+
+    .stage-main strong,
+    .stage-main span {
+      display: block;
+    }
+
+    .stage-main strong {
+      font-size: 0.87rem;
+    }
+
+    .stage-main span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.73rem;
+      line-height: 1.25;
+    }
+
+    .stage-meter {
+      width: 38px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .stage-fill {
+      display: block;
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .arena {
+      min-height: 620px;
+    }
+
+    .scan-card {
+      position: relative;
+      min-height: 236px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 76% 28%, rgba(103, 199, 255, 0.17), transparent 13rem),
+        linear-gradient(135deg, rgba(78, 249, 214, 0.1), rgba(255, 95, 162, 0.05));
+      overflow: hidden;
+    }
+
+    .scan-visual {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 150px;
+      height: 150px;
+      opacity: 0.95;
+    }
+
+    .scan-copy {
+      position: relative;
+      z-index: 2;
+      max-width: calc(100% - 138px);
+    }
+
+    .level-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(78, 249, 214, 0.34);
+      border-radius: 999px;
+      color: var(--teal);
+      background: rgba(5, 9, 20, 0.48);
+      font-size: 0.78rem;
+      font-weight: 780;
+    }
+
+    .prompt {
+      margin: 0 0 10px;
+      font-size: clamp(1.12rem, 4.6vw, 1.9rem);
+      line-height: 1.08;
+      font-weight: 880;
+    }
+
+    .lesson-line {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.38;
+    }
+
+    .choice-zone {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .answer-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .answer-btn {
+      min-height: 58px;
+      font-size: 1.08rem;
+      font-weight: 900;
+    }
+
+    .mgmt-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .mgmt-btn {
+      min-height: 58px;
+      padding: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 760;
+      line-height: 1.22;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .control-btn.primary {
+      border-color: transparent;
+      color: #031016;
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      font-weight: 900;
+    }
+
+    .control-btn.ghost {
+      color: var(--muted);
+    }
+
+    .feedback {
+      display: none;
+      margin: 0 12px 12px;
+      border: 1px solid var(--line-hot);
+      border-radius: var(--radius);
+      background: rgba(78, 249, 214, 0.08);
+      overflow: hidden;
+    }
+
+    .feedback.show {
+      display: block;
+    }
+
+    .feedback.bad {
+      border-color: rgba(255, 107, 129, 0.5);
+      background: rgba(255, 107, 129, 0.08);
+    }
+
+    .feedback-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 11px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .feedback-head strong {
+      color: var(--teal);
+    }
+
+    .feedback.bad .feedback-head strong {
+      color: var(--red);
+    }
+
+    .feedback-body {
+      display: grid;
+      gap: 8px;
+      padding: 10px 11px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .feedback-body b {
+      color: var(--text);
+    }
+
+    .mastery-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .mastery-row {
+      display: grid;
+      gap: 5px;
+    }
+
+    .mastery-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .bar {
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--pink));
+      transition: width 180ms ease;
+    }
+
+    .table-cards {
+      display: grid;
+      gap: 8px;
+      max-height: 570px;
+      overflow: auto;
+      padding-right: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: rgba(5, 9, 20, 0.44);
+    }
+
+    .table-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 6px;
+      color: var(--teal);
+      font-size: 0.92rem;
+    }
+
+    .cat-dot {
+      display: inline-grid;
+      place-items: center;
+      min-width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      color: #031016;
+      background: var(--green);
+      font-weight: 900;
+      font-size: 0.78rem;
+    }
+
+    .table-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.34;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 18px);
+      z-index: 4;
+      transform: translateX(-50%) translateY(24px);
+      opacity: 0;
+      min-width: min(320px, calc(100vw - 28px));
+      padding: 10px 12px;
+      border: 1px solid var(--line-hot);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: rgba(5, 9, 20, 0.94);
+      box-shadow: var(--shadow);
+      pointer-events: none;
+      transition: transform 180ms ease, opacity 180ms ease;
+      text-align: center;
+      font-size: 0.88rem;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .footer-note {
+      margin: 12px 2px 0;
+      color: var(--dim);
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 1040px) {
+      .layout {
+        grid-template-columns: 250px minmax(0, 1fr);
+      }
+
+      .right-panel {
+        grid-column: 1 / -1;
+      }
+
+      .table-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .hud {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .left-panel {
+        order: 2;
+      }
+
+      .arena {
+        order: 1;
+        min-height: 0;
+      }
+
+      .right-panel {
+        order: 3;
+      }
+
+      .stage-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stage-btn {
+        grid-template-columns: auto 1fr;
+      }
+
+      .stage-meter {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .answer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .mgmt-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .game {
+        padding-left: 9px;
+        padding-right: 9px;
+      }
+
+      .hud-item {
+        min-height: 49px;
+        padding: 7px;
+      }
+
+      .hud-item strong {
+        font-size: 0.95rem;
+      }
+
+      .scan-card {
+        min-height: 244px;
+        padding: 13px;
+      }
+
+      .scan-visual {
+        width: 104px;
+        height: 104px;
+        right: 8px;
+        top: 10px;
+      }
+
+      .scan-copy {
+        max-width: calc(100% - 74px);
+      }
+
+      .answer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .answer-btn {
+        min-height: 54px;
+      }
+
+      .mgmt-grid,
+      .control-row,
+      .mode-row,
+      .table-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mode-btn,
+      .stage-btn,
+      .answer-btn,
+      .mgmt-btn,
+      .control-btn,
+      .bar span,
+      .toast {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <main class="game">
+    <header class="topbar">
+      <div>
+        <h1>Lung-RADS Neon Trainer</h1>
+        <p class="subtitle">Classify screening LDCT findings under pressure, lock in the management interval, and build mastery one threshold at a time.</p>
+      </div>
+      <div class="hud" aria-label="Game status">
+        <div class="hud-item"><span>Score</span><strong id="scoreText">0</strong></div>
+        <div class="hud-item"><span>Streak</span><strong id="streakText">0</strong></div>
+        <div class="hud-item"><span>Mastery</span><strong id="masteryText">0%</strong></div>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel left-panel">
+        <div class="panel-inner">
+          <div class="section-title">
+            <h2>Run</h2>
+            <span class="tiny" id="modeNote">Learn path</span>
+          </div>
+          <div class="mode-row">
+            <button class="mode-btn active" id="learnMode" type="button">Learn</button>
+            <button class="mode-btn" id="reviewMode" type="button">Review All</button>
+          </div>
+          <div class="stage-stack" id="stageStack"></div>
+        </div>
+      </aside>
+
+      <section class="panel arena">
+        <div class="scan-card">
+          <svg class="scan-visual" viewBox="0 0 180 180" role="img" aria-label="Stylized low-dose chest scan">
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <circle cx="90" cy="90" r="74" fill="rgba(5,9,20,.52)" stroke="rgba(103,199,255,.45)" stroke-width="2" />
+            <path d="M76 43 C51 62 45 113 61 139 C73 154 88 132 85 94 C84 71 88 53 76 43Z" fill="none" stroke="#67c7ff" stroke-width="3" filter="url(#glow)" />
+            <path d="M104 43 C129 62 135 113 119 139 C107 154 92 132 95 94 C96 71 92 53 104 43Z" fill="none" stroke="#4ef9d6" stroke-width="3" filter="url(#glow)" />
+            <circle id="nodulePulse" cx="118" cy="88" r="8" fill="#ff5fa2" opacity=".88" filter="url(#glow)" />
+            <path d="M50 90 H130 M90 35 V145" stroke="rgba(236,251,255,.12)" stroke-width="1" />
+          </svg>
+          <div class="scan-copy">
+            <div class="level-chip" id="levelChip">Basics</div>
+            <p class="prompt" id="promptText">Loading case...</p>
+            <p class="lesson-line" id="lessonText">Pick the category and the follow-up recommendation.</p>
+          </div>
+        </div>
+
+        <div class="choice-zone">
+          <div>
+            <div class="section-title">
+              <h2>1. Category</h2>
+              <span class="tiny">Lung-RADS score</span>
+            </div>
+            <div class="answer-grid" id="categoryChoices"></div>
+          </div>
+
+          <div>
+            <div class="section-title">
+              <h2>2. Management</h2>
+              <span class="tiny">Next action</span>
+            </div>
+            <div class="mgmt-grid" id="managementChoices"></div>
+          </div>
+
+          <div class="control-row">
+            <button class="control-btn primary" id="submitBtn" type="button">Lock Answer</button>
+            <button class="control-btn ghost" id="nextBtn" type="button">Skip / Next</button>
+          </div>
+        </div>
+
+        <div class="feedback" id="feedback">
+          <div class="feedback-head">
+            <strong id="feedbackTitle">Correct</strong>
+            <span class="tiny" id="feedbackReward">+100</span>
+          </div>
+          <div class="feedback-body">
+            <div id="feedbackAnswer"></div>
+            <div id="feedbackRationale"></div>
+            <div id="feedbackHook"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel right-panel">
+        <div class="panel-inner">
+          <div class="section-title">
+            <h2>Neon Table</h2>
+            <span class="tiny">Quick memory sheet</span>
+          </div>
+          <div class="mastery-list" id="masteryList"></div>
+        </div>
+        <div class="panel-inner">
+          <div class="table-cards" id="tableCards"></div>
+        </div>
+      </aside>
+    </section>
+
+    <p class="footer-note">Educational reference based on ACR Lung-RADS v2022 assessment categories. This game is for memorization support and does not replace local policy, clinical judgment, or formal reporting guidance.</p>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = "lung-rads-neon-trainer-v1";
+    const CATEGORIES = ["0", "1", "2", "3", "4A", "4B", "4X"];
+    const MANAGEMENT = [
+      { id: "prior", label: "Prior / needed imaging or 1-3 mo LDCT" },
+      { id: "12mo", label: "Annual screening LDCT in 12 mo" },
+      { id: "6mo", label: "6 mo LDCT" },
+      { id: "3mo", label: "3 mo LDCT, PET/CT if solid part >=8 mm" },
+      { id: "workup", label: "Diagnostic CT / PET / tissue / referral" },
+      { id: "high", label: "Highly suspicious tailored workup" }
+    ];
+
+    const STAGES = [
+      { id: "basics", name: "Basics", blurb: "0, 1, 2, S modifier, infection bucket", target: 4 },
+      { id: "solid", name: "Solid", blurb: "Baseline, new, and growing solid thresholds", target: 7 },
+      { id: "subsolid", name: "Subsolid", blurb: "Part-solid and ground-glass nodules", target: 7 },
+      { id: "airway", name: "Airway + Cysts", blurb: "Airway nodules, atypical cysts, 4X", target: 6 },
+      { id: "boss", name: "Full Table", blurb: "Mixed cases from every bucket", target: 10 }
+    ];
+
+    const CASES = [
+      {
+        id: "basic-negative",
+        stage: "basics",
+        prompt: "Screening LDCT shows no pulmonary nodules.",
+        category: "1",
+        management: "12mo",
+        lesson: "Start with the negative bucket before chasing thresholds.",
+        rationale: "No nodules is Lung-RADS 1.",
+        hook: "1 means clean screen: annual LDCT."
+      },
+      {
+        id: "basic-fat",
+        stage: "basics",
+        prompt: "A small nodule contains macroscopic fat compatible with hamartoma.",
+        category: "1",
+        management: "12mo",
+        lesson: "Definitely benign calcification or fat exits the size game.",
+        rationale: "Macroscopic fat is a definitely benign feature.",
+        hook: "Fat or classic benign calcification: do not over-score it."
+      },
+      {
+        id: "basic-perifissural",
+        stage: "basics",
+        prompt: "Smooth triangular perifissural solid nodule measures 8 mm.",
+        category: "2",
+        management: "12mo",
+        lesson: "Benign juxtapleural morphology has its own shortcut.",
+        rationale: "Smooth solid juxtapleural or perifissural nodules under 10 mm are category 2.",
+        hook: "Perifissural under 10 mm gets the annual lane."
+      },
+      {
+        id: "basic-prior",
+        stage: "basics",
+        prompt: "A nodule is present, but the report cannot be completed without comparison to a prior CT.",
+        category: "0",
+        management: "prior",
+        lesson: "Category 0 is a temporary sorting bin.",
+        rationale: "Incomplete evaluation or needed prior comparison is category 0.",
+        hook: "0 means pause and complete the dataset."
+      },
+      {
+        id: "basic-infection",
+        stage: "basics",
+        prompt: "New patchy consolidation and more than six new nodules suggest infection or inflammation.",
+        category: "0",
+        management: "prior",
+        lesson: "Indeterminate inflammatory patterns should not be forced into the nodule table.",
+        rationale: "Suspected infection or inflammation can be category 0 with short interval LDCT.",
+        hook: "Inflammation cloud: 0 and 1-3 month cleanup scan."
+      },
+      {
+        id: "solid-base-5",
+        stage: "solid",
+        prompt: "Baseline solid pulmonary nodule measures 5.4 mm mean diameter.",
+        category: "2",
+        management: "12mo",
+        lesson: "Solid baseline nodules start positive at 6 mm.",
+        rationale: "Baseline solid nodule under 6 mm is category 2.",
+        hook: "Baseline solid under 6: annual."
+      },
+      {
+        id: "solid-base-65",
+        stage: "solid",
+        prompt: "Baseline solid pulmonary nodule measures 6.5 mm mean diameter.",
+        category: "3",
+        management: "6mo",
+        lesson: "The first solid positive screen is 6 to under 8 mm.",
+        rationale: "Baseline solid nodule 6 to under 8 mm is category 3.",
+        hook: "6 to 8: category 3, six-month scan."
+      },
+      {
+        id: "solid-base-10",
+        stage: "solid",
+        prompt: "Baseline solid pulmonary nodule measures 10 mm mean diameter.",
+        category: "4A",
+        management: "3mo",
+        lesson: "Baseline solid 8 to under 15 mm moves to 4A.",
+        rationale: "Baseline solid nodule 8 to under 15 mm is category 4A.",
+        hook: "8 to 15: 4A and 3 months."
+      },
+      {
+        id: "solid-base-16",
+        stage: "solid",
+        prompt: "Baseline solid pulmonary nodule measures 16 mm mean diameter.",
+        category: "4B",
+        management: "workup",
+        lesson: "Large baseline solid nodules skip short surveillance.",
+        rationale: "Baseline solid nodule at least 15 mm is category 4B.",
+        hook: "15 is the 4B baseline wall."
+      },
+      {
+        id: "solid-new-3",
+        stage: "solid",
+        prompt: "New solid pulmonary nodule measures 3 mm mean diameter.",
+        category: "2",
+        management: "12mo",
+        lesson: "New solid nodules use lower thresholds.",
+        rationale: "New solid nodule under 4 mm is category 2.",
+        hook: "New solid under 4: still annual."
+      },
+      {
+        id: "solid-new-5",
+        stage: "solid",
+        prompt: "New solid pulmonary nodule measures 5 mm mean diameter.",
+        category: "3",
+        management: "6mo",
+        lesson: "New solid 4 to under 6 mm is category 3.",
+        rationale: "New solid nodule 4 to under 6 mm is category 3.",
+        hook: "New 4 to 6: category 3."
+      },
+      {
+        id: "solid-new-7",
+        stage: "solid",
+        prompt: "New solid pulmonary nodule measures 7 mm mean diameter.",
+        category: "4A",
+        management: "3mo",
+        lesson: "New solid 6 to under 8 mm is 4A.",
+        rationale: "New solid nodule 6 to under 8 mm is category 4A.",
+        hook: "New 6 to 8: 4A."
+      },
+      {
+        id: "solid-new-9",
+        stage: "solid",
+        prompt: "New solid pulmonary nodule measures 9 mm mean diameter.",
+        category: "4B",
+        management: "workup",
+        lesson: "New or growing solid nodules hit 4B at 8 mm.",
+        rationale: "New solid nodule at least 8 mm is category 4B.",
+        hook: "New 8 or more: workup."
+      },
+      {
+        id: "solid-grow-7",
+        stage: "solid",
+        prompt: "Solid nodule has grown and now measures 7 mm mean diameter.",
+        category: "4A",
+        management: "3mo",
+        lesson: "Growing solid nodules under 8 mm are 4A.",
+        rationale: "Growing solid nodule under 8 mm is category 4A.",
+        hook: "Growing but under 8: 4A."
+      },
+      {
+        id: "solid-grow-9",
+        stage: "solid",
+        prompt: "Solid nodule has grown and now measures 9 mm mean diameter.",
+        category: "4B",
+        management: "workup",
+        lesson: "Growing solid reaches 4B at 8 mm.",
+        rationale: "Growing solid nodule at least 8 mm is category 4B.",
+        hook: "Growing 8 or more: 4B."
+      },
+      {
+        id: "ps-base-small",
+        stage: "subsolid",
+        prompt: "Baseline part-solid nodule measures 5 mm total diameter.",
+        category: "2",
+        management: "12mo",
+        lesson: "Part-solid total size under 6 mm is low risk at baseline.",
+        rationale: "Baseline part-solid nodule under 6 mm total diameter is category 2.",
+        hook: "Part-solid under 6 at baseline: annual."
+      },
+      {
+        id: "ps-solid-3",
+        stage: "subsolid",
+        prompt: "Part-solid nodule measures 9 mm total with a 3 mm solid component.",
+        category: "3",
+        management: "6mo",
+        lesson: "For part-solid nodules at least 6 mm, the solid component drives the category.",
+        rationale: "Part-solid nodule with solid component under 6 mm is category 3.",
+        hook: "Solid part under 6: category 3."
+      },
+      {
+        id: "ps-solid-65",
+        stage: "subsolid",
+        prompt: "Part-solid nodule has a 6.5 mm solid component.",
+        category: "4A",
+        management: "3mo",
+        lesson: "Solid component 6 to under 8 mm is 4A.",
+        rationale: "Part-solid nodule with solid component 6 to under 8 mm is category 4A.",
+        hook: "Part-solid 6 to 8 solid core: 4A."
+      },
+      {
+        id: "ps-solid-8",
+        stage: "subsolid",
+        prompt: "Part-solid nodule has an 8 mm solid component.",
+        category: "4B",
+        management: "workup",
+        lesson: "A solid component at least 8 mm is very suspicious.",
+        rationale: "Part-solid nodule with solid component at least 8 mm is category 4B.",
+        hook: "8 mm solid core: 4B."
+      },
+      {
+        id: "ps-new-small",
+        stage: "subsolid",
+        prompt: "New part-solid nodule measures 5 mm total diameter.",
+        category: "3",
+        management: "6mo",
+        lesson: "New part-solid under 6 mm is still positive.",
+        rationale: "New part-solid nodule under 6 mm total diameter is category 3.",
+        hook: "New part-solid under 6: category 3."
+      },
+      {
+        id: "ps-new-core-3",
+        stage: "subsolid",
+        prompt: "Part-solid nodule has a new 3 mm solid component.",
+        category: "4A",
+        management: "3mo",
+        lesson: "A new or growing solid component is more concerning than the same size at baseline.",
+        rationale: "New or growing solid component under 4 mm is category 4A.",
+        hook: "New solid core under 4: 4A."
+      },
+      {
+        id: "ps-new-core-4",
+        stage: "subsolid",
+        prompt: "Part-solid nodule has a new 4 mm solid component.",
+        category: "4B",
+        management: "workup",
+        lesson: "New or growing solid component reaches 4B at 4 mm.",
+        rationale: "New or growing solid component at least 4 mm is category 4B.",
+        hook: "New solid core 4 or more: 4B."
+      },
+      {
+        id: "ggn-20",
+        stage: "subsolid",
+        prompt: "Baseline non-solid ground-glass nodule measures 20 mm.",
+        category: "2",
+        management: "12mo",
+        lesson: "Ground-glass nodules are handled differently from solid nodules.",
+        rationale: "Baseline non-solid nodule under 30 mm is category 2.",
+        hook: "GGN under 30: annual."
+      },
+      {
+        id: "ggn-32",
+        stage: "subsolid",
+        prompt: "Baseline non-solid ground-glass nodule measures 32 mm.",
+        category: "3",
+        management: "6mo",
+        lesson: "Large baseline or new ground-glass nodules enter category 3.",
+        rationale: "Baseline or new non-solid nodule at least 30 mm is category 3.",
+        hook: "GGN 30 or more: category 3."
+      },
+      {
+        id: "airway-sub",
+        stage: "airway",
+        prompt: "Subsegmental airway nodule is seen on screening LDCT.",
+        category: "2",
+        management: "12mo",
+        lesson: "Airway location matters.",
+        rationale: "Subsegmental airway nodules are category 2.",
+        hook: "Subsegmental airway: annual."
+      },
+      {
+        id: "airway-central",
+        stage: "airway",
+        prompt: "Segmental endobronchial nodule is newly detected.",
+        category: "4A",
+        management: "3mo",
+        lesson: "Segmental or more proximal airway nodules start suspicious.",
+        rationale: "Segmental or more proximal airway nodule at baseline or new detection is category 4A.",
+        hook: "Central airway first look: 4A."
+      },
+      {
+        id: "airway-persistent",
+        stage: "airway",
+        prompt: "Segmental airway nodule persists on 3-month follow-up.",
+        category: "4B",
+        management: "workup",
+        lesson: "Persistent central airway lesions leave the 4A holding pattern.",
+        rationale: "Persistent segmental or more proximal airway nodule is category 4B.",
+        hook: "Persistent central airway: 4B."
+      },
+      {
+        id: "cyst-thick",
+        stage: "airway",
+        prompt: "Thick-walled cystic lung lesion is present at baseline.",
+        category: "4A",
+        management: "3mo",
+        lesson: "Atypical cysts have their own lane.",
+        rationale: "Thick-walled cyst at baseline is category 4A.",
+        hook: "Thick wall at baseline: 4A."
+      },
+      {
+        id: "cyst-growth",
+        stage: "airway",
+        prompt: "Thick-walled cyst shows growth of the cystic component only.",
+        category: "3",
+        management: "6mo",
+        lesson: "Cystic expansion alone is not the same as wall or nodular growth.",
+        rationale: "Growing cystic component of a thick-walled cyst is category 3.",
+        hook: "Cyst gets bigger only: category 3."
+      },
+      {
+        id: "cyst-wall-growth",
+        stage: "airway",
+        prompt: "Atypical cyst develops increased wall nodularity and new adjacent opacity.",
+        category: "4B",
+        management: "workup",
+        lesson: "Wall, nodular, loculation, or opacity progression is high concern.",
+        rationale: "Atypical cyst with wall/nodular progression or new opacity is category 4B.",
+        hook: "Cyst wall gets mean: 4B."
+      },
+      {
+        id: "x-spiculation",
+        stage: "airway",
+        prompt: "A 7 mm solid nodule has spiculated margins.",
+        category: "4X",
+        management: "high",
+        lesson: "4X is for extra suspicious features on a category 3 or 4 nodule.",
+        rationale: "Spiculation upgrades a suspicious nodule pattern to 4X.",
+        hook: "X means extra suspicious."
+      },
+      {
+        id: "x-nodes",
+        stage: "airway",
+        prompt: "A category 4A nodule is accompanied by suspicious mediastinal lymphadenopathy.",
+        category: "4X",
+        management: "high",
+        lesson: "Nodes or metastatic features can push the case to 4X.",
+        rationale: "Additional suspicious imaging features upgrade category 3 or 4 nodules to 4X.",
+        hook: "Nodule plus suspicious nodes: 4X."
+      }
+    ];
+
+    const TABLE_CARDS = [
+      ["0", "Incomplete: prior needed, incomplete lungs, or indeterminate infection/inflammation. Compare priors, obtain needed imaging, or 1-3 month LDCT."],
+      ["1", "Negative: no nodules or definitely benign fat/calcification. Annual screening LDCT."],
+      ["2", "Benign: baseline solid <6, new solid <4, baseline part-solid <6, GGN <30, subsegmental airway, or benign perifissural <10. Annual LDCT."],
+      ["3", "Probably benign: baseline solid 6-<8, new solid 4-<6, part-solid solid part <6, new part-solid <6, GGN >=30, cystic growth only. 6 month LDCT."],
+      ["4A", "Suspicious: baseline solid 8-<15, growing solid <8, new solid 6-<8, part-solid solid 6-<8, new/growing solid part <4, central airway baseline, thick-walled cyst. 3 month LDCT."],
+      ["4B", "Very suspicious: baseline solid >=15, new/growing solid >=8, part-solid solid >=8, new/growing solid part >=4, persistent central airway, progressive atypical cyst. Workup."],
+      ["4X", "Category 3 or 4 finding plus extra suspicious features such as spiculation, lymphadenopathy, or metastatic disease. Tailored high-suspicion workup."]
+    ];
+
+    const state = {
+      mode: "learn",
+      stage: "basics",
+      current: null,
+      selectedCategory: null,
+      selectedManagement: null,
+      answered: false,
+      score: 0,
+      streak: 0,
+      seen: 0,
+      correct: 0,
+      weakQueue: [],
+      stageWins: {},
+      mastery: {}
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        state.score = saved.score || 0;
+        state.stageWins = saved.stageWins || {};
+        state.mastery = saved.mastery || {};
+      } catch {
+        state.score = 0;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        score: state.score,
+        stageWins: state.stageWins,
+        mastery: state.mastery
+      }));
+    }
+
+    function unlockedStage(stageId) {
+      if (state.mode === "review") return true;
+      const index = STAGES.findIndex((stage) => stage.id === stageId);
+      if (index <= 0) return true;
+      return STAGES.slice(0, index).every((stage) => (state.stageWins[stage.id] || 0) >= stage.target);
+    }
+
+    function stageCases(stageId) {
+      if (stageId === "boss" || state.mode === "review") return CASES;
+      return CASES.filter((item) => item.stage === stageId);
+    }
+
+    function weightedCase() {
+      if (state.weakQueue.length && Math.random() < 0.45) {
+        const weakId = state.weakQueue.shift();
+        const weak = CASES.find((item) => item.id === weakId);
+        if (weak) return weak;
+      }
+      const pool = stageCases(state.stage);
+      const weighted = [];
+      pool.forEach((item) => {
+        const m = state.mastery[item.id] || 0;
+        const weight = Math.max(1, 5 - m);
+        for (let i = 0; i < weight; i += 1) weighted.push(item);
+      });
+      return weighted[Math.floor(Math.random() * weighted.length)] || pool[0] || CASES[0];
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      $("learnMode").classList.toggle("active", mode === "learn");
+      $("reviewMode").classList.toggle("active", mode === "review");
+      $("modeNote").textContent = mode === "learn" ? "Learn path" : "Full table";
+      if (mode === "review") state.stage = "boss";
+      if (mode === "learn" && !unlockedStage(state.stage)) state.stage = "basics";
+      renderStages();
+      nextCase();
+    }
+
+    function setStage(stageId) {
+      if (!unlockedStage(stageId)) {
+        toast("Clear earlier modules to unlock this run.");
+        return;
+      }
+      state.stage = stageId;
+      if (stageId !== "boss") setMode("learn");
+      renderStages();
+      nextCase();
+    }
+
+    function renderStages() {
+      $("stageStack").innerHTML = "";
+      STAGES.forEach((stage, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `stage-btn ${state.stage === stage.id ? "active" : ""}`;
+        btn.disabled = !unlockedStage(stage.id);
+        btn.innerHTML = `
+          <span class="stage-index">${index + 1}</span>
+          <span class="stage-main"><strong>${stage.name}</strong><span>${stage.blurb}</span></span>
+          <span class="stage-meter"><span class="stage-fill" style="width:${stageProgress(stage)}%"></span></span>
+        `;
+        btn.addEventListener("click", () => setStage(stage.id));
+        $("stageStack").appendChild(btn);
+      });
+    }
+
+    function stageProgress(stage) {
+      const wins = state.stageWins[stage.id] || 0;
+      return Math.min(100, Math.round((wins / stage.target) * 100));
+    }
+
+    function renderChoices() {
+      $("categoryChoices").innerHTML = "";
+      CATEGORIES.forEach((cat) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "answer-btn";
+        btn.textContent = cat;
+        btn.addEventListener("click", () => {
+          if (state.answered) return;
+          state.selectedCategory = cat;
+          document.querySelectorAll(".answer-btn").forEach((item) => item.classList.remove("selected"));
+          btn.classList.add("selected");
+        });
+        $("categoryChoices").appendChild(btn);
+      });
+
+      $("managementChoices").innerHTML = "";
+      MANAGEMENT.forEach((item) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mgmt-btn";
+        btn.textContent = item.label;
+        btn.addEventListener("click", () => {
+          if (state.answered) return;
+          state.selectedManagement = item.id;
+          document.querySelectorAll(".mgmt-btn").forEach((el) => el.classList.remove("selected"));
+          btn.classList.add("selected");
+        });
+        $("managementChoices").appendChild(btn);
+      });
+    }
+
+    function renderTable() {
+      $("tableCards").innerHTML = "";
+      TABLE_CARDS.forEach(([cat, text]) => {
+        const card = document.createElement("article");
+        card.className = "table-card";
+        card.innerHTML = `<h3><span class="cat-dot">${cat}</span> Lung-RADS ${cat}</h3><p>${text}</p>`;
+        $("tableCards").appendChild(card);
+      });
+    }
+
+    function renderMastery() {
+      const groups = STAGES.map((stage) => {
+        const cases = stageCases(stage.id);
+        const total = cases.reduce((sum, item) => sum + Math.min(4, state.mastery[item.id] || 0), 0);
+        const max = cases.length * 4 || 1;
+        return { name: stage.name, percent: Math.round((total / max) * 100) };
+      });
+      $("masteryList").innerHTML = "";
+      groups.forEach((group) => {
+        const row = document.createElement("div");
+        row.className = "mastery-row";
+        row.innerHTML = `
+          <div class="mastery-label"><span>${group.name}</span><span>${group.percent}%</span></div>
+          <div class="bar"><span style="width:${group.percent}%"></span></div>
+        `;
+        $("masteryList").appendChild(row);
+      });
+      const overall = Math.round(groups.reduce((sum, item) => sum + item.percent, 0) / groups.length);
+      $("masteryText").textContent = `${overall}%`;
+    }
+
+    function nextCase() {
+      state.current = weightedCase();
+      state.selectedCategory = null;
+      state.selectedManagement = null;
+      state.answered = false;
+      $("feedback").className = "feedback";
+      $("levelChip").textContent = `${state.mode === "review" ? "Review All" : STAGES.find((s) => s.id === state.stage).name}`;
+      $("promptText").textContent = state.current.prompt;
+      $("lessonText").textContent = state.current.lesson;
+      document.querySelectorAll(".answer-btn, .mgmt-btn").forEach((btn) => btn.classList.remove("selected"));
+      pulseNodule();
+    }
+
+    function submitAnswer() {
+      if (state.answered) {
+        nextCase();
+        return;
+      }
+      if (!state.selectedCategory || !state.selectedManagement) {
+        toast("Pick both a category and management.");
+        return;
+      }
+      const item = state.current;
+      const catOk = state.selectedCategory === item.category;
+      const mgmtOk = state.selectedManagement === item.management;
+      const correct = catOk && mgmtOk;
+      state.answered = true;
+      state.seen += 1;
+
+      let reward = 0;
+      if (correct) {
+        reward = 100 + Math.min(100, state.streak * 10);
+        state.streak += 1;
+        state.correct += 1;
+        state.mastery[item.id] = Math.min(4, (state.mastery[item.id] || 0) + 1);
+        state.stageWins[item.stage] = (state.stageWins[item.stage] || 0) + 1;
+        if (state.stage === "boss") state.stageWins.boss = (state.stageWins.boss || 0) + 1;
+        burstParticles(true);
+      } else {
+        reward = catOk || mgmtOk ? 35 : 0;
+        state.streak = 0;
+        state.mastery[item.id] = Math.max(0, (state.mastery[item.id] || 0) - 1);
+        state.weakQueue.push(item.id, item.id);
+        burstParticles(false);
+      }
+      state.score += reward;
+      saveState();
+      renderHud();
+      renderStages();
+      renderMastery();
+      showFeedback(correct, catOk, mgmtOk, reward);
+    }
+
+    function showFeedback(correct, catOk, mgmtOk, reward) {
+      const item = state.current;
+      const chosenMgmt = MANAGEMENT.find((entry) => entry.id === state.selectedManagement)?.label || "none";
+      const trueMgmt = MANAGEMENT.find((entry) => entry.id === item.management)?.label || item.management;
+      $("feedback").className = `feedback show ${correct ? "" : "bad"}`;
+      $("feedbackTitle").textContent = correct ? "Clean read" : "Recalibrate";
+      $("feedbackReward").textContent = `+${reward}`;
+      $("feedbackAnswer").innerHTML = `<b>Answer:</b> Lung-RADS ${item.category}; ${trueMgmt}.`;
+      $("feedbackRationale").innerHTML = `<b>Why:</b> ${item.rationale}`;
+      $("feedbackHook").innerHTML = `<b>Memory:</b> ${item.hook}${correct ? "" : ` Your pick was ${state.selectedCategory} / ${chosenMgmt}.`}`;
+    }
+
+    function renderHud() {
+      $("scoreText").textContent = state.score.toLocaleString();
+      $("streakText").textContent = state.streak;
+      renderMastery();
+    }
+
+    function toast(message) {
+      $("toast").textContent = message;
+      $("toast").classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => $("toast").classList.remove("show"), 1300);
+    }
+
+    function pulseNodule() {
+      const node = $("nodulePulse");
+      const map = {
+        basics: ["118", "88", "8"],
+        solid: ["120", "91", "10"],
+        subsolid: ["68", "96", "11"],
+        airway: ["98", "63", "7"],
+        boss: ["115", "104", "12"]
+      };
+      const values = map[state.current.stage] || map.basics;
+      node.setAttribute("cx", values[0]);
+      node.setAttribute("cy", values[1]);
+      node.setAttribute("r", values[2]);
+    }
+
+    const fx = (() => {
+      const canvas = $("fx");
+      const ctx = canvas.getContext("2d", { alpha: true });
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const particles = [];
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let last = 0;
+
+      function resize() {
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seed();
+      }
+
+      function seed() {
+        particles.length = 0;
+        const count = reduced ? 0 : Math.min(width < 600 ? 42 : 76, Math.floor((width * height) / 13000));
+        for (let i = 0; i < count; i += 1) {
+          particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 12,
+            vy: (Math.random() - 0.5) * 12,
+            r: 1 + Math.random() * 2,
+            hue: Math.random() < 0.7 ? "78,249,214" : "255,95,162",
+            life: 0.45 + Math.random() * 0.55
+          });
+        }
+      }
+
+      function burst(ok) {
+        if (reduced) return;
+        const extra = width < 600 ? 12 : 22;
+        const x = width * 0.5;
+        const y = height * 0.36;
+        for (let i = 0; i < extra; i += 1) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 48 + Math.random() * 92;
+          particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            r: 1.5 + Math.random() * 2.7,
+            hue: ok ? "78,249,214" : "255,107,129",
+            life: 1
+          });
+        }
+        if (particles.length > 120) particles.splice(0, particles.length - 120);
+      }
+
+      function draw(now) {
+        const dt = Math.min(0.033, (now - last) / 1000 || 0.016);
+        last = now;
+        ctx.clearRect(0, 0, width, height);
+        ctx.globalCompositeOperation = "lighter";
+        particles.forEach((p) => {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.992;
+          p.vy *= 0.992;
+          p.life *= 0.997;
+          if (p.x < -20) p.x = width + 20;
+          if (p.x > width + 20) p.x = -20;
+          if (p.y < -20) p.y = height + 20;
+          if (p.y > height + 20) p.y = -20;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(${p.hue},${Math.max(0.08, p.life * 0.42)})`;
+          ctx.shadowColor = `rgba(${p.hue},0.55)`;
+          ctx.shadowBlur = 12;
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = "source-over";
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener("resize", resize, { passive: true });
+      resize();
+      requestAnimationFrame(draw);
+      return { burst };
+    })();
+
+    function burstParticles(ok) {
+      fx.burst(ok);
+    }
+
+    $("learnMode").addEventListener("click", () => setMode("learn"));
+    $("reviewMode").addEventListener("click", () => setMode("review"));
+    $("submitBtn").addEventListener("click", submitAnswer);
+    $("nextBtn").addEventListener("click", nextCase);
+
+    loadState();
+    renderChoices();
+    renderTable();
+    renderStages();
+    renderHud();
+    nextCase();
+  </script>
+</body>
+</html>
