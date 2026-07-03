@@ -91,8 +91,25 @@ def deck_date_label(days_ago: int, selected_date: date) -> str:
     return selected_date.isoformat()
 
 
+def deck_date_range_label(start_date: date, end_date: date, today_date: date) -> str:
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    if start_date == end_date:
+        return deck_date_label(days_ago_for_date(start_date, today_date), start_date)
+    return f"{start_date.isoformat()} to {end_date.isoformat()}"
+
+
 def target_deck_names(days_ago: int, selected_date: date) -> dict[str, str]:
     label = deck_date_label(days_ago, selected_date)
+    return {
+        "audio": f"..Due {label} Audio",
+        "visual": f"..Due {label} Visual",
+        "combined": f"..Due {label} Combined",
+    }
+
+
+def target_deck_names_for_range(start_date: date, end_date: date, today_date: date) -> dict[str, str]:
+    label = deck_date_range_label(start_date, end_date, today_date)
     return {
         "audio": f"..Due {label} Audio",
         "visual": f"..Due {label} Visual",

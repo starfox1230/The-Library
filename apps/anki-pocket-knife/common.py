@@ -188,13 +188,23 @@ def deck_name(card: Any) -> str:
         return "Unknown Deck"
 
 
-def set_filtered_terms(deck: dict[str, Any], search: str, limit: int) -> None:
+FILTERED_DECK_ORDER_OLDEST_REVIEWED_FIRST = 0
+FILTERED_DECK_ORDER_RANDOM = 1
+
+
+def set_filtered_terms(
+    deck: dict[str, Any],
+    search: str,
+    limit: int,
+    *,
+    order: int = FILTERED_DECK_ORDER_OLDEST_REVIEWED_FIRST,
+) -> None:
     terms = deck.get("terms")
     if isinstance(terms, list) and terms and isinstance(terms[0], dict):
-        deck["terms"] = [{"search": search, "limit": int(limit), "order": 0}]
+        deck["terms"] = [{"search": search, "limit": int(limit), "order": int(order)}]
         return
 
-    deck["terms"] = [[search, int(limit), 0]]
+    deck["terms"] = [[search, int(limit), int(order)]]
 
 
 def card_id_search(card_ids: list[int], *, exclude_suspended: bool = True) -> str:
@@ -271,6 +281,7 @@ def create_or_update_filtered_deck(
     search: str,
     limit: int,
     resched: bool,
+    order: int = FILTERED_DECK_ORDER_OLDEST_REVIEWED_FIRST,
 ) -> int:
     deck_id = _filtered_deck_id_for_name(deck_name)
     if deck_id is None:
@@ -288,7 +299,7 @@ def create_or_update_filtered_deck(
     deck["dyn"] = 1
     deck["resched"] = bool(resched)
     deck["delays"] = None
-    set_filtered_terms(deck, search, limit)
+    set_filtered_terms(deck, search, limit, order=order)
     mw.col.decks.save(deck)
     rebuild_filtered_deck(int(deck_id))
     mw.reset()

@@ -53,10 +53,17 @@ def test_scheduler_day_and_labels():
     assert module.deck_date_label(0, date(2026, 6, 21)) == "Today 2026-06-21"
     assert module.deck_date_label(1, date(2026, 6, 20)) == "Yesterday 2026-06-20"
     assert module.deck_date_label(3, selected) == "2026-06-18"
+    assert module.deck_date_range_label(date(2026, 6, 19), date(2026, 6, 21), date(2026, 6, 21)) == "2026-06-19 to 2026-06-21"
+    assert module.deck_date_range_label(date(2026, 6, 21), date(2026, 6, 21), date(2026, 6, 21)) == "Today 2026-06-21"
     assert module.target_deck_names(0, date(2026, 6, 21)) == {
         "audio": "..Due Today 2026-06-21 Audio",
         "visual": "..Due Today 2026-06-21 Visual",
         "combined": "..Due Today 2026-06-21 Combined",
+    }
+    assert module.target_deck_names_for_range(date(2026, 6, 19), date(2026, 6, 21), date(2026, 6, 21)) == {
+        "audio": "..Due 2026-06-19 to 2026-06-21 Audio",
+        "visual": "..Due 2026-06-19 to 2026-06-21 Visual",
+        "combined": "..Due 2026-06-19 to 2026-06-21 Combined",
     }
 
 

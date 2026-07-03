@@ -667,7 +667,7 @@ def _generated_editor_cards(editor: Editor, title: str, action: Callable[[str], 
 
     def done(cards: list[str]) -> None:
         add_cards = getattr(editor, "parentWindow", None)
-        dialog = GeneratedCardsDialog(title=title, cards=cards, parent=add_cards)
+        dialog = GeneratedCardsDialog(title=title, cards=cards, parent=mw)
 
         def handle_action(action_name: str, selected: Any) -> None:
             selected_cards = (
@@ -677,28 +677,58 @@ def _generated_editor_cards(editor: Editor, title: str, action: Callable[[str], 
             )
             if not selected_cards:
                 return
+            if getattr(editor, "note", None) is None:
+                QApplication.clipboard().setText("\n".join(selected_cards))
+                tooltip(f"Copied {len(selected_cards)} generated card(s). Add Cards is closed.")
+                return
             if action_name == "load":
                 selected = selected_cards[0]
-                note[field] = selected
-                _refresh_editor(editor)
-                tooltip("Generated card loaded into the editor.")
+                try:
+                    note[field] = selected
+                    _refresh_editor(editor)
+                    tooltip("Generated card loaded into the editor.")
+                except RuntimeError:
+                    QApplication.clipboard().setText(selected)
+                    tooltip("Add Cards is closed. Generated card copied instead.")
             elif action_name in {"add", "add_all"}:
                 if not isinstance(add_cards, AddCards):
-                    QApplication.clipboard().setText("\n".join(selected_cards))
-                    tooltip(f"Copied {len(selected_cards)} generated card(s). Add them as new Browser notes when ready.")
+                    try:
+                        added = _add_generated_notes_from_source(
+                            source_note=note,
+                            source_field=field,
+                            cards=selected_cards,
+                            title=title,
+                        )
+                    except Exception as exc:
+                        QApplication.clipboard().setText("\n".join(selected_cards))
+                        showWarning(
+                            "Pocket Knife could not add the generated card(s) directly, so it copied them instead.\n\n"
+                            f"{exc}"
+                        )
+                        return
+                    tooltip(f"Added {added} generated card(s).")
                     return
                 add_method = getattr(add_cards, "addCards", None)
                 if not callable(add_method):
-                    note[field] = selected_cards[-1]
-                    _refresh_editor(editor)
-                    tooltip("Generated card loaded into the editor.")
+                    try:
+                        note[field] = selected_cards[-1]
+                        _refresh_editor(editor)
+                        tooltip("Generated card loaded into the editor.")
+                    except RuntimeError:
+                        QApplication.clipboard().setText("\n".join(selected_cards))
+                        tooltip("Add Cards is closed. Generated cards copied instead.")
                     return
                 added = 0
-                for card in selected_cards:
-                    note[field] = card
-                    _refresh_editor(editor)
-                    add_method()
-                    added += 1
+                try:
+                    for card in selected_cards:
+                        note[field] = card
+                        _refresh_editor(editor)
+                        add_method()
+                        added += 1
+                except RuntimeError:
+                    QApplication.clipboard().setText("\n".join(selected_cards[added:]))
+                    tooltip("Add Cards closed before all generated cards were added. Remaining cards copied.")
+                    return
                 tooltip(f"Added {added} generated card(s).")
 
         dialog.action_callback = handle_action
@@ -803,6 +833,67 @@ def _flush_note(note: Any) -> None:
         update_note(note)
 
 
+def _deck_is_filtered(deck_id: int | None) -> bool:
+    if deck_id is None:
+        return False
+    try:
+        deck = mw.col.decks.get(int(deck_id)) or {}
+    except Exception:
+        return False
+    return bool(deck.get("dyn", False))
+
+
+def _source_note_target_deck_id(source_note: Any) -> int | None:
+    cards_fn = getattr(source_note, "cards", None)
+    if not callable(cards_fn):
+        return None
+    try:
+        source_cards = cards_fn()
+    except Exception:
+        return None
+    if not source_cards:
+        return None
+    source_card = source_cards[0]
+    deck_id = getattr(source_card, "did", None)
+    original_deck_id = getattr(source_card, "odid", None)
+    if _deck_is_filtered(deck_id) and original_deck_id:
+        return int(original_deck_id)
+    return int(deck_id) if deck_id else None
+
+
+def _add_generated_notes_from_source(
+    *,
+    source_note: Any,
+    source_field: str,
+    cards: list[str],
+    title: str,
+) -> int:
+    clean_cards = [str(card) for card in cards if str(card or "").strip()]
+    if not clean_cards:
+        return 0
+    model = source_note.note_type()
+    deck_id = _source_note_target_deck_id(source_note)
+    add_note = getattr(mw.col, "add_note", None)
+    legacy_add_note = getattr(mw.col, "addNote", None)
+    mw.checkpoint(f"Pocket Knife {title}")
+    added = 0
+    for card_text in clean_cards:
+        new_note = mw.col.new_note(model)
+        for field_name in _note_field_names(source_note):
+            new_note[field_name] = str(source_note[field_name] or "")
+        new_note[source_field] = card_text
+        new_note.tags = list(getattr(source_note, "tags", []))
+        if callable(add_note):
+            add_note(new_note, int(deck_id) if deck_id else None)
+        elif callable(legacy_add_note):
+            legacy_add_note(new_note)
+        else:
+            raise RuntimeError("This Anki version cannot add generated notes.")
+        added += 1
+    mw.reset()
+    return added
+
+
 def _replace_browser_single(browser: Browser, title: str, action: Callable[[str], str]) -> None:
     notes, fields, texts = _browser_cards_and_fields(browser)
     if len(notes) != 1:
@@ -850,37 +941,6 @@ def _browser_generated(browser: Browser, title: str, action: Callable[[str], lis
     source_field = fields[0]
     original = texts[0]
 
-    def add_generated_notes(cards: list[str]) -> int:
-        clean_cards = [str(card) for card in cards if str(card or "").strip()]
-        if not clean_cards:
-            return 0
-        model = source_note.note_type()
-        deck_id = None
-        cards_fn = getattr(source_note, "cards", None)
-        if callable(cards_fn):
-            source_cards = cards_fn()
-            if source_cards:
-                deck_id = getattr(source_cards[0], "did", None)
-        add_note = getattr(mw.col, "add_note", None)
-        legacy_add_note = getattr(mw.col, "addNote", None)
-        mw.checkpoint(f"Pocket Knife {title}")
-        added = 0
-        for card_text in clean_cards:
-            new_note = mw.col.new_note(model)
-            for field_name in _note_field_names(source_note):
-                new_note[field_name] = str(source_note[field_name] or "")
-            new_note[source_field] = card_text
-            new_note.tags = list(getattr(source_note, "tags", []))
-            if callable(add_note):
-                add_note(new_note, int(deck_id) if deck_id else None)
-            elif callable(legacy_add_note):
-                legacy_add_note(new_note)
-            else:
-                raise RuntimeError("This Anki version cannot add generated notes.")
-            added += 1
-        mw.reset()
-        return added
-
     def done(cards: list[str]) -> None:
         dialog = GeneratedCardsDialog(title=title, cards=cards, parent=browser)
         if not dialog.exec():
@@ -888,7 +948,12 @@ def _browser_generated(browser: Browser, title: str, action: Callable[[str], lis
         if dialog.selected_action in {"add", "add_all"}:
             try:
                 card_texts = dialog.selected_cards() if dialog.selected_action == "add_all" else [dialog.selected_card()]
-                added = add_generated_notes(card_texts)
+                added = _add_generated_notes_from_source(
+                    source_note=source_note,
+                    source_field=source_field,
+                    cards=card_texts,
+                    title=title,
+                )
                 tooltip(f"Added {added} generated card(s).")
                 return
             except Exception as exc:
@@ -903,6 +968,31 @@ def _browser_generated(browser: Browser, title: str, action: Callable[[str], lis
     _run_ai(title, lambda: action(original), done)
 
 
+def _browser_generate_and_add_all(browser: Browser, title: str, action: Callable[[str], list[str]]) -> None:
+    notes, fields, texts = _browser_cards_and_fields(browser)
+    if len(texts) != 1:
+        showWarning("Select exactly one note for this AI action.")
+        return
+    source_note = notes[0]
+    source_field = fields[0]
+    original = texts[0]
+
+    def done(cards: list[str]) -> None:
+        try:
+            added = _add_generated_notes_from_source(
+                source_note=source_note,
+                source_field=source_field,
+                cards=cards,
+                title=title,
+            )
+        except Exception as exc:
+            showWarning(str(exc))
+            return
+        tooltip(f"Generated and added {added} card(s).")
+
+    _run_ai(title, lambda: action(original), done)
+
+
 def _populate_browser_ai_menu(menu: QMenu, browser: Browser) -> None:
     notes, _fields, _texts = _browser_cards_and_fields(browser)
     selected_count = len(notes)
@@ -912,6 +1002,7 @@ def _populate_browser_ai_menu(menu: QMenu, browser: Browser) -> None:
         ("Make Unambiguous", lambda: _replace_browser_single(browser, "Make Unambiguous", make_card_unambiguous)),
         ("Make Sentence", lambda: _replace_browser_single(browser, "Make Sentence", convert_to_sentence)),
         ("Copy Contrasting Card", lambda: _browser_generated(browser, "Copy Contrasting Card", lambda text: [make_contrasting_card(text)])),
+        ("Generate 3 Cards And Add All Now", lambda: _browser_generate_and_add_all(browser, "Generate 3 Cards And Add All Now", lambda text: split_card_into_multiple(text, 3))),
         ("Make Uniform From Selected", lambda: _make_browser_uniform(browser)),
     ]
     for label, callback in items:
@@ -925,7 +1016,7 @@ def _populate_browser_ai_menu(menu: QMenu, browser: Browser) -> None:
     split_menu = menu.addMenu("Split Into Multiple Cards")
     split_menu.setEnabled(selected_count == 1)
     for count in (2, 3, 4):
-        action = QAction(f"{count} Cards", split_menu)
+        action = QAction(f"Preview {count} Cards", split_menu)
         action.triggered.connect(
             lambda _checked=False, c=count: _browser_generated(
                 browser,
@@ -934,6 +1025,15 @@ def _populate_browser_ai_menu(menu: QMenu, browser: Browser) -> None:
             )
         )
         split_menu.addAction(action)
+        add_action = QAction(f"Generate And Add {count} Cards Now", split_menu)
+        add_action.triggered.connect(
+            lambda _checked=False, c=count: _browser_generate_and_add_all(
+                browser,
+                f"Generate And Add {c} Cards Now",
+                lambda text, n=c: split_card_into_multiple(text, n),
+            )
+        )
+        split_menu.addAction(add_action)
 
 
 def _show_browser_menu(browser: Browser) -> None:
