@@ -1,0 +1,1607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Elbow MRI Fact Saver</title>
+  <style>
+    :root {
+      --bg:#0b0f17;
+      --bg2:#0f172a;
+      --panel:#111827;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --line:#253047;
+      --accent:#60a5fa;
+      --accent2:#22d3ee;
+      --save:#34d399;
+      --discard:#f87171;
+      --warn:#f59e0b;
+      --shadow:rgba(0,0,0,0.38);
+    }
+    * { box-sizing:border-box; }
+    html,body { min-height:100%; }
+    body {
+      margin:0;
+      background:
+        radial-gradient(circle at top left, rgba(34,211,238,0.16), transparent 32rem),
+        radial-gradient(circle at top right, rgba(96,165,250,0.14), transparent 30rem),
+        linear-gradient(145deg,var(--bg),var(--bg2));
+      color:var(--text);
+      font:15px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      -webkit-text-size-adjust:100%;
+    }
+    button,a { -webkit-tap-highlight-color:transparent; }
+    .topbar {
+      position:sticky;
+      top:0;
+      z-index:20;
+      border-bottom:1px solid var(--line);
+      background:rgba(11,15,23,0.92);
+      backdrop-filter:blur(12px);
+      box-shadow:0 10px 28px var(--shadow);
+    }
+    .topbarInner {
+      width:min(1120px,96vw);
+      margin:0 auto;
+      padding:10px 0;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .brand {
+      display:flex;
+      flex-direction:column;
+      gap:1px;
+      margin-right:auto;
+      min-width:min(100%,240px);
+    }
+    .brandTitle {
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size:1.04rem;
+    }
+    .brandSub {
+      color:var(--muted);
+      font-size:.78rem;
+    }
+    .pill {
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      color:var(--text);
+      border-radius:999px;
+      padding:9px 12px;
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+      font-weight:650;
+      min-height:40px;
+      box-shadow:0 4px 12px rgba(0,0,0,.14);
+      touch-action:manipulation;
+    }
+    .pill:hover { border-color:rgba(96,165,250,.6); }
+    .pill.active {
+      border-color:rgba(96,165,250,.9);
+      box-shadow:0 0 0 2px rgba(96,165,250,.15) inset, 0 4px 12px rgba(0,0,0,.18);
+      color:#eff6ff;
+    }
+    .pill.primary {
+      border-color:rgba(96,165,250,.65);
+      background:
+        radial-gradient(circle at top, rgba(96,165,250,.22), transparent 58%),
+        linear-gradient(180deg,#1f2937,#0f172a);
+    }
+    .pill.save {
+      border-color:rgba(52,211,153,.58);
+    }
+    .pill.discard {
+      border-color:rgba(248,113,113,.5);
+    }
+    .pill.small {
+      padding:7px 10px;
+      min-height:34px;
+      font-size:.86rem;
+    }
+    .wrap {
+      width:min(1120px,96vw);
+      margin:0 auto;
+      padding:18px 0 46px;
+    }
+    .hero {
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(17,24,39,.94),rgba(15,23,42,.92));
+      border-radius:18px;
+      padding:16px;
+      box-shadow:0 18px 45px rgba(0,0,0,.24);
+      display:grid;
+      gap:10px;
+    }
+    h1 {
+      margin:0;
+      font-size:clamp(1.45rem,4vw,2.2rem);
+      line-height:1.05;
+    }
+    .muted { color:var(--muted); }
+    .heroMeta {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      color:var(--muted);
+      font-size:.88rem;
+    }
+    .heroMeta span {
+      border:1px solid rgba(37,48,71,.8);
+      border-radius:999px;
+      padding:5px 9px;
+      background:rgba(15,23,42,.6);
+    }
+    .controlsGrid {
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .search {
+      width:100%;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      color:var(--text);
+      border-radius:14px;
+      padding:13px 14px;
+      font-size:16px;
+      outline:none;
+    }
+    .search:focus {
+      border-color:rgba(96,165,250,.75);
+      box-shadow:0 0 0 3px rgba(96,165,250,.14);
+    }
+    .filterRow,.actionRow {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .stats {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:14px 0;
+    }
+    .stat {
+      flex:1 1 130px;
+      border:1px solid var(--line);
+      background:rgba(17,24,39,.74);
+      border-radius:14px;
+      padding:10px 12px;
+    }
+    .stat strong {
+      display:block;
+      font-size:1.2rem;
+      line-height:1.1;
+    }
+    .stat span {
+      color:var(--muted);
+      font-size:.78rem;
+    }
+    .list {
+      display:grid;
+      gap:10px;
+      margin-top:12px;
+    }
+    .card {
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(17,24,39,.97),rgba(15,23,42,.94));
+      border-radius:16px;
+      padding:13px;
+      box-shadow:0 10px 24px rgba(0,0,0,.16);
+    }
+    .card.saved {
+      border-color:rgba(52,211,153,.65);
+      box-shadow:0 0 0 2px rgba(52,211,153,.10) inset;
+    }
+    .card.discarded {
+      border-color:rgba(248,113,113,.54);
+      opacity:.78;
+    }
+    .cardTop {
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .num {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:34px;
+      height:34px;
+      border-radius:12px;
+      color:#bfdbfe;
+      background:rgba(96,165,250,.13);
+      border:1px solid rgba(96,165,250,.28);
+      font-weight:800;
+      font-size:.86rem;
+    }
+    .factBody {
+      flex:1;
+      min-width:0;
+    }
+    .statement {
+      white-space:pre-wrap;
+      font-weight:650;
+      font-size:1rem;
+      letter-spacing:.05px;
+    }
+    .meta {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+      color:var(--muted);
+      font-size:.78rem;
+    }
+    .meta span {
+      border:1px solid rgba(37,48,71,.8);
+      border-radius:999px;
+      padding:4px 8px;
+      background:rgba(11,15,23,.52);
+    }
+    .cardActions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+      margin-top:12px;
+    }
+    .cardActions a {
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+    }
+    .statusLabel {
+      color:var(--muted);
+      font-size:.78rem;
+      align-self:center;
+      margin-right:auto;
+    }
+    .statusLabel.savedText { color:var(--save); }
+    .statusLabel.discardedText { color:var(--discard); }
+    .empty {
+      display:none;
+      border:1px dashed var(--line);
+      color:var(--muted);
+      border-radius:14px;
+      padding:16px;
+      text-align:center;
+    }
+    .toast {
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(17,24,39,.97);
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:10px 14px;
+      color:var(--text);
+      font-size:13px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 180ms ease;
+      z-index:30;
+      box-shadow:0 12px 28px rgba(0,0,0,.34);
+    }
+    .toast.show { opacity:1; }
+    .copyBox {
+      width:100%;
+      min-height:160px;
+      border:1px solid var(--line);
+      background:#050816;
+      color:var(--text);
+      border-radius:14px;
+      padding:12px;
+      font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      display:none;
+      resize:vertical;
+      margin-top:10px;
+    }
+    .copyBox.show { display:block; }
+    @media (max-width:720px) {
+      .topbarInner { padding:8px 0; }
+      .brand { order:-2; width:100%; }
+      .pill { min-height:38px; padding:8px 11px; }
+      .hero { border-radius:14px; padding:14px; }
+      .card { border-radius:14px; padding:12px; }
+      .cardTop { align-items:flex-start; }
+      .cardActions { justify-content:stretch; }
+      .cardActions .pill { flex:1 1 auto; text-align:center; justify-content:center; }
+      .statusLabel { width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbarInner">
+      <div class="brand">
+        <div class="brandTitle">Elbow MRI Fact Saver</div>
+        <div class="brandSub">Save/discard transcript facts with timestamp links.</div>
+      </div>
+      <button class="pill active" data-view="all" type="button">All</button>
+      <button class="pill" data-view="unreviewed" type="button">Unreviewed</button>
+      <button class="pill" data-view="saved" type="button">Saved</button>
+      <button class="pill" data-view="discarded" type="button">Discarded</button>
+      <button id="copySavedBtn" class="pill primary" type="button">Copy Saved</button>
+      <button id="resetBtn" class="pill" type="button">Reset</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Elbow MRI Anatomy | Radiology anatomy part 1 prep | How to interpret an elbow MRI</h1>
+      <p class="muted">Review each standalone statement, save the facts worth remembering, discard the rest, and copy the saved set with physical YouTube timestamp links.</p>
+      <div class="heroMeta">
+        <span>111 facts</span>
+        <span>Night mode</span>
+        <span>Local browser storage</span>
+        <span>iPhone YouTube-app link attempt</span>
+      </div>
+      <div class="controlsGrid">
+        <input id="searchInput" class="search" type="search" placeholder="Search facts, categories, or timestamps..." autocomplete="off" />
+        <div class="actionRow">
+          <button id="copyVisibleBtn" class="pill" type="button">Copy Visible</button>
+          <button id="showCopyBoxBtn" class="pill" type="button">Show Copy Box</button>
+          <a class="pill" href="https://www.youtube.com/watch?v=DWDdI0XuYgo" target="_blank" rel="noopener">Open Full Video</a>
+        </div>
+      </div>
+      <textarea id="copyBox" class="copyBox" readonly aria-label="Copy output"></textarea>
+    </section>
+
+    <section class="stats" aria-label="Review counts">
+      <div class="stat"><strong id="totalCount">111</strong><span>Total</span></div>
+      <div class="stat"><strong id="savedCount">0</strong><span>Saved</span></div>
+      <div class="stat"><strong id="discardedCount">0</strong><span>Discarded</span></div>
+      <div class="stat"><strong id="unreviewedCount">111</strong><span>Unreviewed</span></div>
+      <div class="stat"><strong id="visibleCount">111</strong><span>Visible</span></div>
+    </section>
+
+    <section id="list" class="list" aria-live="polite"></section>
+    <div id="empty" class="empty">No facts match the current filter.</div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const VIDEO_ID = "DWDdI0XuYgo";
+  const FACTS = [
+  {
+    "id": "fact-001",
+    "number": 1,
+    "category": "Bones and joints",
+    "statement": "The elbow joint is formed by the humerus, radius, and ulna.",
+    "seconds": 36,
+    "timestamp": "00:36",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=36s"
+  },
+  {
+    "id": "fact-002",
+    "number": 2,
+    "category": "Bones and joints",
+    "statement": "At the elbow, the radius is on the lateral side and the ulna is on the medial side.",
+    "seconds": 40,
+    "timestamp": "00:40",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=40s"
+  },
+  {
+    "id": "fact-003",
+    "number": 3,
+    "category": "Bones and joints",
+    "statement": "The distal humerus includes the lateral epicondyle, medial epicondyle, trochlea, and capitellum.",
+    "seconds": 49,
+    "timestamp": "00:49",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=49s"
+  },
+  {
+    "id": "fact-004",
+    "number": 4,
+    "category": "Bones and joints",
+    "statement": "The trochlea articulates with the trochlear notch of the ulna.",
+    "seconds": 64,
+    "timestamp": "01:04",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=64s"
+  },
+  {
+    "id": "fact-005",
+    "number": 5,
+    "category": "Bones and joints",
+    "statement": "The capitellum articulates with the radial head at the radiocapitellar joint.",
+    "seconds": 69,
+    "timestamp": "01:09",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=69s"
+  },
+  {
+    "id": "fact-006",
+    "number": 6,
+    "category": "Bones and joints",
+    "statement": "The elbow contains a lateral radiocapitellar joint, a medial ulnohumeral joint, and a proximal radioulnar joint.",
+    "seconds": 76,
+    "timestamp": "01:16",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=76s"
+  },
+  {
+    "id": "fact-007",
+    "number": 7,
+    "category": "Bones and joints",
+    "statement": "The proximal radioulnar joint allows the radius to rotate around the ulna in a pivot-like fashion.",
+    "seconds": 81,
+    "timestamp": "01:21",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=81s"
+  },
+  {
+    "id": "fact-008",
+    "number": 8,
+    "category": "Bones and joints",
+    "statement": "The radial head has a shallow articular surface that articulates with the capitellum.",
+    "seconds": 92,
+    "timestamp": "01:32",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=92s"
+  },
+  {
+    "id": "fact-009",
+    "number": 9,
+    "category": "Bones and joints",
+    "statement": "The radial neck lies between the radial head and the radial shaft.",
+    "seconds": 100,
+    "timestamp": "01:40",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=100s"
+  },
+  {
+    "id": "fact-010",
+    "number": 10,
+    "category": "Bones and joints",
+    "statement": "The radial tuberosity is the attachment site of the biceps brachii tendon.",
+    "seconds": 105,
+    "timestamp": "01:45",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=105s"
+  },
+  {
+    "id": "fact-011",
+    "number": 11,
+    "category": "Bones and joints",
+    "statement": "The ulna includes the olecranon posteriorly, the trochlear notch centrally, and the coronoid process anteriorly.",
+    "seconds": 110,
+    "timestamp": "01:50",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=110s"
+  },
+  {
+    "id": "fact-012",
+    "number": 12,
+    "category": "Bones and joints",
+    "statement": "The ulnar tuberosity is the insertion site of the brachialis tendon.",
+    "seconds": 124,
+    "timestamp": "02:04",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=124s"
+  },
+  {
+    "id": "fact-013",
+    "number": 13,
+    "category": "Bones and joints",
+    "statement": "The olecranon fossa is a shallow fat-filled depression in the distal humerus.",
+    "seconds": 147,
+    "timestamp": "02:27",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=147s"
+  },
+  {
+    "id": "fact-014",
+    "number": 14,
+    "category": "Bones and joints",
+    "statement": "An elbow joint effusion can displace the fat pad out of the olecranon fossa and create a radiographic sail sign.",
+    "seconds": 152,
+    "timestamp": "02:32",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=152s"
+  },
+  {
+    "id": "fact-015",
+    "number": 15,
+    "category": "Bones and joints",
+    "statement": "The normal elbow fat pad should be closely opposed to the bone.",
+    "seconds": 162,
+    "timestamp": "02:42",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=162s"
+  },
+  {
+    "id": "fact-016",
+    "number": 16,
+    "category": "Bones and joints",
+    "statement": "During elbow extension, the olecranon moves into the olecranon fossa.",
+    "seconds": 167,
+    "timestamp": "02:47",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=167s"
+  },
+  {
+    "id": "fact-017",
+    "number": 17,
+    "category": "Bones and joints",
+    "statement": "The olecranon fossa provides space and cushioning for the olecranon during elbow extension.",
+    "seconds": 169,
+    "timestamp": "02:49",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=169s"
+  },
+  {
+    "id": "fact-018",
+    "number": 18,
+    "category": "Bones and joints",
+    "statement": "During elbow flexion, the coronoid process moves into the coronoid fossa.",
+    "seconds": 177,
+    "timestamp": "02:57",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=177s"
+  },
+  {
+    "id": "fact-019",
+    "number": 19,
+    "category": "Flexors and extensors",
+    "statement": "The main flexors of the elbow are located in the anterior brachial compartment.",
+    "seconds": 185,
+    "timestamp": "03:05",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=185s"
+  },
+  {
+    "id": "fact-020",
+    "number": 20,
+    "category": "Flexors and extensors",
+    "statement": "The biceps brachii has two heads: a long head and a short head.",
+    "seconds": 200,
+    "timestamp": "03:20",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=200s"
+  },
+  {
+    "id": "fact-021",
+    "number": 21,
+    "category": "Flexors and extensors",
+    "statement": "The long head of the biceps brachii originates from the supraglenoid tubercle.",
+    "seconds": 202,
+    "timestamp": "03:22",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=202s"
+  },
+  {
+    "id": "fact-022",
+    "number": 22,
+    "category": "Flexors and extensors",
+    "statement": "The short head of the biceps brachii originates from the coracoid process of the scapula.",
+    "seconds": 210,
+    "timestamp": "03:30",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=210s"
+  },
+  {
+    "id": "fact-023",
+    "number": 23,
+    "category": "Flexors and extensors",
+    "statement": "The two heads of the biceps brachii fuse distally to form the biceps brachii tendon.",
+    "seconds": 215,
+    "timestamp": "03:35",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=215s"
+  },
+  {
+    "id": "fact-024",
+    "number": 24,
+    "category": "Flexors and extensors",
+    "statement": "The biceps brachii tendon crosses the elbow and inserts on the radial tuberosity.",
+    "seconds": 218,
+    "timestamp": "03:38",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=218s"
+  },
+  {
+    "id": "fact-025",
+    "number": 25,
+    "category": "Flexors and extensors",
+    "statement": "The brachialis originates from the anterior surface of the humerus.",
+    "seconds": 246,
+    "timestamp": "04:06",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=246s"
+  },
+  {
+    "id": "fact-026",
+    "number": 26,
+    "category": "Flexors and extensors",
+    "statement": "The brachialis tendon crosses the elbow and inserts on the ulnar tuberosity.",
+    "seconds": 250,
+    "timestamp": "04:10",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=250s"
+  },
+  {
+    "id": "fact-027",
+    "number": 27,
+    "category": "Flexors and extensors",
+    "statement": "The brachialis tendon is easier to see on sagittal PD MRI than on coronal MRI.",
+    "seconds": 262,
+    "timestamp": "04:22",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=262s"
+  },
+  {
+    "id": "fact-028",
+    "number": 28,
+    "category": "Flexors and extensors",
+    "statement": "The triceps is the primary extensor of the elbow.",
+    "seconds": 297,
+    "timestamp": "04:57",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=297s"
+  },
+  {
+    "id": "fact-029",
+    "number": 29,
+    "category": "Flexors and extensors",
+    "statement": "The triceps has three heads: lateral, medial, and long.",
+    "seconds": 299,
+    "timestamp": "04:59",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=299s"
+  },
+  {
+    "id": "fact-030",
+    "number": 30,
+    "category": "Flexors and extensors",
+    "statement": "The triceps tendon attaches to the olecranon.",
+    "seconds": 308,
+    "timestamp": "05:08",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=308s"
+  },
+  {
+    "id": "fact-031",
+    "number": 31,
+    "category": "Flexors and extensors",
+    "statement": "The triceps insertion has a posterior tendinous component and a more anterior muscular component.",
+    "seconds": 312,
+    "timestamp": "05:12",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=312s"
+  },
+  {
+    "id": "fact-032",
+    "number": 32,
+    "category": "Flexors and extensors",
+    "statement": "When evaluating a triceps tear, it is important to determine whether the injury involves the tendinous portion, the muscular portion, or both.",
+    "seconds": 320,
+    "timestamp": "05:20",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=320s"
+  },
+  {
+    "id": "fact-033",
+    "number": 33,
+    "category": "Flexors and extensors",
+    "statement": "The lateral and long heads of the triceps contribute to the tendinous portion of the distal triceps insertion.",
+    "seconds": 330,
+    "timestamp": "05:30",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=330s"
+  },
+  {
+    "id": "fact-034",
+    "number": 34,
+    "category": "Flexors and extensors",
+    "statement": "The medial head of the triceps lies deep to the lateral and long heads and contributes to the muscular attachment on the olecranon.",
+    "seconds": 335,
+    "timestamp": "05:35",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=335s"
+  },
+  {
+    "id": "fact-035",
+    "number": 35,
+    "category": "Common tendon origins",
+    "statement": "Some muscles that cross the elbow primarily act at the wrist and fingers rather than flexing or extending the elbow.",
+    "seconds": 345,
+    "timestamp": "05:45",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=345s"
+  },
+  {
+    "id": "fact-036",
+    "number": 36,
+    "category": "Common tendon origins",
+    "statement": "The elbow is a hinge joint, so muscles crossing the lateral side of the elbow do not create meaningful varus or valgus motion.",
+    "seconds": 364,
+    "timestamp": "06:04",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=364s"
+  },
+  {
+    "id": "fact-037",
+    "number": 37,
+    "category": "Common tendon origins",
+    "statement": "The lateral side of the elbow is associated with wrist extension.",
+    "seconds": 402,
+    "timestamp": "06:42",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=402s"
+  },
+  {
+    "id": "fact-038",
+    "number": 38,
+    "category": "Common tendon origins",
+    "statement": "The common extensor tendon originates from the lateral epicondyle.",
+    "seconds": 408,
+    "timestamp": "06:48",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=408s"
+  },
+  {
+    "id": "fact-039",
+    "number": 39,
+    "category": "Common tendon origins",
+    "statement": "The common extensor tendon is superficial/lateral to the lateral elbow ligaments on MRI.",
+    "seconds": 430,
+    "timestamp": "07:10",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=430s"
+  },
+  {
+    "id": "fact-040",
+    "number": 40,
+    "category": "Common tendon origins",
+    "statement": "The common extensor origin gives rise to extensor carpi ulnaris, extensor digitorum, and extensor digiti minimi.",
+    "seconds": 446,
+    "timestamp": "07:26",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=446s"
+  },
+  {
+    "id": "fact-041",
+    "number": 41,
+    "category": "Common tendon origins",
+    "statement": "The brachioradialis originates proximal to the lateral epicondyle and inserts on the radial styloid.",
+    "seconds": 467,
+    "timestamp": "07:47",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=467s"
+  },
+  {
+    "id": "fact-042",
+    "number": 42,
+    "category": "Common tendon origins",
+    "statement": "The brachioradialis contributes to elbow flexion.",
+    "seconds": 472,
+    "timestamp": "07:52",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=472s"
+  },
+  {
+    "id": "fact-043",
+    "number": 43,
+    "category": "Common tendon origins",
+    "statement": "The extensor carpi radialis longus and extensor carpi radialis brevis are part of the radial-sided posterior forearm muscle group.",
+    "seconds": 482,
+    "timestamp": "08:02",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=482s"
+  },
+  {
+    "id": "fact-044",
+    "number": 44,
+    "category": "Common tendon origins",
+    "statement": "The medial side of the elbow is associated with wrist and finger flexion.",
+    "seconds": 495,
+    "timestamp": "08:15",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=495s"
+  },
+  {
+    "id": "fact-045",
+    "number": 45,
+    "category": "Common tendon origins",
+    "statement": "The common flexor tendon originates from the medial epicondyle.",
+    "seconds": 502,
+    "timestamp": "08:22",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=502s"
+  },
+  {
+    "id": "fact-046",
+    "number": 46,
+    "category": "Common tendon origins",
+    "statement": "Pronator teres is one of the first muscles encountered from the common flexor origin.",
+    "seconds": 523,
+    "timestamp": "08:43",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=523s"
+  },
+  {
+    "id": "fact-047",
+    "number": 47,
+    "category": "Common tendon origins",
+    "statement": "“Teres” means round, so pronator teres can be thought of as the round pronator.",
+    "seconds": 525,
+    "timestamp": "08:45",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=525s"
+  },
+  {
+    "id": "fact-048",
+    "number": 48,
+    "category": "Common tendon origins",
+    "statement": "Pronator quadratus is a more distal forearm pronator and can be thought of as the square pronator.",
+    "seconds": 529,
+    "timestamp": "08:49",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=529s"
+  },
+  {
+    "id": "fact-049",
+    "number": 49,
+    "category": "Common tendon origins",
+    "statement": "The common flexor origin gives rise to pronator teres, flexor carpi ulnaris, flexor carpi radialis, flexor digitorum superficialis, and palmaris longus.",
+    "seconds": 536,
+    "timestamp": "08:56",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=536s"
+  },
+  {
+    "id": "fact-050",
+    "number": 50,
+    "category": "Common tendon origins",
+    "statement": "At the elbow, tendons are generally more superficial than the collateral ligaments.",
+    "seconds": 555,
+    "timestamp": "09:15",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=555s"
+  },
+  {
+    "id": "fact-051",
+    "number": 51,
+    "category": "Medial collateral ligament",
+    "statement": "The elbow has medial and lateral ligament complexes that provide joint stability.",
+    "seconds": 557,
+    "timestamp": "09:17",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=557s"
+  },
+  {
+    "id": "fact-052",
+    "number": 52,
+    "category": "Medial collateral ligament",
+    "statement": "The medial collateral ligament complex is also called the ulnar collateral ligament complex.",
+    "seconds": 572,
+    "timestamp": "09:32",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=572s"
+  },
+  {
+    "id": "fact-053",
+    "number": 53,
+    "category": "Medial collateral ligament",
+    "statement": "The sublime tubercle is the most medial part of the coronoid process.",
+    "seconds": 572,
+    "timestamp": "09:32",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=572s"
+  },
+  {
+    "id": "fact-054",
+    "number": 54,
+    "category": "Medial collateral ligament",
+    "statement": "The anterior bundle of the ulnar collateral ligament inserts on the sublime tubercle.",
+    "seconds": 578,
+    "timestamp": "09:38",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=578s"
+  },
+  {
+    "id": "fact-055",
+    "number": 55,
+    "category": "Medial collateral ligament",
+    "statement": "The ulnar collateral ligament extends between the ulna and the medial epicondyle.",
+    "seconds": 586,
+    "timestamp": "09:46",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=586s"
+  },
+  {
+    "id": "fact-056",
+    "number": 56,
+    "category": "Medial collateral ligament",
+    "statement": "The ulnar collateral ligament inserts deep to the common flexor tendon near the medial epicondyle.",
+    "seconds": 590,
+    "timestamp": "09:50",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=590s"
+  },
+  {
+    "id": "fact-057",
+    "number": 57,
+    "category": "Medial collateral ligament",
+    "statement": "The anterior bundle is the largest and most clinically important part of the ulnar collateral ligament complex.",
+    "seconds": 599,
+    "timestamp": "09:59",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=599s"
+  },
+  {
+    "id": "fact-058",
+    "number": 58,
+    "category": "Medial collateral ligament",
+    "statement": "Throwing athletes place valgus stress across the elbow, which loads the anterior bundle of the ulnar collateral ligament.",
+    "seconds": 603,
+    "timestamp": "10:03",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=603s"
+  },
+  {
+    "id": "fact-059",
+    "number": 59,
+    "category": "Medial collateral ligament",
+    "statement": "Valgus overload of the elbow can cause lateral compressive symptoms and medial ulnar collateral ligament injury.",
+    "seconds": 613,
+    "timestamp": "10:13",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=613s"
+  },
+  {
+    "id": "fact-060",
+    "number": 60,
+    "category": "Medial collateral ligament",
+    "statement": "Fluid interposed between the ulnar collateral ligament and the sublime tubercle suggests a distal UCL tear.",
+    "seconds": 625,
+    "timestamp": "10:25",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=625s"
+  },
+  {
+    "id": "fact-061",
+    "number": 61,
+    "category": "Medial collateral ligament",
+    "statement": "The reverse T sign refers to fluid between the distal ulnar collateral ligament and the sublime tubercle, suggesting a tear.",
+    "seconds": 631,
+    "timestamp": "10:31",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=631s"
+  },
+  {
+    "id": "fact-062",
+    "number": 62,
+    "category": "Medial collateral ligament",
+    "statement": "Mildly heterogeneous signal near the proximal anterior bundle of the ulnar collateral ligament can be normal.",
+    "seconds": 641,
+    "timestamp": "10:41",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=641s"
+  },
+  {
+    "id": "fact-063",
+    "number": 63,
+    "category": "Medial collateral ligament",
+    "statement": "The posterior bundle of the ulnar collateral ligament is thinner than the anterior bundle.",
+    "seconds": 655,
+    "timestamp": "10:55",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=655s"
+  },
+  {
+    "id": "fact-064",
+    "number": 64,
+    "category": "Medial collateral ligament",
+    "statement": "The transverse component of the ulnar collateral ligament complex does not cross the elbow joint.",
+    "seconds": 669,
+    "timestamp": "11:09",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=669s"
+  },
+  {
+    "id": "fact-065",
+    "number": 65,
+    "category": "Medial collateral ligament",
+    "statement": "The transverse ulnar collateral ligament is usually not a major structure assessed on routine elbow MRI.",
+    "seconds": 675,
+    "timestamp": "11:15",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=675s"
+  },
+  {
+    "id": "fact-066",
+    "number": 66,
+    "category": "Lateral collateral ligament",
+    "statement": "The radial collateral ligament lies deep/medial to the common extensor tendon at the lateral elbow.",
+    "seconds": 694,
+    "timestamp": "11:34",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=694s"
+  },
+  {
+    "id": "fact-067",
+    "number": 67,
+    "category": "Lateral collateral ligament",
+    "statement": "The radial collateral ligament originates from the lateral epicondyle.",
+    "seconds": 706,
+    "timestamp": "11:46",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=706s"
+  },
+  {
+    "id": "fact-068",
+    "number": 68,
+    "category": "Lateral collateral ligament",
+    "statement": "The radial collateral ligament inserts into the annular ligament.",
+    "seconds": 713,
+    "timestamp": "11:53",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=713s"
+  },
+  {
+    "id": "fact-069",
+    "number": 69,
+    "category": "Lateral collateral ligament",
+    "statement": "The annular ligament wraps around the radial head.",
+    "seconds": 715,
+    "timestamp": "11:55",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=715s"
+  },
+  {
+    "id": "fact-070",
+    "number": 70,
+    "category": "Lateral collateral ligament",
+    "statement": "The annular ligament keeps the radial head in place while allowing pivoting at the proximal radioulnar joint.",
+    "seconds": 727,
+    "timestamp": "12:07",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=727s"
+  },
+  {
+    "id": "fact-071",
+    "number": 71,
+    "category": "Lateral collateral ligament",
+    "statement": "The annular ligament attaches to the ulna at the volar and dorsal sigmoid crests.",
+    "seconds": 743,
+    "timestamp": "12:23",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=743s"
+  },
+  {
+    "id": "fact-072",
+    "number": 72,
+    "category": "Lateral collateral ligament",
+    "statement": "The lateral ulnar collateral ligament courses posterior to the radial head.",
+    "seconds": 760,
+    "timestamp": "12:40",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=760s"
+  },
+  {
+    "id": "fact-073",
+    "number": 73,
+    "category": "Lateral collateral ligament",
+    "statement": "The lateral ulnar collateral ligament extends from the lateral epicondyle to the supinator crest of the ulna.",
+    "seconds": 772,
+    "timestamp": "12:52",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=772s"
+  },
+  {
+    "id": "fact-074",
+    "number": 74,
+    "category": "Lateral collateral ligament",
+    "statement": "The supinator muscle originates near the supinator crest of the ulna.",
+    "seconds": 775,
+    "timestamp": "12:55",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=775s"
+  },
+  {
+    "id": "fact-075",
+    "number": 75,
+    "category": "Lateral collateral ligament",
+    "statement": "The lateral ulnar collateral ligament provides posterolateral stability to the elbow.",
+    "seconds": 974,
+    "timestamp": "16:14",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=974s"
+  },
+  {
+    "id": "fact-076",
+    "number": 76,
+    "category": "Lateral collateral ligament",
+    "statement": "Disruption of the lateral ulnar collateral ligament can allow posterior instability or posterior dislocation/subluxation of the radius.",
+    "seconds": 978,
+    "timestamp": "16:18",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=978s"
+  },
+  {
+    "id": "fact-077",
+    "number": 77,
+    "category": "Lateral collateral ligament",
+    "statement": "The lateral ligament complex includes the lateral ulnar collateral ligament, radial collateral ligament, and annular ligament.",
+    "seconds": 988,
+    "timestamp": "16:28",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=988s"
+  },
+  {
+    "id": "fact-078",
+    "number": 78,
+    "category": "Lateral collateral ligament",
+    "statement": "The medial ligament complex includes anterior, posterior, and transverse components of the ulnar collateral ligament.",
+    "seconds": 997,
+    "timestamp": "16:37",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=997s"
+  },
+  {
+    "id": "fact-079",
+    "number": 79,
+    "category": "Axial MRI orientation",
+    "statement": "On axial elbow MRI, the anconeus muscle helps identify the lateral side of the elbow.",
+    "seconds": 808,
+    "timestamp": "13:28",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=808s"
+  },
+  {
+    "id": "fact-080",
+    "number": 80,
+    "category": "Axial MRI orientation",
+    "statement": "On axial elbow MRI, the ulnar nerve helps identify the medial side of the elbow.",
+    "seconds": 810,
+    "timestamp": "13:30",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=810s"
+  },
+  {
+    "id": "fact-081",
+    "number": 81,
+    "category": "Axial MRI orientation",
+    "statement": "On axial MRI, the annular ligament appears as a low-signal band wrapping around the radial head.",
+    "seconds": 825,
+    "timestamp": "13:45",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=825s"
+  },
+  {
+    "id": "fact-082",
+    "number": 82,
+    "category": "Axial MRI orientation",
+    "statement": "On axial MRI, the olecranon is the posterior part of the proximal ulna.",
+    "seconds": 836,
+    "timestamp": "13:56",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=836s"
+  },
+  {
+    "id": "fact-083",
+    "number": 83,
+    "category": "Axial MRI orientation",
+    "statement": "Heterogeneous signal in the tendinous portion of the distal triceps can be normal.",
+    "seconds": 844,
+    "timestamp": "14:04",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=844s"
+  },
+  {
+    "id": "fact-084",
+    "number": 84,
+    "category": "Axial MRI orientation",
+    "statement": "On axial MRI, the radial tuberosity lies on the medial surface of the radius.",
+    "seconds": 864,
+    "timestamp": "14:24",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=864s"
+  },
+  {
+    "id": "fact-085",
+    "number": 85,
+    "category": "Axial MRI orientation",
+    "statement": "On axial MRI, the ulnar tuberosity is more anterior than the radial tuberosity.",
+    "seconds": 879,
+    "timestamp": "14:39",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=879s"
+  },
+  {
+    "id": "fact-086",
+    "number": 86,
+    "category": "Axial MRI orientation",
+    "statement": "On axial MRI, the common extensor tendon and radial collateral ligament can be separated as distinct lateral elbow structures.",
+    "seconds": 890,
+    "timestamp": "14:50",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=890s"
+  },
+  {
+    "id": "fact-087",
+    "number": 87,
+    "category": "Axial MRI orientation",
+    "statement": "The anconeus, brachioradialis, and supinator have distinctive appearances that can help orient elbow MRI anatomy.",
+    "seconds": 945,
+    "timestamp": "15:45",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=945s"
+  },
+  {
+    "id": "fact-088",
+    "number": 88,
+    "category": "Axial MRI orientation",
+    "statement": "The supinator muscle wraps around the radius.",
+    "seconds": 955,
+    "timestamp": "15:55",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=955s"
+  },
+  {
+    "id": "fact-089",
+    "number": 89,
+    "category": "Nerves",
+    "statement": "The three main nerves assessed around the elbow are the ulnar nerve, radial nerve, and median nerve.",
+    "seconds": 1036,
+    "timestamp": "17:16",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1036s"
+  },
+  {
+    "id": "fact-090",
+    "number": 90,
+    "category": "Nerves",
+    "statement": "The ulnar nerve is the easiest elbow nerve to identify on MRI because it lies superficially behind the medial epicondyle.",
+    "seconds": 1041,
+    "timestamp": "17:21",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1041s"
+  },
+  {
+    "id": "fact-091",
+    "number": 91,
+    "category": "Nerves",
+    "statement": "The ulnar nerve passes through the cubital tunnel at the elbow.",
+    "seconds": 1043,
+    "timestamp": "17:23",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1043s"
+  },
+  {
+    "id": "fact-092",
+    "number": 92,
+    "category": "Nerves",
+    "statement": "The ulnar nerve is the structure compressed when someone hits their “funny bone.”",
+    "seconds": 1050,
+    "timestamp": "17:30",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1050s"
+  },
+  {
+    "id": "fact-093",
+    "number": 93,
+    "category": "Nerves",
+    "statement": "The ulnar nerve courses distally into the forearm through or near the flexor carpi ulnaris.",
+    "seconds": 1064,
+    "timestamp": "17:44",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1064s"
+  },
+  {
+    "id": "fact-094",
+    "number": 94,
+    "category": "Nerves",
+    "statement": "The radial nerve starts posteriorly, wraps laterally around the humerus, and then enters the anterior compartment near the elbow.",
+    "seconds": 1071,
+    "timestamp": "17:51",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1071s"
+  },
+  {
+    "id": "fact-095",
+    "number": 95,
+    "category": "Nerves",
+    "statement": "The radial nerve divides near the elbow into superficial and deep branches.",
+    "seconds": 1090,
+    "timestamp": "18:10",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1090s"
+  },
+  {
+    "id": "fact-096",
+    "number": 96,
+    "category": "Nerves",
+    "statement": "The deep branch of the radial nerve passes posteriorly through the supinator region and becomes the posterior interosseous nerve.",
+    "seconds": 1099,
+    "timestamp": "18:19",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1099s"
+  },
+  {
+    "id": "fact-097",
+    "number": 97,
+    "category": "Nerves",
+    "statement": "The median nerve passes between the two heads of pronator teres near the elbow.",
+    "seconds": 1112,
+    "timestamp": "18:32",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1112s"
+  },
+  {
+    "id": "fact-098",
+    "number": 98,
+    "category": "Nerves",
+    "statement": "The median nerve continues distally toward the carpal tunnel and supplies hand muscles.",
+    "seconds": 1129,
+    "timestamp": "18:49",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1129s"
+  },
+  {
+    "id": "fact-099",
+    "number": 99,
+    "category": "Nerves",
+    "statement": "The median nerve gives off the anterior interosseous nerve branch in the proximal forearm.",
+    "seconds": 1134,
+    "timestamp": "18:54",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1134s"
+  },
+  {
+    "id": "fact-100",
+    "number": 100,
+    "category": "Nerves",
+    "statement": "Perineural fat can make elbow nerves easier to identify on non-fat-suppressed axial PD MRI.",
+    "seconds": 1140,
+    "timestamp": "19:00",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1140s"
+  },
+  {
+    "id": "fact-101",
+    "number": 101,
+    "category": "Nerves",
+    "statement": "Non-fat-suppressed axial PD MRI provides useful contrast for tendons, ligaments, and nerves around the elbow.",
+    "seconds": 1144,
+    "timestamp": "19:04",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1144s"
+  },
+  {
+    "id": "fact-102",
+    "number": 102,
+    "category": "Imaging approach and pitfalls",
+    "statement": "When evaluating elbow pathology, marrow signal should be assessed in addition to tendons, ligaments, and nerves.",
+    "seconds": 1158,
+    "timestamp": "19:18",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1158s"
+  },
+  {
+    "id": "fact-103",
+    "number": 103,
+    "category": "Imaging approach and pitfalls",
+    "statement": "PD fat-saturated images are useful for assessing marrow signal and fractures around the elbow.",
+    "seconds": 1161,
+    "timestamp": "19:21",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1161s"
+  },
+  {
+    "id": "fact-104",
+    "number": 104,
+    "category": "Imaging approach and pitfalls",
+    "statement": "The trochlear ridge creates a normal gap or discontinuity in the cartilage contour of the trochlear notch region.",
+    "seconds": 1182,
+    "timestamp": "19:42",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1182s"
+  },
+  {
+    "id": "fact-105",
+    "number": 105,
+    "category": "Imaging approach and pitfalls",
+    "statement": "The normal trochlear ridge should not be mistaken for an intra-articular loose body or cartilage defect.",
+    "seconds": 1189,
+    "timestamp": "19:49",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1189s"
+  },
+  {
+    "id": "fact-106",
+    "number": 106,
+    "category": "Imaging approach and pitfalls",
+    "statement": "The normal cartilage gap at the trochlear ridge becomes larger toward the medial and lateral periphery.",
+    "seconds": 1202,
+    "timestamp": "20:02",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1202s"
+  },
+  {
+    "id": "fact-107",
+    "number": 107,
+    "category": "Imaging approach and pitfalls",
+    "statement": "The posterior capitellum normally has a flattened non-articular surface without cartilage.",
+    "seconds": 1222,
+    "timestamp": "20:22",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1222s"
+  },
+  {
+    "id": "fact-108",
+    "number": 108,
+    "category": "Imaging approach and pitfalls",
+    "statement": "On coronal MRI, it can be normal to see radial head cartilage without opposing capitellar cartilage posteriorly.",
+    "seconds": 1235,
+    "timestamp": "20:35",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1235s"
+  },
+  {
+    "id": "fact-109",
+    "number": 109,
+    "category": "Imaging approach and pitfalls",
+    "statement": "Absence of cartilage along the posterior capitellum should not automatically be interpreted as cartilage loss.",
+    "seconds": 1247,
+    "timestamp": "20:47",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1247s"
+  },
+  {
+    "id": "fact-110",
+    "number": 110,
+    "category": "Imaging approach and pitfalls",
+    "statement": "Knowing normal elbow MRI anatomy helps identify pathology such as ulnar nerve dislocation from the cubital groove.",
+    "seconds": 1263,
+    "timestamp": "21:03",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1263s"
+  },
+  {
+    "id": "fact-111",
+    "number": 111,
+    "category": "Imaging approach and pitfalls",
+    "statement": "Knowing normal elbow MRI anatomy helps identify fractures such as coronoid process fractures after posterior elbow dislocation.",
+    "seconds": 1271,
+    "timestamp": "21:11",
+    "url": "https://www.youtube.com/watch?v=DWDdI0XuYgo&t=1271s"
+  }
+];
+  const STORAGE_KEY = 'elbow_mri_fact_saver_status_v1';
+
+  const els = {
+    list: document.getElementById('list'),
+    empty: document.getElementById('empty'),
+    search: document.getElementById('searchInput'),
+    copySaved: document.getElementById('copySavedBtn'),
+    copyVisible: document.getElementById('copyVisibleBtn'),
+    showCopyBox: document.getElementById('showCopyBoxBtn'),
+    copyBox: document.getElementById('copyBox'),
+    reset: document.getElementById('resetBtn'),
+    totalCount: document.getElementById('totalCount'),
+    savedCount: document.getElementById('savedCount'),
+    discardedCount: document.getElementById('discardedCount'),
+    unreviewedCount: document.getElementById('unreviewedCount'),
+    visibleCount: document.getElementById('visibleCount'),
+    toast: document.getElementById('toast'),
+  };
+
+  const state = {
+    view: 'all',
+    query: '',
+    status: {},
+    visible: [],
+  };
+
+  function loadStatus(){
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      if (parsed && typeof parsed === 'object') state.status = parsed;
+    } catch(e) {}
+  }
+
+  function saveStatus(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.status));
+    } catch(e) {}
+  }
+
+  function statusOf(id){
+    return state.status[id] || 'unreviewed';
+  }
+
+  function setStatus(id, status){
+    if (status === 'unreviewed') delete state.status[id];
+    else state.status[id] = status;
+    saveStatus();
+    render();
+  }
+
+  function showToast(message){
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => els.toast.classList.remove('show'), 1400);
+  }
+
+  function searchText(fact){
+    return [fact.number, fact.category, fact.statement, fact.timestamp, fact.url].join(' ').toLowerCase();
+  }
+
+  function filteredFacts(){
+    const q = state.query.trim().toLowerCase();
+    return FACTS.filter(fact => {
+      const status = statusOf(fact.id);
+      if (state.view !== 'all' && status !== state.view) return false;
+      if (q && !searchText(fact).includes(q)) return false;
+      return true;
+    });
+  }
+
+  function updateCounts(){
+    const saved = FACTS.filter(f => statusOf(f.id) === 'saved').length;
+    const discarded = FACTS.filter(f => statusOf(f.id) === 'discarded').length;
+    els.totalCount.textContent = FACTS.length;
+    els.savedCount.textContent = saved;
+    els.discardedCount.textContent = discarded;
+    els.unreviewedCount.textContent = FACTS.length - saved - discarded;
+    els.visibleCount.textContent = state.visible.length;
+  }
+
+  function youtubeUrl(seconds){
+    return `https://www.youtube.com/watch?v=${VIDEO_ID}&t=${seconds}s`;
+  }
+
+  function youtubeAppUrl(seconds){
+    return `vnd.youtube://www.youtube.com/watch?v=${VIDEO_ID}&t=${seconds}s`;
+  }
+
+  function openTimestamp(seconds){
+    const webUrl = youtubeUrl(seconds);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      const start = Date.now();
+      window.location.href = youtubeAppUrl(seconds);
+      window.setTimeout(() => {
+        if (Date.now() - start < 1800) window.location.href = webUrl;
+      }, 700);
+      return;
+    }
+
+    window.open(webUrl, '_blank', 'noopener');
+  }
+
+  function outputFor(facts){
+    if (!facts.length) return '';
+    return facts.map((fact, index) => {
+      return `${index + 1}. ${fact.statement}\nTimestamp: ${fact.timestamp}\nLink: ${fact.url}`;
+    }).join('\n\n');
+  }
+
+  async function copyText(text, label){
+    if (!text) {
+      showToast('Nothing to copy');
+      return;
+    }
+    els.copyBox.value = text;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(label || 'Copied');
+    } catch(e) {
+      els.copyBox.classList.add('show');
+      els.copyBox.focus();
+      els.copyBox.select();
+      showToast('Copy box opened');
+    }
+  }
+
+  function renderCard(fact){
+    const status = statusOf(fact.id);
+    const card = document.createElement('article');
+    card.className = `card ${status === 'saved' ? 'saved' : ''} ${status === 'discarded' ? 'discarded' : ''}`;
+
+    const statusText = status === 'saved' ? 'Saved' : status === 'discarded' ? 'Discarded' : 'Unreviewed';
+    const statusClass = status === 'saved' ? 'savedText' : status === 'discarded' ? 'discardedText' : '';
+
+    card.innerHTML = `
+      <div class="cardTop">
+        <div class="num">${fact.number}</div>
+        <div class="factBody">
+          <div class="statement"></div>
+          <div class="meta">
+            <span>${fact.category}</span>
+            <span>${fact.timestamp}</span>
+          </div>
+        </div>
+      </div>
+      <div class="cardActions">
+        <span class="statusLabel ${statusClass}">${statusText}</span>
+        <button class="pill small save" data-action="save" type="button">${status === 'saved' ? 'Saved ✓' : 'Save'}</button>
+        <button class="pill small discard" data-action="discard" type="button">${status === 'discarded' ? 'Discarded ✕' : 'Discard'}</button>
+        <button class="pill small" data-action="clear" type="button">Clear</button>
+        <button class="pill small primary" data-action="open" type="button">Open ${
+          fact.timestamp
+        }</button>
+        <button class="pill small" data-action="copy-link" type="button">Copy Link</button>
+      </div>
+    `;
+    card.querySelector('.statement').textContent = fact.statement;
+    card.querySelector('[data-action="save"]').addEventListener('click', () => setStatus(fact.id, status === 'saved' ? 'unreviewed' : 'saved'));
+    card.querySelector('[data-action="discard"]').addEventListener('click', () => setStatus(fact.id, status === 'discarded' ? 'unreviewed' : 'discarded'));
+    card.querySelector('[data-action="clear"]').addEventListener('click', () => setStatus(fact.id, 'unreviewed'));
+    card.querySelector('[data-action="open"]').addEventListener('click', () => openTimestamp(fact.seconds));
+    card.querySelector('[data-action="copy-link"]').addEventListener('click', () => copyText(fact.url, 'Link copied'));
+    return card;
+  }
+
+  function render(){
+    state.visible = filteredFacts();
+    els.list.innerHTML = '';
+    for (const fact of state.visible) {
+      els.list.appendChild(renderCard(fact));
+    }
+    els.empty.style.display = state.visible.length ? 'none' : 'block';
+    updateCounts();
+
+    document.querySelectorAll('[data-view]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === state.view);
+    });
+  }
+
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.view = btn.dataset.view;
+      render();
+    });
+  });
+
+  els.search.addEventListener('input', () => {
+    state.query = els.search.value;
+    render();
+  });
+
+  els.copySaved.addEventListener('click', () => {
+    const saved = FACTS.filter(f => statusOf(f.id) === 'saved');
+    copyText(outputFor(saved), `Copied ${saved.length} saved`);
+  });
+
+  els.copyVisible.addEventListener('click', () => {
+    copyText(outputFor(state.visible), `Copied ${state.visible.length} visible`);
+  });
+
+  els.showCopyBox.addEventListener('click', () => {
+    const saved = FACTS.filter(f => statusOf(f.id) === 'saved');
+    const source = saved.length ? saved : state.visible;
+    els.copyBox.value = outputFor(source);
+    els.copyBox.classList.toggle('show');
+    if (els.copyBox.classList.contains('show')) {
+      els.copyBox.focus();
+      els.copyBox.select();
+    }
+  });
+
+  els.reset.addEventListener('click', () => {
+    if (!confirm('Clear saved/discarded status for all facts?')) return;
+    state.status = {};
+    saveStatus();
+    render();
+    showToast('Reset complete');
+  });
+
+  loadStatus();
+  render();
+})();
+</script>
+</body>
+</html>
