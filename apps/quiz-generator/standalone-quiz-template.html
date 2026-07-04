@@ -288,6 +288,11 @@
             transform: translateY(0px);
         }
 
+        .option-button.keyboard-selected:not(:disabled) {
+            border-color: #ffd25a;
+            box-shadow: 0 0 0 2px rgba(255, 210, 90, 0.6), 0 0 16px rgba(255, 210, 90, 0.35);
+        }
+
         .option-button:disabled {
             cursor: not-allowed;
             opacity: 0.7;
@@ -609,6 +614,10 @@
                 <label for="reveal-choices-toggle">Hide answer choices until revealed</label>
                 <input id="reveal-choices-toggle" type="checkbox">
             </div>
+            <div class="settings-row">
+                <label for="keyboard-shortcuts-toggle">Enable 8BitDo keyboard shortcuts</label>
+                <input id="keyboard-shortcuts-toggle" type="checkbox">
+            </div>
         </div>
     </div>
 
@@ -676,6 +685,7 @@
         const settingsBtnEl = document.getElementById('settings-btn');
         const settingsPanelEl = document.getElementById('settings-panel');
         const revealChoicesToggleEl = document.getElementById('reveal-choices-toggle');
+        const keyboardShortcutsToggleEl = document.getElementById('keyboard-shortcuts-toggle');
         const favoriteToggle = document.getElementById('favorite-toggle');
         const resetQuizBtn = document.getElementById('reset-quiz-btn');
         const navigatorOverlay = document.getElementById('navigator-overlay');
@@ -692,10 +702,12 @@
         let currentFilter = 'all';
         let favoriteQuestions = new Set();
         let isPreviewMode = false;
+        let selectedOptionIndex = 0;
         const quizProgressKey = `standaloneQuizProgress:${activeSessionData.title}`;
         const quizSettingsKey = `standaloneQuizSettings:${activeSessionData.title}`;
         let userSettings = {
-            hideChoicesUntilReveal: true
+            hideChoicesUntilReveal: true,
+            keyboardShortcutsEnabled: false
         };
 
         function loadUserSettings() {
@@ -706,6 +718,9 @@
                 if (typeof parsedSettings.hideChoicesUntilReveal === 'boolean') {
                     userSettings.hideChoicesUntilReveal = parsedSettings.hideChoicesUntilReveal;
                 }
+                if (typeof parsedSettings.keyboardShortcutsEnabled === 'boolean') {
+                    userSettings.keyboardShortcutsEnabled = parsedSettings.keyboardShortcutsEnabled;
+                }
             } catch (error) {
                 console.warn('Unable to load quiz settings:', error);
             }
@@ -713,6 +728,11 @@
 
         function saveUserSettings() {
             localStorage.setItem(quizSettingsKey, JSON.stringify(userSettings));
+        }
+
+        function syncSettingsControls() {
+            revealChoicesToggleEl.checked = userSettings.hideChoicesUntilReveal;
+            keyboardShortcutsToggleEl.checked = userSettings.keyboardShortcutsEnabled;
         }
 
         function saveQuizProgress() {
@@ -782,6 +802,133 @@
             saveQuizProgress();
         }
 
+        function getSelectableOptionButtons() {
+            if (answerOptionsElement.style.display === 'none') return [];
+            return Array.from(answerOptionsElement.querySelectorAll('.option-button'))
+                .filter(button => !button.disabled);
+        }
+
+        function updateKeyboardSelection(nextIndex = selectedOptionIndex) {
+            const buttons = getSelectableOptionButtons();
+            answerOptionsElement.querySelectorAll('.option-button').forEach(button => {
+                button.classList.remove('keyboard-selected');
+            });
+
+            if (!userSettings.keyboardShortcutsEnabled || buttons.length === 0) {
+                selectedOptionIndex = 0;
+                return;
+            }
+
+            selectedOptionIndex = (nextIndex + buttons.length) % buttons.length;
+            buttons[selectedOptionIndex].classList.add('keyboard-selected');
+            buttons[selectedOptionIndex].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+
+        function revealChoicesForKeyboard() {
+            answerOptionsElement.style.display = 'flex';
+            revealChoicesButton.style.display = 'none';
+            updateKeyboardSelection(0);
+        }
+
+        function selectKeyboardOption() {
+            const buttons = getSelectableOptionButtons();
+            if (buttons.length === 0) return;
+            const selectedButton = buttons[selectedOptionIndex] || buttons[0];
+            selectAnswer({ target: selectedButton });
+            updateKeyboardSelection();
+        }
+
+        function showKeyboardProgressPreview() {
+            if (isPreviewMode) {
+                showQuizFromPreview();
+            } else if (currentQuestionIndex < quizData.length) {
+                showCompletion(true);
+            }
+        }
+
+        function closeAllOverlays() {
+            navigatorOverlay.style.display = 'none';
+            hidePanel(settingsPanelEl);
+        }
+
+        function isTypingTarget(target) {
+            if (!target) return false;
+            const tagName = target.tagName;
+            const inputType = target.type || '';
+            return target.isContentEditable
+                || tagName === 'TEXTAREA'
+                || tagName === 'SELECT'
+                || (tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'file'].includes(inputType));
+        }
+
+        function isOverlayOpen() {
+            return navigatorOverlay.style.display === 'block'
+                || settingsPanelEl.style.display === 'flex';
+        }
+
+        function handleKeyboardShortcuts(event) {
+            if (!userSettings.keyboardShortcutsEnabled || isTypingTarget(event.target)) return;
+
+            const key = event.key;
+            const handledKeys = new Set([' ', 'Spacebar', 'F8', 'F11', 'ArrowRight', 'ArrowLeft', 'F3', 'F12', 'F4', '+', 'F2']);
+            if (!handledKeys.has(key)) return;
+
+            event.preventDefault();
+
+            if (key === 'F2') {
+                closeAllOverlays();
+                if (isPreviewMode) showQuizFromPreview();
+                return;
+            }
+
+            if (isOverlayOpen()) return;
+
+            if (key === ' ' || key === 'Spacebar') {
+                if (revealChoicesButton.style.display !== 'none') revealChoicesForKeyboard();
+                else selectKeyboardOption();
+                return;
+            }
+
+            if (key === 'F8') {
+                updateKeyboardSelection(selectedOptionIndex + 1);
+                return;
+            }
+
+            if (key === 'F11') {
+                updateKeyboardSelection(selectedOptionIndex - 1);
+                return;
+            }
+
+            if (key === 'ArrowRight') {
+                goToNextQuestion();
+                return;
+            }
+
+            if (key === 'ArrowLeft') {
+                goToPreviousQuestion();
+                return;
+            }
+
+            if (key === 'F3') {
+                toggleFavorite();
+                return;
+            }
+
+            if (key === 'F12') {
+                toggleNavigator();
+                return;
+            }
+
+            if (key === 'F4') {
+                showKeyboardProgressPreview();
+                return;
+            }
+
+            if (key === '+') {
+                showPanel(settingsPanelEl);
+            }
+        }
+
         function loadQuestion() {
             if (currentQuestionIndex >= quizData.length) {
                 showCompletion();
@@ -807,6 +954,7 @@
             revealChoicesButton.style.display = shouldHideChoices ? 'inline-block' : 'none';
             revealChoicesButton.disabled = false;
             answerOptionsElement.style.display = shouldHideChoices ? 'none' : 'flex';
+            selectedOptionIndex = 0;
 
             currentQuestion.options.forEach(option => {
                 const button = document.createElement('button');
@@ -836,6 +984,7 @@
 
             updateFavoriteButton();
             updateNavButtonStates();
+            updateKeyboardSelection();
         }
 
         function updateNavButtonStates() {
@@ -865,6 +1014,7 @@
 
             explanationElement.innerHTML = `<strong>Explanation:</strong> ${currentQuestion.explanation || 'No explanation provided.'}`;
             explanationElement.style.display = 'block';
+            updateKeyboardSelection();
             saveQuizProgress();
         }
 
@@ -1044,10 +1194,15 @@
             saveUserSettings();
             loadQuestion();
         });
-        revealChoicesButton.addEventListener('click', () => {
-            answerOptionsElement.style.display = 'flex';
-            revealChoicesButton.style.display = 'none';
+        keyboardShortcutsToggleEl.addEventListener('change', event => {
+            userSettings.keyboardShortcutsEnabled = event.target.checked;
+            saveUserSettings();
+            updateKeyboardSelection();
         });
+        revealChoicesButton.addEventListener('click', () => {
+            revealChoicesForKeyboard();
+        });
+        document.addEventListener('keydown', handleKeyboardShortcuts);
         filterBtns.forEach(btn => {
             btn.addEventListener('click', event => renderReviewList(event.target.dataset.filter));
         });
@@ -1076,7 +1231,7 @@
 
         quizTitleEl.textContent = activeSessionData.title;
         loadUserSettings();
-        revealChoicesToggleEl.checked = userSettings.hideChoicesUntilReveal;
+        syncSettingsControls();
         loadQuizProgress();
         loadQuestion();
     </script>
