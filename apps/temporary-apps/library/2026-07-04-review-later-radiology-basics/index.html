@@ -443,6 +443,61 @@
       color: var(--blue);
     }
 
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .copy-section {
+      min-height: 32px;
+      padding: 0 9px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .floating-copy {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: calc(env(safe-area-inset-bottom) + 14px);
+      z-index: 60;
+      min-height: 40px;
+      padding: 0 12px;
+      border-color: rgba(126, 225, 167, 0.56);
+      background: rgba(20, 57, 38, 0.9);
+      color: #edfff4;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.36);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .copy-status {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: calc(env(safe-area-inset-bottom) + 62px);
+      z-index: 61;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      padding: 8px 10px;
+      border: 1px solid rgba(126, 225, 167, 0.45);
+      border-radius: 999px;
+      background: rgba(7, 11, 16, 0.95);
+      color: #edfff4;
+      font-size: 0.78rem;
+      font-weight: 850;
+    }
+
+    .copy-status.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     .lesson p,
     .lesson li {
       color: #dce6eb;
@@ -1398,29 +1453,29 @@
 
         <section class="section-grid">
           <div class="panel lesson">
-            <h3>Refresher</h3>
+            ${sectionHeader("Refresher", "refresher")}
             <p>${escapeHtml(current.refresher || current.context)}</p>
           </div>
           <div class="panel lesson">
-            <h3>Topic Structure</h3>
+            ${sectionHeader("Topic Structure", "structure")}
             <ul>${(current.structure || current.basics).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
           </div>
         </section>
 
         <section class="panel lesson">
-          <h3>Card Anchor</h3>
+          ${sectionHeader("Card Anchor", "anchor")}
           <ul>${current.basics.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
         </section>
 
         <section class="section-grid">
           <div class="panel lesson">
-            <h3>Likely Foils</h3>
+            ${sectionHeader("Likely Foils", "foils")}
             <ul class="foil-list">
               ${current.foils.map(([name, why]) => `<li class="foil"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(why)}</span></li>`).join("")}
             </ul>
           </div>
           <div class="panel lesson quiz">
-            <h3>Quick Check</h3>
+            ${sectionHeader("Quick Check", "quiz")}
             <p>${escapeHtml(current.quiz.q)}</p>
             ${current.quiz.choices.map((choice, index) => {
               const selected = quizState[current.id] === index;
@@ -1430,6 +1485,8 @@
             <div class="quiz-result">${quizState[current.id] == null ? "Pick an answer to test the anchor." : escapeHtml(current.quiz.why)}</div>
           </div>
         </section>
+        <button id="copyExplanation" class="floating-copy" type="button">Copy explanation</button>
+        <div id="copyStatus" class="copy-status" role="status" aria-live="polite">Copied</div>
 
         <section class="panel refs">
           <h2>Reference Trail</h2>
@@ -1454,6 +1511,14 @@
           quizState[current.id] = Number(button.dataset.choice);
           renderDetail();
         });
+      });
+      detail.querySelectorAll("[data-copy]").forEach((button) => {
+        button.addEventListener("click", () => {
+          copyText(getCopyText(current, button.dataset.copy), button);
+        });
+      });
+      document.getElementById("copyExplanation").addEventListener("click", (event) => {
+        copyText(getCopyText(current, "full"), event.currentTarget);
       });
       document.getElementById("markDone").addEventListener("click", () => {
         progress[current.id] = !progress[current.id];
@@ -1482,6 +1547,15 @@
       updateStats();
     }
 
+    function sectionHeader(title, key) {
+      return `
+        <div class="section-head">
+          <h3>${escapeHtml(title)}</h3>
+          <button class="copy-section" type="button" data-copy="${escapeHtml(key)}">Copy</button>
+        </div>
+      `;
+    }
+
     function mediaBlock(module) {
       if (module.image) {
         return `
@@ -1499,6 +1573,106 @@
           <p>${escapeHtml(module.imageReason || "No real online image was selected because it would not improve the teaching point.")}</p>
         </div>
       `;
+    }
+
+    function bulletList(items) {
+      return items.map((item) => `- ${item}`).join("\n");
+    }
+
+    function foilList(items) {
+      return items.map(([name, why]) => `- ${name}: ${why}`).join("\n");
+    }
+
+    function quizText(module) {
+      const answer = module.quiz.choices[module.quiz.correct];
+      return [
+        `Question: ${module.quiz.q}`,
+        "",
+        module.quiz.choices.map((choice, index) => `${String.fromCharCode(65 + index)}. ${choice}`).join("\n"),
+        "",
+        `Answer: ${answer}`,
+        `Why: ${module.quiz.why}`
+      ].join("\n");
+    }
+
+    function mediaText(module) {
+      if (module.image) {
+        return [
+          `Image: ${module.image.caption}`,
+          `Why this image was selected: ${module.image.judgment}`,
+          `Source: ${module.image.page}`
+        ].join("\n");
+      }
+      return `Image note: ${module.imageReason || "No real online image was selected because it would not improve the teaching point."}`;
+    }
+
+    function getCopyText(module, key) {
+      const sections = {
+        refresher: `Refresher\n${module.refresher || module.context}`,
+        structure: `Topic Structure\n${bulletList(module.structure || module.basics)}`,
+        anchor: `Card Anchor\n${bulletList(module.basics)}`,
+        foils: `Likely Foils\n${foilList(module.foils)}`,
+        quiz: `Quick Check\n${quizText(module)}`
+      };
+      if (key !== "full") return sections[key] || "";
+      return [
+        module.title,
+        `Domain: ${module.domain}`,
+        `Source: ${module.source}`,
+        "",
+        `Prompt: ${module.prompt}`,
+        `Main point: ${module.answer}`,
+        "",
+        mediaText(module),
+        "",
+        sections.refresher,
+        "",
+        sections.structure,
+        "",
+        sections.anchor,
+        "",
+        sections.foils,
+        "",
+        sections.quiz
+      ].join("\n");
+    }
+
+    async function copyText(text, button) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          textarea.remove();
+        }
+        showCopyStatus(button);
+      } catch {
+        showCopyStatus(button, "Copy failed");
+      }
+    }
+
+    function showCopyStatus(button, message = "Copied") {
+      const status = document.getElementById("copyStatus");
+      if (status) {
+        status.textContent = message;
+        status.classList.add("show");
+        window.clearTimeout(status._hideTimer);
+        status._hideTimer = window.setTimeout(() => status.classList.remove("show"), 1200);
+      }
+      if (button) {
+        const original = button.textContent;
+        button.textContent = message;
+        window.setTimeout(() => {
+          button.textContent = original;
+        }, 900);
+      }
     }
 
     searchInput.addEventListener("input", (event) => {

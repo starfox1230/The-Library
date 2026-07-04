@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1117" />
+  <title>Review Later Analysis - YYYY-MM-DD</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1117;
+      --panel: #121b24;
+      --ink: #f4f7f8;
+      --muted: #a6b4bd;
+      --line: rgba(194, 213, 222, 0.18);
+      --blue: #77c7ff;
+      --green: #7ee1a7;
+      --amber: #ffd06b;
+      --radius: 8px;
+      --tap: 46px;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(119, 199, 255, 0.14), transparent 24rem),
+        linear-gradient(315deg, rgba(126, 225, 167, 0.12), transparent 26rem),
+        linear-gradient(180deg, #0d141b 0%, #0b1117 46%, #070b10 100%);
+    }
+    button, input { font: inherit; }
+    button {
+      min-height: var(--tap);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .app { width: min(1180px, 100%); margin: 0 auto; padding: 14px 12px 22px; }
+    header, .detail, .lesson, .module-list { display: grid; gap: 12px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 0; font-size: clamp(2.1rem, 12vw, 4.7rem); line-height: 0.94; }
+    .lede, .muted { color: var(--muted); line-height: 1.5; }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      gap: 8px;
+      padding: 8px 0;
+      background: linear-gradient(180deg, rgba(11, 17, 23, 0.98), rgba(11, 17, 23, 0.82));
+      backdrop-filter: blur(12px);
+    }
+    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .search-row input { min-width: 0; min-height: var(--tap); border: 1px solid var(--line); border-radius: var(--radius); background: #070b10; color: var(--ink); padding: 0 12px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 3px; }
+    .chip { flex: 0 0 auto; min-height: 38px; padding: 0 10px; border-radius: 999px; color: var(--muted); white-space: nowrap; }
+    .chip.active { border-color: rgba(119, 199, 255, 0.7); color: #e8f6ff; background: rgba(54, 108, 143, 0.45); }
+    .layout { display: grid; grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.45fr); gap: 12px; align-items: start; }
+    .module-list { position: sticky; top: 112px; max-height: calc(100vh - 130px); overflow: auto; }
+    .module-button { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 9px; text-align: left; }
+    .module-button.active { border-color: rgba(126, 225, 167, 0.72); background: rgba(39, 93, 65, 0.44); }
+    .panel { border: 1px solid var(--line); border-radius: var(--radius); background: rgba(18, 27, 36, 0.86); overflow: hidden; }
+    .hero-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 0.92fr); }
+    .hero-copy, .visual, .lesson { padding: 14px; }
+    .visual { display: grid; place-items: center; border-left: 1px solid var(--line); }
+    .answer { padding: 12px; border: 1px solid rgba(126, 225, 167, 0.38); border-radius: var(--radius); background: rgba(27, 80, 53, 0.26); }
+    .section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .copy-section { min-height: 32px; padding: 0 9px; border-radius: 999px; color: var(--muted); font-size: 0.75rem; font-weight: 850; white-space: nowrap; }
+    .floating-copy {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: calc(env(safe-area-inset-bottom) + 14px);
+      z-index: 60;
+      min-height: 40px;
+      padding: 0 12px;
+      border-color: rgba(126, 225, 167, 0.56);
+      background: rgba(20, 57, 38, 0.9);
+      color: #edfff4;
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+    .copy-status { position: fixed; right: 12px; bottom: 62px; opacity: 0; padding: 8px 10px; border-radius: 999px; background: #070b10; color: #edfff4; }
+    .copy-status.show { opacity: 1; }
+    .image-card { width: min(100%, 520px); display: grid; gap: 10px; }
+    .image-card img { width: 100%; max-height: 430px; object-fit: contain; border: 1px solid var(--line); border-radius: var(--radius); background: #05080c; }
+    .no-image { width: min(100%, 520px); padding: 16px; border: 1px dashed var(--line); border-radius: var(--radius); background: rgba(255, 255, 255, 0.035); }
+    .foil-list { display: grid; gap: 8px; padding: 0; list-style: none; }
+    .foil { display: grid; gap: 3px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255, 255, 255, 0.045); }
+    @media (max-width: 820px) {
+      .layout, .hero-panel, .section-grid { grid-template-columns: 1fr; }
+      .module-list { position: static; display: flex; max-height: none; overflow-x: auto; }
+      .module-button { grid-template-columns: auto 190px; width: 258px; flex: 0 0 auto; }
+      .visual { border-left: 0; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <p class="muted">Review Later HTML - YYYY-MM-DD</p>
+      <h1>Review Later Analysis</h1>
+      <p class="lede">A personalized breakdown of flagged cards with concept refreshers, real images when useful, foils, and quick checks.</p>
+    </header>
+    <section class="toolbar">
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Search concept, answer, or tag" />
+        <button id="resetProgress" type="button">Reset progress</button>
+      </div>
+      <div id="domainChips" class="chips"></div>
+    </section>
+    <section class="layout">
+      <nav id="moduleList" class="module-list"></nav>
+      <article id="detail" class="detail"></article>
+    </section>
+  </main>
+  <script>
+    const STORAGE_KEY = "review-later-analysis-YYYY-MM-DD-v1";
+    const modules = [
+      {
+        id: "sample",
+        domain: "Sample",
+        title: "Concept title",
+        source: "Card 1",
+        prompt: "Original cleaned prompt.",
+        answer: "Main point.",
+        refresher: "Substantial explanation that defines key words and gives context.",
+        structure: ["Major branch or factor.", "Testable distinction."],
+        basics: ["Short anchor.", "Memory hook."],
+        foils: [["Nearby concept", "Why it is not the answer."]],
+        quiz: { q: "Quick check?", choices: ["Correct", "Foil"], correct: 0, why: "Explanation." },
+        imageReason: "No image forced unless a real online image clearly teaches the concept."
+      }
+    ];
+
+    const domains = ["All", ...Array.from(new Set(modules.map((m) => m.domain)))];
+    let activeDomain = "All";
+    let activeId = modules[0].id;
+    let searchTerm = "";
+    let progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    let quizState = {};
+
+    const moduleList = document.getElementById("moduleList");
+    const detail = document.getElementById("detail");
+    const domainChips = document.getElementById("domainChips");
+    const searchInput = document.getElementById("searchInput");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function filteredModules() {
+      const term = searchTerm.trim().toLowerCase();
+      return modules.filter((m) => {
+        const domainOk = activeDomain === "All" || m.domain === activeDomain;
+        const text = [m.title, m.domain, m.answer, m.prompt, m.refresher].join(" ").toLowerCase();
+        return domainOk && (!term || text.includes(term));
+      });
+    }
+
+    function renderChips() {
+      domainChips.innerHTML = domains.map((domain) => {
+        const count = domain === "All" ? modules.length : modules.filter((m) => m.domain === domain).length;
+        return `<button type="button" class="chip ${domain === activeDomain ? "active" : ""}" data-domain="${escapeHtml(domain)}">${escapeHtml(domain)} ${count}</button>`;
+      }).join("");
+      domainChips.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeDomain = button.dataset.domain;
+          activeId = (filteredModules()[0] || modules[0]).id;
+          render();
+        });
+      });
+    }
+
+    function renderList() {
+      const list = filteredModules();
+      moduleList.innerHTML = list.map((m, index) => `
+        <button type="button" class="module-button ${m.id === activeId ? "active" : ""}" data-id="${escapeHtml(m.id)}">
+          <span>${progress[m.id] ? "OK" : index + 1}</span>
+          <span><strong>${escapeHtml(m.title)}</strong><br><span class="muted">${escapeHtml(m.answer)}</span></span>
+          <span>${escapeHtml(m.domain)}</span>
+        </button>
+      `).join("");
+      moduleList.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeId = button.dataset.id;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      });
+    }
+
+    function sectionHeader(title, key) {
+      return `<div class="section-head"><h3>${escapeHtml(title)}</h3><button class="copy-section" type="button" data-copy="${escapeHtml(key)}">Copy</button></div>`;
+    }
+
+    function mediaBlock(module) {
+      if (module.image) {
+        return `<figure class="image-card"><img src="${escapeHtml(module.image.src)}" alt="${escapeHtml(module.image.caption)}" loading="lazy" referrerpolicy="no-referrer"><figcaption>${escapeHtml(module.image.caption)}</figcaption><p class="muted">${escapeHtml(module.image.judgment)}</p><a href="${escapeHtml(module.image.page)}" target="_blank" rel="noopener">Open image source</a></figure>`;
+      }
+      return `<div class="no-image"><strong>No image forced</strong><p class="muted">${escapeHtml(module.imageReason)}</p></div>`;
+    }
+
+    function renderDetail() {
+      const current = modules.find((m) => m.id === activeId) || filteredModules()[0] || modules[0];
+      detail.innerHTML = `
+        <section class="panel hero-panel">
+          <div class="hero-copy">
+            <p class="muted">${escapeHtml(current.source)} - ${escapeHtml(current.domain)}</p>
+            <h2>${escapeHtml(current.title)}</h2>
+            <p>${escapeHtml(current.prompt)}</p>
+            <div class="answer"><strong>${escapeHtml(current.answer)}</strong></div>
+            <button id="markDone" type="button">${progress[current.id] ? "Marked understood" : "Mark understood"}</button>
+            <button id="nextCard" type="button">Next card</button>
+          </div>
+          <div class="visual">${mediaBlock(current)}</div>
+        </section>
+        <section class="section-grid">
+          <div class="panel lesson">${sectionHeader("Refresher", "refresher")}<p>${escapeHtml(current.refresher)}</p></div>
+          <div class="panel lesson">${sectionHeader("Topic Structure", "structure")}<ul>${current.structure.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
+        </section>
+        <section class="panel lesson">${sectionHeader("Card Anchor", "anchor")}<ul>${current.basics.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></section>
+        <section class="section-grid">
+          <div class="panel lesson">${sectionHeader("Likely Foils", "foils")}<ul class="foil-list">${current.foils.map(([n, w]) => `<li class="foil"><strong>${escapeHtml(n)}</strong><span>${escapeHtml(w)}</span></li>`).join("")}</ul></div>
+          <div class="panel lesson">${sectionHeader("Quick Check", "quiz")}<p>${escapeHtml(current.quiz.q)}</p>${current.quiz.choices.map((c, i) => `<button type="button" data-choice="${i}">${String.fromCharCode(65 + i)}. ${escapeHtml(c)}</button>`).join("")}</div>
+        </section>
+        <button id="copyExplanation" class="floating-copy" type="button">Copy explanation</button>
+        <div id="copyStatus" class="copy-status" role="status">Copied</div>
+      `;
+      detail.querySelectorAll("[data-copy]").forEach((button) => button.addEventListener("click", () => copyText(getCopyText(current, button.dataset.copy), button)));
+      document.getElementById("copyExplanation").addEventListener("click", (event) => copyText(getCopyText(current, "full"), event.currentTarget));
+      document.getElementById("markDone").addEventListener("click", () => {
+        progress[current.id] = !progress[current.id];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+        render();
+      });
+      document.getElementById("nextCard").addEventListener("click", () => {
+        const list = filteredModules();
+        activeId = list[(list.findIndex((m) => m.id === current.id) + 1) % list.length].id;
+        render();
+      });
+    }
+
+    function bulletList(items) { return items.map((item) => `- ${item}`).join("\n"); }
+    function foilList(items) { return items.map(([name, why]) => `- ${name}: ${why}`).join("\n"); }
+    function quizText(module) { return [`Question: ${module.quiz.q}`, "", module.quiz.choices.map((choice, index) => `${String.fromCharCode(65 + index)}. ${choice}`).join("\n"), "", `Answer: ${module.quiz.choices[module.quiz.correct]}`, `Why: ${module.quiz.why}`].join("\n"); }
+    function mediaText(module) { return module.image ? [`Image: ${module.image.caption}`, `Why selected: ${module.image.judgment}`, `Source: ${module.image.page}`].join("\n") : `Image note: ${module.imageReason}`; }
+    function getCopyText(module, key) {
+      const sections = {
+        refresher: `Refresher\n${module.refresher}`,
+        structure: `Topic Structure\n${bulletList(module.structure)}`,
+        anchor: `Card Anchor\n${bulletList(module.basics)}`,
+        foils: `Likely Foils\n${foilList(module.foils)}`,
+        quiz: `Quick Check\n${quizText(module)}`
+      };
+      if (key !== "full") return sections[key] || "";
+      return [module.title, `Domain: ${module.domain}`, `Source: ${module.source}`, "", `Prompt: ${module.prompt}`, `Main point: ${module.answer}`, "", mediaText(module), "", sections.refresher, "", sections.structure, "", sections.anchor, "", sections.foils, "", sections.quiz].join("\n");
+    }
+    async function copyText(text, button) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      const status = document.getElementById("copyStatus");
+      if (status) {
+        status.classList.add("show");
+        window.setTimeout(() => status.classList.remove("show"), 1200);
+      }
+      const original = button.textContent;
+      button.textContent = "Copied";
+      window.setTimeout(() => { button.textContent = original; }, 900);
+    }
+
+    searchInput.addEventListener("input", (event) => { searchTerm = event.target.value; render(); });
+    document.getElementById("resetProgress").addEventListener("click", () => { progress = {}; localStorage.setItem(STORAGE_KEY, "{}"); render(); });
+    function render() { renderChips(); renderList(); renderDetail(); }
+    render();
+  </script>
+</body>
+</html>
