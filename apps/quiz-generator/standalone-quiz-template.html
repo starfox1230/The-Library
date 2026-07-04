@@ -156,6 +156,35 @@
             background: #2b2430;
         }
 
+        .anki-card-toggle {
+            position: absolute;
+            top: 68px;
+            right: 25px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid #7777a8;
+            background: rgba(140, 140, 180, 0.12);
+            color: #aaaad8;
+            font-size: 1rem;
+            cursor: pointer;
+            display: none;
+            place-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .anki-card-toggle:hover {
+            background: rgba(74, 74, 245, 0.2);
+            border-color: var(--bright-blue);
+        }
+
+        .anki-card-toggle.active {
+            background: rgba(40, 167, 69, 0.22);
+            border-color: #28a745;
+            color: #8ee7ab;
+            box-shadow: 0 0 12px rgba(40, 167, 69, 0.55);
+        }
+
         .navigator-overlay {
             position: absolute;
             top: 80px;
@@ -434,11 +463,48 @@
             border-left: 4px solid #dc3545;
         }
 
+        .review-q-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
         .review-q {
             color: #f0f0ff;
             font-size: 1rem;
             line-height: 1.5;
-            margin-bottom: 10px;
+            margin-bottom: 0;
+            min-width: 0;
+        }
+
+        .review-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+
+        .review-anki-toggle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid #7777a8;
+            background: rgba(140, 140, 180, 0.12);
+            color: #aaaad8;
+            display: inline-grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 0.84rem;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .review-anki-toggle.active {
+            background: rgba(40, 167, 69, 0.22);
+            border-color: #28a745;
+            color: #8ee7ab;
         }
 
         .review-ans,
@@ -569,6 +635,7 @@
 
     <div class="quiz-container">
         <button id="favorite-toggle" class="favorite-toggle" aria-pressed="false" title="Save question to favorites">☆</button>
+        <button id="anki-card-toggle" class="anki-card-toggle" aria-pressed="false" title="Mark Anki card created">✓</button>
 
         <div id="navigator-overlay" class="navigator-overlay">
             <div class="navigator-grid" id="navigator-grid"></div>
@@ -594,6 +661,8 @@
                 <button class="filter-btn" data-filter="correct">Correct</button>
                 <button class="filter-btn" data-filter="incorrect">Incorrect</button>
                 <button class="filter-btn" data-filter="favorites">Favorites</button>
+                <button class="filter-btn" data-filter="needs-cards">Needs Cards</button>
+                <button class="filter-btn" data-filter="cards-made">Cards Made</button>
                 <button id="copy-review-btn" class="copy-review-btn">Copy Listed Items</button>
             </div>
 
@@ -687,6 +756,7 @@
         const revealChoicesToggleEl = document.getElementById('reveal-choices-toggle');
         const keyboardShortcutsToggleEl = document.getElementById('keyboard-shortcuts-toggle');
         const favoriteToggle = document.getElementById('favorite-toggle');
+        const ankiCardToggle = document.getElementById('anki-card-toggle');
         const resetQuizBtn = document.getElementById('reset-quiz-btn');
         const navigatorOverlay = document.getElementById('navigator-overlay');
         const navigatorGrid = document.getElementById('navigator-grid');
@@ -701,6 +771,7 @@
         let userAnswers = new Array(quizData.length).fill(null);
         let currentFilter = 'all';
         let favoriteQuestions = new Set();
+        let ankiCardQuestions = new Set();
         let isPreviewMode = false;
         let selectedOptionIndex = 0;
         const quizProgressKey = `standaloneQuizProgress:${activeSessionData.title}`;
@@ -739,7 +810,8 @@
             const payload = {
                 currentQuestionIndex,
                 userAnswers,
-                favoriteQuestions: Array.from(favoriteQuestions)
+                favoriteQuestions: Array.from(favoriteQuestions),
+                ankiCardQuestions: Array.from(ankiCardQuestions).filter(index => favoriteQuestions.has(index))
             };
             localStorage.setItem(quizProgressKey, JSON.stringify(payload));
         }
@@ -754,6 +826,9 @@
                 }
                 if (Array.isArray(parsed.favoriteQuestions)) {
                     favoriteQuestions = new Set(parsed.favoriteQuestions);
+                }
+                if (Array.isArray(parsed.ankiCardQuestions)) {
+                    ankiCardQuestions = new Set(parsed.ankiCardQuestions.filter(index => favoriteQuestions.has(index)));
                 }
                 if (Number.isInteger(parsed.currentQuestionIndex)) {
                     currentQuestionIndex = Math.max(0, Math.min(parsed.currentQuestionIndex, quizData.length));
@@ -791,12 +866,43 @@
             favoriteToggle.title = isFavorite ? 'Remove from favorites' : 'Save question to favorites';
             favoriteToggle.removeAttribute('aria-hidden');
             favoriteToggle.style.display = currentQuestionIndex >= quizData.length ? 'none' : 'grid';
+            updateAnkiCardButton();
+        }
+
+        function updateAnkiCardButton() {
+            if (currentQuestionIndex >= quizData.length || !favoriteQuestions.has(currentQuestionIndex)) {
+                ankiCardToggle.style.display = 'none';
+                ankiCardToggle.setAttribute('aria-hidden', 'true');
+                ankiCardToggle.setAttribute('aria-pressed', 'false');
+                ankiCardToggle.classList.remove('active');
+                return;
+            }
+
+            const isCreated = ankiCardQuestions.has(currentQuestionIndex);
+            ankiCardToggle.classList.toggle('active', isCreated);
+            ankiCardToggle.setAttribute('aria-pressed', String(isCreated));
+            ankiCardToggle.title = isCreated ? 'Mark Anki card not created' : 'Mark Anki card created';
+            ankiCardToggle.removeAttribute('aria-hidden');
+            ankiCardToggle.style.display = 'grid';
+        }
+
+        function toggleAnkiCardCreated(index = currentQuestionIndex) {
+            if (index < 0 || index >= quizData.length || !favoriteQuestions.has(index)) return;
+
+            if (ankiCardQuestions.has(index)) ankiCardQuestions.delete(index);
+            else ankiCardQuestions.add(index);
+
+            if (index === currentQuestionIndex) updateAnkiCardButton();
+            if (navigatorOverlay.style.display === 'block') buildNavigatorGrid();
+            if (completionMessageElement.style.display !== 'none') renderReviewList(currentFilter);
+            saveQuizProgress();
         }
 
         function toggleFavorite() {
             if (currentQuestionIndex >= quizData.length) return;
             if (favoriteQuestions.has(currentQuestionIndex)) favoriteQuestions.delete(currentQuestionIndex);
             else favoriteQuestions.add(currentQuestionIndex);
+            if (!favoriteQuestions.has(currentQuestionIndex)) ankiCardQuestions.delete(currentQuestionIndex);
             updateFavoriteButton();
             if (navigatorOverlay.style.display === 'block') buildNavigatorGrid();
             saveQuizProgress();
@@ -870,7 +976,7 @@
             if (!userSettings.keyboardShortcutsEnabled || isTypingTarget(event.target)) return;
 
             const key = event.key;
-            const handledKeys = new Set([' ', 'Spacebar', 'F8', 'F11', 'ArrowRight', 'ArrowLeft', 'F3', 'F12', 'F4', '+', 'F2']);
+            const handledKeys = new Set([' ', 'Spacebar', 'F8', 'F11', 'ArrowRight', 'ArrowLeft', 'F1', 'F3', 'F12', 'F4', '+', 'F2']);
             if (!handledKeys.has(key)) return;
 
             event.preventDefault();
@@ -911,6 +1017,11 @@
 
             if (key === 'F3') {
                 toggleFavorite();
+                return;
+            }
+
+            if (key === 'F1') {
+                toggleAnkiCardCreated();
                 return;
             }
 
@@ -1083,6 +1194,8 @@
             completionMessageElement.style.display = 'flex';
             favoriteToggle.style.display = 'none';
             favoriteToggle.setAttribute('aria-hidden', 'true');
+            ankiCardToggle.style.display = 'none';
+            ankiCardToggle.setAttribute('aria-hidden', 'true');
 
             const correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
             const answeredCount = userAnswers.filter(answer => answer !== null).length;
@@ -1103,6 +1216,7 @@
             navigationButtonsElement.style.display = 'flex';
             favoriteToggle.style.display = 'grid';
             favoriteToggle.setAttribute('aria-hidden', 'false');
+            updateAnkiCardButton();
             loadQuestion();
         }
 
@@ -1121,17 +1235,23 @@
                 const isAnswered = ua !== null;
                 const isFavorite = favoriteQuestions.has(index);
 
-                if (isPreviewMode && !isAnswered) return;
+                if (isPreviewMode && !isAnswered && !isFavorite) return;
                 if (filter === 'correct' && !isCorrect) return;
                 if (filter === 'incorrect' && (isCorrect || !isAnswered)) return;
                 if (filter === 'favorites' && !isFavorite) return;
+                if (filter === 'needs-cards' && (!isFavorite || ankiCardQuestions.has(index))) return;
+                if (filter === 'cards-made' && (!isFavorite || !ankiCardQuestions.has(index))) return;
 
                 const card = document.createElement('div');
                 card.classList.add('review-card');
                 if (isCorrect) card.classList.add('correct-card');
                 else card.classList.add('incorrect-card');
 
-                let html = `<div class="review-q">${index + 1}. ${q.question}${isFavorite ? ' <span class="favorite-mark" title="Favorited">★</span>' : ''}</div>`;
+                const ankiCreated = ankiCardQuestions.has(index);
+                const statusHtml = isFavorite
+                    ? `<div class="review-status"><span class="favorite-mark" title="Favorited">★</span><button type="button" class="review-anki-toggle ${ankiCreated ? 'active' : ''}" data-index="${index}" aria-pressed="${String(ankiCreated)}" title="${ankiCreated ? 'Mark Anki card not created' : 'Mark Anki card created'}">✓</button></div>`
+                    : '';
+                let html = `<div class="review-q-row"><div class="review-q">${index + 1}. ${q.question}</div>${statusHtml}</div>`;
 
                 if (ua) {
                     html += `<div class="review-ans"><span class="ans-label">Your Answer:</span> <span class="user-ans-text ${isCorrect ? 'correct' : 'incorrect'}">${ua.selected}</span></div>`;
@@ -1147,6 +1267,13 @@
                 card.innerHTML = html;
                 reviewListEl.appendChild(card);
             });
+
+            reviewListEl.querySelectorAll('.review-anki-toggle').forEach(button => {
+                button.addEventListener('click', event => {
+                    event.stopPropagation();
+                    toggleAnkiCardCreated(Number(event.currentTarget.dataset.index));
+                });
+            });
         }
 
         function copyReviewText() {
@@ -1159,13 +1286,18 @@
                 const isAnswered = ua !== null;
                 const isFavorite = favoriteQuestions.has(index);
 
-                if (isPreviewMode && !isAnswered) return;
+                if (isPreviewMode && !isAnswered && !isFavorite) return;
                 if (currentFilter === 'correct' && !isCorrect) return;
                 if (currentFilter === 'incorrect' && (isCorrect || !isAnswered)) return;
                 if (currentFilter === 'favorites' && !isFavorite) return;
+                if (currentFilter === 'needs-cards' && (!isFavorite || ankiCardQuestions.has(index))) return;
+                if (currentFilter === 'cards-made' && (!isFavorite || !ankiCardQuestions.has(index))) return;
 
                 count += 1;
                 textToCopy += `Q${index + 1}: ${q.question}${isFavorite ? ' ★' : ''}\n`;
+                if (isFavorite) {
+                    textToCopy += `Anki Card: ${ankiCardQuestions.has(index) ? 'Created' : 'Needed'}\n`;
+                }
                 textToCopy += `Your Answer: ${ua ? ua.selected : 'Skipped'} (${isCorrect ? 'Correct' : 'Incorrect'})\n`;
                 if (!isCorrect) textToCopy += `Correct Answer: ${q.correctAnswer}\n`;
                 textToCopy += `Explanation: ${q.explanation}\n`;
@@ -1182,6 +1314,7 @@
         prevButton.addEventListener('click', goToPreviousQuestion);
         nextButton.addEventListener('click', goToNextQuestion);
         favoriteToggle.addEventListener('click', toggleFavorite);
+        ankiCardToggle.addEventListener('click', () => toggleAnkiCardCreated());
         questionCounterElement.addEventListener('click', toggleNavigator);
         navigatorClose.addEventListener('click', toggleNavigator);
         viewProgressReviewBtn.addEventListener('click', () => {
@@ -1213,6 +1346,7 @@
             if (!confirmed) return;
             userAnswers = new Array(quizData.length).fill(null);
             favoriteQuestions = new Set();
+            ankiCardQuestions = new Set();
             currentQuestionIndex = 0;
             currentFilter = 'all';
             localStorage.removeItem(quizProgressKey);

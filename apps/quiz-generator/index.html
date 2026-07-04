@@ -242,6 +242,10 @@
 
         #sessions-list li,
         #past-sessions-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
             padding: 15px;
             border-bottom: 1px solid #3a3a5e;
             color: var(--font-color);
@@ -258,6 +262,36 @@
         #sessions-list li:last-child,
         #past-sessions-list li:last-child {
             border-bottom: none;
+        }
+
+        .session-title {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .session-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex: 0 0 auto;
+            min-width: 58px;
+            justify-content: center;
+            padding: 4px 8px;
+            border: 1px solid #4a4a7e;
+            border-radius: 999px;
+            color: #f5d742;
+            font-weight: 700;
+            font-size: 0.82rem;
+            line-height: 1;
+        }
+
+        .session-status-badge.empty {
+            color: #7777a8;
+        }
+
+        .session-status-complete {
+            color: #8ee7ab;
+            font-size: 0.84rem;
         }
 
         #quizTopControls {
@@ -554,6 +588,35 @@
             box-shadow: 0 0 12px rgba(245, 215, 66, 0.7);
         }
 
+        .anki-card-toggle {
+            position: absolute;
+            top: 58px;
+            right: 18px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid #7777a8;
+            background: rgba(140, 140, 180, 0.12);
+            color: #aaaad8;
+            font-size: 1rem;
+            cursor: pointer;
+            display: none;
+            place-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .anki-card-toggle:hover {
+            background: rgba(74, 74, 245, 0.2);
+            border-color: var(--bright-blue);
+        }
+
+        .anki-card-toggle.active {
+            background: rgba(40, 167, 69, 0.22);
+            border-color: #28a745;
+            color: #8ee7ab;
+            box-shadow: 0 0 12px rgba(40, 167, 69, 0.55);
+        }
+
         .favorite-mark {
             color: #f5d742;
             margin-left: 6px;
@@ -631,10 +694,47 @@
             border-left: 4px solid #dc3545;
         }
 
+        .review-q-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
         .review-q {
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 0;
             color: #e0e0fc;
+            min-width: 0;
+        }
+
+        .review-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+
+        .review-anki-toggle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid #7777a8;
+            background: rgba(140, 140, 180, 0.12);
+            color: #aaaad8;
+            display: inline-grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 0.84rem;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .review-anki-toggle.active {
+            background: rgba(40, 167, 69, 0.22);
+            border-color: #28a745;
+            color: #8ee7ab;
         }
 
         .review-ans {
@@ -883,6 +983,7 @@ Example format:
 
         <div class="quiz-container">
             <button id="favorite-toggle" class="favorite-toggle" aria-pressed="false" title="Save question to favorites">&#9734;</button>
+            <button id="anki-card-toggle" class="anki-card-toggle" aria-pressed="false" title="Mark Anki card created">&#10003;</button>
 
             <div id="navigator-overlay" class="navigator-overlay">
                 <div class="navigator-grid" id="navigator-grid"></div>
@@ -908,6 +1009,8 @@ Example format:
                     <button class="filter-btn" data-filter="correct">Correct</button>
                     <button class="filter-btn" data-filter="incorrect">Incorrect</button>
                     <button class="filter-btn" data-filter="favorites">Favorites</button>
+                    <button class="filter-btn" data-filter="needs-cards">Needs Cards</button>
+                    <button class="filter-btn" data-filter="cards-made">Cards Made</button>
                     <button id="copy-review-btn" class="copy-review-btn">Copy Listed Items</button>
                 </div>
 
@@ -979,6 +1082,7 @@ Example format:
             const FAVORITE_STAR_HTML = '&#9733;';
             const FAVORITE_EMPTY_HTML = '&#9734;';
             const FAVORITE_STAR_TEXT = String.fromCharCode(9733);
+            const FAVORITE_EMPTY_TEXT = String.fromCharCode(9734);
 
             const quizSessionUtils = window.QuizSessionUtils;
             if (!quizSessionUtils) throw new Error('quiz-session-utils.js failed to load.');
@@ -1014,6 +1118,7 @@ Example format:
             const pastSessionsPanelEl = document.getElementById('past-sessions-panel');
             const pastSessionsListEl = document.getElementById('past-sessions-list');
             const favoriteToggle = document.getElementById('favorite-toggle');
+            const ankiCardToggle = document.getElementById('anki-card-toggle');
             const resetQuizBtn = document.getElementById('reset-quiz-btn');
             const navigatorOverlay = document.getElementById('navigator-overlay');
             const navigatorGrid = document.getElementById('navigator-grid');
@@ -1030,6 +1135,7 @@ Example format:
             let userAnswers = [];
             let currentFilter = 'all';
             let favoriteQuestions = new Set();
+            let ankiCardQuestions = new Set();
             let isPreviewMode = false;
             let selectedOptionIndex = 0;
             const quizSettingsKey = 'quizGeneratorSettings';
@@ -1046,10 +1152,91 @@ Example format:
                 return JSON.parse(localStorage.getItem('pastQuizSessions')) || [];
             }
 
+            function normalizeQuestionIndexList(items, questionCount) {
+                if (!Array.isArray(items)) return [];
+                return Array.from(new Set(items))
+                    .filter(index => Number.isInteger(index) && index >= 0 && index < questionCount)
+                    .sort((a, b) => a - b);
+            }
+
+            function normalizeProgressData(progress, questionCount) {
+                const source = progress && typeof progress === 'object' && !Array.isArray(progress) ? progress : {};
+                const favoriteList = normalizeQuestionIndexList(source.favoriteQuestions, questionCount);
+                const favoriteSet = new Set(favoriteList);
+                const ankiList = normalizeQuestionIndexList(source.ankiCardQuestions, questionCount)
+                    .filter(index => favoriteSet.has(index));
+                const answers = Array.isArray(source.userAnswers) && source.userAnswers.length === questionCount
+                    ? source.userAnswers
+                    : null;
+
+                return {
+                    currentQuestionIndex: Number.isInteger(source.currentQuestionIndex)
+                        ? Math.max(0, Math.min(source.currentQuestionIndex, questionCount))
+                        : 0,
+                    userAnswers: answers,
+                    favoriteQuestions: favoriteList,
+                    ankiCardQuestions: ankiList
+                };
+            }
+
+            function getStoredQuizProgress(title) {
+                if (!title) return {};
+
+                try {
+                    return JSON.parse(localStorage.getItem(`quizProgress:${title}`) || '{}') || {};
+                } catch (_) {
+                    return {};
+                }
+            }
+
+            function getExportableSession(sessionData) {
+                const progress = normalizeProgressData(
+                    getStoredQuizProgress(sessionData.title),
+                    sessionData.questions.length
+                );
+                const hasProgress = progress.currentQuestionIndex > 0
+                    || progress.favoriteQuestions.length > 0
+                    || progress.ankiCardQuestions.length > 0
+                    || (progress.userAnswers && progress.userAnswers.some(answer => answer !== null));
+
+                if (!hasProgress) return sessionData;
+
+                return {
+                    ...sessionData,
+                    progress: {
+                        currentQuestionIndex: progress.currentQuestionIndex,
+                        userAnswers: progress.userAnswers || new Array(sessionData.questions.length).fill(null),
+                        favoriteQuestions: progress.favoriteQuestions,
+                        ankiCardQuestions: progress.ankiCardQuestions
+                    }
+                };
+            }
+
+            function stripProgressFromSession(sessionData) {
+                const { progress, ...sessionWithoutProgress } = sessionData;
+                return sessionWithoutProgress;
+            }
+
+            function saveImportedProgress(sessionData) {
+                if (!sessionData || !sessionData.progress) return;
+
+                const progress = normalizeProgressData(sessionData.progress, sessionData.questions.length);
+                const payload = {
+                    currentQuestionIndex: progress.currentQuestionIndex,
+                    userAnswers: progress.userAnswers || new Array(sessionData.questions.length).fill(null),
+                    favoriteQuestions: progress.favoriteQuestions,
+                    ankiCardQuestions: progress.ankiCardQuestions
+                };
+
+                localStorage.setItem(`quizProgress:${sessionData.title}`, JSON.stringify(payload));
+            }
+
             function saveSessionData(sessionData) {
                 let pastSessions = getPastSessions();
-                pastSessions = pastSessions.filter(session => session.title !== sessionData.title);
-                pastSessions.push(sessionData);
+                const sessionWithoutProgress = stripProgressFromSession(sessionData);
+                saveImportedProgress(sessionData);
+                pastSessions = pastSessions.filter(session => session.title !== sessionWithoutProgress.title);
+                pastSessions.push(sessionWithoutProgress);
                 localStorage.setItem('pastQuizSessions', JSON.stringify(pastSessions));
             }
 
@@ -1146,7 +1333,8 @@ Example format:
                 const payload = {
                     currentQuestionIndex,
                     userAnswers,
-                    favoriteQuestions: Array.from(favoriteQuestions)
+                    favoriteQuestions: Array.from(favoriteQuestions),
+                    ankiCardQuestions: Array.from(ankiCardQuestions).filter(index => favoriteQuestions.has(index))
                 };
 
                 localStorage.setItem(getQuizProgressKey(), JSON.stringify(payload));
@@ -1165,6 +1353,9 @@ Example format:
                     }
                     if (Array.isArray(parsed.favoriteQuestions)) {
                         favoriteQuestions = new Set(parsed.favoriteQuestions);
+                    }
+                    if (Array.isArray(parsed.ankiCardQuestions)) {
+                        ankiCardQuestions = new Set(parsed.ankiCardQuestions.filter(index => favoriteQuestions.has(index)));
                     }
                     if (Number.isInteger(parsed.currentQuestionIndex)) {
                         currentQuestionIndex = Math.max(0, Math.min(parsed.currentQuestionIndex, quizData.length));
@@ -1188,6 +1379,36 @@ Example format:
                 favoriteToggle.title = isFavorite ? 'Remove from favorites' : 'Save question to favorites';
                 favoriteToggle.removeAttribute('aria-hidden');
                 favoriteToggle.style.display = currentQuestionIndex >= quizData.length ? 'none' : 'grid';
+                updateAnkiCardButton();
+            }
+
+            function updateAnkiCardButton() {
+                if (!activeSessionData || currentQuestionIndex >= quizData.length || !favoriteQuestions.has(currentQuestionIndex)) {
+                    ankiCardToggle.style.display = 'none';
+                    ankiCardToggle.setAttribute('aria-hidden', 'true');
+                    ankiCardToggle.setAttribute('aria-pressed', 'false');
+                    ankiCardToggle.classList.remove('active');
+                    return;
+                }
+
+                const isCreated = ankiCardQuestions.has(currentQuestionIndex);
+                ankiCardToggle.classList.toggle('active', isCreated);
+                ankiCardToggle.setAttribute('aria-pressed', String(isCreated));
+                ankiCardToggle.title = isCreated ? 'Mark Anki card not created' : 'Mark Anki card created';
+                ankiCardToggle.removeAttribute('aria-hidden');
+                ankiCardToggle.style.display = 'grid';
+            }
+
+            function toggleAnkiCardCreated(index = currentQuestionIndex) {
+                if (!activeSessionData || index < 0 || index >= quizData.length || !favoriteQuestions.has(index)) return;
+
+                if (ankiCardQuestions.has(index)) ankiCardQuestions.delete(index);
+                else ankiCardQuestions.add(index);
+
+                if (index === currentQuestionIndex) updateAnkiCardButton();
+                if (navigatorOverlay.style.display === 'block') buildNavigatorGrid();
+                if (completionMessageElement.style.display !== 'none') renderReviewList(currentFilter);
+                saveQuizProgress();
             }
 
             function toggleFavorite() {
@@ -1195,6 +1416,7 @@ Example format:
 
                 if (favoriteQuestions.has(currentQuestionIndex)) favoriteQuestions.delete(currentQuestionIndex);
                 else favoriteQuestions.add(currentQuestionIndex);
+                if (!favoriteQuestions.has(currentQuestionIndex)) ankiCardQuestions.delete(currentQuestionIndex);
 
                 updateFavoriteButton();
                 if (navigatorOverlay.style.display === 'block') buildNavigatorGrid();
@@ -1269,7 +1491,7 @@ Example format:
 
                 const key = event.key;
                 const overlayOpen = isOverlayOpen();
-                const handledKeys = new Set([' ', 'Spacebar', 'F8', 'F11', 'ArrowRight', 'ArrowLeft', 'F3', 'F12', 'F4', '+', 'F2']);
+                const handledKeys = new Set([' ', 'Spacebar', 'F8', 'F11', 'ArrowRight', 'ArrowLeft', 'F1', 'F3', 'F12', 'F4', '+', 'F2']);
                 if (!handledKeys.has(key)) return;
 
                 event.preventDefault();
@@ -1315,6 +1537,11 @@ Example format:
 
                 if (key === 'F3') {
                     toggleFavorite();
+                    return;
+                }
+
+                if (key === 'F1') {
+                    toggleAnkiCardCreated();
                     return;
                 }
 
@@ -1498,6 +1725,8 @@ Example format:
                 completionMessageElement.style.display = 'flex';
                 favoriteToggle.style.display = 'none';
                 favoriteToggle.setAttribute('aria-hidden', 'true');
+                ankiCardToggle.style.display = 'none';
+                ankiCardToggle.setAttribute('aria-hidden', 'true');
 
                 const correctCount = userAnswers.filter(answer => answer && answer.isCorrect).length;
                 const answeredCount = userAnswers.filter(answer => answer !== null).length;
@@ -1520,6 +1749,7 @@ Example format:
                 navigationButtonsElement.style.display = 'flex';
                 favoriteToggle.style.display = 'grid';
                 favoriteToggle.setAttribute('aria-hidden', 'false');
+                updateAnkiCardButton();
                 loadQuestion();
             }
 
@@ -1537,16 +1767,22 @@ Example format:
                     const isAnswered = userAnswer !== null;
                     const isFavorite = favoriteQuestions.has(index);
 
-                    if (isPreviewMode && !isAnswered) return;
+                    if (isPreviewMode && !isAnswered && !isFavorite) return;
                     if (filter === 'correct' && !isCorrect) return;
                     if (filter === 'incorrect' && (isCorrect || !isAnswered)) return;
                     if (filter === 'favorites' && !isFavorite) return;
+                    if (filter === 'needs-cards' && (!isFavorite || ankiCardQuestions.has(index))) return;
+                    if (filter === 'cards-made' && (!isFavorite || !ankiCardQuestions.has(index))) return;
 
                     const card = document.createElement('div');
                     card.classList.add('review-card');
                     card.classList.add(isCorrect ? 'correct-card' : 'incorrect-card');
 
-                    let html = `<div class="review-q">${index + 1}. ${question.question}${isFavorite ? ' <span class="favorite-mark" title="Favorited">&#9733;</span>' : ''}</div>`;
+                    const ankiCreated = ankiCardQuestions.has(index);
+                    const statusHtml = isFavorite
+                        ? `<div class="review-status"><span class="favorite-mark" title="Favorited">&#9733;</span><button type="button" class="review-anki-toggle ${ankiCreated ? 'active' : ''}" data-index="${index}" aria-pressed="${String(ankiCreated)}" title="${ankiCreated ? 'Mark Anki card not created' : 'Mark Anki card created'}">&#10003;</button></div>`
+                        : '';
+                    let html = `<div class="review-q-row"><div class="review-q">${index + 1}. ${question.question}</div>${statusHtml}</div>`;
                     if (userAnswer) {
                         html += `<div class="review-ans"><span class="ans-label">Your Answer:</span> <span class="user-ans-text ${isCorrect ? 'correct' : 'incorrect'}">${userAnswer.selected}</span></div>`;
                     } else {
@@ -1559,6 +1795,13 @@ Example format:
 
                     card.innerHTML = html;
                     reviewListEl.appendChild(card);
+                });
+
+                reviewListEl.querySelectorAll('.review-anki-toggle').forEach(button => {
+                    button.addEventListener('click', event => {
+                        event.stopPropagation();
+                        toggleAnkiCardCreated(Number(event.currentTarget.dataset.index));
+                    });
                 });
             }
 
@@ -1574,13 +1817,18 @@ Example format:
                     const isAnswered = userAnswer !== null;
                     const isFavorite = favoriteQuestions.has(index);
 
-                    if (isPreviewMode && !isAnswered) return;
+                    if (isPreviewMode && !isAnswered && !isFavorite) return;
                     if (currentFilter === 'correct' && !isCorrect) return;
                     if (currentFilter === 'incorrect' && (isCorrect || !isAnswered)) return;
                     if (currentFilter === 'favorites' && !isFavorite) return;
+                    if (currentFilter === 'needs-cards' && (!isFavorite || ankiCardQuestions.has(index))) return;
+                    if (currentFilter === 'cards-made' && (!isFavorite || !ankiCardQuestions.has(index))) return;
 
                     count += 1;
                     textToCopy += `Q${index + 1}: ${question.question}${isFavorite ? ` ${FAVORITE_STAR_TEXT}` : ''}\n`;
+                    if (isFavorite) {
+                        textToCopy += `Anki Card: ${ankiCardQuestions.has(index) ? 'Created' : 'Needed'}\n`;
+                    }
                     textToCopy += `Your Answer: ${userAnswer ? userAnswer.selected : 'Skipped'} (${isCorrect ? 'Correct' : 'Incorrect'})\n`;
                     if (!isCorrect) textToCopy += `Correct Answer: ${question.correctAnswer}\n`;
                     textToCopy += `Explanation: ${question.explanation}\n`;
@@ -1609,6 +1857,45 @@ Example format:
                 URL.revokeObjectURL(anchor.href);
             }
 
+            function getSessionProgressSummary(sessionData) {
+                const progress = normalizeProgressData(
+                    getStoredQuizProgress(sessionData.title),
+                    Array.isArray(sessionData.questions) ? sessionData.questions.length : 0
+                );
+
+                return {
+                    favorites: progress.favoriteQuestions.length,
+                    created: progress.ankiCardQuestions.length
+                };
+            }
+
+            function createSessionStatusBadge(sessionData) {
+                const summary = getSessionProgressSummary(sessionData);
+                const badge = document.createElement('span');
+                badge.classList.add('session-status-badge');
+                if (summary.favorites === 0) badge.classList.add('empty');
+                badge.title = summary.favorites === 0
+                    ? 'No favorited questions'
+                    : `${summary.created} of ${summary.favorites} favorited questions have Anki cards`;
+
+                const star = document.createElement('span');
+                star.textContent = summary.favorites === 0 ? FAVORITE_EMPTY_TEXT : FAVORITE_STAR_TEXT;
+                badge.appendChild(star);
+
+                const count = document.createElement('span');
+                count.textContent = summary.favorites === 0 ? '0' : `${summary.created}/${summary.favorites}`;
+                badge.appendChild(count);
+
+                if (summary.favorites > 0 && summary.created === summary.favorites) {
+                    const check = document.createElement('span');
+                    check.classList.add('session-status-complete');
+                    check.textContent = '✓';
+                    badge.appendChild(check);
+                }
+
+                return badge;
+            }
+
             function populateSessionList(listElement, onSelect, activeTitle = '') {
                 const pastSessions = getPastSessions();
                 listElement.innerHTML = '';
@@ -1620,7 +1907,11 @@ Example format:
 
                 pastSessions.slice().reverse().forEach(session => {
                     const listItem = document.createElement('li');
-                    listItem.textContent = session.title;
+                    const title = document.createElement('span');
+                    title.classList.add('session-title');
+                    title.textContent = session.title;
+                    listItem.appendChild(title);
+                    listItem.appendChild(createSessionStatusBadge(session));
                     if (activeTitle && session.title === activeTitle) {
                         listItem.style.color = 'var(--bright-blue)';
                     }
@@ -1653,6 +1944,7 @@ Example format:
                 currentQuestionIndex = 0;
                 userAnswers = new Array(quizData.length).fill(null);
                 favoriteQuestions = new Set();
+                ankiCardQuestions = new Set();
                 currentFilter = 'all';
                 isPreviewMode = false;
 
@@ -1702,15 +1994,18 @@ Example format:
                                     ? `Quiz "${newSession.title}"`
                                     : `Quiz ${index + 1}`;
                                 const normalizedSession = normalizeImportedSession(newSession, sessionLabel);
-                                sessionMap.set(normalizedSession.title, normalizedSession);
+                                saveImportedProgress(normalizedSession);
+                                sessionMap.set(normalizedSession.title, stripProgressFromSession(normalizedSession));
                             });
                             pastSessions = Array.from(sessionMap.values());
                             alert(`Merged ${data.length} quizzes. Total quizzes now: ${pastSessions.length}.`);
                         } else {
                             const normalizedSession = normalizeImportedSession(data, 'Uploaded quiz');
                             const existingIndex = pastSessions.findIndex(session => session.title === normalizedSession.title);
-                            if (existingIndex > -1) pastSessions[existingIndex] = normalizedSession;
-                            else pastSessions.push(normalizedSession);
+                            saveImportedProgress(normalizedSession);
+                            const sessionWithoutProgress = stripProgressFromSession(normalizedSession);
+                            if (existingIndex > -1) pastSessions[existingIndex] = sessionWithoutProgress;
+                            else pastSessions.push(sessionWithoutProgress);
                             alert(`Quiz "${normalizedSession.title}" was successfully uploaded.`);
                         }
 
@@ -1802,6 +2097,7 @@ Example format:
             prevButton.addEventListener('click', goToPreviousQuestion);
             nextButton.addEventListener('click', goToNextQuestion);
             favoriteToggle.addEventListener('click', toggleFavorite);
+            ankiCardToggle.addEventListener('click', () => toggleAnkiCardCreated());
             questionCounterElement.addEventListener('click', toggleNavigator);
             navigatorClose.addEventListener('click', toggleNavigator);
             viewProgressReviewBtn.addEventListener('click', () => {
@@ -1827,13 +2123,14 @@ Example format:
             document.getElementById('download-current-session-btn').addEventListener('click', () => {
                 if (!activeSessionData) return;
                 downloadFile(
-                    JSON.stringify(activeSessionData, null, 2),
+                    JSON.stringify(getExportableSession(activeSessionData), null, 2),
                     `${activeSessionData.title.replace(/[.\s]/g, '_')}.json`,
                     'application/json'
                 );
             });
             document.getElementById('download-all-sessions-btn').addEventListener('click', () => {
-                downloadFile(localStorage.getItem('pastQuizSessions') || '[]', 'all_past_quizzes.json', 'application/json');
+                const exportableSessions = getPastSessions().map(session => getExportableSession(session));
+                downloadFile(JSON.stringify(exportableSessions, null, 2), 'all_past_quizzes.json', 'application/json');
             });
             document.getElementById('upload-single-session').addEventListener('change', event => handleFileUpload(event, false));
             document.getElementById('upload-multiple-sessions').addEventListener('change', event => handleFileUpload(event, true));
@@ -1863,6 +2160,7 @@ Example format:
 
                 userAnswers = new Array(quizData.length).fill(null);
                 favoriteQuestions = new Set();
+                ankiCardQuestions = new Set();
                 currentQuestionIndex = 0;
                 currentFilter = 'all';
                 localStorage.removeItem(getQuizProgressKey());

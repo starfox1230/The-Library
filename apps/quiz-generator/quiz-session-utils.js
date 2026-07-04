@@ -492,6 +492,7 @@
             const progress = getProgressForTitle(sessionTitle);
             const answers = Array.isArray(progress.userAnswers) ? progress.userAnswers : [];
             const favorites = new Set(Array.isArray(progress.favoriteQuestions) ? progress.favoriteQuestions : []);
+            const ankiCards = new Set(Array.isArray(progress.ankiCardQuestions) ? progress.ankiCardQuestions : []);
             const highlightMap = readHighlightMap();
             const filter = getActiveFilter();
             const preview = isPreviewMode();
@@ -503,14 +504,20 @@
                 const isCorrect = Boolean(userAnswer && userAnswer.isCorrect);
                 const isAnswered = userAnswer !== null;
                 const isFavorite = favorites.has(index);
+                const hasAnkiCard = isFavorite && ankiCards.has(index);
 
-                if (preview && !isAnswered) return;
+                if (preview && !isAnswered && !isFavorite) return;
                 if (filter === 'correct' && !isCorrect) return;
                 if (filter === 'incorrect' && (isCorrect || !isAnswered)) return;
                 if (filter === 'favorites' && !isFavorite) return;
+                if (filter === 'needs-cards' && (!isFavorite || hasAnkiCard)) return;
+                if (filter === 'cards-made' && (!isFavorite || !hasAnkiCard)) return;
 
                 count += 1;
                 textToCopy += `Q${index + 1}: ${question.question}${isFavorite ? ' ★' : ''}\n`;
+                if (isFavorite) {
+                    textToCopy += `Anki Card: ${hasAnkiCard ? 'Created' : 'Needed'}\n`;
+                }
                 textToCopy += `Your Answer: ${userAnswer ? userAnswer.selected : 'Skipped'} (${isCorrect ? 'Correct' : 'Incorrect'})\n`;
                 if (!isCorrect) textToCopy += `Correct Answer: ${question.correctAnswer}\n`;
                 textToCopy += `Explanation: ${question.explanation || ''}\n`;
