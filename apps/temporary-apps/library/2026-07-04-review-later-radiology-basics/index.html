@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1117" />
+  <title>Review Later Radiology Basics</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1117;
+      --panel: #121b24;
+      --panel-2: #172431;
+      --ink: #f4f7f8;
+      --muted: #a6b4bd;
+      --line: rgba(194, 213, 222, 0.18);
+      --blue: #77c7ff;
+      --green: #7ee1a7;
+      --amber: #ffd06b;
+      --red: #ff8a8a;
+      --violet: #cba7ff;
+      --aqua: #64dfdf;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+      --radius: 8px;
+      --tap: 46px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(119, 199, 255, 0.14), transparent 24rem),
+        linear-gradient(315deg, rgba(126, 225, 167, 0.12), transparent 26rem),
+        linear-gradient(180deg, #0d141b 0%, #0b1117 46%, #070b10 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      min-height: var(--tap);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--ink);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    button:hover,
+    button:focus-visible {
+      border-color: rgba(119, 199, 255, 0.6);
+      background: rgba(119, 199, 255, 0.12);
+      outline: none;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + 14px) 12px calc(env(safe-area-inset-bottom) + 22px);
+    }
+
+    header {
+      display: grid;
+      gap: 12px;
+      padding: 12px 0 8px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      width: max-content;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 5px 9px;
+      border: 1px solid rgba(126, 225, 167, 0.38);
+      border-radius: 999px;
+      color: #d9ffe8;
+      background: rgba(28, 80, 50, 0.34);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 12ch;
+      margin: 0;
+      font-size: clamp(2.1rem, 12vw, 4.7rem);
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    .lede {
+      max-width: 74ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      min-height: 70px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(18, 27, 36, 0.84);
+      padding: 10px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.35rem;
+      line-height: 1;
+      color: var(--green);
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.2;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: env(safe-area-inset-top);
+      z-index: 20;
+      display: grid;
+      gap: 8px;
+      padding: 8px 0;
+      background: linear-gradient(180deg, rgba(11, 17, 23, 0.98), rgba(11, 17, 23, 0.82));
+      backdrop-filter: blur(12px);
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .search-row input {
+      min-width: 0;
+      min-height: var(--tap);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(7, 11, 16, 0.88);
+      color: var(--ink);
+      padding: 0 12px;
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 3px;
+      scrollbar-width: thin;
+    }
+
+    .chip {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(18, 27, 36, 0.76);
+      font-weight: 750;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .chip.active {
+      border-color: rgba(119, 199, 255, 0.7);
+      color: #e8f6ff;
+      background: rgba(54, 108, 143, 0.45);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.45fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .module-list {
+      position: sticky;
+      top: 112px;
+      display: grid;
+      gap: 8px;
+      max-height: calc(100vh - 130px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .module-button {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 66px;
+      width: 100%;
+      padding: 9px;
+      text-align: left;
+      border-radius: var(--radius);
+      background: rgba(18, 27, 36, 0.78);
+    }
+
+    .module-button.active {
+      border-color: rgba(126, 225, 167, 0.72);
+      background: linear-gradient(135deg, rgba(39, 93, 65, 0.64), rgba(21, 54, 75, 0.58));
+    }
+
+    .num {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--blue);
+      font-weight: 900;
+      font-size: 0.78rem;
+    }
+
+    .module-button.done .num {
+      color: #092316;
+      background: var(--green);
+    }
+
+    .button-text {
+      min-width: 0;
+    }
+
+    .button-text strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+
+    .button-text span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .tag {
+      min-width: 42px;
+      text-align: center;
+      border-radius: 999px;
+      padding: 4px 7px;
+      color: #09141c;
+      background: var(--amber);
+      font-size: 0.7rem;
+      font-weight: 900;
+    }
+
+    .detail {
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(18, 27, 36, 0.86);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 0.92fr);
+      min-height: 360px;
+    }
+
+    .hero-copy {
+      padding: clamp(16px, 4vw, 28px);
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .source {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .hero-copy h2 {
+      margin: 0;
+      font-size: clamp(1.55rem, 5vw, 3rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .answer {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid rgba(126, 225, 167, 0.38);
+      border-radius: var(--radius);
+      background: rgba(27, 80, 53, 0.26);
+    }
+
+    .answer span {
+      color: #bde7cd;
+      font-weight: 850;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .answer strong {
+      font-size: 1.08rem;
+      line-height: 1.28;
+    }
+
+    .visual {
+      min-height: 320px;
+      background:
+        linear-gradient(180deg, rgba(7, 11, 16, 0.08), rgba(7, 11, 16, 0.42)),
+        #0f1820;
+      border-left: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+
+    .visual svg {
+      width: min(100%, 500px);
+      height: auto;
+      display: block;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .lesson {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .lesson h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--blue);
+    }
+
+    .lesson p,
+    .lesson li {
+      color: #dce6eb;
+      line-height: 1.48;
+      font-size: 0.94rem;
+    }
+
+    .lesson p {
+      margin-bottom: 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    li + li {
+      margin-top: 7px;
+    }
+
+    .foil-list {
+      display: grid;
+      gap: 8px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .foil {
+      display: grid;
+      gap: 3px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .foil strong {
+      color: var(--amber);
+      font-size: 0.9rem;
+    }
+
+    .foil span {
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.86rem;
+    }
+
+    .quiz {
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      text-align: left;
+      padding: 10px;
+    }
+
+    .choice .letter {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--aqua);
+      font-size: 0.76rem;
+      font-weight: 900;
+    }
+
+    .choice.correct {
+      border-color: rgba(126, 225, 167, 0.78);
+      background: rgba(34, 110, 66, 0.32);
+    }
+
+    .choice.wrong {
+      border-color: rgba(255, 138, 138, 0.74);
+      background: rgba(111, 40, 44, 0.28);
+    }
+
+    .quiz-result {
+      min-height: 24px;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.9rem;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .primary {
+      border-color: rgba(126, 225, 167, 0.5);
+      background: rgba(37, 106, 66, 0.46);
+      color: #edfff4;
+      font-weight: 850;
+    }
+
+    .secondary {
+      color: var(--muted);
+    }
+
+    .refs {
+      padding: 14px;
+    }
+
+    .refs h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+
+    .refs a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    .refs a:hover {
+      text-decoration: underline;
+    }
+
+    .empty {
+      padding: 16px;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+    }
+
+    @media (max-width: 820px) {
+      .layout,
+      .hero-panel,
+      .section-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .module-list {
+        position: static;
+        display: flex;
+        max-height: none;
+        overflow-x: auto;
+        padding: 0 0 3px;
+      }
+
+      .module-button {
+        grid-template-columns: auto 190px;
+        width: 258px;
+        flex: 0 0 auto;
+      }
+
+      .module-button .tag {
+        display: none;
+      }
+
+      .visual {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        min-height: 250px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 430px) {
+      .app {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .actions,
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy {
+        padding: 14px;
+      }
+
+      .visual {
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <span class="eyebrow">Review Later HTML - July 4, 2026</span>
+      <h1>Radiology Basics Lab</h1>
+      <p class="lede">A personalized breakdown of the 16 cards you flagged. Each module turns the cloze into a visual anchor, a plain-English mechanism, likely multiple-choice foils, and a one-question check.</p>
+      <div class="stats" aria-label="Progress summary">
+        <div class="stat"><strong id="totalCount">16</strong><span>flagged cards</span></div>
+        <div class="stat"><strong id="doneCount">0</strong><span>marked understood</span></div>
+        <div class="stat"><strong id="domainCount">7</strong><span>domains mixed together</span></div>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="Study controls">
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Search concept, answer, or domain" />
+        <button id="resetProgress" class="secondary" type="button">Reset progress</button>
+      </div>
+      <div id="domainChips" class="chips" aria-label="Domain filters"></div>
+    </section>
+
+    <section class="layout">
+      <nav id="moduleList" class="module-list" aria-label="Concept list"></nav>
+      <article id="detail" class="detail" aria-live="polite"></article>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "review-later-radiology-basics-2026-07-04-v1";
+
+    const modules = [
+      {
+        id: "closed-dysraphism-lump",
+        domain: "Neuro",
+        title: "Closed spinal dysraphism with a lump",
+        source: "Card 1 - leech, marked",
+        prompt: "Closed spinal dysraphisms with a lump include [...].",
+        answer: "Lipomas with dural defect, meningocele, and myelocystocele.",
+        visual: "spine",
+        basics: [
+          "Closed means skin-covered: no open neural placode exposed to air.",
+          "The lump tells you something protrudes through or into the posterior spinal defect.",
+          "Sort the lump by its contents: fat plus neural elements, CSF/meninges, or a cystic dilated terminal cord."
+        ],
+        context: "This card is really asking for a pattern-recognition bucket, not every dysraphism. When there is a skin-covered back mass, think of lesions that make a mass: lipomyelocele/lipomyelomeningocele, meningocele, and terminal myelocystocele.",
+        foils: [
+          ["Diastematomyelia", "A split cord malformation, often closed, but not primarily a subcutaneous lump."],
+          ["Dermal sinus", "A cutaneous tract/infection risk clue rather than a bulky mass."],
+          ["Tight filum terminale", "A tethering cause without an external mass."],
+          ["Myelomeningocele", "Open dysraphism, not closed/skin-covered."]
+        ],
+        quiz: {
+          q: "A skin-covered lumbosacral mass contains fat crossing a posterior dural defect and tethering neural tissue. Best bucket?",
+          choices: ["Lipoma with dural defect", "Dermal sinus", "Tight filum", "Diastematomyelia"],
+          correct: 0,
+          why: "Fat plus a dural defect plus tethering is the lipomyelocele/lipomyelomeningocele family."
+        }
+      },
+      {
+        id: "myeloma-skull",
+        domain: "MSK",
+        title: "Multiple myeloma skull lesions",
+        source: "Card 2 - Myeloma and lymphoma",
+        prompt: "The classic appearance of skull lesions in multiple myeloma is [...].",
+        answer: "Multiple, well-defined, punched-out lytic lesions without a sclerotic rim.",
+        visual: "skull",
+        basics: [
+          "Myeloma activates osteoclasts and suppresses normal repair, so bone is removed without a tidy healing rim.",
+          "On skull radiographs/CT, the holes look sharply punched out.",
+          "Multiplicity is the clue that pushes you from a solitary lytic differential toward myeloma/metastatic disease."
+        ],
+        context: "The phrase to own is: many holes, clean edges, no sclerosis. If a question adds an older adult, anemia, renal dysfunction, hypercalcemia, or monoclonal protein, the imaging phrase should immediately point to myeloma.",
+        foils: [
+          ["Sclerotic rim", "Suggests slower benign healing response, not the classic myeloma look."],
+          ["Ground-glass expansion", "More like fibrous dysplasia."],
+          ["Beveled edges/button sequestrum", "Classic teaching for eosinophilic granuloma."],
+          ["Sunburst periosteal reaction", "Aggressive osteogenic surface reaction, not myeloma skull pattern."]
+        ],
+        quiz: {
+          q: "Which skull description is most classic for multiple myeloma?",
+          choices: ["Multiple punched-out lytic defects", "Single ground-glass expanded lesion", "Dense ivory vertebra pattern", "Beveled lytic lesion with sequestrum"],
+          correct: 0,
+          why: "Myeloma classically produces multiple sharply marginated lytic lesions without a sclerotic rim."
+        }
+      },
+      {
+        id: "weber-ankle",
+        domain: "MSK",
+        title: "Weber ankle fracture ladder",
+        source: "Card 3 - MSK classification systems",
+        prompt: "MSK Classification Systems - Weber B / A / C relationship to syndesmosis.",
+        answer: "A is below the syndesmosis, B is at the syndesmosis, C is above it and usually unstable.",
+        visual: "ankle",
+        basics: [
+          "Weber is a vertical map: locate the fibular fracture relative to the syndesmosis.",
+          "A = below the syndesmosis. B = at/trans-syndesmotic. C = above the syndesmosis.",
+          "The higher the fibular fracture, the more you should worry about syndesmotic and medial-sided injury."
+        ],
+        context: "Instead of memorizing paragraphs, use one ladder. Below is usually stable if the medial side is intact. At the syndesmosis is variable. Above the syndesmosis implies the force crossed the syndesmosis and often needs operative stabilization.",
+        foils: [
+          ["Lauge-Hansen", "Mechanism-based system; useful but not what the card is testing."],
+          ["Salter-Harris", "Pediatric physeal injury system."],
+          ["AO/OTA 44", "More detailed fracture taxonomy; Weber is the quick syndesmotic level map."],
+          ["Maisonneuve only", "A proximal fibular Weber C pattern, but not the whole classification."]
+        ],
+        quiz: {
+          q: "A fibular fracture is above the ankle mortise with medial clear space widening. Weber type?",
+          choices: ["A", "B", "C", "Not classifiable"],
+          correct: 2,
+          why: "Above the syndesmosis is Weber C and should raise syndesmotic/medial instability concern."
+        }
+      },
+      {
+        id: "ecrl",
+        domain: "Anatomy",
+        title: "Extensor carpi radialis longus",
+        source: "Card 4 - Wrist anatomy",
+        prompt: "Where is the extensor carpi radialis longus?",
+        answer: "Radial-side superficial posterior forearm; passes through the second dorsal extensor compartment with ECRB to the base of the second metacarpal.",
+        visual: "wrist",
+        basics: [
+          "Name decode: extensor = dorsal wrist extension; carpi = wrist; radialis = thumb/radial side; longus = longer/more proximal muscle belly.",
+          "At the wrist, ECRL and ECRB travel in the second dorsal compartment.",
+          "Insertion memory: ECRL to the base of the second metacarpal; ECRB to the third."
+        ],
+        context: "On axial wrist imaging, start radial-to-ulnar. The first compartment is APL/EPB. The next compartment over is ECRL/ECRB. Longus is more radial than brevis in many anatomy depictions.",
+        foils: [
+          ["First compartment", "APL and EPB live there."],
+          ["Third compartment", "EPL crosses in the third compartment."],
+          ["Fourth compartment", "Extensor digitorum and extensor indicis."],
+          ["Ulnar side tendon", "That points toward ECU, not ECRL."]
+        ],
+        quiz: {
+          q: "Which dorsal wrist compartment contains ECRL and ECRB?",
+          choices: ["First", "Second", "Third", "Sixth"],
+          correct: 1,
+          why: "The radial wrist sequence starts 1st APL/EPB, then 2nd ECRL/ECRB."
+        }
+      },
+      {
+        id: "round-atelectasis",
+        domain: "Chest",
+        title: "Round atelectasis checklist",
+        source: "Card 5 - Core Radiology thoracic",
+        prompt: "Round atelectasis requires the opacity to be [shapes].",
+        answer: "Round or elliptical.",
+        visual: "roundatelectasis",
+        basics: [
+          "Round atelectasis is folded, scar-tethered lung beside abnormal pleura.",
+          "The opacity must be peripheral, pleural based, and round or elliptical.",
+          "The comet tail is curved vessels/bronchi diving into the lesion, plus local volume loss."
+        ],
+        context: "This card's blank is just the shape, but the safe mental image is five findings: abnormal adjacent pleura, peripheral pleural contact, round/elliptical opacity, volume loss, and curved bronchovascular bundles.",
+        foils: [
+          ["Spiculated central mass", "Moves you toward malignancy rather than rounded pleural-based atelectasis."],
+          ["Air crescent", "Think fungal ball/angioinvasive infection context."],
+          ["Tree-in-bud", "Small airway/endobronchial spread pattern."],
+          ["Cavitary thick wall", "A different mass/infection differential."]
+        ],
+        quiz: {
+          q: "A pleural-based oval opacity has adjacent pleural thickening, volume loss, and curved vessels entering it. Most useful sign?",
+          choices: ["Comet tail sign", "Double decidual sign", "Deep sulcus sign", "Meniscus sign"],
+          correct: 0,
+          why: "Curving bronchovascular bundles entering a round/elliptical pleural-based opacity make the comet tail of round atelectasis."
+        }
+      },
+      {
+        id: "anterosuperior-labrum",
+        domain: "MSK",
+        title: "Anterosuperior labral tear with cyst",
+        source: "Card 6 - visual diagnosis",
+        prompt: "Most likely diagnosis?",
+        answer: "Anterosuperior labral tear with paralabral cyst.",
+        visual: "labrum",
+        basics: [
+          "A paralabral cyst is a fluid collection that usually points back to a labral tear.",
+          "Location names are clock-face anatomy on the glenoid: anterior is front, superior is top.",
+          "The cyst is the clue; the tear is the leak/check-valve that lets joint fluid dissect outward."
+        ],
+        context: "When a shoulder MRI shows a cyst hugging the glenoid labrum, do not stop at cyst. Search the adjacent labrum. The location of the cyst usually localizes the labral tear.",
+        foils: [
+          ["Ganglion unrelated to labrum", "Possible elsewhere, but a paralabral cyst is a tear clue."],
+          ["Rotator cuff tear only", "Can coexist, but a glenoid-adjacent cyst asks you to inspect the labrum."],
+          ["Hill-Sachs lesion", "Posterolateral humeral head impaction after dislocation."],
+          ["Bankart lesion only", "Anteroinferior labral injury, not anterosuperior."]
+        ],
+        quiz: {
+          q: "A cyst sits directly adjacent to the superior-anterior glenoid labrum on shoulder MRI. What should you actively look for?",
+          choices: ["Adjacent labral tear", "Distal clavicle fracture", "Achilles tendinosis", "Meniscal root tear"],
+          correct: 0,
+          why: "Paralabral cysts commonly communicate with labral tears."
+        }
+      },
+      {
+        id: "co-globus-pallidus",
+        domain: "Neuro",
+        title: "Carbon monoxide target",
+        source: "Card 7 - neuroradiology pearls",
+        prompt: "Which area of the brain is classically targeted in carbon monoxide poisoning?",
+        answer: "Globus pallidus.",
+        visual: "brain",
+        basics: [
+          "CO causes hypoxic and toxic injury, and the globus pallidus is the classic symmetric deep gray target.",
+          "On CT: bilateral low attenuation can be seen. On MRI: T2/FLAIR and diffusion abnormalities may appear.",
+          "The symmetry is part of the pattern. Think toxic-metabolic before focal vascular territory."
+        ],
+        context: "Multiple-choice versions often test globus pallidus against putamen, caudate, thalamus, and hippocampus. Those structures matter in other toxic/metabolic patterns, but CO's classic exam answer is pallidus.",
+        foils: [
+          ["Putamen", "Classically emphasized in methanol and some metabolic/toxic patterns."],
+          ["Hippocampus", "Vulnerable to hypoxic injury, seizures, and limbic processes."],
+          ["Mammillary bodies", "Wernicke encephalopathy clue."],
+          ["Substantia nigra", "Parkinsonian/neurodegenerative associations."]
+        ],
+        quiz: {
+          q: "Symmetric bilateral deep gray lesions after smoke inhalation should make you name which nucleus first?",
+          choices: ["Globus pallidus", "Dentate nucleus", "Mammillary bodies", "Amygdala"],
+          correct: 0,
+          why: "The globus pallidus is the classic CO poisoning target."
+        }
+      },
+      {
+        id: "fluoro-dap",
+        domain: "Physics",
+        title: "Magnification mode and DAP",
+        source: "Card 8 - fluoroscopy physics",
+        prompt: "In fluoro magnification mode, dose-area product may remain relatively unchanged because increased dose rate is offset by decreased [...].",
+        answer: "Field area.",
+        visual: "dap",
+        basics: [
+          "DAP = dose x irradiated area.",
+          "Magnification usually raises entrance dose rate because the system uses more exposure to preserve image quality.",
+          "But the field of view becomes smaller, so area falls. A higher dose times smaller area can leave DAP roughly similar."
+        ],
+        context: "Do not translate 'DAP unchanged' into 'patient skin dose unchanged.' Skin dose can rise in magnification mode even if the area product does not change much.",
+        foils: [
+          ["Exposure time", "Time matters for total dose, but this card is specifically dose rate offset by area."],
+          ["kVp", "Technique may change, but the product concept is dose x area."],
+          ["Frame rate", "Can lower dose if reduced, but not the magnification-area tradeoff."],
+          ["Distance", "Important for dose geometry, not the blank here."]
+        ],
+        quiz: {
+          q: "If magnification doubles dose rate but halves field width in both dimensions, what term falls and offsets DAP?",
+          choices: ["Field area", "Photon wavelength", "Pulse repetition period", "Bulk modulus"],
+          correct: 0,
+          why: "Area scales with width x height, so a smaller field area can offset higher dose rate in DAP."
+        }
+      },
+      {
+        id: "acoustic-impedance",
+        domain: "Physics",
+        title: "Acoustic impedance means resistance",
+        source: "Card 9 - ultrasound physics",
+        prompt: "A high acoustic impedance value indicates that tissue is [...].",
+        answer: "Stiff and highly resistant to compression, with high bulk modulus.",
+        visual: "impedance",
+        basics: [
+          "Acoustic impedance is how much resistance an ultrasound wave meets in tissue.",
+          "Z = density x sound speed; sound speed rises with stiffness/bulk modulus.",
+          "Echo strength comes from mismatch: big impedance difference at an interface means more reflection."
+        ],
+        context: "The card's language emphasizes stiffness/compression. In formula language, higher bulk modulus means the tissue resists compression more, sound travels faster, and impedance tends to be higher.",
+        foils: [
+          ["Low density only", "Density contributes, but low density alone does not explain high impedance."],
+          ["High attenuation", "Related but separate; attenuation is energy loss with distance."],
+          ["Low bulk modulus", "Low stiffness means easier compression."],
+          ["Frequency dependent property", "For basic tissue impedance, the core definition is density times speed."]
+        ],
+        quiz: {
+          q: "Which interface produces the strongest reflection?",
+          choices: ["Large acoustic impedance mismatch", "Identical acoustic impedance", "Lower PRF", "Longer wavelength only"],
+          correct: 0,
+          why: "Reflection strength increases when adjacent tissues have very different acoustic impedances."
+        }
+      },
+      {
+        id: "red-marrow-reconversion",
+        domain: "MSK",
+        title: "Red marrow reconversion",
+        source: "Card 10 - visual diagnosis",
+        prompt: "Most likely diagnosis?",
+        answer: "Red marrow reconversion.",
+        visual: "marrow",
+        basics: [
+          "Reconverting marrow is normal hematopoietic red marrow returning where yellow marrow used to dominate.",
+          "MRI clue: lower than fatty marrow on T1, but still higher than skeletal muscle.",
+          "Pattern clue: symmetric, geographic, expected distribution, and often related to increased hematopoietic demand."
+        ],
+        context: "The common trap is calling it infiltrative malignancy. Red marrow reconversion should look physiologic: bilateral/symmetric, not destructive, and not darker than muscle on T1.",
+        foils: [
+          ["Metastases", "Often focal/asymmetric and can replace marrow to muscle-like or lower T1 signal."],
+          ["Osteomyelitis", "Needs edema, clinical infection context, and often adjacent soft tissue findings."],
+          ["Avascular necrosis", "Subchondral serpiginous pattern rather than diffuse reconversion."],
+          ["Myelofibrosis", "Can cause very low marrow signal and different clinical context."]
+        ],
+        quiz: {
+          q: "A symmetric marrow pattern is T1 lower than fat but still brighter than muscle. Best benign explanation?",
+          choices: ["Red marrow reconversion", "Diffuse osteomyelitis", "Osteosarcoma", "Subchondral fracture"],
+          correct: 0,
+          why: "Red marrow stays brighter than muscle on T1 and is often symmetric."
+        }
+      },
+      {
+        id: "hyperechoic-renal-mass",
+        domain: "Abdomen",
+        title: "Hyperechoic renal mass without shadowing",
+        source: "Card 11 - renal ultrasound",
+        prompt: "Hyperechoic renal masses seen on ultrasound that show no [...] require further characterization with CT or MRI to demonstrate fat.",
+        answer: "Acoustic shadowing.",
+        visual: "renal",
+        basics: [
+          "Classic fat-rich angiomyolipoma is often hyperechoic and may shadow because it has many internal tissue interfaces.",
+          "Renal cell carcinoma can also be echogenic, especially when small.",
+          "If a hyperechoic renal mass lacks convincing shadowing, CT or MRI helps prove macroscopic fat before calling AML."
+        ],
+        context: "The practical point is diagnostic humility. Echogenic renal mass does not automatically equal AML. Demonstrating fat on CT/MRI is the safer anchor when ultrasound is not classic.",
+        foils: [
+          ["Comet tail", "A lung round atelectasis sign, not renal AML characterization."],
+          ["Twinkle artifact", "Useful for stones/calcifications; not the blank here."],
+          ["Posterior enhancement", "Cystic/fluid transmission concept."],
+          ["Dirty shadowing", "Gas/air interface clue."]
+        ],
+        quiz: {
+          q: "An echogenic renal cortical mass has no posterior shadowing. Next imaging goal?",
+          choices: ["Demonstrate macroscopic fat on CT/MRI", "Assume AML with no workup", "Diagnose pyelonephritis", "Call simple cyst"],
+          correct: 0,
+          why: "Without classic shadowing, further characterization helps avoid mistaking echogenic RCC for AML."
+        }
+      },
+      {
+        id: "fine-pleomorphic-calcs",
+        domain: "Breast",
+        title: "Fine pleomorphic calcifications",
+        source: "Card 12 - breast calcification visual",
+        prompt: "What type of breast calcification is this?",
+        answer: "Fine pleomorphic.",
+        visual: "calcs",
+        basics: [
+          "Fine means tiny, usually less than coarse heterogeneous calcifications.",
+          "Pleomorphic means varied shapes: dots, commas, angular bits, shards.",
+          "Suspicion rises when morphology is fine pleomorphic and distribution is grouped, linear, or segmental."
+        ],
+        context: "Multiple-choice versions often separate amorphous, coarse heterogeneous, fine pleomorphic, and fine linear/branching. Fine pleomorphic is more discrete and shape-varied than amorphous, but not as casting/duct-tracking as fine linear branching.",
+        foils: [
+          ["Amorphous", "Faint, hazy, indistinct; you cannot confidently define shape."],
+          ["Coarse heterogeneous", "Larger chunky irregular calcifications."],
+          ["Fine linear/branching", "Thin casting calcifications following ducts; more linear morphology."],
+          ["Milk of calcium", "Layering benign calcifications in cysts."]
+        ],
+        quiz: {
+          q: "Tiny calcifications vary in shape and size, looking like scattered angular specks. Best morphology?",
+          choices: ["Fine pleomorphic", "Vascular", "Eggshell", "Milk of calcium"],
+          correct: 0,
+          why: "Fine pleomorphic means tiny calcifications with variable, suspicious shapes."
+        }
+      },
+      {
+        id: "double-decidual-sac",
+        domain: "OB",
+        title: "Double decidual sac sign",
+        source: "Card 13 - early pregnancy ultrasound",
+        prompt: "What sign is this?",
+        answer: "Double decidual sac sign.",
+        visual: "doubledecidual",
+        basics: [
+          "The sign describes two echogenic rings around an early intrauterine gestational sac.",
+          "The rings correspond to decidua capsularis and decidua parietalis/vera.",
+          "It supports an early intrauterine pregnancy before yolk sac or embryo is visible, but absence is not enough to exclude IUP."
+        ],
+        context: "The learning target is visual: sac inside endometrium plus two bright concentric decidual layers. Be careful not to overuse it as an absolute rule; early pregnancy signs can be variable.",
+        foils: [
+          ["Pseudogestational sac", "Usually central intrauterine fluid without the same decidual ring pattern."],
+          ["Intradecidual sign", "Earlier eccentric sac embedded in decidua; related but not identical."],
+          ["Ring of fire", "Peripheral vascularity around corpus luteum or ectopic; not specific."],
+          ["Yolk sac", "A round internal structure within the gestational sac."]
+        ],
+        quiz: {
+          q: "Two concentric echogenic rings surround an early intrauterine fluid collection. Name the sign.",
+          choices: ["Double decidual sac sign", "Comet tail sign", "Target sign", "Ring-down artifact"],
+          correct: 0,
+          why: "The double decidual sac sign is the paired decidual ring appearance around an early IUP."
+        }
+      },
+      {
+        id: "mckeown",
+        domain: "GI",
+        title: "McKeown esophagectomy",
+        source: "Card 14 - surgery anatomy",
+        prompt: "[...] involves removal of the esophagus with incisions in the neck, chest, and abdomen, followed by stomach reconstruction.",
+        answer: "McKeown esophagectomy, also called three-incision or three-field esophagectomy.",
+        visual: "mckeown",
+        basics: [
+          "McKeown = neck + chest + abdomen.",
+          "The stomach is mobilized and reshaped into a gastric conduit to replace the esophagus.",
+          "The anastomosis is cervical/neck, which is the distinctive location compared with Ivor Lewis."
+        ],
+        context: "Use incision geography to separate operations. Transhiatal uses neck and abdomen without thoracotomy. Ivor Lewis uses abdomen and chest with intrathoracic anastomosis. McKeown adds all three and puts the anastomosis in the neck.",
+        foils: [
+          ["Ivor Lewis", "Two-field abdomen/chest approach with intrathoracic anastomosis."],
+          ["Transhiatal", "Neck and abdomen approach, no chest incision."],
+          ["Whipple", "Pancreaticoduodenectomy, not esophagectomy."],
+          ["Nissen fundoplication", "Anti-reflux wrap, not esophageal replacement."]
+        ],
+        quiz: {
+          q: "Which esophagectomy uses cervical, thoracic, and abdominal access?",
+          choices: ["McKeown", "Ivor Lewis", "Transhiatal", "Nissen"],
+          correct: 0,
+          why: "McKeown is the three-incision/three-field esophagectomy."
+        }
+      },
+      {
+        id: "photon-wavelength",
+        domain: "Physics",
+        title: "Photon energy vs wavelength",
+        source: "Card 15 - physics",
+        prompt: "If the wavelength of a photon is doubled, the energy of the photon will [...].",
+        answer: "Decrease by a factor of two.",
+        visual: "photon",
+        basics: [
+          "Photon energy is E = h f.",
+          "Frequency and wavelength are linked by c = f x lambda.",
+          "Combine them: E = h c / lambda, so energy is inversely proportional to wavelength."
+        ],
+        context: "This is a proportionality card. Double the denominator, halve the result. Short wavelength photons are higher energy; long wavelength photons are lower energy.",
+        foils: [
+          ["Double", "That would be true if frequency doubled, not wavelength."],
+          ["Decrease by four", "Area/inverse-square style thinking, not photon energy."],
+          ["No change", "Photon energy depends directly on frequency and inversely on wavelength."],
+          ["Increase by four", "Wrong relationship and wrong power."]
+        ],
+        quiz: {
+          q: "A photon's wavelength changes from 2 nm to 4 nm. What happens to energy?",
+          choices: ["Halves", "Doubles", "Quadruples", "Stays constant"],
+          correct: 0,
+          why: "E = hc/lambda, so doubling wavelength halves energy."
+        }
+      },
+      {
+        id: "doppler-depth-prp",
+        domain: "Physics",
+        title: "Doppler depth and pulse repetition period",
+        source: "Card 16 - spectral Doppler physics",
+        prompt: "What is the effect of sampling Doppler signal from deeper tissue on the pulse repetition period?",
+        answer: "It increases the pulse repetition period.",
+        visual: "doppler",
+        basics: [
+          "The machine must send a pulse and wait for the echo to return before sending the next relevant pulse.",
+          "Deeper sample volume means longer round-trip travel time.",
+          "Longer waiting time means pulse repetition period increases; pulse repetition frequency decreases."
+        ],
+        context: "Depth is the limiter. To listen deeper, the system must wait longer. That lowers maximum PRF and lowers the Nyquist limit, which is why aliasing becomes more likely in deeper pulsed Doppler sampling.",
+        foils: [
+          ["PRP decreases", "That would imply the system can pulse faster despite a longer travel distance."],
+          ["PRF increases", "PRF is inverse of PRP, so it falls when PRP rises."],
+          ["Wavelength doubles", "Depth does not directly double transmitted wavelength."],
+          ["Impedance rises", "Tissue property, not sampling-depth timing."]
+        ],
+        quiz: {
+          q: "You move the pulsed Doppler gate deeper. Which timing change is required?",
+          choices: ["Longer pulse repetition period", "Higher pulse repetition frequency", "Shorter listening time", "No round-trip delay"],
+          correct: 0,
+          why: "The echo has farther to travel, so the system waits longer between pulses."
+        }
+      }
+    ];
+
+    const domains = ["All", ...Array.from(new Set(modules.map((m) => m.domain)))];
+    let activeDomain = "All";
+    let activeId = modules[0].id;
+    let searchTerm = "";
+    let progress = loadProgress();
+    let quizState = {};
+
+    const moduleList = document.getElementById("moduleList");
+    const detail = document.getElementById("detail");
+    const domainChips = document.getElementById("domainChips");
+    const searchInput = document.getElementById("searchInput");
+    const doneCount = document.getElementById("doneCount");
+    const totalCount = document.getElementById("totalCount");
+    const domainCount = document.getElementById("domainCount");
+
+    function loadProgress() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveProgress() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function filteredModules() {
+      const term = searchTerm.trim().toLowerCase();
+      return modules.filter((m) => {
+        const domainOk = activeDomain === "All" || m.domain === activeDomain;
+        const text = [m.title, m.domain, m.answer, m.prompt, m.context].join(" ").toLowerCase();
+        return domainOk && (!term || text.includes(term));
+      });
+    }
+
+    function renderChips() {
+      domainChips.innerHTML = domains.map((domain) => {
+        const count = domain === "All" ? modules.length : modules.filter((m) => m.domain === domain).length;
+        return `<button type="button" class="chip ${domain === activeDomain ? "active" : ""}" data-domain="${escapeHtml(domain)}">${escapeHtml(domain)} <span>${count}</span></button>`;
+      }).join("");
+      domainChips.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeDomain = button.dataset.domain;
+          const first = filteredModules()[0];
+          if (first) activeId = first.id;
+          render();
+        });
+      });
+    }
+
+    function renderList() {
+      const list = filteredModules();
+      if (!list.length) {
+        moduleList.innerHTML = `<div class="empty">No cards match this filter.</div>`;
+        detail.innerHTML = "";
+        return;
+      }
+      if (!list.some((m) => m.id === activeId)) activeId = list[0].id;
+      moduleList.innerHTML = list.map((m) => {
+        const originalIndex = modules.findIndex((item) => item.id === m.id) + 1;
+        return `
+          <button type="button" class="module-button ${m.id === activeId ? "active" : ""} ${progress[m.id] ? "done" : ""}" data-id="${m.id}">
+            <span class="num">${progress[m.id] ? "OK" : originalIndex}</span>
+            <span class="button-text"><strong>${escapeHtml(m.title)}</strong><span>${escapeHtml(m.answer)}</span></span>
+            <span class="tag">${escapeHtml(m.domain)}</span>
+          </button>
+        `;
+      }).join("");
+      moduleList.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeId = button.dataset.id;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      });
+    }
+
+    function renderDetail() {
+      const current = modules.find((m) => m.id === activeId) || filteredModules()[0];
+      if (!current) return;
+      detail.innerHTML = `
+        <section class="panel hero-panel">
+          <div class="hero-copy">
+            <span class="source">${escapeHtml(current.source)} - ${escapeHtml(current.domain)}</span>
+            <h2>${escapeHtml(current.title)}</h2>
+            <p>${escapeHtml(current.prompt)}</p>
+            <div class="answer">
+              <span>Main point</span>
+              <strong>${escapeHtml(current.answer)}</strong>
+            </div>
+            <div class="actions">
+              <button id="markDone" type="button" class="primary">${progress[current.id] ? "Marked understood" : "Mark understood"}</button>
+              <button id="nextCard" type="button" class="secondary">Next card</button>
+            </div>
+          </div>
+          <div class="visual" aria-label="Visual explanation">${diagram(current.visual)}</div>
+        </section>
+
+        <section class="section-grid">
+          <div class="panel lesson">
+            <h3>Break It Down</h3>
+            <ul>${current.basics.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          </div>
+          <div class="panel lesson">
+            <h3>Context</h3>
+            <p>${escapeHtml(current.context)}</p>
+          </div>
+        </section>
+
+        <section class="section-grid">
+          <div class="panel lesson">
+            <h3>Likely Foils</h3>
+            <ul class="foil-list">
+              ${current.foils.map(([name, why]) => `<li class="foil"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(why)}</span></li>`).join("")}
+            </ul>
+          </div>
+          <div class="panel lesson quiz">
+            <h3>Quick Check</h3>
+            <p>${escapeHtml(current.quiz.q)}</p>
+            ${current.quiz.choices.map((choice, index) => {
+              const selected = quizState[current.id] === index;
+              const cls = selected ? (index === current.quiz.correct ? " correct" : " wrong") : "";
+              return `<button type="button" class="choice${cls}" data-choice="${index}"><span class="letter">${String.fromCharCode(65 + index)}</span><span>${escapeHtml(choice)}</span></button>`;
+            }).join("")}
+            <div class="quiz-result">${quizState[current.id] == null ? "Pick an answer to test the anchor." : escapeHtml(current.quiz.why)}</div>
+          </div>
+        </section>
+
+        <section class="panel refs">
+          <h2>Reference Trail</h2>
+          <p class="lede">I used a source check for the teaching points, then drew the visuals directly in this app so the page stays portable and copyright-clean.</p>
+          <ul>
+            <li><a href="https://radiopaedia.org/articles/round-atelectasis" target="_blank" rel="noopener">Radiopaedia - round atelectasis</a></li>
+            <li><a href="https://radiopaedia.org/articles/weber-classification-of-ankle-fractures" target="_blank" rel="noopener">Radiopaedia - Weber ankle fracture classification</a></li>
+            <li><a href="https://radiologyassistant.nl/breast/calcifications/differential-of-breast-calcifications" target="_blank" rel="noopener">Radiology Assistant - breast calcifications</a></li>
+            <li><a href="https://www.iaea.org/resources/rpop/health-professionals/radiology/radiation-protection-in-fluoroscopy/good-practices-in-fluoroscopy" target="_blank" rel="noopener">IAEA - fluoroscopy magnification and dose</a></li>
+            <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9975530/" target="_blank" rel="noopener">PMC - bone marrow MRI pitfalls and reconversion</a></li>
+          </ul>
+        </section>
+      `;
+      detail.querySelectorAll(".choice").forEach((button) => {
+        button.addEventListener("click", () => {
+          quizState[current.id] = Number(button.dataset.choice);
+          renderDetail();
+        });
+      });
+      document.getElementById("markDone").addEventListener("click", () => {
+        progress[current.id] = !progress[current.id];
+        saveProgress();
+        render();
+      });
+      document.getElementById("nextCard").addEventListener("click", () => {
+        const list = filteredModules();
+        const index = list.findIndex((m) => m.id === current.id);
+        activeId = list[(index + 1) % list.length].id;
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+
+    function updateStats() {
+      totalCount.textContent = modules.length;
+      doneCount.textContent = Object.values(progress).filter(Boolean).length;
+      domainCount.textContent = new Set(modules.map((m) => m.domain)).size;
+    }
+
+    function render() {
+      renderChips();
+      renderList();
+      renderDetail();
+      updateStats();
+    }
+
+    function label(x, y, text, fill = "#dfe9ee", size = 15) {
+      return `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" font-weight="800" text-anchor="middle">${text}</text>`;
+    }
+
+    function diagram(type) {
+      const map = {
+        spine: diagramSpine,
+        skull: diagramSkull,
+        ankle: diagramAnkle,
+        wrist: diagramWrist,
+        roundatelectasis: diagramRoundAtelectasis,
+        labrum: diagramLabrum,
+        brain: diagramBrain,
+        dap: diagramDap,
+        impedance: diagramImpedance,
+        marrow: diagramMarrow,
+        renal: diagramRenal,
+        calcs: diagramCalcs,
+        doubledecidual: diagramDoubleDecidual,
+        mckeown: diagramMckeown,
+        photon: diagramPhoton,
+        doppler: diagramDoppler
+      };
+      return (map[type] || diagramSkull)();
+    }
+
+    function svg(inner, viewBox = "0 0 520 360") {
+      return `<svg role="img" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+    }
+
+    function diagramSpine() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101b25"/>
+        <path d="M238 36 C215 76 215 118 238 156 C262 196 262 238 238 322" fill="none" stroke="#7fb7ff" stroke-width="24" stroke-linecap="round"/>
+        <path d="M278 36 C255 76 255 118 278 156 C302 196 302 238 278 322" fill="none" stroke="#39566e" stroke-width="18" stroke-linecap="round"/>
+        <ellipse cx="160" cy="118" rx="54" ry="38" fill="#ffd06b" opacity="0.9"/>
+        <ellipse cx="160" cy="218" rx="47" ry="35" fill="#64dfdf" opacity="0.75"/>
+        <ellipse cx="352" cy="218" rx="47" ry="58" fill="#cba7ff" opacity="0.72"/>
+        <path d="M214 118 C232 114 238 114 252 118" stroke="#ffd06b" stroke-width="8" stroke-linecap="round"/>
+        <path d="M204 218 C228 207 246 207 272 218" stroke="#64dfdf" stroke-width="8" stroke-linecap="round"/>
+        <path d="M308 216 C286 198 283 178 294 156" stroke="#cba7ff" stroke-width="8" stroke-linecap="round"/>
+        ${label(160, 71, "fat + dura", "#fff1b4", 16)}
+        ${label(160, 174, "meningocele", "#c8ffff", 15)}
+        ${label(352, 145, "myelocystocele", "#ead9ff", 15)}
+        ${label(260, 342, "closed = skin-covered lump", "#dfe9ee", 16)}
+      `);
+    }
+
+    function diagramSkull() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M150 150 C150 82 202 42 270 42 C346 42 400 92 400 166 C400 226 362 270 298 286 L214 286 C174 264 150 214 150 150 Z" fill="#e8e1c8"/>
+        <path d="M190 286 L336 286 L320 326 L214 326 Z" fill="#d4c9a8"/>
+        <g fill="#111820">
+          <circle cx="220" cy="112" r="16"/><circle cx="278" cy="92" r="11"/><circle cx="326" cy="128" r="19"/>
+          <circle cx="248" cy="168" r="14"/><circle cx="354" cy="190" r="13"/><circle cx="202" cy="202" r="18"/>
+          <circle cx="296" cy="226" r="16"/>
+        </g>
+        <g stroke="#ff8a8a" stroke-width="3" fill="none">
+          <circle cx="220" cy="112" r="22"/><circle cx="326" cy="128" r="25"/><circle cx="202" cy="202" r="24"/>
+        </g>
+        ${label(260, 30, "multiple punched-out holes", "#ffe0df", 18)}
+        ${label(260, 346, "sharp lytic margins - no sclerotic rim", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramAnkle() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#0f1a22"/>
+        <rect x="204" y="56" width="52" height="206" rx="18" fill="#d9e5e8"/>
+        <rect x="286" y="70" width="38" height="206" rx="16" fill="#c0d2d7"/>
+        <path d="M196 252 L332 252 L350 306 L178 306 Z" fill="#b7c5cc"/>
+        <line x1="176" y1="160" x2="356" y2="160" stroke="#7ee1a7" stroke-width="4" stroke-dasharray="8 7"/>
+        <g stroke-width="8" stroke-linecap="round">
+          <path d="M284 226 L326 250" stroke="#ffd06b"/>
+          <path d="M284 158 L332 186" stroke="#77c7ff"/>
+          <path d="M286 96 L332 122" stroke="#ff8a8a"/>
+        </g>
+        ${label(112, 233, "A below", "#ffd06b", 18)}
+        ${label(107, 164, "B at", "#77c7ff", 18)}
+        ${label(112, 103, "C above", "#ffb3b3", 18)}
+        ${label(260, 38, "fibular fracture level vs syndesmosis", "#dfe9ee", 16)}
+        ${label(260, 338, "higher fracture = more instability concern", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramWrist() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101a22"/>
+        <path d="M88 218 C152 174 210 148 270 148 C334 148 384 172 436 218 L402 276 C334 254 190 254 118 276 Z" fill="#d5c0a2"/>
+        <path d="M122 278 L402 278" stroke="#9b8367" stroke-width="7" stroke-linecap="round"/>
+        <g stroke-width="12" stroke-linecap="round" fill="none">
+          <path d="M164 86 C176 126 180 172 170 258" stroke="#64dfdf"/>
+          <path d="M208 76 C216 126 220 174 210 258" stroke="#77c7ff"/>
+          <path d="M260 70 C260 128 260 176 260 258" stroke="#cba7ff"/>
+          <path d="M318 76 C306 126 302 176 312 258" stroke="#ffd06b"/>
+          <path d="M376 86 C356 130 350 180 356 258" stroke="#ff8a8a"/>
+        </g>
+        <rect x="145" y="250" width="92" height="38" rx="8" fill="rgba(119,199,255,0.24)" stroke="#77c7ff"/>
+        ${label(191, 315, "2nd compartment", "#bfe5ff", 15)}
+        ${label(186, 59, "ECRL/ECRB", "#dfe9ee", 17)}
+        ${label(354, 59, "ulnar side", "#dfe9ee", 14)}
+        ${label(138, 59, "radial side", "#dfe9ee", 14)}
+      `);
+    }
+
+    function diagramRoundAtelectasis() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#0e1920"/>
+        <path d="M96 66 C66 126 64 226 104 302 C170 328 312 326 410 292 C456 218 450 122 408 68 C304 38 190 38 96 66 Z" fill="#243848"/>
+        <path d="M90 80 C128 90 150 114 160 150 C172 194 158 240 120 292" fill="none" stroke="#95b4c8" stroke-width="10" opacity="0.6"/>
+        <ellipse cx="156" cy="188" rx="58" ry="78" fill="#d8e6ea"/>
+        <path d="M366 80 C318 126 278 154 205 182 M382 126 C318 150 276 172 212 190 M366 232 C316 210 276 202 212 196" stroke="#7ee1a7" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <path d="M92 92 C128 96 144 120 156 156" stroke="#ffd06b" stroke-width="6" stroke-linecap="round"/>
+        ${label(166, 104, "round/elliptical", "#ffffff", 17)}
+        ${label(333, 58, "curved vessels/bronchi", "#bff6d3", 15)}
+        ${label(240, 326, "pleural contact + volume loss", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramLabrum() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <ellipse cx="270" cy="178" rx="88" ry="118" fill="#c7d3d8"/>
+        <ellipse cx="270" cy="178" rx="52" ry="80" fill="#182833"/>
+        <circle cx="362" cy="122" r="37" fill="#64dfdf" opacity="0.82"/>
+        <path d="M318 104 C336 88 348 82 366 86" stroke="#ff8a8a" stroke-width="9" stroke-linecap="round" fill="none"/>
+        <path d="M324 112 C338 118 348 120 362 122" stroke="#64dfdf" stroke-width="7" stroke-linecap="round"/>
+        <path d="M270 178 L360 122" stroke="#ffd06b" stroke-width="3" stroke-dasharray="7 6"/>
+        ${label(362, 70, "paralabral cyst", "#c8ffff", 16)}
+        ${label(368, 174, "anterosuperior tear", "#ffd5d5", 15)}
+        ${label(270, 326, "cyst points to adjacent labral defect", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramBrain() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M128 176 C108 96 172 48 250 58 C314 30 404 68 414 150 C462 204 418 294 334 292 C286 328 204 310 190 276 C140 268 104 230 128 176 Z" fill="#c9d4df"/>
+        <path d="M182 170 C218 130 302 130 338 170 C306 196 214 196 182 170 Z" fill="#7d8d98"/>
+        <ellipse cx="228" cy="188" rx="28" ry="20" fill="#ff8a8a"/>
+        <ellipse cx="292" cy="188" rx="28" ry="20" fill="#ff8a8a"/>
+        <path d="M222 188 C246 166 274 166 298 188" stroke="#ffd06b" stroke-width="4" fill="none"/>
+        ${label(260, 42, "CO poisoning", "#dfe9ee", 18)}
+        ${label(260, 236, "bilateral globus pallidus", "#ffd5d5", 16)}
+        ${label(260, 326, "symmetric toxic-metabolic pattern", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramDap() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#111a22"/>
+        <rect x="72" y="68" width="132" height="162" rx="8" fill="rgba(119,199,255,0.28)" stroke="#77c7ff" stroke-width="4"/>
+        <rect x="316" y="104" width="74" height="90" rx="8" fill="rgba(255,208,107,0.35)" stroke="#ffd06b" stroke-width="4"/>
+        <path d="M220 148 L296 148" stroke="#dfe9ee" stroke-width="5" marker-end="url(#arrow)"/>
+        <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#dfe9ee"/></marker></defs>
+        ${label(138, 52, "normal field", "#bfe5ff", 16)}
+        ${label(353, 88, "magnified field", "#fff1b4", 16)}
+        ${label(138, 260, "lower dose rate", "#dfe9ee", 14)}
+        ${label(353, 224, "higher dose rate", "#dfe9ee", 14)}
+        ${label(260, 316, "DAP = dose x area", "#7ee1a7", 20)}
+        ${label(260, 340, "area shrinks as dose rate rises", "#dfe9ee", 14)}
+      `);
+    }
+
+    function diagramImpedance() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M66 178 C118 128 166 128 218 178 C270 228 318 228 370 178 C400 150 430 138 462 148" stroke="#77c7ff" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <rect x="92" y="236" width="128" height="62" rx="8" fill="rgba(126,225,167,0.28)" stroke="#7ee1a7"/>
+        <rect x="300" y="236" width="128" height="62" rx="8" fill="rgba(255,138,138,0.3)" stroke="#ff8a8a"/>
+        <path d="M260 78 L260 304" stroke="#dfe9ee" stroke-width="4" stroke-dasharray="8 8"/>
+        <path d="M248 148 L178 106" stroke="#ffd06b" stroke-width="6" stroke-linecap="round"/>
+        <path d="M272 148 L356 116" stroke="#64dfdf" stroke-width="6" stroke-linecap="round"/>
+        ${label(156, 274, "low Z", "#dfffe9", 16)}
+        ${label(364, 274, "high Z", "#ffd5d5", 16)}
+        ${label(260, 52, "big mismatch = strong echo", "#dfe9ee", 18)}
+        ${label(260, 333, "high Z often tracks stiffness / bulk modulus", "#dfe9ee", 14)}
+      `);
+    }
+
+    function diagramMarrow() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M148 52 C120 106 120 250 148 306 L212 306 C184 250 184 106 212 52 Z" fill="#ead9a6"/>
+        <path d="M308 52 C280 106 280 250 308 306 L372 306 C344 250 344 106 372 52 Z" fill="#ead9a6"/>
+        <g fill="#b84e5b" opacity="0.72">
+          <ellipse cx="177" cy="102" rx="24" ry="34"/><ellipse cx="178" cy="178" rx="28" ry="42"/><ellipse cx="176" cy="258" rx="24" ry="34"/>
+          <ellipse cx="337" cy="102" rx="24" ry="34"/><ellipse cx="338" cy="178" rx="28" ry="42"/><ellipse cx="336" cy="258" rx="24" ry="34"/>
+        </g>
+        <line x1="92" y1="306" x2="430" y2="306" stroke="#dfe9ee" stroke-width="3"/>
+        ${label(260, 34, "symmetric red marrow return", "#dfe9ee", 18)}
+        ${label(260, 334, "T1: darker than fat, brighter than muscle", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramRenal() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M182 62 C112 86 96 166 132 236 C168 304 246 320 284 254 C236 238 228 196 270 168 C312 140 284 74 230 62 Z" fill="#c46b7a"/>
+        <ellipse cx="210" cy="168" rx="48" ry="38" fill="#ffe08a"/>
+        <path d="M210 206 L210 286" stroke="#2a3640" stroke-width="18" stroke-linecap="round" opacity="0.22"/>
+        <path d="M318 82 C396 112 426 196 386 262 C356 312 278 306 248 254 C300 240 308 198 270 168 C230 138 260 74 318 82 Z" fill="#c46b7a" opacity="0.5"/>
+        <ellipse cx="326" cy="178" rx="42" ry="34" fill="#ffe08a"/>
+        <path d="M326 216 L326 286" stroke="#77c7ff" stroke-width="7" stroke-dasharray="8 7"/>
+        ${label(210, 50, "classic AML", "#fff1b4", 16)}
+        ${label(326, 70, "no shadow?", "#bfe5ff", 16)}
+        ${label(210, 314, "shadow supports fat-rich AML", "#dfe9ee", 14)}
+        ${label(326, 314, "prove fat with CT/MRI", "#dfe9ee", 14)}
+      `);
+    }
+
+    function diagramCalcs() {
+      const dots = Array.from({ length: 36 }, (_, i) => {
+        const x = 118 + (i * 37) % 280 + ((i % 3) * 7);
+        const y = 74 + (i * 53) % 190;
+        const r = 2 + (i % 4);
+        const rot = (i * 31) % 90;
+        return `<rect x="${x}" y="${y}" width="${r * 2}" height="${r}" rx="1" fill="#f7f1d2" transform="rotate(${rot} ${x} ${y})"/>`;
+      }).join("");
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M146 70 C226 34 328 46 386 112 C430 164 414 250 352 292 C282 340 174 314 120 242 C76 182 92 98 146 70 Z" fill="#4a5560"/>
+        <path d="M132 110 C202 82 304 92 374 146" stroke="#6b7884" stroke-width="38" stroke-linecap="round" opacity="0.55"/>
+        <path d="M114 206 C196 172 292 178 390 230" stroke="#6b7884" stroke-width="38" stroke-linecap="round" opacity="0.55"/>
+        ${dots}
+        ${label(260, 38, "fine pleomorphic", "#fff1b4", 19)}
+        ${label(260, 326, "tiny + varied shapes = suspicious morphology", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramDoubleDecidual() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <ellipse cx="260" cy="178" rx="172" ry="106" fill="#6a2d42"/>
+        <ellipse cx="260" cy="178" rx="116" ry="72" fill="#e7b7c8"/>
+        <ellipse cx="260" cy="178" rx="78" ry="48" fill="#8a4157"/>
+        <ellipse cx="260" cy="178" rx="50" ry="30" fill="#101820" stroke="#f9e8a8" stroke-width="8"/>
+        <ellipse cx="260" cy="178" rx="82" ry="52" fill="none" stroke="#f9e8a8" stroke-width="7" opacity="0.88"/>
+        ${label(260, 50, "two bright decidual rings", "#fff1b4", 18)}
+        ${label(260, 324, "supports early intrauterine pregnancy", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramMckeown() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M260 42 C198 42 156 96 156 168 C156 254 198 318 260 318 C322 318 364 254 364 168 C364 96 322 42 260 42 Z" fill="#263845"/>
+        <path d="M260 72 C250 116 252 164 260 206 C268 246 268 286 260 308" stroke="#ffd06b" stroke-width="14" stroke-linecap="round" fill="none"/>
+        <path d="M272 196 C318 214 330 260 308 300" stroke="#7ee1a7" stroke-width="22" stroke-linecap="round" fill="none"/>
+        <g fill="#ff8a8a">
+          <rect x="230" y="66" width="60" height="10" rx="5"/>
+          <rect x="330" y="154" width="10" height="72" rx="5"/>
+          <rect x="218" y="294" width="84" height="10" rx="5"/>
+        </g>
+        ${label(260, 34, "McKeown = 3 incisions", "#dfe9ee", 18)}
+        ${label(128, 78, "neck", "#ffd5d5", 15)}
+        ${label(410, 192, "chest", "#ffd5d5", 15)}
+        ${label(260, 340, "abdomen + gastric conduit", "#dfe9ee", 15)}
+      `);
+    }
+
+    function diagramPhoton() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <path d="M70 126 C112 82 154 82 196 126 C238 170 280 170 322 126 C364 82 406 82 448 126" stroke="#77c7ff" stroke-width="8" fill="none"/>
+        <path d="M70 232 C154 188 238 188 322 232 C386 266 426 260 448 232" stroke="#ffd06b" stroke-width="8" fill="none"/>
+        <line x1="72" y1="152" x2="196" y2="152" stroke="#dfe9ee" stroke-width="3"/>
+        <line x1="72" y1="258" x2="322" y2="258" stroke="#dfe9ee" stroke-width="3"/>
+        ${label(134, 178, "lambda", "#bfe5ff", 15)}
+        ${label(197, 284, "2 x lambda", "#fff1b4", 15)}
+        ${label(260, 46, "E = h c / lambda", "#dfe9ee", 22)}
+        ${label(260, 326, "double wavelength -> half energy", "#7ee1a7", 18)}
+      `);
+    }
+
+    function diagramDoppler() {
+      return svg(`
+        <rect width="520" height="360" rx="8" fill="#101820"/>
+        <rect x="204" y="44" width="112" height="34" rx="8" fill="#c9d4df"/>
+        <path d="M260 78 L190 170 L260 262 L330 170 Z" fill="rgba(119,199,255,0.16)" stroke="#77c7ff" stroke-width="3"/>
+        <circle cx="260" cy="136" r="16" fill="#7ee1a7"/>
+        <circle cx="260" cy="238" r="16" fill="#ffd06b"/>
+        <path d="M306 136 C390 140 426 168 438 214" stroke="#7ee1a7" stroke-width="5" fill="none" stroke-dasharray="9 7"/>
+        <path d="M306 238 C390 242 436 276 456 324" stroke="#ffd06b" stroke-width="5" fill="none" stroke-dasharray="9 7"/>
+        ${label(260, 30, "deeper gate = longer wait", "#dfe9ee", 18)}
+        ${label(128, 142, "shallow", "#dfffe9", 15)}
+        ${label(128, 244, "deep", "#fff1b4", 15)}
+        ${label(260, 326, "PRP increases, PRF decreases", "#dfe9ee", 16)}
+      `);
+    }
+
+    searchInput.addEventListener("input", (event) => {
+      searchTerm = event.target.value;
+      render();
+    });
+
+    document.getElementById("resetProgress").addEventListener("click", () => {
+      progress = {};
+      quizState = {};
+      saveProgress();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
