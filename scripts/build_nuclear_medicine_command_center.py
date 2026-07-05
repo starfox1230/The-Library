@@ -23,6 +23,7 @@ CORE_REVIEW = ROOT / "apps" / "core-studying" / "Core Review"
 
 
 def clean_text(s: str) -> str:
+    s = re.sub(r"(?m)^�\s+", "• ", s)
     replacements = {
         "â€“": "-",
         "â€”": "-",
@@ -35,6 +36,7 @@ def clean_text(s: str) -> str:
         "Î»": "lambda",
         "â„": "/",
         "Â": "",
+        "�": "-",
         "fi ": "fi ",
     }
     for old, new in replacements.items():
@@ -47,6 +49,10 @@ def clean_text(s: str) -> str:
 def line_is_heading(line: str) -> bool:
     t = line.strip()
     if not t or t.startswith("•") or t.startswith("- "):
+        return False
+    if t in {"A", "-A"}:
+        return False
+    if not re.search(r"[A-Za-z0-9]", t):
         return False
     if len(t) > 92:
         return False
